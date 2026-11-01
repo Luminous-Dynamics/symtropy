@@ -8,7 +8,8 @@
 //! rational arithmetic.
 
 use crate::Rational;
-use std::collections::BTreeSet;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FiniteObservationChannel {
@@ -946,6 +947,366 @@ pub fn solve_binary_blackwell_garbling(
     };
     let receipt = verify_blackwell_dominance(more_informative, less_informative, &witness)?;
     Ok(Some(receipt))
+}
+
+
+impl SignedRational {
+    fn is_zero(self) -> bool {
+        self.magnitude.is_zero()
+    }
+
+    fn is_negative(self) -> bool {
+        self.negative && !self.magnitude.is_zero()
+    }
+
+    fn checked_sub(self, other: Self) -> Result<Self, String> {
+        self.checked_add(other.negated())
+    }
+
+    fn absolute_magnitude(self) -> Rational {
+        self.magnitude
+    }
+}
+
+impl Ord for SignedRational {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.negative, other.negative) {
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (false, false) => self.magnitude.cmp(&other.magnitude),
+            (true, true) => other.magnitude.cmp(&self.magnitude),
+        }
+    }
+}
+
+impl PartialOrd for SignedRational {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct LinearInequality {
+    coefficients: Vec<SignedRational>,
+    upper_bound: SignedRational,
+}
+
+const MAX_SMALL_BLACKWELL_VARIABLES: usize = 12;
+const MAX_SMALL_BLACKWELL_CONSTRAINTS: usize = 25_000;
+const MAX_SMALL_BLACKWELL_PAIR_PRODUCTS: usize = 500_000;
+
+/// Solve the Blackwell garbling feasibility problem for bounded small channel
+/// dimensions using exact-rational Fourier-Motzkin elimination.
+///
+/// A garbling has one stochastic row for every observation of the more
+/// informative channel. The final output coordinate is eliminated using the
+/// row-sum constraint, leaving m*(n-1) variables in [0,1] subject to exact
+/// linear equalities and simplex inequalities. Feasibility is decided by
+/// elimination; a witness is reconstructed by exact reverse substitution and
+/// then checked again with verify_blackwell_dominance.
+///
+/// The solver deliberately has hard variable, constraint and pair-product
+/// caps. Exceeding a cap is an explicit unsupported-size error, never a
+/// negative dominance result. It is intended for exact small-domain oracle
+/// tests and bounded benchmark tasks, not arbitrary large channels.
+pub fn solve_small_blackwell_garbling(
+    more_informative: &FiniteObservationChannel,
+    less_informative: &FiniteObservationChannel,
+) -> Result<Option<BlackwellDominanceReceipt>, String> {
+    more_informative.validate()?;
+    less_informative.validate()?;
+    if more_informative.state_ids != less_informative.state_ids {
+        return Err("Blackwell channels must share the same ordered state vocabulary".into());
+    }
+
+    let source_observations = more_informative.observation_ids.len();
+    let target_observations = less_informative.observation_ids.len();
+    if target_observations == 1 {
+        let witness = BlackwellGarblingWitness {
+            probabilities: vec![vec![Rational::one()]; source_observations],
+        };
+        return verify_blackwell_dominance(more_informative, less_informative, &witness)
+            .map(Some);
+    }
+
+    let variables = source_observations
+        .checked_mul(target_observations - 1)
+        .ok_or_else(|| "Blackwell variable-count overflow".to_string())?;
+    if variables == 0 || variables > MAX_SMALL_BLACKWELL_VARIABLES {
+        return Err(format!(
+            "small Blackwell solver supports 1..={MAX_SMALL_BLACKWELL_VARIABLES} free variables"
+        ));
+    }
+
+    let mut constraints = Vec::new();
+    let mut zero_vector = || vec![SignedRational::from_rational(Rational::zero()); variables];
+
+    // For every state and all but the final target observation:
+    // sum_z K_more(state,z) * G(z,y) = K_less(state,y).
+    for (state, source_row) in more_informative.probabilities.iter().enumerate() {
+        for target_observation in 0..(target_observations - 1) {
+            let mut coefficients = zero_vector();
+            for (source_observation, probability) in source_row.iter().copied().enumerate() {
+                let variable = source_observation * (target_observations - 1) + target_observation;
+                coefficients[variable] = SignedRational::from_rational(probability);
+            }
+            let target_probability =
+                SignedRational::from_rational(less_informative.probabilities[state][target_observation]);
+            constraints.push(LinearInequality {
+                coefficients: coefficients.clone(),
+                upper_bound: target_probability,
+            });
+            constraints.push(LinearInequality {
+                coefficients: coefficients.iter().copied().map(SignedRational::negated).collect(),
+                upper_bound: target_probability.negated(),
+            });
+        }
+    }
+
+    // Each garbling probability is nonnegative.
+    for variable in 0..variables {
+        let mut coefficients = zero_vector();
+        coefficients[variable] =
+            SignedRational::from_rational(Rational::one()).negated();
+        constraints.push(LinearInequality {
+            coefficients,
+            upper_bound: SignedRational::from_rational(Rational::zero()),
+        });
+    }
+
+    // Each source-observation row lies in the simplex: sum_y G(z,y) <= 1.
+    for source_observation in 0..source_observations {
+        let mut coefficients = zero_vector();
+        for target_observation in 0..(target_observations - 1) {
+            let variable = source_observation * (target_observations - 1) + target_observation;
+            coefficients[variable] = SignedRational::from_rational(Rational::one());
+        }
+        constraints.push(LinearInequality {
+            coefficients,
+            upper_bound: SignedRational::from_rational(Rational::one()),
+        });
+    }
+
+    let Some(solution) = exact_boxed_linear_feasibility(variables, constraints)? else {
+        return Ok(None);
+    };
+
+    let mut garbling_rows = Vec::with_capacity(source_observations);
+    for source_observation in 0..source_observations {
+        let mut row = Vec::with_capacity(target_observations);
+        let mut assigned_mass = Rational::zero();
+        for target_observation in 0..(target_observations - 1) {
+            let variable = source_observation * (target_observations - 1) + target_observation;
+            let Some(probability) = solution[variable].as_probability() else {
+                return Err("Blackwell witness reconstruction produced a negative probability".into());
+            };
+            assigned_mass = assigned_mass.checked_add(probability)?;
+            row.push(probability);
+        }
+        let final_probability = subtract_nonnegative(Rational::one(), assigned_mass)
+            .map_err(|_| "Blackwell witness reconstruction exceeded a row's probability mass".to_string())?;
+        row.push(final_probability);
+        garbling_rows.push(row);
+    }
+
+    let witness = BlackwellGarblingWitness {
+        probabilities: garbling_rows,
+    };
+    verify_blackwell_dominance(more_informative, less_informative, &witness).map(Some)
+}
+
+fn normalize_inequality(
+    mut inequality: LinearInequality,
+) -> Result<LinearInequality, String> {
+    let scale = inequality
+        .coefficients
+        .iter()
+        .copied()
+        .find(|coefficient| !coefficient.is_zero())
+        .map(SignedRational::absolute_magnitude)
+        .or_else(|| {
+            (!inequality.upper_bound.is_zero())
+                .then_some(inequality.upper_bound.absolute_magnitude())
+        })
+        .unwrap_or_else(Rational::one);
+    let positive_scale = SignedRational::from_rational(scale);
+    for coefficient in &mut inequality.coefficients {
+        *coefficient = coefficient.checked_div(positive_scale)?;
+    }
+    inequality.upper_bound = inequality.upper_bound.checked_div(positive_scale)?;
+    Ok(inequality)
+}
+
+/// Normalize positive scalar multiples and retain only the strongest bound
+/// for each coefficient vector.
+fn deduplicate_inequalities(
+    inequalities: Vec<LinearInequality>,
+) -> Result<Option<Vec<LinearInequality>>, String> {
+    let mut strongest = BTreeMap::<Vec<SignedRational>, SignedRational>::new();
+    for inequality in inequalities {
+        let inequality = normalize_inequality(inequality)?;
+        if inequality.coefficients.iter().all(|coefficient| coefficient.is_zero()) {
+            if inequality.upper_bound.is_negative() {
+                return Ok(None);
+            }
+            continue;
+        }
+        strongest
+            .entry(inequality.coefficients)
+            .and_modify(|upper| {
+                if inequality.upper_bound < *upper {
+                    *upper = inequality.upper_bound;
+                }
+            })
+            .or_insert(inequality.upper_bound);
+        if strongest.len() > MAX_SMALL_BLACKWELL_CONSTRAINTS {
+            return Err("small Blackwell elimination exceeded the constraint cap".into());
+        }
+    }
+    Ok(Some(
+        strongest
+            .into_iter()
+            .map(|(coefficients, upper_bound)| LinearInequality {
+                coefficients,
+                upper_bound,
+            })
+            .collect(),
+    ))
+}
+
+fn eliminate_first_variable(
+    inequalities: Vec<LinearInequality>,
+    pair_products: &mut usize,
+) -> Result<Option<Vec<LinearInequality>>, String> {
+    let mut positive = Vec::new();
+    let mut negative = Vec::new();
+    let mut zero = Vec::new();
+    for inequality in inequalities {
+        let coefficient = inequality.coefficients[0];
+        if coefficient.is_negative() {
+            negative.push(inequality);
+        } else if coefficient.is_zero() {
+            let mut reduced = inequality;
+            reduced.coefficients.remove(0);
+            zero.push(reduced);
+        } else {
+            positive.push(inequality);
+        }
+    }
+
+    let pair_count = positive
+        .len()
+        .checked_mul(negative.len())
+        .ok_or_else(|| "Blackwell elimination pair-count overflow".to_string())?;
+    *pair_products = pair_products
+        .checked_add(pair_count)
+        .ok_or_else(|| "Blackwell elimination pair-product counter overflow".to_string())?;
+    if *pair_products > MAX_SMALL_BLACKWELL_PAIR_PRODUCTS {
+        return Err("small Blackwell elimination exceeded the pair-product cap".into());
+    }
+
+    // If one sign is absent, the eliminated variable can move without bound
+    // in the satisfying direction, so all nonzero-coefficient rows disappear.
+    if positive.is_empty() || negative.is_empty() {
+        return deduplicate_inequalities(zero);
+    }
+
+    let mut generated = zero;
+    for upper in &positive {
+        for lower in &negative {
+            let positive_factor =
+                SignedRational::from_rational(lower.coefficients[0].absolute_magnitude());
+            let negative_factor =
+                SignedRational::from_rational(upper.coefficients[0].absolute_magnitude());
+            let mut coefficients = Vec::with_capacity(upper.coefficients.len() - 1);
+            for index in 1..upper.coefficients.len() {
+                let upper_term = upper.coefficients[index].checked_mul(positive_factor)?;
+                let lower_term = lower.coefficients[index].checked_mul(negative_factor)?;
+                coefficients.push(upper_term.checked_add(lower_term)?);
+            }
+            let upper_bound = upper
+                .upper_bound
+                .checked_mul(positive_factor)?
+                .checked_add(lower.upper_bound.checked_mul(negative_factor)?)?;
+            generated.push(LinearInequality {
+                coefficients,
+                upper_bound,
+            });
+            if generated.len() > MAX_SMALL_BLACKWELL_CONSTRAINTS * 2 {
+                return Err("small Blackwell elimination exceeded its intermediate cap".into());
+            }
+        }
+    }
+    deduplicate_inequalities(generated)
+}
+
+fn exact_boxed_linear_feasibility(
+    variables: usize,
+    mut inequalities: Vec<LinearInequality>,
+) -> Result<Option<Vec<SignedRational>>, String> {
+    let mut stages = Vec::with_capacity(variables);
+    let mut pair_products = 0usize;
+    for _ in 0..variables {
+        if inequalities.len() > MAX_SMALL_BLACKWELL_CONSTRAINTS {
+            return Err("small Blackwell elimination exceeded the constraint cap".into());
+        }
+        stages.push(inequalities.clone());
+        let Some(reduced) =
+            eliminate_first_variable(inequalities, &mut pair_products)?
+        else {
+            return Ok(None);
+        };
+        inequalities = reduced;
+    }
+    if inequalities.iter().any(|inequality| inequality.upper_bound.is_negative()) {
+        return Ok(None);
+    }
+
+    // Reconstruct a feasible point from the saved elimination stages.
+    let zero = SignedRational::from_rational(Rational::zero());
+    let mut solution = vec![zero; variables];
+    for variable in (0..variables).rev() {
+        let mut lower_bound: Option<SignedRational> = None;
+        let mut upper_bound: Option<SignedRational> = None;
+        for inequality in &stages[variable] {
+            let coefficient = inequality.coefficients[0];
+            let mut residual = inequality.upper_bound;
+            for (remaining_coefficient, assigned) in inequality
+                .coefficients
+                .iter()
+                .skip(1)
+                .zip(solution.iter().skip(variable + 1))
+            {
+                residual = residual.checked_sub(remaining_coefficient.checked_mul(*assigned)?)?;
+            }
+            if coefficient.is_negative() {
+                let bound = residual.checked_div(coefficient)?;
+                if lower_bound.is_none_or(|current| bound > current) {
+                    lower_bound = Some(bound);
+                }
+            } else if coefficient.is_zero() {
+                if residual.is_negative() {
+                    return Ok(None);
+                }
+            } else {
+                let bound = residual.checked_div(coefficient)?;
+                if upper_bound.is_none_or(|current| bound < current) {
+                    upper_bound = Some(bound);
+                }
+            }
+        }
+        if let (Some(lower), Some(upper)) = (lower_bound, upper_bound) {
+            if lower > upper {
+                return Ok(None);
+            }
+        }
+        solution[variable] = match (lower_bound, upper_bound) {
+            (Some(lower), _) if lower > zero => lower,
+            (_, Some(upper)) if upper < zero => upper,
+            _ => zero,
+        };
+    }
+    Ok(Some(solution))
 }
 
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
