@@ -1797,6 +1797,56 @@ mod tests {
     }
 
     #[test]
+    fn general_blackwell_solver_matches_independent_binary_oracle_on_quarter_grid() {
+        let probability = |numerator: u128| Rational::new(numerator, 4).unwrap();
+        let make_channel = |id: String, first: Rational, second: Rational| {
+            FiniteObservationChannel {
+                channel_id: id,
+                state_ids: vec!["s0".into(), "s1".into()],
+                observation_ids: vec!["o0".into(), "o1".into()],
+                probabilities: vec![
+                    vec![first, subtract_nonnegative(Rational::one(), first).unwrap()],
+                    vec![second, subtract_nonnegative(Rational::one(), second).unwrap()],
+                ],
+            }
+        };
+
+        let mut comparisons = 0usize;
+        for source_state_zero in 0..=4 {
+            for source_state_one in 0..=4 {
+                let more = make_channel(
+                    format!("source-{source_state_zero}-{source_state_one}"),
+                    probability(source_state_zero),
+                    probability(source_state_one),
+                );
+                for target_state_zero in 0..=4 {
+                    for target_state_one in 0..=4 {
+                        let less = make_channel(
+                            format!("target-{target_state_zero}-{target_state_one}"),
+                            probability(target_state_zero),
+                            probability(target_state_one),
+                        );
+                        let binary = solve_binary_blackwell_garbling(&more, &less)
+                            .expect("binary closed-form feasibility must be well-defined");
+                        let general = solve_small_blackwell_garbling(&more, &less)
+                            .expect("bounded rational feasibility must be well-defined");
+                        assert_eq!(
+                            binary.is_some(),
+                            general.is_some(),
+                            "solver disagreement for source=({source_state_zero}/4,{source_state_one}/4), target=({target_state_zero}/4,{target_state_one}/4)"
+                        );
+                        if let Some(receipt) = general {
+                            verify_blackwell_dominance(&more, &less, &receipt.witness).unwrap();
+                        }
+                        comparisons += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(comparisons, 625);
+    }
+
+    #[test]
     fn general_blackwell_solver_rejects_an_impossible_three_by_three_channel() {
         let (more, _, _) = asymmetric_three_by_three_channels();
         let perfect = FiniteObservationChannel {
