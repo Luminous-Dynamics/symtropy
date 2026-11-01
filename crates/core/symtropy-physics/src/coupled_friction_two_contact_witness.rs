@@ -777,4 +777,300 @@ mod schur_reduction_tests {
         assert!(coupled_velocity[3] > 0.0);
         assert!((coupled_velocity[3] - uncoupled_velocity[3]).abs() > 1.0e-3);
     }
+
+    #[derive(Clone, Debug)]
+    struct MirroredSchurCandidate {
+        impulse: Vector6,
+        contact_two_regime: CoupledCoulombRegime,
+        contact_two_tau: f64,
+        kinetic_energy_delta: f64,
+        max_velocity_residual: f64,
+    }
+
+    #[derive(Clone, Debug)]
+    struct MirroredSchurOutcome {
+        reduced_status: CoupledCoulombStatus,
+        candidates: Vec<MirroredSchurCandidate>,
+    }
+
+    fn swap_contact_blocks(w: &Matrix6, q: &Vector6) -> (Matrix6, Vector6) {
+        let swap = |index: usize| if index < 3 { index + 3 } else { index - 3 };
+        let permuted_w = Matrix6::from_fn(|i, j| w[(swap(i), swap(j))]);
+        let permuted_q = Vector6::from_fn(|i, _| q[swap(i)]);
+        (permuted_w, permuted_q)
+    }
+
+    fn swap_impulse_blocks(impulse: &Vector6) -> Vector6 {
+        Vector6::new(
+            impulse[3], impulse[4], impulse[5], impulse[0], impulse[1], impulse[2],
+        )
+    }
+
+    /// Mirror the contact-2-separating reduction by permuting contact blocks.
+    ///
+    /// The returned contact_two_regime names the active (non-eliminated)
+    /// original contact. Contact 1 has p_1 = 0 and must separate strictly
+    /// after reconstruction against the original full 6x6 island.
+    fn solve_with_contact_one_separating(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<MirroredSchurOutcome, &'static str> {
+        let (permuted_w, permuted_q) = swap_contact_blocks(w, q);
+        let inner =
+            solve_with_contact_two_separating(&permuted_w, &permuted_q, mu_2, mu_1, tolerance)?;
+
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let mut candidates = Vec::new();
+        for candidate in inner.candidates {
+            let impulse = swap_impulse_blocks(&candidate.impulse);
+            let post_velocity = q + w * impulse;
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+
+            // Contact 1 is strictly separating in the original coordinate order.
+            if impulse.fixed_rows::<3>(0).norm() > impulse_tolerance
+                || post_velocity[0] <= velocity_tolerance
+            {
+                continue;
+            }
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(MirroredSchurCandidate {
+                impulse,
+                contact_two_regime: candidate.contact_one_regime,
+                contact_two_tau: candidate.contact_one_tau,
+                kinetic_energy_delta,
+                max_velocity_residual: candidate.max_velocity_residual,
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            inner.reduced_status
+        };
+        Ok(MirroredSchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    /// Mirror contact-2 sticking elimination to the case where contact 1 sticks.
+    ///
+    /// After permuting contact blocks, the existing Schur reducer eliminates
+    /// the original contact-1 block. The returned candidates are unpermuted and
+    /// independently rechecked for strict contact-1 sticking and full-island energy.
+    fn solve_with_contact_one_sticking(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<MirroredSchurOutcome, &'static str> {
+        let (permuted_w, permuted_q) = swap_contact_blocks(w, q);
+        let inner =
+            solve_with_contact_two_sticking(&permuted_w, &permuted_q, mu_2, mu_1, tolerance)?;
+
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let mut candidates = Vec::new();
+        for candidate in inner.candidates {
+            let impulse = swap_impulse_blocks(&candidate.impulse);
+            let post_velocity = q + w * impulse;
+            let p_1 = SVector::<f64, 3>::new(impulse[0], impulse[1], impulse[2]);
+            let u_1 = SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+            let tangent_impulse_norm = p_1.fixed_rows::<2>(1).norm();
+
+            // Contact 1 must be loaded, stationary, and strictly inside its disk.
+            if p_1[0] <= impulse_tolerance
+                || u_1.norm() > velocity_tolerance
+                || mu_1 * p_1[0] - tangent_impulse_norm <= impulse_tolerance
+            {
+                continue;
+            }
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(MirroredSchurCandidate {
+                impulse,
+                contact_two_regime: candidate.contact_one_regime,
+                contact_two_tau: candidate.contact_one_tau,
+                kinetic_energy_delta,
+                max_velocity_residual: candidate.max_velocity_residual.max(u_1.norm()),
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            inner.reduced_status
+        };
+        Ok(MirroredSchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    fn contact_one_separating_contact_two_sliding_fixture(
+        contact_one_normal_free_velocity: f64,
+    ) -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(contact_one_normal_free_velocity, 0.2, -0.1, -1.0, 1.0, 0.0);
+        (w, q)
+    }
+
+    fn contact_one_sticking_contact_two_sliding_fixture() -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(-10.1, 0.05, 0.0, -2.0, 1.0, 0.0);
+        (w, q)
+    }
+
+    #[test]
+    fn contact_one_separating_reduction_recovers_contact_two_sliding() {
+        let (w, q) = contact_one_separating_contact_two_sliding_fixture(1.0);
+        let outcome = solve_with_contact_one_separating(&w, &q, 0.3, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::UniqueWithinTolerance
+        );
+        assert_eq!(outcome.candidates.len(), 1);
+        let candidate = &outcome.candidates[0];
+        assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
+        assert!(candidate.contact_two_tau > 0.0);
+        assert!(candidate.impulse.fixed_rows::<3>(0).norm() == 0.0);
+
+        let post_velocity = q + w * candidate.impulse;
+        assert!(post_velocity[0] > 0.0);
+        assert!(post_velocity[3].abs() < 1.0e-8);
+        assert!(
+            (post_velocity[4] + candidate.contact_two_tau * candidate.impulse[4]).abs() < 1.0e-8
+        );
+        assert!(
+            (post_velocity[5] + candidate.contact_two_tau * candidate.impulse[5]).abs() < 1.0e-8
+        );
+        assert!(candidate.kinetic_energy_delta < 0.0);
+    }
+
+    #[test]
+    fn contact_one_separating_reduction_rejects_inward_full_island_velocity() {
+        let (w, q) = contact_one_separating_contact_two_sliding_fixture(-0.2);
+        let outcome = solve_with_contact_one_separating(&w, &q, 0.3, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::Inconclusive);
+        assert!(outcome.candidates.is_empty());
+    }
+
+    #[test]
+    fn contact_one_sticking_reduction_recovers_contact_two_sliding() {
+        let (w, q) = contact_one_sticking_contact_two_sliding_fixture();
+        let outcome = solve_with_contact_one_sticking(&w, &q, 0.2, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::UniqueWithinTolerance
+        );
+        assert_eq!(outcome.candidates.len(), 1);
+        let candidate = &outcome.candidates[0];
+        assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
+        assert!(candidate.contact_two_tau > 0.0);
+
+        let p = candidate.impulse;
+        assert!((p[0] - 10.0).abs() < 1.0e-8);
+        assert!(p.fixed_rows::<2>(1).norm() < 1.0e-8);
+        assert!((p[3] - 1.0).abs() < 1.0e-8);
+        assert!((p[4] + 0.5).abs() < 1.0e-8);
+        let post_velocity = q + w * p;
+        assert!(post_velocity.fixed_rows::<3>(0).norm() < 1.0e-8);
+        assert!(post_velocity[3].abs() < 1.0e-8);
+        assert!((post_velocity[4] + candidate.contact_two_tau * p[4]).abs() < 1.0e-8);
+        assert!((post_velocity[5] + candidate.contact_two_tau * p[5]).abs() < 1.0e-8);
+        assert!(0.2 * p[0] - p.fixed_rows::<2>(1).norm() > 1.0);
+        assert!(candidate.kinetic_energy_delta < 0.0);
+    }
+
+    fn both_sliding_coupled_fixture() -> (Matrix6, Vector6, Vector6) {
+        let mut w = Matrix6::identity();
+        let coupling = 0.25;
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = coupling;
+            w[(axis + 3, axis)] = coupling;
+        }
+
+        let free_velocity = Vector6::new(-1.25, 1.25, 0.0, -1.25, 1.25, 0.0);
+        let impulse = Vector6::new(1.0, -0.5, 0.0, 1.0, -0.5, 0.0);
+        (w, free_velocity, impulse)
+    }
+
+    #[test]
+    fn both_contacts_can_slide_in_a_genuinely_coupled_spd_island() {
+        let (w, q, p) = both_sliding_coupled_fixture();
+        let mu_1 = 0.5;
+        let mu_2 = 0.5;
+        let tau_1 = 1.25;
+        let tau_2 = 1.25;
+
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+        assert_eq!(w[(0, 3)], 0.25);
+        assert_eq!(w[(3, 0)], 0.25);
+
+        // Both contacts are loaded and normal-post-velocity is exactly zero.
+        let u = q + w * p;
+        assert_eq!(u, Vector6::new(0.0, 0.625, 0.0, 0.0, 0.625, 0.0));
+        assert!(p[0] > 0.0 && p[3] > 0.0);
+        assert_eq!(p[0] * u[0], 0.0);
+        assert_eq!(p[3] * u[3], 0.0);
+
+        // Both impulses lie exactly on their local circular Coulomb boundaries.
+        let disk_margin_1 = (mu_1 * p[0]).powi(2) - p[1].powi(2) - p[2].powi(2);
+        let disk_margin_2 = (mu_2 * p[3]).powi(2) - p[4].powi(2) - p[5].powi(2);
+        assert_eq!(disk_margin_1, 0.0);
+        assert_eq!(disk_margin_2, 0.0);
+
+        // Both sliding KKT multipliers are strictly positive.
+        assert!(tau_1 > 0.0 && tau_2 > 0.0);
+        assert_eq!(u[1] + tau_1 * p[1], 0.0);
+        assert_eq!(u[2] + tau_1 * p[2], 0.0);
+        assert_eq!(u[4] + tau_2 * p[4], 0.0);
+        assert_eq!(u[5] + tau_2 * p[5], 0.0);
+
+        // Full-island energy includes the off-diagonal cross-contact work.
+        let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+        assert_eq!(energy_delta, -2.1875);
+        assert!(energy_delta < 0.0);
+    }
 }
