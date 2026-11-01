@@ -127,6 +127,35 @@ Research/benchmark owners:
 - Orbital last-mile service: Symtropy #3253.
 - No-resupply, recovery and qualified closed-loop supply: Symtropy #3254.
 
+## 5C. Orbit delivery is not mission service acceptance
+
+Keep these outcomes distinct:
+- launch attempt / vehicle ascent;
+- primary orbit insertion;
+- transfer to the customer's required target state;
+- payload separation and custody transfer;
+- initial acquisition and subsystem checkout;
+- commissioning against declared procedures;
+- first useful mission service;
+- sustained service within its specified performance envelope;
+- customer / contractual close.
+
+A campaign is not complete merely because payload mass reached a coordinate or orbit shell. A communications payload may need a verified link and coverage; an Earth-observation payload may need calibration and a valid data product; a science payload may need a first accepted observation; a depot/servicer may need a completed, witnessed transfer. Report failed, partial, unknown, disputed and not-applicable transitions separately.
+
+Customer acceptance, technical qualification, regulatory approval and commercial payment are different authorities. A signed acceptance or invoice cannot create missing telemetry or physical qualification. Conversely, a technically working service does not automatically close a commercial contract.
+
+Symtropy benchmark owner: [ORBITAL-SERVICE-ACCEPTANCE-001 #3257](https://github.com/Luminous-Dynamics/symtropy/issues/3257). It defines the transition state machine, service acceptance criteria, failed/partial service cases, availability denominator rules and evidence ceiling. The Earth-to-orbit chain should consume its final service outcome without duplicating spacecraft command, telemetry, GNC or mission-control authority.
+
+## 5D. Capability maturity must be exact-configuration and outcome-specific
+
+NASA's 2026 SmallSat State-of-the-Art survey states that its information is publicly available as of 1 April 2026, and that its technology readiness assessments depend on mission configuration and environment. It also discounts flight heritage when a flight did not succeed or did not confirm the advertised capability. OTV/OMV service is described as a nascent market with many planned systems and few with flight heritage.
+
+Therefore, preserve exact hardware/software/propulsion version, actual flight attempt and outcome, separation, manoeuvre, capture, target-state delivery, commissioning and service evidence. Do not represent a provider or product family as "flight proven" if only a different configuration or a partial capability flew. See:
+- NASA, [2026 Small Spacecraft State of the Art — Introduction / Assessment](https://www.nasa.gov/smallsat-institute/sst-soa/introduction/), §§1.1–1.3.
+- NASA, [Integration, Launch, Deployment and Orbital Transport](https://www.nasa.gov/smallsat-institute/sst-soa/integration-launch-and-deployment/), §10.5.
+
+The same principle applies to terrestrial systems: a LIM pod test, maglev bogie test, guideway trial, tunnel segment or commercial freight operation are different exact configurations and maturity claims.
+
 ## 6. Frozen synthetic corpus
 
 Freeze at least 24 synthetic cases across the following dimensions:
@@ -161,6 +190,8 @@ Record solver version, hardware, runtime, memory, stopping condition, objective 
 
 Preserve separate ledgers and report:
 - accepted payload kg delivered by destination orbit/service and deadline;
+- launched / orbit-delivered / separated / commissioned / service-accepted payloads as distinct outcomes;
+- time to first useful service, sustained service interval and service quality at a declared denominator;
 - mission cadence, launch-window service rate and campaign completion time;
 - cost per accepted delivered kg and whole-chain generalized cost;
 - capex, fixed/variable opex, energy, maintenance, inventory, insurance, renewal and decommissioning;
