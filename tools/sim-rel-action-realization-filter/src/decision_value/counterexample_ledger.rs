@@ -139,9 +139,11 @@ pub struct SealedHoldoutEvaluationRecord {
     pub holdout_world_snapshots: Vec<DecisionModelWorld>,
     pub evaluation_artifact_id: String,
     pub criteria: SealedHoldoutAcceptanceCriteria,
+    pub replay_succeeded: bool,
+    pub replay_error: Option<String>,
     pub per_world_metrics: Vec<WorldDecisionObjectives>,
-    pub worst_case_total_loss: Rational,
-    pub worst_case_terminal_loss: Rational,
+    pub worst_case_total_loss: Option<Rational>,
+    pub worst_case_terminal_loss: Option<Rational>,
     pub acceptance_criteria_satisfied: bool,
 }
 
@@ -811,7 +813,7 @@ impl ModelFamilyLedger {
         let holdout_nominal_world_id = expected_world_ids
             .first()
             .ok_or_else(|| "registered holdout group has no nominal reference world".to_string())?;
-        let replay = replay_shared_policy_across_worlds(
+        let replay_result = replay_shared_policy_across_worlds(
             holdout_worlds,
             holdout_nominal_world_id,
             &self.replay_context.loss_table,
@@ -820,38 +822,61 @@ impl ModelFamilyLedger {
             self.replay_context.hazard_loss,
             frozen_plan,
             self.replay_context.horizon,
-        )?;
-        let replayed_ids = replay
-            .per_world
-            .iter()
-            .map(|metrics| metrics.world_id.clone())
-            .collect::<Vec<_>>();
-        let replayed_ids = canonical_world_id_set(&replayed_ids)?;
-        if replayed_ids != expected_world_ids {
-            return Err("sealed policy replay did not cover the registered holdout group".into());
-        }
+        );
 
-        let worst_case_total_loss = replay
-            .per_world
-            .iter()
-            .map(WorldDecisionObjectives::expected_total_loss)
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .max()
-            .unwrap_or_else(Rational::zero);
-        let worst_case_terminal_loss = replay
-            .per_world
-            .iter()
-            .map(|metrics| metrics.expected_terminal_loss)
-            .max()
-            .unwrap_or_else(Rational::zero);
-        let per_world_budgets_pass = replay.per_world.iter().all(|metrics| {
-            metrics.hazard_probability <= criteria.budgets.max_hazard_probability
-                && metrics.abstention_probability <= criteria.budgets.max_abstention_probability
-        });
-        let acceptance_criteria_satisfied = per_world_budgets_pass
-            && worst_case_total_loss <= criteria.max_worst_case_total_loss
-            && worst_case_terminal_loss <= criteria.max_worst_case_terminal_loss;
+        // Once the group and policy bindings are valid, the attempt is
+        // consumed regardless of replay success. This prevents retrying the
+        // same sealed group with altered world snapshots after observing an
+        // unsupported branch or arithmetic failure.
+        let (replay_succeeded, replay_error, replayed_ids, per_world_metrics,
+            worst_case_total_loss, worst_case_terminal_loss, acceptance_criteria_satisfied) =
+            match replay_result {
+                Ok(replay) => {
+                    let replayed_ids = replay
+                        .per_world
+                        .iter()
+                        .map(|metrics| metrics.world_id.clone())
+                        .collect::<Vec<_>>();
+                    let replayed_ids = canonical_world_id_set(&replayed_ids)?;
+                    if replayed_ids != expected_world_ids {
+                        (false, Some("sealed policy replay did not cover the registered holdout group".into()),
+                            expected_world_ids.clone(), Vec::new(), None, None, false)
+                    } else {
+                        let worst_case_total_loss = replay
+                            .per_world
+                            .iter()
+                            .map(WorldDecisionObjectives::expected_total_loss)
+                            .collect::<Result<Vec<_>, _>>()?
+                            .into_iter()
+                            .max()
+                            .unwrap_or_else(Rational::zero);
+                        let worst_case_terminal_loss = replay
+                            .per_world
+                            .iter()
+                            .map(|metrics| metrics.expected_terminal_loss)
+                            .max()
+                            .unwrap_or_else(Rational::zero);
+                        let per_world_budgets_pass = replay.per_world.iter().all(|metrics| {
+                            metrics.hazard_probability <= criteria.budgets.max_hazard_probability
+                                && metrics.abstention_probability <= criteria.budgets.max_abstention_probability
+                        });
+                        let acceptance = per_world_budgets_pass
+                            && worst_case_total_loss <= criteria.max_worst_case_total_loss
+                            && worst_case_terminal_loss <= criteria.max_worst_case_terminal_loss;
+                        (true, None, replayed_ids, replay.per_world,
+                            Some(worst_case_total_loss), Some(worst_case_terminal_loss), acceptance)
+                    }
+                }
+                Err(error) => (
+                    false,
+                    Some(error),
+                    expected_world_ids.clone(),
+                    Vec::new(),
+                    None,
+                    None,
+                    false,
+                ),
+            };
 
         let record = SealedHoldoutEvaluationRecord {
             event_receipt_id: event_receipt_id.clone(),
@@ -863,7 +888,9 @@ impl ModelFamilyLedger {
             holdout_world_snapshots: holdout_worlds.to_vec(),
             evaluation_artifact_id,
             criteria,
-            per_world_metrics: replay.per_world,
+            replay_succeeded,
+            replay_error,
+            per_world_metrics,
             worst_case_total_loss,
             worst_case_terminal_loss,
             acceptance_criteria_satisfied,
@@ -1697,7 +1724,9 @@ mod tests {
         )
         .unwrap();
         assert!(!evaluated.acceptance_criteria_satisfied);
-        assert_eq!(evaluated.worst_case_terminal_loss, Rational::one());
+        assert_eq!(evaluated.worst_case_terminal_loss, Some(Rational::one()));
+        assert!(evaluated.replay_succeeded);
+        assert_eq!(evaluated.replay_error, None);
         assert_eq!(evaluated.per_world_metrics.len(), 2);
         assert_eq!(evaluated.holdout_world_snapshots.len(), 2);
         assert_eq!(
@@ -1746,8 +1775,56 @@ mod tests {
         )
         .unwrap();
         assert!(evaluated.acceptance_criteria_satisfied);
-        assert_eq!(evaluated.worst_case_terminal_loss, Rational::zero());
+        assert_eq!(evaluated.worst_case_terminal_loss, Some(Rational::zero()));
+        assert!(evaluated.replay_succeeded);
         assert!(ledger.all_sealed_holdouts_consumed());
+    }
+
+    #[test]
+    fn failed_sealed_policy_replay_consumes_the_holdout_once() {
+        let mut ledger = ledger();
+        ledger
+            .seal_final_policy("seal-policy".into(), 0, "policy-v1".into())
+            .unwrap();
+        let mut invalid_world = world("heldout-world-b");
+        let perturbation = ModelWorldPerturbation::DropReadback {
+            command: 0,
+            sensor_state: Some(0),
+            dropout_probability: q(1, 2),
+        };
+        invalid_world = super::super::counterexample_search::apply_model_world_perturbation(
+            &invalid_world,
+            "heldout-world-b",
+            &perturbation,
+        )
+        .unwrap();
+        let worlds = vec![world("heldout-world-a"), invalid_world];
+
+        let result = evaluate_holdout(
+            &mut ledger,
+            "failed-replay-holdout",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .unwrap();
+        assert!(!result.replay_succeeded);
+        assert!(result.replay_error.is_some());
+        assert!(!result.acceptance_criteria_satisfied);
+        assert!(ledger.all_sealed_holdouts_consumed());
+
+        let retry = evaluate_holdout(
+            &mut ledger,
+            "failed-replay-holdout-retry",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &holdout_worlds(),
+            holdout_criteria(Rational::one()),
+        );
+        assert!(retry.is_err());
     }
 
     #[test]
