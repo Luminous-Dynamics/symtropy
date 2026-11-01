@@ -7,7 +7,7 @@
 
 use super::counterexample_search::{
     CounterexampleClass, CounterexampleOutcome, CounterexampleWitness, ModelWorldPerturbation,
-    apply_model_world_perturbation, is_policy_invalidated_error,
+    PerturbationSpec, apply_model_world_perturbation, is_policy_invalidated_error,
 };
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
 use super::robust_finite_horizon::{
@@ -195,6 +195,9 @@ pub struct SequencedLedgerEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelFamilyLedgerSnapshot {
+    pub baseline_development_worlds: Vec<DecisionModelWorld>,
+    pub initial_policy_identity: String,
+    pub initial_policy_plan: DecisionPlan,
     pub family_revision: u64,
     pub replay_context: DecisionReplayContext,
     pub development_worlds: Vec<DecisionModelWorld>,
@@ -217,6 +220,9 @@ pub struct ModelFamilyLedgerSnapshot {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelFamilyLedger {
+    baseline_development_worlds: Vec<DecisionModelWorld>,
+    initial_policy_identity: String,
+    initial_policy_plan: DecisionPlan,
     replay_context: DecisionReplayContext,
     development_worlds: Vec<DecisionModelWorld>,
     family_revision: u64,
@@ -385,6 +391,9 @@ impl ModelFamilyLedger {
         }
 
         Ok(Self {
+            baseline_development_worlds: baseline_worlds.clone(),
+            initial_policy_identity: initial_policy_identity.clone(),
+            initial_policy_plan: initial_policy_plan.clone(),
             replay_context,
             development_worlds: baseline_worlds,
             family_revision: 0,
@@ -441,6 +450,9 @@ impl ModelFamilyLedger {
             .collect::<Vec<_>>();
         consumed_holdout_group_ids.sort();
         ModelFamilyLedgerSnapshot {
+            baseline_development_worlds: self.baseline_development_worlds.clone(),
+            initial_policy_identity: self.initial_policy_identity.clone(),
+            initial_policy_plan: self.initial_policy_plan.clone(),
             family_revision: self.family_revision,
             replay_context: self.replay_context.clone(),
             development_worlds: self.development_worlds.clone(),
