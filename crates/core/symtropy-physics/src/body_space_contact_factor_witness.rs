@@ -203,8 +203,29 @@ mod tests {
         assert_eq!(determinant_bareiss(gram), 12);
 
         // Three exact null-fibre directions preserve the generalized body
-        // wrench. They demonstrate why unique body response does not imply a
-        // unique per-contact impulse allocation.
+        // wrench. Their 3x3 coordinate minor is the identity, so they are
+        // linearly independent. Together with rank(J)=6, they span the full
+        // three-dimensional kernel of J^T and W.
+        assert_eq!(
+            [
+                [
+                    NULL_FIBRE_BASIS[0][1],
+                    NULL_FIBRE_BASIS[1][1],
+                    NULL_FIBRE_BASIS[2][1],
+                ],
+                [
+                    NULL_FIBRE_BASIS[0][7],
+                    NULL_FIBRE_BASIS[1][7],
+                    NULL_FIBRE_BASIS[2][7],
+                ],
+                [
+                    NULL_FIBRE_BASIS[0][8],
+                    NULL_FIBRE_BASIS[1][8],
+                    NULL_FIBRE_BASIS[2][8],
+                ],
+            ],
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        );
         for null_direction in NULL_FIBRE_BASIS {
             assert_eq!(
                 scatter_contact_impulses(&jacobian, &null_direction),
