@@ -558,13 +558,13 @@ pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
                 .collect::<Vec<_>>()
                 .join("|"),
         ),
-        csv_escape(number_list(
+        csv_escape(&number_list(
             report
                 .input_contributions
                 .iter()
                 .map(|item| item.sensitivity_coefficient),
         )),
-        csv_escape(number_list(
+        csv_escape(&number_list(
             report
                 .input_contributions
                 .iter()
@@ -587,7 +587,7 @@ mod tests {
     use super::*;
     use crate::cfd_admission::CfdEvidenceAdmissionReport;
     use crate::grid_convergence::{
-        GciReport, GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
+        GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
     };
 
     fn admission() -> CfdEvidenceAdmissionReport {
