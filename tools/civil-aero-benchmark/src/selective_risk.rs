@@ -668,6 +668,8 @@ mod tests {
         assert_eq!(first, report_to_csv(&report));
         assert_eq!(first.lines().count(), 81);
         assert!(first.contains("false_feasible_rate"));
+        assert!(first.contains("partial_area_under_mae_risk_coverage"));
+        assert!(first.contains("partial_area_under_false_feasible_risk_coverage"));
         assert!(first.contains("blind_confirmation_only"));
     }
 }
