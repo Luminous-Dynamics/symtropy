@@ -40,7 +40,7 @@ pub struct ContactWrenchRow<const D: usize> {
 #[derive(Clone, Debug)]
 enum ContactWrenchBasis<const D: usize> {
     Linear(SVector<f64, D>),
-    Angular(Bivector<D>),
+    Angular(Box<Bivector<D>>),
 }
 
 fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactWrenchBasis<D>> {
@@ -58,7 +58,7 @@ fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactW
             .rolling_basis()
             .iter()
             .cloned()
-            .map(ContactWrenchBasis::Angular),
+            .map(|angular| ContactWrenchBasis::Angular(Box::new(angular))),
     );
     basis.extend(
         frame
@@ -1013,7 +1013,6 @@ mod tests {
     #[test]
     fn contact_wrench_delassus_propagates_singular_rolling_or_torsional_plane() {
         use crate::body::BodyType;
-        use nalgebra::SMatrix;
         use symtropy_math::{Sphere, Transform};
 
         let static_body = RigidBody::<3>::new(
@@ -1259,7 +1258,7 @@ mod tests {
         world.bodies[1].friction = 0.0;
 
         let relative_velocity_before =
-            (world.bodies[1].linear_velocity - world.bodies[0].linear_velocity);
+            world.bodies[1].linear_velocity - world.bodies[0].linear_velocity;
         world.try_step(0.001).unwrap();
         assert_eq!(world.contacts.len(), 1);
 
