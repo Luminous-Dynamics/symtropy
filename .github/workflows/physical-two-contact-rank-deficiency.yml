@@ -1,0 +1,28 @@
+name: Physical two-contact rank-deficiency certificate
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/physical_two_contact_rank_deficiency.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm_support.rs"
+      - ".github/workflows/physical-two-contact-rank-deficiency.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physical-rank-deficiency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting of the exact geometry verifier
+        run: |
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_sturm_support.rs
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/physical_two_contact_rank_deficiency.rs
+      - name: Verify physical Delassus rank and impulse equivalence class
+        run: cargo test -p symtropy-physics --test physical_two_contact_rank_deficiency --locked
