@@ -244,9 +244,20 @@ pub struct ObservationDecisionReceipt {
     pub assumed_observation_probability: Rational,
     pub inference_decision: Option<usize>,
     pub assumed_model_bayes_decision: Option<usize>,
-    /// Total-variation distance between the supplied inference posterior and
-    /// exact Bayes posterior under the working channel; None means unsupported.
+    /// The posterior actually supplied to the terminal decision rule.
+    pub inference_posterior: Option<Vec<Rational>>,
+    /// Exact posterior under the working channel.
+    pub assumed_model_posterior: Option<Vec<Rational>>,
+    /// Exact posterior under the true generating channel.
+    pub true_posterior: Vec<Rational>,
+    /// TV between approximate inference and exact working-model posterior.
     pub inference_posterior_tv_distance: Option<Rational>,
+    /// TV between working-model and true posteriors (model misspecification).
+    pub model_posterior_tv_distance: Option<Rational>,
+    /// TV between actual inference posterior and true posterior.
+    pub total_posterior_tv_distance: Option<Rational>,
+    /// Squared-error score between actual inference posterior and true posterior.
+    pub total_posterior_brier_score: Option<Rational>,
     pub true_bayes_decision: Option<usize>,
     pub inference_conditional_loss: Rational,
     pub realized_conditional_loss: Rational,
@@ -270,8 +281,14 @@ pub struct ChannelDecisionEvaluation {
     pub decision_disagreement_probability: Rational,
     /// Probability the inference rule differs from exact Bayes under the working channel.
     pub inference_rule_disagreement_probability: Rational,
-    /// True-observation-frequency-weighted posterior approximation error.
+    /// True-observation-frequency-weighted inference approximation error.
     pub expected_inference_posterior_tv_distance: Rational,
+    /// True-observation-frequency-weighted posterior shift due to model error.
+    pub expected_model_posterior_tv_distance: Rational,
+    /// Total posterior error (inference + model) against the true posterior.
+    pub expected_total_posterior_tv_distance: Rational,
+    /// Proper squared-error/Brier diagnostic, separately weighted by true observations.
+    pub expected_total_posterior_brier_score: Rational,
     pub observations: Vec<ObservationDecisionReceipt>,
 }
 
@@ -328,6 +345,38 @@ fn expected_loss_for_posterior(
     }
 }
 
+fn posterior_tv_distance(left: &[Rational], right: &[Rational]) -> Result<Rational, String> {
+    if left.len() != right.len() {
+        return Err("posterior vectors must have the same dimension".into());
+    }
+    let mut l1_distance = Rational::zero();
+    for (left_probability, right_probability) in left.iter().zip(right.iter()) {
+        let difference = if left_probability >= right_probability {
+            subtract_nonnegative(*left_probability, *right_probability)?
+        } else {
+            subtract_nonnegative(*right_probability, *left_probability)?
+        };
+        l1_distance = l1_distance.checked_add(difference)?;
+    }
+    l1_distance.checked_div(Rational::from_u64(2))
+}
+
+fn posterior_brier_score(left: &[Rational], right: &[Rational]) -> Result<Rational, String> {
+    if left.len() != right.len() {
+        return Err("posterior vectors must have the same dimension".into());
+    }
+    let mut score = Rational::zero();
+    for (left_probability, right_probability) in left.iter().zip(right.iter()) {
+        let difference = if left_probability >= right_probability {
+            subtract_nonnegative(*left_probability, *right_probability)?
+        } else {
+            subtract_nonnegative(*right_probability, *left_probability)?
+        };
+        score = score.checked_add(difference.checked_mul(difference)?)?;
+    }
+    Ok(score)
+}
+
 fn bayes_decision(
     table: &ChannelDecisionLossTable,
     posterior: &[Rational],
@@ -374,6 +423,9 @@ pub fn evaluate_channel_decisions_with_inference_rule(
     let mut decision_disagreement_probability = Rational::zero();
     let mut inference_rule_disagreement_probability = Rational::zero();
     let mut expected_inference_posterior_tv_distance = Rational::zero();
+    let mut expected_model_posterior_tv_distance = Rational::zero();
+    let mut expected_total_posterior_tv_distance = Rational::zero();
+    let mut expected_total_posterior_brier_score = Rational::zero();
     let mut observations = Vec::new();
 
     for (observation, observation_id) in assumed.observation_ids.iter().enumerate() {
@@ -415,40 +467,58 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             .collect::<Result<_, _>>()?;
         let (true_bayes_decision, true_bayes_loss) = bayes_decision(table, &true_posterior)?;
 
-        let (assumed_model_bayes_decision, inference_posterior_tv_distance) =
-            if assumed_probability.is_zero() {
-                unsupported_observation_probability =
-                    unsupported_observation_probability.checked_add(true_probability)?;
-                (None, None)
-            } else {
-                let assumed_posterior: Vec<Rational> = assumed_joint
-                    .iter()
-                    .map(|mass| mass.checked_div(assumed_probability))
-                    .collect::<Result<_, _>>()?;
-                let (model_decision, _) = bayes_decision(table, &assumed_posterior)?;
-                if model_decision != inference_decision {
-                    inference_rule_disagreement_probability =
-                        inference_rule_disagreement_probability.checked_add(true_probability)?;
-                }
-                let mut l1_distance = Rational::zero();
-                for (inference_probability, model_probability) in inference_rule
-                    .posterior_by_observation[observation]
-                    .iter()
-                    .zip(assumed_posterior.iter())
-                {
-                    let difference = if inference_probability >= model_probability {
-                        subtract_nonnegative(*inference_probability, *model_probability)?
-                    } else {
-                        subtract_nonnegative(*model_probability, *inference_probability)?
-                    };
-                    l1_distance = l1_distance.checked_add(difference)?;
-                }
-                let posterior_tv = l1_distance.checked_div(Rational::from_u64(2))?;
-                expected_inference_posterior_tv_distance =
-                    expected_inference_posterior_tv_distance
-                        .checked_add(true_probability.checked_mul(posterior_tv)?)?;
-                (Some(model_decision), Some(posterior_tv))
-            };
+        let (
+            assumed_model_bayes_decision,
+            inference_posterior,
+            assumed_model_posterior,
+            inference_posterior_tv_distance,
+            model_posterior_tv_distance,
+            total_posterior_tv_distance,
+            total_posterior_brier_score,
+        ) = if assumed_probability.is_zero() {
+            unsupported_observation_probability =
+                unsupported_observation_probability.checked_add(true_probability)?;
+            (None, None, None, None, None, None, None)
+        } else {
+            let assumed_posterior: Vec<Rational> = assumed_joint
+                .iter()
+                .map(|mass| mass.checked_div(assumed_probability))
+                .collect::<Result<_, _>>()?;
+            let actual_inference_posterior =
+                inference_rule.posterior_by_observation[observation].clone();
+            let (model_decision, _) = bayes_decision(table, &assumed_posterior)?;
+            if model_decision != inference_decision {
+                inference_rule_disagreement_probability =
+                    inference_rule_disagreement_probability.checked_add(true_probability)?;
+            }
+            let inference_tv =
+                posterior_tv_distance(&actual_inference_posterior, &assumed_posterior)?;
+            let model_tv = posterior_tv_distance(&assumed_posterior, &true_posterior)?;
+            let total_tv =
+                posterior_tv_distance(&actual_inference_posterior, &true_posterior)?;
+            let total_brier =
+                posterior_brier_score(&actual_inference_posterior, &true_posterior)?;
+
+            expected_inference_posterior_tv_distance =
+                expected_inference_posterior_tv_distance
+                    .checked_add(true_probability.checked_mul(inference_tv)?)?;
+            expected_model_posterior_tv_distance = expected_model_posterior_tv_distance
+                .checked_add(true_probability.checked_mul(model_tv)?)?;
+            expected_total_posterior_tv_distance = expected_total_posterior_tv_distance
+                .checked_add(true_probability.checked_mul(total_tv)?)?;
+            expected_total_posterior_brier_score = expected_total_posterior_brier_score
+                .checked_add(true_probability.checked_mul(total_brier)?)?;
+
+            (
+                Some(model_decision),
+                Some(actual_inference_posterior),
+                Some(assumed_posterior),
+                Some(inference_tv),
+                Some(model_tv),
+                Some(total_tv),
+                Some(total_brier),
+            )
+        };
         let realized_conditional_loss =
             expected_loss_for_posterior(table, &true_posterior, inference_decision)?;
         if inference_decision != true_bayes_decision {
@@ -471,7 +541,13 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             assumed_observation_probability: assumed_probability,
             inference_decision,
             assumed_model_bayes_decision,
+            inference_posterior,
+            assumed_model_posterior,
+            true_posterior: true_posterior.clone(),
             inference_posterior_tv_distance,
+            model_posterior_tv_distance,
+            total_posterior_tv_distance,
+            total_posterior_brier_score,
             true_bayes_decision,
             inference_conditional_loss,
             realized_conditional_loss,
@@ -498,6 +574,9 @@ pub fn evaluate_channel_decisions_with_inference_rule(
         decision_disagreement_probability,
         inference_rule_disagreement_probability,
         expected_inference_posterior_tv_distance,
+        expected_model_posterior_tv_distance,
+        expected_total_posterior_tv_distance,
+        expected_total_posterior_brier_score,
         observations,
     })
 }
