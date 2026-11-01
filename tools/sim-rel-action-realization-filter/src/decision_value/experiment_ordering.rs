@@ -1162,6 +1162,30 @@ mod tests {
             inference_only.expected_inference_posterior_tv_distance,
             Rational::one()
         );
+        assert_eq!(
+            inference_only.expected_model_posterior_tv_distance,
+            Rational::zero()
+        );
+        assert_eq!(
+            inference_only.expected_total_posterior_tv_distance,
+            Rational::one()
+        );
+        assert_eq!(
+            inference_only.expected_total_posterior_brier_score,
+            Rational::from_u64(2)
+        );
+        assert_eq!(
+            inference_only.observations[0].inference_posterior,
+            Some(vec![Rational::zero(), Rational::one()])
+        );
+        assert_eq!(
+            inference_only.observations[0].assumed_model_posterior,
+            Some(vec![Rational::one(), Rational::zero()])
+        );
+        assert_eq!(
+            inference_only.observations[0].true_posterior,
+            vec![Rational::one(), Rational::zero()]
+        );
 
         // Model-only: the inference rule is exact Bayes for the assumed
         // channel, but the true data-generating channel is inverted.
@@ -1175,6 +1199,18 @@ mod tests {
         assert_eq!(
             model_only.expected_inference_posterior_tv_distance,
             Rational::zero()
+        );
+        assert_eq!(
+            model_only.expected_model_posterior_tv_distance,
+            Rational::one()
+        );
+        assert_eq!(
+            model_only.expected_total_posterior_tv_distance,
+            Rational::one()
+        );
+        assert_eq!(
+            model_only.expected_total_posterior_brier_score,
+            Rational::from_u64(2)
         );
 
         // Interaction: model channel is misspecified and the inference rule
@@ -1204,6 +1240,18 @@ mod tests {
             rational(1, 10)
         );
         assert_eq!(
+            interaction.expected_model_posterior_tv_distance,
+            rational(4, 5)
+        );
+        assert_eq!(
+            interaction.expected_total_posterior_tv_distance,
+            rational(9, 10)
+        );
+        assert_eq!(
+            interaction.expected_total_posterior_brier_score,
+            rational(81, 50)
+        );
+        assert_eq!(
             interaction.inference_rule_disagreement_probability,
             Rational::zero()
         );
@@ -1214,6 +1262,18 @@ mod tests {
         assert_eq!(matched.decision_regret, Rational::zero());
         assert_eq!(
             matched.expected_inference_posterior_tv_distance,
+            Rational::zero()
+        );
+        assert_eq!(
+            matched.expected_model_posterior_tv_distance,
+            Rational::zero()
+        );
+        assert_eq!(
+            matched.expected_total_posterior_tv_distance,
+            Rational::zero()
+        );
+        assert_eq!(
+            matched.expected_total_posterior_brier_score,
             Rational::zero()
         );
     }
