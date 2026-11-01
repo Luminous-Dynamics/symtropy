@@ -4,8 +4,8 @@
 //! and rational Sturm isolator from its parent single-contact verifier.
 
 use super::{
-    derivative, exact_f64, is_zero, normalize_positive, polynomial_add, polynomial_multiply,
-    polynomial_scale, remainder, sturm_isolate_rational, trim, Polynomial, Rational,
+    Polynomial, Rational, derivative, exact_f64, is_zero, normalize_positive, polynomial_add,
+    polynomial_multiply, polynomial_scale, remainder, sturm_isolate_rational, trim,
 };
 use nalgebra::{SMatrix, SVector};
 
@@ -20,10 +20,8 @@ fn polynomial_divide_exact(
     }
     let mut rest = dividend.to_vec();
     trim(&mut rest);
-    let mut quotient = vec![
-        Rational::zero();
-        rest.len().saturating_sub(divisor.len()).saturating_add(1)
-    ];
+    let mut quotient =
+        vec![Rational::zero(); rest.len().saturating_sub(divisor.len()).saturating_add(1)];
     while !is_zero(&rest) && rest.len() >= divisor.len() {
         let shift = rest.len() - divisor.len();
         let factor = rest.last().ok_or("empty division remainder")?.clone()
@@ -42,10 +40,7 @@ fn polynomial_divide_exact(
     Ok(quotient)
 }
 
-fn polynomial_gcd(
-    lhs: &[Rational],
-    rhs: &[Rational],
-) -> Result<Polynomial, &'static str> {
+fn polynomial_gcd(lhs: &[Rational], rhs: &[Rational]) -> Result<Polynomial, &'static str> {
     let mut a = lhs.to_vec();
     let mut b = rhs.to_vec();
     trim(&mut a);
@@ -71,16 +66,11 @@ fn polynomial_determinant(matrix: &[Vec<Polynomial>]) -> Polynomial {
             .map(|row| {
                 row.iter()
                     .enumerate()
-                    .filter_map(|(index, entry)| {
-                        (index != column).then_some(entry.clone())
-                    })
+                    .filter_map(|(index, entry)| (index != column).then_some(entry.clone()))
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
-        let term = polynomial_multiply(
-            &matrix[0][column],
-            &polynomial_determinant(&minor),
-        );
+        let term = polynomial_multiply(&matrix[0][column], &polynomial_determinant(&minor));
         let signed = if column % 2 == 0 {
             term
         } else {
@@ -124,10 +114,7 @@ fn exact_two_contact_slide_stick_polynomials(
         let mut first_column = polynomial_scale(&denominator, &w[row][0]);
         first_column = polynomial_add(
             &first_column,
-            &polynomial_scale(
-                &one_minus_t_squared,
-                &(-mu.clone() * w[row][1].clone()),
-            ),
+            &polynomial_scale(&one_minus_t_squared, &(-mu.clone() * w[row][1].clone())),
         );
         first_column = polynomial_add(
             &first_column,
@@ -188,26 +175,24 @@ fn exact_two_contact_slide_stick_polynomials(
             &polynomial_multiply(&twice_t, &post_velocity_numerators[1]),
             &-Rational::one(),
         ),
-        &polynomial_multiply(
-            &one_minus_t_squared,
-            &post_velocity_numerators[2],
-        ),
+        &polynomial_multiply(&one_minus_t_squared, &post_velocity_numerators[2]),
     );
     let mut quartic = angular_numerator;
     for _ in 0..3 {
         quartic = polynomial_divide_exact(&quartic, &denominator)?;
     }
-    if quartic.len() != 5 || quartic.last().is_none_or(|coefficient| coefficient.is_zero()) {
+    if quartic.len() != 5
+        || quartic
+            .last()
+            .is_none_or(|coefficient| coefficient.is_zero())
+    {
         return Err("slide/stick angular polynomial did not reduce to a proper quartic");
     }
     Ok((quartic, determinant, numerators))
 }
 
 fn interval_add(lhs: &RationalInterval, rhs: &RationalInterval) -> RationalInterval {
-    (
-        lhs.0.clone() + rhs.0.clone(),
-        lhs.1.clone() + rhs.1.clone(),
-    )
+    (lhs.0.clone() + rhs.0.clone(), lhs.1.clone() + rhs.1.clone())
 }
 
 fn interval_neg(value: &RationalInterval) -> RationalInterval {
@@ -252,17 +237,11 @@ fn interval_div(
     Ok(interval_mul(numerator, &reciprocal))
 }
 
-fn interval_scale(
-    value: &RationalInterval,
-    scale: &Rational,
-) -> RationalInterval {
+fn interval_scale(value: &RationalInterval, scale: &Rational) -> RationalInterval {
     interval_mul(value, &(scale.clone(), scale.clone()))
 }
 
-fn interval_evaluate(
-    polynomial: &[Rational],
-    x: &RationalInterval,
-) -> RationalInterval {
+fn interval_evaluate(polynomial: &[Rational], x: &RationalInterval) -> RationalInterval {
     polynomial.iter().rev().fold(
         (Rational::zero(), Rational::zero()),
         |value, coefficient| {
@@ -333,14 +312,9 @@ fn exact_two_contact_slide_stick_branch_intervals(
         }
         let z = numerators
             .iter()
-            .map(|polynomial| {
-                interval_div(&interval_evaluate(polynomial, &t), &det)
-            })
+            .map(|polynomial| interval_div(&interval_evaluate(polynomial, &t), &det))
             .collect::<Result<Vec<_>, _>>()?;
-        let denominator = interval_add(
-            &(one.clone(), one.clone()),
-            &interval_mul(&t, &t),
-        );
+        let denominator = interval_add(&(one.clone(), one.clone()), &interval_mul(&t, &t));
         let cosine = interval_div(
             &interval_sub(&(one.clone(), one.clone()), &interval_mul(&t, &t)),
             &denominator,
@@ -402,10 +376,7 @@ fn exact_two_contact_slide_stick_branch_intervals(
         for row in 0..6 {
             energy = interval_add(
                 &energy,
-                &interval_mul(
-                    &impulse[row],
-                    &(exact_q[row].clone(), exact_q[row].clone()),
-                ),
+                &interval_mul(&impulse[row], &(exact_q[row].clone(), exact_q[row].clone())),
             );
             for column in 0..6 {
                 energy = interval_add(
@@ -471,14 +442,7 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         0.0,
         1.0,
     ]);
-    let q = SVector::<f64, 6>::new(
-        -0.10770302,
-        1.49149027,
-        -0.95561905,
-        -1.0,
-        0.1,
-        -0.1,
-    );
+    let q = SVector::<f64, 6>::new(-0.10770302, 1.49149027, -0.95561905, -1.0, 0.1, -0.1);
     let mu_1 = 1.383_289_774_658_335;
 
     let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
@@ -496,7 +460,12 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         exact_two_contact_slide_stick_polynomials(&w, &q, mu_1)
             .expect("exact dyadic slide/stick polynomial derivation");
     assert_eq!(quartic.len(), 5);
-    assert!(!quartic.last().expect("quartic leading coefficient").is_zero());
+    assert!(
+        !quartic
+            .last()
+            .expect("quartic leading coefficient")
+            .is_zero()
+    );
     assert_eq!(
         polynomial_gcd(&quartic, &derivative(&quartic))
             .expect("square-free polynomial gcd")
@@ -512,18 +481,12 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
     // det(M_d) contains the known (1+t^2)^3 scaling factor. Remove it
     // before the Cramer gcd check; the remaining factor has exactly the real
     // zeros of the actual active-system determinant.
-    let half_angle_denominator = vec![
-        Rational::one(),
-        Rational::zero(),
-        Rational::one(),
-    ];
+    let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
     let mut singular_determinant = determinant.clone();
     for _ in 0..3 {
-        singular_determinant = polynomial_divide_exact(
-            &singular_determinant,
-            &half_angle_denominator,
-        )
-        .expect("remove the exact projective denominator factor");
+        singular_determinant =
+            polynomial_divide_exact(&singular_determinant, &half_angle_denominator)
+                .expect("remove the exact projective denominator factor");
     }
     let singular_angles = sturm_isolate_rational(singular_determinant.clone())
         .expect("exact Sturm isolation of singular active-system angles");
