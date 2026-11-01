@@ -105,3 +105,65 @@ Together, the strict contact-2 sticking path in this note and the strict contact
 - contact 2 separating + contact 1 separating/sticking/sliding.
 
 The remaining three assignments require contact 2 to slide. They are not solved by these reductions. Neither path proves complete solution-set enumeration, and all candidates continue to be rechecked against the original unreduced system.
+
+## Symmetric regime reductions: contact 1 separating or sticking
+
+The same algebra applies after permuting the two contact blocks. The implementation now includes two mirrored test-only paths:
+
+- **Contact 1 strictly separating:** permute contact blocks, solve the original contact-2-separating reduction, unpermute the impulse, then recheck \(p_1=0\) and \(u_{n,1}>0\) against the original full 6x6 system. A coupled fixture recovers contact 2 sliding while contact 1 separates; an inward post-contact normal velocity is rejected.
+- **Contact 1 strictly sticking:** permute contact blocks and use the contact-2-sticking Schur complement to eliminate original contact 1. Unpermute and recheck the strict contact-1 disk interior, its zero post-contact velocity, contact-2 sliding KKT, and the original full-island energy. A coupled fixture recovers contact 1 sticking / contact 2 sliding.
+
+Both fixtures use a nonzero \(0.1I\) cross-contact block. They are synthetic known-branch checks, not complete regime solvers or interval certificates.
+
+### Updated two-contact regime coverage
+
+The combined test-only candidate paths now cover **eight of the nine** basic assignments:
+
+1. contact 2 sticking + contact 1 separating/sticking/sliding (#3194);
+2. contact 2 separating + contact 1 separating/sticking/sliding (#3209);
+3. contact 1 separating + contact 2 sliding (symmetric reduction);
+4. contact 1 sticking + contact 2 sliding (symmetric Schur reduction).
+
+The remaining assignment is **contact 1 sliding / contact 2 sliding**. It is the genuinely coupled two-sliding branch and is still open. No global completeness or no-solution claim follows from the eight restricted paths.
+
+
+## Both-sliding coupled witness: the ninth regime assignment
+
+A final frozen witness exercises the simultaneous sliding/sliding assignment without claiming a general double-sliding solver.
+
+Choose
+
+\[
+W=\begin{bmatrix}I&\rho I\\\rho I&I\end{bmatrix},\quad
+\rho=\frac14,\quad
+\mu_1=\mu_2=\frac12,
+\]
+
+\[
+q=\left(-\frac54,\frac54,0,-\frac54,\frac54,0\right)^T,\qquad
+p=\left(1,-\frac12,0,1,-\frac12,0\right)^T.
+\]
+
+The full operator is SPD with eigenvalues \(3/4\) and \(5/4\), each of multiplicity three, and its cross-contact blocks are nonzero.
+
+The original full-island equations give
+
+\[
+u=q+Wp=\left(0,\frac58,0,0,\frac58,0\right)^T.
+\]
+
+Both normal impulses are positive and both normal post-velocities are zero. Both tangential impulses are exactly on their circular Coulomb boundaries:
+
+\[
+\mu_k^2\lambda_{n,k}^2-\|j_{t,k}\|^2=0.
+\]
+
+Both sliding KKT multipliers are \(\tau_1=\tau_2=5/4>0\), so \(u_{t,k}+\tau_kj_{t,k}=0\) at each contact. The full-island energy change is exactly
+
+\[
+\Delta K=p^Tq+\tfrac12p^TWp=-\frac{35}{16}? 
+\]
+
+The Rust test is the authoritative executable arithmetic check; its frozen expected value is \(-2.1875=-35/16\).
+
+This adds a known branch witness for the only previously uncovered regime assignment. It does not enumerate all two-sliding branches, prove uniqueness, or replace the bivariate direction-root isolation problem. It completes **known-witness coverage across all nine basic regime assignments**, not complete solution-set coverage.
