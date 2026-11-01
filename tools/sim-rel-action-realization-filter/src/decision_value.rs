@@ -6,6 +6,7 @@
 
 pub mod approximate_blackwell;
 pub mod blackwell_transfer;
+pub mod causal_execution;
 pub mod counterexample_ledger;
 pub mod counterexample_search;
 pub mod experiment_ordering;
