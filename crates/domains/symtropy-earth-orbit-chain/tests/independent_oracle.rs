@@ -487,7 +487,8 @@ fn corpus() -> Vec<(&'static str, CampaignV1)> {
     cases.push(("29-invalid-resource-window", c));
 
     let mut c = baseline();
-    c.resource_qualifications.push(c.resource_qualifications[0].clone());
+    c.resource_qualifications
+        .push(c.resource_qualifications[0].clone());
     cases.push(("30-duplicate-resource-proof", c));
 
     let mut c = baseline();
