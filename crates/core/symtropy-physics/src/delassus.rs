@@ -65,7 +65,7 @@ fn contact_wrench_basis<const D: usize>(frame: &ContactFrame<D>) -> Vec<ContactW
             .torsional_basis()
             .iter()
             .cloned()
-            .map(ContactWrenchBasis::Angular),
+            .map(|angular| ContactWrenchBasis::Angular(Box::new(angular))),
     );
     basis
 }
