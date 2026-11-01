@@ -13,6 +13,7 @@ use crate::external_solver::{
 use crate::integrity::sha256_hex;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
+use crate::su2_mesh::{Su2MeshSummary, inspect_su2_mesh};
 
 pub const SU2_RUN_LINEAGE_SCHEMA: &str = "su2-run-lineage-binding/0.1.0";
 pub const SU2_RUN_LINEAGE_EVIDENCE_LEVEL: &str = "replayed_process_receipt_bound_to_history_screen_and_staged_inputs_unsigned_not_build_source_attested_not_grid_admitted_not_experimentally_validated";
@@ -42,6 +43,12 @@ pub struct Su2RunLineageBinding {
     pub physics_configuration: Su2BoundArtifact,
     pub geometry: Su2BoundArtifact,
     pub mesh: Su2BoundArtifact,
+    pub mesh_dimension: u8,
+    pub mesh_point_count: u64,
+    pub mesh_volume_element_count: u64,
+    pub mesh_marker_count: u64,
+    pub mesh_boundary_element_count: u64,
+    pub mesh_summary_sha256: String,
     pub history: Su2BoundArtifact,
     pub history_import_sha256: String,
     pub convergence_screen_sha256: String,
@@ -185,6 +192,12 @@ fn canonical_binding_bytes(binding: &Su2RunLineageBinding) -> Vec<u8> {
     ] {
         append_artifact(&mut bytes, artifact);
     }
+    append_u64(&mut bytes, u64::from(binding.mesh_dimension));
+    append_u64(&mut bytes, binding.mesh_point_count);
+    append_u64(&mut bytes, binding.mesh_volume_element_count);
+    append_u64(&mut bytes, binding.mesh_marker_count);
+    append_u64(&mut bytes, binding.mesh_boundary_element_count);
+    append_string(&mut bytes, &binding.mesh_summary_sha256);
     append_u64(&mut bytes, binding.convergence_criterion_count as u64);
     append_u64(&mut bytes, binding.convergence_passed_count as u64);
     append_u64(&mut bytes, binding.additional_outputs.len() as u64);
@@ -196,6 +209,22 @@ fn canonical_binding_bytes(binding: &Su2RunLineageBinding) -> Vec<u8> {
 
 /// Bind a replayed SU2 process receipt, three staged discipline inputs, an imported history,
 /// a fully passing declared steady screen, and additional force/field output files.
+fn inspect_bound_mesh(
+    root: &Path,
+    relative_path: &str,
+    expected: &crate::external_solver::StagedInputReceipt,
+) -> Result<Su2MeshSummary, String> {
+    validate_relative_path(relative_path)?;
+    let bytes = fs::read(root.join(relative_path))
+        .map_err(|error| format!("cannot read staged SU2 mesh {relative_path}: {error}"))?;
+    if bytes.len() as u64 != expected.byte_length
+        || sha256_hex(&bytes)? != expected.sha256
+    {
+        return Err("staged SU2 mesh bytes differ from process receipt".to_owned());
+    }
+    inspect_su2_mesh(&bytes)
+}
+
 pub fn bind_su2_run_lineage(
     run_directory: &Path,
     history: &Su2HistoryReport,
@@ -245,6 +274,10 @@ pub fn bind_su2_run_lineage(
     let config = staged_input(&receipt, &inputs.physics_configuration_path)?;
     let geometry = staged_input(&receipt, &inputs.geometry_path)?;
     let mesh = staged_input(&receipt, &inputs.mesh_path)?;
+    let root = fs::canonicalize(run_directory)
+        .map_err(|error| format!("cannot resolve SU2 run directory: {error}"))?;
+    let mesh_summary = inspect_bound_mesh(&root, &inputs.mesh_path, mesh)?;
+    let mesh_summary_sha256 = sha256_hex(mesh_summary.to_csv().as_bytes())?;
     let history_artifact = bound_output(&receipt, &history.history_relative_path)?;
 
     let mut unique_outputs = BTreeSet::new();
@@ -285,6 +318,12 @@ pub fn bind_su2_run_lineage(
             byte_length: mesh.byte_length,
             sha256: mesh.sha256.clone(),
         },
+        mesh_dimension: mesh_summary.dimension,
+        mesh_point_count: mesh_summary.point_count,
+        mesh_volume_element_count: mesh_summary.volume_element_count,
+        mesh_marker_count: mesh_summary.marker_count,
+        mesh_boundary_element_count: mesh_summary.boundary_element_count,
+        mesh_summary_sha256,
         history: history_artifact,
         history_import_sha256: history.import_sha256().to_owned(),
         convergence_screen_sha256: screen.screen_sha256.clone(),
@@ -377,6 +416,17 @@ pub fn verify_su2_run_lineage_binding(
     if bound_output(&receipt, &history.history_relative_path)? != binding.history {
         return Err("history output differs from run-lineage binding".to_owned());
     }
+    let mesh_input = staged_input(&receipt, &inputs.mesh_path)?;
+    let mesh_summary = inspect_bound_mesh(&root, &inputs.mesh_path, mesh_input)?;
+    if mesh_summary.dimension != binding.mesh_dimension
+        || mesh_summary.point_count != binding.mesh_point_count
+        || mesh_summary.volume_element_count != binding.mesh_volume_element_count
+        || mesh_summary.marker_count != binding.mesh_marker_count
+        || mesh_summary.boundary_element_count != binding.mesh_boundary_element_count
+        || sha256_hex(mesh_summary.to_csv().as_bytes())? != binding.mesh_summary_sha256
+    {
+        return Err("parsed mesh summary differs from run-lineage binding".to_owned());
+    }
     let mut expected_paths = additional_output_paths.to_vec();
     expected_paths.sort();
     expected_paths.dedup();
@@ -411,7 +461,7 @@ pub fn verify_su2_run_lineage_binding(
     Ok(())
 }
 
-pub const SU2_RUN_LINEAGE_CSV_HEADER: &str = "schema,run_id,solver_id,solver_version_claim,executable_sha256,runner_receipt_sha256,artifact_role,relative_path,byte_length,artifact_sha256,history_import_sha256,convergence_screen_sha256,convergence_criterion_count,convergence_passed_count,binding_sha256,evidence_level";
+pub const SU2_RUN_LINEAGE_CSV_HEADER: &str = "schema,run_id,solver_id,solver_version_claim,executable_sha256,runner_receipt_sha256,artifact_role,relative_path,byte_length,artifact_sha256,mesh_dimension,mesh_point_count,mesh_volume_element_count,mesh_marker_count,mesh_boundary_element_count,mesh_summary_sha256,history_import_sha256,convergence_screen_sha256,convergence_criterion_count,convergence_passed_count,binding_sha256,evidence_level";
 
 fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
@@ -452,6 +502,12 @@ pub fn binding_to_csv(binding: &Su2RunLineageBinding) -> String {
             csv_escape(&artifact.relative_path),
             artifact.byte_length.to_string(),
             artifact.sha256.clone(),
+            binding.mesh_dimension.to_string(),
+            binding.mesh_point_count.to_string(),
+            binding.mesh_volume_element_count.to_string(),
+            binding.mesh_marker_count.to_string(),
+            binding.mesh_boundary_element_count.to_string(),
+            binding.mesh_summary_sha256.clone(),
             binding.history_import_sha256.clone(),
             binding.convergence_screen_sha256.clone(),
             binding.convergence_criterion_count.to_string(),
@@ -517,7 +573,11 @@ mod tests {
         let mesh = root.join("mesh.su2");
         fs::write(&config, "SOLVER= RANS\nMESH_FILENAME= mesh.su2\n").expect("write config");
         fs::write(&geometry, "synthetic geometry fixture\n").expect("write geometry");
-        fs::write(&mesh, "synthetic mesh fixture\n").expect("write mesh");
+        fs::write(
+            &mesh,
+            "NDIME= 2\nNELEM= 2\n5 0 1 2\n5 0 2 3\nNPOIN= 4\n0.0 0.0\n1.0 0.0\n1.0 1.0\n0.0 1.0\nNMARK= 1\nMARKER_TAG= wall\nMARKER_ELEMS= 4\n3 0 1\n3 1 2\n3 2 3\n3 3 0\n",
+        )
+        .expect("write mesh");
         let executable = root.join("fake-su2-cfd.sh");
         let script = format!(
             "#!/bin/sh\nset -eu\nprintf '%s' '{}' > history.csv\nprintf 'force fixture\\n' > forces_breakdown.dat\nprintf 'surface fixture\\n' > surface_flow.csv\n",
