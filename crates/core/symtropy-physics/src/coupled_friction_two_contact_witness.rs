@@ -166,6 +166,16 @@ mod tests {
         assert!((&w - w.transpose()).norm() < 1.0e-15);
         assert!(w.clone().cholesky().is_some());
 
+        // For fixed normal impulses, the tangential problem is a strictly
+        // convex QP over the product of two Coulomb disks. Its Hessian is a
+        // principal submatrix of SPD W, so contact KKT conditions certify the
+        // unique global tangential minimizer for each candidate load pair.
+        let tangent_coordinates = [1, 2, 4, 5];
+        let tangent_hessian = SMatrix::<f64, 4, 4>::from_fn(|row, column| {
+            w[(tangent_coordinates[row], tangent_coordinates[column])]
+        });
+        assert!(tangent_hessian.cholesky().is_some());
+
         let mut cross_norm_squared = 0.0;
         for row in 0..3 {
             for column in 3..6 {
