@@ -419,7 +419,10 @@ fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_re
 
     let reduced_c = Matrix3::identity() - schur_operator;
     let reduced_q = -SVector::<f64, 3>::new(0.0, 0.0, 0.0) - schur_free_velocity;
-    assert!((reduced_c - Matrix3::from_diagonal(&SVector::<f64, 3>::new(0.875, 0.9375, 0.9375))).norm() > 0.0);
+    assert!(
+        (reduced_c - Matrix3::from_diagonal(&SVector::<f64, 3>::new(0.875, 0.9375, 0.9375))).norm()
+            < 1.0e-12
+    );
     assert!((reduced_q[0] + 0.375).abs() < 1.0e-12);
     assert!((reduced_q[1] + 0.03125).abs() < 1.0e-12);
 }
