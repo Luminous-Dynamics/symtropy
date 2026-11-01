@@ -52,6 +52,7 @@ pub struct CounterexampleProvenance {
     pub generator_version: String,
     pub search_run_id: String,
     pub seed: u64,
+    pub family_revision: u64,
     pub policy_identity: String,
     pub attacked_policy: DecisionPlan,
 }
@@ -192,6 +193,7 @@ pub struct ModelFamilyLedgerSnapshot {
     pub reserved_holdout_groups: Vec<SealedHoldoutGroupRegistration>,
     pub consumed_holdout_group_ids: Vec<String>,
     pub used_validation_receipt_ids: Vec<String>,
+    pub invalidated_policy_identity: Option<String>,
     pub events: Vec<SequencedLedgerEvent>,
 }
 
@@ -386,6 +388,7 @@ impl ModelFamilyLedger {
             reserved_holdout_groups: self.reserved_holdouts.values().cloned().collect(),
             consumed_holdout_group_ids,
             used_validation_receipt_ids: self.validation_receipt_ids.iter().cloned().collect(),
+            invalidated_policy_identity: self.invalidated_policy_identity.clone(),
             events: self.events.clone(),
         }
     }
@@ -406,6 +409,9 @@ impl ModelFamilyLedger {
             return Err("counterexample validation receipt IDs must be unique".into());
         }
         validate_provenance(&provenance)?;
+        if provenance.family_revision != self.family_revision {
+            return Err("counterexample provenance is bound to a stale model-family revision".into());
+        }
 
         if provenance.split != EvidenceSplit::Development {
             return Err("only Development-origin counterexamples may expand the model family".into());
@@ -459,6 +465,13 @@ impl ModelFamilyLedger {
             .any(|existing| existing.id == witness.candidate_world.id)
         {
             return Err("candidate world ID already exists in the development family".into());
+        }
+        if self
+            .reserved_holdouts
+            .values()
+            .any(|registration| registration.world_ids.contains(&witness.candidate_world.id))
+        {
+            return Err("candidate world ID collides with a pre-registered sealed world ID".into());
         }
         if self
             .development_worlds
@@ -1214,7 +1227,6 @@ mod tests {
         policy_id: &str,
         split: EvidenceSplit,
         group: &str,
-        family_revision: u64,
     ) -> CounterexampleProvenance {
         CounterexampleProvenance {
             split,
@@ -1223,7 +1235,7 @@ mod tests {
             generator_version: "v1".into(),
             search_run_id: "search-run-01".into(),
             seed: 42,
-            family_revision,
+            family_revision: if policy_id == "policy-v2" { 1 } else { 0 },
             policy_identity: policy_id.into(),
             attacked_policy: if policy_id == "policy-v1" {
                 test_policy()
@@ -1408,6 +1420,24 @@ mod tests {
                 "leaked-holdout-event".into(),
             )
             .is_err());
+    }
+
+    #[test]
+    fn provenance_must_bind_the_current_family_revision_even_when_policy_identity_persists() {
+        let mut ledger = ledger();
+        let witness = counterexample(&world("nominal"), "stale-revision-candidate");
+        let mut stale = provenance("policy-v1", EvidenceSplit::Development, "dev-a");
+        stale.family_revision = 1;
+        assert!(ledger
+            .admit_counterexample(
+                &witness,
+                stale,
+                validation(),
+                "stale-family-revision".into(),
+            )
+            .is_err());
+        assert_eq!(ledger.family_revision(), 0);
+        assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
 
     #[test]
