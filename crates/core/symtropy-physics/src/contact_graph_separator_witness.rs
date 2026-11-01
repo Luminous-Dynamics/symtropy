@@ -591,8 +591,10 @@ mod exact_sticking_response_interval {
 
         let leaf_impulse = std::array::from_fn(|row| {
             let mut image = RationalInterval::point(offset[row].clone());
-            for column in 0..3 {
-                image = image.add(&separator_box[column].scale(&separator_gain[row][column]));
+            for (separator_interval, coefficient) in
+                separator_box.iter().zip(separator_gain[row].iter())
+            {
+                image = image.add(&separator_interval.scale(coefficient));
             }
             image
         });
