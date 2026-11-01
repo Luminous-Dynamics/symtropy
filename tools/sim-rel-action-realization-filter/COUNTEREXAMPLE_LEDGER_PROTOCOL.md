@@ -250,3 +250,20 @@ Policy identities and sealed evaluation artifact IDs are single-use across the e
 
 The holdout attempt is consumed after group/world/policy/manifest bindings pass, even if the shared-policy replay or checked metric aggregation fails. Replay failure is retained as `replay_succeeded=false` plus an explicit error, and cannot be retried against the same sealed group. A valid replay with failing acceptance criteria is also consumed.
 
+
+
+## 15. Portable baseline and offline transcript verification (SIM-REL-035)
+
+The exported snapshot now includes the immutable baseline development-world snapshots, initial policy identity and exact policy tree, replay context, calibration registrations, sealed registrations, complete event transcript and reconstructed current state.
+
+The offline `verify_model_family_ledger_snapshot` entry point creates a fresh ledger from those initial artifacts. It verifies contiguous event sequence numbers and nondecreasing family revisions, then re-executes each typed event:
+- Counterexample admission: source snapshot check, exact perturbation reconstruction, independent candidate attack replay and validation/provenance checks.
+- Policy replan: exact shared-policy replay on all current development worlds and all current budgets.
+- Final seal: identity/revision/plan/per-world metrics reproduced.
+- Sealed evaluation: exact registered holdout snapshots, frozen plan, one-time artifact use, replay success/error and computed acceptance reproduced.
+
+For each event, the regenerated record must equal the stored event record. At the end, the entire reconstructed final snapshot must equal the supplied snapshot. Failures carry a typed phase and, for event-local failures, the event sequence.
+
+The verifier reuses the domain's exact transition/replay functions but constructs a fresh ledger and separately validates transcript order, prior-world snapshots, event equality and final-state equality. It is not yet a separately implemented second physics/planning engine; common-mode logic errors remain possible. The benchmark roadmap calls for an independent pure state-transition oracle and mutation testing as the next qualification layer.
+
+A transcript that passes establishes internal consistency of the finite declared ledger state machine. Since the baseline, manifests and artifacts are opaque external inputs, a fully rewritten self-consistent package is not cryptographically authenticated by this verifier. Signed manifests/canonical content addressing and external validator trust are a separate concern.
