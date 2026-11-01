@@ -124,8 +124,7 @@ pub fn evaluate_validation_uncertainty(
     admission: &CfdEvidenceAdmissionReport,
     study: &ValidationUncertaintyStudy,
 ) -> Result<ValidationUncertaintyReport, String> {
-    const ADMITTED_STATUS: &str =
-        "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated";
+    const ADMITTED_STATUS: &str = "numerically_admitted_under_declared_criteria_caller_hashes_unverified_not_experimentally_validated";
 
     if admission.status != ADMITTED_STATUS {
         return Err("validation uncertainty requires an admitted numerical CFD study".to_owned());
@@ -134,9 +133,14 @@ pub fn evaluate_validation_uncertainty(
         || study.quantity.trim().is_empty()
         || study.output_unit.trim().is_empty()
         || study.gci_coverage_rationale.trim().is_empty()
-        || study.experimental_uncertainty_source_reference.trim().is_empty()
+        || study
+            .experimental_uncertainty_source_reference
+            .trim()
+            .is_empty()
         || study.experimental_uncertainty_method.trim().is_empty()
-        || study.experimental_uncertainty_source_reference.contains('|')
+        || study
+            .experimental_uncertainty_source_reference
+            .contains('|')
         || study.experimental_uncertainty_method.contains('|')
         || (study.input_and_experiment_are_aleatory
             && study.aleatory_basis_rationale.trim().is_empty())
@@ -162,15 +166,24 @@ pub fn evaluate_validation_uncertainty(
             "iterative_standard_uncertainty",
             study.iterative_standard_uncertainty,
         ),
-        ("roundoff_standard_uncertainty", study.roundoff_standard_uncertainty),
-        ("experimental_standard_uncertainty", study.experimental_standard_uncertainty),
+        (
+            "roundoff_standard_uncertainty",
+            study.roundoff_standard_uncertainty,
+        ),
+        (
+            "experimental_standard_uncertainty",
+            study.experimental_standard_uncertainty,
+        ),
     ] {
         if !value.is_finite() || value < 0.0 {
             return Err(format!("{name} must be finite and non-negative"));
         }
     }
     for (name, value) in [
-        ("numerical_expansion_factor", study.numerical_expansion_factor),
+        (
+            "numerical_expansion_factor",
+            study.numerical_expansion_factor,
+        ),
         ("aleatory_expansion_factor", study.aleatory_expansion_factor),
         ("gci_coverage_factor", study.gci_coverage_factor),
     ] {
@@ -209,10 +222,8 @@ pub fn evaluate_validation_uncertainty(
         return Err("finest-grid GCI must be finite and non-negative".to_owned());
     }
 
-    let input_standard_uncertainty = propagate_input_uncertainty(
-        &study.input_contributions,
-        &study.input_correlation_matrix,
-    )?;
+    let input_standard_uncertainty =
+        propagate_input_uncertainty(&study.input_contributions, &study.input_correlation_matrix)?;
     let input_correlation_min_eigenvalue =
         minimum_eigenvalue_symmetric(&study.input_correlation_matrix)?;
 
@@ -226,7 +237,10 @@ pub fn evaluate_validation_uncertainty(
 
     for (name, value) in [
         ("GCI standard uncertainty", gci_standard_uncertainty),
-        ("numerical standard uncertainty", numerical_standard_uncertainty),
+        (
+            "numerical standard uncertainty",
+            numerical_standard_uncertainty,
+        ),
         ("numerical expanded bound", numerical_expanded_bound),
         ("comparison error", comparison_error),
         ("input standard uncertainty", input_standard_uncertainty),
@@ -242,7 +256,9 @@ pub fn evaluate_validation_uncertainty(
                 "aleatory input/experiment combination requires an explicit correlation".to_owned()
             })?;
             if !correlation.is_finite() || !(-1.0..=1.0).contains(&correlation) {
-                return Err("input/experiment error correlation must be finite and in [-1, 1]".to_owned());
+                return Err(
+                    "input/experiment error correlation must be finite and in [-1, 1]".to_owned(),
+                );
             }
             let variance = input_standard_uncertainty.powi(2)
                 + study.experimental_standard_uncertainty.powi(2)
@@ -296,7 +312,9 @@ pub fn evaluate_validation_uncertainty(
         numerical_expanded_bound,
         input_standard_uncertainty,
         experimental_standard_uncertainty: study.experimental_standard_uncertainty,
-        experimental_uncertainty_source_reference: study.experimental_uncertainty_source_reference.clone(),
+        experimental_uncertainty_source_reference: study
+            .experimental_uncertainty_source_reference
+            .clone(),
         experimental_uncertainty_method: study.experimental_uncertainty_method.clone(),
         input_and_experiment_are_aleatory: study.input_and_experiment_are_aleatory,
         aleatory_basis_rationale: study.aleatory_basis_rationale.clone(),
@@ -324,7 +342,9 @@ fn propagate_input_uncertainty(
     }
     let count = contributions.len();
     if correlation.len() != count || correlation.iter().any(|row| row.len() != count) {
-        return Err("input correlation matrix dimensions must match input contributions".to_owned());
+        return Err(
+            "input correlation matrix dimensions must match input contributions".to_owned(),
+        );
     }
     let mut propagated = Vec::with_capacity(count);
     let mut seen = std::collections::HashSet::new();
@@ -336,10 +356,15 @@ fn propagate_input_uncertainty(
             || contribution.source_reference.trim().is_empty()
             || contribution.source_reference.contains('|')
         {
-            return Err("input IDs, units, and source references must be non-empty and CSV-safe".to_owned());
+            return Err(
+                "input IDs, units, and source references must be non-empty and CSV-safe".to_owned(),
+            );
         }
         if !seen.insert(contribution.input_id.clone()) {
-            return Err(format!("duplicate input uncertainty ID {}", contribution.input_id));
+            return Err(format!(
+                "duplicate input uncertainty ID {}",
+                contribution.input_id
+            ));
         }
         if !contribution.sensitivity_coefficient.is_finite()
             || !contribution.standard_uncertainty.is_finite()
@@ -368,7 +393,9 @@ fn propagate_input_uncertainty(
         }
     }
     if !variance.is_finite() || variance < -MATRIX_PSD_TOLERANCE {
-        return Err("input covariance propagation produced a negative or non-finite variance".to_owned());
+        return Err(
+            "input covariance propagation produced a negative or non-finite variance".to_owned(),
+        );
     }
     Ok(variance.max(0.0).sqrt())
 }
@@ -386,8 +413,7 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
             if !value.is_finite() || !(-1.0..=1.0).contains(&value) {
                 return Err("correlation matrix entries must be finite and in [-1, 1]".to_owned());
             }
-            if (values[row][column] - values[column][row]).abs()
-                > MATRIX_SYMMETRY_TOLERANCE
+            if (values[row][column] - values[column][row]).abs() > MATRIX_SYMMETRY_TOLERANCE
             {
                 return Err("correlation matrix must be symmetric".to_owned());
             }
@@ -434,10 +460,8 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
             values[index][q] = new_aiq;
             values[q][index] = new_aiq;
         }
-        values[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq
-            + sine * sine * aqq;
-        values[q][q] = sine * sine * app + 2.0 * sine * cosine * apq
-            + cosine * cosine * aqq;
+        values[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
+        values[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
         values[p][q] = 0.0;
         values[q][p] = 0.0;
     }
@@ -511,18 +535,52 @@ pub fn report_to_csv(report: &ValidationUncertaintyReport) -> String {
         optional(report.model_discrepancy_upper),
         csv_escape(&matrix_string(&report.input_correlation_matrix)),
         format!("{:.12}", report.input_correlation_min_eigenvalue),
-        csv_escape(&report.input_contributions.iter().map(|item| item.input_id.as_str()).collect::<Vec<_>>().join("|")),
-        csv_escape(&report.input_contributions.iter().map(|item| item.input_unit.as_str()).collect::<Vec<_>>().join("|")),
-        csv_escape(&report.input_contributions.iter().map(|item| item.source_reference.as_str()).collect::<Vec<_>>().join("|")),
-        csv_escape(number_list(report.input_contributions.iter().map(|item| item.sensitivity_coefficient))),
-        csv_escape(number_list(report.input_contributions.iter().map(|item| item.standard_uncertainty))),
+        csv_escape(
+            &report
+                .input_contributions
+                .iter()
+                .map(|item| item.input_id.as_str())
+                .collect::<Vec<_>>()
+                .join("|"),
+        ),
+        csv_escape(
+            &report
+                .input_contributions
+                .iter()
+                .map(|item| item.input_unit.as_str())
+                .collect::<Vec<_>>()
+                .join("|"),
+        ),
+        csv_escape(
+            &report
+                .input_contributions
+                .iter()
+                .map(|item| item.source_reference.as_str())
+                .collect::<Vec<_>>()
+                .join("|"),
+        ),
+        csv_escape(number_list(
+            report
+                .input_contributions
+                .iter()
+                .map(|item| item.sensitivity_coefficient),
+        )),
+        csv_escape(number_list(
+            report
+                .input_contributions
+                .iter()
+                .map(|item| item.standard_uncertainty),
+        )),
         csv_escape(&report.experimental_uncertainty_source_reference),
         csv_escape(&report.experimental_uncertainty_method),
         report.input_and_experiment_are_aleatory.to_string(),
         csv_escape(&report.aleatory_basis_rationale),
         report.evidence_level.to_owned(),
     ];
-    format!("{VALIDATION_UNCERTAINTY_CSV_HEADER}\n{}\n", fields.join(","))
+    format!(
+        "{VALIDATION_UNCERTAINTY_CSV_HEADER}\n{}\n",
+        fields.join(",")
+    )
 }
 
 #[cfg(test)]
@@ -624,8 +682,10 @@ mod tests {
             ],
             input_correlation_matrix: vec![vec![1.0, 0.4], vec![0.4, 1.0]],
             experimental_standard_uncertainty: 0.15,
-            experimental_uncertainty_source_reference: "synthetic-experiment-budget-v0.1".to_owned(),
-            experimental_uncertainty_method: "synthetic repeatability and calibration aggregate".to_owned(),
+            experimental_uncertainty_source_reference: "synthetic-experiment-budget-v0.1"
+                .to_owned(),
+            experimental_uncertainty_method: "synthetic repeatability and calibration aggregate"
+                .to_owned(),
             input_and_experiment_are_aleatory: true,
             aleatory_basis_rationale: "synthetic declared aleatory sources".to_owned(),
             input_experiment_error_correlation: Some(0.25),
@@ -644,12 +704,12 @@ mod tests {
         let input = report.input_standard_uncertainty;
         let expected_aleatory =
             (input * input + 0.15_f64.powi(2) - 2.0 * 0.25 * input * 0.15).sqrt();
-        assert!((report.aleatory_standard_uncertainty.unwrap() - expected_aleatory).abs() < 1.0e-10);
+        assert!(
+            (report.aleatory_standard_uncertainty.unwrap() - expected_aleatory).abs() < 1.0e-10
+        );
         assert!((report.numerical_expanded_bound - 1.05).abs() < 1.0e-10);
         assert!(
-            (report.conservative_total_bound.unwrap()
-                - (1.05 + 2.0 * expected_aleatory))
-                .abs()
+            (report.conservative_total_bound.unwrap() - (1.05 + 2.0 * expected_aleatory)).abs()
                 < 1.0e-10
         );
         assert_eq!(
@@ -697,15 +757,20 @@ mod tests {
     #[test]
     fn input_correlation_matrix_must_be_positive_semidefinite() {
         let mut study = base_study();
-        study.input_correlation_matrix =
-            vec![vec![1.0, 1.0, 1.0], vec![1.0, 1.0, -1.0], vec![1.0, -1.0, 1.0]];
-        study.input_contributions.push(InputUncertaintyContribution {
-            input_id: "temperature".to_owned(),
-            input_unit: "K".to_owned(),
-            source_reference: "synthetic-input-uncertainty".to_owned(),
-            sensitivity_coefficient: 0.1,
-            standard_uncertainty: 2.0,
-        });
+        study.input_correlation_matrix = vec![
+            vec![1.0, 1.0, 1.0],
+            vec![1.0, 1.0, -1.0],
+            vec![1.0, -1.0, 1.0],
+        ];
+        study
+            .input_contributions
+            .push(InputUncertaintyContribution {
+                input_id: "temperature".to_owned(),
+                input_unit: "K".to_owned(),
+                source_reference: "synthetic-input-uncertainty".to_owned(),
+                sensitivity_coefficient: 0.1,
+                standard_uncertainty: 2.0,
+            });
         let error = evaluate_validation_uncertainty(&admission(), &study)
             .expect_err("non-PSD covariance must fail");
         assert!(error.contains("not positive semidefinite"));
@@ -715,38 +780,48 @@ mod tests {
     fn asymmetric_matrix_and_invalid_gci_conversion_are_rejected() {
         let mut study = base_study();
         study.input_correlation_matrix[0][1] = 0.7;
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("asymmetric matrix rejected")
-            .contains("symmetric"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("asymmetric matrix rejected")
+                .contains("symmetric")
+        );
 
         let mut study = base_study();
         study.gci_coverage_factor = 1.8;
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("wrong Gaussian factor rejected")
-            .contains("Gaussian95"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("wrong Gaussian factor rejected")
+                .contains("Gaussian95")
+        );
     }
 
     #[test]
     fn predicted_value_must_bind_to_finest_admitted_gci_grid() {
         let mut study = base_study();
         study.predicted_value += 1.0e-10;
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("prediction not matching finest GCI grid rejected")
-            .contains("finest GCI grid value"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("prediction not matching finest GCI grid rejected")
+                .contains("finest GCI grid value")
+        );
     }
 
     #[test]
     fn experimental_uncertainty_without_source_or_method_is_rejected() {
         let mut study = base_study();
         study.experimental_uncertainty_source_reference.clear();
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("missing experimental source must fail")
-            .contains("experimental uncertainty source and method"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("missing experimental source must fail")
+                .contains("experimental uncertainty source and method")
+        );
         let mut study = base_study();
         study.experimental_uncertainty_method.clear();
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("missing experimental method must fail")
-            .contains("experimental uncertainty source and method"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("missing experimental method must fail")
+                .contains("experimental uncertainty source and method")
+        );
     }
 
     #[test]
@@ -756,9 +831,11 @@ mod tests {
         study.gci_coverage_factor = 1.125;
         assert!(evaluate_validation_uncertainty(&admission(), &study).is_ok());
         study.gci_coverage_factor = 1.2;
-        assert!(evaluate_validation_uncertainty(&admission(), &study)
-            .expect_err("shifted Gaussian factor outside range rejected")
-            .contains("[1.10, 1.15]"));
+        assert!(
+            evaluate_validation_uncertainty(&admission(), &study)
+                .expect_err("shifted Gaussian factor outside range rejected")
+                .contains("[1.10, 1.15]")
+        );
     }
 
     #[test]
