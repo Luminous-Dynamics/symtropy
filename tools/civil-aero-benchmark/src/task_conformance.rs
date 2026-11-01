@@ -5,7 +5,7 @@
 //! target is distinguished from a mandatory deviation. This module does not authenticate source
 //! metadata, determine physical equivalence, or validate solver predictions.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProtocolConstraint {
@@ -121,7 +121,10 @@ pub fn audit_protocol(
     for observation in observations {
         validate_key(&observation.key, "observation")?;
         if !requirement_by_key.contains_key(observation.key.as_str()) {
-            return Err(format!("observation {} has no declared protocol requirement", observation.key));
+            return Err(format!(
+                "observation {} has no declared protocol requirement",
+                observation.key
+            ));
         }
         if observation.value.is_some() && observation.source_reference.trim().is_empty() {
             return Err(format!(
