@@ -344,7 +344,7 @@ pub fn report_to_csv(report: &GciReport) -> String {
     let mut output = format!("{GCI_CSV_HEADER}\n");
     for triplet in &report.triplets {
         output.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{:.12},{},{:.12},{}\n",
+            "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{:.12},{},{:.12},{}\n",
             csv_escape(&report.quantity),
             csv_escape(&report.source_reference),
             csv_escape(&report.spacing_definition),

@@ -58,7 +58,7 @@ pub fn sha256_hex(bytes: &[u8]) -> Result<String, String> {
         if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return Err(format!("{program} returned a malformed SHA-256 digest"));
         }
-        return Ok((digest, byte_count));
+        return Ok(digest);
     }
 
     Err(format!(

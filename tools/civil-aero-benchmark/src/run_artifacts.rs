@@ -582,7 +582,8 @@ fn canonical_manifest_bytes(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cfd_admission::{AdmissionCriteria, CfdEvidenceStudy, CfdGridRun, GridFamilyKind};
+    use crate::cfd_admission::{AdmissionCriteria, CfdEvidenceStudy, CfdGridRun};
+    use crate::grid_convergence::GridFamilyKind;
     use crate::integrity::sha256_hex;
     use std::fs;
 

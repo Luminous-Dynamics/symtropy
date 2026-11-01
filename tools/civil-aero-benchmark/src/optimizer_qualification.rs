@@ -992,16 +992,20 @@ mod tests {
                     .take(8)
                     .map(|row| row.decision_vector.clone())
                     .collect::<Vec<_>>();
-                let policy_initial = first
-                    .candidates
-                    .iter()
-                    .filter(|row| {
-                        row.task_id == task && row.policy_id == policy && row.seed == seed
-                    })
-                    .take(8)
-                    .map(|row| row.decision_vector.clone())
-                    .collect::<Vec<_>>();
-                assert_eq!(random_initial, policy_initial);
+                for policy in ["nsga2", "gde3"] {
+                    let policy_initial = first
+                        .candidates
+                        .iter()
+                        .filter(|row| {
+                            row.task_id == task
+                                && row.policy_id == policy
+                                && row.seed == seed
+                        })
+                        .take(8)
+                        .map(|row| row.decision_vector.clone())
+                        .collect::<Vec<_>>();
+                    assert_eq!(random_initial, policy_initial);
+                }
             }
         }
     }
