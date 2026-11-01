@@ -949,7 +949,6 @@ pub fn solve_binary_blackwell_garbling(
     Ok(Some(receipt))
 }
 
-
 impl SignedRational {
     fn is_zero(self) -> bool {
         self.magnitude.is_zero()
@@ -1025,8 +1024,7 @@ pub fn solve_small_blackwell_garbling(
         let witness = BlackwellGarblingWitness {
             probabilities: vec![vec![Rational::one()]; source_observations],
         };
-        return verify_blackwell_dominance(more_informative, less_informative, &witness)
-            .map(Some);
+        return verify_blackwell_dominance(more_informative, less_informative, &witness).map(Some);
     }
 
     let variables = source_observations
@@ -1050,14 +1048,19 @@ pub fn solve_small_blackwell_garbling(
                 let variable = source_observation * (target_observations - 1) + target_observation;
                 coefficients[variable] = SignedRational::from_rational(probability);
             }
-            let target_probability =
-                SignedRational::from_rational(less_informative.probabilities[state][target_observation]);
+            let target_probability = SignedRational::from_rational(
+                less_informative.probabilities[state][target_observation],
+            );
             constraints.push(LinearInequality {
                 coefficients: coefficients.clone(),
                 upper_bound: target_probability,
             });
             constraints.push(LinearInequality {
-                coefficients: coefficients.iter().copied().map(SignedRational::negated).collect(),
+                coefficients: coefficients
+                    .iter()
+                    .copied()
+                    .map(SignedRational::negated)
+                    .collect(),
                 upper_bound: target_probability.negated(),
             });
         }
@@ -1066,8 +1069,7 @@ pub fn solve_small_blackwell_garbling(
     // Each garbling probability is nonnegative.
     for variable in 0..variables {
         let mut coefficients = zero_vector();
-        coefficients[variable] =
-            SignedRational::from_rational(Rational::one()).negated();
+        coefficients[variable] = SignedRational::from_rational(Rational::one()).negated();
         constraints.push(LinearInequality {
             coefficients,
             upper_bound: SignedRational::from_rational(Rational::zero()),
@@ -1098,13 +1100,17 @@ pub fn solve_small_blackwell_garbling(
         for target_observation in 0..(target_observations - 1) {
             let variable = source_observation * (target_observations - 1) + target_observation;
             let Some(probability) = solution[variable].as_probability() else {
-                return Err("Blackwell witness reconstruction produced a negative probability".into());
+                return Err(
+                    "Blackwell witness reconstruction produced a negative probability".into(),
+                );
             };
             assigned_mass = assigned_mass.checked_add(probability)?;
             row.push(probability);
         }
-        let final_probability = subtract_nonnegative(Rational::one(), assigned_mass)
-            .map_err(|_| "Blackwell witness reconstruction exceeded a row's probability mass".to_string())?;
+        let final_probability =
+            subtract_nonnegative(Rational::one(), assigned_mass).map_err(|_| {
+                "Blackwell witness reconstruction exceeded a row's probability mass".to_string()
+            })?;
         row.push(final_probability);
         garbling_rows.push(row);
     }
@@ -1115,9 +1121,7 @@ pub fn solve_small_blackwell_garbling(
     verify_blackwell_dominance(more_informative, less_informative, &witness).map(Some)
 }
 
-fn normalize_inequality(
-    mut inequality: LinearInequality,
-) -> Result<LinearInequality, String> {
+fn normalize_inequality(mut inequality: LinearInequality) -> Result<LinearInequality, String> {
     let scale = inequality
         .coefficients
         .iter()
@@ -1145,7 +1149,11 @@ fn deduplicate_inequalities(
     let mut strongest = BTreeMap::<Vec<SignedRational>, SignedRational>::new();
     for inequality in inequalities {
         let inequality = normalize_inequality(inequality)?;
-        if inequality.coefficients.iter().all(|coefficient| coefficient.is_zero()) {
+        if inequality
+            .coefficients
+            .iter()
+            .all(|coefficient| coefficient.is_zero())
+        {
             if inequality.upper_bound.is_negative() {
                 return Ok(None);
             }
@@ -1251,14 +1259,15 @@ fn exact_boxed_linear_feasibility(
             return Err("small Blackwell elimination exceeded the constraint cap".into());
         }
         stages.push(inequalities.clone());
-        let Some(reduced) =
-            eliminate_first_variable(inequalities, &mut pair_products)?
-        else {
+        let Some(reduced) = eliminate_first_variable(inequalities, &mut pair_products)? else {
             return Ok(None);
         };
         inequalities = reduced;
     }
-    if inequalities.iter().any(|inequality| inequality.upper_bound.is_negative()) {
+    if inequalities
+        .iter()
+        .any(|inequality| inequality.upper_bound.is_negative())
+    {
         return Ok(None);
     }
 
