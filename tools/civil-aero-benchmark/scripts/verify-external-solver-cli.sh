@@ -16,7 +16,7 @@ set -eu
 [ "$2" = "config.cfg" ]
 [ -s config.cfg ]
 [ -s mesh.su2 ]
-printf 'Iteration,CL,CD\n0,0.40,0.020\n1,0.42,0.018\n' > history.csv
+printf 'Iteration,CL,CD,RMS_RES\n0,0.40,0.020,0.01\n1,0.42,0.018,0.0001\n' > history.csv
 printf 'fixture force history\n' > forces_breakdown.dat
 printf 'synthetic SU2-style fixture stdout\n'
 printf 'synthetic SU2-style fixture stderr\n' >&2
@@ -61,7 +61,7 @@ grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_
   --minimum-rows 2 \
   > "$root/su2-history-import.csv" 2> "$root/su2-history-import.txt"
 test "$(wc -l < "$root/su2-history-import.csv")" -eq 3
-grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=2' "$root/su2-history-import.txt"
+grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=3' "$root/su2-history-import.txt"
 grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
 python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-history-import.csv"
 
