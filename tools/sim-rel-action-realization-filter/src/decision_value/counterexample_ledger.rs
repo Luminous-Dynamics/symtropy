@@ -6,7 +6,8 @@
 //! are opaque caller-supplied identifiers, not cryptographic hashes.
 
 use super::counterexample_search::{
-    CounterexampleClass, CounterexampleWitness, ModelWorldPerturbation,
+    CounterexampleClass, CounterexampleOutcome, CounterexampleWitness, ModelWorldPerturbation,
+    is_policy_invalidated_error,
 };
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
 use super::robust_finite_horizon::{
@@ -27,6 +28,20 @@ pub enum EvidenceSplit {
     Development,
     Calibration,
     SealedHoldout,
+}
+
+/// Immutable exact-replay context shared by initial, development-family and
+/// sealed-holdout evaluations. A family ledger cannot silently switch loss
+/// semantics, telemetry protocol, action costs or horizon between revisions.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DecisionReplayContext {
+    pub nominal_world_id: String,
+    pub loss_table: DecisionLossTable,
+    pub protocol: ObservationProtocol,
+    pub command_costs: Vec<Rational>,
+    pub hazard_loss: Rational,
+    pub horizon: usize,
+    pub development_budgets: DecisionBudgets,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +87,7 @@ pub struct CounterexampleAdmissionRecord {
     pub provenance: CounterexampleProvenance,
     pub validation: CounterexampleValidationReceipt,
     pub invalidated_policy_identity: String,
+    pub independently_replayed_outcome: CounterexampleOutcome,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -164,6 +180,7 @@ pub struct SequencedLedgerEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelFamilyLedgerSnapshot {
     pub family_revision: u64,
+    pub replay_context: DecisionReplayContext,
     pub development_worlds: Vec<DecisionModelWorld>,
     pub active_policy_identity: Option<String>,
     pub active_policy_plan: Option<DecisionPlan>,
@@ -180,6 +197,7 @@ pub struct ModelFamilyLedgerSnapshot {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ModelFamilyLedger {
+    replay_context: DecisionReplayContext,
     development_worlds: Vec<DecisionModelWorld>,
     family_revision: u64,
     active_policy_identity: Option<String>,
@@ -225,6 +243,16 @@ impl ModelFamilyLedger {
             ));
         }
         budgets.validate()?;
+        validate_opaque_id(nominal_world_id, MAX_WORLD_ID_LENGTH, "nominal world ID")?;
+        let replay_context = DecisionReplayContext {
+            nominal_world_id: nominal_world_id.into(),
+            loss_table: loss_table.clone(),
+            protocol,
+            command_costs: command_costs.to_vec(),
+            hazard_loss,
+            horizon,
+            development_budgets: budgets,
+        };
 
         let mut world_ids = BTreeSet::new();
         for world in &baseline_worlds {
@@ -236,13 +264,13 @@ impl ModelFamilyLedger {
         }
         let initial_replay = replay_shared_policy_across_worlds(
             &baseline_worlds,
-            nominal_world_id,
-            loss_table,
-            protocol,
-            command_costs,
-            hazard_loss,
+            &replay_context.nominal_world_id,
+            &replay_context.loss_table,
+            replay_context.protocol,
+            &replay_context.command_costs,
+            replay_context.hazard_loss,
             &initial_policy_plan,
-            horizon,
+            replay_context.horizon,
         )?;
         if initial_replay.per_world.iter().any(|metrics| {
             metrics.hazard_probability > budgets.max_hazard_probability
@@ -292,6 +320,7 @@ impl ModelFamilyLedger {
         }
 
         Ok(Self {
+            replay_context,
             development_worlds: baseline_worlds,
             family_revision: 0,
             active_policy_identity: Some(initial_policy_identity),
@@ -345,6 +374,7 @@ impl ModelFamilyLedger {
         consumed_holdout_group_ids.sort();
         ModelFamilyLedgerSnapshot {
             family_revision: self.family_revision,
+            replay_context: self.replay_context.clone(),
             development_worlds: self.development_worlds.clone(),
             active_policy_identity: self.active_policy_identity.clone(),
             active_policy_plan: self.active_policy_plan.clone(),
@@ -406,6 +436,14 @@ impl ModelFamilyLedger {
         if provenance.attacked_policy != *active_plan {
             return Err("counterexample provenance does not contain the exact active policy tree".into());
         }
+        let baseline_terminal_loss = self
+            .active_policy_metrics
+            .as_ref()
+            .ok_or_else(|| "active policy identity has no retained replay metrics".to_string())?
+            .iter()
+            .map(|metrics| metrics.expected_terminal_loss)
+            .max()
+            .unwrap_or_else(Rational::zero);
 
         let source = self
             .development_worlds
@@ -434,6 +472,67 @@ impl ModelFamilyLedger {
                 "model-family world cap {MAX_LEDGER_WORLDS} would be exceeded"
             ));
         }
+
+        // Independently replay the current policy on the complete family plus
+        // the candidate. A witness label is not accepted as proof of violation.
+        let mut attacked_worlds = self.development_worlds.clone();
+        attacked_worlds.push(witness.candidate_world.clone());
+        let replay_outcome = match replay_shared_policy_across_worlds(
+            &attacked_worlds,
+            &self.replay_context.nominal_world_id,
+            &self.replay_context.loss_table,
+            self.replay_context.protocol,
+            &self.replay_context.command_costs,
+            self.replay_context.hazard_loss,
+            active_plan,
+            self.replay_context.horizon,
+        ) {
+            Err(reason) if is_policy_invalidated_error(&reason) => {
+                CounterexampleOutcome::PolicyInvalidated { reason }
+            }
+            Err(reason) => {
+                return Err(format!("counterexample replay was inconclusive: {reason}"));
+            }
+            Ok(replay) => {
+                let candidate_metrics = replay
+                    .per_world
+                    .iter()
+                    .find(|metrics| metrics.world_id == witness.candidate_world.id)
+                    .cloned()
+                    .ok_or_else(|| "candidate world is missing from independent replay".to_string())?;
+                if candidate_metrics.hazard_probability
+                    > self.replay_context.development_budgets.max_hazard_probability
+                {
+                    CounterexampleOutcome::HazardBudgetViolated {
+                        metrics: candidate_metrics,
+                        allowed_hazard_probability: self.replay_context.development_budgets.max_hazard_probability,
+                    }
+                } else if candidate_metrics.abstention_probability
+                    > self.replay_context.development_budgets.max_abstention_probability
+                {
+                    CounterexampleOutcome::AbstentionBudgetViolated {
+                        metrics: candidate_metrics,
+                        allowed_abstention_probability: self.replay_context.development_budgets.max_abstention_probability,
+                    }
+                } else if candidate_metrics.expected_terminal_loss > baseline_terminal_loss {
+                    CounterexampleOutcome::DecisionLossAmplified {
+                        metrics: candidate_metrics,
+                        baseline_worst_case_terminal_loss: baseline_terminal_loss,
+                    }
+                } else {
+                    CounterexampleOutcome::NoViolation {
+                        metrics: candidate_metrics,
+                    }
+                }
+            }
+        };
+        if replay_outcome != witness.outcome {
+            return Err("counterexample witness outcome does not match independent ledger replay".into());
+        }
+        if replay_outcome.class() == CounterexampleClass::NoViolation {
+            return Err("independent replay found no policy or decision violation".into());
+        }
+
         if self.events.len() >= MAX_LEDGER_EVENTS {
             return Err("model-family ledger event cap would be exceeded".into());
         }
@@ -455,6 +554,7 @@ impl ModelFamilyLedger {
             provenance,
             validation,
             invalidated_policy_identity: invalidated_policy_identity.clone(),
+            independently_replayed_outcome: replay_outcome,
         };
 
         self.development_worlds.push(witness.candidate_world.clone());
@@ -478,19 +578,15 @@ impl ModelFamilyLedger {
     /// supplies the complete replay context; a Boolean success flag is never
     /// accepted as evidence.
     #[allow(clippy::too_many_arguments)]
+    /// Reactivate a policy only after the ledger itself has replayed it
+    /// against every stored development world under the immutable replay
+    /// context established at ledger initialization.
     pub fn record_replan(
         &mut self,
         event_receipt_id: String,
         family_revision: u64,
         policy_identity: String,
         plan: DecisionPlan,
-        nominal_world_id: &str,
-        loss_table: &DecisionLossTable,
-        protocol: ObservationProtocol,
-        command_costs: &[Rational],
-        hazard_loss: Rational,
-        horizon: usize,
-        budgets: DecisionBudgets,
     ) -> Result<FamilyReplanRecord, String> {
         self.ensure_refinement_open()?;
         self.validate_new_receipt_id(&event_receipt_id)?;
@@ -501,19 +597,16 @@ impl ModelFamilyLedger {
             return Err("replan receipt is bound to a stale family revision".into());
         }
         validate_opaque_id(&policy_identity, MAX_RECEIPT_ID_LENGTH, "replanned policy identity")?;
-        budgets.validate()?;
 
-        // The ledger performs the independent replay itself. The plan must
-        // cover all reachable public branches in every current model world.
         let replay = replay_shared_policy_across_worlds(
             &self.development_worlds,
-            nominal_world_id,
-            loss_table,
-            protocol,
-            command_costs,
-            hazard_loss,
+            &self.replay_context.nominal_world_id,
+            &self.replay_context.loss_table,
+            self.replay_context.protocol,
+            &self.replay_context.command_costs,
+            self.replay_context.hazard_loss,
             &plan,
-            horizon,
+            self.replay_context.horizon,
         )?;
         let replayed_world_ids = replay
             .per_world
@@ -529,13 +622,17 @@ impl ModelFamilyLedger {
             );
         }
         for metrics in &replay.per_world {
-            if metrics.hazard_probability > budgets.max_hazard_probability {
+            if metrics.hazard_probability
+                > self.replay_context.development_budgets.max_hazard_probability
+            {
                 return Err(format!(
                     "replanned policy violates hazard budget in world {}",
                     metrics.world_id
                 ));
             }
-            if metrics.abstention_probability > budgets.max_abstention_probability {
+            if metrics.abstention_probability
+                > self.replay_context.development_budgets.max_abstention_probability
+            {
                 return Err(format!(
                     "replanned policy violates abstention budget in world {}",
                     metrics.world_id
@@ -625,6 +722,9 @@ impl ModelFamilyLedger {
     /// calculates acceptance from pre-registered numeric criteria. A group is
     /// consumed whether the criteria pass or fail.
     #[allow(clippy::too_many_arguments)]
+    /// Consume one pre-registered sealed holdout group. The ledger itself
+    /// replays the frozen policy under its immutable context, and calculates
+    /// acceptance from pre-registered criteria.
     pub fn record_sealed_holdout_evaluation(
         &mut self,
         event_receipt_id: String,
@@ -632,12 +732,6 @@ impl ModelFamilyLedger {
         family_revision: u64,
         policy_identity: String,
         holdout_worlds: &[DecisionModelWorld],
-        nominal_world_id: &str,
-        loss_table: &DecisionLossTable,
-        protocol: ObservationProtocol,
-        command_costs: &[Rational],
-        hazard_loss: Rational,
-        horizon: usize,
         criteria: SealedHoldoutAcceptanceCriteria,
         evaluation_artifact_id: String,
     ) -> Result<SealedHoldoutEvaluationRecord, String> {
@@ -667,16 +761,13 @@ impl ModelFamilyLedger {
         if self.consumed_holdout_group_ids.contains(&family_group_id) {
             return Err("sealed holdout group has already been consumed".into());
         }
-        let expected_world_ids = {
-            let mut ids = registration.world_ids.clone();
-            ids.sort();
-            ids
-        };
-        let mut supplied_world_ids = holdout_worlds
+        let mut expected_world_ids = registration.world_ids.clone();
+        expected_world_ids.sort();
+        let supplied_world_ids = holdout_worlds
             .iter()
             .map(|world| world.id.clone())
             .collect::<Vec<_>>();
-        supplied_world_ids.sort();
+        let supplied_world_ids = canonical_world_id_set(&supplied_world_ids)?;
         if supplied_world_ids != expected_world_ids {
             return Err("supplied sealed world snapshots must match exactly the registered group".into());
         }
@@ -694,13 +785,13 @@ impl ModelFamilyLedger {
 
         let replay = replay_shared_policy_across_worlds(
             holdout_worlds,
-            nominal_world_id,
-            loss_table,
-            protocol,
-            command_costs,
-            hazard_loss,
+            &self.replay_context.nominal_world_id,
+            &self.replay_context.loss_table,
+            self.replay_context.protocol,
+            &self.replay_context.command_costs,
+            self.replay_context.hazard_loss,
             frozen_plan,
-            horizon,
+            self.replay_context.horizon,
         )?;
         let replayed_ids = replay
             .per_world
