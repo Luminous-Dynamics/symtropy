@@ -1730,18 +1730,14 @@ mod double_sliding_direction_oracle {
                 coupled_impulse = coupled_impulse
                     .add(impulse_numerators[column].scale(w_numerators[row][column]));
             }
-            velocity_numerators[row] = determinant
-                .scale(q_numerators[row])
-                .add(coupled_impulse);
+            velocity_numerators[row] = determinant.scale(q_numerators[row]).add(coupled_impulse);
         }
 
         let t1 = BivariateIntegerPolynomial::in_t1([0, 1, 0]);
         let t2 = BivariateIntegerPolynomial::in_t2([0, 1, 0]);
         let one = BivariateIntegerPolynomial::constant(1);
-        let one_minus_t1_squared =
-            one.sub(BivariateIntegerPolynomial::in_t1([0, 0, 1]));
-        let one_minus_t2_squared =
-            one.sub(BivariateIntegerPolynomial::in_t2([0, 0, 1]));
+        let one_minus_t1_squared = one.sub(BivariateIntegerPolynomial::in_t1([0, 0, 1]));
+        let one_minus_t2_squared = one.sub(BivariateIntegerPolynomial::in_t2([0, 0, 1]));
 
         let tangential_equation_1 = velocity_numerators[1]
             .mul(t1.scale(-2))
@@ -1766,11 +1762,7 @@ mod double_sliding_direction_oracle {
         for index in 0..6 {
             w[index][index] = 128;
         }
-        let cross = [
-            [16_i128, 4, -2],
-            [2, 8, 4],
-            [-4, 2, 8],
-        ];
+        let cross = [[16_i128, 4, -2], [2, 8, 4], [-4, 2, 8]];
         for row in 0..3 {
             for column in 0..3 {
                 w[row][column + 3] = cross[row][column];
@@ -1790,32 +1782,31 @@ mod double_sliding_direction_oracle {
         // Directions (3/5,4/5) and (5/13,12/13) correspond to
         // t1 = tan(theta1/2) = 1/2 and t2 = tan(theta2/2) = 2/3.
         // Both exact integer polynomial numerators must vanish.
-        let g1 = polynomials.tangential_equation_1.evaluate_homogeneous_numerator(
-            1, 2, 4, 2, 3, 2,
-        );
-        let g2 = polynomials.tangential_equation_2.evaluate_homogeneous_numerator(
-            1, 2, 2, 2, 3, 4,
-        );
+        let g1 = polynomials
+            .tangential_equation_1
+            .evaluate_homogeneous_numerator(1, 2, 4, 2, 3, 2);
+        let g2 = polynomials
+            .tangential_equation_2
+            .evaluate_homogeneous_numerator(1, 2, 2, 2, 3, 4);
         assert_eq!(g1, 0);
         assert_eq!(g2, 0);
 
         // The eliminated normal system is regular at this root, so this is
         // not an artificial zero introduced only by clearing det(H).
-        let determinant = polynomials.determinant.evaluate_homogeneous_numerator(
-            1, 2, 2, 2, 3, 2,
-        );
+        let determinant = polynomials
+            .determinant
+            .evaluate_homogeneous_numerator(1, 2, 2, 2, 3, 2);
         assert_ne!(determinant, 0);
 
         // Both normal multiplier numerators have the same sign as Delta;
         // the reconstructed normal impulses are therefore strictly positive.
-        let n1 = polynomials.normal_numerator_1.evaluate_homogeneous_numerator(
-            2, 3, 0, 2, 3, 2,
-        );
-        let n2 = polynomials.normal_numerator_2.evaluate_homogeneous_numerator(
-            1, 2, 2, 2, 3, 0,
-        );
+        let n1 = polynomials
+            .normal_numerator_1
+            .evaluate_homogeneous_numerator(2, 3, 0, 2, 3, 2);
+        let n2 = polynomials
+            .normal_numerator_2
+            .evaluate_homogeneous_numerator(1, 2, 2, 2, 3, 0);
         assert!(n1 * determinant > 0);
         assert!(n2 * determinant > 0);
     }
-
 }
