@@ -5,7 +5,7 @@ use std::env;
 use std::process::ExitCode;
 
 const VALIDATOR_VERSION: &str = "0.1.0";
-const REQUIRED_CASES: [&str; 26] = [
+const REQUIRED_CASES: [&str; 27] = [
     "BASELINE_EXISTING_PROVIDER",
     "COASTAL_GATEWAY_ADJACENT_RANGE",
     "SEPARATED_PORT_INTEGRATION_LAUNCH",
