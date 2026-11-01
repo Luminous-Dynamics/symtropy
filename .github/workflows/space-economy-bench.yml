@@ -560,6 +560,26 @@ jobs:
             and .partition_integrity.test_data_used_for_fit_or_calibration == false
           ' space-economy-drift-detector-comparison-receipt.json
 
+      - name: Run Earth-to-orbit campaign reference tests
+        run: cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference
+
+      - name: Execute Earth-to-orbit campaign reference and emit receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference -- --source-commit "$source_commit" > space-economy-earth-orbit-chain-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .result == "pass"
+            and .source_commit == $source_commit
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and .scenario_count == 26
+            and (.scenarios | length == 26)
+            and all(.scenarios[]; .status_matches_expected == true)
+            and ([.scenarios[].status] | sort) == ["feasible","feasible","feasible","feasible","feasible","feasible","feasible","feasible","feasible","indeterminate","indeterminate","indeterminate","indeterminate","indeterminate","indeterminate","infeasible","infeasible","infeasible","infeasible","infeasible","infeasible","infeasible","invalid","invalid","invalid","invalid"]
+          ' space-economy-earth-orbit-chain-receipt.json
+
       - name: Bind toolchain and dependency-lock provenance to receipts
         shell: bash
         run: |
@@ -582,7 +602,8 @@ jobs:
             space-economy-robust-model-uncertainty-receipt.json \
             space-economy-decision-value-calibration-experiments-receipt.json \
             space-economy-calibration-transfer-shift-receipt.json \
-            space-economy-drift-detector-comparison-receipt.json; do
+            space-economy-drift-detector-comparison-receipt.json \
+            space-economy-earth-orbit-chain-receipt.json; do
             tmp="$(mktemp)"
             jq --arg lock_sha "$lock_sha" \
                '.dependency_lock_sha256 = $lock_sha | .rust_toolchain = "1.96.0"' \
@@ -614,6 +635,7 @@ jobs:
             space-economy-decision-value-calibration-experiments-receipt.json
             space-economy-calibration-transfer-shift-receipt.json
             space-economy-drift-detector-comparison-receipt.json
+            space-economy-earth-orbit-chain-receipt.json
             tools/space-economy-bench/Cargo.lock
             space-economy-cargo-lock.sha256
           if-no-files-found: error
