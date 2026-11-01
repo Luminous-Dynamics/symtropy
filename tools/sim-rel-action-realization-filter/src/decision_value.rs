@@ -10,6 +10,7 @@ pub mod counterexample_ledger;
 pub mod counterexample_search;
 pub mod experiment_ordering;
 pub mod finite_horizon;
+pub mod finite_physical_challenge;
 pub mod robust_finite_horizon;
 pub mod scientific_challenge;
 pub mod sequential_conformal;

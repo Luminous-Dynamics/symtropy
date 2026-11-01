@@ -733,7 +733,12 @@ mod tests {
             145,
         )
         .unwrap();
-        challenge.sealed_oracle.objective_value = Rational::zero();
+        challenge.sealed_oracle.objective_value =
+            if challenge.sealed_oracle.objective_value.is_zero() {
+                Rational::one()
+            } else {
+                Rational::zero()
+            };
         assert!(verify_generated_challenge_oracle(&challenge).is_err());
     }
 }
