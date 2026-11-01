@@ -14,8 +14,8 @@
 //! observation channel.
 
 use super::experiment_ordering::{
-    verify_blackwell_dominance, BlackwellDominanceReceipt, BlackwellGarblingWitness,
-    ChannelDecisionLossTable, FiniteObservationChannel,
+    BlackwellDominanceReceipt, BlackwellGarblingWitness, ChannelDecisionLossTable,
+    FiniteObservationChannel, verify_blackwell_dominance,
 };
 use crate::Rational;
 
@@ -229,13 +229,11 @@ pub fn evaluate_randomized_terminal_rule(
                 .copied()
                 .enumerate()
             {
-                conditional_action_loss = conditional_action_loss.checked_add(
-                    probability.checked_mul(losses.losses[decision][state])?,
-                )?;
+                conditional_action_loss = conditional_action_loss
+                    .checked_add(probability.checked_mul(losses.losses[decision][state])?)?;
             }
             conditional_action_loss = conditional_action_loss.checked_add(
-                rule.abstention_probabilities[observation]
-                    .checked_mul(losses.abstention_loss)?,
+                rule.abstention_probabilities[observation].checked_mul(losses.abstention_loss)?,
             )?;
             risk_contribution = risk_contribution
                 .checked_add(state_observation_mass.checked_mul(conditional_action_loss)?)?;
@@ -279,8 +277,7 @@ pub fn exact_bayes_risk(
     losses.validate(channel.state_ids.len())?;
     validate_prior(prior, channel.state_ids.len())?;
 
-    let mut decision_probabilities =
-        Vec::with_capacity(channel.observation_ids.len());
+    let mut decision_probabilities = Vec::with_capacity(channel.observation_ids.len());
     let mut abstention_probabilities = Vec::with_capacity(channel.observation_ids.len());
 
     for (observation, _) in channel.observation_ids.iter().enumerate() {
@@ -290,9 +287,11 @@ pub fn exact_bayes_risk(
         for (state, prior_mass) in prior.iter().copied().enumerate() {
             let joint_mass = prior_mass.checked_mul(channel.probabilities[state][observation])?;
             observation_probability = observation_probability.checked_add(joint_mass)?;
-            for (loss_numerator, decision_loss) in decision_loss_numerators.iter_mut().zip(&losses.losses) {
-                *loss_numerator = loss_numerator
-                    .checked_add(joint_mass.checked_mul(decision_loss[state])?)?;
+            for (loss_numerator, decision_loss) in
+                decision_loss_numerators.iter_mut().zip(&losses.losses)
+            {
+                *loss_numerator =
+                    loss_numerator.checked_add(joint_mass.checked_mul(decision_loss[state])?)?;
             }
         }
 
@@ -349,8 +348,7 @@ pub fn certify_blackwell_decision_transfer(
     losses: &ChannelDecisionLossTable,
     less_rule: &RandomizedTerminalDecisionRule,
 ) -> Result<BlackwellDecisionTransferCertificate, String> {
-    let dominance =
-        verify_blackwell_dominance(more_informative, less_informative, witness)?;
+    let dominance = verify_blackwell_dominance(more_informative, less_informative, witness)?;
     validate_prior(prior, more_informative.state_ids.len())?;
     losses.validate(more_informative.state_ids.len())?;
     less_rule.validate(less_informative, losses)?;
@@ -381,7 +379,10 @@ pub fn certify_blackwell_decision_transfer(
     }
 
     let transferred_rule = RandomizedTerminalDecisionRule {
-        rule_id: format!("blackwell-transfer:{}:{}", less_rule.rule_id, more_informative.channel_id),
+        rule_id: format!(
+            "blackwell-transfer:{}:{}",
+            less_rule.rule_id, more_informative.channel_id
+        ),
         channel_id: more_informative.channel_id.clone(),
         observation_ids: more_informative.observation_ids.clone(),
         decision_ids: losses.decision_ids.clone(),
@@ -395,9 +396,7 @@ pub fn certify_blackwell_decision_transfer(
     let transferred_rule_risk =
         evaluate_randomized_terminal_rule(more_informative, prior, losses, &transferred_rule)?;
     if source_rule_risk.expected_loss != transferred_rule_risk.expected_loss {
-        return Err(
-            "Blackwell-transferred rule failed exact expected-loss preservation".into(),
-        );
+        return Err("Blackwell-transferred rule failed exact expected-loss preservation".into());
     }
 
     let less_informative_bayes = exact_bayes_risk(less_informative, prior, losses)?;
@@ -429,13 +428,13 @@ pub fn certify_blackwell_decision_transfer(
 #[cfg(test)]
 mod tests {
     use super::{
-        certify_blackwell_decision_transfer, exact_bayes_risk,
-        evaluate_randomized_terminal_rule, RandomizedTerminalDecisionRule,
+        RandomizedTerminalDecisionRule, certify_blackwell_decision_transfer,
+        evaluate_randomized_terminal_rule, exact_bayes_risk,
     };
+    use crate::Rational;
     use crate::decision_value::experiment_ordering::{
         BlackwellGarblingWitness, ChannelDecisionLossTable, FiniteObservationChannel,
     };
-    use crate::Rational;
 
     fn q(numerator: u128, denominator: u128) -> Rational {
         Rational::new(numerator, denominator).expect("valid rational")
@@ -478,10 +477,7 @@ mod tests {
             channel_id: channel.channel_id.clone(),
             observation_ids: channel.observation_ids.clone(),
             decision_ids: vec!["choose-s0".into(), "choose-s1".into()],
-            decision_probabilities: vec![
-                vec![q(1, 3), q(1, 6)],
-                vec![q(1, 4), q(1, 2)],
-            ],
+            decision_probabilities: vec![vec![q(1, 3), q(1, 6)], vec![q(1, 4), q(1, 2)]],
             abstention_probabilities: vec![q(1, 2), q(1, 4)],
         }
     }
@@ -531,7 +527,12 @@ mod tests {
 
         let source_rule = randomized_less_rule(&less);
         let certificate = certify_blackwell_decision_transfer(
-            &more, &less, &witness, &prior, &table, &source_rule,
+            &more,
+            &less,
+            &witness,
+            &prior,
+            &table,
+            &source_rule,
         )
         .expect("valid Blackwell transfer certificate");
         assert_eq!(certificate.bayes_risk_advantage, q(1, 5));
@@ -604,37 +605,38 @@ mod tests {
         let table = losses();
         let mut invalid_rule = randomized_less_rule(&less);
         invalid_rule.abstention_probabilities[0] = q(1, 3);
-        assert!(evaluate_randomized_terminal_rule(
-            &less,
-            &[q(1, 2), q(1, 2)],
-            &table,
-            &invalid_rule
-        )
-        .is_err());
+        assert!(
+            evaluate_randomized_terminal_rule(&less, &[q(1, 2), q(1, 2)], &table, &invalid_rule)
+                .is_err()
+        );
 
         let not_dominating = BlackwellGarblingWitness {
             probabilities: vec![vec![q(1, 2), q(1, 2)], vec![q(1, 2), q(1, 2)]],
         };
-        assert!(certify_blackwell_decision_transfer(
-            &more,
-            &less,
-            &not_dominating,
-            &[q(1, 2), q(1, 2)],
-            &table,
-            &randomized_less_rule(&less)
-        )
-        .is_err());
+        assert!(
+            certify_blackwell_decision_transfer(
+                &more,
+                &less,
+                &not_dominating,
+                &[q(1, 2), q(1, 2)],
+                &table,
+                &randomized_less_rule(&less)
+            )
+            .is_err()
+        );
 
         let mut wrong_channel_rule = randomized_less_rule(&less);
         wrong_channel_rule.channel_id = "different-channel".into();
-        assert!(certify_blackwell_decision_transfer(
-            &more,
-            &less,
-            &witness,
-            &[q(1, 2), q(1, 2)],
-            &table,
-            &wrong_channel_rule
-        )
-        .is_err());
+        assert!(
+            certify_blackwell_decision_transfer(
+                &more,
+                &less,
+                &witness,
+                &[q(1, 2), q(1, 2)],
+                &table,
+                &wrong_channel_rule
+            )
+            .is_err()
+        );
     }
 }
