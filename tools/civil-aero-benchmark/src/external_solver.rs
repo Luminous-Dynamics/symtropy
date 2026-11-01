@@ -1337,6 +1337,9 @@ mod tests {
             .expect("environment manifest");
         assert!(!environment_text.contains("secret-fixture-value"));
         verify_external_solver_receipt(&spec.run_directory, &receipt).expect("independent byte replay");
+        let loaded = read_external_solver_receipt(&spec.run_directory)
+            .expect("offline reader reconstructs and verifies persisted receipt");
+        assert_eq!(loaded, receipt);
         fs::write(spec.run_directory.join(STDOUT_LOG_FILE), "tampered").expect("mutate raw stdout");
         assert!(verify_external_solver_receipt(&spec.run_directory, &receipt)
             .expect_err("mutated log must fail replay")
