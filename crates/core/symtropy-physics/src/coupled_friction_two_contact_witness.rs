@@ -3442,26 +3442,22 @@ mod double_sliding_direction_oracle {
 
         let resultant_derivative = resultant.derivative();
         let resultant_second_derivative = resultant_derivative.derivative();
-        let leading_g1_t1 =
-            BigIntegerPolynomial::from_bivariate_t1_coefficient(
-                polynomials.tangential_equation_1,
-                4,
-            );
-        let leading_g2_t1 =
-            BigIntegerPolynomial::from_bivariate_t1_coefficient(
-                polynomials.tangential_equation_2,
-                2,
-            );
-        let leading_g1_t2 =
-            BigIntegerPolynomial::from_bivariate_t2_coefficient(
-                polynomials.tangential_equation_1,
-                2,
-            );
-        let leading_g2_t2 =
-            BigIntegerPolynomial::from_bivariate_t2_coefficient(
-                polynomials.tangential_equation_2,
-                4,
-            );
+        let leading_g1_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_1,
+            4,
+        );
+        let leading_g2_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_2,
+            2,
+        );
+        let leading_g1_t2 = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_1,
+            2,
+        );
+        let leading_g2_t2 = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_2,
+            4,
+        );
 
         let a_polynomial = exact_quadratic_integer_polynomial(A_T2);
         let q_polynomial = exact_quadratic_integer_polynomial(Q_T1);
@@ -3530,20 +3526,12 @@ mod double_sliding_direction_oracle {
                 let tau_one = polynomials
                     .sliding_numerator_1
                     .evaluate_interval(&t1, &t2)
-                    .div(
-                        &polynomials
-                            .normal_numerator_1
-                            .evaluate_interval(&t1, &t2),
-                    )
+                    .div(&polynomials.normal_numerator_1.evaluate_interval(&t1, &t2))
                     .expect("normal numerator 1 is sign definite");
                 let tau_two = polynomials
                     .sliding_numerator_2
                     .evaluate_interval(&t1, &t2)
-                    .div(
-                        &polynomials
-                            .normal_numerator_2
-                            .evaluate_interval(&t1, &t2),
-                    )
+                    .div(&polynomials.normal_numerator_2.evaluate_interval(&t1, &t2))
                     .expect("normal numerator 2 is sign definite");
                 assert!(
                     tau_one.is_strictly_positive() || tau_one.is_strictly_negative(),
@@ -3564,8 +3552,7 @@ mod double_sliding_direction_oracle {
                         rational_interval_midpoint(&t1),
                         rational_interval_midpoint(&t2),
                     ];
-                    let radius =
-                        BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+                    let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
                     let certificate = certify_exact_double_slide_root_box(
                         &polynomials,
                         center,
@@ -3573,7 +3560,9 @@ mod double_sliding_direction_oracle {
                         FRICTION_NUMERATORS,
                         COMMON_DENOMINATOR,
                     )
-                    .expect("every admissible regular lift must have a unique physical Krawczyk box");
+                    .expect(
+                        "every admissible regular lift must have a unique physical Krawczyk box",
+                    );
 
                     assert!(t1.is_strict_subset_of(&certificate.domain[0]));
                     assert!(t2.is_strict_subset_of(&certificate.domain[1]));
@@ -3610,10 +3599,7 @@ mod double_sliding_direction_oracle {
                     a_roots
                         .iter()
                         .filter(|(a_left, a_right)| {
-                            let a_interval = RationalInterval::new(
-                                a_left.clone(),
-                                a_right.clone(),
-                            );
+                            let a_interval = RationalInterval::new(a_left.clone(), a_right.clone());
                             rational_intervals_overlap(&a_interval, &t2)
                         })
                         .count(),
