@@ -36,6 +36,7 @@ struct FbfOutcome {
     residual: f64,
     outer_iterations: usize,
     step_rejections: usize,
+    inner_iterations: usize,
     final_gamma: f64,
 }
 
@@ -65,6 +66,14 @@ fn subtract(lhs: &Vector6, rhs: &Vector6) -> Vector6 {
 
 fn scaled_add(lhs: &Vector6, scale: f64, rhs: &Vector6) -> Vector6 {
     std::array::from_fn(|index| lhs[index] + scale * rhs[index])
+}
+
+fn free_contact_velocity(generalized_velocity: &Vector6) -> Vector6 {
+    std::array::from_fn(|row| {
+        (0..6)
+            .map(|column| CONTACT_JACOBIAN[row][column] * generalized_velocity[column])
+            .sum()
+    })
 }
 
 fn delassus_from_geometry() -> Matrix6 {
@@ -141,7 +150,7 @@ fn proximal_cone_qp(
     initial: &Vector6,
     gamma: f64,
     mu: f64,
-) -> Vector6 {
+) -> (Vector6, usize) {
     // min 0.5*x^T*(W + gamma^-1 I)*x + q_linear^T*x
     // subject to each contact impulse lying in its Coulomb cone.
     let w_gamma = std::array::from_fn(|row| {
@@ -158,7 +167,7 @@ fn proximal_cone_qp(
     let mut current = project_product_cone(initial, mu);
     let mut extrapolated = current;
     let mut acceleration = 1.0;
-    for _ in 0..INNER_ITERATIONS {
+    for iteration in 0..INNER_ITERATIONS {
         let gradient = add(&matrix_vector(&w_gamma, &extrapolated), q_linear);
         let candidate = project_product_cone(
             &scaled_add(&extrapolated, -step, &gradient),
@@ -168,7 +177,7 @@ fn proximal_cone_qp(
             <= 1.0e-13 * (1.0 + norm(&current))
         {
             current = candidate;
-            break;
+            return (current, iteration + 1);
         }
 
         let next_acceleration =
@@ -178,7 +187,7 @@ fn proximal_cone_qp(
         current = candidate;
         acceleration = next_acceleration;
     }
-    current
+    (current, INNER_ITERATIONS)
 }
 
 fn original_reduced_law_residual(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu: f64) -> f64 {
@@ -239,6 +248,7 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
     let mut gamma = 0.8 / lipschitz_bound;
     let mut impulse = [0.0; 6];
     let mut total_rejections = 0;
+    let mut total_inner_iterations = 0;
 
     for outer_iteration in 1..=MAX_OUTER_ITERATIONS {
         let coupling = saxce_coupling(w, q, &impulse, mu);
@@ -249,8 +259,9 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
                 &add(q, &coupling),
                 &std::array::from_fn(|index| impulse[index] / gamma),
             );
-            let intermediate =
+            let (intermediate, inner_iterations) =
                 proximal_cone_qp(w, &q_linear, &impulse, gamma, mu);
+            total_inner_iterations += inner_iterations;
             let next_coupling = saxce_coupling(w, q, &intermediate, mu);
             let state_change = norm(&subtract(&intermediate, &impulse));
             let coupling_change = norm(&subtract(&next_coupling, &coupling));
@@ -287,6 +298,7 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
                 residual,
                 outer_iterations: outer_iteration,
                 step_rejections: total_rejections,
+                inner_iterations: total_inner_iterations,
                 final_gamma: gamma,
             });
         }
@@ -305,7 +317,10 @@ fn max_abs_difference(lhs: &Vector6, rhs: &Vector6) -> f64 {
 fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
     let w = delassus_from_geometry();
     let reference = [2.0, 0.0, 0.0, 2.0, 0.0, 0.0];
-    let q = std::array::from_fn(|index| -matrix_vector(&w, &reference)[index]);
+    let free_velocity = [-4.0, 0.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
+    let q = free_contact_velocity(&free_velocity);
+    let expected_q = std::array::from_fn(|index| -matrix_vector(&w, &reference)[index]);
+    assert!(max_abs_difference(&q, &expected_q) < 1.0e-14);
 
     let outcome = solve_fbf_reference(&w, &q, FRICTION)
         .expect("FBF projected-gradient reference should recover the sticking response");
@@ -316,12 +331,15 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
     assert!(outcome.final_gamma > 0.0);
     assert!(norm(&add(&q, &matrix_vector(&w, &outcome.impulse))) < 5.0e-5);
     assert!(outcome.step_rejections <= 8);
+    assert!(outcome.inner_iterations >= outcome.outer_iterations);
 }
 
 #[test]
 fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     let w = delassus_from_geometry();
-    let q = [-4.0, 3.0, 0.0, -14.0 / 3.0, 3.0, 0.0];
+    let free_velocity = [-4.0, 3.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
+    let q = free_contact_velocity(&free_velocity);
+    assert!(max_abs_difference(&q, &[-4.0, 3.0, 0.0, -14.0 / 3.0, 3.0, 0.0]) < 1.0e-14);
     let reference = [2.0, -1.0, 0.0, 2.0, -1.0, 0.0];
 
     let outcome = solve_fbf_reference(&w, &q, FRICTION)
@@ -332,6 +350,7 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     assert!(outcome.outer_iterations < MAX_OUTER_ITERATIONS);
     assert!(outcome.final_gamma > 0.0);
     assert!(outcome.step_rejections <= 8);
+    assert!(outcome.inner_iterations >= outcome.outer_iterations);
 
     let post_velocity = add(&q, &matrix_vector(&w, &outcome.impulse));
     for contact in 0..2 {
@@ -341,3 +360,22 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
         assert!(post_velocity[offset + 2].abs() < 5.0e-5);
     }
 }
+#[test]
+fn circular_coulomb_cone_projection_matches_closed_form_cases() {
+    assert_eq!(
+        project_contact_cone([1.0, 0.1, 0.1], FRICTION),
+        [1.0, 0.1, 0.1],
+        "an interior point is unchanged"
+    );
+    assert_eq!(
+        project_contact_cone([-1.0, 0.0, 0.0], FRICTION),
+        [0.0; 3],
+        "a point in the polar cone projects to the apex"
+    );
+    let boundary = project_contact_cone([0.0, 1.0, 0.0], FRICTION);
+    assert!((boundary[0] - 0.4).abs() < 1.0e-14);
+    assert!((boundary[1] - 0.2).abs() < 1.0e-14);
+    assert_eq!(boundary[2], 0.0);
+    assert!((boundary[1].hypot(boundary[2]) - FRICTION * boundary[0]).abs() < 1.0e-14);
+}
+
