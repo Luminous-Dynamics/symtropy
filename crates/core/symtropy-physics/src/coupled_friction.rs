@@ -703,7 +703,9 @@ mod tests {
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sticking);
-        assert!((candidate.impulse - SVector::<_, 3>::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10);
+        assert!(
+            (candidate.impulse - SVector::<_, 3>::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10
+        );
         assert_candidate(candidate, 1.0e-9);
     }
 
