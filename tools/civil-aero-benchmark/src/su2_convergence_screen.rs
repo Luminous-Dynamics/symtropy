@@ -109,7 +109,7 @@ pub struct ConvergenceScreen {
     pub evidence_level: &'static str,
 }
 
-pub const CONVERGENCE_SCREEN_SCHEMA: &str = "su2-declared-convergence-screen/0.2.0";
+pub const CONVERGENCE_SCREEN_SCHEMA: &str = "su2-declared-convergence-screen/0.3.0";
 pub const CONVERGENCE_SCREEN_EVIDENCE_LEVEL: &str = "declared_residual_encoding_terminal_stability_and_monitor_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation";
 
 fn add_string(bytes: &mut Vec<u8>, value: &str) {
@@ -685,6 +685,7 @@ pub fn verify_convergence_screen(screen: &ConvergenceScreen) -> Result<(), Strin
         return Err("convergence screen contains an empty or duplicate criterion field".to_owned());
     }
     if screen.run_id.trim().is_empty()
+        || screen.solver_id.trim().is_empty()
         || !is_sha256(&screen.runner_receipt_sha256)
         || !is_sha256(&screen.history_sha256)
         || !is_sha256(&screen.history_import_sha256)
