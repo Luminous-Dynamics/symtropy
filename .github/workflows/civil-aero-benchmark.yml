@@ -312,8 +312,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo build --locked --bin external_solver_run --bin external_solver_replay_audit --bin su2_history_import --bin su2_convergence_screen
-          bash scripts/verify-external-solver-cli.sh target/debug/external_solver_run target/debug/external_solver_replay_audit target/debug/su2_history_import target/debug/su2_convergence_screen
+          cargo build --locked --bin external_solver_run --bin external_solver_replay_audit --bin su2_history_import --bin su2_convergence_screen --bin su2_mesh_audit
+          bash scripts/verify-external-solver-cli.sh target/debug/external_solver_run target/debug/external_solver_replay_audit target/debug/su2_history_import target/debug/su2_convergence_screen target/debug/su2_mesh_audit
       - name: Compare validated Pareto quality under matched total cost
         working-directory: tools/civil-aero-benchmark
         shell: bash
