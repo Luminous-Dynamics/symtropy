@@ -789,22 +789,15 @@ pub fn execute_external_solver(
                 )
             });
 
-            let mut process_status = None;
-            loop {
+            let process_status = loop {
                 if exceeded.load(Ordering::Acquire) {
                     let _ = child.kill();
-                    process_status = Some(
-                        child
-                            .wait()
-                            .map_err(|error| format!("cannot wait after output cap: {error}"))?,
-                    );
-                    break;
+                    break child
+                        .wait()
+                        .map_err(|error| format!("cannot wait after output cap: {error}"))?;
                 }
                 match child.try_wait() {
-                    Ok(Some(status)) => {
-                        process_status = Some(status);
-                        break;
-                    }
+                    Ok(Some(status)) => break status,
                     Ok(None) => {}
                     Err(error) => {
                         let _ = child.kill();
@@ -815,17 +808,13 @@ pub fn execute_external_solver(
                 if start.elapsed() >= request.timeout {
                     timed_out = true;
                     let _ = child.kill();
-                    process_status =
-                        Some(child.wait().map_err(|error| {
-                            format!("cannot wait after solver timeout: {error}")
-                        })?);
-                    break;
+                    break child.wait().map_err(|error| {
+                        format!("cannot wait after solver timeout: {error}")
+                    })?;
                 }
                 thread::sleep(Duration::from_millis(10));
-            }
-            if let Some(status) = process_status {
-                exit_code = status.code();
-            }
+            };
+            exit_code = process_status.code();
             stdout_capture = stdout_thread
                 .join()
                 .map_err(|_| "stdout capture thread panicked".to_owned())??;
@@ -951,7 +940,7 @@ fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
 }
 
 fn decode_hex_utf8(value: &str, field: &str) -> Result<String, String> {
-    if value.len() % 2 != 0 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+    if !value.len().is_multiple_of(2) || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(format!(
             "{field} must be an even-length hexadecimal UTF-8 value"
         ));
