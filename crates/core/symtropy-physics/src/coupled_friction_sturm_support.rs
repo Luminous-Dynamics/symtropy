@@ -67,9 +67,11 @@ pub(crate) fn derivative(poly: &[Rational]) -> Polynomial {
 }
 
 pub(crate) fn evaluate(poly: &[Rational], x: &Rational) -> Rational {
-    poly.iter().rev().fold(Rational::zero(), |value, coefficient| {
-        value * x.clone() + coefficient.clone()
-    })
+    poly.iter()
+        .rev()
+        .fold(Rational::zero(), |value, coefficient| {
+            value * x.clone() + coefficient.clone()
+        })
 }
 
 pub(crate) fn normalize_positive(poly: &mut Polynomial) {
@@ -84,7 +86,10 @@ pub(crate) fn normalize_positive(poly: &mut Polynomial) {
     }
 }
 
-pub(crate) fn remainder(dividend: &[Rational], divisor: &[Rational]) -> Result<Polynomial, &'static str> {
+pub(crate) fn remainder(
+    dividend: &[Rational],
+    divisor: &[Rational],
+) -> Result<Polynomial, &'static str> {
     if is_zero(divisor) {
         return Err("zero divisor in exact polynomial remainder");
     }
@@ -133,7 +138,11 @@ pub(crate) fn sturm_chain(input: &[Rational]) -> Result<Vec<Polynomial>, &'stati
 }
 
 /// Exact sign immediately to one side of x; side is -1 (left) or +1 (right).
-pub(crate) fn one_sided_sign(poly: &[Rational], x: &Rational, side: i8) -> Result<i8, &'static str> {
+pub(crate) fn one_sided_sign(
+    poly: &[Rational],
+    x: &Rational,
+    side: i8,
+) -> Result<i8, &'static str> {
     let mut current = poly.to_vec();
     let mut derivative_order = 0_usize;
     loop {
@@ -153,7 +162,11 @@ pub(crate) fn one_sided_sign(poly: &[Rational], x: &Rational, side: i8) -> Resul
     }
 }
 
-pub(crate) fn variations(sequence: &[Polynomial], x: &Rational, side: i8) -> Result<usize, &'static str> {
+pub(crate) fn variations(
+    sequence: &[Polynomial],
+    x: &Rational,
+    side: i8,
+) -> Result<usize, &'static str> {
     let signs = sequence
         .iter()
         .map(|poly| one_sided_sign(poly, x, side))
@@ -208,8 +221,7 @@ pub(crate) fn move_endpoint_off_root(
 ) -> Result<Rational, &'static str> {
     for exponent in 1..=512_usize {
         let denominator = Rational::from_integer(BigInt::one() << exponent);
-        let candidate =
-            endpoint.clone() + (toward.clone() - endpoint.clone()) / denominator;
+        let candidate = endpoint.clone() + (toward.clone() - endpoint.clone()) / denominator;
         if evaluate(poly, &candidate).is_zero() {
             continue;
         }
@@ -254,10 +266,24 @@ pub(crate) fn isolate_recursive(
         }
         intervals.push((midpoint.clone(), midpoint.clone()));
         isolate_recursive(
-            poly, chain, lower, midpoint.clone(), left_count, relative_width, depth + 1, intervals,
+            poly,
+            chain,
+            lower,
+            midpoint.clone(),
+            left_count,
+            relative_width,
+            depth + 1,
+            intervals,
         )?;
         isolate_recursive(
-            poly, chain, midpoint, upper, right_count, relative_width, depth + 1, intervals,
+            poly,
+            chain,
+            midpoint,
+            upper,
+            right_count,
+            relative_width,
+            depth + 1,
+            intervals,
         )?;
         return Ok(());
     }
@@ -291,10 +317,24 @@ pub(crate) fn isolate_recursive(
         return Err("Sturm count was not conserved during bisection");
     }
     isolate_recursive(
-        poly, chain, lower, midpoint.clone(), left_count, relative_width, depth + 1, intervals,
+        poly,
+        chain,
+        lower,
+        midpoint.clone(),
+        left_count,
+        relative_width,
+        depth + 1,
+        intervals,
     )?;
     isolate_recursive(
-        poly, chain, midpoint, upper, right_count, relative_width, depth + 1, intervals,
+        poly,
+        chain,
+        midpoint,
+        upper,
+        right_count,
+        relative_width,
+        depth + 1,
+        intervals,
     )?;
     Ok(())
 }
@@ -317,7 +357,14 @@ pub(crate) fn sturm_isolate_rational(
     let relative_width = Rational::new(BigInt::one(), BigInt::one() << 72_usize);
     let mut intervals = Vec::with_capacity(count);
     isolate_recursive(
-        &poly, &chain, lower, upper, count, &relative_width, 0, &mut intervals,
+        &poly,
+        &chain,
+        lower,
+        upper,
+        count,
+        &relative_width,
+        0,
+        &mut intervals,
     )?;
     intervals.sort_by(|a, b| a.0.cmp(&b.0));
     if intervals.len() != count {
