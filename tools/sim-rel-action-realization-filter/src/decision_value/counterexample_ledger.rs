@@ -89,6 +89,7 @@ pub struct CounterexampleAdmissionRecord {
     pub provenance: CounterexampleProvenance,
     pub validation: CounterexampleValidationReceipt,
     pub invalidated_policy_identity: String,
+    pub claimed_outcome: CounterexampleOutcome,
     pub independently_replayed_outcome: CounterexampleOutcome,
 }
 
@@ -197,6 +198,8 @@ pub struct ModelFamilyLedgerSnapshot {
     pub consumed_holdout_group_ids: Vec<String>,
     pub used_validation_receipt_ids: Vec<String>,
     pub invalidated_policy_identity: Option<String>,
+    pub used_policy_identities: Vec<String>,
+    pub used_evaluation_artifact_ids: Vec<String>,
     pub events: Vec<SequencedLedgerEvent>,
 }
 
@@ -209,6 +212,8 @@ pub struct ModelFamilyLedger {
     active_policy_plan: Option<DecisionPlan>,
     active_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     invalidated_policy_identity: Option<String>,
+    policy_identities: BTreeSet<String>,
+    evaluation_artifact_ids: BTreeSet<String>,
     frozen_policy_identity: Option<String>,
     frozen_policy_plan: Option<DecisionPlan>,
     frozen_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
@@ -328,10 +333,12 @@ impl ModelFamilyLedger {
             replay_context,
             development_worlds: baseline_worlds,
             family_revision: 0,
-            active_policy_identity: Some(initial_policy_identity),
+            active_policy_identity: Some(initial_policy_identity.clone()),
             active_policy_plan: Some(initial_policy_plan),
             active_policy_metrics: Some(initial_replay.per_world),
             invalidated_policy_identity: None,
+            policy_identities: BTreeSet::from([initial_policy_identity]),
+            evaluation_artifact_ids: BTreeSet::new(),
             frozen_policy_identity: None,
             frozen_policy_plan: None,
             frozen_policy_metrics: None,
@@ -392,6 +399,8 @@ impl ModelFamilyLedger {
             consumed_holdout_group_ids,
             used_validation_receipt_ids: self.validation_receipt_ids.iter().cloned().collect(),
             invalidated_policy_identity: self.invalidated_policy_identity.clone(),
+            used_policy_identities: self.policy_identities.iter().cloned().collect(),
+            used_evaluation_artifact_ids: self.evaluation_artifact_ids.iter().cloned().collect(),
             events: self.events.clone(),
         }
     }
@@ -578,6 +587,7 @@ impl ModelFamilyLedger {
             provenance,
             validation,
             invalidated_policy_identity: invalidated_policy_identity.clone(),
+            claimed_outcome: witness.outcome.clone(),
             independently_replayed_outcome: replay_outcome,
         };
 
@@ -621,8 +631,8 @@ impl ModelFamilyLedger {
             return Err("replan receipt is bound to a stale family revision".into());
         }
         validate_opaque_id(&policy_identity, MAX_RECEIPT_ID_LENGTH, "replanned policy identity")?;
-        if self.invalidated_policy_identity.as_ref() == Some(&policy_identity) {
-            return Err("a new policy identity is required after counterexample invalidation".into());
+        if self.policy_identities.contains(&policy_identity) {
+            return Err("policy identities must be globally unique within the model-family ledger".into());
         }
 
         let replay = replay_shared_policy_across_worlds(
@@ -678,6 +688,7 @@ impl ModelFamilyLedger {
             replayed_world_ids: expected_world_ids,
             per_world_metrics: replay.per_world.clone(),
         };
+        self.policy_identities.insert(policy_identity.clone());
         self.active_policy_identity = Some(policy_identity);
         self.active_policy_plan = Some(plan);
         self.active_policy_metrics = Some(replay.per_world);
@@ -806,6 +817,9 @@ impl ModelFamilyLedger {
             MAX_RECEIPT_ID_LENGTH,
             "holdout evaluation artifact ID",
         )?;
+        if self.evaluation_artifact_ids.contains(&evaluation_artifact_id) {
+            return Err("sealed evaluation artifact IDs must be single-use".into());
+        }
         if self.events.len() >= MAX_LEDGER_EVENTS {
             return Err("model-family ledger event cap would be exceeded".into());
         }
@@ -813,60 +827,66 @@ impl ModelFamilyLedger {
         let holdout_nominal_world_id = expected_world_ids
             .first()
             .ok_or_else(|| "registered holdout group has no nominal reference world".to_string())?;
-        let replay_result = replay_shared_policy_across_worlds(
-            holdout_worlds,
-            holdout_nominal_world_id,
-            &self.replay_context.loss_table,
-            self.replay_context.protocol,
-            &self.replay_context.command_costs,
-            self.replay_context.hazard_loss,
-            frozen_plan,
-            self.replay_context.horizon,
-        );
+        let replay_evaluation = (|| {
+            let replay = replay_shared_policy_across_worlds(
+                holdout_worlds,
+                holdout_nominal_world_id,
+                &self.replay_context.loss_table,
+                self.replay_context.protocol,
+                &self.replay_context.command_costs,
+                self.replay_context.hazard_loss,
+                frozen_plan,
+                self.replay_context.horizon,
+            )?;
+            let replayed_ids = replay
+                .per_world
+                .iter()
+                .map(|metrics| metrics.world_id.clone())
+                .collect::<Vec<_>>();
+            let replayed_ids = canonical_world_id_set(&replayed_ids)?;
+            if replayed_ids != expected_world_ids {
+                return Err("sealed policy replay did not cover the registered holdout group".into());
+            }
 
-        // Once the group and policy bindings are valid, the attempt is
-        // consumed regardless of replay success. This prevents retrying the
-        // same sealed group with altered world snapshots after observing an
-        // unsupported branch or arithmetic failure.
+            let worst_case_total_loss = replay
+                .per_world
+                .iter()
+                .map(WorldDecisionObjectives::expected_total_loss)
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .max()
+                .unwrap_or_else(Rational::zero);
+            let worst_case_terminal_loss = replay
+                .per_world
+                .iter()
+                .map(|metrics| metrics.expected_terminal_loss)
+                .max()
+                .unwrap_or_else(Rational::zero);
+            let per_world_budgets_pass = replay.per_world.iter().all(|metrics| {
+                metrics.hazard_probability <= criteria.budgets.max_hazard_probability
+                    && metrics.abstention_probability <= criteria.budgets.max_abstention_probability
+            });
+            let acceptance = per_world_budgets_pass
+                && worst_case_total_loss <= criteria.max_worst_case_total_loss
+                && worst_case_terminal_loss <= criteria.max_worst_case_terminal_loss;
+            Ok::<_, String>((
+                replayed_ids,
+                replay.per_world,
+                worst_case_total_loss,
+                worst_case_terminal_loss,
+                acceptance,
+            ))
+        })();
+
+        // Once group/policy/manifest bindings are validated, every replay or
+        // checked-arithmetic failure is recorded and consumes the group. A
+        // sealed evaluation is not a retryable tuning oracle.
         let (replay_succeeded, replay_error, replayed_ids, per_world_metrics,
             worst_case_total_loss, worst_case_terminal_loss, acceptance_criteria_satisfied) =
-            match replay_result {
-                Ok(replay) => {
-                    let replayed_ids = replay
-                        .per_world
-                        .iter()
-                        .map(|metrics| metrics.world_id.clone())
-                        .collect::<Vec<_>>();
-                    let replayed_ids = canonical_world_id_set(&replayed_ids)?;
-                    if replayed_ids != expected_world_ids {
-                        (false, Some("sealed policy replay did not cover the registered holdout group".into()),
-                            expected_world_ids.clone(), Vec::new(), None, None, false)
-                    } else {
-                        let worst_case_total_loss = replay
-                            .per_world
-                            .iter()
-                            .map(WorldDecisionObjectives::expected_total_loss)
-                            .collect::<Result<Vec<_>, _>>()?
-                            .into_iter()
-                            .max()
-                            .unwrap_or_else(Rational::zero);
-                        let worst_case_terminal_loss = replay
-                            .per_world
-                            .iter()
-                            .map(|metrics| metrics.expected_terminal_loss)
-                            .max()
-                            .unwrap_or_else(Rational::zero);
-                        let per_world_budgets_pass = replay.per_world.iter().all(|metrics| {
-                            metrics.hazard_probability <= criteria.budgets.max_hazard_probability
-                                && metrics.abstention_probability <= criteria.budgets.max_abstention_probability
-                        });
-                        let acceptance = per_world_budgets_pass
-                            && worst_case_total_loss <= criteria.max_worst_case_total_loss
-                            && worst_case_terminal_loss <= criteria.max_worst_case_terminal_loss;
-                        (true, None, replayed_ids, replay.per_world,
-                            Some(worst_case_total_loss), Some(worst_case_terminal_loss), acceptance)
-                    }
-                }
+            match replay_evaluation {
+                Ok((ids, metrics, total_loss, terminal_loss, acceptance)) => (
+                    true, None, ids, metrics, Some(total_loss), Some(terminal_loss), acceptance,
+                ),
                 Err(error) => (
                     false,
                     Some(error),
@@ -900,6 +920,7 @@ impl ModelFamilyLedger {
             event_receipt_id,
             ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record.clone()),
         )?;
+        self.evaluation_artifact_ids.insert(record.evaluation_artifact_id.clone());
         Ok(record)
     }
 
