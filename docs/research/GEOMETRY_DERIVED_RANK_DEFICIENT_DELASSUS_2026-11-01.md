@@ -107,6 +107,43 @@ The integration test reconstructs \(J\), \(M^{-1}\), and \(W\) over rational ari
 
 The sample panel is a regression check; the symbolic identities \(Wn=0\), \(q=-Wp_0\), and \(p(\alpha)=p_0+\alpha n\) establish the continuum for the entire open interval.
 
+## Extension: three non-collinear contacts and a three-dimensional fiber
+
+The integration test now includes three contacts on the same rigid body at
+\(r_1=(0,0,0)\), \(r_2=(1,0,0)\), and \(r_3=(0,1,0)\), all on the plane
+\(z=0\). With the same inverse mass matrix, the geometry-derived Jacobian is
+\(9\times6\), has exact rank 6, and generates a \(9\times9\) Delassus matrix
+with exact rank 6 and nullity 3.
+
+An exact rational basis of the contact-impulse kernel is
+\[
+n_1=(0,-1,0,0,1,0,0,0,0)^T,
+\]
+\[
+n_2=(0,-1,-1,0,0,1,0,1,0)^T,
+\qquad
+n_3=(0,0,-1,0,0,0,0,0,1)^T.
+\]
+For \(p_0=(2,0,0,2,0,0,2,0,0)^T\), the response is
+\(Wp_0=(6,0,0,7,0,0,8,0,0)^T\), and \(q=-Wp_0\). Therefore every
+\[
+p(\alpha,\beta,\gamma)=p_0+\alpha n_1+\beta n_2+\gamma n_3
+\]
+has exactly the same \(q+Wp=0\).
+
+For \((\alpha,\beta,\gamma)\in[-1/10,1/10]^3\), every normal impulse remains
+2, every tangential component has magnitude at most \(1/5\), and the local
+Coulomb radius is \(\mu\lambda=1\) for \(\mu=1/2\). All contacts remain strictly
+inside their disks. The exact island energy change is \(-21\), independent of
+the three parameters. Thus the admissible equivalent-impulse fiber contains a
+three-dimensional cube, not merely a line segment.
+
+The executable test verifies the exact rank, three independent null vectors,
+response equivalence, strict disk feasibility and constant energy at rational
+points spanning the cube. The algebraic nullspace identities extend the
+response equality to the whole parameter cube; the component bounds establish
+Coulomb feasibility throughout it.
+
 ## Paradigm shifts and benchmark implications
 
 1. **Replace “unique impulse” with a set-valued, quotient-aware result.** Report solution-set dimension, nullspace basis, feasible parameter region and unique response status independently.
