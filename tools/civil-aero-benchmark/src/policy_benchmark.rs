@@ -760,7 +760,7 @@ mod tests {
             task_id: task.to_owned(),
             replicate_id: replicate.to_owned(),
             policy_id: policy.to_owned(),
-            operation_id: op.to_owned(),
+            operation_id: operation.to_owned(),
             candidate_id: id.to_owned(),
             output_sha256: digest(output),
             admission_status: if admitted {
