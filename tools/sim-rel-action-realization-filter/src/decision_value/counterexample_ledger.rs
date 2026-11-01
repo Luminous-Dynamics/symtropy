@@ -164,7 +164,7 @@ pub enum ModelFamilyLedgerEvent {
     CounterexampleAdmitted(Box<CounterexampleAdmissionRecord>),
     PolicyReplanned(FamilyReplanRecord),
     FinalPolicySealed(FinalPolicySealRecord),
-    SealedHoldoutEvaluated(SealedHoldoutEvaluationRecord),
+    SealedHoldoutEvaluated(Box<SealedHoldoutEvaluationRecord>),
 }
 
 impl ModelFamilyLedgerEvent {
@@ -1080,7 +1080,7 @@ impl ModelFamilyLedger {
         self.consumed_holdout_group_ids.insert(family_group_id);
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record.clone()),
+            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(Box::new(record.clone())),
         )?;
         self.evaluation_artifact_ids
             .insert(record.evaluation_artifact_id.clone());
