@@ -316,7 +316,10 @@ mod tests {
             assert_eq!(body_post_velocity, [0_i128; 6]);
 
             let response = apply_delassus(&delassus, &candidate);
-            assert_eq!(response, response0, "contact response must be fibre-invariant");
+            assert_eq!(
+                response, response0,
+                "contact response must be fibre-invariant"
+            );
             let post_contact_velocity: [i128; 9] =
                 std::array::from_fn(|index| free_velocity[index] + response[index]);
             assert_eq!(post_contact_velocity, [0_i128; 9]);
