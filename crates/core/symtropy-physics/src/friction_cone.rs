@@ -78,17 +78,15 @@ pub fn solve_planar_friction_cone(
     }
 
     let matrix_scale = effective_mass.norm().max(f64::MIN_POSITIVE);
-    if (effective_mass - effective_mass.transpose()).norm()
-        > relative_tolerance * matrix_scale
-    {
+    if (effective_mass - effective_mass.transpose()).norm() > relative_tolerance * matrix_scale {
         return Err(FrictionConeError::NotSymmetric);
     }
 
     let matrix = (effective_mass + effective_mass.transpose()) * 0.5;
     let eigenvalues = nalgebra::linalg::SymmetricEigen::new(matrix).eigenvalues;
-    let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |minimum, value| {
-        minimum.min(*value)
-    });
+    let minimum_eigenvalue = eigenvalues
+        .iter()
+        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
     if minimum_eigenvalue <= relative_tolerance * matrix_scale {
         return Err(FrictionConeError::NotPositiveDefinite);
     }
@@ -121,9 +119,7 @@ pub fn solve_planar_friction_cone(
             if normal_impulse > impulse_tolerance {
                 let sliding = SVector::<f64, 2>::new(normal_impulse, -mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
-                if post[0].abs() <= 10.0 * velocity_tolerance
-                    && post[1] >= -velocity_tolerance
-                {
+                if post[0].abs() <= 10.0 * velocity_tolerance && post[1] >= -velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingPositive));
                 }
             }
@@ -136,9 +132,7 @@ pub fn solve_planar_friction_cone(
             if normal_impulse > impulse_tolerance {
                 let sliding = SVector::<f64, 2>::new(normal_impulse, mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
-                if post[0].abs() <= 10.0 * velocity_tolerance
-                    && post[1] <= velocity_tolerance
-                {
+                if post[0].abs() <= 10.0 * velocity_tolerance && post[1] <= velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingNegative));
                 }
             }
@@ -155,29 +149,24 @@ pub fn solve_planar_friction_cone(
         .max(0.0)
         .max((-impulse[0]).max(0.0));
     let tangential_pre_impulse_velocity = free_velocity[1] + matrix[(1, 0)] * impulse[0];
-    let frictional_work_delta = impulse[1]
-        * (tangential_pre_impulse_velocity + 0.5 * matrix[(1, 1)] * impulse[1]);
+    let frictional_work_delta =
+        impulse[1] * (tangential_pre_impulse_velocity + 0.5 * matrix[(1, 1)] * impulse[1]);
 
     let impulse_residual_scale = impulse_scale.max(impulse.norm()).max(f64::MIN_POSITIVE);
     let normal_complementarity = (-impulse[0] / impulse_residual_scale)
         .max(0.0)
         .max((-post_velocity[0] / velocity_scale).max(0.0))
-        .max(
-            (impulse[0] / impulse_residual_scale * post_velocity[0] / velocity_scale).abs(),
-        );
+        .max((impulse[0] / impulse_residual_scale * post_velocity[0] / velocity_scale).abs());
     let tangential_residual = match mode {
         ContactMode::Separating => impulse[1].abs() / impulse_residual_scale,
-        ContactMode::Sticking => (post_velocity[1].abs() / velocity_scale)
-            .max(cone_violation / impulse_residual_scale),
-        ContactMode::SlidingPositive => {
-            ((-post_velocity[1] / velocity_scale).max(0.0))
-                .max((impulse[1] + mu * impulse[0]).abs() / impulse_residual_scale)
+        ContactMode::Sticking => {
+            (post_velocity[1].abs() / velocity_scale).max(cone_violation / impulse_residual_scale)
         }
-        ContactMode::SlidingNegative => {
-            (post_velocity[1] / velocity_scale).max(0.0).max(
-                (impulse[1] - mu * impulse[0]).abs() / impulse_residual_scale,
-            )
-        }
+        ContactMode::SlidingPositive => ((-post_velocity[1] / velocity_scale).max(0.0))
+            .max((impulse[1] + mu * impulse[0]).abs() / impulse_residual_scale),
+        ContactMode::SlidingNegative => (post_velocity[1] / velocity_scale)
+            .max(0.0)
+            .max((impulse[1] - mu * impulse[0]).abs() / impulse_residual_scale),
     };
     let normalized_contact_residual = normal_complementarity
         .max(tangential_residual)
@@ -191,9 +180,7 @@ pub fn solve_planar_friction_cone(
         return Err(FrictionConeError::NonFinite);
     }
 
-    let tangential_work_scale = impulse[1]
-        .abs()
-        .max(f64::MIN_POSITIVE)
+    let tangential_work_scale = impulse[1].abs().max(f64::MIN_POSITIVE)
         * (tangential_pre_impulse_velocity
             .abs()
             .max((matrix[(1, 1)] * impulse[1]).abs())
@@ -341,24 +328,14 @@ mod tests {
             let b = 0.5 * deterministic_sample(&mut state);
             let c = 0.5 + deterministic_sample(&mut state).abs();
             // AᵀA + epsilon*I is SPD while retaining off-diagonal coupling.
-            let effective_mass = Matrix2::new(
-                a * a + 0.05,
-                a * b,
-                a * b,
-                b * b + c * c + 0.05,
-            );
+            let effective_mass = Matrix2::new(a * a + 0.05, a * b, a * b, b * b + c * c + 0.05);
             let free_velocity = SVector::new(
                 2.0 * deterministic_sample(&mut state),
                 2.0 * deterministic_sample(&mut state),
             );
             let mu = 2.0 * deterministic_sample(&mut state).abs();
-            let solution = solve_planar_friction_cone(
-                &effective_mass,
-                &free_velocity,
-                mu,
-                1e-11,
-            )
-            .unwrap_or_else(|error| panic!("seed={seed}, error={error:?}"));
+            let solution = solve_planar_friction_cone(&effective_mass, &free_velocity, mu, 1e-11)
+                .unwrap_or_else(|error| panic!("seed={seed}, error={error:?}"));
 
             assert!(
                 solution.impulse[0] >= -1e-10,
@@ -398,6 +375,4 @@ mod tests {
             }
         }
     }
-
-
 }
