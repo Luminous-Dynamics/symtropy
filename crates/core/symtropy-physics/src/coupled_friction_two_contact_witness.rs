@@ -2496,14 +2496,14 @@ mod double_sliding_direction_oracle {
             }
 
             let mut result = RationalInterval::point(zero);
-            for degree_t1 in 0..5 {
-                for degree_t2 in 0..5 {
+            for (degree_t1, t1_power) in t1_powers.iter().enumerate() {
+                for (degree_t2, t2_power) in t2_powers.iter().enumerate() {
                     let coefficient = self.coefficients[degree_t1][degree_t2];
                     if coefficient == 0 {
                         continue;
                     }
-                    let term = t1_powers[degree_t1]
-                        .mul(&t2_powers[degree_t2])
+                    let term = t1_power
+                        .mul(t2_power)
                         .scale(&BigRational::from_integer(BigInt::from(coefficient)));
                     result = result.add(&term);
                 }
