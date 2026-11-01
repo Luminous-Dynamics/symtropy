@@ -453,8 +453,14 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
                 row_values[q] = sine * aip + cosine * aiq;
             }
         }
-        let new_column_p = values.iter().map(|row_values| row_values[p]).collect::<Vec<_>>();
-        let new_column_q = values.iter().map(|row_values| row_values[q]).collect::<Vec<_>>();
+        let new_column_p = values
+            .iter()
+            .map(|row_values| row_values[p])
+            .collect::<Vec<_>>();
+        let new_column_q = values
+            .iter()
+            .map(|row_values| row_values[q])
+            .collect::<Vec<_>>();
         let (row_p, row_q) = if p < q {
             let (left, right) = values.split_at_mut(q);
             (&mut left[p], &mut right[0])
