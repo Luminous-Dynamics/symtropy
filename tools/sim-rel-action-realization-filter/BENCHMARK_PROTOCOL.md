@@ -105,27 +105,38 @@ Split by generator family and apparatus signature, never by random rows alone.
 A shift family used to design the falsifier or calibrate the TV radius cannot
 also serve as a sealed test family.
 
-### C. Experiment-ordering under misspecification
+### C. Two-axis inference/model misspecification and experiment ordering
 
-Construct paired channels where experiment A is Blackwell-more-informative than
-experiment B under the nominal model. Then independently vary:
-- **Inference misspecification:** hold the data generator to the nominal family
-  while perturbing the inference approximation, posterior truncation,
-  likelihood calculation or calibration procedure.
-- **Model misspecification:** keep inference exact while perturbing the
-  data-generating kernel, sensor mapping, action realization or apparatus
-  transition.
-- **Interaction:** cross inference and model shifts factorially, including
-  combinations that cause confident but wrong terminal decisions.
+Use the exact finite-channel oracle and scale through a factorial suite:
+- matched working model / true generator / exact Bayes inference (negative control);
+- working model equals truth, but posterior rule is approximated, truncated or
+  miscalibrated (inference-only);
+- posterior rule is exact for the working model, but the true generator shifts
+  (model-only);
+- both working model and posterior rule differ from truth (interaction).
 
-For each pair, report the nominal ranking, realized downstream-loss ranking,
-decision flip frequency, confidence calibration and whether the supposedly
-more informative experiment amplifies error. This is the direct falsification
-suite for Blackwell-style monotonicity assumptions under misspecification.
-Compare classical EIG, EGIG/inferential-error penalties, the model-error
-criterion, nominal decision-aware DP, finite-family robust DP, TV ambiguity and
-UAI-style adversarial decision-aware design. Preserve the experiment cost and
-risk constraints across the pair.
+Do not identify inference error merely by swapping the likelihood matrix. Every
+trial must retain separate digests for the working channel, true generator and
+posterior-rule implementation/output. Compare posterior approximation
+TV(q,p_K), model posterior shift TV(p_K,p_T), and total TV(q,p_T), all weighted
+by true observation frequencies with unsupported observations counted
+separately. Also report proper expected multiclass Brier score under p_T,
+nominal Bayes risk under K, true-frequency-weighted assumed conditional risk,
+realized terminal decision loss and true-channel Bayes regret.
+
+For nominal experiment ordering, construct A/B channel pairs with an exact
+Blackwell witness or exact binary solver certificate. Under controlled
+model-only and inference-only perturbations, record when nominal information
+ranking, decision ranking and realized downstream-loss ranking diverge. Include
+non-compensating and error-cancellation interactions: two individually harmful
+mismatches can sometimes cancel at the final decision while both posterior
+error sources remain nonzero. Such cancellation must not be reported as model
+adequacy.
+
+Compare classical/cost-normalized EIG, EGIG and separate inferential/model-error
+penalties, nominal decision-aware DP, finite-family robust DP, TV/GTV ambiguity,
+UAI-style adversarial decision-aware design, COPEx and R-IDeA. Preserve identical
+experiment costs, observation vocabularies, horizons and risk constraints.
 
 ### D. Real workflow / agent transfer
 
@@ -159,8 +170,12 @@ real-workflow evaluation.
 
 ### Model and execution diagnostics
 
-- Posterior predictive log score and Brier score where ground truth is known.
+- Posterior predictive log score and proper Brier score where ground truth is known.
+- Posterior TV attribution: inference approximation vs working posterior, model
+  shift vs true posterior, and total inference-vs-truth error.
 - Calibration coverage/error overall and by apparatus, sensor and shift group.
+- Confidence / posterior error among false decisions, including high-confidence
+  wrong-decision rate and selective risk-versus-coverage curves.
 - Command delivery, partial execution, readback agreement and missing-telemetry
   rates.
 - Final physical/bench state, episode-grounded evidence and protocol violations.
