@@ -1104,6 +1104,36 @@ fn interval_evaluate(
     )
 }
 
+fn exact_symmetric_matrix_is_spd(matrix: &[Vec<Rational>]) -> bool {
+    if matrix.is_empty() || matrix.iter().any(|row| row.len() != matrix.len()) {
+        return false;
+    }
+    for row in 0..matrix.len() {
+        for column in 0..matrix.len() {
+            if matrix[row][column] != matrix[column][row] {
+                return false;
+            }
+        }
+    }
+    for size in 1..=matrix.len() {
+        let leading = matrix
+            .iter()
+            .take(size)
+            .map(|row| {
+                row.iter()
+                    .take(size)
+                    .map(|value| vec![value.clone()])
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let determinant = polynomial_determinant(&leading);
+        if determinant.len() != 1 || determinant[0] <= Rational::zero() {
+            return false;
+        }
+    }
+    true
+}
+
 fn exact_two_contact_slide_stick_branch_intervals(
     w: &SMatrix<f64, 6, 6>,
     q: &SVector<f64, 6>,
@@ -1280,6 +1310,17 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         -0.1,
     );
     let mu_1 = 1.383_289_774_658_335;
+
+    let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            exact_w[row][column] = exact_f64(w[(row, column)]).unwrap();
+        }
+    }
+    assert!(
+        exact_symmetric_matrix_is_spd(&exact_w),
+        "the exact binary64 Delassus matrix must be symmetric positive definite"
+    );
 
     let (quartic, determinant, numerators) =
         exact_two_contact_slide_stick_polynomials(&w, &q, mu_1)
