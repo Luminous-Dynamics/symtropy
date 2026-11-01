@@ -313,7 +313,7 @@ impl ModelFamilyLedger {
             ));
         }
         let mut reserved_calibrations = BTreeMap::new();
-        for registration in calibration_groups {
+        for mut registration in calibration_groups {
             validate_opaque_id(
                 &registration.family_group_id,
                 MAX_WORLD_ID_LENGTH,
@@ -327,6 +327,7 @@ impl ModelFamilyLedger {
             if registration.world_ids.is_empty() {
                 return Err("calibration registration must contain at least one world".into());
             }
+            registration.world_ids.sort();
             if !all_reserved_group_ids.insert(registration.family_group_id.clone()) {
                 return Err("calibration family-group IDs must be globally unique".into());
             }
@@ -349,7 +350,7 @@ impl ModelFamilyLedger {
             ));
         }
         let mut reserved_holdouts = BTreeMap::new();
-        for registration in holdouts {
+        for mut registration in holdouts {
             validate_opaque_id(
                 &registration.family_group_id,
                 MAX_WORLD_ID_LENGTH,
@@ -363,6 +364,7 @@ impl ModelFamilyLedger {
             if registration.world_ids.is_empty() {
                 return Err("sealed holdout registration must contain at least one world".into());
             }
+            registration.world_ids.sort();
             let mut local_ids = BTreeSet::new();
             for world_id in &registration.world_ids {
                 validate_opaque_id(world_id, MAX_WORLD_ID_LENGTH, "sealed world ID")?;
@@ -874,7 +876,9 @@ impl ModelFamilyLedger {
         if supplied_world_ids != expected_world_ids {
             return Err("supplied sealed world snapshots must match exactly the registered group".into());
         }
-        for world in holdout_worlds {
+        let mut canonical_holdout_worlds = holdout_worlds.to_vec();
+        canonical_holdout_worlds.sort_by(|left, right| left.id.cmp(&right.id));
+        for world in &canonical_holdout_worlds {
             world.kernel.validate()?;
         }
         validate_opaque_id(
@@ -894,7 +898,7 @@ impl ModelFamilyLedger {
             .ok_or_else(|| "registered holdout group has no nominal reference world".to_string())?;
         let replay_evaluation = (|| {
             let replay = replay_shared_policy_across_worlds(
-                holdout_worlds,
+                &canonical_holdout_worlds,
                 holdout_nominal_world_id,
                 &self.replay_context.loss_table,
                 self.replay_context.protocol,
@@ -970,7 +974,7 @@ impl ModelFamilyLedger {
             family_revision,
             policy_identity,
             world_ids: replayed_ids,
-            holdout_world_snapshots: holdout_worlds.to_vec(),
+            holdout_world_snapshots: canonical_holdout_worlds,
             evaluation_artifact_id,
             criteria,
             replay_succeeded,
@@ -1597,6 +1601,68 @@ mod tests {
         }
         assert_eq!(ledger.family_revision(), 0);
         assert_eq!(ledger.development_world_ids(), vec!["nominal"]);
+    }
+
+    #[test]
+    fn calibration_and_holdout_registrations_are_disjoint_by_group_and_world_id() {
+        let overlapping_group = CalibrationGroupRegistration {
+            family_group_id: "same-group".into(),
+            world_ids: vec!["calibration-a".into()],
+            manifest_id: "calibration-manifest".into(),
+        };
+        let overlapping_holdout = SealedHoldoutGroupRegistration {
+            family_group_id: "same-group".into(),
+            world_ids: vec!["holdout-a".into()],
+            manifest_id: "holdout-manifest".into(),
+        };
+        assert!(ModelFamilyLedger::new(
+            vec![world("nominal")],
+            vec![overlapping_group],
+            vec![overlapping_holdout],
+            "policy".into(),
+            test_policy(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        )
+        .is_err());
+
+        let shared_world = "shared-evidence-world";
+        let calibration_group = CalibrationGroupRegistration {
+            family_group_id: "calibration-a".into(),
+            world_ids: vec![shared_world.into()],
+            manifest_id: "calibration-manifest".into(),
+        };
+        let holdout_group = SealedHoldoutGroupRegistration {
+            family_group_id: "holdout-a".into(),
+            world_ids: vec![shared_world.into()],
+            manifest_id: "holdout-manifest".into(),
+        };
+        assert!(ModelFamilyLedger::new(
+            vec![world("nominal")],
+            vec![calibration_group],
+            vec![holdout_group],
+            "policy".into(),
+            test_policy(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        )
+        .is_err());
     }
 
     #[test]
