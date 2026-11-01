@@ -408,11 +408,7 @@ mod tests {
         let support_before = body.world_support(&direction);
         let position_before = body.transform.translation.0;
         let mass_before = body.mass;
-        let inertia_before = body
-            .rotational_inertia
-            .as_ref()
-            .unwrap()
-            .second_moment();
+        let inertia_before = body.rotational_inertia.as_ref().unwrap().second_moment();
 
         let error = body
             .try_merge_toolhead(
