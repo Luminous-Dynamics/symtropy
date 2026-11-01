@@ -70,6 +70,13 @@ pub struct AdaptiveRecipeSelectorConfig {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DevelopmentSelectionCursor {
+    pub prior_development_ledger_digest: String,
+    pub prior_development_event_count: u64,
+    pub selector_seed: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExactConfidenceInterval {
     pub lower: Rational,
     pub upper: Rational,
@@ -198,7 +205,7 @@ fn increment(value: &mut usize, label: &str) -> Result<(), String> {
 }
 
 fn ceil_div(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + if numerator % denominator != 0 { 1 } else { 0 }
+    numerator / denominator + u128::from(!numerator.is_multiple_of(denominator))
 }
 
 fn integer_sqrt_ceil(value: u128) -> u128 {
@@ -437,14 +444,12 @@ pub fn select_next_recipe(
     coverage_targets: &[StratumCoverageTarget],
     config: &AdaptiveRecipeSelectorConfig,
     split_registry: &ChallengeSplitRegistry,
-    prior_development_ledger_digest: &str,
-    prior_development_event_count: u64,
-    selector_seed: u64,
+    selection_cursor: &DevelopmentSelectionCursor,
 ) -> Result<AdaptiveRecipeSelectionReceipt, String> {
     validate_config(config)?;
     validate_candidates(candidates)?;
     split_registry.validate()?;
-    if !valid_id(prior_development_ledger_digest) {
+    if !valid_id(&selection_cursor.prior_development_ledger_digest) {
         return Err("prior Development ledger digest is empty or overlong".into());
     }
     let mut target_by_stratum = BTreeMap::new();
@@ -689,7 +694,10 @@ pub fn select_next_recipe(
             .is_some_and(|candidate| candidate.resource_units == minimum_resource)
     });
 
-    let tie_break_seed = digest_seed(selector_seed, prior_development_ledger_digest);
+    let tie_break_seed = digest_seed(
+        selection_cursor.selector_seed,
+        &selection_cursor.prior_development_ledger_digest,
+    );
     let mut tie_rng = SplitMix64::new(tie_break_seed);
     let selected_index = tie_rng.index(eligible.len())?;
     let selected_summary = (*eligible[selected_index]).clone();
@@ -718,9 +726,9 @@ pub fn select_next_recipe(
 
     Ok(AdaptiveRecipeSelectionReceipt {
         selector_version: 1,
-        prior_development_ledger_digest: prior_development_ledger_digest.into(),
-        prior_development_event_count,
-        selector_seed,
+        prior_development_ledger_digest: selection_cursor.prior_development_ledger_digest.clone(),
+        prior_development_event_count: selection_cursor.prior_development_event_count,
+        selector_seed: selection_cursor.selector_seed,
         tie_break_seed,
         selected_recipe: selected_candidate,
         reason,
@@ -739,8 +747,8 @@ mod tests {
     use super::super::scientific_challenge::ChallengeSplitRegistry;
     use super::{
         AdaptiveRecipeSelectorConfig, AgentChallengeOutcome, ChallengeTaskValidity,
-        DevelopmentOutcomeReceipt, RecipeSelectionReason, ScientificRecipeDescriptor,
-        StratumCoverageTarget, confidence_interval, select_next_recipe,
+        DevelopmentOutcomeReceipt, DevelopmentSelectionCursor, RecipeSelectionReason,
+        ScientificRecipeDescriptor, StratumCoverageTarget, confidence_interval, select_next_recipe,
     };
     use crate::Rational;
 
@@ -783,6 +791,14 @@ mod tests {
                 resource_units: 2,
             },
         ]
+    }
+
+    fn cursor(digest: &str, event_count: u64, seed: u64) -> DevelopmentSelectionCursor {
+        DevelopmentSelectionCursor {
+            prior_development_ledger_digest: digest.into(),
+            prior_development_event_count: event_count,
+            selector_seed: seed,
+        }
     }
 
     fn config() -> AdaptiveRecipeSelectorConfig {
@@ -890,9 +906,7 @@ mod tests {
             ],
             &config(),
             &registry(),
-            "development-ledger-sha256-placeholder",
-            4,
-            17,
+            &cursor("development-ledger-sha256-placeholder", 4, 17),
         )
         .unwrap();
         assert_eq!(result.selected_recipe.mechanism_stratum, "model-adequacy");
@@ -926,9 +940,7 @@ mod tests {
             }],
             &config(),
             &registry(),
-            "ledger-digest",
-            1,
-            3,
+            &cursor("ledger-digest", 1, 3),
         )
         .unwrap();
         assert_eq!(result.invalid_task_attempts_excluded, 1);
@@ -968,9 +980,7 @@ mod tests {
                     }],
                     &config(),
                     &registry(),
-                    "ledger-digest",
-                    1,
-                    1,
+                &cursor("ledger-digest", 1, 1),
                 )
                 .is_err()
             );
@@ -998,9 +1008,7 @@ mod tests {
                 &[],
                 &config(),
                 &registry(),
-                "ledger-digest",
-                2,
-                5,
+                &cursor("ledger-digest", 2, 5),
             )
             .is_err()
         );
@@ -1014,9 +1022,7 @@ mod tests {
                 &[],
                 &config(),
                 &registry(),
-                "ledger-digest",
-                2,
-                5,
+                &cursor("ledger-digest", 2, 5),
             )
             .is_err()
         );
@@ -1031,9 +1037,7 @@ mod tests {
                 &[],
                 &config(),
                 &registry(),
-                "ledger-digest",
-                1,
-                5,
+                &cursor("ledger-digest", 1, 5),
             )
             .is_err()
         );
@@ -1101,9 +1105,7 @@ mod tests {
             &[],
             &config(),
             &registry(),
-            "paired-development-ledger",
-            outcomes.len() as u64,
-            41,
+            &cursor("paired-development-ledger", outcomes.len() as u64, 41),
         )
         .unwrap();
 
@@ -1156,9 +1158,7 @@ mod tests {
             &[],
             &config(),
             &registry(),
-            "same-ledger-digest",
-            2,
-            99,
+            &cursor("same-ledger-digest", 2, 99),
         )
         .unwrap();
         let second = select_next_recipe(
@@ -1167,9 +1167,7 @@ mod tests {
             &[],
             &config(),
             &registry(),
-            "same-ledger-digest",
-            2,
-            99,
+            &cursor("same-ledger-digest", 2, 99),
         )
         .unwrap();
         assert_eq!(first, second);
@@ -1183,9 +1181,7 @@ mod tests {
                 &[],
                 &config(),
                 &registry(),
-                "same-ledger-digest",
-                2,
-                99,
+                &cursor("same-ledger-digest", 2, 99),
             )
             .is_err()
         );
