@@ -326,19 +326,37 @@ fn three_non_collinear_contacts_have_a_three_dimensional_impulse_equivalence_cla
     // Three independent exact null impulses. For any rigid-body mass matrix
     // with this J, ker(W)=ker(J^T) because M^-1 is SPD.
     let null_a = vec![
-        rational(0), rational(-1), rational(0),
-        rational(0), rational(1), rational(0),
-        rational(0), rational(0), rational(0),
+        rational(0),
+        rational(-1),
+        rational(0),
+        rational(0),
+        rational(1),
+        rational(0),
+        rational(0),
+        rational(0),
+        rational(0),
     ];
     let null_b = vec![
-        rational(0), rational(-1), rational(-1),
-        rational(0), rational(0), rational(1),
-        rational(0), rational(1), rational(0),
+        rational(0),
+        rational(-1),
+        rational(-1),
+        rational(0),
+        rational(0),
+        rational(1),
+        rational(0),
+        rational(1),
+        rational(0),
     ];
     let null_c = vec![
-        rational(0), rational(0), rational(-1),
-        rational(0), rational(0), rational(0),
-        rational(0), rational(0), rational(1),
+        rational(0),
+        rational(0),
+        rational(-1),
+        rational(0),
+        rational(0),
+        rational(0),
+        rational(0),
+        rational(0),
+        rational(1),
     ];
     for null_vector in [&null_a, &null_b, &null_c] {
         assert!(
@@ -366,17 +384,28 @@ fn three_non_collinear_contacts_have_a_three_dimensional_impulse_equivalence_cla
     // An all-normal base load produces q=-Wp0. Add independent nullspace
     // coordinates alpha,beta,gamma to redistribute tangential impulses.
     let p0 = vec![
-        rational(2), rational(0), rational(0),
-        rational(2), rational(0), rational(0),
-        rational(2), rational(0), rational(0),
+        rational(2),
+        rational(0),
+        rational(0),
+        rational(2),
+        rational(0),
+        rational(0),
+        rational(2),
+        rational(0),
+        rational(0),
     ];
     let wp0 = matrix_vector(&delassus, &p0);
     let q = wp0.iter().map(|value| -value.clone()).collect::<Vec<_>>();
     let expected_q = vec![
-        rational(-6), rational(0), rational(0),
+        rational(-6),
+        rational(0),
+        rational(0),
         Rational::new(BigInt::from(-20), BigInt::from(3)),
-        rational(0), rational(0),
-        rational(-7), rational(0), rational(0),
+        rational(0),
+        rational(0),
+        rational(-7),
+        rational(0),
+        rational(0),
     ];
     assert_eq!(q, expected_q);
 
@@ -439,4 +468,3 @@ fn three_non_collinear_contacts_have_a_three_dimensional_impulse_equivalence_cla
     assert_eq!(matrix_vector(&delassus, &null_b), vec![Rational::zero(); 9]);
     assert_eq!(matrix_vector(&delassus, &null_c), vec![Rational::zero(); 9]);
 }
-
