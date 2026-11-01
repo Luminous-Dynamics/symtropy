@@ -3566,10 +3566,12 @@ mod double_sliding_direction_oracle {
 
                     assert!(t1.is_strict_subset_of(&certificate.domain[0]));
                     assert!(t2.is_strict_subset_of(&certificate.domain[1]));
-                    assert!(
-                        certificate.contraction_row_sum_bound
-                            < BigRational::from_integer(BigInt::from(1_u8))
-                    );
+                    // The constructor only returns after strict Krawczyk
+                    // inclusion K(X) subset int(X). Replay the defining
+                    // component-wise inclusion here; no separate contraction
+                    // row-sum field is part of the certificate contract.
+                    assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+                    assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
                     assert!(certificate.normal_determinant.excludes_zero());
                     physical_root_boxes.push([t1, t2]);
                 } else {
