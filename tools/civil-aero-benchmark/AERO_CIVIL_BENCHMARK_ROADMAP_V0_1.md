@@ -214,3 +214,25 @@ The external-solver process adapter now has a second-stage output importer: `src
 The evidence ceiling is `receipt_bound_history_import_only_not_solver_convergence_or_physical_validation`. It deliberately does not infer residual convergence, force stability, conservation, mesh independence or accuracy. The next layer must define solver- and case-specific convergence criteria and then route admitted histories to the existing grid-convergence and validation-uncertainty gates. See `SU2_HISTORY_IMPORT_V0_1.md`.
 
 The section-polar CI guard was also repaired without changing numerical thresholds: its shell AWK parser now strips the surrounding CSV quotes from roughness-zone labels before comparing them. The Rust report correctly quotes those values; the old guard compared them as unquoted raw strings. Its numerical assertions remain unchanged.
+
+
+## 13. SU2 history interpretation and declared convergence screening (2026-11-01)
+
+The process-to-output pipeline now has three intentionally separate layers:
+
+1. `external_solver_run`: execute a caller-pinned binary through the existing receipt-generating runner. Evidence: process exit, declared outputs, staged input/output bytes, environment and logs.
+2. `su2_history_import`: verify/replay that receipt and import an exact caller-declared history header/column/unit schema. Evidence: byte-bound history observations, not convergence.
+3. `su2_convergence_screen`: check explicitly declared residual final-magnitude/reduction limits and trailing-window monitor ranges. Its canonical screen digest binds the criteria outcomes to the receipt and history import.
+
+The declared screen returns passed, failed and insufficient-row counts separately. It never labels its own result “CFD converged”; the evidence ceiling is `declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation`. The limits in the synthetic CI case are fixture thresholds only. No DPW-8 threshold has been proposed or admitted.
+
+The current integration fixture uses a fake shell executable, so it verifies staging, process receipt replay, output byte binding, exact history parsing, threshold arithmetic, digest reconstruction and tamper rejection. It is not an SU2 execution or aerodynamic result. The next physical step still requires lawful case geometry/mesh/configuration, an actual source-built SU2 executable, the official periodic-sidewall lane, all prescribed output channels, conservation checks, and GCI/validation admission.
+
+## 14. Optimizer metric correction and current workflow audit (2026-11-01)
+
+The independent optimizer oracle found a real defect in the analytic ZDT4 exact-front hypervolume denominator. The Rust reference calculation had included the region between (x=1) and (x=1.1) inside the ZDT4 curve-integral branch and then added that region again for all tasks. It reported 0.986666666667 for ZDT4 where the correct reference-point hypervolume is 0.876666666667, equal to ZDT1 because both continuous Pareto fronts are (f_2=1-sqrt{f_1}) on [0,1]. The formula was corrected and a unit regression now asserts the equality. This is an analytic optimizer benchmark correction, not an aerodynamic finding.
+
+Several other CI blockers on the current programme were test-interface defects exposed by independent oracles: CSV quoting in AWK guards, inaccurate names for running partial risk-area columns, a mismatched fine-grid identifier in the validation oracle, and the quoted policy-ID field in the family-aggregate AWK guard. The fixes preserve numerical criteria and expected comparison counts. Every exposed defect has been fixed at its reporting or guard boundary; each needs an exact-head rerun before the aerospace workflow can be called green.
+
+The work reinforces a core design rule: every metric needs one canonical semantic definition, one typed source schema, and an independent implementation that reconstructs it. A green status from a self-referential demo is not sufficient.
+
