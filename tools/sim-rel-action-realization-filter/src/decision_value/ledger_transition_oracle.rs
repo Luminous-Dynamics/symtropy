@@ -84,6 +84,7 @@ struct FrozenPolicyState {
 #[derive(Clone, Debug)]
 struct TransitionState {
     revision: u64,
+    initial_policy_metrics: Vec<WorldDecisionObjectives>,
     development_worlds: Vec<DecisionModelWorld>,
     development_world_ids: BTreeSet<String>,
     active_policy: Option<PolicyState>,
@@ -316,16 +317,24 @@ impl TransitionState {
             }
         }
 
-        let development_world_ids = baseline_ids.into_iter().collect::<BTreeSet<_>>();
+        let development_world_ids = baseline_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let initial_policy_metrics = snapshot.initial_policy_metrics.clone();
+        validate_metric_values(
+            &initial_policy_metrics,
+            &baseline_ids,
+            snapshot.replay_context.development_budgets,
+            "initial policy metrics",
+        )?;
         let policy_identities = BTreeSet::from([snapshot.initial_policy_identity.clone()]);
         Ok(Self {
             revision: 0,
+            initial_policy_metrics: initial_policy_metrics.clone(),
             development_worlds,
             development_world_ids,
             active_policy: Some(PolicyState {
                 identity: snapshot.initial_policy_identity.clone(),
                 plan: snapshot.initial_policy_plan.clone(),
-                metrics: None,
+                metrics: Some(initial_policy_metrics),
             }),
             frozen_policy: None,
             invalidated_policy_identity: None,
@@ -690,6 +699,9 @@ fn compare_final_snapshot(
     budgets: DecisionBudgets,
 ) -> Result<(), String> {
     let expected_world_ids = state.development_world_ids.iter().cloned().collect::<Vec<_>>();
+    if snapshot.initial_policy_metrics != state.initial_policy_metrics {
+        return Err("snapshot initial-policy metrics differ from the immutable baseline receipt".into());
+    }
     if snapshot.family_revision != state.revision {
         return Err("snapshot family revision differs from the independently derived revision".into());
     }
