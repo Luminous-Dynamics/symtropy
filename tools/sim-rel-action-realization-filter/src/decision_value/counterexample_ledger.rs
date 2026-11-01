@@ -1111,6 +1111,30 @@ mod tests {
     }
 
     #[test]
+    fn invalid_initial_policy_cannot_enter_the_ledger_as_active() {
+        let result = ModelFamilyLedger::new(
+            vec![world("nominal")],
+            vec![holdout()],
+            "policy-invalid".into(),
+            DecisionPlan::Experiment {
+                command: 0,
+                branches: Vec::new(),
+            },
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn admission_appends_candidate_increments_revision_and_invalidates_policy() {
         let mut ledger = ledger();
         let source = world("nominal");
@@ -1127,6 +1151,10 @@ mod tests {
         assert_eq!(record.revision_before, 0);
         assert_eq!(record.revision_after, 1);
         assert_eq!(record.invalidated_policy_identity, "policy-v1");
+        assert_eq!(
+            record.independently_replayed_outcome.class(),
+            CounterexampleClass::PolicyInvalidated
+        );
         assert_eq!(ledger.family_revision(), 1);
         assert_eq!(ledger.active_policy_identity(), None);
         assert_eq!(
