@@ -129,7 +129,7 @@ pub fn audit_protocol(
                 observation.key
             ));
         }
-        if let Some(ObservedProtocolValue::Number(value)) = observation.value {
+        if let Some(ObservedProtocolValue::Number(value)) = &observation.value {
             if !value.is_finite() {
                 return Err(format!("observed numeric value {} is non-finite", observation.key));
             }
@@ -344,18 +344,18 @@ pub const PROTOCOL_CONFORMANCE_CSV_HEADER: &str =
 pub fn report_to_csv(report: &ProtocolAuditReport) -> String {
     let mut output = format!("{PROTOCOL_CONFORMANCE_CSV_HEADER}\n");
     for finding in &report.findings {
-        let fields = [
-            &report.protocol_id,
-            &report.task_id,
-            &report.observation_set_id,
-            &finding.key,
-            &finding.description,
-            &finding.expected,
-            &finding.observed,
-            &finding.status.as_str().to_owned(),
-            &finding.source_reference,
-            &finding.note,
-            &report.evidence_level.to_owned(),
+        let fields = vec![
+            report.protocol_id.clone(),
+            report.task_id.clone(),
+            report.observation_set_id.clone(),
+            finding.key.clone(),
+            finding.description.clone(),
+            finding.expected.clone(),
+            finding.observed.clone(),
+            finding.status.as_str().to_owned(),
+            finding.source_reference.clone(),
+            finding.note.clone(),
+            report.evidence_level.to_owned(),
         ];
         output.push_str(
             &fields
