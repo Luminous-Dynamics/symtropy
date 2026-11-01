@@ -1432,6 +1432,25 @@ mod tests {
             matched.expected_total_posterior_brier_score,
             Rational::zero()
         );
+
+        let exact_rule = exact_bayes_posterior_rule(&perfect, &prior).unwrap();
+        let pair = compare_experiment_pair_with_inference_rules(
+            &perfect,
+            &perfect,
+            &inverted_rule,
+            rational(1, 10),
+            &perfect,
+            &perfect,
+            &exact_rule,
+            rational(1, 10),
+            &prior,
+            &loss,
+        )
+        .unwrap();
+        assert_eq!(pair.information_preference, ExperimentPreference::Tie);
+        assert_eq!(pair.realized_total_loss_preference, ExperimentPreference::B);
+        assert_eq!(pair.experiment_a.inference_rule_id, "posterior-inverted");
+        assert_eq!(pair.experiment_b.inference_rule_id, exact_rule.rule_id);
     }
 
     #[test]
