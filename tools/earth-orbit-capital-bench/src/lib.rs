@@ -282,6 +282,37 @@ pub fn suite_summary() -> Result<String, String> {
     Ok(output)
 }
 
+/// Non-deployable perfect-information service upper bound for a fixed initial
+/// action. Each scenario independently chooses whether to expand after seeing
+/// its entire future demand path. Incremental cost is ignored deliberately.
+pub fn perfect_foresight_total_delivered(case: &BenchmarkCase, initial: InitialAction) -> Option<u64> {
+    if initial != InitialAction::NoBuild && case.evidence_gate != EvidenceGate::Pass {
+        return None;
+    }
+    let lease_units = if initial == InitialAction::Lease { case.lease_capacity } else { 0 };
+    let build_units = if initial == InitialAction::Build { case.build_capacity } else { 0 };
+    let mut total = 0_u64;
+    for scenario in &case.scenarios {
+        let base = case.base_capacity.saturating_add(lease_units);
+        let mid = base.saturating_add(build_units);
+        let hold_caps = [base, mid, mid];
+        let expand_caps = [base, mid, mid.saturating_add(case.expansion_capacity)];
+        let mut hold_delivered = 0_u64;
+        let mut expand_delivered = 0_u64;
+        for period in 0..3 {
+            hold_delivered = hold_delivered.saturating_add(u64::from(scenario.demand[period].min(hold_caps[period])));
+            expand_delivered = expand_delivered.saturating_add(u64::from(scenario.demand[period].min(expand_caps[period])));
+        }
+        let best = if case.evidence_gate == EvidenceGate::Pass {
+            hold_delivered.max(expand_delivered)
+        } else {
+            hold_delivered
+        };
+        total = total.saturating_add(best);
+    }
+    Some(total)
+}
+
 // Independent exhaustive oracle used by tests. This implementation duplicates
 // the finite transition arithmetic instead of calling evaluate_policy/dominates.
 #[cfg(test)]
@@ -455,6 +486,19 @@ mod tests {
     #[test]
     fn deterministic_suite_summary_is_byte_stable() {
         assert_eq!(suite_summary().unwrap(), suite_summary().unwrap());
+    }
+
+    #[test]
+    fn perfect_foresight_is_a_non_deployable_service_upper_bound() {
+        let case = load_suite().unwrap().into_iter().find(|x| x.id == "A29").unwrap();
+        let bound = perfect_foresight_total_delivered(&case, InitialAction::NoBuild).unwrap();
+        for policy in enumerate_policies().into_iter().filter(|p| p.initial == InitialAction::NoBuild) {
+            let result = evaluate_policy(&case, policy);
+            if result.status == EvaluationStatus::Feasible {
+                let delivered: u64 = result.outcomes.iter().map(|x| x.delivered).sum();
+                assert!(bound >= delivered);
+            }
+        }
     }
 
     #[test]
