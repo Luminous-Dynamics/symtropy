@@ -2,7 +2,7 @@
 
 **Status:** research and benchmark contract; synthetic-first; no operational capability or site approval implied  
 **Tracking:** [EARTH-ORBIT-CHAIN-001 #3228](https://github.com/Luminous-Dynamics/symtropy/issues/3228)  
-**Composes:** [TRANSPORT-OPT-001 #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601), [FREIGHT-MAGLEV-001 #3201](https://github.com/Luminous-Dynamics/symtropy/issues/3201), [ORBITAL-ACCESS-001 #3202](https://github.com/Luminous-Dynamics/symtropy/issues/3202), [SPACE-CAPABILITY-LEDGER-001 #1972](https://github.com/Luminous-Dynamics/symtropy/issues/1972), Sol-Atlas [SPACEPORT-GEOGRAPHY-001 #393](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/393)  
+**Composes:** [TRANSPORT-OPT-001 #1601](https://github.com/Luminous-Dynamics/symtropy/issues/1601), [FREIGHT-MAGLEV-001 #3201](https://github.com/Luminous-Dynamics/symtropy/issues/3201), [ORBITAL-ACCESS-001 #3202](https://github.com/Luminous-Dynamics/symtropy/issues/3202), [ORBITAL-TERMINAL-GEOMETRY-001 #3247](https://github.com/Luminous-Dynamics/symtropy/issues/3247), [ORBITAL-LAST-MILE-001 #3253](https://github.com/Luminous-Dynamics/symtropy/issues/3253), [ORBITAL-SERVICE-ACCEPTANCE-001 #3257](https://github.com/Luminous-Dynamics/symtropy/issues/3257), [NO-RESUPPLY-CONTINUITY-001 #3254](https://github.com/Luminous-Dynamics/symtropy/issues/3254), [SPACE-CAPABILITY-LEDGER-001 #1972](https://github.com/Luminous-Dynamics/symtropy/issues/1972), Sol-Atlas [SPACEPORT-GEOGRAPHY-001 #393](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/393)  
 **Version:** 0.1.0
 
 ## 1. Decision problem
