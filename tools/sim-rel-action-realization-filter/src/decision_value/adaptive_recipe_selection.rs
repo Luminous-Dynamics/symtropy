@@ -198,7 +198,7 @@ fn increment(value: &mut usize, label: &str) -> Result<(), String> {
 }
 
 fn ceil_div(numerator: u128, denominator: u128) -> u128 {
-    numerator / denominator + u128::from(numerator % denominator != 0)
+    numerator / denominator + if numerator % denominator != 0 { 1 } else { 0 }
 }
 
 fn integer_sqrt_ceil(value: u128) -> u128 {
@@ -260,10 +260,7 @@ fn interval_distance(
     target_upper: Rational,
 ) -> Result<Rational, String> {
     if interval.upper < target_lower {
-        target_lower
-            .checked_add(Rational::zero())?
-            .checked_div(Rational::one())?
-            .checked_sub_nonnegative(interval.upper)
+        target_lower.checked_sub_nonnegative(interval.upper)
     } else if interval.lower > target_upper {
         interval
             .lower
@@ -683,7 +680,7 @@ pub fn select_next_recipe(
     let tie_break_seed = digest_seed(selector_seed, prior_development_ledger_digest);
     let mut tie_rng = SplitMix64::new(tie_break_seed);
     let selected_index = tie_rng.index(eligible.len())?;
-    let selected_summary = eligible[selected_index].clone();
+    let selected_summary = (*eligible[selected_index]).clone();
     let selected_candidate = candidates
         .iter()
         .find(|candidate| {
@@ -691,7 +688,7 @@ pub fn select_next_recipe(
                 && candidate.recipe_version == selected_summary.recipe_version
         })
         .ok_or_else(|| "selected recipe disappeared from immutable registry".to_string())?
-        .clone();
+        .to_owned();
 
     let selected_stratum_coverage = coverage
         .iter()
