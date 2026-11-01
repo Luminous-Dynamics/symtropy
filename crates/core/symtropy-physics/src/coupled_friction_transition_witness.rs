@@ -94,8 +94,8 @@ mod tests {
     fn full_delassus_fixture_is_spd_and_cross_contact_coupling_is_nonzero() {
         let (w, _, _) = fixture();
 
-        assert!((&w - w.transpose()).norm() == 0.0);
-        assert!(w.clone().cholesky().is_some());
+        assert!((w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
 
         let mut cross_norm_squared = 0.0;
         for row in 0..3 {
@@ -145,8 +145,8 @@ mod tests {
         let limiting_tau = 15.0 / (32.0 * mu_1) * (1.0 - 2.0 * mu_1);
         assert_eq!(limiting_tau, 0.0);
 
-        assert!(!(disk_margin_squared(mu_1, &p, 0) > 0.0));
-        assert!(!(limiting_tau > 0.0));
+        assert_eq!(disk_margin_squared(mu_1, &p, 0), 0.0);
+        assert_eq!(limiting_tau, 0.0);
     }
 
     #[test]
