@@ -109,8 +109,7 @@ pub struct ConvergenceScreen {
 }
 
 pub const CONVERGENCE_SCREEN_SCHEMA: &str = "su2-declared-convergence-screen/0.2.0";
-pub const CONVERGENCE_SCREEN_EVIDENCE_LEVEL: &str =
-    "declared_residual_encoding_terminal_stability_and_monitor_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation";
+pub const CONVERGENCE_SCREEN_EVIDENCE_LEVEL: &str = "declared_residual_encoding_terminal_stability_and_monitor_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation";
 
 fn add_string(bytes: &mut Vec<u8>, value: &str) {
     bytes.extend_from_slice(&(value.len() as u64).to_le_bytes());
@@ -179,7 +178,14 @@ fn canonical_screen_bytes(screen: &ConvergenceScreen) -> Vec<u8> {
 
 fn validate_limit(name: &str, value: f64, nonnegative: bool) -> Result<(), String> {
     if !value.is_finite() || (nonnegative && value < 0.0) {
-        return Err(format!("{name} must be finite and {}", if nonnegative { "non-negative" } else { "finite" }));
+        return Err(format!(
+            "{name} must be finite and {}",
+            if nonnegative {
+                "non-negative"
+            } else {
+                "finite"
+            }
+        ));
     }
     Ok(())
 }
@@ -189,7 +195,9 @@ fn validate_criteria(
     criteria: &ConvergenceCriteria,
 ) -> Result<(), String> {
     if criteria.residuals.is_empty() || criteria.monitors.is_empty() {
-        return Err("at least one residual and one engineering monitor criterion are required".to_owned());
+        return Err(
+            "at least one residual and one engineering monitor criterion are required".to_owned(),
+        );
     }
     let field_units = report
         .numeric_fields
@@ -223,9 +231,17 @@ fn validate_criteria(
                 minimum_log10_reduction,
                 maximum_terminal_span_log10,
             } => {
-                validate_limit("maximum_final_log10_residual", maximum_final_log10_residual, false)?;
+                validate_limit(
+                    "maximum_final_log10_residual",
+                    maximum_final_log10_residual,
+                    false,
+                )?;
                 validate_limit("minimum_log10_reduction", minimum_log10_reduction, true)?;
-                validate_limit("maximum_terminal_span_log10", maximum_terminal_span_log10, true)?;
+                validate_limit(
+                    "maximum_terminal_span_log10",
+                    maximum_terminal_span_log10,
+                    true,
+                )?;
                 if maximum_final_log10_residual > 0.0 {
                     return Err("maximum_final_log10_residual must be <= 0".to_owned());
                 }
@@ -236,7 +252,11 @@ fn validate_criteria(
                 maximum_terminal_range,
             } => {
                 validate_limit("maximum_final_value", maximum_final_value, true)?;
-                validate_limit("maximum_final_to_initial_ratio", maximum_final_to_initial_ratio, true)?;
+                validate_limit(
+                    "maximum_final_to_initial_ratio",
+                    maximum_final_to_initial_ratio,
+                    true,
+                )?;
                 validate_limit("maximum_terminal_range", maximum_terminal_range, true)?;
                 if maximum_final_to_initial_ratio > 1.0 {
                     return Err("maximum_final_to_initial_ratio must be <= 1".to_owned());
@@ -264,8 +284,16 @@ fn validate_criteria(
                 criterion.column
             ));
         }
-        validate_limit("maximum_absolute_range", criterion.maximum_absolute_range, true)?;
-        validate_limit("maximum_absolute_mean_drift", criterion.maximum_absolute_mean_drift, true)?;
+        validate_limit(
+            "maximum_absolute_range",
+            criterion.maximum_absolute_range,
+            true,
+        )?;
+        validate_limit(
+            "maximum_absolute_mean_drift",
+            criterion.maximum_absolute_mean_drift,
+            true,
+        )?;
         validate_limit(
             "maximum_absolute_slope_per_1000_iterations",
             criterion.maximum_absolute_slope_per_1000_iterations,
@@ -293,9 +321,15 @@ fn mean(values: &[f64]) -> f64 {
     values.iter().map(|value| value / divisor).sum::<f64>()
 }
 
-fn slope_per_1000_iterations(iterations: &[u64], values: &[f64], field: &str) -> Result<f64, String> {
+fn slope_per_1000_iterations(
+    iterations: &[u64],
+    values: &[f64],
+    field: &str,
+) -> Result<f64, String> {
     if iterations.len() != values.len() || iterations.len() < 2 {
-        return Err(format!("monitor {field} requires at least two matching samples"));
+        return Err(format!(
+            "monitor {field} requires at least two matching samples"
+        ));
     }
     let first_iteration = iterations[0];
     let x_values = iterations
@@ -309,7 +343,9 @@ fn slope_per_1000_iterations(iterations: &[u64], values: &[f64], field: &str) ->
         .map(|value| (value - x_mean).powi(2))
         .sum::<f64>();
     if !variance.is_finite() || variance <= 0.0 {
-        return Err(format!("monitor {field} iteration coordinates are singular"));
+        return Err(format!(
+            "monitor {field} iteration coordinates are singular"
+        ));
     }
     let covariance = x_values
         .iter()
@@ -353,7 +389,11 @@ pub fn screen_su2_history(
             ));
             continue;
         }
-        let values = report.points.iter().map(|point| point.values[index]).collect::<Vec<_>>();
+        let values = report
+            .points
+            .iter()
+            .map(|point| point.values[index])
+            .collect::<Vec<_>>();
         let initial = values[0];
         let final_value = *values.last().expect("verified non-empty imported history");
         let terminal = &values[values.len() - criterion.terminal_window_rows..];
@@ -361,8 +401,12 @@ pub fn screen_su2_history(
             &criterion.column,
             &criterion.unit,
             match criterion.acceptance {
-                ResidualAcceptance::Log10 { .. } => "residual_log10_final_reduction_and_terminal_span",
-                ResidualAcceptance::PositiveLinear { .. } => "residual_linear_final_reduction_and_terminal_range",
+                ResidualAcceptance::Log10 { .. } => {
+                    "residual_log10_final_reduction_and_terminal_span"
+                },
+                ResidualAcceptance::PositiveLinear { .. } => {
+                    "residual_linear_final_reduction_and_terminal_range"
+                },
             },
             report.points.len(),
             CriterionStatus::Failed,
@@ -384,7 +428,10 @@ pub fn screen_su2_history(
                 let reduction = initial_log - final_log;
                 let span = max - min;
                 if !reduction.is_finite() || !span.is_finite() {
-                    return Err(format!("log10 residual arithmetic overflowed for {}", criterion.column));
+                    return Err(format!(
+                        "log10 residual arithmetic overflowed for {}",
+                        criterion.column
+                    ));
                 }
                 result.observed_initial_log10_residual = Some(initial_log);
                 result.observed_final_log10_residual = Some(final_log);
@@ -396,14 +443,21 @@ pub fn screen_su2_history(
                 let passed = final_log <= maximum_final_log10_residual
                     && reduction >= minimum_log10_reduction
                     && span <= maximum_terminal_span_log10;
-                result.status = if passed { CriterionStatus::Passed } else { CriterionStatus::Failed };
+                result.status = if passed {
+                    CriterionStatus::Passed
+                } else {
+                    CriterionStatus::Failed
+                };
             }
             ResidualAcceptance::PositiveLinear {
                 maximum_final_value,
                 maximum_final_to_initial_ratio,
                 maximum_terminal_range,
             } => {
-                if initial <= 0.0 || final_value <= 0.0 || terminal.iter().any(|value| *value <= 0.0) {
+                if initial <= 0.0
+                    || final_value <= 0.0
+                    || terminal.iter().any(|value| *value <= 0.0)
+                {
                     return Err(format!(
                         "positive-linear residual {} contains a non-positive value",
                         criterion.column
@@ -414,7 +468,10 @@ pub fn screen_su2_history(
                 let maximum = terminal.iter().copied().fold(f64::NEG_INFINITY, f64::max);
                 let range = maximum - minimum;
                 if !ratio.is_finite() || !range.is_finite() {
-                    return Err(format!("linear residual arithmetic overflowed for {}", criterion.column));
+                    return Err(format!(
+                        "linear residual arithmetic overflowed for {}",
+                        criterion.column
+                    ));
                 }
                 result.observed_initial_absolute = Some(initial);
                 result.observed_final_absolute = Some(final_value);
@@ -444,7 +501,8 @@ pub fn screen_su2_history(
             ));
             continue;
         }
-        let terminal_points = &report.points[report.points.len() - criterion.trailing_window_rows..];
+        let terminal_points =
+            &report.points[report.points.len() - criterion.trailing_window_rows..];
         let values = terminal_points
             .iter()
             .map(|point| point.values[index])
@@ -456,10 +514,20 @@ pub fn screen_su2_history(
         let minimum = values.iter().copied().fold(f64::INFINITY, f64::min);
         let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let range = maximum - minimum;
-        let iterations = terminal_points.iter().map(|point| point.iteration).collect::<Vec<_>>();
+        let iterations = terminal_points
+            .iter()
+            .map(|point| point.iteration)
+            .collect::<Vec<_>>();
         let slope = slope_per_1000_iterations(&iterations, &values, &criterion.column)?;
-        if !early_mean.is_finite() || !late_mean.is_finite() || !drift.is_finite() || !range.is_finite() {
-            return Err(format!("monitor arithmetic overflowed for {}", criterion.column));
+        if !early_mean.is_finite()
+            || !late_mean.is_finite()
+            || !drift.is_finite()
+            || !range.is_finite()
+        {
+            return Err(format!(
+                "monitor arithmetic overflowed for {}",
+                criterion.column
+            ));
         }
         let passed = range <= criterion.maximum_absolute_range
             && drift <= criterion.maximum_absolute_mean_drift
@@ -469,7 +537,11 @@ pub fn screen_su2_history(
             &criterion.unit,
             "monitor_terminal_range_mean_drift_and_slope",
             criterion.trailing_window_rows,
-            if passed { CriterionStatus::Passed } else { CriterionStatus::Failed },
+            if passed {
+                CriterionStatus::Passed
+            } else {
+                CriterionStatus::Failed
+            },
         );
         result.observed_window_range = Some(range);
         result.maximum_window_range = Some(criterion.maximum_absolute_range);
@@ -481,9 +553,18 @@ pub fn screen_su2_history(
         results.push(result);
     }
 
-    let passed_count = results.iter().filter(|row| row.status == CriterionStatus::Passed).count();
-    let failed_count = results.iter().filter(|row| row.status == CriterionStatus::Failed).count();
-    let insufficient_count = results.iter().filter(|row| row.status == CriterionStatus::InsufficientRows).count();
+    let passed_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Passed)
+        .count();
+    let failed_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Failed)
+        .count();
+    let insufficient_count = results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::InsufficientRows)
+        .count();
     let status = match (failed_count, insufficient_count) {
         (0, 0) => "declared_thresholds_met",
         (_, 0) => "declared_thresholds_not_met",
@@ -631,7 +712,9 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
 }
 
 fn optional(value: Option<f64>) -> String {
-    value.map(|number| format!("{number:.17}")).unwrap_or_default()
+    value
+        .map(|number| format!("{number:.17}"))
+        .unwrap_or_default()
 }
 
 fn csv_escape(value: &str) -> String {
@@ -645,10 +728,22 @@ mod tests {
 
     fn report() -> Su2HistoryReport {
         let fields = vec![
-            Su2HistoryField { column: "CL".to_owned(), unit: "dimensionless".to_owned() },
-            Su2HistoryField { column: "CD".to_owned(), unit: "dimensionless".to_owned() },
-            Su2HistoryField { column: "RMS_DENSITY".to_owned(), unit: "log10(residual)".to_owned() },
-            Su2HistoryField { column: "RMS_MOMENTUM-X".to_owned(), unit: "log10(residual)".to_owned() },
+            Su2HistoryField {
+                column: "CL".to_owned(),
+                unit: "dimensionless".to_owned(),
+            },
+            Su2HistoryField {
+                column: "CD".to_owned(),
+                unit: "dimensionless".to_owned(),
+            },
+            Su2HistoryField {
+                column: "RMS_DENSITY".to_owned(),
+                unit: "log10(residual)".to_owned(),
+            },
+            Su2HistoryField {
+                column: "RMS_MOMENTUM-X".to_owned(),
+                unit: "log10(residual)".to_owned(),
+            },
         ];
         let values = [
             (0, 0.4100, 0.0210, -1.0, -1.0),
@@ -672,21 +767,25 @@ mod tests {
             history_sha256: "c".repeat(64),
             iteration_column: "Iteration".to_owned(),
             expected_header: vec![
-                "Iteration".to_owned(), "CL".to_owned(), "CD".to_owned(),
-                "RMS_DENSITY".to_owned(), "RMS_MOMENTUM-X".to_owned(),
+                "Iteration".to_owned(),
+                "CL".to_owned(),
+                "CD".to_owned(),
+                "RMS_DENSITY".to_owned(),
+                "RMS_MOMENTUM-X".to_owned(),
             ],
             numeric_fields: fields,
-            points: values.iter().map(|(iteration, cl, cd, rho, momentum)| {
-                Su2HistoryPoint {
+            points: values
+                .iter()
+                .map(|(iteration, cl, cd, rho, momentum)| Su2HistoryPoint {
                     iteration: *iteration,
                     values: vec![*cl, *cd, *rho, *momentum],
-                }
-            }).collect(),
+                })
+                .collect(),
             import_sha256: String::new(),
             evidence_level: crate::su2_history::SU2_HISTORY_EVIDENCE_LEVEL.to_owned(),
         };
-        report.import_sha256 = crate::su2_history::su2_history_import_sha256(&report)
-            .expect("seal synthetic history");
+        report.import_sha256 =
+            crate::su2_history::su2_history_import_sha256(&report).expect("seal synthetic history");
         report
     }
 
@@ -741,7 +840,12 @@ mod tests {
         assert_eq!(report.status, "declared_thresholds_met");
         assert_eq!(report.passed_count, 4);
         assert_eq!(report.failed_count, 0);
-        assert!(report.results.iter().all(|row| row.status == CriterionStatus::Passed));
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|row| row.status == CriterionStatus::Passed)
+        );
         assert_eq!(screen_to_csv(&report).lines().count(), 5);
     }
 
@@ -761,12 +865,16 @@ mod tests {
     #[test]
     fn oscillatory_monitor_fails_even_when_early_and_late_means_match() {
         let mut history = report();
-        for (point, value) in history.points[2..].iter_mut().zip([0.4230, 0.4235, 0.4230, 0.4235, 0.4230, 0.4235]) {
+        for (point, value) in history.points[2..]
+            .iter_mut()
+            .zip([0.4230, 0.4235, 0.4230, 0.4235, 0.4230, 0.4235])
+        {
             point.values[0] = value;
         }
         history.import_sha256 = crate::su2_history::su2_history_import_sha256(&history)
             .expect("reseal oscillatory history");
-        let screen = screen_su2_history(&history, &criteria()).expect("well-formed oscillatory history");
+        let screen =
+            screen_su2_history(&history, &criteria()).expect("well-formed oscillatory history");
         assert_eq!(screen.results[2].status, CriterionStatus::Failed);
     }
 
@@ -785,8 +893,10 @@ mod tests {
         let mut invalid = criteria();
         invalid.residuals[0].terminal_window_rows = 100;
         assert_eq!(
-            screen_su2_history(&history, &invalid).expect("insufficient rows is a recorded result")
-                .results[0].status,
+            screen_su2_history(&history, &invalid)
+                .expect("insufficient rows is a recorded result")
+                .results[0]
+                .status,
             CriterionStatus::InsufficientRows
         );
     }
@@ -807,7 +917,8 @@ mod tests {
             maximum_final_to_initial_ratio: 1.0e-6,
             maximum_terminal_range: 1.0e-6,
         };
-        let screen = screen_su2_history(&history, &adjusted).expect("explicit linear residual screen");
+        let screen =
+            screen_su2_history(&history, &adjusted).expect("explicit linear residual screen");
         assert_eq!(screen.results[0].status, CriterionStatus::Passed);
 
         history.points[0].values[2] = 0.0;
