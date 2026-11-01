@@ -1108,7 +1108,6 @@ fn exact_two_contact_slide_stick_branch_intervals(
     w: &SMatrix<f64, 6, 6>,
     q: &SVector<f64, 6>,
     mu_1: f64,
-    quartic: &[Rational],
     determinant: &[Rational],
     numerators: &[Polynomial],
     roots: &[(Rational, Rational)],
@@ -1228,9 +1227,6 @@ fn exact_two_contact_slide_stick_branch_intervals(
         } else {
             admissible.push(tau.0 > Rational::zero() && energy.1 <= Rational::zero());
         }
-        // The exact angular root, positive disk multiplier and negative
-        // energy are the remaining slide/stick admissibility conditions.
-        let _ = quartic;
     }
     Ok(admissible)
 }
@@ -1302,14 +1298,27 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         .expect("exact Sturm isolation of the slide/stick angular quartic");
     assert_eq!(roots.len(), 4, "all finite real angular roots are isolated");
 
-    // det(M)=0 is a singular active-system angle. If M z = b had a solution
-    // there, every Cramer replacement determinant would vanish. The gcd
-    // certificate for det(M) and the first replacement determinant is 1.
-    let singular_angles = sturm_isolate_rational(determinant.clone())
+    // det(M_d) contains the known (1+t^2)^3 scaling factor. Remove it
+    // before the Cramer gcd check; the remaining factor has exactly the real
+    // zeros of the actual active-system determinant.
+    let half_angle_denominator = vec![
+        Rational::one(),
+        Rational::zero(),
+        Rational::one(),
+    ];
+    let mut singular_determinant = determinant.clone();
+    for _ in 0..3 {
+        singular_determinant = polynomial_divide_exact(
+            &singular_determinant,
+            &half_angle_denominator,
+        )
+        .expect("remove the exact projective denominator factor");
+    }
+    let singular_angles = sturm_isolate_rational(singular_determinant.clone())
         .expect("exact Sturm isolation of singular active-system angles");
     assert_eq!(singular_angles.len(), 2);
     assert_eq!(
-        polynomial_gcd(&determinant, &numerators[0])
+        polynomial_gcd(&singular_determinant, &numerators[0])
             .expect("Cramer/determinant gcd")
             .len(),
         1,
