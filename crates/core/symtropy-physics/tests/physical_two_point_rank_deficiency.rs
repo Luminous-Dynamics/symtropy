@@ -239,6 +239,13 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
         let energy_numerator =
             2 * d * dot(&scaled_impulse, &q6) + quadratic_form(&w6, &scaled_impulse);
         assert_eq!(energy_numerator, -104 * d.pow(2));
+
+        // The base allocation is the unique minimum-Euclidean-norm point on
+        // this affine fibre in the declared contact coordinates:
+        // p0 is orthogonal to n and ||p(alpha)||^2-||p0||^2=2*alpha^2.
+        let norm_increment =
+            dot(&scaled_impulse, &scaled_impulse) - d.pow(2) * dot(&BASE_IMPULSE, &BASE_IMPULSE);
+        assert_eq!(norm_increment, 2 * a.pow(2));
     }
 
     // Any |alpha|>1 violates both local Coulomb disks, even though the body
