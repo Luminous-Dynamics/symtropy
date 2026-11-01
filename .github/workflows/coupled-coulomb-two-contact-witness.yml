@@ -22,8 +22,8 @@ jobs:
           toolchain: "1.96.0"
           components: rustfmt
       - name: Check formatting of the new witness source
-        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_two_contact_witness.rs
+        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/coupled_friction_two_contact_witness.rs
       - name: Validate coupled two-contact witness
-        run: cargo test -p symtropy-physics --lib coupled_friction_two_contact_witness::tests --locked
+        run: cargo test -p symtropy-physics --test coupled_friction_two_contact_witness --locked
       - name: Re-run single-contact coupled Coulomb reference
         run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
