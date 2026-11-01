@@ -81,3 +81,27 @@ Compare the reduced path against direct full-island nonlinear search on the same
 - deterministic replay and contact-block permutation invariance.
 
 No engine-speed or SOTA claim is made. All benchmark/evidence receipts remain subject to #460.
+
+
+## Additional regime reduction: contact 2 strictly separating
+
+A second regime-conditioned elimination now covers the case
+
+\[
+p_2=0,\qquad u_{n,2}=q_{n,2}+B^T_{n,:}p_1>0.
+\]
+
+There is no inverse of C in this branch. Solve the principal contact-1 problem using (A,q_1), reconstruct p=(p_1,0), then evaluate u=q+Wp with the original full 6x6 operator. The candidate is retained only when contact 2's full-island normal velocity is strictly positive and contact 1's declared separating/sticking/sliding conditions, full energy and residuals pass.
+
+This is not equivalent to ignoring contact 2: its normal separating inequality depends on the cross-contact block B^T and the reconstructed p_1. The negative control makes q_{n,2}+B^T_{n,:}p_1 negative and requires the regime-restricted path to return no candidate / INCONCLUSIVE.
+
+The frozen synthetic SPD fixture uses W=[[I,0.1I],[0.1I,I]], which has nonzero cross-contact coupling and remains positive definite. With q_2,n=0.25, it recovers contact-1 separating, sticking and sliding cases while contact 2 remains strictly separating. With q_2,n=-0.2, contact 2 cannot remain separating after the contact-1 impulse and the candidate is rejected.
+
+### Coverage accounting
+
+Together, the strict contact-2 sticking path in this note and the strict contact-2 separating path cover six of the nine two-contact regime assignments:
+
+- contact 2 sticking + contact 1 separating/sticking/sliding;
+- contact 2 separating + contact 1 separating/sticking/sliding.
+
+The remaining three assignments require contact 2 to slide. They are not solved by these reductions. Neither path proves complete solution-set enumeration, and all candidates continue to be rechecked against the original unreduced system.

@@ -63,14 +63,7 @@ fn fixture() -> (Matrix6, Vector6) {
         0.0,
         1.0,
     ]);
-    let q = Vector6::new(
-        -0.10770302,
-        1.49149027,
-        -0.95561905,
-        -1.0,
-        0.1,
-        -0.1,
-    );
+    let q = Vector6::new(-0.10770302, 1.49149027, -0.95561905, -1.0, 0.1, -0.1);
     (w, q)
 }
 
@@ -214,7 +207,6 @@ mod tests {
     }
 }
 
-
 // -----------------------------------------------------------------------------
 // Regime-restricted two-contact Schur-complement reduction
 // -----------------------------------------------------------------------------
@@ -228,7 +220,7 @@ mod tests {
 mod schur_reduction_tests {
     use super::*;
     use crate::coupled_friction::{
-        solve_coupled_signorini_coulomb, CoupledCoulombRegime, CoupledCoulombStatus,
+        CoupledCoulombRegime, CoupledCoulombStatus, solve_coupled_signorini_coulomb,
     };
     use nalgebra::Matrix3;
 
@@ -270,7 +262,9 @@ mod schur_reduction_tests {
             return Err("invalid or non-finite two-contact input");
         }
 
-        let scale = w.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
         if scale == 0.0 {
             return Err("zero two-contact Delassus matrix");
         }
@@ -278,15 +272,11 @@ mod schur_reduction_tests {
         if asymmetry.norm() > tolerance * scale * 10.0 {
             return Err("two-contact Delassus matrix is not symmetric");
         }
-        let scaled_symmetric_w = Matrix6::from_fn(|i, j| {
-            0.5 * (w[(i, j)] + w[(j, i)]) / scale
-        });
-        let full_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(
-            scaled_symmetric_w,
-        )
-        .eigenvalues
-        .iter()
-        .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        let scaled_symmetric_w = Matrix6::from_fn(|i, j| 0.5 * (w[(i, j)] + w[(j, i)]) / scale);
+        let full_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_symmetric_w)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
         if full_minimum_eigenvalue <= tolerance {
             return Err("two-contact Delassus matrix is not sufficiently positive definite");
         }
@@ -300,13 +290,13 @@ mod schur_reduction_tests {
         let q_1 = SVector::<f64, 3>::new(q[0], q[1], q[2]);
         let q_2 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
 
-        let c_scale = c.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let c_scale = c
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
         if c_scale == 0.0 {
             return Err("sticking contact principal block is zero");
         }
-        let scaled_c = Matrix3::from_fn(|i, j| {
-            0.5 * (c[(i, j)] + c[(j, i)]) / c_scale
-        });
+        let scaled_c = Matrix3::from_fn(|i, j| 0.5 * (c[(i, j)] + c[(j, i)]) / c_scale);
         let c_minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_c)
             .eigenvalues
             .iter()
@@ -314,19 +304,17 @@ mod schur_reduction_tests {
         if c_minimum_eigenvalue <= tolerance {
             return Err("sticking contact principal block is ill-conditioned");
         }
-        let c_factor = c.cholesky().ok_or("sticking contact principal block is not SPD")?;
+        let c_factor = c
+            .cholesky()
+            .ok_or("sticking contact principal block is not SPD")?;
         let c_inverse_b_transpose = c_factor.solve(&b.transpose());
         let c_inverse_q_2 = c_factor.solve(&q_2);
         let effective_mass = a - b * c_inverse_b_transpose;
         let effective_velocity = q_1 - b * c_inverse_q_2;
 
-        let reduced = solve_coupled_signorini_coulomb(
-            &effective_mass,
-            &effective_velocity,
-            mu_1,
-            tolerance,
-        )
-        .map_err(|_| "reduced single-contact solver refused the Schur system")?;
+        let reduced =
+            solve_coupled_signorini_coulomb(&effective_mass, &effective_velocity, mu_1, tolerance)
+                .map_err(|_| "reduced single-contact solver refused the Schur system")?;
 
         // Never forward a partially enumerated set from an inconclusive
         // reduced solve as if it were a candidate set for this regime.
@@ -341,21 +329,16 @@ mod schur_reduction_tests {
         for candidate in &reduced.candidates {
             let p_1 = candidate.impulse;
             let p_2 = -c_factor.solve(&(q_2 + b.transpose() * p_1));
-            let impulse = Vector6::new(
-                p_1[0], p_1[1], p_1[2],
-                p_2[0], p_2[1], p_2[2],
-            );
+            let impulse = Vector6::new(p_1[0], p_1[1], p_1[2], p_2[0], p_2[1], p_2[2]);
             let post_velocity = q + w * impulse;
-            let u_1 = SVector::<f64, 3>::new(
-                post_velocity[0], post_velocity[1], post_velocity[2],
-            );
-            let u_2 = SVector::<f64, 3>::new(
-                post_velocity[3], post_velocity[4], post_velocity[5],
-            );
+            let u_1 = SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
+            let u_2 = SVector::<f64, 3>::new(post_velocity[3], post_velocity[4], post_velocity[5]);
             let p_1_tangent_norm = p_1.fixed_rows::<2>(1).norm();
             let p_2_tangent_norm = p_2.fixed_rows::<2>(1).norm();
             let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
-            let velocity_scale = (scale * impulse.norm()).max(q.norm()).max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
             let impulse_tolerance = tolerance * impulse_scale * 250.0;
             let velocity_tolerance = tolerance * velocity_scale * 250.0;
 
@@ -410,9 +393,7 @@ mod schur_reduction_tests {
                     {
                         continue;
                     }
-                    (tangent_velocity
-                        + candidate.disk_multiplier * p_1.fixed_rows::<2>(1))
-                    .norm()
+                    (tangent_velocity + candidate.disk_multiplier * p_1.fixed_rows::<2>(1)).norm()
                 }
             };
             if contact_one_tangent_residual > velocity_tolerance {
@@ -442,9 +423,7 @@ mod schur_reduction_tests {
 
         // Deduplicate only at the requested numerical comparison scale. This
         // is candidate hygiene, not a proof of root completeness.
-        candidates.sort_by(|left, right| {
-            left.impulse[0].total_cmp(&right.impulse[0])
-        });
+        candidates.sort_by(|left, right| left.impulse[0].total_cmp(&right.impulse[0]));
         candidates.dedup_by(|left, right| {
             (left.impulse - right.impulse).norm()
                 <= tolerance * 1000.0 * (1.0 + left.impulse.norm().max(right.impulse.norm()))
@@ -459,22 +438,28 @@ mod schur_reduction_tests {
     #[test]
     fn schur_reduction_replays_all_three_frozen_contact_two_sticking_branches() {
         let (w, q) = fixture();
-        let outcome = solve_with_contact_two_sticking(
-            &w, &q, MU_1, MU_2, 1.0e-12,
-        ).unwrap();
+        let outcome = solve_with_contact_two_sticking(&w, &q, MU_1, MU_2, 1.0e-12).unwrap();
 
-        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::MultipleSolutions);
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::MultipleSolutions
+        );
         assert_eq!(outcome.candidates.len(), 3);
 
         let references = candidate_impulses();
         for expected in references {
-            let match_candidate = outcome.candidates.iter().find(|candidate| {
-                (candidate.impulse - expected).norm() < 2.0e-6
-            });
+            let match_candidate = outcome
+                .candidates
+                .iter()
+                .find(|candidate| (candidate.impulse - expected).norm() < 2.0e-6);
             assert!(
                 match_candidate.is_some(),
                 "Schur reduction missed frozen full-island branch {expected:?}; found={:?}",
-                outcome.candidates.iter().map(|candidate| &candidate.impulse).collect::<Vec<_>>()
+                outcome
+                    .candidates
+                    .iter()
+                    .map(|candidate| &candidate.impulse)
+                    .collect::<Vec<_>>()
             );
         }
 
@@ -499,26 +484,32 @@ mod schur_reduction_tests {
     #[test]
     fn schur_reduction_is_symmetric_under_contact_block_permutation() {
         let (w, q) = fixture();
-        let forward = solve_with_contact_two_sticking(
-            &w, &q, MU_1, MU_2, 1.0e-12,
-        ).unwrap();
+        let forward = solve_with_contact_two_sticking(&w, &q, MU_1, MU_2, 1.0e-12).unwrap();
 
         // The witness has contact 2 sticking in all branches. Permuting the
         // contact blocks turns contact 1 into the eliminated sticking block
         // only for the all-sticking solution; compare that branch explicitly.
-        let sticking = forward.candidates.iter()
+        let sticking = forward
+            .candidates
+            .iter()
             .find(|candidate| candidate.contact_one_regime == CoupledCoulombRegime::Sticking)
             .expect("all-sticking branch");
         let permuted_w = Matrix6::from_fn(|i, j| {
-            w[(if i < 3 { i + 3 } else { i - 3 }, if j < 3 { j + 3 } else { j - 3 })]
+            w[(
+                if i < 3 { i + 3 } else { i - 3 },
+                if j < 3 { j + 3 } else { j - 3 },
+            )]
         });
         let permuted_q = Vector6::from_fn(|i, _| q[if i < 3 { i + 3 } else { i - 3 }]);
-        let reverse = solve_with_contact_two_sticking(
-            &permuted_w, &permuted_q, MU_2, MU_1, 1.0e-12,
-        ).unwrap();
+        let reverse =
+            solve_with_contact_two_sticking(&permuted_w, &permuted_q, MU_2, MU_1, 1.0e-12).unwrap();
         let expected = Vector6::new(
-            sticking.impulse[3], sticking.impulse[4], sticking.impulse[5],
-            sticking.impulse[0], sticking.impulse[1], sticking.impulse[2],
+            sticking.impulse[3],
+            sticking.impulse[4],
+            sticking.impulse[5],
+            sticking.impulse[0],
+            sticking.impulse[1],
+            sticking.impulse[2],
         );
         assert!(reverse.candidates.iter().any(|candidate| {
             candidate.contact_one_regime == CoupledCoulombRegime::Sticking
@@ -531,24 +522,259 @@ mod schur_reduction_tests {
         let mut w = Matrix6::identity();
         w[(5, 5)] = 1.0e-14;
         let q = Vector6::new(-1.0, 0.1, -0.1, -1.0, 0.1, -0.1);
-        let result = solve_with_contact_two_sticking(
-            &w, &q, 0.5, 0.5, 1.0e-12,
-        );
+        let result = solve_with_contact_two_sticking(&w, &q, 0.5, 0.5, 1.0e-12);
         assert_eq!(
             result.unwrap_err(),
             "two-contact Delassus matrix is not sufficiently positive definite"
         );
     }
 
-
     #[test]
     fn schur_reduction_refuses_candidates_outside_the_eliminated_contact_disk() {
         let (w, q) = fixture();
-        let outcome = solve_with_contact_two_sticking(
-            &w, &q, MU_1, 0.01, 1.0e-12,
-        ).unwrap();
-        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::MultipleSolutions);
+        let outcome = solve_with_contact_two_sticking(&w, &q, MU_1, 0.01, 1.0e-12).unwrap();
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::MultipleSolutions
+        );
         assert!(outcome.candidates.is_empty());
     }
 
+    /// Generate candidates when contact 2 is strictly separating.
+    ///
+    /// Since p_2 = 0, solve contact 1 on its principal 3x3 block, reconstruct
+    /// the complete 6D post-contact velocity, and then prove u_n,2 > 0.
+    /// Contact 2's tangential post-velocity is unrestricted on this branch.
+    fn solve_with_contact_two_separating(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<SchurOutcome, &'static str> {
+        if !w.iter().all(|value| value.is_finite())
+            || !q.iter().all(|value| value.is_finite())
+            || !mu_1.is_finite()
+            || !mu_2.is_finite()
+            || mu_1 < 0.0
+            || mu_2 < 0.0
+            || !tolerance.is_finite()
+            || tolerance <= 0.0
+        {
+            return Err("invalid or non-finite two-contact input");
+        }
+
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Err("zero two-contact Delassus matrix");
+        }
+        let asymmetry = Matrix6::from_fn(|i, j| w[(i, j)] - w[(j, i)]);
+        if asymmetry.norm() > tolerance * scale * 10.0 {
+            return Err("two-contact Delassus matrix is not symmetric");
+        }
+        let symmetric_w = (w + w.transpose()) * 0.5;
+        let scaled_w = symmetric_w / scale;
+        let minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_w)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if minimum_eigenvalue <= tolerance {
+            return Err("two-contact Delassus matrix is not sufficiently positive definite");
+        }
+        if w.cholesky().is_none() {
+            return Err("two-contact Delassus matrix is not positive definite");
+        }
+
+        let a = Matrix3::from_fn(|i, j| w[(i, j)]);
+        let q_1 = SVector::<f64, 3>::new(q[0], q[1], q[2]);
+        let reduced = solve_coupled_signorini_coulomb(&a, &q_1, mu_1, tolerance)
+            .map_err(|_| "active-contact single-contact solver refused the principal block")?;
+
+        if reduced.status == CoupledCoulombStatus::Inconclusive {
+            return Ok(SchurOutcome {
+                reduced_status: CoupledCoulombStatus::Inconclusive,
+                candidates: Vec::new(),
+            });
+        }
+
+        let mut candidates = Vec::new();
+        for candidate in &reduced.candidates {
+            let p_1 = candidate.impulse;
+            let impulse = Vector6::new(p_1[0], p_1[1], p_1[2], 0.0, 0.0, 0.0);
+            let post_velocity = q + w * impulse;
+            let u_1 = SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
+            let u_2 = SVector::<f64, 3>::new(post_velocity[3], post_velocity[4], post_velocity[5]);
+
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+
+            // Contact 2 is strictly separating: its complete impulse is zero
+            // and the reconstructed normal velocity is strictly positive.
+            if u_2[0] <= velocity_tolerance {
+                continue;
+            }
+
+            if p_1[0] < -impulse_tolerance {
+                continue;
+            }
+            let p_1_tangent_norm = p_1.fixed_rows::<2>(1).norm();
+            let u_1_tangent = u_1.fixed_rows::<2>(1);
+            let (normal_residual, tangent_residual) = match candidate.regime {
+                CoupledCoulombRegime::Separating => {
+                    if p_1.norm() > impulse_tolerance || u_1[0] <= velocity_tolerance {
+                        continue;
+                    }
+                    (0.0, 0.0)
+                }
+                CoupledCoulombRegime::Frictionless => {
+                    if mu_1 != 0.0
+                        || p_1[0] <= impulse_tolerance
+                        || p_1_tangent_norm > impulse_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), 0.0)
+                }
+                CoupledCoulombRegime::Sticking => {
+                    if p_1[0] <= impulse_tolerance
+                        || mu_1 * p_1[0] - p_1_tangent_norm <= impulse_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                        || u_1_tangent.norm() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), u_1_tangent.norm())
+                }
+                CoupledCoulombRegime::Sliding => {
+                    let disk_residual = (p_1_tangent_norm - mu_1 * p_1[0]).abs();
+                    let stationarity =
+                        (u_1_tangent + candidate.disk_multiplier * p_1.fixed_rows::<2>(1)).norm();
+                    if p_1[0] <= impulse_tolerance
+                        || disk_residual > impulse_tolerance
+                        || candidate.disk_multiplier <= 0.0
+                        || stationarity > velocity_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), stationarity)
+                }
+            };
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(SchurCandidate {
+                impulse,
+                contact_one_regime: candidate.regime,
+                contact_one_tau: candidate.disk_multiplier,
+                kinetic_energy_delta,
+                max_velocity_residual: normal_residual
+                    .max(tangent_residual)
+                    .max((-u_2[0]).max(0.0)),
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            // Candidate rejection cannot prove that the complete coupled
+            // problem has no solution; preserve the fail-closed claim ceiling.
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            reduced.status
+        };
+        Ok(SchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    fn contact_two_separating_fixture(
+        q_1: SVector<f64, 3>,
+        contact_two_normal_free_velocity: f64,
+    ) -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(
+            q_1[0],
+            q_1[1],
+            q_1[2],
+            contact_two_normal_free_velocity,
+            0.2,
+            -0.3,
+        );
+        (w, q)
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_recovers_all_contact_one_regimes() {
+        let cases = [
+            (
+                SVector::<f64, 3>::new(0.5, 0.2, -0.1),
+                CoupledCoulombRegime::Separating,
+            ),
+            (
+                SVector::<f64, 3>::new(-1.0, 0.1, 0.1),
+                CoupledCoulombRegime::Sticking,
+            ),
+            (
+                SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
+                CoupledCoulombRegime::Sliding,
+            ),
+        ];
+
+        for (q_1, expected_regime) in cases {
+            let (w, q) = contact_two_separating_fixture(q_1, 0.25);
+            let outcome = solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12).unwrap();
+
+            assert_eq!(
+                outcome.reduced_status,
+                CoupledCoulombStatus::UniqueWithinTolerance
+            );
+            assert_eq!(outcome.candidates.len(), 1);
+            let candidate = &outcome.candidates[0];
+            assert_eq!(candidate.contact_one_regime, expected_regime);
+            assert!(candidate.impulse.fixed_rows::<3>(3).norm() == 0.0);
+
+            let full_velocity = q + w * candidate.impulse;
+            assert!(full_velocity[3] > 0.0);
+            assert!(candidate.max_velocity_residual < 1.0e-8);
+            assert!(candidate.kinetic_energy_delta <= 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_rejects_inward_full_island_velocity() {
+        let (w, q) = contact_two_separating_fixture(SVector::<f64, 3>::new(-1.0, 0.1, 0.1), -0.2);
+        let outcome = solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12).unwrap();
+
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::Inconclusive);
+        assert!(outcome.candidates.is_empty());
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_retains_cross_contact_coupling() {
+        let (w, q) = contact_two_separating_fixture(SVector::<f64, 3>::new(-1.0, 0.1, 0.1), 0.25);
+        let outcome = solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12).unwrap();
+        let candidate = &outcome.candidates[0];
+
+        let coupled_velocity = q + w * candidate.impulse;
+        let diagonal_only = Matrix6::identity();
+        let uncoupled_velocity = q + diagonal_only * candidate.impulse;
+
+        assert!(coupled_velocity[3] > 0.0);
+        assert!((coupled_velocity[3] - uncoupled_velocity[3]).abs() > 1.0e-3);
+    }
 }

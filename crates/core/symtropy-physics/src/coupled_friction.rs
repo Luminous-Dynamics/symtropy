@@ -181,7 +181,14 @@ pub fn solve_coupled_signorini_coulomb(
             CoupledCoulombRegime::Frictionless
         };
         let candidate = validate_candidate(
-            &w, free_velocity, mu, impulse, regime, 0.0, None, relative_tolerance,
+            &w,
+            free_velocity,
+            mu,
+            impulse,
+            regime,
+            0.0,
+            None,
+            relative_tolerance,
         );
         let candidates = candidate.into_iter().collect::<Vec<_>>();
         return Ok(CoupledCoulombOutcome {
@@ -446,8 +453,7 @@ fn validate_candidate(
 
     let kinetic_energy_delta = impulse.dot(&(q + 0.5 * (w * impulse)));
     let work_scale = impulse.norm() * velocity_scale;
-    let work_residual =
-        kinetic_energy_delta.max(0.0) / work_scale.max(f64::MIN_POSITIVE);
+    let work_residual = kinetic_energy_delta.max(0.0) / work_scale.max(f64::MIN_POSITIVE);
 
     let limit = 200.0 * tolerance;
     if normal_complementarity_residual > limit
@@ -455,8 +461,7 @@ fn validate_candidate(
         || coulomb_disk_violation > limit * impulse_scale
         || work_residual > limit
         || lambda < -limit * impulse_scale
-        || (regime == CoupledCoulombRegime::Sliding
-            && disk_multiplier < -limit * w.norm())
+        || (regime == CoupledCoulombRegime::Sliding && disk_multiplier < -limit * w.norm())
     {
         return None;
     }
@@ -501,22 +506,15 @@ fn tangent_direction(theta: f64) -> (SVector<f64, 2>, SVector<f64, 2>) {
     )
 }
 
-fn angular_residual(
-    w: &Matrix3<f64>,
-    q: &SVector<f64, 3>,
-    mu: f64,
-    theta: f64,
-) -> (f64, f64) {
+fn angular_residual(w: &Matrix3<f64>, q: &SVector<f64, 3>, mu: f64, theta: f64) -> (f64, f64) {
     let (s, perpendicular) = tangent_direction(theta);
     let d = SVector::<f64, 2>::new(w[(0, 1)], w[(0, 2)]);
     let c = SVector::<f64, 2>::new(w[(1, 0)], w[(2, 0)]);
-    let tangent_metric =
-        Matrix2::<f64>::new(w[(1, 1)], w[(1, 2)], w[(2, 1)], w[(2, 2)]);
+    let tangent_metric = Matrix2::<f64>::new(w[(1, 1)], w[(1, 2)], w[(2, 1)], w[(2, 2)]);
     let tangent_free = SVector::<f64, 2>::new(q[1], q[2]);
     let denominator = w[(0, 0)] - mu * d.dot(&s);
     let tangent_quadratic = tangent_metric * s;
-    let value = denominator * perpendicular.dot(&tangent_free)
-        - q[0] * perpendicular.dot(&c)
+    let value = denominator * perpendicular.dot(&tangent_free) - q[0] * perpendicular.dot(&c)
         + mu * q[0] * perpendicular.dot(&tangent_quadratic);
     let scale = denominator.abs() * tangent_free.norm()
         + q[0].abs() * c.norm()
@@ -542,10 +540,13 @@ fn sliding_quartic(w: &Matrix3<f64>, q: &SVector<f64, 3>, mu: f64) -> [f64; 5] {
     [
         mu * qn * a12 + a * q2 - d2 * qn - d1 * mu * q2,
         -2.0 * a11 * mu * qn + 2.0 * a22 * mu * qn - 2.0 * a * q1
-            + 2.0 * d1 * qn + 2.0 * d1 * mu * q1 - 2.0 * d2 * mu * q2,
+            + 2.0 * d1 * qn
+            + 2.0 * d1 * mu * q1
+            - 2.0 * d2 * mu * q2,
         -6.0 * a12 * mu * qn + 2.0 * d1 * mu * q2 + 4.0 * d2 * mu * q1,
-        2.0 * a11 * mu * qn - 2.0 * a22 * mu * qn - 2.0 * a * q1
-            + 2.0 * d1 * qn - 2.0 * d1 * mu * q1 + 2.0 * d2 * mu * q2,
+        2.0 * a11 * mu * qn - 2.0 * a22 * mu * qn - 2.0 * a * q1 + 2.0 * d1 * qn
+            - 2.0 * d1 * mu * q1
+            + 2.0 * d2 * mu * q2,
         a12 * mu * qn - a * q2 + d2 * qn - d1 * mu * q2,
     ]
 }
@@ -597,7 +598,11 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     }
     if degree == 1 {
         let root = -coefficients[0] / coefficients[1];
-        return if root.is_finite() { Ok(vec![root]) } else { Err(()) };
+        return if root.is_finite() {
+            Ok(vec![root])
+        } else {
+            Err(())
+        };
     }
 
     let leading = coefficients[degree].abs();
@@ -618,14 +623,11 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     points.extend(critical.into_iter().filter(|x| *x > -bound && *x < bound));
     points.push(bound);
     points.sort_by(f64::total_cmp);
-    points.dedup_by(|a, b| {
-        (*a - *b).abs() <= 64.0 * tolerance * (1.0 + a.abs().max(b.abs()))
-    });
+    points.dedup_by(|a, b| (*a - *b).abs() <= 64.0 * tolerance * (1.0 + a.abs().max(b.abs())));
 
     let mut roots = Vec::new();
     for point in &points {
-        let (value, eval_scale) =
-            polynomial_value_and_scale(&coefficients, *point).ok_or(())?;
+        let (value, eval_scale) = polynomial_value_and_scale(&coefficients, *point).ok_or(())?;
         if value.abs() <= 64.0 * tolerance * eval_scale {
             add_root(&mut roots, *point, tolerance);
         }
@@ -634,10 +636,8 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
     for pair in points.windows(2) {
         let mut lower = pair[0];
         let mut upper = pair[1];
-        let (mut f_lower, s_lower) =
-            polynomial_value_and_scale(&coefficients, lower).ok_or(())?;
-        let (f_upper, s_upper) =
-            polynomial_value_and_scale(&coefficients, upper).ok_or(())?;
+        let (mut f_lower, s_lower) = polynomial_value_and_scale(&coefficients, lower).ok_or(())?;
+        let (f_upper, s_upper) = polynomial_value_and_scale(&coefficients, upper).ok_or(())?;
         let lower_is_root = f_lower.abs() <= 64.0 * tolerance * s_lower;
         let upper_is_root = f_upper.abs() <= 64.0 * tolerance * s_upper;
         if lower_is_root
@@ -652,8 +652,7 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
             if midpoint == lower || midpoint == upper {
                 break;
             }
-            let (f_mid, _) =
-                polynomial_value_and_scale(&coefficients, midpoint).ok_or(())?;
+            let (f_mid, _) = polynomial_value_and_scale(&coefficients, midpoint).ok_or(())?;
             if f_mid == 0.0 {
                 lower = midpoint;
                 upper = midpoint;
@@ -698,19 +697,13 @@ mod tests {
 
     #[test]
     fn diagonal_sticking_matches_full_unconstrained_solution() {
-        let w = Matrix3::new(
-            2.0, 0.0, 0.0,
-            0.0, 1.5, 0.0,
-            0.0, 0.0, 0.8,
-        );
+        let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.8);
         let q = SVector::new(-1.0, 0.2, -0.1);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.6, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sticking);
-        assert!(
-            (candidate.impulse - SVector::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10
-        );
+        assert!((candidate.impulse - SVector::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10);
         assert_candidate(candidate, 1.0e-9);
     }
 
@@ -730,11 +723,7 @@ mod tests {
 
     #[test]
     fn off_diagonal_normal_tangent_coupling_is_solved_in_one_system() {
-        let w = Matrix3::new(
-            3.0, 0.4, -0.2,
-            0.4, 2.0, 0.5,
-            -0.2, 0.5, 1.5,
-        );
+        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let q = SVector::new(-0.8, -2.5, 0.9);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.22, 1.0e-12).unwrap();
         assert_ne!(outcome.status, CoupledCoulombStatus::Inconclusive);
@@ -746,11 +735,7 @@ mod tests {
 
     #[test]
     fn separating_contact_returns_zero_impulse() {
-        let w = Matrix3::new(
-            2.0, 0.1, 0.0,
-            0.1, 1.0, 0.2,
-            0.0, 0.2, 1.4,
-        );
+        let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
         let q = SVector::new(0.5, 2.0, -1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
@@ -762,9 +747,15 @@ mod tests {
     #[test]
     fn multiple_admissible_solutions_are_reported_not_arbitrarily_selected() {
         let w = Matrix3::new(
-            0.59497432, -0.39054620, -0.63542426,
-            -0.39054620, 1.65052340, 0.80910089,
-            -0.63542426, 0.80910089, 0.94522735,
+            0.59497432,
+            -0.39054620,
+            -0.63542426,
+            -0.39054620,
+            1.65052340,
+            0.80910089,
+            -0.63542426,
+            0.80910089,
+            0.94522735,
         );
         let q = SVector::new(-0.10770302, 1.49149027, -0.95561905);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 1.383289774658335, 1.0e-11).unwrap();
@@ -778,24 +769,35 @@ mod tests {
     #[test]
     fn strong_coupling_can_create_multiple_solutions_from_initial_separation() {
         let w = Matrix3::new(
-            3.38215268, 1.97328063, 2.48164591,
-            1.97328063, 5.28809392, -1.19836457,
-            2.48164591, -1.19836457, 4.53646300,
+            3.38215268,
+            1.97328063,
+            2.48164591,
+            1.97328063,
+            5.28809392,
+            -1.19836457,
+            2.48164591,
+            -1.19836457,
+            4.53646300,
         );
         let q = SVector::new(0.93301773, 0.94422924, 2.42911533);
         let mu = 2.609311810828915;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-11).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
         assert!(outcome.candidates.iter().any(|candidate| {
-            candidate.regime == CoupledCoulombRegime::Separating
-                && candidate.impulse.norm() == 0.0
+            candidate.regime == CoupledCoulombRegime::Separating && candidate.impulse.norm() == 0.0
         }));
-        assert!(outcome.candidates.iter().any(|candidate| {
-            candidate.regime == CoupledCoulombRegime::Sticking
-        }));
-        assert!(outcome.candidates.iter().any(|candidate| {
-            candidate.regime == CoupledCoulombRegime::Sliding
-        }));
+        assert!(
+            outcome
+                .candidates
+                .iter()
+                .any(|candidate| { candidate.regime == CoupledCoulombRegime::Sticking })
+        );
+        assert!(
+            outcome
+                .candidates
+                .iter()
+                .any(|candidate| { candidate.regime == CoupledCoulombRegime::Sliding })
+        );
         for candidate in &outcome.candidates {
             assert_candidate(candidate, 1.0e-7);
         }
@@ -804,14 +806,9 @@ mod tests {
     #[test]
     fn distinguishes_indefinite_from_positive_but_ill_conditioned_metrics() {
         let q = SVector::new(-1.0, 0.2, 0.1);
-        let ill_conditioned = Matrix3::new(
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0e-14,
-        );
+        let ill_conditioned = Matrix3::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-14);
         assert_eq!(
-            solve_coupled_signorini_coulomb(&ill_conditioned, &q, 0.4, 1.0e-12)
-                .unwrap_err(),
+            solve_coupled_signorini_coulomb(&ill_conditioned, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::IllConditioned
         );
     }
@@ -837,18 +834,20 @@ mod tests {
 
     #[test]
     fn contact_frame_rotation_preserves_candidate_impulses_and_classification() {
-        let w = Matrix3::new(
-            3.0, 0.4, -0.2,
-            0.4, 2.0, 0.5,
-            -0.2, 0.5, 1.5,
-        );
+        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let q = SVector::new(-0.8, -2.5, 0.9);
         let (sin, cos) = 0.73_f64.sin_cos();
         let tangent_rotation = Matrix2::new(cos, -sin, sin, cos);
         let transform = Matrix3::new(
-            1.0, 0.0, 0.0,
-            0.0, tangent_rotation[(0, 0)], tangent_rotation[(0, 1)],
-            0.0, tangent_rotation[(1, 0)], tangent_rotation[(1, 1)],
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            tangent_rotation[(0, 0)],
+            tangent_rotation[(0, 1)],
+            0.0,
+            tangent_rotation[(1, 0)],
+            tangent_rotation[(1, 1)],
         );
         let rotated_w = transform * w * transform.transpose();
         let rotated_q = transform * q;
@@ -858,30 +857,28 @@ mod tests {
         assert_eq!(direct.status, rotated.status);
         assert_eq!(direct.candidates.len(), rotated.candidates.len());
         for candidate in &direct.candidates {
-            let matched = rotated.candidates.iter().find(|other| {
-                (other.impulse - transform * candidate.impulse).norm() < 1.0e-7
-            });
+            let matched = rotated
+                .candidates
+                .iter()
+                .find(|other| (other.impulse - transform * candidate.impulse).norm() < 1.0e-7);
             assert!(matched.is_some());
         }
     }
 
     #[test]
     fn quartic_coefficients_match_the_unreduced_angular_equation() {
-        let w = Matrix3::new(
-            3.0, 0.4, -0.2,
-            0.4, 2.0, 0.5,
-            -0.2, 0.5, 1.5,
-        );
+        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let q = SVector::new(-0.8, -2.5, 0.9);
         let mu = 0.37;
         let coefficients = sliding_quartic(&w, &q, mu);
         for index in 0..64 {
-            let theta = -std::f64::consts::PI
-                + (index as f64 + 0.37) * (2.0 * std::f64::consts::PI / 64.0);
+            let theta =
+                -std::f64::consts::PI + (index as f64 + 0.37) * (2.0 * std::f64::consts::PI / 64.0);
             let t = (0.5 * theta).tan();
-            let polynomial = coefficients.iter().rev().fold(0.0, |value, coefficient| {
-                value * t + coefficient
-            });
+            let polynomial = coefficients
+                .iter()
+                .rev()
+                .fold(0.0, |value, coefficient| value * t + coefficient);
             let (angular, _) = angular_residual(&w, &q, mu, theta);
             let factor = (1.0 + t * t).powi(2);
             let scale = polynomial.abs().max((angular * factor).abs()).max(1.0);
@@ -891,11 +888,7 @@ mod tests {
 
     #[test]
     fn grazing_with_singular_normal_coupling_is_not_guessed_through() {
-        let w = Matrix3::new(
-            1.0, 0.8, 0.0,
-            0.8, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        );
+        let w = Matrix3::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0);
         let q = SVector::new(0.0, -1.0, 0.5);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 2.0, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::Inconclusive);
@@ -904,11 +897,7 @@ mod tests {
 
     #[test]
     fn grazing_with_positive_global_coupling_margin_is_separating() {
-        let w = Matrix3::new(
-            2.0, 0.1, 0.0,
-            0.1, 1.0, 0.2,
-            0.0, 0.2, 1.4,
-        );
+        let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
         let q = SVector::new(0.0, -2.0, 1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
@@ -921,20 +910,12 @@ mod tests {
     #[test]
     fn rejects_asymmetric_and_indefinite_effective_mass() {
         let q = SVector::new(-1.0, 0.2, 0.1);
-        let asymmetric = Matrix3::new(
-            1.0, 0.3, 0.0,
-            0.1, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        );
+        let asymmetric = Matrix3::new(1.0, 0.3, 0.0, 0.1, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             solve_coupled_signorini_coulomb(&asymmetric, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NotSymmetric
         );
-        let indefinite = Matrix3::new(
-            1.0, 2.0, 0.0,
-            2.0, 1.0, 0.0,
-            0.0, 0.0, 1.0,
-        );
+        let indefinite = Matrix3::new(1.0, 2.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             solve_coupled_signorini_coulomb(&indefinite, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NotPositiveDefinite
@@ -952,9 +933,7 @@ mod tests {
                 }
             }
             let m = Matrix3::new(
-                x[0][0], x[0][1], x[0][2],
-                x[1][0], x[1][1], x[1][2],
-                x[2][0], x[2][1], x[2][2],
+                x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
             );
             let w = m.transpose() * m + Matrix3::identity() * 0.3;
             let q = SVector::new(
