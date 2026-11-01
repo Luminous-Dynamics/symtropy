@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: \${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Isolate Cargo target directory
         run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-031-approx-blackwell-target" >> "$GITHUB_ENV"
       - name: Set up pinned Rust
@@ -40,7 +40,7 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib -- -D warnings
       - name: Verify exact PR head and clean tree
         env:
-          EXPECTED_HEAD: \${{ github.event.pull_request.head.sha }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
