@@ -3,17 +3,21 @@
 
 //! Effects-disabled Earth-to-orbit logistics chain admission and accounting.
 //!
-//! This crate deliberately does not optimize routes or solve transport / orbital
-//! dynamics. It validates a supplied, ordered payload chain against declared
-//! capacity windows and opaque specialist qualification receipts. A qualified
-//! receipt digest is only an identity commitment here; callers must independently
-//! verify the receipt, issuer, policy and model context before relying on it.
+//! This crate does not optimize routes, arbitrate resource capacity, or solve
+//! transport / orbital dynamics. It consumes a planning-qualification receipt
+//! from the authoritative time-windowed resource allocator (Symtropy #1639),
+//! reconciles stable cargo mass and ordered transfers, and consumes an orbit
+//! compatibility receipt from the launch/orbital specialist.
+//!
+//! A receipt digest is an identity commitment, not proof of truth by itself.
+//! The caller must independently verify its issuer, signature, source lineage,
+//! policy, model context and validity before constructing this input.
 //!
 //! The first increment is intentionally conservative:
 //! - payload mass remains invariant across each transport hop;
-//! - capacity is checked as aggregate concurrent mass on a physical resource;
+//! - upstream resource capacity is not recalculated or double-owned here;
 //! - operation intervals are half-open [start, end);
-//! - unknown capacity or orbit compatibility never becomes a pass;
+//! - unknown resource or orbit evidence never becomes a pass;
 //! - fault scenarios are deterministic sets, not invented probabilities;
 //! - a passing plan is not a booking, permit, launch authorization or safety case.
 
@@ -22,7 +26,7 @@ use std::collections::{BTreeMap, BTreeSet};
 /// Schema version for the first Earth-to-orbit chain contract.
 pub const SCHEMA_VERSION: &str = "symtropy.earth-orbit-chain.v1";
 
-/// Evidence state for a claim supplied by a domain specialist.
+/// Evidence state for a specialist qualification.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvidenceStatus {
     /// A caller-verified qualification receipt is expected to be supplied.
@@ -31,6 +35,20 @@ pub enum EvidenceStatus {
     /// No usable evidence is available. This is never interpreted as zero risk.
     Unknown,
     /// The current model or evidence adapter does not support this claim.
+    Unsupported { reason: String },
+}
+
+/// Status returned by the authoritative physical-resource capacity owner.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ResourceQualificationStatus {
+    /// The resource owner qualified this use for planning over the stated window.
+    /// This does not reserve the resource or authorize dispatch.
+    QualifiedForPlanning { receipt_sha256: String },
+    /// The resource owner rejected the proposed operation.
+    Rejected { reason: String },
+    /// The resource owner has not established a usable result.
+    Unknown,
+    /// The resource owner cannot assess this resource or operation class.
     Unsupported { reason: String },
 }
 
@@ -62,26 +80,24 @@ pub struct CargoLotV1 {
     pub mass_grams: u64,
 }
 
-/// A source-qualified concurrency envelope for one physical resource.
+/// An opaque planning qualification from the transport resource owner.
 ///
-/// The interval is half-open [valid_from, valid_until). A zero capacity is a
-/// real zero, while missing capacity is represented by the absence of a window
-/// and therefore produces a fail-closed finding.
+/// This is intentionally a receipt, not a second representation of capacity.
+/// Shared-resource and interval-capacity calculations remain owned by #1639.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CapacityWindowV1 {
+pub struct ResourceQualificationV1 {
     pub id: String,
     pub resource_id: String,
     pub valid_from_epoch_seconds: u64,
     pub valid_until_epoch_seconds: u64,
-    pub max_concurrent_mass_grams: u64,
-    pub evidence: EvidenceStatus,
+    pub status: ResourceQualificationStatus,
 }
 
 /// One cargo lot's occupation of one physical resource between two chain nodes.
 ///
-/// start/end describe the whole resource occupancy interval for this v1
-/// accounting contract. More detailed timetabling, dwell and service calendars
-/// remain owned by the transport / launch specialist models.
+/// start/end describe the whole resource occupancy interval for this v1 accounting
+/// contract. More detailed timetabling, dwell and service calendars remain owned
+/// by the transport / launch specialist models.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransferV1 {
     pub id: String,
@@ -89,7 +105,7 @@ pub struct TransferV1 {
     pub from_node_id: String,
     pub to_node_id: String,
     pub resource_id: String,
-    pub capacity_window_id: String,
+    pub resource_qualification_id: String,
     pub mass_grams: u64,
     pub starts_at_epoch_seconds: u64,
     pub ends_at_epoch_seconds: u64,
@@ -122,8 +138,8 @@ pub struct CampaignV1 {
     pub id: String,
     pub cargo_lots: Vec<CargoLotV1>,
     pub nodes: Vec<ChainNodeV1>,
-    pub capacity_windows: Vec<CapacityWindowV1>,
-    /// Transfers are grouped by cargo lot and ordered by their time intervals.
+    pub resource_qualifications: Vec<ResourceQualificationV1>,
+    /// Transfers are ordered by their cargo lot's time intervals.
     pub transfers: Vec<TransferV1>,
     pub orbit_service: OrbitServiceV1,
     pub required_delivery_by_epoch_seconds: u64,
@@ -140,25 +156,24 @@ pub enum FindingCode {
     EmptyChain,
     UnknownCargoLot,
     UnknownNode,
-    UnknownCapacityWindow,
-    UnknownFailureDomain,
-    SelfTransfer,
-    InvalidTimeInterval,
-    CapacityWindowResourceMismatch,
-    CapacityWindowDoesNotCoverTransfer,
-    OverlappingCapacityWindows,
+    MissingResourceQualification,
+    UnknownResourceQualification,
+    RejectedResourceQualification,
+    UnsupportedResourceQualification,
+    ResourceQualificationResourceMismatch,
+    ResourceQualificationDoesNotCoverTransfer,
     TransferMassMismatch,
     DiscontinuousCargoPath,
     OverlappingCargoHops,
     CargoPathCycle,
     WrongOrbitDestination,
     LateDelivery,
-    CapacityExceeded,
     ArithmeticOverflow,
     MalformedReceiptDigest,
     EvidenceUnknown,
     EvidenceUnsupported,
     DuplicateDependency,
+    UnknownFailureDomain,
     DuplicateFaultScenario,
 }
 
@@ -217,7 +232,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
 
     let mut cargo_by_id = BTreeMap::new();
     let mut node_by_id = BTreeMap::new();
-    let mut window_by_id = BTreeMap::new();
+    let mut qualification_by_id = BTreeMap::new();
     let mut transfer_ids = BTreeSet::new();
     let mut known_dependencies = BTreeSet::new();
 
@@ -242,52 +257,46 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         }
     }
 
-    for window in &campaign.capacity_windows {
-        if !valid_id(&window.id) || !valid_id(&window.resource_id) {
-            push_finding(&mut findings, FindingCode::InvalidIdentifier, &window.id);
+    for qualification in &campaign.resource_qualifications {
+        if !valid_id(&qualification.id) || !valid_id(&qualification.resource_id) {
+            push_finding(
+                &mut findings,
+                FindingCode::InvalidIdentifier,
+                &qualification.id,
+            );
         }
-        if window.valid_from_epoch_seconds >= window.valid_until_epoch_seconds {
-            push_finding(&mut findings, FindingCode::InvalidTimeInterval, &window.id);
+        if qualification.valid_from_epoch_seconds >= qualification.valid_until_epoch_seconds {
+            push_finding(
+                &mut findings,
+                FindingCode::InvalidTimeInterval,
+                &qualification.id,
+            );
         }
-        validate_evidence(&window.evidence, &window.id, &mut findings);
-        if window_by_id.insert(window.id.clone(), window).is_some() {
-            push_finding(&mut findings, FindingCode::DuplicateIdentifier, &window.id);
-        }
-    }
-
-    // Two overlapping capacity snapshots for one physical asset are ambiguous:
-    // choosing the larger or newer-looking value would silently arbitrate evidence.
-    for left_index in 0..campaign.capacity_windows.len() {
-        for right_index in (left_index + 1)..campaign.capacity_windows.len() {
-            let left = &campaign.capacity_windows[left_index];
-            let right = &campaign.capacity_windows[right_index];
-            if left.resource_id == right.resource_id
-                && intervals_overlap(
-                    left.valid_from_epoch_seconds,
-                    left.valid_until_epoch_seconds,
-                    right.valid_from_epoch_seconds,
-                    right.valid_until_epoch_seconds,
-                )
-            {
-                push_finding(
-                    &mut findings,
-                    FindingCode::OverlappingCapacityWindows,
-                    &left.resource_id,
-                );
-            }
+        validate_resource_status(
+            &qualification.status,
+            &qualification.id,
+            &mut findings,
+        );
+        if qualification_by_id
+            .insert(qualification.id.clone(), qualification)
+            .is_some()
+        {
+            push_finding(
+                &mut findings,
+                FindingCode::DuplicateIdentifier,
+                &qualification.id,
+            );
         }
     }
 
     let mut transfers_by_cargo: BTreeMap<String, Vec<&TransferV1>> = BTreeMap::new();
-    let mut events_by_window: BTreeMap<String, Vec<(u64, bool, u64, String)>> = BTreeMap::new();
-
     for transfer in &campaign.transfers {
         if !valid_id(&transfer.id)
             || !valid_id(&transfer.cargo_lot_id)
             || !valid_id(&transfer.from_node_id)
             || !valid_id(&transfer.to_node_id)
             || !valid_id(&transfer.resource_id)
-            || !valid_id(&transfer.capacity_window_id)
+            || !valid_id(&transfer.resource_qualification_id)
         {
             push_finding(&mut findings, FindingCode::InvalidIdentifier, &transfer.id);
         }
@@ -328,59 +337,45 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             known_dependencies.insert(dependency_id.clone());
         }
 
-        match window_by_id.get(&transfer.capacity_window_id) {
+        match qualification_by_id.get(&transfer.resource_qualification_id) {
             None => push_finding(
                 &mut findings,
-                FindingCode::UnknownCapacityWindow,
-                &transfer.capacity_window_id,
+                FindingCode::MissingResourceQualification,
+                &transfer.resource_qualification_id,
             ),
-            Some(window) => {
-                if window.resource_id != transfer.resource_id {
+            Some(qualification) => {
+                if qualification.resource_id != transfer.resource_id {
                     push_finding(
                         &mut findings,
-                        FindingCode::CapacityWindowResourceMismatch,
+                        FindingCode::ResourceQualificationResourceMismatch,
                         &transfer.id,
                     );
                 }
-                if transfer.starts_at_epoch_seconds < window.valid_from_epoch_seconds
-                    || transfer.ends_at_epoch_seconds > window.valid_until_epoch_seconds
+                if transfer.starts_at_epoch_seconds < qualification.valid_from_epoch_seconds
+                    || transfer.ends_at_epoch_seconds > qualification.valid_until_epoch_seconds
                 {
                     push_finding(
                         &mut findings,
-                        FindingCode::CapacityWindowDoesNotCoverTransfer,
+                        FindingCode::ResourceQualificationDoesNotCoverTransfer,
                         &transfer.id,
                     );
                 }
-                if matches!(&window.evidence, EvidenceStatus::Qualified { .. })
-                    && transfer.starts_at_epoch_seconds < transfer.ends_at_epoch_seconds
-                    && window.resource_id == transfer.resource_id
-                    && transfer.starts_at_epoch_seconds >= window.valid_from_epoch_seconds
-                    && transfer.ends_at_epoch_seconds <= window.valid_until_epoch_seconds
-                {
-                    let events = events_by_window
-                        .entry(transfer.capacity_window_id.clone())
-                        .or_default();
-                    // false=end, true=start. At equal timestamps, end events run first
-                    // to preserve half-open interval semantics and permit adjacency.
-                    events.push((
-                        transfer.ends_at_epoch_seconds,
-                        false,
-                        transfer.mass_grams,
-                        transfer.id.clone(),
-                    ));
-                    events.push((
-                        transfer.starts_at_epoch_seconds,
-                        true,
-                        transfer.mass_grams,
-                        transfer.id.clone(),
-                    ));
+                if matches!(
+                    &qualification.status,
+                    ResourceQualificationStatus::Unknown
+                ) {
+                    push_finding(
+                        &mut findings,
+                        FindingCode::UnknownResourceQualification,
+                        &qualification.id,
+                    );
                 }
             }
         }
     }
 
-    // Check cargo continuity in time order; an input vector's insertion order does
-    // not affect the result. A v1 cargo lot follows one linear route, not a split flow.
+    // Check cargo continuity in time order; input insertion order does not affect
+    // the result. A v1 cargo lot follows one linear route, not split/merged flow.
     for cargo in &campaign.cargo_lots {
         let mut legs = transfers_by_cargo.remove(&cargo.id).unwrap_or_default();
         if legs.is_empty() {
@@ -432,7 +427,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
     }
 
     // Every fault-domain reference must name a dependency actually used in this
-    // campaign. This catches misspelled controls instead of reporting fake resilience.
+    // campaign. This catches misspelled controls rather than reporting fake resilience.
     let mut fault_scenario_ids = BTreeSet::new();
     for scenario in &campaign.fault_scenarios {
         if !valid_id(&scenario.id) {
@@ -477,37 +472,6 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         &mut findings,
     );
 
-    // Aggregate simultaneous mass by exact physical resource capacity window.
-    for (window_id, events) in &mut events_by_window {
-        events.sort_by_key(|event| (event.0, event.1, event.3.clone()));
-        let Some(window) = window_by_id.get(window_id) else {
-            continue;
-        };
-        let mut concurrent_mass = 0_u64;
-        for (_, is_start, mass_grams, transfer_id) in events {
-            let next = if *is_start {
-                concurrent_mass.checked_add(*mass_grams)
-            } else {
-                concurrent_mass.checked_sub(*mass_grams)
-            };
-            match next {
-                Some(value) => concurrent_mass = value,
-                None => push_finding(
-                    &mut findings,
-                    FindingCode::ArithmeticOverflow,
-                    transfer_id,
-                ),
-            }
-            if concurrent_mass > window.max_concurrent_mass_grams {
-                push_finding(
-                    &mut findings,
-                    FindingCode::CapacityExceeded,
-                    window_id,
-                );
-            }
-        }
-    }
-
     let total_cargo_mass_grams = campaign
         .cargo_lots
         .iter()
@@ -522,7 +486,8 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
     let total_cargo_mass_grams = total_cargo_mass_grams.unwrap_or(0);
     findings.sort();
     findings.dedup();
-    let final_disposition = if findings.iter().any(|finding| !is_evidence_finding(finding.code)) {
+
+    let disposition = if findings.iter().any(|finding| !is_evidence_finding(finding.code)) {
         CampaignDisposition::Infeasible
     } else if !findings.is_empty() {
         CampaignDisposition::NeedsEvidence
@@ -530,13 +495,12 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         CampaignDisposition::Ready
     };
 
-    let accepted_delivered_cargo_mass_grams = if final_disposition == CampaignDisposition::Ready {
+    let accepted_delivered_cargo_mass_grams = if disposition == CampaignDisposition::Ready {
         total_cargo_mass_grams
     } else {
         0
     };
-
-    let fault_outcomes = if final_disposition == CampaignDisposition::Ready {
+    let fault_outcomes = if disposition == CampaignDisposition::Ready {
         evaluate_faults(campaign)
     } else {
         Vec::new()
@@ -544,7 +508,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
 
     CampaignReportV1 {
         schema_version: SCHEMA_VERSION,
-        disposition: final_disposition,
+        disposition,
         total_cargo_mass_grams,
         accepted_delivered_cargo_mass_grams,
         findings,
@@ -599,6 +563,45 @@ fn evaluate_faults(campaign: &CampaignV1) -> Vec<FaultOutcomeV1> {
     results
 }
 
+fn validate_resource_status(
+    status: &ResourceQualificationStatus,
+    subject_id: &str,
+    findings: &mut Vec<Finding>,
+) {
+    match status {
+        ResourceQualificationStatus::QualifiedForPlanning { receipt_sha256 } => {
+            if !is_sha256(receipt_sha256) {
+                push_finding(
+                    findings,
+                    FindingCode::MalformedReceiptDigest,
+                    subject_id,
+                );
+            }
+        }
+        ResourceQualificationStatus::Rejected { .. } => {
+            push_finding(
+                findings,
+                FindingCode::RejectedResourceQualification,
+                subject_id,
+            );
+        }
+        ResourceQualificationStatus::Unknown => {
+            push_finding(
+                findings,
+                FindingCode::UnknownResourceQualification,
+                subject_id,
+            );
+        }
+        ResourceQualificationStatus::Unsupported { .. } => {
+            push_finding(
+                findings,
+                FindingCode::UnsupportedResourceQualification,
+                subject_id,
+            );
+        }
+    }
+}
+
 fn validate_evidence(evidence: &EvidenceStatus, subject_id: &str, findings: &mut Vec<Finding>) {
     match evidence {
         EvidenceStatus::Qualified { receipt_sha256 } => {
@@ -622,7 +625,10 @@ fn validate_evidence(evidence: &EvidenceStatus, subject_id: &str, findings: &mut
 fn is_evidence_finding(code: FindingCode) -> bool {
     matches!(
         code,
-        FindingCode::MalformedReceiptDigest
+        FindingCode::MissingResourceQualification
+            | FindingCode::UnknownResourceQualification
+            | FindingCode::UnsupportedResourceQualification
+            | FindingCode::MalformedReceiptDigest
             | FindingCode::EvidenceUnknown
             | FindingCode::EvidenceUnsupported
     )
@@ -643,10 +649,6 @@ fn is_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn intervals_overlap(left_start: u64, left_end: u64, right_start: u64, right_end: u64) -> bool {
-    left_start < right_end && right_start < left_end
-}
-
 fn push_finding(findings: &mut Vec<Finding>, code: FindingCode, subject_id: &str) {
     findings.push(Finding {
         code,
@@ -661,6 +663,12 @@ mod tests {
     fn qualified() -> EvidenceStatus {
         EvidenceStatus::Qualified {
             receipt_sha256: "a".repeat(64),
+        }
+    }
+
+    fn resource_qualified() -> ResourceQualificationStatus {
+        ResourceQualificationStatus::QualifiedForPlanning {
+            receipt_sha256: "b".repeat(64),
         }
     }
 
@@ -689,30 +697,27 @@ mod tests {
                     role: NodeRole::OrbitDestination,
                 },
             ],
-            capacity_windows: vec![
-                CapacityWindowV1 {
-                    id: "rail-window".to_owned(),
+            resource_qualifications: vec![
+                ResourceQualificationV1 {
+                    id: "rail-qualification".to_owned(),
                     resource_id: "rail-section-1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
-                    max_concurrent_mass_grams: 2_000,
-                    evidence: qualified(),
+                    status: resource_qualified(),
                 },
-                CapacityWindowV1 {
-                    id: "road-window".to_owned(),
+                ResourceQualificationV1 {
+                    id: "road-qualification".to_owned(),
                     resource_id: "road-1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
-                    max_concurrent_mass_grams: 2_000,
-                    evidence: qualified(),
+                    status: resource_qualified(),
                 },
-                CapacityWindowV1 {
-                    id: "launch-window".to_owned(),
+                ResourceQualificationV1 {
+                    id: "launch-qualification".to_owned(),
                     resource_id: "range-slot-1".to_owned(),
                     valid_from_epoch_seconds: 0,
                     valid_until_epoch_seconds: 100,
-                    max_concurrent_mass_grams: 2_000,
-                    evidence: qualified(),
+                    status: resource_qualified(),
                 },
             ],
             transfers: vec![
@@ -722,7 +727,7 @@ mod tests {
                     from_node_id: "factory".to_owned(),
                     to_node_id: "port".to_owned(),
                     resource_id: "rail-section-1".to_owned(),
-                    capacity_window_id: "rail-window".to_owned(),
+                    resource_qualification_id: "rail-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 10,
                     ends_at_epoch_seconds: 20,
@@ -734,7 +739,7 @@ mod tests {
                     from_node_id: "port".to_owned(),
                     to_node_id: "range".to_owned(),
                     resource_id: "road-1".to_owned(),
-                    capacity_window_id: "road-window".to_owned(),
+                    resource_qualification_id: "road-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 25,
                     ends_at_epoch_seconds: 35,
@@ -746,7 +751,7 @@ mod tests {
                     from_node_id: "range".to_owned(),
                     to_node_id: "orbit".to_owned(),
                     resource_id: "range-slot-1".to_owned(),
-                    capacity_window_id: "launch-window".to_owned(),
+                    resource_qualification_id: "launch-qualification".to_owned(),
                     mass_grams: 1_000,
                     starts_at_epoch_seconds: 40,
                     ends_at_epoch_seconds: 50,
@@ -771,7 +776,7 @@ mod tests {
     }
 
     #[test]
-    fn valid_chain_reconciles_payload_mass_and_destination() {
+    fn valid_chain_reconciles_cargo_mass_and_destination() {
         let report = evaluate_campaign(&baseline());
         assert_eq!(report.disposition, CampaignDisposition::Ready);
         assert_eq!(report.total_cargo_mass_grams, 1_000);
@@ -780,87 +785,48 @@ mod tests {
     }
 
     #[test]
-    fn overlapping_cargo_occupancy_is_aggregated_per_physical_resource() {
+    fn unknown_resource_qualification_fails_closed() {
         let mut campaign = baseline();
-        campaign.cargo_lots.push(CargoLotV1 {
-            id: "payload-2".to_owned(),
-            mass_grams: 1_500,
-        });
-        campaign.transfers.push(TransferV1 {
-            id: "second-rail-transfer".to_owned(),
-            cargo_lot_id: "payload-2".to_owned(),
-            from_node_id: "factory".to_owned(),
-            to_node_id: "port".to_owned(),
-            resource_id: "rail-section-1".to_owned(),
-            capacity_window_id: "rail-window".to_owned(),
-            mass_grams: 1_500,
-            starts_at_epoch_seconds: 15,
-            ends_at_epoch_seconds: 18,
-            dependency_ids: vec!["rail-power".to_owned()],
-        });
-        let report = evaluate_campaign(&campaign);
-        assert_eq!(report.disposition, CampaignDisposition::Infeasible);
-        assert!(has_finding(&report, FindingCode::CapacityExceeded));
-    }
-
-    #[test]
-    fn half_open_adjacent_transfers_can_reuse_capacity() {
-        let mut campaign = baseline();
-        campaign.cargo_lots.push(CargoLotV1 {
-            id: "payload-2".to_owned(),
-            mass_grams: 2_000,
-        });
-        campaign.transfers.extend([
-            TransferV1 {
-                id: "second-rail-transfer".to_owned(),
-                cargo_lot_id: "payload-2".to_owned(),
-                from_node_id: "factory".to_owned(),
-                to_node_id: "port".to_owned(),
-                resource_id: "rail-section-1".to_owned(),
-                capacity_window_id: "rail-window".to_owned(),
-                mass_grams: 2_000,
-                starts_at_epoch_seconds: 20,
-                ends_at_epoch_seconds: 30,
-                dependency_ids: vec!["rail-power".to_owned()],
-            },
-            TransferV1 {
-                id: "second-road-transfer".to_owned(),
-                cargo_lot_id: "payload-2".to_owned(),
-                from_node_id: "port".to_owned(),
-                to_node_id: "range".to_owned(),
-                resource_id: "road-1".to_owned(),
-                capacity_window_id: "road-window".to_owned(),
-                mass_grams: 2_000,
-                starts_at_epoch_seconds: 35,
-                ends_at_epoch_seconds: 45,
-                dependency_ids: vec!["access-road".to_owned()],
-            },
-            TransferV1 {
-                id: "second-launch-transfer".to_owned(),
-                cargo_lot_id: "payload-2".to_owned(),
-                from_node_id: "range".to_owned(),
-                to_node_id: "orbit".to_owned(),
-                resource_id: "range-slot-1".to_owned(),
-                capacity_window_id: "launch-window".to_owned(),
-                mass_grams: 2_000,
-                starts_at_epoch_seconds: 50,
-                ends_at_epoch_seconds: 60,
-                dependency_ids: vec!["range-tracking".to_owned()],
-            },
-        ]);
-        let report = evaluate_campaign(&campaign);
-        assert_eq!(report.disposition, CampaignDisposition::Ready);
-        assert_eq!(report.total_cargo_mass_grams, 3_000);
-    }
-
-    #[test]
-    fn unknown_capacity_fails_closed_as_needs_evidence() {
-        let mut campaign = baseline();
-        campaign.capacity_windows[0].evidence = EvidenceStatus::Unknown;
+        campaign.resource_qualifications[0].status = ResourceQualificationStatus::Unknown;
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
         assert_eq!(report.accepted_delivered_cargo_mass_grams, 0);
-        assert!(has_finding(&report, FindingCode::EvidenceUnknown));
+        assert!(has_finding(
+            &report,
+            FindingCode::UnknownResourceQualification
+        ));
+    }
+
+    #[test]
+    fn rejected_resource_qualification_makes_the_chain_infeasible() {
+        let mut campaign = baseline();
+        campaign.resource_qualifications[0].status =
+            ResourceQualificationStatus::Rejected {
+                reason: "capacity owner rejected the proposed plan".to_owned(),
+            };
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::Infeasible);
+        assert!(has_finding(
+            &report,
+            FindingCode::RejectedResourceQualification
+        ));
+    }
+
+    #[test]
+    fn resource_qualification_must_match_resource_and_cover_operation_window() {
+        let mut campaign = baseline();
+        campaign.resource_qualifications[0].resource_id = "different-rail".to_owned();
+        campaign.resource_qualifications[0].valid_until_epoch_seconds = 15;
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::Infeasible);
+        assert!(has_finding(
+            &report,
+            FindingCode::ResourceQualificationResourceMismatch
+        ));
+        assert!(has_finding(
+            &report,
+            FindingCode::ResourceQualificationDoesNotCoverTransfer
+        ));
     }
 
     #[test]
@@ -904,7 +870,7 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_or_malformed_orbit_receipts_cannot_be_promoted_to_ready() {
+    fn malformed_resource_orbit_receipt_cannot_be_promoted_to_ready() {
         let mut campaign = baseline();
         campaign.orbit_service.compatibility = EvidenceStatus::Qualified {
             receipt_sha256: "not-a-digest".to_owned(),
@@ -918,25 +884,19 @@ mod tests {
     }
 
     #[test]
-    fn overlapping_capacity_snapshots_for_one_resource_are_rejected() {
+    fn missing_resource_qualification_is_not_unlimited_capacity() {
         let mut campaign = baseline();
-        campaign.capacity_windows.push(CapacityWindowV1 {
-            id: "rail-window-conflict".to_owned(),
-            resource_id: "rail-section-1".to_owned(),
-            valid_from_epoch_seconds: 50,
-            valid_until_epoch_seconds: 150,
-            max_concurrent_mass_grams: 9_000,
-            evidence: qualified(),
-        });
+        campaign.transfers[0].resource_qualification_id = "missing-resource-proof".to_owned();
         let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
         assert!(has_finding(
             &report,
-            FindingCode::OverlappingCapacityWindows
+            FindingCode::MissingResourceQualification
         ));
     }
 
     #[test]
-    fn launch_compatibility_must_not_be_assumed_for_a_different_destination() {
+    fn orbit_destination_must_match_the_declared_mission_endpoint() {
         let mut campaign = baseline();
         campaign.orbit_service.destination_node_id = "range".to_owned();
         let report = evaluate_campaign(&campaign);
@@ -951,5 +911,20 @@ mod tests {
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::Infeasible);
         assert!(has_finding(&report, FindingCode::LateDelivery));
+    }
+
+    #[test]
+    fn cargo_path_cycles_are_rejected() {
+        let mut campaign = baseline();
+        campaign.nodes.push(ChainNodeV1 {
+            id: "detour".to_owned(),
+            role: NodeRole::Other,
+        });
+        campaign.transfers[1].to_node_id = "detour".to_owned();
+        campaign.transfers[2].from_node_id = "detour".to_owned();
+        campaign.transfers[2].to_node_id = "factory".to_owned();
+        let report = evaluate_campaign(&campaign);
+        assert_eq!(report.disposition, CampaignDisposition::Infeasible);
+        assert!(has_finding(&report, FindingCode::CargoPathCycle));
     }
 }
