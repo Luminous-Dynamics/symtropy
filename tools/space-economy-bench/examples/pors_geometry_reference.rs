@@ -186,6 +186,10 @@ fn evaluate_arc(
             - earth_rotation_rad_s * radius_m;
     let ground_relative_radial_speed_mps =
         -ground_inertial_speed_mps * gamma.sin();
+    let ground_relative_speed_mps = ground_relative_tangential_speed_mps
+        .hypot(ground_relative_radial_speed_mps);
+    let ground_relative_specific_kinetic_energy_j_kg =
+        0.5 * ground_relative_speed_mps.powi(2);
 
     let endpoint_radius_m =
         semi_latus_rectum_m / (1.0 - eccentricity * alpha.cos());
@@ -224,6 +228,8 @@ fn evaluate_arc(
         "ground_inertial_speed_mps": ground_inertial_speed_mps,
         "ground_relative_tangential_speed_mps": ground_relative_tangential_speed_mps,
         "ground_relative_radial_speed_mps": ground_relative_radial_speed_mps,
+        "ground_relative_speed_mps": ground_relative_speed_mps,
+        "ground_relative_specific_kinetic_energy_j_kg": ground_relative_specific_kinetic_energy_j_kg,
         "ground_flight_path_angle_deg": gamma.to_degrees(),
         "endpoint_radius_error_m": endpoint_radius_error_m,
         "specific_energy_error_j_kg": specific_energy_error_j_kg,
@@ -257,6 +263,8 @@ fn compare_expected(actual: &PorsResult, expected: &Value, at: &str) -> Check<()
                 "ground_inertial_speed_mps",
                 "ground_relative_tangential_speed_mps",
                 "ground_relative_radial_speed_mps",
+                "ground_relative_speed_mps",
+                "ground_relative_specific_kinetic_energy_j_kg",
                 "ground_flight_path_angle_deg",
             ],
             at,
@@ -288,6 +296,8 @@ fn compare_expected(actual: &PorsResult, expected: &Value, at: &str) -> Check<()
         "ground_inertial_speed_mps",
         "ground_relative_tangential_speed_mps",
         "ground_relative_radial_speed_mps",
+        "ground_relative_speed_mps",
+        "ground_relative_specific_kinetic_energy_j_kg",
         "ground_flight_path_angle_deg",
     ];
     for key in numeric_keys {
@@ -557,6 +567,20 @@ mod tests {
                 .as_f64()
                 .unwrap()
                 > 1_000.0
+        );
+    }
+
+    #[test]
+    fn capture_interface_energy_is_reported_per_unit_stream_mass() {
+        let root = corpus();
+        let case = result_for(&root, "PORS_300KM_APEX_5DEG_PROGRADE");
+        let energy = case.values["ground_relative_specific_kinetic_energy_j_kg"]
+            .as_f64()
+            .unwrap();
+        assert!((energy - 4_127_087.677_219_490_5).abs() < 1.0e-5);
+        assert!(
+            case.values["ground_relative_speed_mps"].as_f64().unwrap()
+                > 2_800.0
         );
     }
 
