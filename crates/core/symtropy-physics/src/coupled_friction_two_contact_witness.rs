@@ -971,6 +971,7 @@ mod schur_reduction_tests {
         let candidate = &outcome.candidates[0];
         assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
         assert!(candidate.contact_two_tau > 0.0);
+        assert!(candidate.max_velocity_residual < 1.0e-8);
         assert!(candidate.impulse.fixed_rows::<3>(0).norm() == 0.0);
 
         let post_velocity = q + w * candidate.impulse;
@@ -1007,6 +1008,7 @@ mod schur_reduction_tests {
         let candidate = &outcome.candidates[0];
         assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
         assert!(candidate.contact_two_tau > 0.0);
+        assert!(candidate.max_velocity_residual < 1.0e-8);
 
         let p = candidate.impulse;
         assert!((p[0] - 10.0).abs() < 1.0e-8);
@@ -1043,7 +1045,7 @@ mod schur_reduction_tests {
         let tau_1 = 1.25;
         let tau_2 = 1.25;
 
-        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!((w - w.transpose()).norm() == 0.0);
         assert!(w.cholesky().is_some());
         assert_eq!(w[(0, 3)], 0.25);
         assert_eq!(w[(3, 0)], 0.25);
@@ -1115,7 +1117,7 @@ mod schur_reduction_tests {
         let tau_1: f64 = 1.25;
         let tau_2: f64 = 2.0;
 
-        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!((w - w.transpose()).norm() == 0.0);
         assert!(w.cholesky().is_some());
 
         // The upper cross-contact block is intentionally non-symmetric.
@@ -1200,7 +1202,7 @@ mod schur_reduction_tests {
 
         // Both cross-contact blocks are retained, with a genuinely
         // non-symmetric upper B block: B[0,1] != B[1,0].
-        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!((w - w.transpose()).norm() == 0.0);
         assert!(w.cholesky().is_some());
         assert_ne!(w[(0, 4)], w[(1, 3)]);
 
@@ -1738,8 +1740,8 @@ mod double_sliding_direction_oracle {
     fn asymmetric_rational_polynomial_fixture() -> ExactDoubleSlidePolynomials {
         // The physical inputs are all exact rationals with common denominator 128.
         let mut w = [[0_i128; 6]; 6];
-        for index in 0..6 {
-            w[index][index] = 128;
+        for (index, row) in w.iter_mut().enumerate() {
+            row[index] = 128;
         }
         let cross = [[16_i128, 4, -2], [2, 8, 4], [-4, 2, 8]];
         for row in 0..3 {
@@ -1920,16 +1922,13 @@ mod double_sliding_direction_oracle {
 
         // Two shifted rows of G1 (degree two of G2).
         for shift in 0..DEGREE_G2_T1 {
-            for coefficient in 0..=DEGREE_G1_T1 {
-                sylvester[shift][shift + coefficient] = g1_coefficients[coefficient].clone();
-            }
+            sylvester[shift][shift..shift + DEGREE_G1_T1 + 1]
+                .clone_from_slice(&g1_coefficients);
         }
         // Four shifted rows of G2 (degree four of G1).
         for shift in 0..DEGREE_G1_T1 {
-            for coefficient in 0..=DEGREE_G2_T1 {
-                sylvester[DEGREE_G2_T1 + shift][shift + coefficient] =
-                    g2_coefficients[coefficient].clone();
-            }
+            sylvester[DEGREE_G2_T1 + shift][shift..shift + DEGREE_G2_T1 + 1]
+                .clone_from_slice(&g2_coefficients);
         }
 
         fn accumulate_permutations(
