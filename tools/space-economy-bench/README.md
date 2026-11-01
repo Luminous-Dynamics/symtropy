@@ -366,3 +366,30 @@ cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml 
 The evaluator independently recomputes each route's mass continuity, capacity bottleneck, duration, hard-gate disposition, technology semantics and idealized launch-inclination compatibility. It also computes deterministic N-1 service capacity across declared failure domains. It does not estimate probabilities, perform full launch trajectory or range-safety analysis, simulate tunnel or maglev dynamics, or validate an orbital ring / tether.
 
 The output is a deterministic receipt over the exact fixture bytes and source commit. Case values are synthetic. `feasible` means only that the declared synthetic contract is internally feasible; it is not a real-world site or technology qualification.
+
+
+## Partial Orbital Ring System (PORS) two-body geometry reference (v0.1)
+
+The separate `pors_geometry_reference` example evaluates an idealized symmetric equatorial ballistic arc in a spherical Earth two-body model. The mathematical conic has its apogee at the arc apex; only the exterior arc between the two ground terminals is used. Its continuation through the opposite side of the ellipse is inside Earth and is not part of the PORS segment.
+
+The reference calculates:
+- conic eccentricity and semi-major axis;
+- inertial angular separation between the endpoints;
+- Keplerian flight time and Earth rotation during the transfer;
+- signed Earth-fixed endpoint longitude separation, so the two terminal sites are solved jointly rather than selected independently;
+- apex and ground inertial speeds;
+- endpoint radial and tangential velocity relative to the rotating ground;
+- endpoint flight-path angle;
+- specific-energy and angular-momentum closure.
+
+The 11-case corpus covers 100 / 300 / 600 km apex heights, 5°–30° half-angle spans, prograde and retrograde motion, and two fail-closed invalid geometries. Nine valid cases compare against stored golden numerical values calculated independently from the Keplerian conic equations.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example pors_geometry_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example pors_geometry_reference -- \\
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+**Important limitation:** this is only a kinematic reference for a symmetric two-body arc. It omits atmosphere, terrain, Earth oblateness, non-equatorial geometry, cable/particle-stream dynamics, evacuated sheath, magnetic launch/reversal machinery, structural response, vibration, heating, power, containment, human safety, debris and deployment. It cannot establish PORS feasibility or site suitability. The large endpoint-relative velocities it exposes are a reason to investigate reversal-station loads and containment before drawing a corridor map.
