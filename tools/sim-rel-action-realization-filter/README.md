@@ -158,7 +158,12 @@ to terminal-loss units with an explicit exact-rational exchange rate; the
 default is one-to-one, but callers can vary it. The report also keeps cost and
 decision loss as separate nominal and realized Pareto objectives, classifying
 A-dominates-B, B-dominates-A, trade-off or equivalence. This prevents an
-arbitrary scalarization from concealing a cost/risk trade-off. The audit runs
+arbitrary scalarization from concealing a cost/risk trade-off.
+When a strict Pareto trade-off exists, the comparison also derives the exact
+rational cost-to-loss crossover rate at which the scalarized preference changes,
+separately for nominal and realized risks. In the expensive-perfect/cheap-noisy
+fixture this threshold is exactly 2/3; the preference changes across that
+threshold while the Pareto relation correctly remains Tradeoff. The audit runs
 the bounded exact Blackwell feasibility solver in both directions and retains
 the corresponding garbling certificates or explicit unsupported-size errors.
 A certificate establishes nominal channel dominance only; it does not
