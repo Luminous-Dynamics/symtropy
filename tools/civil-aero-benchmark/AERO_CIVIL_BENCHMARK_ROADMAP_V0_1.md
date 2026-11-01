@@ -205,3 +205,12 @@ A fresh upstream NACA 0012 provenance review adds a version-compatibility gate: 
 A deterministic CI failure was traced to the comparison harness capturing Cargo's variable build chatter along with program stderr. The aerospace workflow now uses quiet Cargo invocations for captured command comparisons so it tests application determinism rather than whether a binary was rebuilt or reused from cache.
 
 The exact-head CI for the quiet-logging/scorecard commits is pending; the last fully observed gate before those workflow-only/documentation changes passed Format, tests, Strict Clippy, deterministic report and matched-mission Pareto/exploitation controls, then failed the stress harness only on Cargo stderr noise. The stress harness's fixture-ID assertion was aligned with the canonical `synthetic_baseline` case ID before this quiet-output correction. No SU2 execution or CFD validation claim is made.
+
+
+## 12. Receipt-bound SU2 history import (2026-11-01)
+
+The external-solver process adapter now has a second-stage output importer: `src/su2_history.rs` and the `su2_history_import` CLI. The caller declares the exact ordered history header, iteration column, selected numeric columns and units because SU2 history output varies by solver and configuration. The importer first replays the process receipt, requires solver identity `SU2_CFD` and successful process status, then verifies the history file against the output length and digest recorded by that receipt. It rejects malformed or mismatched CSV, missing/duplicate columns, non-finite selected values, non-increasing iterations, symlinks/path traversal and insufficient rows. A canonical digest binds the imported observations to the run receipt, executable bytes and history bytes.
+
+The evidence ceiling is `receipt_bound_history_import_only_not_solver_convergence_or_physical_validation`. It deliberately does not infer residual convergence, force stability, conservation, mesh independence or accuracy. The next layer must define solver- and case-specific convergence criteria and then route admitted histories to the existing grid-convergence and validation-uncertainty gates. See `SU2_HISTORY_IMPORT_V0_1.md`.
+
+The section-polar CI guard was also repaired without changing numerical thresholds: its shell AWK parser now strips the surrounding CSV quotes from roughness-zone labels before comparing them. The Rust report correctly quotes those values; the old guard compared them as unquoted raw strings. Its numerical assertions remain unchanged.
