@@ -2331,6 +2331,20 @@ mod double_sliding_direction_oracle {
             self.lower > BigRational::from_integer(BigInt::from(0_u8))
         }
 
+        fn max_abs(&self) -> BigRational {
+            let lower_abs = if self.lower.is_negative() {
+                -self.lower.clone()
+            } else {
+                self.lower.clone()
+            };
+            let upper_abs = if self.upper.is_negative() {
+                -self.upper.clone()
+            } else {
+                self.upper.clone()
+            };
+            lower_abs.max(upper_abs)
+        }
+
         fn is_strict_subset_of(&self, other: &Self) -> bool {
             self.lower > other.lower && self.upper < other.upper
         }
@@ -2437,14 +2451,14 @@ mod double_sliding_direction_oracle {
             }
 
             let mut result = RationalInterval::point(zero);
-            for degree_t1 in 0..5 {
-                for degree_t2 in 0..5 {
+            for (degree_t1, t1_power) in t1_powers.iter().enumerate() {
+                for (degree_t2, t2_power) in t2_powers.iter().enumerate() {
                     let coefficient = self.coefficients[degree_t1][degree_t2];
                     if coefficient == 0 {
                         continue;
                     }
-                    let term = t1_powers[degree_t1]
-                        .mul(&t2_powers[degree_t2])
+                    let term = t1_power
+                        .mul(t2_power)
                         .scale(&BigRational::from_integer(BigInt::from(coefficient)));
                     result = result.add(&term);
                 }
@@ -2457,6 +2471,7 @@ mod double_sliding_direction_oracle {
     struct KrawczykRootBox {
         domain: [RationalInterval; 2],
         image: [RationalInterval; 2],
+        contraction_row_sum_bound: BigRational,
         normal_determinant: RationalInterval,
         normal_multiplier_ratios: [RationalInterval; 2],
         sliding_multiplier_sign_ratios: [RationalInterval; 2],
@@ -2574,6 +2589,18 @@ mod double_sliding_direction_oracle {
             }
         }
 
+        // A strict Krawczyk inclusion proves existence. Also require an
+        // explicit infinity-norm contraction bound: this independently
+        // establishes uniqueness throughout X and makes the claim auditable.
+        let contraction_row_sum_bound = krawczyk_matrix
+            .iter()
+            .map(|row| row.iter().map(RationalInterval::max_abs).sum::<BigRational>())
+            .max()
+            .expect("the 2x2 Krawczyk matrix has rows");
+        if contraction_row_sum_bound >= one {
+            return None;
+        }
+
         let centered_domain = [
             RationalInterval::zero_centered(&radius),
             RationalInterval::zero_centered(&radius),
@@ -2649,6 +2676,7 @@ mod double_sliding_direction_oracle {
         Some(KrawczykRootBox {
             domain,
             image,
+            contraction_row_sum_bound,
             normal_determinant,
             normal_multiplier_ratios,
             sliding_multiplier_sign_ratios,
@@ -2669,6 +2697,7 @@ mod double_sliding_direction_oracle {
 
         assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
         assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+        assert!(certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8)));
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(
             certificate
@@ -2779,6 +2808,7 @@ mod double_sliding_direction_oracle {
         for certificate in &certificates {
             assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
             assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+            assert!(certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8)));
             assert!(certificate.normal_determinant.excludes_zero());
             assert!(
                 certificate
