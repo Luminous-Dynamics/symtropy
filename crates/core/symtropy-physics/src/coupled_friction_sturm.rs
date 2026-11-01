@@ -358,7 +358,7 @@ fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
 
 #[test]
 fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() {
-    lMatrix3::<f64>::newx3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    let w = Matrix3::<f64>::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, -3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
@@ -390,7 +390,8 @@ fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() 
 }
 
 #[test]
-fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() Matrix3::<f64>::new= Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() {
+    let w = Matrix3::<f64>::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, 3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
@@ -410,10 +411,10 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 x[i][j] = (k as f64 / 37.0) - 1.2;
             }
         }
-        let m = Matrix3::new(
+        let m = Matrix3::<f64>::new(
             x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
         );
-        let w =Matrix3::<f64>::identitym + Matrix3::identity() * 0.3;
+        let w = m.transpose() * m + Matrix3::<f64>::identity() * 0.3;
         let q = SVector::new(
             -0.2 - (seed % 13) as f64 / 7.0,
             (seed % 17) as f64 / 5.0 - 1.3,
