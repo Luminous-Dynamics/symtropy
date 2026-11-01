@@ -1147,7 +1147,7 @@ pub fn search_policy_against_bounded_grid(
 
 /// Distinguish a policy that cannot represent newly reachable behavior
 /// from a replay failure caused by malformed inputs or arithmetic limits.
-fn is_policy_invalidated_error(reason: &str) -> bool {
+pub(crate) fn is_policy_invalidated_error(reason: &str) -> bool {
     [
         "shared policy must contain exactly one branch per reachable public observation",
         "observed hazard branch must terminate immediately",
