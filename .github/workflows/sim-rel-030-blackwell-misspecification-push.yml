@@ -2,7 +2,7 @@ name: SIM-REL-030 Blackwell Misspecification Branch Qualification
 
 on:
   push:
-    branches: ["research/sim-rel-030-blackwell-misspecification-2026-10-31"]
+    branches: ["research/sim-rel-030-blackwell-misspecification-2026-10-31", "research/sim-rel-030-blackwell-transfer-2026-11-01"]
     paths:
       - "tools/sim-rel-action-realization-filter/**"
       - ".github/workflows/sim-rel-030-blackwell-misspecification-push.yml"
