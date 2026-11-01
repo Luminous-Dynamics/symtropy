@@ -5,6 +5,7 @@ on:
     paths:
       - "crates/core/symtropy-physics/tests/physical_two_point_rank_deficiency.rs"
       - "crates/core/symtropy-physics/tests/physical_three_point_rank_six.rs"
+      - "crates/core/symtropy-physics/tests/physical_contact_rank_transition.rs"
       - "docs/research/PHYS_TWO_POINT_GEOMETRY_RANK_WITNESS_2026-11-01.md"
       - ".github/workflows/physical-two-point-rank-deficiency.yml"
   workflow_dispatch:
@@ -25,9 +26,12 @@ jobs:
         run: |
           rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/physical_two_point_rank_deficiency.rs
           rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/physical_three_point_rank_six.rs
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/physical_contact_rank_transition.rs
       - name: Verify rank-five two-point physical island
         run: cargo test -p symtropy-physics --test physical_two_point_rank_deficiency --locked
       - name: Verify rank-six three-point physical island
         run: cargo test -p symtropy-physics --test physical_three_point_rank_six --locked
+      - name: Verify exact two-point rank transition
+        run: cargo test -p symtropy-physics --test physical_contact_rank_transition --locked
       - name: Compile production physics library
         run: cargo check -p symtropy-physics --lib --locked
