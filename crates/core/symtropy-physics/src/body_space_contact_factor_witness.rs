@@ -252,8 +252,7 @@ mod tests {
             .zip(free_velocity.iter())
             .map(|(impulse, free)| 2 * impulse * free)
             .sum::<i128>()
-            + p0
-                .iter()
+            + p0.iter()
                 .zip(response0.iter())
                 .map(|(impulse, response)| impulse * response)
                 .sum::<i128>();
@@ -289,8 +288,7 @@ mod tests {
                 let tangent_2 = candidate[offset + 2];
                 assert!(normal_impulse > 0, "each contact remains loaded");
                 assert!(
-                    tangent_1 * tangent_1 + tangent_2 * tangent_2
-                        < normal_impulse * normal_impulse,
+                    tangent_1 * tangent_1 + tangent_2 * tangent_2 < normal_impulse * normal_impulse,
                     "sticking impulse must remain strictly inside its mu=1 Coulomb disk"
                 );
             }
