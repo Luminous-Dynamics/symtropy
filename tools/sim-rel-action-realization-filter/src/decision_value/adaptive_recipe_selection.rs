@@ -980,7 +980,7 @@ mod tests {
                     }],
                     &config(),
                     &registry(),
-                &cursor("ledger-digest", 1, 1),
+                    &cursor("ledger-digest", 1, 1),
                 )
                 .is_err()
             );
