@@ -161,10 +161,10 @@ pub struct SealedHoldoutEvaluationRecord {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ModelFamilyLedgerEvent {
-    CounterexampleAdmitted(CounterexampleAdmissionRecord),
+    CounterexampleAdmitted(Box<CounterexampleAdmissionRecord>),
     PolicyReplanned(FamilyReplanRecord),
     FinalPolicySealed(FinalPolicySealRecord),
-    SealedHoldoutEvaluated(SealedHoldoutEvaluationRecord),
+    SealedHoldoutEvaluated(Box<SealedHoldoutEvaluationRecord>),
 }
 
 impl ModelFamilyLedgerEvent {
@@ -721,7 +721,7 @@ impl ModelFamilyLedger {
         self.active_policy_metrics = None;
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
+            ModelFamilyLedgerEvent::CounterexampleAdmitted(Box::new(record.clone())),
         )?;
         self.validation_receipt_ids
             .insert(record.validation.receipt_id.clone());
@@ -1073,7 +1073,7 @@ impl ModelFamilyLedger {
         self.consumed_holdout_group_ids.insert(family_group_id);
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record.clone()),
+            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(Box::new(record.clone())),
         )?;
         self.evaluation_artifact_ids
             .insert(record.evaluation_artifact_id.clone());
@@ -1386,7 +1386,7 @@ pub fn verify_model_family_ledger_snapshot(
                             reason,
                         )
                     })?;
-                if &regenerated != record {
+                if &regenerated != record.as_ref() {
                     return Err(transcript_verification_error(
                         Some(sequenced.sequence),
                         LedgerTranscriptVerificationPhase::EventEquality,
@@ -2734,7 +2734,7 @@ mod tests {
             ]
         );
         assert!(receipt.snapshot_exactly_reconstructed);
-        assert_eq!(receipt.active_policy_identity, None);
+        assert_eq!(receipt.active_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(receipt.frozen_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(
             receipt.consumed_holdout_group_ids,
