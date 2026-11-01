@@ -32,6 +32,7 @@ const REQUIRED_CASES: [&str; 26] = [
     "LINEAR_MOTOR_MISLABELED_AS_MAGLEV",
     "UNQUALIFIED_RING_CLAIMED_OPERATIONAL",
     "SLANTED_GEO_TETHER_CONCEPT",
+    "MUTUALLY_EXCLUSIVE_PATHS_NOT_ADDED_AS_CAPACITY",
 ];
 
 type Check<T> = Result<T, String>;
@@ -385,7 +386,7 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
     let at = format!("scenario.{id}");
     exact_keys(
         scenario,
-        &["id", "expected_status", "require_n_minus_one", "mission", "routes"],
+        &["id", "expected_status", "route_semantics", "require_n_minus_one", "mission", "routes"],
         &at,
     )?;
     let expected = req_text(scenario, "expected_status", &at)?;
@@ -412,10 +413,17 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
         return Err(format!("{at}: invalid mission envelope"));
     }
 
+    let route_semantics = req_text(scenario, "route_semantics", &at)?;
+    if !matches!(route_semantics.as_str(), "alternatives" | "parallel_service") {
+        return Err(format!("{at}: unsupported route semantics {route_semantics}"));
+    }
     let require_n_minus_one = boolean(
         field(scenario, "require_n_minus_one", &at)?,
         &at,
     )?;
+    if require_n_minus_one && route_semantics != "parallel_service" {
+        return Err(format!("{at}: N-1 requires parallel_service route semantics"));
+    }
     let route_values = array(field(scenario, "routes", &at)?, &format!("{at}.routes"))?;
     if route_values.is_empty() {
         return Err(format!("{at}: at least one route is required"));
@@ -449,12 +457,21 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
         "indeterminate"
     }.to_owned();
 
-    let known_nominal = service_routes.iter().try_fold(0_u64, |sum, route| {
-        checked_add(sum, route.guaranteed_capacity_kg, &at)
-    })?;
-    let possible_nominal = service_routes.iter().try_fold(0_u64, |sum, route| {
-        checked_add(sum, route.potential_capacity_kg, &at)
-    })?;
+    let (known_nominal, possible_nominal) = match route_semantics.as_str() {
+        "alternatives" => (
+            service_routes.iter().map(|route| route.guaranteed_capacity_kg).max().unwrap_or(0),
+            service_routes.iter().map(|route| route.potential_capacity_kg).max().unwrap_or(0),
+        ),
+        "parallel_service" => (
+            service_routes.iter().try_fold(0_u64, |sum, route| {
+                checked_add(sum, route.guaranteed_capacity_kg, &at)
+            })?,
+            service_routes.iter().try_fold(0_u64, |sum, route| {
+                checked_add(sum, route.potential_capacity_kg, &at)
+            })?,
+        ),
+        _ => unreachable!(),
+    };
 
     if matches!(result_status.as_str(), "feasible" | "indeterminate")
         && known_nominal < demand
@@ -547,6 +564,7 @@ fn evaluate_scenario(scenario: &Value) -> Check<Value> {
     Ok(json!({
         "scenario_id": id,
         "expected_status": expected,
+        "route_semantics": route_semantics,
         "status": result_status,
         "status_matches_expected": true,
         "mission": {
@@ -694,7 +712,7 @@ mod tests {
         let receipt = validate(&root, &"a".repeat(40), &digest)
             .expect("all frozen campaign dispositions match");
         assert_eq!(receipt["result"], "pass");
-        assert_eq!(receipt["scenario_count"], 26);
+        assert_eq!(receipt["scenario_count"], 27);
         assert_eq!(
             receipt["scenarios"]
                 .as_array()
@@ -761,7 +779,7 @@ mod tests {
 
     #[test]
     fn one_invalid_route_does_not_poison_an_independent_valid_alternative() {
-        let mut root = corpus();
+        let root = corpus();
         let mut scenario = root["scenarios"][0].clone();
         let invalid = root["scenarios"]
             .as_array()
@@ -780,6 +798,15 @@ mod tests {
             result["reason_codes"][0],
             "INVALID_ALTERNATIVE_EXCLUDED_FROM_PORTFOLIO"
         );
+    }
+
+    #[test]
+    fn mutually_exclusive_route_alternatives_are_not_summed_as_parallel_capacity() {
+        let root = corpus();
+        let result = result_for(&root, "MUTUALLY_EXCLUSIVE_PATHS_NOT_ADDED_AS_CAPACITY");
+        assert_eq!(result["route_semantics"], "alternatives");
+        assert_eq!(result["nominal_guaranteed_capacity_kg"], 600);
+        assert_eq!(result["status"], "infeasible");
     }
 
     #[test]
