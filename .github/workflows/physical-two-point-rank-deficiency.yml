@@ -1,0 +1,28 @@
+name: Physical two-point rank-five Delassus witness
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/physical_two_point_rank_deficiency.rs"
+      - "docs/research/PHYS_TWO_POINT_GEOMETRY_RANK_WITNESS_2026-11-01.md"
+      - ".github/workflows/physical-two-point-rank-deficiency.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physical-two-point-rank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting of exact geometry witness
+        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/physical_two_point_rank_deficiency.rs
+      - name: Verify exact physical rank, nullspace and impulse continuum
+        run: cargo test -p symtropy-physics --test physical_two_point_rank_deficiency --locked
+      - name: Compile production physics library
+        run: cargo check -p symtropy-physics --lib --locked
