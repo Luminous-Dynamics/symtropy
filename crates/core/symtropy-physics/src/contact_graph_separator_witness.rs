@@ -240,7 +240,7 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
 
 #[test]
 fn leaf_sticking_reduction_is_invariant_to_leaf_permutation() {
-    let (w, q) = star_delassus_and_free_velocity(0.125);
+    let (w, q) = star_body_generated_fixture(-0.25);
     let original = solve_star_with_strict_sticking_leaves(&w, &q).unwrap();
     let (permuted_w, permuted_q) = swap_star_leaves(&w, &q);
     let permuted = solve_star_with_strict_sticking_leaves(&permuted_w, &permuted_q).unwrap();
