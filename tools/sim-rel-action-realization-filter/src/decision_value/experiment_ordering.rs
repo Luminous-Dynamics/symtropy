@@ -2269,7 +2269,6 @@ pub fn solve_binary_le_cam_deficiency(
     })
 }
 
-
 /// Exact receipt for the task-specific loss-span-weighted binary-channel
 /// deficiency. This objective is distinct from classical worst-state
 /// Le Cam deficiency.
@@ -2379,11 +2378,9 @@ fn binary_task_weighted_objective_at(
         let predicted_first = source_row[0]
             .checked_mul(x)?
             .checked_add(source_row[1].checked_mul(y)?)?;
-        let residual = SignedRational::from_difference(
-            target.probabilities[state][0],
-            predicted_first,
-        )?
-        .absolute_magnitude();
+        let residual =
+            SignedRational::from_difference(target.probabilities[state][0], predicted_first)?
+                .absolute_magnitude();
         let weighted_residual = state_weights[state].checked_mul(residual)?;
         objective = objective.checked_add(weighted_residual)?;
         weighted_residuals.push(weighted_residual);
@@ -2413,7 +2410,9 @@ pub fn solve_binary_task_weighted_deficiency(
     more_informative.validate()?;
     target.validate()?;
     if more_informative.state_ids != target.state_ids {
-        return Err("weighted deficiency channels must share the same ordered state vocabulary".into());
+        return Err(
+            "weighted deficiency channels must share the same ordered state vocabulary".into(),
+        );
     }
     if more_informative.observation_ids.len() != 2 || target.observation_ids.len() != 2 {
         return Err(
@@ -2467,8 +2466,7 @@ pub fn solve_binary_task_weighted_deficiency(
     let mut candidates = BTreeSet::<Vec<SignedRational>>::new();
     for first in 0..lines.len() {
         for second in (first + 1)..lines.len() {
-            if let Some(candidate) = binary_break_line_intersection(lines[first], lines[second])?
-            {
+            if let Some(candidate) = binary_break_line_intersection(lines[first], lines[second])? {
                 candidates.insert(candidate);
             }
         }
@@ -2485,13 +2483,8 @@ pub fn solve_binary_task_weighted_deficiency(
         let y = candidate[1]
             .as_probability()
             .ok_or_else(|| "weighted deficiency candidate has invalid y".to_string())?;
-        let (objective, weighted_residuals) = binary_task_weighted_objective_at(
-            more_informative,
-            target,
-            &prior_loss_weights,
-            x,
-            y,
-        )?;
+        let (objective, weighted_residuals) =
+            binary_task_weighted_objective_at(more_informative, target, &prior_loss_weights, x, y)?;
         // BTreeSet iteration is lexicographic in (x,y); retaining the first
         // exact tie provides a deterministic canonical minimizer.
         if selected
@@ -2502,8 +2495,8 @@ pub fn solve_binary_task_weighted_deficiency(
         }
     }
 
-    let (weighted_objective, x, y, state_weighted_residuals) =
-        selected.ok_or_else(|| "weighted deficiency failed to select an arrangement vertex".to_string())?;
+    let (weighted_objective, x, y, state_weighted_residuals) = selected
+        .ok_or_else(|| "weighted deficiency failed to select an arrangement vertex".to_string())?;
     let witness = BlackwellGarblingWitness {
         probabilities: vec![
             vec![x, subtract_nonnegative(Rational::one(), x)?],
@@ -2876,10 +2869,8 @@ mod tests {
         assert!(solve_binary_le_cam_deficiency(&oversized, &oversized).is_err());
     }
 
-    fn task_weighted_three_state_channels() -> (
-        FiniteObservationChannel,
-        FiniteObservationChannel,
-    ) {
+    fn task_weighted_three_state_channels() -> (FiniteObservationChannel, FiniteObservationChannel)
+    {
         let source = FiniteObservationChannel {
             channel_id: "weighted-uninformative-source".into(),
             state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
@@ -2946,10 +2937,7 @@ mod tests {
             vec![rational(0, 1), rational(1, 20), rational(1, 10)]
         );
         assert!(weighted.optimality_verified);
-        assert_eq!(
-            weighted.dominance.maximum_state_residual,
-            rational(1, 1)
-        );
+        assert_eq!(weighted.dominance.maximum_state_residual, rational(1, 1));
     }
 
     #[test]
@@ -2966,19 +2954,11 @@ mod tests {
 
         let tenth_losses = ChannelDecisionLossTable {
             decision_ids: vec!["d0".into(), "d1".into()],
-            losses: vec![
-                vec![rational(0, 1); 3],
-                vec![rational(1, 10); 3],
-            ],
+            losses: vec![vec![rational(0, 1); 3], vec![rational(1, 10); 3]],
             abstention_loss: rational(1, 20),
         };
-        let tenth = solve_binary_task_weighted_deficiency(
-            &source,
-            &target,
-            &prior,
-            &tenth_losses,
-        )
-        .unwrap();
+        let tenth =
+            solve_binary_task_weighted_deficiency(&source, &target, &prior, &tenth_losses).unwrap();
         assert_eq!(unit.weighted_objective, rational(3, 20));
         assert_eq!(tenth.weighted_objective, rational(3, 200));
         assert_eq!(
@@ -3007,8 +2987,8 @@ mod tests {
             solve_binary_task_weighted_deficiency(&source, &target, &prior, &losses).unwrap();
 
         let permutation = [2usize, 0usize, 1usize];
-        let permute_channel = |channel: &FiniteObservationChannel, id: &str| {
-            FiniteObservationChannel {
+        let permute_channel =
+            |channel: &FiniteObservationChannel, id: &str| FiniteObservationChannel {
                 channel_id: id.into(),
                 state_ids: permutation
                     .iter()
@@ -3019,8 +2999,7 @@ mod tests {
                     .iter()
                     .map(|index| channel.probabilities[*index].clone())
                     .collect(),
-            }
-        };
+            };
         let permuted_source = permute_channel(&source, "permuted-weighted-source");
         let permuted_target = permute_channel(&target, "permuted-weighted-target");
         let permuted_prior = permutation.map(|index| prior[index]).to_vec();
@@ -3081,13 +3060,10 @@ mod tests {
     fn task_weighted_optimizer_rejects_invalid_prior_and_nonbinary_channels() {
         let (source, target) = task_weighted_three_state_channels();
         let losses = unit_span_three_state_losses();
-        assert!(solve_binary_task_weighted_deficiency(
-            &source,
-            &target,
-            &[rational(1, 2); 3],
-            &losses,
-        )
-        .is_err());
+        assert!(
+            solve_binary_task_weighted_deficiency(&source, &target, &[rational(1, 2); 3], &losses,)
+                .is_err()
+        );
 
         let nonbinary = FiniteObservationChannel {
             channel_id: "nonbinary-weighted-target".into(),
@@ -3095,13 +3071,15 @@ mod tests {
             observation_ids: vec!["a".into(), "b".into(), "c".into()],
             probabilities: vec![vec![rational(1, 3); 3]; 3],
         };
-        assert!(solve_binary_task_weighted_deficiency(
-            &source,
-            &nonbinary,
-            &[rational(1, 3); 3],
-            &losses,
-        )
-        .is_err());
+        assert!(
+            solve_binary_task_weighted_deficiency(
+                &source,
+                &nonbinary,
+                &[rational(1, 3); 3],
+                &losses,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -3137,18 +3115,17 @@ mod tests {
                                 let target =
                                     make_channel(format!("grid-target-{cases}"), [b0, b1, b2]);
                                 let receipt = solve_binary_task_weighted_deficiency(
-                                    &source,
-                                    &target,
-                                    &prior,
-                                    &losses,
+                                    &source, &target, &prior, &losses,
                                 )
                                 .unwrap();
                                 assert!(receipt.optimality_verified);
                                 assert_eq!(
-                                    receipt.state_weighted_residuals.iter().try_fold(
-                                        rational(0, 1),
-                                        |sum, value| sum.checked_add(*value)
-                                    ).unwrap(),
+                                    receipt
+                                        .state_weighted_residuals
+                                        .iter()
+                                        .try_fold(rational(0, 1), |sum, value| sum
+                                            .checked_add(*value))
+                                        .unwrap(),
                                     receipt.weighted_objective
                                 );
                                 cases += 1;
