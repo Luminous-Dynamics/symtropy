@@ -1258,3 +1258,217 @@ mod schur_reduction_tests {
         // dyadic W/q/mu input. This is not yet a certified complete root count.
     }
 }
+
+
+#[cfg(test)]
+mod double_sliding_direction_oracle {
+    use super::*;
+
+    #[derive(Clone, Debug)]
+    struct DirectionEvaluation {
+        residual: [f64; 2],
+        jacobian: [[f64; 2]; 2],
+        impulse: Vector6,
+        sliding_multipliers: [f64; 2],
+        normal_determinant: f64,
+    }
+
+    /// Reduce the two normal equations and evaluate the coupled tangential
+    /// direction system. This is an independent residual/Jacobian oracle,
+    /// not a root finder or a completeness certificate.
+    fn evaluate(
+        w: &Matrix6,
+        q: &Vector6,
+        mu: [f64; 2],
+        theta: [f64; 2],
+    ) -> Option<DirectionEvaluation> {
+        let (c1, s1) = (theta[0].cos(), theta[0].sin());
+        let (c2, s2) = (theta[1].cos(), theta[1].sin());
+
+        let d1 = Vector6::new(1.0, -mu[0] * c1, -mu[0] * s1, 0.0, 0.0, 0.0);
+        let d2 = Vector6::new(0.0, 0.0, 0.0, 1.0, -mu[1] * c2, -mu[1] * s2);
+        let dd1 = Vector6::new(0.0, mu[0] * s1, -mu[0] * c1, 0.0, 0.0, 0.0);
+        let dd2 = Vector6::new(0.0, 0.0, 0.0, 0.0, mu[1] * s2, -mu[1] * c2);
+
+        // H(theta) lambda = -q_n, using the original full-island W.
+        let wd1 = w * d1;
+        let wd2 = w * d2;
+        let h = [
+            [wd1[0], wd2[0]],
+            [wd1[3], wd2[3]],
+        ];
+        let determinant = h[0][0] * h[1][1] - h[0][1] * h[1][0];
+        if !determinant.is_finite() || determinant.abs() <= 1.0e-12 {
+            return None;
+        }
+
+        let rhs = [-q[0], -q[3]];
+        let lambda = [
+            (rhs[0] * h[1][1] - h[0][1] * rhs[1]) / determinant,
+            (h[0][0] * rhs[1] - rhs[0] * h[1][0]) / determinant,
+        ];
+        if !lambda.iter().all(|value| value.is_finite() && *value > 0.0) {
+            return None;
+        }
+
+        let impulse = d1 * lambda[0] + d2 * lambda[1];
+        let post_velocity = q + w * impulse;
+        let residual = [
+            -s1 * post_velocity[1] + c1 * post_velocity[2],
+            -s2 * post_velocity[4] + c2 * post_velocity[5],
+        ];
+        let sliding_multipliers = [
+            (c1 * post_velocity[1] + s1 * post_velocity[2]) / (mu[0] * lambda[0]),
+            (c2 * post_velocity[4] + s2 * post_velocity[5]) / (mu[1] * lambda[1]),
+        ];
+
+        // Analytic implicit derivative:
+        // H d(lambda)/d(theta_j) = -(dH/d(theta_j)) lambda.
+        let mut jacobian = [[0.0_f64; 2]; 2];
+        for direction in 0..2 {
+            let d_direction = if direction == 0 { &dd1 } else { &dd2 };
+            let wd_direction = w * d_direction;
+            let dh_column = if direction == 0 {
+                [wd_direction[0], wd_direction[3]]
+            } else {
+                [wd_direction[0], wd_direction[3]]
+            };
+            let dh_lambda = [
+                dh_column[0] * lambda[direction],
+                dh_column[1] * lambda[direction],
+            ];
+            let d_lambda = [
+                (-h[1][1] * dh_lambda[0] + h[0][1] * dh_lambda[1]) / determinant,
+                (h[1][0] * dh_lambda[0] - h[0][0] * dh_lambda[1]) / determinant,
+            ];
+
+            let d_impulse = d1 * d_lambda[0]
+                + d2 * d_lambda[1]
+                + d_direction * lambda[direction];
+            let d_velocity = w * d_impulse;
+
+            let dg1_direct = if direction == 0 {
+                -c1 * post_velocity[1] - s1 * post_velocity[2]
+            } else {
+                0.0
+            };
+            let dg2_direct = if direction == 1 {
+                -c2 * post_velocity[4] - s2 * post_velocity[5]
+            } else {
+                0.0
+            };
+            jacobian[0][direction] =
+                dg1_direct - s1 * d_velocity[1] + c1 * d_velocity[2];
+            jacobian[1][direction] =
+                dg2_direct - s2 * d_velocity[4] + c2 * d_velocity[5];
+        }
+
+        Some(DirectionEvaluation {
+            residual,
+            jacobian,
+            impulse,
+            sliding_multipliers,
+            normal_determinant: determinant,
+        })
+    }
+
+    fn direction_from_impulse(p: &Vector6, offset: usize) -> f64 {
+        (-p[offset + 2]).atan2(-p[offset + 1])
+    }
+
+    #[test]
+    fn asymmetric_double_slide_branches_are_two_distinct_simple_direction_roots() {
+        const SCALE: f64 = 1_048_576.0;
+        let numerators = [
+            380_770.0,
+            -33_295.0,
+            274_566.0,
+            145_422.0,
+            341_094.0,
+            356_864.0,
+            -33_295.0,
+            1_048_576.0,
+            -338_214.0,
+            -131_501.0,
+            237_374.0,
+            -415_672.0,
+            274_566.0,
+            -338_214.0,
+            1_001_976.0,
+            75_838.0,
+            564_175.0,
+            587_762.0,
+            145_422.0,
+            -131_501.0,
+            75_838.0,
+            812_094.0,
+            -148_076.0,
+            106_473.0,
+            341_094.0,
+            237_374.0,
+            564_175.0,
+            -148_076.0,
+            769_147.0,
+            341_152.0,
+            356_864.0,
+            -415_672.0,
+            587_762.0,
+            106_473.0,
+            341_152.0,
+            854_965.0,
+        ];
+        let w = Matrix6::from_row_slice(&numerators) / SCALE;
+        let q = Vector6::from_row_slice(&[
+            -109_587.0,
+            -7_143_822.0,
+            8_213_295.0,
+            -3_226_388.0,
+            7_075_809.0,
+            1_695_813.0,
+        ]) / SCALE;
+        let mu = [1_956_059.0 / SCALE, 380_758.0 / SCALE];
+
+        let witnesses = [
+            Vector6::new(
+                4.608_844_012_230_929_5,
+                5.277_782_770_150_771,
+                -6.786_946_962_897_831,
+                4.290_844_256_133_09,
+                -1.396_836_622_802_999_4,
+                0.690_278_538_078_889_7,
+            ),
+            Vector6::new(
+                4.538_161_725_266_375_5,
+                5.222_183_363_528_369,
+                -6.663_076_668_053_674,
+                4.284_143_418_088_06,
+                -1.402_416_114_964_019_3,
+                0.673_267_915_990_852_9,
+            ),
+        ];
+
+        let mut roots = Vec::new();
+        for p in witnesses {
+            let theta = [
+                direction_from_impulse(&p, 0),
+                direction_from_impulse(&p, 3),
+            ];
+            let root = evaluate(&w, &q, mu, theta).expect("normal reduction remains regular");
+            assert!(root.residual[0].abs() < 1.0e-8);
+            assert!(root.residual[1].abs() < 1.0e-8);
+            assert!((root.impulse - p).norm() < 1.0e-7);
+            assert!(root.sliding_multipliers.iter().all(|tau| *tau > 0.0));
+
+            let jacobian_determinant =
+                root.jacobian[0][0] * root.jacobian[1][1]
+                    - root.jacobian[0][1] * root.jacobian[1][0];
+            assert!(jacobian_determinant.abs() > 1.0e-8);
+            assert!(root.normal_determinant.abs() > 1.0e-5);
+            roots.push((theta, root));
+        }
+
+        assert!((roots[0].1.impulse - roots[1].1.impulse).norm() > 0.1);
+        assert!((roots[0].0[0] - roots[1].0[0]).abs() < 0.01);
+        assert!((roots[0].0[1] - roots[1].0[1]).abs() < 0.02);
+    }
+}
