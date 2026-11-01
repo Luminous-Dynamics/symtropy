@@ -75,8 +75,8 @@ fn solve_star_with_strict_sticking_leaves(
         for column in 0..3 {
             if w[(row + 3, column + 6)] != 0.0
                 || w[(row + 6, column + 3)] != 0.0
-                || w[(row + 3, column + 3)] != f64::from(row == column)
-                || w[(row + 6, column + 6)] != f64::from(row == column)
+                || w[(row + 3, column + 3)] != if row == column { 1.0 } else { 0.0 }
+                || w[(row + 6, column + 6)] != if row == column { 1.0 } else { 0.0 }
                 || w[(row, column + 3)] != if row == column { COUPLING } else { 0.0 }
                 || w[(row, column + 6)] != if row == column { COUPLING } else { 0.0 }
             {
