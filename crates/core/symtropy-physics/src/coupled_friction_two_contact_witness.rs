@@ -2517,7 +2517,7 @@ mod double_sliding_direction_oracle {
         domain: [RationalInterval; 2],
         image: [RationalInterval; 2],
         normal_determinant: RationalInterval,
-        normal_multiplier_ratios: [RationalInterval; 2],
+        normal_multiplier_sign_ratios: [RationalInterval; 2],
         sliding_multiplier_sign_ratios: [RationalInterval; 2],
     }
 
@@ -2661,7 +2661,10 @@ mod double_sliding_direction_oracle {
         if !normal_determinant.excludes_zero() {
             return None;
         }
-        let normal_multiplier_ratios = [
+        // These N_k / Delta intervals certify the physical normal-impulse
+        // signs only. The physical impulse also contains the positive cleared
+        // half-angle factor S * (1 + t_k^2), applied at reconstruction.
+        let normal_multiplier_sign_ratios = [
             polynomials
                 .normal_numerator_1
                 .evaluate_interval(&domain[0], &domain[1])
@@ -2671,7 +2674,7 @@ mod double_sliding_direction_oracle {
                 .evaluate_interval(&domain[0], &domain[1])
                 .div(&normal_determinant)?,
         ];
-        if normal_multiplier_ratios
+        if normal_multiplier_sign_ratios
             .iter()
             .any(|ratio| !ratio.is_strictly_positive())
         {
@@ -2709,7 +2712,7 @@ mod double_sliding_direction_oracle {
             domain,
             image,
             normal_determinant,
-            normal_multiplier_ratios,
+            normal_multiplier_sign_ratios,
             sliding_multiplier_sign_ratios,
         })
     }
@@ -2731,7 +2734,7 @@ mod double_sliding_direction_oracle {
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(
             certificate
-                .normal_multiplier_ratios
+                .normal_multiplier_sign_ratios
                 .iter()
                 .all(|ratio| ratio.is_strictly_positive())
         );
@@ -2841,7 +2844,7 @@ mod double_sliding_direction_oracle {
             assert!(certificate.normal_determinant.excludes_zero());
             assert!(
                 certificate
-                    .normal_multiplier_ratios
+                    .normal_multiplier_sign_ratios
                     .iter()
                     .all(|ratio| ratio.is_strictly_positive())
             );
@@ -3648,5 +3651,411 @@ mod double_sliding_direction_oracle {
         // common physical fibre parameter.
         assert_eq!(q_roots.len() * a_roots.len(), 4);
         prove_dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre();
+    }
+
+    #[test]
+    fn low_treewidth_three_contact_chain_lifts_both_certified_double_slide_branches() {
+        const SCALE: i128 = 1_048_576;
+        const FLATTENED_W0: [i128; 36] = [
+            380_770, -33_295, 274_566, 145_422, 341_094, 356_864, -33_295, 1_048_576, -338_214,
+            -131_501, 237_374, -415_672, 274_566, -338_214, 1_001_976, 75_838, 564_175, 587_762,
+            145_422, -131_501, 75_838, 812_094, -148_076, 106_473, 341_094, 237_374, 564_175,
+            -148_076, 769_147, 341_152, 356_864, -415_672, 587_762, 106_473, 341_152, 854_965,
+        ];
+        const Q0_NUMERATORS: [i128; 6] = [
+            -109_587, -7_143_822, 8_213_295, -3_226_388, 7_075_809, 1_695_813,
+        ];
+        const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
+
+        let scale = BigInt::from(SCALE);
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let one = BigRational::from_integer(BigInt::from(1_u8));
+        let w0: [[BigRational; 6]; 6] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                BigRational::new(BigInt::from(FLATTENED_W0[row * 6 + column]), scale.clone())
+            })
+        });
+        let q0: [BigRational; 6] = std::array::from_fn(|index| {
+            BigRational::new(BigInt::from(Q0_NUMERATORS[index]), scale.clone())
+        });
+        for (row, row_values) in w0.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert_eq!(value, &w0[column][row]);
+            }
+        }
+
+        // Exact rational LDL^T proves W0 is SPD. Therefore the full 9x9
+        // block operator below is SPD by its exact Schur complement W0.
+        let mut lower = vec![vec![zero.clone(); 6]; 6];
+        let mut pivots: Vec<BigRational> = Vec::with_capacity(6);
+        for (row, lower_row) in lower.iter_mut().enumerate() {
+            lower_row[row] = one.clone();
+        }
+        for column in 0..6 {
+            let mut pivot = w0[column][column].clone();
+            for previous in 0..column {
+                pivot -= lower[column][previous].clone()
+                    * lower[column][previous].clone()
+                    * pivots[previous].clone();
+            }
+            assert!(pivot > zero, "every exact LDL pivot must be positive");
+            pivots.push(pivot.clone());
+
+            for row in (column + 1)..6 {
+                let mut remainder = w0[row][column].clone();
+                for previous in 0..column {
+                    remainder -= lower[row][previous].clone()
+                        * lower[column][previous].clone()
+                        * pivots[previous].clone();
+                }
+                lower[row][column] = remainder / pivot.clone();
+            }
+        }
+
+        // Add a leaf contact at contact 3. B has no support on contact 1 and
+        // equals epsilon I on contact 2; C=I and q_L=(-10,0,0).
+        let epsilon = BigRational::new(BigInt::from(1_u8), BigInt::from(1_024_u16));
+        let epsilon_squared = epsilon.clone() * epsilon.clone();
+        let b: [[BigRational; 3]; 6] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                if row >= 3 && row - 3 == column {
+                    epsilon.clone()
+                } else {
+                    zero.clone()
+                }
+            })
+        });
+        let q_leaf = [
+            BigRational::from_integer(BigInt::from(-10_i8)),
+            zero.clone(),
+            zero.clone(),
+        ];
+        let w3: [[BigRational; 9]; 9] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                if row < 6 && column < 6 {
+                    let mut value = w0[row][column].clone();
+                    if row >= 3 && column >= 3 && row == column {
+                        value += epsilon_squared.clone();
+                    }
+                    value
+                } else if row < 6 && column >= 6 {
+                    b[row][column - 6].clone()
+                } else if row >= 6 && column < 6 {
+                    b[column][row - 6].clone()
+                } else if row == column {
+                    one.clone()
+                } else {
+                    zero.clone()
+                }
+            })
+        });
+        let q3: [BigRational; 9] = std::array::from_fn(|row| {
+            if row < 6 {
+                let mut value = q0[row].clone();
+                for leaf_coordinate in 0..3 {
+                    value += b[row][leaf_coordinate].clone() * q_leaf[leaf_coordinate].clone();
+                }
+                value
+            } else {
+                q_leaf[row - 6].clone()
+            }
+        });
+
+        // The graph is exactly 1--2--3: W13 is structurally zero, W12 and
+        // W23 are nonzero. The Schur complement of C=I is exactly W0.
+        assert!((0..3).any(|row| { (3..6).any(|column| w0[row][column] != zero) }));
+        for (row, row_values) in w3.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert_eq!(value, &w3[column][row]);
+            }
+        }
+        for contact_one_row in w3.iter().take(3) {
+            for leaf_coordinate in 0..3 {
+                assert_eq!(contact_one_row[6 + leaf_coordinate], zero);
+            }
+        }
+        for coordinate in 0..3 {
+            assert_eq!(w3[3 + coordinate][6 + coordinate], epsilon);
+        }
+        for row in 0..6 {
+            for column in 0..6 {
+                let mut schur_entry = w3[row][column].clone();
+                for (row_value, column_value) in b[row].iter().zip(b[column].iter()) {
+                    schur_entry -= row_value.clone() * column_value.clone();
+                }
+                assert_eq!(schur_entry, w0[row][column]);
+            }
+        }
+        assert_eq!(q3[6], q_leaf[0]);
+        assert_eq!(q3[7], q_leaf[1]);
+        assert_eq!(q3[8], q_leaf[2]);
+
+        // Reuse the two disjoint exact Krawczyk boxes from the dyadic
+        // double-slide fixture. Each box certifies one unique reduced branch.
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+        let center_denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    center_denominator.clone(),
+                ),
+                BigRational::new(
+                    BigInt::from(-233_602_787_384_141_i128),
+                    center_denominator.clone(),
+                ),
+            ],
+            [
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    center_denominator.clone(),
+                ),
+                BigRational::new(
+                    BigInt::from(-227_603_740_377_268_i128),
+                    center_denominator.clone(),
+                ),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+        let certificates = centers.map(|center| {
+            certify_exact_double_slide_root_box(
+                &polynomials,
+                center,
+                radius.clone(),
+                FRICTION_NUMERATORS,
+                SCALE,
+            )
+            .expect("each known branch has a strict Krawczyk inclusion")
+        });
+        assert!(
+            certificates[0].domain[0].upper < certificates[1].domain[0].lower
+                || certificates[1].domain[0].upper < certificates[0].domain[0].lower
+        );
+        assert!(
+            certificates[0].domain[1].upper < certificates[1].domain[1].lower
+                || certificates[1].domain[1].upper < certificates[0].domain[1].lower
+        );
+
+        let mu1 = BigRational::new(BigInt::from(FRICTION_NUMERATORS[0]), scale.clone());
+        let mu2 = BigRational::new(BigInt::from(FRICTION_NUMERATORS[1]), scale.clone());
+        let two = BigRational::from_integer(BigInt::from(2_u8));
+        let tangent_impulse = |direction: &RationalInterval,
+                               friction: &BigRational,
+                               normal: &RationalInterval|
+         -> [RationalInterval; 2] {
+            let direction_squared = direction.mul(direction);
+            let denominator = RationalInterval::point(one.clone()).add(&direction_squared);
+            let cosine = RationalInterval::point(one.clone())
+                .sub(&direction_squared)
+                .div(&denominator)
+                .expect("1+t^2 is strictly positive");
+            let sine = direction
+                .scale(&two)
+                .div(&denominator)
+                .expect("1+t^2 is strictly positive");
+            let friction_radius = normal.scale(friction);
+            [
+                friction_radius.mul(&cosine).neg(),
+                friction_radius.mul(&sine).neg(),
+            ]
+        };
+
+        for certificate in &certificates {
+            assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+            assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+            assert!(certificate.normal_determinant.excludes_zero());
+            assert!(
+                certificate
+                    .normal_multiplier_sign_ratios
+                    .iter()
+                    .all(RationalInterval::is_strictly_positive)
+            );
+            assert!(
+                certificate
+                    .sliding_multiplier_sign_ratios
+                    .iter()
+                    .all(RationalInterval::is_strictly_positive)
+            );
+
+            // N_k/Delta is a sign-safe *scaled ratio*, not the physical
+            // normal impulse. The polynomial construction uses
+            // v_k = S(1+t_k^2)d_k and q_numerators = S q, hence
+            // lambda_k = (N_k/Delta) * S * (1+t_k^2).
+            let physical_normal_impulse =
+                |ratio: &RationalInterval, direction: &RationalInterval| {
+                    let direction_squared = direction.mul(direction);
+                    let half_angle_factor =
+                        RationalInterval::point(one.clone()).add(&direction_squared);
+                    ratio
+                        .scale(&BigRational::from_integer(scale.clone()))
+                        .mul(&half_angle_factor)
+                };
+            let lambda1 = physical_normal_impulse(
+                &certificate.normal_multiplier_sign_ratios[0],
+                &certificate.domain[0],
+            );
+            let lambda2 = physical_normal_impulse(
+                &certificate.normal_multiplier_sign_ratios[1],
+                &certificate.domain[1],
+            );
+            let tangent1 = tangent_impulse(&certificate.domain[0], &mu1, &lambda1);
+            let tangent2 = tangent_impulse(&certificate.domain[1], &mu2, &lambda2);
+            let p0 = [
+                lambda1,
+                tangent1[0].clone(),
+                tangent1[1].clone(),
+                lambda2,
+                tangent2[0].clone(),
+                tangent2[1].clone(),
+            ];
+
+            // The leaf is reconstructed by p_L = -q_L - B^T p_0.
+            // With mu_L=1, prove strict normal loading and strict disk interior
+            // over the complete Krawczyk root box using rational intervals.
+            let ten = RationalInterval::point(BigRational::from_integer(BigInt::from(10_i8)));
+            let leaf_normal = ten.sub(&p0[3].scale(&epsilon));
+            let leaf_tangent_1 = p0[4].scale(&epsilon).neg();
+            let leaf_tangent_2 = p0[5].scale(&epsilon).neg();
+            let leaf_disk_margin_squared = leaf_normal
+                .mul(&leaf_normal)
+                .sub(&leaf_tangent_1.mul(&leaf_tangent_1))
+                .sub(&leaf_tangent_2.mul(&leaf_tangent_2));
+            assert!(leaf_normal.is_strictly_positive());
+            assert!(leaf_disk_margin_squared.is_strictly_positive());
+
+            // Exact elimination gives q_L+B^T p_0+C p_L=0 and reduces
+            // u_0 to q_0+W_0 p_0. The original two-contact Krawczyk proof
+            // therefore supplies the first six contact equations unchanged.
+            // Replay the reduced full-island energy by interval arithmetic.
+            let mut energy0 = RationalInterval::point(zero.clone());
+            for row in 0..6 {
+                energy0 = energy0.add(&p0[row].scale(&q0[row]));
+                for column in 0..6 {
+                    let half_w = w0[row][column].clone() / two.clone();
+                    energy0 = energy0.add(&p0[row].mul(&p0[column]).scale(&half_w));
+                }
+            }
+            assert!(energy0.upper < zero);
+            // Delta K_3 = Delta K_0 - 1/2 q_L^T C^{-1} q_L = Delta K_0 - 50.
+            let energy3 = energy0.sub(&RationalInterval::point(BigRational::from_integer(
+                BigInt::from(50_i8),
+            )));
+            assert!(energy3.upper < zero);
+
+            // Replay all nine unreduced equations from W3 and q3. This guards
+            // against treating the reduced sign ratios as physical impulses
+            // or validating only the Schur-reduced energy identity.
+            let leaf_impulse = [
+                leaf_normal.clone(),
+                leaf_tangent_1.clone(),
+                leaf_tangent_2.clone(),
+            ];
+            let full_impulse: [RationalInterval; 9] = std::array::from_fn(|index| {
+                if index < 6 {
+                    p0[index].clone()
+                } else {
+                    leaf_impulse[index - 6].clone()
+                }
+            });
+            let full_velocity: [RationalInterval; 9] = std::array::from_fn(|row| {
+                let mut velocity = RationalInterval::point(q3[row].clone());
+                for column in 0..9 {
+                    velocity = velocity.add(&full_impulse[column].scale(&w3[row][column]));
+                }
+                velocity
+            });
+
+            // Both loaded double-slide contacts have zero normal velocity;
+            // the third contact is strictly sticking in all three axes.
+            for row in [0_usize, 3, 6, 7, 8] {
+                assert!(
+                    !full_velocity[row].excludes_zero(),
+                    "unreduced contact velocity component {row} must enclose zero"
+                );
+            }
+
+            // Recheck each sliding contact's original Coulomb boundary,
+            // tangential direction equation, positive multiplier, and KKT
+            // stationarity using the unreduced 9D post-contact velocity.
+            for (contact, offset, direction, friction, lambda) in [
+                (0_usize, 0_usize, &certificate.domain[0], &mu1, &p0[0]),
+                (1_usize, 3_usize, &certificate.domain[1], &mu2, &p0[3]),
+            ] {
+                let direction_squared = direction.mul(direction);
+                let denominator = RationalInterval::point(one.clone()).add(&direction_squared);
+                let cosine = RationalInterval::point(one.clone())
+                    .sub(&direction_squared)
+                    .div(&denominator)
+                    .expect("1+t^2 is strictly positive");
+                let sine = direction
+                    .scale(&two)
+                    .div(&denominator)
+                    .expect("1+t^2 is strictly positive");
+                let tangent_velocity_1 = &full_velocity[offset + 1];
+                let tangent_velocity_2 = &full_velocity[offset + 2];
+
+                let direction_residual = sine
+                    .neg()
+                    .mul(tangent_velocity_1)
+                    .add(&cosine.mul(tangent_velocity_2));
+                assert!(
+                    !direction_residual.excludes_zero(),
+                    "contact {contact} tangential direction equation must enclose zero"
+                );
+
+                let friction_radius = lambda.scale(friction);
+                let disk_margin_squared = friction_radius
+                    .mul(&friction_radius)
+                    .sub(&p0[offset + 1].mul(&p0[offset + 1]))
+                    .sub(&p0[offset + 2].mul(&p0[offset + 2]));
+                assert!(
+                    !disk_margin_squared.excludes_zero(),
+                    "contact {contact} impulse must lie on its Coulomb boundary"
+                );
+
+                let tangential_speed = cosine
+                    .mul(tangent_velocity_1)
+                    .add(&sine.mul(tangent_velocity_2));
+                let sliding_multiplier = tangential_speed
+                    .div(&friction_radius)
+                    .expect("strictly positive normal load and friction");
+                assert!(
+                    sliding_multiplier.is_strictly_positive(),
+                    "contact {contact} sliding multiplier must be positive"
+                );
+                let stationarity_1 =
+                    tangent_velocity_1.add(&sliding_multiplier.mul(&p0[offset + 1]));
+                let stationarity_2 =
+                    tangent_velocity_2.add(&sliding_multiplier.mul(&p0[offset + 2]));
+                assert!(
+                    !stationarity_1.excludes_zero() && !stationarity_2.excludes_zero(),
+                    "contact {contact} unreduced tangential KKT stationarity must enclose zero"
+                );
+            }
+
+            assert!(leaf_normal.is_strictly_positive());
+            assert!(leaf_disk_margin_squared.is_strictly_positive());
+            assert!(
+                !full_velocity[7].excludes_zero() && !full_velocity[8].excludes_zero(),
+                "the eliminated leaf must remain strictly sticking tangentially"
+            );
+
+            // Independently evaluate the full 9D quadratic energy instead
+            // of relying only on its Schur-complement identity.
+            let mut direct_energy = RationalInterval::point(zero.clone());
+            for row in 0..9 {
+                direct_energy = direct_energy.add(&full_impulse[row].scale(&q3[row]));
+                for column in 0..9 {
+                    let half_w = w3[row][column].clone() / two.clone();
+                    direct_energy = direct_energy
+                        .add(&full_impulse[row].mul(&full_impulse[column]).scale(&half_w));
+                }
+            }
+            assert!(direct_energy.upper < zero);
+            assert!(
+                rational_intervals_overlap(&direct_energy, &energy3),
+                "direct 9D energy and exact Schur energy must overlap"
+            );
+        }
     }
 }
