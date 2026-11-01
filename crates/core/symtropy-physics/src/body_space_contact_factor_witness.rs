@@ -266,7 +266,17 @@ mod tests {
         // strictly inside their Coulomb disks.
         let p0 = [20_i128, 0, 0, 30, 0, 0, 40, 0, 0];
         let response0 = apply_delassus(&delassus, &p0);
-        let free_velocity = response0.map(|value| -value);
+        let body_impulse0 = scatter_contact_impulses(&jacobian, &p0);
+        let body_free_velocity = body_impulse0.map(|value| -value);
+        let free_velocity = gather_body_velocity(&jacobian, &body_free_velocity);
+        assert_eq!(free_velocity, response0.map(|value| -value));
+
+        // M=I_6: the impulse update takes the body from v_free to v_post=0.
+        // This realizes q=J v_free rather than treating q as an independent
+        // contact-space vector.
+        let body_post_velocity0: [i128; 6] =
+            std::array::from_fn(|index| body_free_velocity[index] + body_impulse0[index]);
+        assert_eq!(body_post_velocity0, [0_i128; 6]);
 
         let twice_energy0: i128 = p0
             .iter()
@@ -296,8 +306,17 @@ mod tests {
                 }
             }
 
+            let body_impulse = scatter_contact_impulses(&jacobian, &candidate);
+            assert_eq!(
+                body_impulse, body_impulse0,
+                "generalized body impulse must be fibre-invariant"
+            );
+            let body_post_velocity: [i128; 6] =
+                std::array::from_fn(|index| body_free_velocity[index] + body_impulse[index]);
+            assert_eq!(body_post_velocity, [0_i128; 6]);
+
             let response = apply_delassus(&delassus, &candidate);
-            assert_eq!(response, response0, "body response must be fibre-invariant");
+            assert_eq!(response, response0, "contact response must be fibre-invariant");
             let post_contact_velocity: [i128; 9] =
                 std::array::from_fn(|index| free_velocity[index] + response[index]);
             assert_eq!(post_contact_velocity, [0_i128; 9]);
