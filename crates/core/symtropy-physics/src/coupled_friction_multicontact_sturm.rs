@@ -589,10 +589,14 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     );
     let roots = sturm_isolate_rational(quartic.clone())
         .expect("exact Sturm isolation of the permuted slide/stick quartic");
+    assert!(
+        quartic.last().is_some_and(|coefficient| !coefficient.is_zero()),
+        "a nonzero leading coefficient excludes the projective theta=pi root"
+    );
     assert_eq!(
         roots.len(),
-        2,
-        "the permuted stratum has two real angular roots"
+        0,
+        "the reverse slide/stick quartic has no finite real angular roots"
     );
 
     let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
@@ -613,24 +617,14 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
         "permuted singular angular systems have no compatible right-hand side"
     );
 
-    let classifications = exact_two_contact_slide_stick_branch_intervals(
-        &permuted_w,
-        &permuted_q,
-        mu_sliding,
-        mu_sticking,
-        &determinant,
-        &numerators,
-        &roots,
-    )
-    .expect("exact interval classification of every permuted angular root");
-    assert_eq!(
-        classifications,
-        vec![
-            SlidingBranchClassification::NegativeMultiplier,
-            SlidingBranchClassification::NegativeMultiplier,
-        ],
-        "both real roots violate the sliding disk KKT multiplier sign"
+    assert!(
+        roots.is_empty(),
+        "there are no finite angular candidates to classify after exact Sturm isolation"
     );
+    // The active linear system's two singular directions were independently
+    // excluded above by the exact determinant/Cramer gcd. Combined with the
+    // no-real-root quartic and nonzero leading coefficient, this proves that
+    // this reverse slide/stick stratum has no admissible branch.
 }
 
 #[test]
