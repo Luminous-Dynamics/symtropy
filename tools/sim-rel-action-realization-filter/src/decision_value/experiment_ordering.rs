@@ -184,7 +184,9 @@ pub fn generalized_bayes_posterior_rule_from_weights(
     let mut posterior_by_observation = Vec::with_capacity(gibbs_factors.len());
     for (observation, factors) in gibbs_factors.iter().enumerate() {
         if factors.len() != assumed.state_ids.len() {
-            return Err(format!("Gibbs factor row {observation} has the wrong state dimension"));
+            return Err(format!(
+                "Gibbs factor row {observation} has the wrong state dimension"
+            ));
         }
         let mut unnormalized = Vec::with_capacity(prior.len());
         let mut normalizer = Rational::zero();
@@ -2510,14 +2512,8 @@ mod tests {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let assumed = noisy_channel("gibbs-equivalent");
         let likelihood_weights = vec![
-            vec![
-                assumed.probabilities[0][0],
-                assumed.probabilities[1][0],
-            ],
-            vec![
-                assumed.probabilities[0][1],
-                assumed.probabilities[1][1],
-            ],
+            vec![assumed.probabilities[0][0], assumed.probabilities[1][0]],
+            vec![assumed.probabilities[0][1], assumed.probabilities[1][1]],
         ];
         let gibbs = generalized_bayes_posterior_rule_from_weights(
             "gibbs-equals-bayes",
@@ -2527,7 +2523,10 @@ mod tests {
         )
         .unwrap();
         let bayes = exact_bayes_posterior_rule(&assumed, &prior).unwrap();
-        assert_eq!(gibbs.posterior_by_observation, bayes.posterior_by_observation);
+        assert_eq!(
+            gibbs.posterior_by_observation,
+            bayes.posterior_by_observation
+        );
     }
 
     #[test]
@@ -2561,7 +2560,10 @@ mod tests {
             &rule,
         )
         .unwrap();
-        assert_eq!(evaluation.expected_inference_posterior_tv_distance, rational(1, 20));
+        assert_eq!(
+            evaluation.expected_inference_posterior_tv_distance,
+            rational(1, 20)
+        );
         assert_eq!(evaluation.realized_policy_loss, rational(1, 5));
     }
 
@@ -2569,23 +2571,27 @@ mod tests {
     fn generalized_bayes_weights_reject_malformed_and_zero_normalizers() {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let assumed = noisy_channel("gibbs-invalid");
-        assert!(generalized_bayes_posterior_rule_from_weights(
-            "bad-dimension",
-            &assumed,
-            &prior,
-            &[vec![Rational::one()]],
-        )
-        .is_err());
-        assert!(generalized_bayes_posterior_rule_from_weights(
-            "zero-normalizer",
-            &assumed,
-            &prior,
-            &[
-                vec![Rational::zero(), Rational::zero()],
-                vec![Rational::one(), Rational::one()],
-            ],
-        )
-        .is_err());
+        assert!(
+            generalized_bayes_posterior_rule_from_weights(
+                "bad-dimension",
+                &assumed,
+                &prior,
+                &[vec![Rational::one()]],
+            )
+            .is_err()
+        );
+        assert!(
+            generalized_bayes_posterior_rule_from_weights(
+                "zero-normalizer",
+                &assumed,
+                &prior,
+                &[
+                    vec![Rational::zero(), Rational::zero()],
+                    vec![Rational::one(), Rational::one()],
+                ],
+            )
+            .is_err()
+        );
     }
 
     #[test]
