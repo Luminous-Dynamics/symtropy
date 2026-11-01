@@ -4,9 +4,9 @@
 //! that the evidence supports. Losses are defined over the mechanism and next
 //! the complete mechanism/process/sensor/apparatus state.
 
+pub mod counterexample_search;
 pub mod finite_horizon;
 pub mod robust_finite_horizon;
-pub mod counterexample_search;
 pub mod sequential_conformal;
 
 use super::{
@@ -366,8 +366,8 @@ fn field_from_option(value: Option<usize>, observed: bool) -> ObservationField {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::LatentState;
+    use super::*;
 
     fn decision_screen_kernel() -> ActionRealizationKernel {
         let mut rows = Vec::new();
@@ -430,7 +430,11 @@ mod tests {
             },
         ];
         ActionRealizationKernel {
-            hypothesis_ids: vec!["ordinary-a".into(), "ordinary-b".into(), "rare-critical".into()],
+            hypothesis_ids: vec![
+                "ordinary-a".into(),
+                "ordinary-b".into(),
+                "rare-critical".into(),
+            ],
             physical_state_count: 1,
             sensor_state_count: 1,
             apparatus_state_count: 1,
@@ -486,8 +490,7 @@ mod tests {
     fn low_eig_decision_screen_can_beat_higher_eig_detail_probe() {
         let kernel = decision_screen_kernel();
         let table = decision_losses();
-        let baseline =
-            bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
+        let baseline = bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
         assert_eq!(baseline.decision, Some(1));
         assert_eq!(baseline.expected_loss, Rational::new(99, 100).unwrap());
 
@@ -515,7 +518,10 @@ mod tests {
         // The detail probe separates two mechanisms that share one decision.
         // It leaves the downstream Bayes risk unchanged despite providing
         // substantially more mechanism information than the rare-regime screen.
-        assert_eq!(detail.expected_terminal_loss, Rational::new(99, 100).unwrap());
+        assert_eq!(
+            detail.expected_terminal_loss,
+            Rational::new(99, 100).unwrap()
+        );
         assert!(!detail.experiment_is_preferred);
 
         // The rarer regime-screen has lower mechanism information but resolves
@@ -543,7 +549,10 @@ mod tests {
         // All hidden measurement outcomes map to the same public observation.
         // They are marginalized once, not duplicated as separate branches.
         assert_eq!(report.public_observation_branches, 1);
-        assert_eq!(report.expected_terminal_loss, Rational::new(99, 100).unwrap());
+        assert_eq!(
+            report.expected_terminal_loss,
+            Rational::new(99, 100).unwrap()
+        );
         assert_eq!(report.expected_total_loss, Rational::one());
         assert!(!report.experiment_is_preferred);
     }
@@ -609,17 +618,13 @@ mod tests {
         let table = DecisionLossTable {
             decision_ids: vec!["release".into(), "hold".into()],
             losses: vec![
-                vec![vec![vec![vec![
-                    Rational::zero(),
-                    Rational::from_u64(10),
-                ]]]],
+                vec![vec![vec![vec![Rational::zero(), Rational::from_u64(10)]]]],
                 vec![vec![vec![vec![Rational::one(), Rational::one()]]]],
             ],
             abstention_loss: Rational::new(2, 1).unwrap(),
         };
 
-        let baseline =
-            bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
+        let baseline = bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
         assert_eq!(baseline.decision, Some(1));
         assert_eq!(baseline.expected_loss, Rational::one());
 
@@ -643,8 +648,7 @@ mod tests {
         let kernel = decision_screen_kernel();
         let mut table = decision_losses();
         table.abstention_loss = Rational::zero();
-        let decision =
-            bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
+        let decision = bayes_decision_from_belief(&kernel, &kernel.initial_belief, &table).unwrap();
         assert_eq!(decision.decision, None);
         assert_eq!(decision.expected_loss, Rational::zero());
     }

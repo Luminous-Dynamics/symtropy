@@ -8,8 +8,8 @@
 use super::finite_horizon::{DecisionBranch, DecisionBudgets, DecisionPlan, DecisionSolverConfig};
 use super::{DecisionLossTable, ObservationProtocol};
 use crate::{
-    filter_one_step, ActionRealizationKernel, BeliefMass, LatentState, ObservationField,
-    PublicObservation, Rational, TransitionOutcome,
+    ActionRealizationKernel, BeliefMass, LatentState, ObservationField, PublicObservation,
+    Rational, TransitionOutcome, filter_one_step,
 };
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -117,8 +117,10 @@ impl BeliefVectorKey {
             .iter()
             .map(|belief| {
                 belief.as_ref().map(|points| {
-                    let mut state_masses: Vec<_> =
-                        points.iter().map(|point| (point.state, point.mass)).collect();
+                    let mut state_masses: Vec<_> = points
+                        .iter()
+                        .map(|point| (point.state, point.mass))
+                        .collect();
                     state_masses.sort();
                     state_masses
                 })
@@ -385,7 +387,9 @@ fn validate_world_weights(
     radius: Rational,
 ) -> Result<(), String> {
     if weights.len() != world_count || weights.is_empty() {
-        return Err("one nominal mixture weight is required for every canonical model world".into());
+        return Err(
+            "one nominal mixture weight is required for every canonical model world".into(),
+        );
     }
     if !radius.is_probability() {
         return Err("total-variation radius must be in [0, 1]".into());
@@ -471,9 +475,7 @@ fn worst_case_tv_expectation(
             receiver_index += 1;
             continue;
         }
-        let transfer = remaining_radius
-            .min(adjusted[donor])
-            .min(receiver_room);
+        let transfer = remaining_radius.min(adjusted[donor]).min(receiver_room);
         adjusted[donor] = checked_sub_nonnegative(adjusted[donor], transfer)?;
         adjusted[receiver] = adjusted[receiver].checked_add(transfer)?;
         remaining_radius = checked_sub_nonnegative(remaining_radius, transfer)?;
@@ -486,10 +488,7 @@ fn worst_case_tv_expectation(
     Ok(expectation)
 }
 
-fn within_risk_budgets(
-    point: &RobustDecisionFrontierPoint,
-    budgets: DecisionBudgets,
-) -> bool {
+fn within_risk_budgets(point: &RobustDecisionFrontierPoint, budgets: DecisionBudgets) -> bool {
     point.worst_case_hazard_probability() <= budgets.max_hazard_probability
         && point.worst_case_abstention_probability() <= budgets.max_abstention_probability
 }
@@ -542,7 +541,10 @@ pub fn optimize_shared_policy_decisions(
         stats: RobustDecisionSolverStats::default(),
     };
     let candidates = solver.solve(&initial_beliefs, config.horizon)?;
-    let world_ids: Vec<String> = canonical_worlds.iter().map(|world| world.id.clone()).collect();
+    let world_ids: Vec<String> = canonical_worlds
+        .iter()
+        .map(|world| world.id.clone())
+        .collect();
     let frontier = candidates
         .into_iter()
         .map(|candidate| RobustDecisionFrontierPoint {
@@ -577,7 +579,9 @@ fn validate_world_family(
     command_costs: &[Rational],
 ) -> Result<Vec<DecisionModelWorld>, String> {
     if worlds.is_empty() || worlds.len() > MAX_MODEL_WORLDS {
-        return Err(format!("model-world count must be in 1..={MAX_MODEL_WORLDS}"));
+        return Err(format!(
+            "model-world count must be in 1..={MAX_MODEL_WORLDS}"
+        ));
     }
     if nominal_world_id.trim().is_empty() {
         return Err("nominal world ID must be non-empty".into());
@@ -586,12 +590,16 @@ fn validate_world_family(
     let mut canonical = worlds.to_vec();
     canonical.sort_by(|left, right| left.id.cmp(&right.id));
     let mut ids = BTreeSet::new();
-    if canonical.iter().any(|world| {
-        world.id.trim().is_empty() || !ids.insert(world.id.as_str())
-    }) {
+    if canonical
+        .iter()
+        .any(|world| world.id.trim().is_empty() || !ids.insert(world.id.as_str()))
+    {
         return Err("model-world IDs must be non-empty and unique".into());
     }
-    if !canonical.iter().any(|world| world.id.as_str() == nominal_world_id) {
+    if !canonical
+        .iter()
+        .any(|world| world.id.as_str() == nominal_world_id)
+    {
         return Err("nominal world ID is not present in the model family".into());
     }
 
@@ -660,12 +668,8 @@ impl RobustDecisionOptimizer<'_> {
         let mut candidates = terminal_candidates(beliefs, self.table)?;
         if remaining_horizon > 0 {
             for command in 0..self.command_costs.len() {
-                let partitions = command_partitions_for_beliefs(
-                    self.worlds,
-                    beliefs,
-                    command,
-                    self.protocol,
-                )?;
+                let partitions =
+                    command_partitions_for_beliefs(self.worlds, beliefs, command, self.protocol)?;
                 let observations = union_observations(&partitions);
                 let mut partials = vec![PartialCandidate {
                     per_world: beliefs
@@ -684,8 +688,7 @@ impl RobustDecisionOptimizer<'_> {
                     branches: Vec::new(),
                 }];
                 for observation in &observations {
-                    let (probabilities, branch_beliefs) =
-                        branch_vectors(&partitions, observation);
+                    let (probabilities, branch_beliefs) = branch_vectors(&partitions, observation);
                     let child_frontier = if observation.hazard {
                         vec![hazard_child(&probabilities, self.hazard_loss)]
                     } else {
@@ -714,8 +717,7 @@ impl RobustDecisionOptimizer<'_> {
         if frontier.len() > self.config.max_frontier_points {
             return Err("robust decision frontier-point budget exceeded".into());
         }
-        self.stats.maximum_frontier_points =
-            self.stats.maximum_frontier_points.max(frontier.len());
+        self.stats.maximum_frontier_points = self.stats.maximum_frontier_points.max(frontier.len());
         self.memo.insert(key, frontier.clone());
         Ok(frontier)
     }
@@ -1090,13 +1092,16 @@ fn replay_unnormalized_node(
                             let loss = match decision {
                                 Some(index) => {
                                     if *index >= table.decision_ids.len() {
-                                        return Err("terminal policy references an invalid decision".into());
+                                        return Err(
+                                            "terminal policy references an invalid decision".into(),
+                                        );
                                     }
                                     table.loss_for_state(*index, point.state)
                                 }
                                 None => table.abstention_loss,
                             };
-                            terminal_loss = terminal_loss.checked_add(point.mass.checked_mul(loss)?)?;
+                            terminal_loss =
+                                terminal_loss.checked_add(point.mass.checked_mul(loss)?)?;
                         }
                         result.push(WorldObjectives {
                             expected_terminal_loss: terminal_loss,
@@ -1135,7 +1140,9 @@ fn replay_unnormalized_node(
                 .collect();
             if branch_map.len() != branches.len()
                 || branch_map.len() != observations.len()
-                || observations.iter().any(|observation| !branch_map.contains_key(observation))
+                || observations
+                    .iter()
+                    .any(|observation| !branch_map.contains_key(observation))
             {
                 return Err(
                     "shared policy must contain exactly one branch per reachable public observation"
@@ -1146,9 +1153,9 @@ fn replay_unnormalized_node(
             let mut result = Vec::with_capacity(worlds.len());
             for mass in masses {
                 let total_mass = match mass {
-                    Some(points) => points.iter().try_fold(Rational::zero(), |sum, point| {
-                        sum.checked_add(point.mass)
-                    })?,
+                    Some(points) => points
+                        .iter()
+                        .try_fold(Rational::zero(), |sum, point| sum.checked_add(point.mass))?,
                     None => Rational::zero(),
                 };
                 result.push(WorldObjectives {
@@ -1205,14 +1212,18 @@ fn replay_unnormalized_node(
                     )?
                 };
                 for (current, child) in result.iter_mut().zip(child_metrics.iter()) {
-                    current.expected_experiment_cost =
-                        current.expected_experiment_cost.checked_add(child.expected_experiment_cost)?;
-                    current.expected_terminal_loss =
-                        current.expected_terminal_loss.checked_add(child.expected_terminal_loss)?;
-                    current.hazard_probability =
-                        current.hazard_probability.checked_add(child.hazard_probability)?;
-                    current.abstention_probability =
-                        current.abstention_probability.checked_add(child.abstention_probability)?;
+                    current.expected_experiment_cost = current
+                        .expected_experiment_cost
+                        .checked_add(child.expected_experiment_cost)?;
+                    current.expected_terminal_loss = current
+                        .expected_terminal_loss
+                        .checked_add(child.expected_terminal_loss)?;
+                    current.hazard_probability = current
+                        .hazard_probability
+                        .checked_add(child.hazard_probability)?;
+                    current.abstention_probability = current
+                        .abstention_probability
+                        .checked_add(child.abstention_probability)?;
                 }
             }
             Ok(result)
@@ -1380,8 +1391,7 @@ fn exhaustive_frontier(
         return Ok(candidates);
     }
     for command in 0..command_costs.len() {
-        let partitions =
-            command_partitions_for_beliefs(worlds, beliefs, command, protocol)?;
+        let partitions = command_partitions_for_beliefs(worlds, beliefs, command, protocol)?;
         let observations = union_observations(&partitions);
         let mut partials = vec![PartialCandidate {
             per_world: beliefs
@@ -1419,9 +1429,9 @@ fn exhaustive_frontier(
             let mut expanded = Vec::new();
             for partial in &partials {
                 for child in &children {
-                    *generated = generated
-                        .checked_add(1)
-                        .ok_or_else(|| "exhaustive robust combination counter overflow".to_string())?;
+                    *generated = generated.checked_add(1).ok_or_else(|| {
+                        "exhaustive robust combination counter overflow".to_string()
+                    })?;
                     if *generated > cap {
                         return Err("exhaustive robust policy-tree cap exceeded".into());
                     }
@@ -1486,9 +1496,7 @@ fn independent_dominates(left: &[WorldObjectives], right: &[WorldObjectives]) ->
 }
 
 #[cfg(test)]
-fn independent_partial_frontier(
-    candidates: Vec<PartialCandidate>,
-) -> Vec<PartialCandidate> {
+fn independent_partial_frontier(candidates: Vec<PartialCandidate>) -> Vec<PartialCandidate> {
     let mut retained = Vec::new();
     for (index, candidate) in candidates.iter().enumerate() {
         let dominated = candidates.iter().enumerate().any(|(other_index, other)| {
@@ -1536,7 +1544,11 @@ mod tests {
         Rational::new(1, 2).unwrap()
     }
 
-    fn make_inverted_instrument_world(id: &str, inverted: bool, marker_value: usize) -> DecisionModelWorld {
+    fn make_inverted_instrument_world(
+        id: &str,
+        inverted: bool,
+        marker_value: usize,
+    ) -> DecisionModelWorld {
         let mut rows = Vec::new();
         for hypothesis in 0..2 {
             let state = LatentState {
@@ -1824,8 +1836,14 @@ mod tests {
             2,
         )
         .unwrap();
-        assert_eq!(replay.per_world[0].expected_experiment_cost, Rational::new(3, 20).unwrap());
-        assert_eq!(replay.per_world[1].expected_experiment_cost, Rational::new(3, 20).unwrap());
+        assert_eq!(
+            replay.per_world[0].expected_experiment_cost,
+            Rational::new(3, 20).unwrap()
+        );
+        assert_eq!(
+            replay.per_world[1].expected_experiment_cost,
+            Rational::new(3, 20).unwrap()
+        );
         assert_eq!(replay.per_world[0].expected_terminal_loss, Rational::zero());
         assert_eq!(replay.per_world[1].expected_terminal_loss, Rational::zero());
         assert_eq!(replay.per_world[0].hazard_probability, Rational::zero());
@@ -1870,8 +1888,14 @@ mod tests {
             1,
         )
         .unwrap();
-        assert_eq!(nominal_replay.per_world[0].expected_terminal_loss, Rational::zero());
-        assert_eq!(nominal_replay.per_world[1].expected_terminal_loss, Rational::one());
+        assert_eq!(
+            nominal_replay.per_world[0].expected_terminal_loss,
+            Rational::zero()
+        );
+        assert_eq!(
+            nominal_replay.per_world[1].expected_terminal_loss,
+            Rational::one()
+        );
 
         let robust = optimize_shared_policy_decisions(
             &world_set,
@@ -1890,7 +1914,10 @@ mod tests {
             })
             .unwrap()
             .unwrap();
-        assert_eq!(selected.worst_case_total_loss().unwrap(), Rational::new(3, 20).unwrap());
+        assert_eq!(
+            selected.worst_case_total_loss().unwrap(),
+            Rational::new(3, 20).unwrap()
+        );
         assert_eq!(selected.worst_case_terminal_loss(), Rational::zero());
     }
 
@@ -1979,20 +2006,25 @@ mod tests {
             .frontier
             .iter()
             .map(|point| {
-                point.per_world.iter().map(|world| {
-                    (
-                        world.expected_experiment_cost,
-                        world.expected_terminal_loss,
-                        world.hazard_probability,
-                        world.abstention_probability,
-                    )
-                }).collect::<Vec<_>>()
+                point
+                    .per_world
+                    .iter()
+                    .map(|world| {
+                        (
+                            world.expected_experiment_cost,
+                            world.expected_terminal_loss,
+                            world.hazard_probability,
+                            world.abstention_probability,
+                        )
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
-        let nominal_objectives = super::super::finite_horizon::frontier_objectives(&nominal.frontier)
-            .into_iter()
-            .map(|objective| vec![objective])
-            .collect::<Vec<_>>();
+        let nominal_objectives =
+            super::super::finite_horizon::frontier_objectives(&nominal.frontier)
+                .into_iter()
+                .map(|objective| vec![objective])
+                .collect::<Vec<_>>();
         let mut robust_objectives = robust_as_one_world;
         robust_objectives.sort();
         robust_objectives.dedup();
@@ -2024,7 +2056,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(a.world_ids, b.world_ids);
-        assert_eq!(frontier_objectives(&a.frontier), frontier_objectives(&b.frontier));
+        assert_eq!(
+            frontier_objectives(&a.frontier),
+            frontier_objectives(&b.frontier)
+        );
     }
 
     #[test]
@@ -2168,7 +2203,10 @@ mod tests {
             1,
         )
         .unwrap();
-        assert_eq!(shifted_replay.per_world[1].hazard_probability, Rational::new(1, 10).unwrap());
+        assert_eq!(
+            shifted_replay.per_world[1].hazard_probability,
+            Rational::new(1, 10).unwrap()
+        );
 
         let result = optimize_shared_policy_decisions(
             &worlds,
@@ -2217,7 +2255,10 @@ mod tests {
             })
             .unwrap()
             .unwrap();
-        assert_eq!(selected.worst_case_total_loss().unwrap(), Rational::new(1, 2).unwrap());
+        assert_eq!(
+            selected.worst_case_total_loss().unwrap(),
+            Rational::new(1, 2).unwrap()
+        );
         assert!(matches!(
             &selected.plan,
             &DecisionPlan::TerminalDecision { decision: Some(_) }
@@ -2254,7 +2295,10 @@ mod tests {
             selected.plan,
             DecisionPlan::TerminalDecision { decision: None }
         );
-        assert_eq!(selected.worst_case_abstention_probability(), Rational::one());
+        assert_eq!(
+            selected.worst_case_abstention_probability(),
+            Rational::one()
+        );
     }
 
     #[test]
@@ -2266,12 +2310,7 @@ mod tests {
             half()
         );
         assert_eq!(
-            worst_case_tv_expectation(
-                &losses,
-                &weights,
-                Rational::new(1, 4).unwrap(),
-            )
-            .unwrap(),
+            worst_case_tv_expectation(&losses, &weights, Rational::new(1, 4).unwrap(),).unwrap(),
             Rational::new(3, 4).unwrap()
         );
         assert_eq!(
@@ -2286,34 +2325,21 @@ mod tests {
 
     #[test]
     fn finite_support_tv_transfers_mass_across_multiple_loss_tiers_exactly() {
-        let losses = vec![
-            Rational::zero(),
-            Rational::one(),
-            Rational::from_u64(2),
-        ];
+        let losses = vec![Rational::zero(), Rational::one(), Rational::from_u64(2)];
         let weights = vec![
             Rational::new(1, 10).unwrap(),
             Rational::new(6, 10).unwrap(),
             Rational::new(3, 10).unwrap(),
         ];
         assert_eq!(
-            worst_case_tv_expectation(
-                &losses,
-                &weights,
-                Rational::new(1, 5).unwrap(),
-            )
-            .unwrap(),
+            worst_case_tv_expectation(&losses, &weights, Rational::new(1, 5).unwrap(),).unwrap(),
             Rational::new(3, 2).unwrap()
         );
     }
 
     #[test]
     fn tv_mass_transfer_matches_exhaustive_small_simplex_grid() {
-        let losses = [
-            Rational::zero(),
-            Rational::one(),
-            Rational::from_u64(2),
-        ];
+        let losses = [Rational::zero(), Rational::one(), Rational::from_u64(2)];
         let nominal = [
             Rational::new(1, 10).unwrap(),
             Rational::new(6, 10).unwrap(),
@@ -2417,8 +2443,10 @@ mod tests {
             .unwrap();
         assert_eq!(a.plan, b.plan);
         assert_eq!(
-            a.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap()).unwrap(),
-            b.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap()).unwrap()
+            a.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap())
+                .unwrap(),
+            b.worst_case_total_loss_under_tv(&weights, Rational::new(1, 5).unwrap())
+                .unwrap()
         );
     }
 
@@ -2496,24 +2524,19 @@ mod tests {
     #[test]
     fn total_variation_weight_contract_fails_closed() {
         let losses = vec![Rational::zero(), Rational::one()];
-        assert!(worst_case_tv_expectation(
-            &losses,
-            &[Rational::new(1, 4).unwrap(), Rational::new(1, 4).unwrap()],
-            half(),
-        )
-        .is_err());
-        assert!(worst_case_tv_expectation(
-            &losses,
-            &[half(), half()],
-            Rational::new(3, 2).unwrap(),
-        )
-        .is_err());
-        assert!(worst_case_tv_expectation(
-            &losses,
-            &[half()],
-            half(),
-        )
-        .is_err());
+        assert!(
+            worst_case_tv_expectation(
+                &losses,
+                &[Rational::new(1, 4).unwrap(), Rational::new(1, 4).unwrap()],
+                half(),
+            )
+            .is_err()
+        );
+        assert!(
+            worst_case_tv_expectation(&losses, &[half(), half()], Rational::new(3, 2).unwrap(),)
+                .is_err()
+        );
+        assert!(worst_case_tv_expectation(&losses, &[half()], half(),).is_err());
     }
 
     #[test]
@@ -2525,16 +2548,18 @@ mod tests {
 
         let mut no_memo = config(1);
         no_memo.max_memo_states = 0;
-        assert!(optimize_shared_policy_decisions(
-            &worlds,
-            "world-a",
-            &table,
-            protocol,
-            &costs,
-            Rational::one(),
-            &no_memo,
-        )
-        .is_err());
+        assert!(
+            optimize_shared_policy_decisions(
+                &worlds,
+                "world-a",
+                &table,
+                protocol,
+                &costs,
+                Rational::one(),
+                &no_memo,
+            )
+            .is_err()
+        );
 
         let mut oversized = Vec::new();
         for index in 0..=MAX_MODEL_WORLDS {
@@ -2544,16 +2569,18 @@ mod tests {
                 0,
             ));
         }
-        assert!(optimize_shared_policy_decisions(
-            &oversized,
-            "world-00",
-            &table,
-            protocol,
-            &costs,
-            Rational::one(),
-            &config(0),
-        )
-        .is_err());
+        assert!(
+            optimize_shared_policy_decisions(
+                &oversized,
+                "world-00",
+                &table,
+                protocol,
+                &costs,
+                Rational::one(),
+                &config(0),
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2589,32 +2616,36 @@ mod tests {
                 },
             ],
         };
-        assert!(replay_shared_policy_across_worlds(
-            &worlds,
-            "world-a",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &costs(),
-            Rational::one(),
-            &plan,
-            1,
-        )
-        .is_err());
+        assert!(
+            replay_shared_policy_across_worlds(
+                &worlds,
+                "world-a",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &costs(),
+                Rational::one(),
+                &plan,
+                1,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn incompatible_model_world_semantics_fail_closed() {
         let mut incompatible = worlds();
         incompatible[1].kernel.measurement_ids.swap(0, 1);
-        assert!(optimize_shared_policy_decisions(
-            &incompatible,
-            "world-a",
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &costs(),
-            Rational::one(),
-            &config(1),
-        )
-        .is_err());
+        assert!(
+            optimize_shared_policy_decisions(
+                &incompatible,
+                "world-a",
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &costs(),
+                Rational::one(),
+                &config(1),
+            )
+            .is_err()
+        );
     }
 }

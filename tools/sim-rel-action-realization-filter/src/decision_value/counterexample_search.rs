@@ -6,14 +6,14 @@
 //! is itself a concrete counterexample, rather than a branch to be silently
 //! marginalized or discarded.
 
-use super::robust_finite_horizon::{
-    replay_shared_policy_across_worlds, DecisionModelWorld, WorldDecisionObjectives,
-};
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
+use super::robust_finite_horizon::{
+    DecisionModelWorld, WorldDecisionObjectives, replay_shared_policy_across_worlds,
+};
 use super::{DecisionLossTable, ObservationProtocol};
 use crate::{ActionRealizationKernel, LatentState, Rational};
-use std::collections::BTreeSet;
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ModelWorldPerturbation {
@@ -110,9 +110,7 @@ impl CounterexampleOutcome {
         match self {
             Self::PolicyInvalidated { .. } => CounterexampleClass::PolicyInvalidated,
             Self::HazardBudgetViolated { .. } => CounterexampleClass::HazardBudgetViolated,
-            Self::AbstentionBudgetViolated { .. } => {
-                CounterexampleClass::AbstentionBudgetViolated
-            }
+            Self::AbstentionBudgetViolated { .. } => CounterexampleClass::AbstentionBudgetViolated,
             Self::DecisionLossAmplified { .. } => CounterexampleClass::DecisionLossAmplified,
             Self::NoViolation { .. } => CounterexampleClass::NoViolation,
         }
@@ -234,7 +232,9 @@ pub fn apply_model_world_perturbation(
                 || *right_measurement >= candidate.kernel.measurement_ids.len()
                 || left_measurement == right_measurement
             {
-                return Err("sensor-calibration swap parameters are outside the source vocabulary".into());
+                return Err(
+                    "sensor-calibration swap parameters are outside the source vocabulary".into(),
+                );
             }
             let mut changed = false;
             for row in &mut candidate.kernel.rows {
@@ -289,7 +289,10 @@ pub fn apply_model_world_perturbation(
                 }
                 row.outcomes = expanded;
             }
-            require_changed(changed, "readback dropout matched no readback-bearing outcomes")?;
+            require_changed(
+                changed,
+                "readback dropout matched no readback-bearing outcomes",
+            )?;
         }
         ModelWorldPerturbation::InjectHazard {
             command,
@@ -310,8 +313,7 @@ pub fn apply_model_world_perturbation(
                         let mut safe = outcome.clone();
                         safe.probability = safe.probability.checked_mul(safe_probability)?;
                         let mut hazard = outcome.clone();
-                        hazard.probability =
-                            hazard.probability.checked_mul(*hazard_probability)?;
+                        hazard.probability = hazard.probability.checked_mul(*hazard_probability)?;
                         hazard.hazard = true;
                         hazard.measurement = None;
                         expanded.push(safe);
@@ -353,8 +355,9 @@ pub fn apply_model_world_perturbation(
             }
             row.outcomes[*source_outcome].probability =
                 subtract_nonnegative(source_probability, *amount)?;
-            row.outcomes[*target_outcome].probability =
-                row.outcomes[*target_outcome].probability.checked_add(*amount)?;
+            row.outcomes[*target_outcome].probability = row.outcomes[*target_outcome]
+                .probability
+                .checked_add(*amount)?;
         }
         ModelWorldPerturbation::DegradeApparatus {
             command,
@@ -448,7 +451,9 @@ fn row_matches(
 
 fn validate_split_probability(probability: Rational, label: &str) -> Result<(), String> {
     if probability.is_zero() || probability >= Rational::one() {
-        return Err(format!("{label} probability must be strictly between zero and one"));
+        return Err(format!(
+            "{label} probability must be strictly between zero and one"
+        ));
     }
     Ok(())
 }
@@ -563,7 +568,9 @@ pub fn generate_bounded_perturbation_grid(
         return Err("perturbation grid requires at least one source world".into());
     }
     if max_attempts == 0 || max_attempts > MAX_GRID_ATTEMPTS {
-        return Err(format!("perturbation grid attempt cap must be in 1..={MAX_GRID_ATTEMPTS}"));
+        return Err(format!(
+            "perturbation grid attempt cap must be in 1..={MAX_GRID_ATTEMPTS}"
+        ));
     }
 
     let mut canonical_worlds = worlds.to_vec();
@@ -649,7 +656,10 @@ pub fn generate_bounded_perturbation_grid(
                     && kernel.rows.iter().any(|row| {
                         row.command == command
                             && sensor_state.is_none_or(|sensor| row.state.sensor_state == sensor)
-                            && row.outcomes.iter().any(|outcome| outcome.readback.is_some())
+                            && row
+                                .outcomes
+                                .iter()
+                                .any(|outcome| outcome.readback.is_some())
                     })
                 {
                     for probability in &split_probabilities {
@@ -737,9 +747,7 @@ pub fn generate_bounded_perturbation_grid(
                 }
             }
 
-            if grid.include_apparatus_degradation
-                && kernel.apparatus_state_count > 1
-            {
+            if grid.include_apparatus_degradation && kernel.apparatus_state_count > 1 {
                 for threshold in 0..kernel.apparatus_state_count {
                     for degraded_state in 0..kernel.apparatus_state_count {
                         if threshold == degraded_state {
@@ -846,7 +854,10 @@ fn perturbation_is_applicable(
             ..
         } => kernel.rows.iter().any(|row| {
             row_matches(row.state, row.command, *command, *sensor_state)
-                && row.outcomes.iter().any(|outcome| outcome.readback.is_some())
+                && row
+                    .outcomes
+                    .iter()
+                    .any(|outcome| outcome.readback.is_some())
         }),
         ModelWorldPerturbation::InjectHazard {
             command,
@@ -891,9 +902,10 @@ fn perturbation_is_applicable(
         } => kernel.rows.iter().any(|row| {
             row.command == *command
                 && row.state.apparatus_state >= *current_apparatus_state_at_least
-                && row.outcomes.iter().any(|outcome| {
-                    outcome.next_state.apparatus_state != *degraded_next_state
-                })
+                && row
+                    .outcomes
+                    .iter()
+                    .any(|outcome| outcome.next_state.apparatus_state != *degraded_next_state)
         }),
         ModelWorldPerturbation::RemapRealizedAction {
             command,
@@ -902,7 +914,10 @@ fn perturbation_is_applicable(
             ..
         } => kernel.rows.iter().any(|row| {
             row_matches(row.state, row.command, *command, *sensor_state)
-                && row.outcomes.iter().any(|outcome| outcome.realized_action == *from_action)
+                && row
+                    .outcomes
+                    .iter()
+                    .any(|outcome| outcome.realized_action == *from_action)
         }),
     }
 }
@@ -983,10 +998,7 @@ pub fn search_policy_counterexamples(
             });
             continue;
         }
-        let Some(source) = worlds
-            .iter()
-            .find(|world| world.id == spec.source_world_id)
-        else {
+        let Some(source) = worlds.iter().find(|world| world.id == spec.source_world_id) else {
             report.rejected.push(RejectedPerturbation {
                 spec: spec.clone(),
                 reason: "source world is absent from the supplied model family".into(),
@@ -1049,20 +1061,16 @@ pub fn search_policy_counterexamples(
                         metrics,
                         allowed_hazard_probability: budgets.max_hazard_probability,
                     }
-                } else if metrics.abstention_probability
-                    > budgets.max_abstention_probability
-                {
+                } else if metrics.abstention_probability > budgets.max_abstention_probability {
                     CounterexampleOutcome::AbstentionBudgetViolated {
                         metrics,
                         allowed_abstention_probability: budgets.max_abstention_probability,
                     }
-                } else if metrics.expected_terminal_loss
-                    > report.baseline_worst_case_terminal_loss
+                } else if metrics.expected_terminal_loss > report.baseline_worst_case_terminal_loss
                 {
                     CounterexampleOutcome::DecisionLossAmplified {
                         metrics,
-                        baseline_worst_case_terminal_loss: report
-                            .baseline_worst_case_terminal_loss,
+                        baseline_worst_case_terminal_loss: report.baseline_worst_case_terminal_loss,
                     }
                 } else {
                     CounterexampleOutcome::NoViolation { metrics }
@@ -1084,10 +1092,14 @@ pub fn search_policy_counterexamples(
 
     report.witnesses.sort_by(compare_witness_severity);
     report.non_violating_candidates.sort_by(|left, right| {
-        left.spec.candidate_world_id.cmp(&right.spec.candidate_world_id)
+        left.spec
+            .candidate_world_id
+            .cmp(&right.spec.candidate_world_id)
     });
     report.rejected.sort_by(|left, right| {
-        left.spec.candidate_world_id.cmp(&right.spec.candidate_world_id)
+        left.spec
+            .candidate_world_id
+            .cmp(&right.spec.candidate_world_id)
     });
     Ok(report)
 }
@@ -1162,8 +1174,12 @@ mod error_classification_tests {
         assert!(is_policy_invalidated_error(
             "observed hazard branch must terminate immediately"
         ));
-        assert!(!is_policy_invalidated_error("rational multiplication numerator overflow"));
-        assert!(!is_policy_invalidated_error("model worlds must share dimensions"));
+        assert!(!is_policy_invalidated_error(
+            "rational multiplication numerator overflow"
+        ));
+        assert!(!is_policy_invalidated_error(
+            "model worlds must share dimensions"
+        ));
     }
 }
 
@@ -1476,8 +1492,10 @@ mod tests {
             .unwrap();
             candidate.kernel.validate().unwrap();
         }
-        assert_eq!(forward.attempted,
-            forward.specs.len() + forward.skipped_inapplicable);
+        assert_eq!(
+            forward.attempted,
+            forward.specs.len() + forward.skipped_inapplicable
+        );
     }
 
     #[test]
@@ -1550,7 +1568,10 @@ mod tests {
             }
             _ => panic!("measurement inversion should amplify terminal decision loss"),
         }
-        assert_eq!(report.baseline_worst_case_total_loss, Rational::new(1, 10).unwrap());
+        assert_eq!(
+            report.baseline_worst_case_total_loss,
+            Rational::new(1, 10).unwrap()
+        );
         assert_eq!(report.attempted, 1);
         assert_eq!(report.witnesses.len(), 1);
     }
@@ -1565,21 +1586,20 @@ mod tests {
             max_hazard_probability: Rational::zero(),
             max_abstention_probability: Rational::one(),
         };
-        let nominal_result =
-            super::super::finite_horizon::optimize_finite_horizon_decisions(
-                &nominal.kernel,
-                &table,
-                protocol,
-                &costs,
-                Rational::one(),
-                &super::super::finite_horizon::DecisionSolverConfig {
-                    horizon: 1,
-                    max_memo_states: 20_000,
-                    max_frontier_points: 20_000,
-                    max_generated_combinations: 200_000,
-                },
-            )
-            .unwrap();
+        let nominal_result = super::super::finite_horizon::optimize_finite_horizon_decisions(
+            &nominal.kernel,
+            &table,
+            protocol,
+            &costs,
+            Rational::one(),
+            &super::super::finite_horizon::DecisionSolverConfig {
+                horizon: 1,
+                max_memo_states: 20_000,
+                max_frontier_points: 20_000,
+                max_generated_combinations: 200_000,
+            },
+        )
+        .unwrap();
         let nominal_policy = nominal_result
             .minimum_loss_under(budgets)
             .unwrap()
@@ -1776,8 +1796,14 @@ mod tests {
         )
         .unwrap();
         candidate.kernel.validate().unwrap();
-        assert_eq!(candidate.kernel.rows[0].outcomes[0].probability, Rational::new(7, 10).unwrap());
-        assert_eq!(candidate.kernel.rows[0].outcomes[1].probability, Rational::new(3, 10).unwrap());
+        assert_eq!(
+            candidate.kernel.rows[0].outcomes[0].probability,
+            Rational::new(7, 10).unwrap()
+        );
+        assert_eq!(
+            candidate.kernel.rows[0].outcomes[1].probability,
+            Rational::new(3, 10).unwrap()
+        );
     }
 
     #[test]
@@ -1796,7 +1822,8 @@ mod tests {
         dropout.kernel.validate().unwrap();
         assert_eq!(dropout.kernel.rows[0].outcomes.len(), 2);
         assert_eq!(
-            dropout.kernel.rows[0].outcomes[0].probability
+            dropout.kernel.rows[0].outcomes[0]
+                .probability
                 .checked_add(dropout.kernel.rows[0].outcomes[1].probability)
                 .unwrap(),
             Rational::one()
@@ -1815,7 +1842,11 @@ mod tests {
         hazard.kernel.validate().unwrap();
         assert_eq!(hazard.kernel.rows[0].outcomes.len(), 2);
         assert_eq!(
-            hazard.kernel.rows[0].outcomes.iter().filter(|outcome| outcome.hazard).count(),
+            hazard.kernel.rows[0]
+                .outcomes
+                .iter()
+                .filter(|outcome| outcome.hazard)
+                .count(),
             1
         );
     }
@@ -1834,12 +1865,17 @@ mod tests {
         )
         .unwrap();
         degraded.kernel.validate().unwrap();
-        assert!(degraded
-            .kernel
-            .rows
-            .iter()
-            .filter(|row| row.command == 0 && row.state.apparatus_state == 0)
-            .all(|row| row.outcomes.iter().all(|outcome| outcome.next_state.apparatus_state == 1)));
+        assert!(
+            degraded
+                .kernel
+                .rows
+                .iter()
+                .filter(|row| row.command == 0 && row.state.apparatus_state == 0)
+                .all(|row| row
+                    .outcomes
+                    .iter()
+                    .all(|outcome| outcome.next_state.apparatus_state == 1))
+        );
 
         let remapped = apply_model_world_perturbation(
             &source,
@@ -1853,12 +1889,17 @@ mod tests {
         )
         .unwrap();
         remapped.kernel.validate().unwrap();
-        assert!(remapped
-            .kernel
-            .rows
-            .iter()
-            .filter(|row| row.command == 0)
-            .all(|row| row.outcomes.iter().all(|outcome| outcome.realized_action == 1)));
+        assert!(
+            remapped
+                .kernel
+                .rows
+                .iter()
+                .filter(|row| row.command == 0)
+                .all(|row| row
+                    .outcomes
+                    .iter()
+                    .all(|outcome| outcome.realized_action == 1))
+        );
     }
 
     #[test]
@@ -1947,27 +1988,31 @@ mod tests {
     #[test]
     fn generator_rejects_invalid_probability_and_missing_source() {
         let source = world();
-        assert!(apply_model_world_perturbation(
-            &source,
-            "bad-probability",
-            &ModelWorldPerturbation::InjectHazard {
-                command: 0,
-                sensor_state: None,
-                hazard_probability: Rational::one(),
-            },
-        )
-        .is_err());
-        assert!(apply_model_world_perturbation(
-            &source,
-            "bad-measurement",
-            &ModelWorldPerturbation::SwapMeasurementLabels {
-                command: 0,
-                sensor_state: 0,
-                left_measurement: 0,
-                right_measurement: 9,
-            },
-        )
-        .is_err());
+        assert!(
+            apply_model_world_perturbation(
+                &source,
+                "bad-probability",
+                &ModelWorldPerturbation::InjectHazard {
+                    command: 0,
+                    sensor_state: None,
+                    hazard_probability: Rational::one(),
+                },
+            )
+            .is_err()
+        );
+        assert!(
+            apply_model_world_perturbation(
+                &source,
+                "bad-measurement",
+                &ModelWorldPerturbation::SwapMeasurementLabels {
+                    command: 0,
+                    sensor_state: 0,
+                    left_measurement: 0,
+                    right_measurement: 9,
+                },
+            )
+            .is_err()
+        );
     }
 
     #[test]
