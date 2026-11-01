@@ -59,7 +59,13 @@ fn option_path(
     Ok(())
 }
 
-fn parse_options<I>(args: I) -> Result<(Option<PathBuf>, Option<PathBuf>, Option<PathBuf>), String>
+struct ParsedOptions {
+    solver_config: Option<PathBuf>,
+    mesh: Option<PathBuf>,
+    portable_ir_directory: Option<PathBuf>,
+}
+
+fn parse_options<I>(args: I) -> Result<ParsedOptions, String>
 where
     I: IntoIterator<Item = OsString>,
 {
@@ -78,7 +84,11 @@ where
         };
         result?;
     }
-    Ok((config_path, mesh_path, portable_ir_directory))
+    Ok(ParsedOptions {
+        solver_config: config_path,
+        mesh: mesh_path,
+        portable_ir_directory,
+    })
 }
 
 fn run() -> Result<ExitCode, String> {
@@ -89,8 +99,8 @@ fn run() -> Result<ExitCode, String> {
         return Ok(ExitCode::from(64));
     };
 
-    let (config_path, mesh_path, portable_ir_directory) = match parse_options(args) {
-        Ok(paths) => paths,
+    let options = match parse_options(args) {
+        Ok(options) => options,
         Err(error) => {
             usage(&program);
             eprintln!("{error}");
@@ -100,13 +110,13 @@ fn run() -> Result<ExitCode, String> {
 
     let source = read_bounded(Path::new(&source_path), MAX_SOURCE_BYTES, "scenario source")?;
     let mut owned_artifacts = Vec::with_capacity(2);
-    if let Some(path) = config_path {
+    if let Some(path) = options.solver_config {
         owned_artifacts.push((
             ArtifactRole::SolverConfig,
             read_bounded(Path::new(&path), MAX_UPSTREAM_CONFIG_BYTES, "solver config")?,
         ));
     }
-    if let Some(path) = mesh_path {
+    if let Some(path) = options.mesh {
         owned_artifacts.push((
             ArtifactRole::Mesh,
             read_bounded(Path::new(&path), MAX_UPSTREAM_MESH_BYTES, "mesh")?,
@@ -118,7 +128,7 @@ fn run() -> Result<ExitCode, String> {
         .collect();
 
     let report = compile_with_artifacts(&source, &borrowed_artifacts);
-    if let Some(directory) = portable_ir_directory {
+    if let Some(directory) = options.portable_ir_directory {
         let scenario = report.scenario_ir.as_ref().ok_or_else(|| {
             "portable IR output requested but compilation produced no typed Scenario IR".to_owned()
         })?;
@@ -163,7 +173,7 @@ mod tests {
 
     #[test]
     fn parses_each_optional_artifact_path_once() {
-        let (config, mesh, portable_ir) = parse_options(args(&[
+        let options = parse_options(args(&[
             "--solver-config",
             "solver.cfg",
             "--mesh",
@@ -172,9 +182,12 @@ mod tests {
             "identity-output",
         ]))
         .expect("valid options parse");
-        assert_eq!(config, Some(PathBuf::from("solver.cfg")));
-        assert_eq!(mesh, Some(PathBuf::from("grid.su2")));
-        assert_eq!(portable_ir, Some(PathBuf::from("identity-output")));
+        assert_eq!(options.solver_config, Some(PathBuf::from("solver.cfg")));
+        assert_eq!(options.mesh, Some(PathBuf::from("grid.su2")));
+        assert_eq!(
+            options.portable_ir_directory,
+            Some(PathBuf::from("identity-output"))
+        );
     }
 
     #[test]
