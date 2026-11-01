@@ -422,8 +422,7 @@ fn exact_two_contact_slide_stick_branch_intervals(
     Ok(classifications)
 }
 
-#[test]
-fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
+fn two_contact_witness() -> (SMatrix<f64, 6, 6>, SVector<f64, 6>) {
     let w = SMatrix::<f64, 6, 6>::from_row_slice(&[
         0.59497432,
         -0.39054620,
@@ -463,6 +462,12 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         1.0,
     ]);
     let q = SVector::<f64, 6>::new(-0.10770302, 1.49149027, -0.95561905, -1.0, 0.1, -0.1);
+    (w, q)
+}
+
+#[test]
+fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
+    let (w, q) = two_contact_witness();
     let mu_1 = 1.383_289_774_658_335;
 
     let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
@@ -539,5 +544,85 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
             SlidingBranchClassification::NegativeMultiplier,
             SlidingBranchClassification::NegativeMultiplier,
         ]
+    );
+}
+
+
+#[test]
+fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
+    // Swapping contact blocks maps original contact 2 to the sliding contact
+    // and original contact 1 to the sticking contact. The permutation is an
+    // exact coordinate relabeling, not a new physical problem.
+    let (w, q) = two_contact_witness();
+    let permutation = [3_usize, 4, 5, 0, 1, 2];
+    let permuted_w = SMatrix::<f64, 6, 6>::from_fn(|row, column| {
+        w[(permutation[row], permutation[column])]
+    });
+    let permuted_q =
+        SVector::<f64, 6>::from_fn(|row, _| q[permutation[row]]);
+    let mu_sliding = 1.0;
+    let mu_sticking = 1.383_289_774_658_335;
+
+    let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            exact_w[row][column] = exact_f64(permuted_w[(row, column)]).unwrap();
+        }
+    }
+    assert!(
+        exact_symmetric_matrix_is_spd(&exact_w),
+        "a contact permutation must preserve exact SPD"
+    );
+
+    let (quartic, determinant, numerators) =
+        exact_two_contact_slide_stick_polynomials(&permuted_w, &permuted_q, mu_sliding)
+            .expect("exact dyadic permuted slide/stick polynomial derivation");
+    assert_eq!(quartic.len(), 5);
+    assert_eq!(
+        polynomial_gcd(&quartic, &derivative(&quartic))
+            .expect("square-free polynomial gcd")
+            .len(),
+        1,
+        "the permuted angular quartic must have four simple complex roots"
+    );
+    let roots = sturm_isolate_rational(quartic.clone())
+        .expect("exact Sturm isolation of the permuted slide/stick quartic");
+    assert_eq!(roots.len(), 2, "the permuted stratum has two real angular roots");
+
+    let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
+    let mut singular_determinant = determinant.clone();
+    for _ in 0..3 {
+        singular_determinant =
+            polynomial_divide_exact(&singular_determinant, &half_angle_denominator)
+                .expect("remove the exact projective denominator factor");
+    }
+    let singular_angles = sturm_isolate_rational(singular_determinant.clone())
+        .expect("exact Sturm isolation of permuted singular active-system angles");
+    assert_eq!(singular_angles.len(), 2);
+    assert_eq!(
+        polynomial_gcd(&singular_determinant, &numerators[0])
+            .expect("permuted Cramer/determinant gcd")
+            .len(),
+        1,
+        "permuted singular angular systems have no compatible right-hand side"
+    );
+
+    let classifications = exact_two_contact_slide_stick_branch_intervals(
+        &permuted_w,
+        &permuted_q,
+        mu_sliding,
+        mu_sticking,
+        &determinant,
+        &numerators,
+        &roots,
+    )
+    .expect("exact interval classification of every permuted angular root");
+    assert_eq!(
+        classifications,
+        vec![
+            SlidingBranchClassification::NegativeMultiplier,
+            SlidingBranchClassification::NegativeMultiplier,
+        ],
+        "both real roots violate the sliding disk KKT multiplier sign"
     );
 }
