@@ -56,6 +56,8 @@ fn baseline() -> CampaignV1 {
             ResourceQualificationV1 {
                 id: "rail-proof".to_owned(),
                 resource_id: "rail-section-01".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
                 valid_from_epoch_seconds: 0,
                 valid_until_epoch_seconds: 100,
                 status: qualified_resource(),
@@ -63,6 +65,8 @@ fn baseline() -> CampaignV1 {
             ResourceQualificationV1 {
                 id: "road-proof".to_owned(),
                 resource_id: "road-section-01".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
                 valid_from_epoch_seconds: 0,
                 valid_until_epoch_seconds: 100,
                 status: qualified_resource(),
@@ -70,6 +74,8 @@ fn baseline() -> CampaignV1 {
             ResourceQualificationV1 {
                 id: "range-proof".to_owned(),
                 resource_id: "range-slot-01".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
+                time_profile_id: "unix-epoch-utc-v1".to_owned(),
                 valid_from_epoch_seconds: 0,
                 valid_until_epoch_seconds: 100,
                 status: qualified_resource(),
@@ -179,6 +185,7 @@ fn reference_disposition(campaign: &CampaignV1) -> CampaignDisposition {
     for proof in &campaign.resource_qualifications {
         if !is_id(&proof.id)
             || !is_id(&proof.resource_id)
+            || !is_id(&proof.time_profile_id)
             || proof.valid_from_epoch_seconds >= proof.valid_until_epoch_seconds
         {
             infeasible = true;
@@ -210,6 +217,7 @@ fn reference_disposition(campaign: &CampaignV1) -> CampaignDisposition {
             || !is_id(&transfer.from_node_id)
             || !is_id(&transfer.to_node_id)
             || !is_id(&transfer.resource_id)
+            || !is_id(&transfer.time_profile_id)
             || !is_id(&transfer.resource_qualification_id)
             || !transfer_ids.insert(transfer.id.as_str())
         {
@@ -248,6 +256,7 @@ fn reference_disposition(campaign: &CampaignV1) -> CampaignDisposition {
             None => needs_evidence = true,
             Some(proof) => {
                 if proof.resource_id != transfer.resource_id
+                    || proof.time_profile_id != transfer.time_profile_id
                     || transfer.starts_at_epoch_seconds < proof.valid_from_epoch_seconds
                     || transfer.ends_at_epoch_seconds > proof.valid_until_epoch_seconds
                 {
@@ -489,6 +498,10 @@ fn corpus() -> Vec<(&'static str, CampaignV1)> {
     c.id.clear();
     cases.push(("32-invalid-campaign-id", c));
 
+    let mut c = baseline();
+    c.transfers[0].time_profile_id = "tai-epoch-v1".to_owned();
+    cases.push(("33-time-profile-mismatch", c));
+
     cases
 }
 
@@ -525,7 +538,8 @@ fn frozen_expected_disposition(case_id: &str) -> CampaignDisposition {
         | "29-invalid-resource-window"
         | "30-duplicate-resource-proof"
         | "31-destination-has-wrong-role"
-        | "32-invalid-campaign-id" => CampaignDisposition::Infeasible,
+        | "32-invalid-campaign-id"
+        | "33-time-profile-mismatch" => CampaignDisposition::Infeasible,
         _ => panic!("unexpected frozen corpus case: {case_id}"),
     }
 }
