@@ -168,9 +168,8 @@ fn three_non_collinear_point_contacts_have_rank_six_and_nullity_three() {
     // The Gram identity proves PSD exactly. A deterministic integer panel
     // checks the assembled quadratic form against J^T x and positive M^-1.
     for seed in 0..48_i64 {
-        let x: Vector9 = std::array::from_fn(|index| {
-            ((seed * (index as i64 + 3) + 5 * index as i64) % 23) - 11
-        });
+        let x: Vector9 =
+            std::array::from_fn(|index| ((seed * (index as i64 + 3) + 5 * index as i64) % 23) - 11);
         let jtx = transpose_times_vector(&x);
         let gram_value: i64 = (0..6)
             .map(|coordinate| SIX_TIMES_INVERSE_MASS[coordinate] * jtx[coordinate].pow(2))
@@ -202,9 +201,10 @@ fn three_non_collinear_point_contacts_have_rank_six_and_nullity_three() {
 fn three_contact_island_has_a_three_dimensional_admissible_allocation_fibre() {
     let w6 = geometry_delassus_sixths();
     let q6 = SIX_TIMES_FREE_CONTACT_VELOCITY;
-    assert_eq!(delassus_times_vector(&w6, &BASE_IMPULSE), [
-        36, 0, 0, 40, 0, 0, 42, 0, 0
-    ]);
+    assert_eq!(
+        delassus_times_vector(&w6, &BASE_IMPULSE),
+        [36, 0, 0, 40, 0, 0, 42, 0, 0]
+    );
     assert_eq!(
         jacobian_times_vector(&SIX_TIMES_FREE_GENERALIZED_VELOCITY),
         q6,
@@ -225,10 +225,8 @@ fn three_contact_island_has_a_three_dimensional_admissible_allocation_fibre() {
         assert!(d > 0);
         let mut p = [0_i64; 9];
         for index in 0..9 {
-            p[index] = d * BASE_IMPULSE[index]
-                + a * NULL_A[index]
-                + b * NULL_B[index]
-                + c * NULL_C[index];
+            p[index] =
+                d * BASE_IMPULSE[index] + a * NULL_A[index] + b * NULL_B[index] + c * NULL_C[index];
         }
 
         // q+Wp=0 and J^T p is the same generalized body impulse as p0.
@@ -259,8 +257,7 @@ fn three_contact_island_has_a_three_dimensional_admissible_allocation_fibre() {
         // p0 is orthogonal to the three-dimensional nullspace. In these
         // contact coordinates it is the unique minimum-Euclidean-norm
         // representative, but that selection does not erase the fibre.
-        let norm_increment =
-            dot(&p, &p) - d.pow(2) * dot(&BASE_IMPULSE, &BASE_IMPULSE);
+        let norm_increment = dot(&p, &p) - d.pow(2) * dot(&BASE_IMPULSE, &BASE_IMPULSE);
         assert_eq!(
             norm_increment,
             2 * a.pow(2) + 2 * b.pow(2) + 4 * c.pow(2) - 2 * a * c - 2 * b * c
@@ -282,9 +279,7 @@ fn proximal_cone_metric_lifts_rank_six_nine_by_nine_delassus_to_exact_spd() {
     // inner QP metric SPD even though the unregularized physical W has nullity 3.
     for shift in [3_i64, 6, 12] {
         let lifted = std::array::from_fn(|row| {
-            std::array::from_fn(|column| {
-                w6[row][column] + if row == column { shift } else { 0 }
-            })
+            std::array::from_fn(|column| w6[row][column] + if row == column { shift } else { 0 })
         });
         for size in 1..=9 {
             let determinant = leading_principal_minor(&lifted, size);
