@@ -446,17 +446,32 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
         let sine = theta.sin();
 
         for (index, row_values) in values.iter_mut().enumerate() {
-            if index == p || index == q {
-                continue;
+            if index != p && index != q {
+                let aip = row_values[p];
+                let aiq = row_values[q];
+                row_values[p] = cosine * aip - sine * aiq;
+                row_values[q] = sine * aip + cosine * aiq;
             }
-            let aip = row_values[p];
-            let aiq = row_values[q];
-            let new_aip = cosine * aip - sine * aiq;
-            let new_aiq = sine * aip + cosine * aiq;
-            row_values[p] = new_aip;
-            row_values[q] = new_aiq;
-            values[p][index] = new_aip;
-            values[q][index] = new_aiq;
+        }
+        let new_column_p = values.iter().map(|row_values| row_values[p]).collect::<Vec<_>>();
+        let new_column_q = values.iter().map(|row_values| row_values[q]).collect::<Vec<_>>();
+        let (row_p, row_q) = if p < q {
+            let (left, right) = values.split_at_mut(q);
+            (&mut left[p], &mut right[0])
+        } else {
+            let (left, right) = values.split_at_mut(p);
+            (&mut right[0], &mut left[q])
+        };
+        for (index, ((cell_p, cell_q), (new_p, new_q))) in row_p
+            .iter_mut()
+            .zip(row_q.iter_mut())
+            .zip(new_column_p.iter().zip(new_column_q.iter()))
+            .enumerate()
+        {
+            if index != p && index != q {
+                *cell_p = *new_p;
+                *cell_q = *new_q;
+            }
         }
         values[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
         values[q][q] = sine * sine * app + 2.0 * sine * cosine * apq + cosine * cosine * aqq;
