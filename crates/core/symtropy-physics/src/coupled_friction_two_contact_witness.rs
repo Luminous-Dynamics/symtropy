@@ -2703,8 +2703,7 @@ mod double_sliding_direction_oracle {
         assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
         assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
         assert!(
-            certificate.contraction_row_sum_bound
-                < BigRational::from_integer(BigInt::from(1_u8))
+            certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8))
         );
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(
