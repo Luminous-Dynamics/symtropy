@@ -76,6 +76,42 @@ For every interval, exact interval evaluation establishes:
 
 The two admissible intervals have strictly positive tau1 and strictly negative Delta K. The other two have strictly negative tau1, so they violate the original sliding KKT law even though both have positive normal loads and contact 2 remains inside its disk.
 
+## Contact-permuted slide/stick orientation
+
+A second exact test permutes the contact coordinate blocks with
+`(n_1,t_{11},t_{12}) \leftrightarrow (n_2,t_{21},t_{22})`. This preserves
+the physical island and its exact SPD property while making original contact
+2 the sliding contact and original contact 1 the sticking contact. The
+friction coefficients are permuted with the contact roles:
+`mu_sliding = 1`, `mu_sticking = 1.383289774658335`.
+
+The independently reconstructed quartic is square-free and has exactly two
+finite real roots. The singular active-system determinant again has two real
+directions and is coprime with a Cramer replacement numerator. Exact rational
+interval KKT evaluation classifies both real roots as inadmissible because
+their sliding disk multipliers are strictly negative:
+
+| Root | t = tan(theta/2) | theta (rad) | sliding lambda | sticking lambda | tau_sliding | Delta K | Result |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | -0.734574431368000 | -1.267110859726 | 1.05874557 | 6.96146185 | -1.706693969635 | -6.799397310032 | reject: tau < 0 |
+| 2 | 1.38413544400421 | 1.890293451636 | 1.06435846 | 8.71957774 | -0.100329364468 | -8.604101219431 | reject: tau < 0 |
+
+Both roots have positive normal impulses, strict sticking-disk margin and
+dissipative energy, so the negative multiplier is the decisive KKT rejection.
+This is useful: the reverse orientation is not dismissed because a root
+solver failed to find a branch; it is excluded after isolating every real
+angular root in that stratum.
+
+Together, the two exact orientation-specific results are:
+
+- original contact 1 sliding / original contact 2 sticking: four angular roots,
+  exactly two admissible;
+- original contact 2 sliding / original contact 1 sticking: two angular roots,
+  zero admissible.
+
+Neither result covers slide/slide, separating contacts, simultaneous active-set
+boundaries, or uncertain parameter families.
+
 ## Singular and projective directions
 
 The determinant of the 4x4 active linear system has two real zeros after removing the known nonzero half-angle scaling factor. At a singular angle, a compatible solution would force every Cramer replacement determinant to vanish. The exact polynomial gcd of the reduced determinant and the first replacement determinant is the constant one. Therefore neither singular direction can satisfy the active equations.
