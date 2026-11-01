@@ -1945,6 +1945,66 @@ mod tests {
     }
 
     #[test]
+    fn evaluation_artifact_ids_are_single_use_across_all_holdout_groups() {
+        let second_group = SealedHoldoutGroupRegistration {
+            family_group_id: "sealed-apparatus-family".into(),
+            world_ids: vec!["heldout-world-c".into(), "heldout-world-d".into()],
+            manifest_id: "heldout-manifest-v2".into(),
+        };
+        let mut ledger = ModelFamilyLedger::new(
+            vec![world("nominal")],
+            vec![calibration()],
+            vec![holdout(), second_group],
+            "policy-v1".into(),
+            test_policy(),
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        )
+        .unwrap();
+        ledger
+            .seal_final_policy("seal".into(), 0, "policy-v1".into())
+            .unwrap();
+
+        let first_worlds = vec![world("heldout-world-a"), world("heldout-world-b")];
+        ledger
+            .record_sealed_holdout_evaluation(
+                "eval-group-one".into(),
+                "sealed-mechanism-family".into(),
+                0,
+                "policy-v1".into(),
+                &first_worlds,
+                holdout_criteria(Rational::zero()),
+                "shared-evaluation-artifact".into(),
+            )
+            .unwrap();
+
+        let second_worlds = vec![world("heldout-world-c"), world("heldout-world-d")];
+        assert!(ledger
+            .record_sealed_holdout_evaluation(
+                "eval-group-two".into(),
+                "sealed-apparatus-family".into(),
+                0,
+                "policy-v1".into(),
+                &second_worlds,
+                holdout_criteria(Rational::zero()),
+                "shared-evaluation-artifact".into(),
+            )
+            .is_err());
+        assert!(!ledger
+            .snapshot()
+            .consumed_holdout_group_ids
+            .contains(&"sealed-apparatus-family".to_string()));
+    }
+
+    #[test]
     fn a_passing_sealed_holdout_result_is_computed_from_internal_replay() {
         let mut ledger = ledger();
         ledger
