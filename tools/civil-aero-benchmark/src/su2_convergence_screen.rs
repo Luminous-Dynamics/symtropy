@@ -630,6 +630,73 @@ fn empty_result(
     }
 }
 
+/// Verify aggregate status counts and recompute the canonical screen digest before downstream binding.
+pub fn verify_convergence_screen(screen: &ConvergenceScreen) -> Result<(), String> {
+    if screen.evidence_level != CONVERGENCE_SCREEN_EVIDENCE_LEVEL
+        || screen.results.is_empty()
+    {
+        return Err("convergence screen evidence level or result set is invalid".to_owned());
+    }
+    let passed = screen
+        .results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Passed)
+        .count();
+    let failed = screen
+        .results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::Failed)
+        .count();
+    let insufficient = screen
+        .results
+        .iter()
+        .filter(|row| row.status == CriterionStatus::InsufficientRows)
+        .count();
+    if (passed, failed, insufficient)
+        != (
+            screen.passed_count,
+            screen.failed_count,
+            screen.insufficient_count,
+        )
+    {
+        return Err("convergence screen aggregate counts do not match criterion statuses".to_owned());
+    }
+    let expected_status = match (failed, insufficient) {
+        (0, 0) => "declared_thresholds_met",
+        (_, 0) => "declared_thresholds_not_met",
+        (0, _) => "incomplete_insufficient_rows",
+        _ => "declared_thresholds_not_met_and_incomplete",
+    };
+    if screen.status != expected_status {
+        return Err("convergence screen aggregate status does not match criterion statuses".to_owned());
+    }
+    let mut columns = std::collections::BTreeSet::new();
+    if screen.results.iter().any(|row| {
+        row.column.trim().is_empty()
+            || row.unit.trim().is_empty()
+            || row.kind.trim().is_empty()
+            || !columns.insert(row.column.as_str())
+    }) {
+        return Err("convergence screen contains an empty or duplicate criterion field".to_owned());
+    }
+    if screen.run_id.trim().is_empty()
+        || !is_sha256(&screen.runner_receipt_sha256)
+        || !is_sha256(&screen.history_sha256)
+        || !is_sha256(&screen.history_import_sha256)
+        || !is_sha256(&screen.screen_sha256)
+    {
+        return Err("convergence screen run identity or digest is malformed".to_owned());
+    }
+    if sha256_hex(&canonical_screen_bytes(screen))? != screen.screen_sha256 {
+        return Err("convergence screen canonical digest mismatch".to_owned());
+    }
+    Ok(())
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
     let header = [
         "schema",
