@@ -5,9 +5,7 @@ use std::process::ExitCode;
 use civil_aero_benchmark::su2_convergence_screen::{
     ConvergenceCriteria, MonitorCriterion, ResidualCriterion, screen_su2_history, screen_to_csv,
 };
-use civil_aero_benchmark::su2_history::{
-    Su2HistoryField, Su2HistorySchema, import_su2_history,
-};
+use civil_aero_benchmark::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
 
 struct Options {
     run_directory: PathBuf,
@@ -49,7 +47,11 @@ fn run() -> Result<bool, String> {
     )?;
     eprintln!(
         "su2_convergence_screen={} run_id={} passed={} failed={} insufficient={} screen_sha256={} evidence_level={}",
-        if audit.status == "declared_thresholds_met" { "pass" } else { "not_admitted" },
+        if audit.status == "declared_thresholds_met" {
+            "pass"
+        } else {
+            "not_admitted"
+        },
         audit.run_id,
         audit.passed_count,
         audit.failed_count,
@@ -93,9 +95,9 @@ fn parse_arguments() -> Result<Options, String> {
                 });
             }
             "--residual" => {
-                let (column, limits) = value
-                    .split_once('=')
-                    .ok_or_else(|| "--residual must be COLUMN=MAX_FINAL_ABS:MAX_FINAL_RATIO".to_owned())?;
+                let (column, limits) = value.split_once('=').ok_or_else(|| {
+                    "--residual must be COLUMN=MAX_FINAL_ABS:MAX_FINAL_RATIO".to_owned()
+                })?;
                 let (maximum_final_absolute_value, maximum_final_to_initial_ratio) = limits
                     .split_once(':')
                     .ok_or_else(|| "--residual needs MAX_FINAL_ABS:MAX_FINAL_RATIO".to_owned())?;
@@ -110,9 +112,9 @@ fn parse_arguments() -> Result<Options, String> {
                 });
             }
             "--monitor" => {
-                let (column, limits) = value
-                    .split_once('=')
-                    .ok_or_else(|| "--monitor must be COLUMN=WINDOW_ROWS:MAX_ABS_RANGE".to_owned())?;
+                let (column, limits) = value.split_once('=').ok_or_else(|| {
+                    "--monitor must be COLUMN=WINDOW_ROWS:MAX_ABS_RANGE".to_owned()
+                })?;
                 let (trailing_window_rows, maximum_absolute_range) = limits
                     .split_once(':')
                     .ok_or_else(|| "--monitor needs WINDOW_ROWS:MAX_ABS_RANGE".to_owned())?;
@@ -132,9 +134,11 @@ fn parse_arguments() -> Result<Options, String> {
 
     Ok(Options {
         run_directory: run_directory.ok_or_else(|| "missing --run-dir".to_owned())?,
-        history_relative_path: history_relative_path.ok_or_else(|| "missing --history".to_owned())?,
+        history_relative_path: history_relative_path
+            .ok_or_else(|| "missing --history".to_owned())?,
         expected_header,
-        iteration_column: iteration_column.ok_or_else(|| "missing --iteration-column".to_owned())?,
+        iteration_column: iteration_column
+            .ok_or_else(|| "missing --iteration-column".to_owned())?,
         numeric_fields,
         residuals,
         monitors,
