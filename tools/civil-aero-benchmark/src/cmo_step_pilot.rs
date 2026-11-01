@@ -65,11 +65,21 @@ pub fn evaluate_step_pilot(
         StepPilotTask::Step7C2Dtlz2M2D5 => evaluate_c2_dtlz2(decision_vector),
         StepPilotTask::Step24C1Dtlz1M3D5 => evaluate_c1_dtlz1(decision_vector),
     };
-    if objectives.iter().chain(&constraint_margins).any(|value| !value.is_finite()) {
-        return Err(format!("{}: formula evaluation produced a non-finite value", task.task_id()));
+    if objectives
+        .iter()
+        .chain(&constraint_margins)
+        .any(|value| !value.is_finite())
+    {
+        return Err(format!(
+            "{}: formula evaluation produced a non-finite value",
+            task.task_id()
+        ));
     }
     if constraint_margins.is_empty() {
-        return Err(format!("{}: at least one constraint is required", task.task_id()));
+        return Err(format!(
+            "{}: at least one constraint is required",
+            task.task_id()
+        ));
     }
 
     let aggregate_violation = constraint_margins
@@ -77,7 +87,10 @@ pub fn evaluate_step_pilot(
         .map(|margin| (-margin).max(0.0))
         .sum::<f64>();
     if !aggregate_violation.is_finite() {
-        return Err(format!("{}: aggregate constraint violation overflowed", task.task_id()));
+        return Err(format!(
+            "{}: aggregate constraint violation overflowed",
+            task.task_id()
+        ));
     }
     let feasible = constraint_margins
         .iter()
@@ -108,7 +121,11 @@ fn validate_decision_vector(task: StepPilotTask, values: &[f64]) -> Result<(), S
             return Err(format!("{}: x{} must be finite", task.task_id(), index + 1));
         }
         if *value < -BOUND_TOLERANCE || *value > 1.0 + BOUND_TOLERANCE {
-            return Err(format!("{}: x{} is outside [0, 1]", task.task_id(), index + 1));
+            return Err(format!(
+                "{}: x{} is outside [0, 1]",
+                task.task_id(),
+                index + 1
+            ));
         }
     }
     Ok(())
@@ -159,9 +176,7 @@ fn evaluate_c1_dtlz1(x: &[f64]) -> (Vec<f64>, Vec<f64>) {
         * (k as f64
             + x[objectives_count - 1..]
                 .iter()
-                .map(|value| {
-                    (value - 0.5).powi(2) - (20.0 * PI * (value - 0.5)).cos()
-                })
+                .map(|value| (value - 0.5).powi(2) - (20.0 * PI * (value - 0.5)).cos())
                 .sum::<f64>());
     let scale = 0.5 * (1.0 + g);
     let mut objectives = Vec::with_capacity(objectives_count);
@@ -178,17 +193,16 @@ fn evaluate_c1_dtlz1(x: &[f64]) -> (Vec<f64>, Vec<f64>) {
         objectives.push(value);
     }
 
-    let constraint_margin =
-        1.0 - objectives[objectives_count - 1] / 0.6
-            - objectives[..objectives_count - 1]
-                .iter()
-                .map(|value| value / 0.5)
-                .sum::<f64>();
+    let constraint_margin = 1.0
+        - objectives[objectives_count - 1] / 0.6
+        - objectives[..objectives_count - 1]
+            .iter()
+            .map(|value| value / 0.5)
+            .sum::<f64>();
     (objectives, vec![constraint_margin])
 }
 
-pub const STEP_PILOT_CSV_HEADER: &str =
-    "case_id,task_id,problem_name,decision_vector,objectives,constraint_margins,aggregate_violation,feasible";
+pub const STEP_PILOT_CSV_HEADER: &str = "case_id,task_id,problem_name,decision_vector,objectives,constraint_margins,aggregate_violation,feasible";
 
 pub fn evaluation_to_csv(case_id: &str, evaluation: &StepPilotEvaluation) -> String {
     let decision_vector = evaluation
@@ -279,15 +293,16 @@ mod tests {
     #[test]
     fn pilot_rejects_dimension_bounds_and_non_finite_inputs() {
         assert!(evaluate_step_pilot(StepPilotTask::Step7C2Dtlz2M2D5, &[0.0; 4]).is_err());
-        assert!(evaluate_step_pilot(
-            StepPilotTask::Step24C1Dtlz1M3D5,
-            &[0.2, 0.3, 0.5, 0.5, 1.1]
-        )
-        .is_err());
-        assert!(evaluate_step_pilot(
-            StepPilotTask::Step7C2Dtlz2M2D5,
-            &[0.2, 0.3, 0.5, 0.5, f64::NAN]
-        )
-        .is_err());
+        assert!(
+            evaluate_step_pilot(StepPilotTask::Step24C1Dtlz1M3D5, &[0.2, 0.3, 0.5, 0.5, 1.1])
+                .is_err()
+        );
+        assert!(
+            evaluate_step_pilot(
+                StepPilotTask::Step7C2Dtlz2M2D5,
+                &[0.2, 0.3, 0.5, 0.5, f64::NAN]
+            )
+            .is_err()
+        );
     }
 }

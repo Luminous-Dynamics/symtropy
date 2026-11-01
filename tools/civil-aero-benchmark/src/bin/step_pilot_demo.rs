@@ -1,7 +1,7 @@
 use std::process;
 
 use civil_aero_benchmark::cmo_step_pilot::{
-    evaluate_step_pilot, evaluation_to_csv, StepPilotTask, STEP_PILOT_CSV_HEADER,
+    STEP_PILOT_CSV_HEADER, StepPilotTask, evaluate_step_pilot, evaluation_to_csv,
 };
 
 fn main() {
@@ -20,7 +20,10 @@ fn run() -> Result<(), String> {
         let x = [x1, 0.5, 0.5, 0.5, 0.5];
         let evaluation = evaluate_step_pilot(StepPilotTask::Step7C2Dtlz2M2D5, &x)?;
         feasible_rows += if evaluation.feasible { 1 } else { 0 };
-        output.push_str(&evaluation_to_csv(&format!("step7-x1-{x1:.2}"), &evaluation));
+        output.push_str(&evaluation_to_csv(
+            &format!("step7-x1-{x1:.2}"),
+            &evaluation,
+        ));
         rows += 1;
     }
 
