@@ -11,6 +11,13 @@ use nalgebra::{SMatrix, SVector};
 
 type RationalInterval = (Rational, Rational);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SlidingBranchClassification {
+    Admissible,
+    NegativeMultiplier,
+    EnergyIncreasing,
+}
+
 fn polynomial_divide_exact(
     dividend: &[Rational],
     divisor: &[Rational],
@@ -286,7 +293,8 @@ fn exact_symmetric_matrix_is_spd(matrix: &[Vec<Rational>]) -> bool {
 fn exact_two_contact_slide_stick_branch_intervals(
     w: &SMatrix<f64, 6, 6>,
     q: &SVector<f64, 6>,
-    mu_1: f64,
+    mu_sliding: f64,
+    mu_sticking: f64,
     determinant: &[Rational],
     numerators: &[Polynomial],
     roots: &[(Rational, Rational)],
@@ -299,10 +307,11 @@ fn exact_two_contact_slide_stick_branch_intervals(
             exact_w[row][column] = exact_f64(w[(row, column)])?;
         }
     }
-    let mu = exact_f64(mu_1)?;
+    let mu = exact_f64(mu_sliding)?;
+    let mu_stick = exact_f64(mu_sticking)?;
     let half = Rational::new(BigInt::one(), BigInt::from(2));
     let one = Rational::one();
-    let mut admissible = Vec::with_capacity(roots.len());
+    let mut classifications = Vec::with_capacity(roots.len());
 
     for (lower, upper) in roots {
         let t = (lower.clone(), upper.clone());
@@ -365,8 +374,9 @@ fn exact_two_contact_slide_stick_branch_intervals(
         );
         let tau = interval_div(&interval_neg(&tangent_work), &tangent_norm_squared)?;
 
+        let stick_radius = interval_scale(&impulse[3], &mu_stick);
         let disk_2_margin = interval_sub(
-            &interval_mul(&impulse[3], &impulse[3]),
+            &interval_mul(&stick_radius, &stick_radius),
             &interval_add(
                 &interval_mul(&impulse[4], &impulse[4]),
                 &interval_mul(&impulse[5], &impulse[5]),
@@ -392,14 +402,24 @@ fn exact_two_contact_slide_stick_branch_intervals(
         if impulse[0].0 <= Rational::zero()
             || impulse[3].0 <= Rational::zero()
             || disk_2_margin.0 <= Rational::zero()
-            || tau.0 <= Rational::zero() && tau.1 >= Rational::zero()
         {
-            admissible.push(false);
+            return Err("a root does not have positive normal loads and a strict sticking-disk margin");
+        }
+        if tau.0 > Rational::zero() {
+            if energy.1 <= Rational::zero() {
+                classifications.push(SlidingBranchClassification::Admissible);
+            } else if energy.0 > Rational::zero() {
+                classifications.push(SlidingBranchClassification::EnergyIncreasing);
+            } else {
+                return Err("the island energy interval overlaps the admissibility boundary");
+            }
+        } else if tau.1 < Rational::zero() {
+            classifications.push(SlidingBranchClassification::NegativeMultiplier);
         } else {
-            admissible.push(tau.0 > Rational::zero() && energy.1 <= Rational::zero());
+            return Err("the sliding multiplier interval overlaps zero");
         }
     }
-    Ok(admissible)
+    Ok(classifications)
 }
 
 #[test]
@@ -505,10 +525,19 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         &w,
         &q,
         mu_1,
+        1.0,
         &determinant,
         &numerators,
         &roots,
     )
     .expect("exact interval classification of every finite angular root");
-    assert_eq!(admissible, vec![true, true, false, false]);
+    assert_eq!(
+        admissible,
+        vec![
+            SlidingBranchClassification::Admissible,
+            SlidingBranchClassification::Admissible,
+            SlidingBranchClassification::NegativeMultiplier,
+            SlidingBranchClassification::NegativeMultiplier,
+        ]
+    );
 }
