@@ -285,7 +285,7 @@ mod tests {
             br#"{"outer":{"a":1,"a":2}}"#.as_slice(),
             br#"{"items":[{"a":1,"a":2}]}"#.as_slice(),
             br#"{"a":1,"\u0061":2}"#.as_slice(),
-            br#"{"é":1,"\u00e9":2}"#.as_slice(),
+            r#"{"é":1,"\u00e9":2}"#.as_bytes(),
         ] {
             assert!(parse_strict_jcs_input(input).is_err());
         }
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn accepts_valid_unicode_and_binary64_boundaries() {
-        let input = br#"{
+        let input = r#"{
           "composed":"é",
           "decomposed":"e\u0301",
           "symbol":"\uD834\uDD1E",
@@ -321,7 +321,7 @@ mod tests {
           "safe_integer":9007199254740991,
           "numeric_text":"18446744073709551617"
         }"#;
-        let value = parse_strict_jcs_input(input).unwrap();
+        let value = parse_strict_jcs_input(input.as_bytes()).unwrap();
         assert_eq!(value["composed"], "é");
         assert_eq!(value["numeric_text"], "18446744073709551617");
         assert_ne!(value["composed"], value["decomposed"]);
