@@ -439,6 +439,18 @@ jobs:
           grep -q "material_lot" tools/civil-aero-benchmark/data/manufacturing/coupon_build_traveler_template.csv
           grep -q "expanded_uncertainty" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
           grep -q "calibration_status" tools/civil-aero-benchmark/data/manufacturing/coupon_measurement_template.csv
+      - name: Validate ShapeBench import contract with independent oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --quiet --locked --bin shapebench_import_demo > /tmp/shapebench-import-a.csv 2> /tmp/shapebench-import-a.txt
+          cargo run --quiet --locked --bin shapebench_import_demo > /tmp/shapebench-import-b.csv 2> /tmp/shapebench-import-b.txt
+          cmp /tmp/shapebench-import-a.csv /tmp/shapebench-import-b.csv
+          cmp /tmp/shapebench-import-a.txt /tmp/shapebench-import-b.txt
+          test "$(wc -l < /tmp/shapebench-import-a.csv)" -eq 4
+          grep -q "cost_ledger_admitted=false" /tmp/shapebench-import-a.txt
+          grep -q "benchmark_output_import_only_not_solver_validation_or_physical_evidence" /tmp/shapebench-import-a.txt
+          python3 scripts/verify-shapebench-import-independent.py data/shapebench_results_fixture.csv /tmp/shapebench-import-a.csv
       - name: Validate evidence manifest without promoting pending sources
         shell: bash
         run: |
