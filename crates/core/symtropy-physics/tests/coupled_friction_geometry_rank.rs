@@ -344,3 +344,134 @@ fn one_null_direction_means_unique_response_but_nonunique_force_allocation() {
         mat_vec(&delassus, &base_impulse)
     );
 }
+
+
+#[test]
+fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
+    // Three points on the plane z=0, at r1=(0,0,0), r2=(1,0,0),
+    // r3=(0,1,0); contact frames use normal ez and tangents ex,ey.
+    let jacobian = vec![
+        vec![z(), z(), i(1), z(), z(), z()],
+        vec![i(1), z(), z(), z(), z(), z()],
+        vec![z(), i(1), z(), z(), z(), z()],
+        vec![z(), z(), i(1), z(), i(-1), z()],
+        vec![i(1), z(), z(), z(), z(), z()],
+        vec![z(), i(1), z(), z(), z(), i(1)],
+        vec![z(), z(), i(1), i(1), z(), z()],
+        vec![i(1), z(), z(), z(), z(), i(-1)],
+        vec![z(), i(1), z(), z(), z(), z()],
+    ];
+    let inverse_mass = vec![
+        vec![i(1), z(), z(), z(), z(), z()],
+        vec![z(), i(1), z(), z(), z(), z()],
+        vec![z(), z(), i(1), z(), z(), z()],
+        vec![z(), z(), z(), i(1), z(), z()],
+        vec![z(), z(), z(), z(), r(1, 2), z()],
+        vec![z(), z(), z(), z(), z(), r(1, 3)],
+    ];
+    let delassus = multiply(
+        &multiply(&jacobian, &inverse_mass),
+        &transpose(&jacobian),
+    );
+
+    assert_eq!(jacobian.len(), 9);
+    assert_eq!(jacobian[0].len(), 6);
+    assert_eq!(delassus.len(), 9);
+    assert_eq!(rank(&jacobian), 6);
+    assert_eq!(rank(&delassus), 6);
+    assert_eq!(delassus, transpose(&delassus));
+
+    // Columns are a rational basis for ker(J^T)=ker(W).
+    let null_basis = vec![
+        vec![z(), z(), z()],
+        vec![i(-1), i(-1), z()],
+        vec![z(), i(-1), i(-1)],
+        vec![z(), z(), z()],
+        vec![i(1), z(), z()],
+        vec![z(), i(1), z()],
+        vec![z(), z(), z()],
+        vec![z(), i(1), z()],
+        vec![z(), z(), i(1)],
+    ];
+    assert_eq!(rank(&null_basis), 3);
+    let basis_columns = transpose(&null_basis);
+    for basis_vector in &basis_columns {
+        assert_eq!(
+            mat_vec(&delassus, basis_vector),
+            vec![z(), z(), z(), z(), z(), z(), z(), z(), z()]
+        );
+    }
+
+    let base_impulse = vec![
+        i(2), z(), z(),
+        i(2), z(), z(),
+        i(2), z(), z(),
+    ];
+    let response = mat_vec(&delassus, &base_impulse);
+    assert_eq!(
+        response,
+        vec![i(6), z(), z(), i(7), z(), z(), i(8), z(), z()]
+    );
+    let free_velocity = response
+        .iter()
+        .cloned()
+        .map(std::ops::Neg::neg)
+        .collect::<Vector>();
+    let expected_energy = i(-21);
+    let mu = r(1, 2);
+
+    // The parameter cube is wholly inside every local Coulomb disk:
+    // |alpha|,|beta|,|gamma| <= 1/10 gives tangent components bounded by 1/5,
+    // while each disk radius is mu*lambda=1.
+    let parameters = [
+        (r(-1, 10), r(-1, 10), r(-1, 10)),
+        (r(-1, 10), r(1, 10), r(-1, 10)),
+        (r(1, 10), r(-1, 10), r(1, 10)),
+        (r(1, 10), r(1, 10), r(1, 10)),
+        (z(), z(), z()),
+    ];
+    let mut allocations = Vec::new();
+
+    for (alpha, beta, gamma) in parameters {
+        let impulse = (0..9)
+            .map(|row| {
+                base_impulse[row].clone()
+                    + alpha.clone() * null_basis[row][0].clone()
+                    + beta.clone() * null_basis[row][1].clone()
+                    + gamma.clone() * null_basis[row][2].clone()
+            })
+            .collect::<Vector>();
+        let actual_response = mat_vec(&delassus, &impulse);
+        assert_eq!(actual_response, response);
+        assert_eq!(
+            actual_response
+                .iter()
+                .zip(&free_velocity)
+                .map(|(left, right)| left.clone() + right.clone())
+                .collect::<Vector>(),
+            vec![z(), z(), z(), z(), z(), z(), z(), z(), z()]
+        );
+
+        for (normal_index, tangent_indices) in [
+            (0_usize, [1_usize, 2_usize]),
+            (3_usize, [4_usize, 5_usize]),
+            (6_usize, [7_usize, 8_usize]),
+        ] {
+            let normal = impulse[normal_index].clone();
+            let radius = mu.clone() * normal.clone();
+            let tangent_norm_squared = impulse[tangent_indices[0]].clone()
+                * impulse[tangent_indices[0]].clone()
+                + impulse[tangent_indices[1]].clone()
+                    * impulse[tangent_indices[1]].clone();
+            assert!(normal > Rational::zero());
+            assert!(radius.clone() * radius > tangent_norm_squared);
+        }
+
+        let energy = dot(&impulse, &free_velocity)
+            + r(1, 2) * dot(&impulse, &actual_response);
+        assert_eq!(energy, expected_energy);
+        allocations.push(impulse);
+    }
+
+    assert!(allocations.windows(2).all(|pair| pair[0] != pair[1]));
+}
