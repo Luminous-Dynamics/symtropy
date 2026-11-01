@@ -479,3 +479,11 @@ ledger's replay and checked against the search witness; sealed pass/fail is
 computed from the frozen policy's actual per-world metrics and pre-registered
 acceptance criteria, not accepted as a caller Boolean. The audit record retains
 the holdout snapshots and per-world outcomes.
+
+
+Counterexample provenance is also bound to the exact family revision and the
+exact policy tree. Candidate world IDs may not alias pre-registered sealed
+world IDs. Most importantly, admission independently replays the active policy
+against the full current family plus the candidate and derives the actual
+violation class/metrics. A witness whose claim disagrees with that replay is
+rejected; the admission record retains the ledger-derived result.
