@@ -282,7 +282,7 @@ fn proximal_cone_qp<O: DelassusOperator>(
     // matrix is SPD because W is PSD and gamma>0.
     let mut current = project_product_cone(initial, mu);
     let mut extrapolated = current;
-    let mut acceleration = 1.0;
+    let mut acceleration: f64 = 1.0;
     for iteration in 0..INNER_ITERATIONS {
         let gradient = add(
             &scaled_add(&operator.apply(&extrapolated), 1.0 / gamma, &extrapolated),
