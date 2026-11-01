@@ -196,12 +196,7 @@ impl<'a> DecisionOptimizer<'a> {
 
         if remaining_horizon > 0 {
             for command in 0..self.command_costs.len() {
-                let observations = public_observations(
-                    self.kernel,
-                    belief,
-                    command,
-                    self.protocol,
-                );
+                let observations = public_observations(self.kernel, belief, command, self.protocol);
                 let mut partials = vec![PartialCombination {
                     expected_experiment_cost: self.command_costs[command],
                     expected_terminal_loss: Rational::zero(),
@@ -211,13 +206,8 @@ impl<'a> DecisionOptimizer<'a> {
                 }];
 
                 for observation in observations {
-                    let filtered = filter_one_step(
-                        self.kernel,
-                        belief,
-                        command,
-                        observation,
-                    )
-                    .map_err(|error| format!("decision filter failed: {error}"))?;
+                    let filtered = filter_one_step(self.kernel, belief, command, observation)
+                        .map_err(|error| format!("decision filter failed: {error}"))?;
                     let branch_probability = filtered.observation_likelihood;
                     let child_frontier = if filtered.terminal_hazard {
                         vec![hazard_terminal_point(self.hazard_loss)]
@@ -233,30 +223,20 @@ impl<'a> DecisionOptimizer<'a> {
                         for child in &child_frontier {
                             self.bump_combinations()?;
                             let mut next = partial.clone();
-                            next.expected_experiment_cost = next
-                                .expected_experiment_cost
-                                .checked_add(
+                            next.expected_experiment_cost =
+                                next.expected_experiment_cost.checked_add(
                                     branch_probability
                                         .checked_mul(child.expected_experiment_cost)?,
                                 )?;
-                            next.expected_terminal_loss = next
-                                .expected_terminal_loss
-                                .checked_add(
-                                    branch_probability
-                                        .checked_mul(child.expected_terminal_loss)?,
-                                )?;
-                            next.hazard_probability = next
-                                .hazard_probability
-                                .checked_add(
-                                    branch_probability
-                                        .checked_mul(child.hazard_probability)?,
-                                )?;
-                            next.abstention_probability = next
-                                .abstention_probability
-                                .checked_add(
-                                    branch_probability
-                                        .checked_mul(child.abstention_probability)?,
-                                )?;
+                            next.expected_terminal_loss = next.expected_terminal_loss.checked_add(
+                                branch_probability.checked_mul(child.expected_terminal_loss)?,
+                            )?;
+                            next.hazard_probability = next.hazard_probability.checked_add(
+                                branch_probability.checked_mul(child.hazard_probability)?,
+                            )?;
+                            next.abstention_probability = next.abstention_probability.checked_add(
+                                branch_probability.checked_mul(child.abstention_probability)?,
+                            )?;
                             next.branches.push(DecisionBranch {
                                 observation,
                                 plan: Box::new(child.plan.clone()),
@@ -290,10 +270,7 @@ impl<'a> DecisionOptimizer<'a> {
         if frontier.len() > self.config.max_frontier_points {
             return Err("decision optimizer frontier-point budget exceeded".into());
         }
-        self.stats.maximum_frontier_points = self
-            .stats
-            .maximum_frontier_points
-            .max(frontier.len());
+        self.stats.maximum_frontier_points = self.stats.maximum_frontier_points.max(frontier.len());
         self.memo.insert(key, frontier.clone());
         Ok(frontier)
     }
@@ -438,9 +415,15 @@ fn prune_partial(
     candidates.sort_by(|left, right| {
         left.expected_experiment_cost
             .cmp(&right.expected_experiment_cost)
-            .then_with(|| left.expected_terminal_loss.cmp(&right.expected_terminal_loss))
+            .then_with(|| {
+                left.expected_terminal_loss
+                    .cmp(&right.expected_terminal_loss)
+            })
             .then_with(|| left.hazard_probability.cmp(&right.hazard_probability))
-            .then_with(|| left.abstention_probability.cmp(&right.abstention_probability))
+            .then_with(|| {
+                left.abstention_probability
+                    .cmp(&right.abstention_probability)
+            })
             .then_with(|| left.branches.cmp(&right.branches))
     });
     let mut frontier: Vec<PartialCombination> = Vec::new();
@@ -475,25 +458,25 @@ fn frontier_dominates(left: &DecisionFrontierPoint, right: &DecisionFrontierPoin
     no_worse && strictly_better
 }
 
-fn same_frontier_objectives(
-    left: &DecisionFrontierPoint,
-    right: &DecisionFrontierPoint,
-) -> bool {
+fn same_frontier_objectives(left: &DecisionFrontierPoint, right: &DecisionFrontierPoint) -> bool {
     left.expected_experiment_cost == right.expected_experiment_cost
         && left.expected_terminal_loss == right.expected_terminal_loss
         && left.hazard_probability == right.hazard_probability
         && left.abstention_probability == right.abstention_probability
 }
 
-fn frontier_order(
-    left: &DecisionFrontierPoint,
-    right: &DecisionFrontierPoint,
-) -> Ordering {
+fn frontier_order(left: &DecisionFrontierPoint, right: &DecisionFrontierPoint) -> Ordering {
     left.expected_experiment_cost
         .cmp(&right.expected_experiment_cost)
-        .then_with(|| left.expected_terminal_loss.cmp(&right.expected_terminal_loss))
+        .then_with(|| {
+            left.expected_terminal_loss
+                .cmp(&right.expected_terminal_loss)
+        })
         .then_with(|| left.hazard_probability.cmp(&right.hazard_probability))
-        .then_with(|| left.abstention_probability.cmp(&right.abstention_probability))
+        .then_with(|| {
+            left.abstention_probability
+                .cmp(&right.abstention_probability)
+        })
         .then_with(|| left.plan.cmp(&right.plan))
 }
 
@@ -504,8 +487,7 @@ fn prune_frontier(
     let mut frontier: Vec<DecisionFrontierPoint> = Vec::new();
     for candidate in candidates {
         if frontier.iter().any(|other| {
-            same_frontier_objectives(other, &candidate)
-                || frontier_dominates(other, &candidate)
+            same_frontier_objectives(other, &candidate) || frontier_dominates(other, &candidate)
         }) {
             continue;
         }
@@ -523,8 +505,14 @@ fn selected_order(
         .expected_total_loss()?
         .cmp(&right.expected_total_loss()?)
         .then_with(|| left.hazard_probability.cmp(&right.hazard_probability))
-        .then_with(|| left.abstention_probability.cmp(&right.abstention_probability))
-        .then_with(|| left.expected_experiment_cost.cmp(&right.expected_experiment_cost))
+        .then_with(|| {
+            left.abstention_probability
+                .cmp(&right.abstention_probability)
+        })
+        .then_with(|| {
+            left.expected_experiment_cost
+                .cmp(&right.expected_experiment_cost)
+        })
         .then_with(|| left.plan.cmp(&right.plan)))
 }
 
@@ -598,19 +586,24 @@ fn replay_from_belief(
             let Some(command_cost) = command_costs.get(*command).copied() else {
                 return Err("policy references an invalid command".into());
             };
-            let observations =
-                public_observations(kernel, belief, *command, protocol);
+            let observations = public_observations(kernel, belief, *command, protocol);
             if observations.len() != branches.len() {
-                return Err("policy does not contain exactly one branch per public observation".into());
+                return Err(
+                    "policy does not contain exactly one branch per public observation".into(),
+                );
             }
             let branch_map: BTreeMap<_, _> = branches
                 .iter()
                 .map(|branch| (branch.observation, branch.plan.as_ref()))
                 .collect();
             if branch_map.len() != branches.len()
-                || observations.iter().any(|observation| !branch_map.contains_key(observation))
+                || observations
+                    .iter()
+                    .any(|observation| !branch_map.contains_key(observation))
             {
-                return Err("policy branches contain duplicates or unreachable observations".into());
+                return Err(
+                    "policy branches contain duplicates or unreachable observations".into(),
+                );
             }
 
             let mut expected_experiment_cost = command_cost;
@@ -645,18 +638,17 @@ fn replay_from_belief(
                         remaining_horizon - 1,
                     )?
                 };
-                expected_experiment_cost = expected_experiment_cost
-                    .checked_add(
-                        branch_probability.checked_mul(child_point.expected_experiment_cost)?,
-                    )?;
-                expected_terminal_loss = expected_terminal_loss
-                    .checked_add(
-                        branch_probability.checked_mul(child_point.expected_terminal_loss)?,
-                    )?;
+                expected_experiment_cost = expected_experiment_cost.checked_add(
+                    branch_probability.checked_mul(child_point.expected_experiment_cost)?,
+                )?;
+                expected_terminal_loss = expected_terminal_loss.checked_add(
+                    branch_probability.checked_mul(child_point.expected_terminal_loss)?,
+                )?;
                 hazard_probability = hazard_probability
                     .checked_add(branch_probability.checked_mul(child_point.hazard_probability)?)?;
-                abstention_probability = abstention_probability
-                    .checked_add(branch_probability.checked_mul(child_point.abstention_probability)?)?;
+                abstention_probability = abstention_probability.checked_add(
+                    branch_probability.checked_mul(child_point.abstention_probability)?,
+                )?;
             }
             Ok(DecisionFrontierPoint {
                 expected_experiment_cost,
@@ -799,7 +791,7 @@ fn exhaustive_from_belief(
             },
         }));
     }
-    independent_pairwise_frontier(candidates)
+    Ok(independent_pairwise_frontier(candidates))
 }
 
 /// Independent quadratic nondominance filter used only by the exhaustive
@@ -817,11 +809,11 @@ fn independent_pairwise_frontier(
                 && other.expected_terminal_loss <= candidate.expected_terminal_loss
                 && other.hazard_probability <= candidate.hazard_probability
                 && other.abstention_probability <= candidate.abstention_probability;
-            let strictly_better =
-                other.expected_experiment_cost < candidate.expected_experiment_cost
-                    || other.expected_terminal_loss < candidate.expected_terminal_loss
-                    || other.hazard_probability < candidate.hazard_probability
-                    || other.abstention_probability < candidate.abstention_probability;
+            let strictly_better = other.expected_experiment_cost
+                < candidate.expected_experiment_cost
+                || other.expected_terminal_loss < candidate.expected_terminal_loss
+                || other.hazard_probability < candidate.hazard_probability
+                || other.abstention_probability < candidate.abstention_probability;
             no_worse && strictly_better
         });
         if !dominated {
@@ -832,9 +824,10 @@ fn independent_pairwise_frontier(
     retained.sort_by(frontier_order);
     let mut unique = Vec::new();
     for candidate in retained {
-        if unique.iter().any(|other: &DecisionFrontierPoint| {
-            same_frontier_objectives(other, &candidate)
-        }) {
+        if unique
+            .iter()
+            .any(|other: &DecisionFrontierPoint| same_frontier_objectives(other, &candidate))
+        {
             continue;
         }
         unique.push(candidate);
@@ -866,8 +859,7 @@ pub fn frontier_objectives(
 mod tests {
     use super::*;
     use crate::{
-        ActionRealizationKernel, BeliefMass, KernelRow, LatentState, Rational,
-        TransitionOutcome,
+        ActionRealizationKernel, BeliefMass, KernelRow, LatentState, Rational, TransitionOutcome,
     };
 
     fn outcome(
@@ -913,7 +905,12 @@ mod tests {
                 command: 1,
                 outcomes: vec![
                     outcome(Rational::new(1, 10).unwrap(), state, None, true),
-                    outcome(Rational::new(9, 10).unwrap(), state, Some(hypothesis), false),
+                    outcome(
+                        Rational::new(9, 10).unwrap(),
+                        state,
+                        Some(hypothesis),
+                        false,
+                    ),
                 ],
             });
         }
@@ -981,10 +978,7 @@ mod tests {
         let kernel = noisy_decision_kernel();
         let table = loss_table();
         let protocol = ObservationProtocol::fully_observed();
-        let costs = vec![
-            Rational::new(1, 10).unwrap(),
-            Rational::new(1, 20).unwrap(),
-        ];
+        let costs = vec![Rational::new(1, 10).unwrap(), Rational::new(1, 20).unwrap()];
         let config = fixture_config(2);
 
         let optimized = optimize_finite_horizon_decisions(
@@ -1018,10 +1012,7 @@ mod tests {
         let kernel = noisy_decision_kernel();
         let table = loss_table();
         let protocol = ObservationProtocol::fully_observed();
-        let costs = vec![
-            Rational::new(1, 10).unwrap(),
-            Rational::new(1, 20).unwrap(),
-        ];
+        let costs = vec![Rational::new(1, 10).unwrap(), Rational::new(1, 20).unwrap()];
         let optimized = optimize_finite_horizon_decisions(
             &kernel,
             &table,
@@ -1043,7 +1034,10 @@ mod tests {
                 2,
             )
             .unwrap();
-            assert_eq!(replay.expected_experiment_cost, point.expected_experiment_cost);
+            assert_eq!(
+                replay.expected_experiment_cost,
+                point.expected_experiment_cost
+            );
             assert_eq!(replay.expected_terminal_loss, point.expected_terminal_loss);
             assert_eq!(replay.hazard_probability, point.hazard_probability);
             assert_eq!(replay.abstention_probability, point.abstention_probability);
@@ -1054,10 +1048,7 @@ mod tests {
     fn hazard_and_abstention_budgets_select_only_feasible_policies() {
         let kernel = noisy_decision_kernel();
         let table = loss_table();
-        let costs = vec![
-            Rational::new(1, 10).unwrap(),
-            Rational::new(1, 20).unwrap(),
-        ];
+        let costs = vec![Rational::new(1, 10).unwrap(), Rational::new(1, 20).unwrap()];
         let result = optimize_finite_horizon_decisions(
             &kernel,
             &table,
@@ -1101,14 +1092,16 @@ mod tests {
         let kernel = noisy_decision_kernel();
         let mut config = fixture_config(1);
         config.max_generated_combinations = 0;
-        assert!(optimize_finite_horizon_decisions(
-            &kernel,
-            &loss_table(),
-            ObservationProtocol::fully_observed(),
-            &[Rational::zero(), Rational::zero()],
-            Rational::one(),
-            &config,
-        )
-        .is_err());
+        assert!(
+            optimize_finite_horizon_decisions(
+                &kernel,
+                &loss_table(),
+                ObservationProtocol::fully_observed(),
+                &[Rational::zero(), Rational::zero()],
+                Rational::one(),
+                &config,
+            )
+            .is_err()
+        );
     }
 }
