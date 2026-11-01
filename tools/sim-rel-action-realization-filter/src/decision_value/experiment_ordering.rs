@@ -379,9 +379,10 @@ fn posterior_expected_brier_score(
             .checked_add(predicted_probability.checked_mul(*true_probability)?)?;
     }
     let twice_dot_product = probability_dot_product.checked_mul(Rational::from_u64(2))?;
-    prediction_squared_norm
-        .checked_add(Rational::one())?
-        .checked_sub(twice_dot_product)
+    subtract_nonnegative(
+        prediction_squared_norm.checked_add(Rational::one())?,
+        twice_dot_product,
+    )
 }
 
 fn bayes_decision(
