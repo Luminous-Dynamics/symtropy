@@ -203,9 +203,7 @@ struct MinFillAnalysis {
 /// Produce a deterministic min-fill elimination order for a certified
 /// structural contact graph. The induced width of this order is an upper
 /// bound on graph treewidth, not an exact treewidth computation.
-fn min_fill_elimination(
-    graph: &StructuralContactGraph,
-) -> Result<MinFillAnalysis, &'static str> {
+fn min_fill_elimination(graph: &StructuralContactGraph) -> Result<MinFillAnalysis, &'static str> {
     if !graph.separator_graph_is_certified() {
         return Err("incomplete structural support cannot certify separator elimination");
     }
@@ -254,16 +252,14 @@ fn min_fill_elimination(
             }
 
             let candidate = (missing_neighbor_edges, neighbors.len(), node, neighbors);
-            if best
-                .as_ref()
-                .is_none_or(|current| (candidate.0, candidate.1, candidate.2) < (current.0, current.1, current.2))
-            {
+            if best.as_ref().is_none_or(|current| {
+                (candidate.0, candidate.1, candidate.2) < (current.0, current.1, current.2)
+            }) {
                 best = Some(candidate);
             }
         }
 
-        let (_, _, node, neighbors) =
-            best.ok_or("min-fill failed to select an active contact")?;
+        let (_, _, node, neighbors) = best.ok_or("min-fill failed to select an active contact")?;
         separator_sizes.push(neighbors.len());
         induced_width_upper_bound = induced_width_upper_bound.max(neighbors.len());
 
@@ -448,7 +444,6 @@ fn contact_graph_support_validation_rejects_malformed_patterns() {
     assert!(derive_contact_graph(&[vec![0, 4]], &symmetric_pattern, true).is_err());
     assert!(derive_contact_graph(&[vec![0, 0]], &symmetric_pattern, true).is_err());
 }
-
 
 #[test]
 fn min_fill_reports_width_one_for_the_body_generated_star() {
