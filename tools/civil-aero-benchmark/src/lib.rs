@@ -29,6 +29,7 @@ pub mod selective_risk;
 pub mod shapebench;
 pub mod su2_convergence_screen;
 pub mod su2_history;
+pub mod su2_run_binding;
 pub mod task_conformance;
 pub mod unsteady_spectrum;
 pub mod validation_uncertainty;
