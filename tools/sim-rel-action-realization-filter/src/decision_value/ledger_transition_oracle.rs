@@ -915,7 +915,7 @@ mod tests {
         }]
     }
 
-    fn initial_snapshot() -> ModelFamilyLedgerSnapshot {
+    fn initial_ledger() -> ModelFamilyLedger {
         let loss_table = DecisionLossTable {
             decision_ids: vec!["claim".into()],
             losses: vec![vec![vec![vec![vec![Rational::zero()]]]]],
@@ -944,7 +944,10 @@ mod tests {
             budgets(),
         )
         .unwrap()
-        .snapshot()
+    }
+
+    fn initial_snapshot() -> ModelFamilyLedgerSnapshot {
+        initial_ledger().snapshot()
     }
 
     fn replan_event(sequence: u64) -> SequencedLedgerEvent {
@@ -1003,6 +1006,45 @@ mod tests {
         snapshot.reserved_holdout_groups.push(snapshot.reserved_holdout_groups[0].clone());
         let error = audit_model_family_transitions_independently(&snapshot).unwrap_err();
         assert_eq!(error.phase, TransitionOraclePhase::SnapshotEnvelope);
+    }
+
+    #[test]
+    fn audits_a_real_seal_and_successful_holdout_transcript_against_both_verifiers() {
+        let mut ledger = initial_ledger();
+        ledger
+            .seal_final_policy("seal-real".into(), 0, "policy-v1".into())
+            .unwrap();
+        let criteria = SealedHoldoutAcceptanceCriteria {
+            max_worst_case_total_loss: Rational::zero(),
+            max_worst_case_terminal_loss: Rational::zero(),
+            budgets: budgets(),
+        };
+        let evaluation = ledger
+            .record_sealed_holdout_evaluation(
+                "holdout-real".into(),
+                "sealed-family".into(),
+                0,
+                "policy-v1".into(),
+                &[world("holdout-world")],
+                criteria,
+                "artifact-real".into(),
+            )
+            .unwrap();
+        assert!(evaluation.replay_succeeded);
+        assert!(evaluation.acceptance_criteria_satisfied);
+
+        let snapshot = ledger.snapshot();
+        let independent = audit_model_family_transitions_independently(&snapshot).unwrap();
+        let replay = super::super::counterexample_ledger::verify_model_family_ledger_snapshot(
+            &snapshot,
+        )
+        .unwrap();
+        assert_eq!(independent.event_count, 2);
+        assert_eq!(independent.final_policy_seal_count, 1);
+        assert_eq!(independent.sealed_holdout_evaluation_count, 1);
+        assert!(independent.logical_snapshot_exactly_reconstructed);
+        assert_eq!(replay.event_count, 2);
+        assert!(replay.snapshot_exactly_reconstructed);
     }
 
     #[test]
