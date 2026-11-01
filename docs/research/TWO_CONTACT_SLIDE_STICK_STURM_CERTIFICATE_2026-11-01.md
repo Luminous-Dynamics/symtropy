@@ -88,21 +88,20 @@ friction coefficients are permuted with the contact roles:
 The corrected exact dyadic quartic for this reverse orientation is square-free
 and has exactly **two finite real angular roots** by the existing Sturm
 isolator. Its nonzero leading coefficient excludes a root at the projective
-direction \(\theta=\pi\). The active 4x4 determinant has two real singular
-directions; the reduced determinant and a Cramer replacement numerator are
-coprime, so neither singular direction can satisfy the active equations.
-Exact rational interval evaluation of both isolated roots then proves that
-their sliding disk multipliers are strictly negative. Both candidates are
-therefore rejected by the original KKT law. The proof is based on the exact
-rational isolating intervals, not on the rounded exploratory values from the
-initial numerical prototype.
+direction \(\theta=\pi\). The reduced 4x4 active-system determinant has
+**zero** finite real roots, so the active system is nonsingular at every real
+candidate angle. Exact rational interval evaluation of both isolated roots
+then proves that their sliding disk multipliers are strictly negative. Both
+candidates are therefore rejected by the original KKT law. The proof is based
+on the exact rational isolating intervals, not on the rounded exploratory
+values from the initial numerical prototype.
 
 The exact orientation-specific conclusions are therefore:
 
 - Original contact 1 sliding / original contact 2 sticking: four finite real
   angular roots, exactly two KKT-admissible.
 - Original contact 2 sliding / original contact 1 sticking: two finite real
-  angular roots, zero KKT-admissible.
+  angular roots, no real singular active-system direction, zero KKT-admissible.
 
 This gives us a useful asymmetry control: contact permutation does not
 preserve the number of roots in this non-associated friction law, but the
