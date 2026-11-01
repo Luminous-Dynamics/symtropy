@@ -101,20 +101,20 @@ fn determinant_bareiss(mut matrix: Vec<Vec<i64>>) -> i64 {
         }
 
         let pivot = matrix[pivot_index][pivot_index];
-        for row in pivot_index + 1..dimension {
-            for column in pivot_index + 1..dimension {
-                let numerator = matrix[row][column] * pivot
-                    - matrix[row][pivot_index] * matrix[pivot_index][column];
+        let (pivot_rows, remaining_rows) = matrix.split_at_mut(pivot_index + 1);
+        let pivot_row = &pivot_rows[pivot_index];
+        for row in remaining_rows.iter_mut() {
+            let row_pivot = row[pivot_index];
+            for (column, value) in row.iter_mut().enumerate().skip(pivot_index + 1) {
+                let numerator = *value * pivot - row_pivot * pivot_row[column];
                 assert_eq!(
                     numerator % previous_pivot,
                     0,
                     "Bareiss division must remain exact"
                 );
-                matrix[row][column] = numerator / previous_pivot;
+                *value = numerator / previous_pivot;
             }
-        }
-        for row in pivot_index + 1..dimension {
-            matrix[row][pivot_index] = 0;
+            row[pivot_index] = 0;
         }
         previous_pivot = pivot;
     }
@@ -147,9 +147,9 @@ fn two_point_rigid_body_delassus_is_exact_psd_with_rank_five() {
     // (normal,tangent1,tangent2)=(ex,ey,ez).
     let w6 = geometry_delassus_sixths();
     assert_eq!(w6, EXPECTED_SIX_TIMES_DELASSUS);
-    for row in 0..6 {
-        for column in 0..6 {
-            assert_eq!(w6[row][column], w6[column][row]);
+    for (row_index, row) in w6.iter().enumerate() {
+        for (column_index, value) in row.iter().enumerate() {
+            assert_eq!(*value, w6[column_index][row_index]);
         }
     }
 
