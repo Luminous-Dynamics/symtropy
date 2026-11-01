@@ -258,3 +258,58 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
         alpha_two[3].pow(2) - 4 * (alpha_two[4].pow(2) + alpha_two[5].pow(2));
     assert!(outside_disk_one < 0 && outside_disk_two < 0);
 }
+
+#[test]
+fn fixed_sliding_response_collapses_the_nullspace_fibre_to_one_admissible_point() {
+    let w6 = geometry_delassus_sixths();
+    let sliding_impulse = [2_i64, -1, 0, 2, -1, 0];
+    let six_times_free_twist = [-24_i64, 18, 0, 0, 0, 4];
+    let q6 = matrix_times_vector(&CONTACT_JACOBIAN, &six_times_free_twist);
+    assert_eq!(q6, [-24, 18, 0, -28, 18, 0]);
+
+    // The common post-contact velocity is u=(0,1,0,0,1,0): both contacts
+    // slide in +tangent-1. With mu=1/2 and lambda_n=2, maximum dissipation
+    // requires j_t=(-1,0) at each contact and tau=1.
+    let w6p = matrix_times_vector(&w6, &sliding_impulse);
+    let mut post_velocity_numerator = q6;
+    for index in 0..6 {
+        post_velocity_numerator[index] += w6p[index];
+    }
+    assert_eq!(post_velocity_numerator, [0, 6, 0, 0, 6, 0]);
+    assert_zero(&matrix_times_vector(&w6, &NULL_IMPULSE));
+    assert_zero(&transpose_times_vector(
+        &CONTACT_JACOBIAN,
+        &NULL_IMPULSE,
+    ));
+
+    // Along the algebraic response fibre p(alpha)=p0+alpha*n, with alpha=a/d,
+    // contact-1 and contact-2 tangential impulses become (-d+a) and (-d-a).
+    // Their disk slacks have opposite signs for every nonzero a:
+    //   slack1 = 4*(2*a*d-a^2), slack2 = 4*(-2*a*d-a^2).
+    // Hence the fixed sliding response has exactly one locally admissible
+    // multiplier representative, alpha=0, despite dim ker(J^T)=1.
+    for (a, d) in [(-3_i64, 4_i64), (-1, 4), (0, 1), (1, 4), (3, 4)] {
+        let mut p = [0_i64; 6];
+        for index in 0..6 {
+            p[index] = d * sliding_impulse[index] + a * NULL_IMPULSE[index];
+        }
+        let slack_one = p[0].pow(2) - 4 * p[1].pow(2);
+        let slack_two = p[3].pow(2) - 4 * p[4].pow(2);
+        if a == 0 {
+            assert_eq!(slack_one, 0);
+            assert_eq!(slack_two, 0);
+        } else {
+            assert!(slack_one < 0 || slack_two < 0);
+        }
+
+        let body_impulse = transpose_times_vector(&CONTACT_JACOBIAN, &p);
+        let expected_body_impulse: Vector6 =
+            std::array::from_fn(|index| d * transpose_times_vector(&sliding_impulse)[index]);
+        assert_eq!(body_impulse, expected_body_impulse);
+        let mut response = matrix_times_vector(&w6, &p);
+        for index in 0..6 {
+            response[index] += d * q6[index];
+        }
+        assert_eq!(response, [0, 6 * d, 0, 0, 6 * d, 0]);
+    }
+}
