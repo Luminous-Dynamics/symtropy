@@ -2517,7 +2517,7 @@ mod double_sliding_direction_oracle {
         domain: [RationalInterval; 2],
         image: [RationalInterval; 2],
         normal_determinant: RationalInterval,
-        normal_multiplier_ratios: [RationalInterval; 2],
+        normal_multiplier_sign_ratios: [RationalInterval; 2],
         sliding_multiplier_sign_ratios: [RationalInterval; 2],
     }
 
@@ -2661,7 +2661,10 @@ mod double_sliding_direction_oracle {
         if !normal_determinant.excludes_zero() {
             return None;
         }
-        let normal_multiplier_ratios = [
+        // These N_k / Delta intervals certify the physical normal-impulse
+        // signs only. The physical impulse also contains the positive cleared
+        // half-angle factor S * (1 + t_k^2), applied at reconstruction.
+        let normal_multiplier_sign_ratios = [
             polynomials
                 .normal_numerator_1
                 .evaluate_interval(&domain[0], &domain[1])
@@ -2671,7 +2674,7 @@ mod double_sliding_direction_oracle {
                 .evaluate_interval(&domain[0], &domain[1])
                 .div(&normal_determinant)?,
         ];
-        if normal_multiplier_ratios
+        if normal_multiplier_sign_ratios
             .iter()
             .any(|ratio| !ratio.is_strictly_positive())
         {
@@ -2709,7 +2712,7 @@ mod double_sliding_direction_oracle {
             domain,
             image,
             normal_determinant,
-            normal_multiplier_ratios,
+            normal_multiplier_sign_ratios,
             sliding_multiplier_sign_ratios,
         })
     }
@@ -2731,7 +2734,7 @@ mod double_sliding_direction_oracle {
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(
             certificate
-                .normal_multiplier_ratios
+                .normal_multiplier_sign_ratios
                 .iter()
                 .all(|ratio| ratio.is_strictly_positive())
         );
@@ -2841,7 +2844,7 @@ mod double_sliding_direction_oracle {
             assert!(certificate.normal_determinant.excludes_zero());
             assert!(
                 certificate
-                    .normal_multiplier_ratios
+                    .normal_multiplier_sign_ratios
                     .iter()
                     .all(|ratio| ratio.is_strictly_positive())
             );
@@ -3863,7 +3866,7 @@ mod double_sliding_direction_oracle {
             assert!(certificate.normal_determinant.excludes_zero());
             assert!(
                 certificate
-                    .normal_multiplier_ratios
+                    .normal_multiplier_sign_ratios
                     .iter()
                     .all(RationalInterval::is_strictly_positive)
             );
@@ -3888,11 +3891,11 @@ mod double_sliding_direction_oracle {
                         .mul(&half_angle_factor)
                 };
             let lambda1 = physical_normal_impulse(
-                &certificate.normal_multiplier_ratios[0],
+                &certificate.normal_multiplier_sign_ratios[0],
                 &certificate.domain[0],
             );
             let lambda2 = physical_normal_impulse(
-                &certificate.normal_multiplier_ratios[1],
+                &certificate.normal_multiplier_sign_ratios[1],
                 &certificate.domain[1],
             );
             let tangent1 = tangent_impulse(&certificate.domain[0], &mu1, &lambda1);
