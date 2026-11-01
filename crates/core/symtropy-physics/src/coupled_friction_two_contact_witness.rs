@@ -1826,15 +1826,13 @@ mod double_sliding_direction_oracle {
 
         fn add_assign(&mut self, other: &Self) {
             for index in 0..RESULTANT_COEFFICIENTS {
-                self.coefficients[index] =
-                    &self.coefficients[index] + &other.coefficients[index];
+                self.coefficients[index] = &self.coefficients[index] + &other.coefficients[index];
             }
         }
 
         fn sub_assign(&mut self, other: &Self) {
             for index in 0..RESULTANT_COEFFICIENTS {
-                self.coefficients[index] =
-                    &self.coefficients[index] - &other.coefficients[index];
+                self.coefficients[index] = &self.coefficients[index] - &other.coefficients[index];
             }
         }
 
@@ -1889,12 +1887,7 @@ mod double_sliding_direction_oracle {
         fn maximum_decimal_digits(&self) -> usize {
             self.coefficients
                 .iter()
-                .map(|coefficient| {
-                    coefficient
-                        .to_string()
-                        .trim_start_matches('-')
-                        .len()
-                })
+                .map(|coefficient| coefficient.to_string().trim_start_matches('-').len())
                 .max()
                 .unwrap_or(1)
         }
@@ -1914,29 +1907,20 @@ mod double_sliding_direction_oracle {
 
         let g1_coefficients: [BigIntegerPolynomial; DEGREE_G1_T1 + 1] =
             std::array::from_fn(|index| {
-                BigIntegerPolynomial::from_bivariate_t1_coefficient(
-                    g1,
-                    DEGREE_G1_T1 - index,
-                )
+                BigIntegerPolynomial::from_bivariate_t1_coefficient(g1, DEGREE_G1_T1 - index)
             });
         let g2_coefficients: [BigIntegerPolynomial; DEGREE_G2_T1 + 1] =
             std::array::from_fn(|index| {
-                BigIntegerPolynomial::from_bivariate_t1_coefficient(
-                    g2,
-                    DEGREE_G2_T1 - index,
-                )
+                BigIntegerPolynomial::from_bivariate_t1_coefficient(g2, DEGREE_G2_T1 - index)
             });
 
         let mut sylvester: [[BigIntegerPolynomial; SYLVESTER_DIMENSION]; SYLVESTER_DIMENSION] =
-            std::array::from_fn(|_| {
-                std::array::from_fn(|_| BigIntegerPolynomial::zero())
-            });
+            std::array::from_fn(|_| std::array::from_fn(|_| BigIntegerPolynomial::zero()));
 
         // Two shifted rows of G1 (degree two of G2).
         for shift in 0..DEGREE_G2_T1 {
             for coefficient in 0..=DEGREE_G1_T1 {
-                sylvester[shift][shift + coefficient] =
-                    g1_coefficients[coefficient].clone();
+                sylvester[shift][shift + coefficient] = g1_coefficients[coefficient].clone();
             }
         }
         // Four shifted rows of G2 (degree four of G1).
@@ -1993,13 +1977,7 @@ mod double_sliding_direction_oracle {
 
         let mut determinant = BigIntegerPolynomial::zero();
         let mut permutation = [0_usize; SYLVESTER_DIMENSION];
-        accumulate_permutations(
-            0,
-            0,
-            &mut permutation,
-            &sylvester,
-            &mut determinant,
-        );
+        accumulate_permutations(0, 0, &mut permutation, &sylvester, &mut determinant);
         determinant
     }
 
@@ -2017,10 +1995,7 @@ mod double_sliding_direction_oracle {
         // The exact common root pair t1=1/2, t2=2/3 forces t2=2/3
         // to be a root of Res_t1(G1,G2). The bivariate test above separately
         // verifies the t1 lift and the nonzero normal-response determinant.
-        let projected_root =
-            resultant.evaluate_homogeneous_numerator(2, 3, 20);
+        let projected_root = resultant.evaluate_homogeneous_numerator(2, 3, 20);
         assert_eq!(projected_root, BigInt::from(0_u8));
     }
-
-
 }
