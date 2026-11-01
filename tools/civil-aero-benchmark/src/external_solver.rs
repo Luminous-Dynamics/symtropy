@@ -383,14 +383,23 @@ fn output_records(root: &Path, expected: &[String]) -> Result<Vec<ExpectedOutput
     for relative in expected {
         let path = validate_relative_path(relative)?;
         let candidate = root.join(&path);
-        if !candidate.exists() {
-            records.push(ExpectedOutputRecord {
+        match fs::symlink_metadata(&candidate) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                records.push(ExpectedOutputRecord {
                 relative_path: relative.clone(),
                 present: false,
                 byte_length: None,
                 sha256: None,
-            });
-            continue;
+                });
+                continue;
+            }
+            Err(error) => {
+                return Err(format!("cannot inspect solver output {relative}: {error}"));
+            }
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(format!("solver output {relative} must not be a symlink"));
+            }
+            Ok(_) => {}
         }
         let canonical = fs::canonicalize(&candidate)
             .map_err(|error| format!("cannot resolve solver output {relative}: {error}"))?;
@@ -580,6 +589,20 @@ pub fn execute_external_solver(
         let relative = validate_relative_path(output)?;
         if !used_paths.insert(relative.clone()) {
             return Err(format!("expected output path {output} collides with a reserved/used path or staged input"));
+        }
+    }
+    let declared_paths = used_paths.iter().collect::<Vec<_>>();
+    for left_index in 0..declared_paths.len() {
+        for right_index in (left_index + 1)..declared_paths.len() {
+            let left = declared_paths[left_index];
+            let right = declared_paths[right_index];
+            if left.starts_with(right) || right.starts_with(left) {
+                return Err(format!(
+                    "declared artifact paths {} and {} have a file/directory prefix collision",
+                    left.display(),
+                    right.display()
+                ));
+            }
         }
     }
 
@@ -919,6 +942,7 @@ mod tests {
             vec!["argument with spaces".to_owned(), "$(not-a-shell-command)".to_owned()],
             vec!["history.csv".to_owned(), "args.txt".to_owned()],
         );
+        spec.environment.insert("AERO_TEST_MODE".to_owned(), "secret-fixture-value".to_owned());
         spec.staged_inputs.push(StagedInputSpec {
             source_path: input_path,
             relative_path: "input/case.cfg".to_owned(),
@@ -930,6 +954,9 @@ mod tests {
         assert!(receipt.is_process_success());
         assert_eq!(fs::read_to_string(spec.run_directory.join("args.txt")).expect("args"), "argument with spaces\n$(not-a-shell-command)\n");
         assert!(spec.run_directory.join("input/case.cfg").is_file());
+        let environment_text = fs::read_to_string(spec.run_directory.join(ENVIRONMENT_MANIFEST_FILE))
+            .expect("environment manifest");
+        assert!(!environment_text.contains("secret-fixture-value"));
         verify_external_solver_receipt(&spec.run_directory, &receipt).expect("independent byte replay");
         fs::remove_dir_all(root).expect("remove positive fixture");
     }
