@@ -1830,9 +1830,8 @@ mod double_sliding_direction_oracle {
             degree_t1: usize,
         ) -> Self {
             let mut result = Self::zero();
-            for degree_t2 in 0..5 {
-                result.coefficients[degree_t2] =
-                    BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
+            for (degree_t2, coefficient) in result.coefficients.iter_mut().take(5).enumerate() {
+                *coefficient = BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
             }
             result
         }
@@ -1842,9 +1841,8 @@ mod double_sliding_direction_oracle {
             degree_t2: usize,
         ) -> Self {
             let mut result = Self::zero();
-            for degree_t1 in 0..5 {
-                result.coefficients[degree_t1] =
-                    BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
+            for (degree_t1, coefficient) in result.coefficients.iter_mut().take(5).enumerate() {
+                *coefficient = BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
             }
             result
         }
@@ -1865,9 +1863,8 @@ mod double_sliding_direction_oracle {
 
         fn derivative(&self) -> Self {
             let mut result = Self::zero();
-            for degree in 1..RESULTANT_COEFFICIENTS {
-                result.coefficients[degree - 1] =
-                    &self.coefficients[degree] * BigInt::from(degree);
+            for (degree, coefficient) in self.coefficients.iter().enumerate().skip(1) {
+                result.coefficients[degree - 1] = coefficient * BigInt::from(degree);
             }
             result
         }
