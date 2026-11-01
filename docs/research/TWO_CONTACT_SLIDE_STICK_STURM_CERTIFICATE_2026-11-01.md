@@ -147,6 +147,28 @@ The reverse contact ordering is independently certified above. These
 controls exercise coordinate invariance and unit/coefficient scaling without
 using approximate rotations or comparing only decimal outputs.
 
+## Exact all-sticking branch
+
+The integration suite also reconstructs the both-sticking branch directly from
+the exact binary64 dyadic entries of (W) and (q). It solves
+(Wp=-q) by rational Gaussian elimination, independently of the saved
+floating-point candidate. The exact post-impulse velocity (q+Wp) is the
+zero vector, both normal impulses are strictly positive, and both Coulomb
+disk margins
+[
+(\mu_i\lambda_i)^2-\|j_i\|^2
+]
+are strictly positive. The exact island kinetic-energy change
+[
+\Delta K=p^Tq+\tfrac12p^TWp
+]
+is strictly negative. Since the exact Delassus matrix is SPD, this linear
+all-sticking system has exactly one solution in that active stratum.
+
+This supplies a second kind of certificate: exact algebraic branch
+reconstruction for the interior stick stratum, alongside exact angular-root
+enumeration for the two slide/stick strata.
+
 ## Claim ceiling
 
 This is a mathematical certificate for one frozen 6x6 binary64 Delassus input and one regime stratum. It does not solve every two-contact regime, prove that the full contact problem has exactly three solutions, cover arbitrary uncertain parameter families, or establish an engine-level/SOTA result. The other regime combinations, folds/active-set boundaries and general contact islands remain open work. All final qualification evidence stays under #460.
