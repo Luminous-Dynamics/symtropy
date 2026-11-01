@@ -89,6 +89,7 @@ pub struct FinalPolicySealRecord {
     pub event_receipt_id: String,
     pub family_revision: u64,
     pub policy_identity: String,
+    pub plan: DecisionPlan,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -744,8 +745,8 @@ fn canonical_world_id_set(ids: &[String]) -> Result<Vec<String>, String> {
 mod tests {
     use super::*;
     use crate::{
-        ActionRealizationKernel, BeliefMass, KernelRow, LatentState, Rational,
-        TransitionOutcome,
+        ActionRealizationKernel, BeliefMass, KernelRow, LatentState, ObservationField,
+        PublicObservation, Rational, TransitionOutcome,
     };
     use super::super::counterexample_search::{
         CounterexampleOutcome, CounterexampleWitness, PerturbationSpec,
@@ -828,7 +829,7 @@ mod tests {
             vec![world("nominal")],
             vec![holdout()],
             "policy-v1".into(),
-            terminal_plan(),
+            test_policy(),
         )
         .unwrap()
     }
@@ -879,19 +880,42 @@ mod tests {
         DecisionPlan::TerminalDecision { decision: Some(0) }
     }
 
-    fn counterexample(source: &DecisionModelWorld, candidate_id: &str) -> CounterexampleWitness {
-        let perturbation = ModelWorldPerturbation::SwapSensorCalibration {
-            sensor_state: 0,
-            left_measurement: 0,
-            right_measurement: 1,
-        };
-        let mut candidate = source.clone();
-        candidate.id = candidate_id.into();
-        for row in &mut candidate.kernel.rows {
-            for outcome in &mut row.outcomes {
-                outcome.measurement = Some(1 - outcome.measurement.unwrap());
-            }
+    fn test_policy() -> DecisionPlan {
+        DecisionPlan::Experiment {
+            command: 0,
+            branches: vec![
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Value(0),
+                        measurement: ObservationField::Value(0),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                },
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Value(0),
+                        measurement: ObservationField::Value(1),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(1) }),
+                },
+            ],
         }
+    }
+
+    fn counterexample(source: &DecisionModelWorld, candidate_id: &str) -> CounterexampleWitness {
+        let perturbation = ModelWorldPerturbation::DropReadback {
+            command: 0,
+            sensor_state: Some(0),
+            dropout_probability: q(1, 2),
+        };
+        let candidate = super::super::counterexample_search::apply_model_world_perturbation(
+            source,
+            candidate_id,
+            &perturbation,
+        )
+        .unwrap();
         CounterexampleWitness {
             spec: PerturbationSpec {
                 source_world_id: source.id.clone(),
@@ -900,7 +924,7 @@ mod tests {
             },
             candidate_world: candidate,
             outcome: CounterexampleOutcome::PolicyInvalidated {
-                reason: "new public branch invalidates frozen policy".into(),
+                reason: "new missing-readback branch invalidates the fixed policy".into(),
             },
         }
     }
@@ -914,7 +938,7 @@ mod tests {
             search_run_id: "search-run-01".into(),
             seed: 42,
             policy_identity: policy_identity.into(),
-            attacked_policy: terminal_plan(),
+            attacked_policy: test_policy(),
         }
     }
 
@@ -1065,6 +1089,24 @@ mod tests {
                 "leaked-holdout-event".into(),
             )
             .is_err());
+    }
+
+    #[test]
+    fn provenance_must_include_the_exact_policy_tree_not_only_its_opaque_id() {
+        let mut ledger = ledger();
+        let witness = counterexample(&world("nominal"), "wrong-policy-tree");
+        let mut mismatched = provenance("policy-v1", EvidenceSplit::Development, "dev-a");
+        mismatched.attacked_policy = terminal_plan();
+        assert!(ledger
+            .admit_counterexample(
+                &witness,
+                mismatched,
+                validation(),
+                "wrong-policy-tree-event".into(),
+            )
+            .is_err());
+        assert_eq!(ledger.family_revision(), 0);
+        assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
 
     #[test]
@@ -1275,6 +1317,7 @@ mod tests {
             vec![world("nominal")],
             vec![duplicate_holdout],
             "policy".into(),
+            terminal_plan(),
         )
         .is_err());
     }
