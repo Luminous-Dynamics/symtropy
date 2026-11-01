@@ -58,3 +58,20 @@ An included edge carries one generalized-coordinate support witness. An omitted 
 ## Claim boundary
 
 The current implementation is a fixed-size test oracle for support-pattern logic. It does not assemble production Delassus operators, prove numerical conditioning, or solve contact problems. A conservative structural graph is necessary for safe separator discovery but does not by itself prove the Schur reduction or branch completeness.
+
+
+## Deterministic min-fill separator analysis
+
+The follow-on branch adds a min-fill elimination analysis for complete symmetric structural graphs. It reports:
+- deterministic contact elimination order;
+- separator-neighbour count at each elimination;
+- induced-width upper bound for this order (not exact treewidth);
+- every fill-in edge added during elimination.
+
+Frozen controls:
+- the body-generated three-contact star has induced width 1 and no fill edges;
+- a four-cycle induces one fill edge (1,3) and width 2;
+- a five-contact clique has width 4 and no additional fill edges;
+- incomplete or asymmetric graph support is refused for separator analysis.
+
+This is a deterministic heuristic upper bound, not an exact treewidth algorithm. Benchmarking should compare multiple elimination heuristics and report their orders/widths, while never describing an upper bound as the true treewidth.
