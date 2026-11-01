@@ -84,7 +84,7 @@ fn run() -> Result<(), String> {
         },
         ProtocolRequirement {
             key: "reproduction_artifact_identity".to_owned(),
-            description: "Required geometry, mesh, executable, and solver-input byte identities".to_owned(),
+            description: "Geometry, mesh, executable, and solver-input byte identities".to_owned(),
             constraint: ProtocolConstraint::ExactText {
                 expected: "geometry_mesh_solver_build_and_config_byte_pins_present".to_owned(),
                 case_sensitive: true,
@@ -123,7 +123,7 @@ fn run() -> Result<(), String> {
             key: "sidewall_boundary_condition".to_owned(),
             value: Some(ObservedProtocolValue::Text("symmetric".to_owned())),
             source_reference: PARTICIPANT_METADATA_REF.to_owned(),
-            note: "Observed symmetric; task requires periodic. No physical equivalence inferred".to_owned(),
+            note: "Symmetric observed; periodic required. No physical equivalence inferred".to_owned(),
         },
         ProtocolObservation {
             key: "grid_level_count".to_owned(),
