@@ -686,10 +686,11 @@ mod tests {
             certificate.arbitrary_rule_absolute_risk_gap
                 <= certificate.decision_specific_transfer_bound
         );
-        assert_eq!(
+        assert_ne!(
             certificate.source_rule_risk.expected_loss,
             certificate.transferred_rule_risk.expected_loss
         );
+        assert!(certificate.arbitrary_rule_bound_verified);
     }
 
     #[test]
@@ -711,7 +712,7 @@ mod tests {
         let target = target_channel(79);
         let witness = garbling();
         let rare_sensitive_losses = ChannelDecisionLossTable {
-            decision_ids: vec!["d0".into(), "d1".into()],
+            decision_ids: vec!["choose-s0".into(), "choose-s1".into()],
             losses: vec![vec![q(0, 1), q(0, 1)], vec![q(1, 1), q(100, 1)]],
             abstention_loss: q(0, 1),
         };
