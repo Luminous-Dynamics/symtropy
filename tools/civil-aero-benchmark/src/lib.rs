@@ -10,6 +10,7 @@ pub mod cfd_admission;
 pub mod cmo_step_pilot;
 pub mod comparison;
 pub mod coupon;
+pub mod external_solver;
 pub mod dpw8_submission;
 pub mod grid_convergence;
 pub mod input_sampling;
