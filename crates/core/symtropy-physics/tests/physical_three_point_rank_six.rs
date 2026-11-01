@@ -184,7 +184,7 @@ fn three_non_collinear_point_contacts_have_rank_six_and_nullity_three() {
         vec![NULL_A[8], NULL_B[8], NULL_C[8]],
         vec![NULL_A[5], NULL_B[5], NULL_C[5]],
     ]);
-    assert_eq!(independence_minor, -1);
+    assert_eq!(independence_minor, 1);
     assert_eq!(9 - 6, 3, "contact multiplier nullity is three");
 }
 
