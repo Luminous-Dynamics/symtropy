@@ -513,21 +513,9 @@ pub fn optimize_shared_policy_decisions(
         return Err("all robust decision solver resource caps must be positive".into());
     }
 
-    let initial_masses: RawPathMassVector = canonical_worlds
+    let initial_beliefs: BeliefVector = canonical_worlds
         .iter()
-        .map(|world| {
-            Some(
-                world
-                    .kernel
-                    .initial_belief
-                    .iter()
-                    .map(|point| RawPathMass {
-                        state: point.state,
-                        mass: point.mass,
-                    })
-                    .collect(),
-            )
-        })
+        .map(|world| Some(world.kernel.initial_belief.clone()))
         .collect();
 
     let mut solver = RobustDecisionOptimizer {
