@@ -501,3 +501,16 @@ tampering or inconsistency. This is a separate audit entry point using the
 same exact domain transition functions, not an independent physics engine;
 see the transcript-verification limitations and follow-on benchmark in
 [COUNTEREXAMPLE_LEDGER_PROTOCOL.md](COUNTEREXAMPLE_LEDGER_PROTOCOL.md).
+
+
+## Adaptive exact scientific challenge compiler (SIM-REL-036)
+
+The `decision_value::scientific_challenge` module generates deterministic
+binary-channel scientific decision tasks from versioned rational recipes.
+It keeps the agent-facing problem separate from the sealed exact oracle and
+generation receipt, derives calibration/holdout reservations from a
+SIM-REL-034 snapshot, and verifies the exact minimax or task-weighted optimum.
+A recipe/seed replay check regenerates all typed artifacts exactly. The first
+slice is a deterministic compiler; adaptive recipe selection and embodied
+physical challenge generation remain follow-on work. See
+[SCIENTIFIC_CHALLENGE_COMPILER_PROTOCOL.md](SCIENTIFIC_CHALLENGE_COMPILER_PROTOCOL.md).
