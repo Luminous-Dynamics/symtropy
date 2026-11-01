@@ -4,6 +4,7 @@ set -euo pipefail
 runner="${1:?runner binary path required}"
 replay="${2:?replay binary path required}"
 importer="${3:?SU2 history importer binary path required}"
+convergence="${4:?SU2 convergence screen binary path required}"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
 
@@ -53,14 +54,36 @@ grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_
   --header-column Iteration \
   --header-column CL \
   --header-column CD \
+  --header-column RMS_RES \
   --field CL=dimensionless \
   --field CD=dimensionless \
+  --field RMS_RES=1 \
   --minimum-rows 2 \
   > "$root/su2-history-import.csv" 2> "$root/su2-history-import.txt"
 test "$(wc -l < "$root/su2-history-import.csv")" -eq 3
 grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=2' "$root/su2-history-import.txt"
 grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
 python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-history-import.csv"
+
+"$convergence" \
+  --run-dir "$root/run" \
+  --history history.csv \
+  --iteration-column Iteration \
+  --header-column Iteration \
+  --header-column CL \
+  --header-column CD \
+  --header-column RMS_RES \
+  --field CL=dimensionless \
+  --field CD=dimensionless \
+  --field RMS_RES=1 \
+  --residual RMS_RES=0.0002:0.02 \
+  --monitor CL=2:0.025 \
+  --monitor CD=2:0.0025 \
+  > "$root/su2-convergence-screen.csv" 2> "$root/su2-convergence-screen.txt"
+test "$(wc -l < "$root/su2-convergence-screen.csv")" -eq 4
+grep -q 'su2_convergence_screen=pass run_id=ci-su2-process-fixture passed=3 failed=0 insufficient=0' "$root/su2-convergence-screen.txt"
+grep -q 'declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation' "$root/su2-convergence-screen.txt"
+python3 scripts/verify-su2-convergence-screen-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
 test -s "$root/run/runner_receipt.csv"
