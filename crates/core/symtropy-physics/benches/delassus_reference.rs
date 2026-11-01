@@ -22,7 +22,7 @@ fn fixture(
 ) {
     let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
     body_a.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.5, 1.0, 0.6))
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(1.5, 1.0, 0.6))
             .expect("positive ellipsoid mass properties"),
     );
 
@@ -30,7 +30,7 @@ fn fixture(
         RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.5, 1.5);
     body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
     body_b.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::<_, 3>::new(0.8, 1.2, 1.7))
             .expect("positive ellipsoid mass properties"),
     );
 
@@ -38,13 +38,13 @@ fn fixture(
     let mut rows = Vec::with_capacity(row_count);
     for index in 0..row_count {
         let angle = (index as f64 + 0.5) * std::f64::consts::TAU / row_count as f64;
-        let normal = SVector::new(angle.cos(), angle.sin(), 0.0);
-        let offset_a = SVector::new(
+        let normal = SVector::<_, 3>::new(angle.cos(), angle.sin(), 0.0);
+        let offset_a = SVector::<_, 3>::new(
             0.25 * angle.sin(),
             -0.2 * angle.cos(),
             0.15 * (2.0 * angle).sin(),
         );
-        let offset_b = SVector::new(
+        let offset_b = SVector::<_, 3>::new(
             -0.2 * angle.sin(),
             0.25 * angle.cos(),
             0.15 * (2.0 * angle).cos(),
@@ -68,14 +68,14 @@ fn fixture(
 fn contact_wrench_fixture(row_count: usize) -> (Vec<RigidBody<3>>, Vec<ContactWrenchRow<3>>) {
     let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
     body_a.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.5, 1.0, 0.6))
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(1.5, 1.0, 0.6))
             .expect("positive ellipsoid mass properties"),
     );
     let mut body_b =
         RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 0.0, 0.0]), 0.5, 1.5);
     body_b.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.31);
     body_b.set_rotational_inertia_operator(
-        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::new(0.8, 1.2, 1.7))
+        BivectorInertia::<3>::uniform_solid_ellipsoid(1.5, SVector::<_, 3>::new(0.8, 1.2, 1.7))
             .expect("positive ellipsoid mass properties"),
     );
 
@@ -83,13 +83,13 @@ fn contact_wrench_fixture(row_count: usize) -> (Vec<RigidBody<3>>, Vec<ContactWr
     let mut rows = Vec::with_capacity(row_count);
     for index in 0..row_count {
         let angle = (index as f64 + 0.5) * std::f64::consts::TAU / row_count as f64;
-        let normal = SVector::new(angle.cos(), angle.sin(), 0.2).normalize();
-        let offset_a = SVector::new(
+        let normal = SVector::<_, 3>::new(angle.cos(), angle.sin(), 0.2).normalize();
+        let offset_a = SVector::<_, 3>::new(
             0.25 * angle.sin(),
             -0.2 * angle.cos(),
             0.15 * (2.0 * angle).sin(),
         );
-        let offset_b = SVector::new(
+        let offset_b = SVector::<_, 3>::new(
             -0.2 * angle.sin(),
             0.25 * angle.cos(),
             0.15 * (2.0 * angle).cos(),
@@ -193,7 +193,7 @@ fn bench_reference_lcp(c: &mut Criterion) {
 
 fn bench_planar_friction_cone(c: &mut Criterion) {
     let effective_mass = Matrix2::new(2.0, 0.25, 0.25, 1.5);
-    let free_velocity = SVector::new(-1.0, -0.8);
+    let free_velocity = SVector::<_, 2>::new(-1.0, -0.8);
     c.bench_function("planar_coulomb_reference_single_contact", |bench| {
         bench.iter(|| {
             black_box(
