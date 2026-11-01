@@ -176,10 +176,7 @@ fn two_point_rigid_body_delassus_is_exact_psd_with_rank_five() {
     // The contact-impulse null vector is the difference between the two
     // identical y-tangent Jacobian rows.
     assert_zero(&matrix_times_vector(&w6, &NULL_IMPULSE));
-    assert_zero(&transpose_times_vector(
-        &CONTACT_JACOBIAN,
-        &NULL_IMPULSE,
-    ));
+    assert_zero(&transpose_times_vector(&CONTACT_JACOBIAN, &NULL_IMPULSE));
 
     // A nonzero 5x5 minor proves rank >= 5; the exact null vector proves
     // rank <= 5. This is an exact rank-five result, not a singular-value cutoff.
@@ -205,7 +202,15 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
 
     // p(alpha)=p0+alpha*n. For alpha=a/d, P=d*p(alpha) is integral.
     // Check strict interior samples and the two closed-cone endpoints exactly.
-    for (a, d) in [(-6_i64, 7_i64), (-1, 2), (0, 1), (1, 3), (6, 7), (-1, 1), (1, 1)] {
+    for (a, d) in [
+        (-6_i64, 7_i64),
+        (-1, 2),
+        (0, 1),
+        (1, 3),
+        (6, 7),
+        (-1, 1),
+        (1, 1),
+    ] {
         assert!(d > 0 && a.abs() <= d);
         let mut scaled_impulse = [0_i64; 6];
         for index in 0..6 {
@@ -222,18 +227,16 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
 
         // The generalized body impulse J^T p(alpha) is invariant because
         // J^T*n=0. The contact-coordinate multipliers nevertheless differ.
-        let body_impulse_numerator =
-            transpose_times_vector(&CONTACT_JACOBIAN, &scaled_impulse);
-        let expected_body_impulse: Vector6 =
-            std::array::from_fn(|index| d * BASE_IMPULSE[index]);
+        let body_impulse_numerator = transpose_times_vector(&CONTACT_JACOBIAN, &scaled_impulse);
+        let expected_body_impulse: Vector6 = std::array::from_fn(|index| d * BASE_IMPULSE[index]);
         assert_eq!(body_impulse_numerator, expected_body_impulse);
 
         assert!(scaled_impulse[0] > 0 && scaled_impulse[3] > 0);
         // mu=1/2. Multiply each disk slack by 4*d^2 to remain integral.
-        let disk_one_slack = scaled_impulse[0].pow(2)
-            - 4 * (scaled_impulse[1].pow(2) + scaled_impulse[2].pow(2));
-        let disk_two_slack = scaled_impulse[3].pow(2)
-            - 4 * (scaled_impulse[4].pow(2) + scaled_impulse[5].pow(2));
+        let disk_one_slack =
+            scaled_impulse[0].pow(2) - 4 * (scaled_impulse[1].pow(2) + scaled_impulse[2].pow(2));
+        let disk_two_slack =
+            scaled_impulse[3].pow(2) - 4 * (scaled_impulse[4].pow(2) + scaled_impulse[5].pow(2));
         assert!(disk_one_slack >= 0);
         assert!(disk_two_slack >= 0);
         if a.abs() < d {
@@ -261,18 +264,9 @@ fn physically_admissible_impulses_form_a_continuum_with_one_body_response() {
     // Any |alpha|>1 violates both local Coulomb disks, even though the body
     // response remains unchanged under the nullspace shift.
     let outside = [2_i64, 0, 0, 2, 0, 0];
-    let alpha_two = [
-        outside[0],
-        2,
-        0,
-        outside[3],
-        -2,
-        0,
-    ];
-    let outside_disk_one =
-        alpha_two[0].pow(2) - 4 * (alpha_two[1].pow(2) + alpha_two[2].pow(2));
-    let outside_disk_two =
-        alpha_two[3].pow(2) - 4 * (alpha_two[4].pow(2) + alpha_two[5].pow(2));
+    let alpha_two = [outside[0], 2, 0, outside[3], -2, 0];
+    let outside_disk_one = alpha_two[0].pow(2) - 4 * (alpha_two[1].pow(2) + alpha_two[2].pow(2));
+    let outside_disk_two = alpha_two[3].pow(2) - 4 * (alpha_two[4].pow(2) + alpha_two[5].pow(2));
     assert!(outside_disk_one < 0 && outside_disk_two < 0);
 }
 
@@ -294,10 +288,7 @@ fn fixed_sliding_response_collapses_the_nullspace_fibre_to_one_admissible_point(
     }
     assert_eq!(post_velocity_numerator, [0, 6, 0, 0, 6, 0]);
     assert_zero(&matrix_times_vector(&w6, &NULL_IMPULSE));
-    assert_zero(&transpose_times_vector(
-        &CONTACT_JACOBIAN,
-        &NULL_IMPULSE,
-    ));
+    assert_zero(&transpose_times_vector(&CONTACT_JACOBIAN, &NULL_IMPULSE));
 
     // Along the algebraic response fibre p(alpha)=p0+alpha*n, with alpha=a/d,
     // contact-1 and contact-2 tangential impulses become (-d+a) and (-d-a).
@@ -341,9 +332,7 @@ fn proximal_cone_metric_lifts_rank_five_delassus_to_exact_spd() {
     // minor. This regularizes the inner cone QP only; physical W stays PSD.
     for shift in [3_i64, 6, 12] {
         let lifted = std::array::from_fn(|row| {
-            std::array::from_fn(|column| {
-                w6[row][column] + if row == column { shift } else { 0 }
-            })
+            std::array::from_fn(|column| w6[row][column] + if row == column { shift } else { 0 })
         });
         for size in 1..=6 {
             let determinant = leading_principal_minor(&lifted, size);
