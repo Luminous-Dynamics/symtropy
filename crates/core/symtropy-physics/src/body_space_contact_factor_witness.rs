@@ -19,11 +19,7 @@ type Jacobian = [[i128; 6]; 9];
 type Delassus = [[i128; 9]; 9];
 type Gram = [[i128; 6]; 6];
 
-const CONTACT_POINTS_IN_BODY: [[i128; 3]; 3] = [
-    [1, 0, -1],
-    [0, 1, -1],
-    [1, 1, -1],
-];
+const CONTACT_POINTS_IN_BODY: [[i128; 3]; 3] = [[1, 0, -1], [0, 1, -1], [1, 1, -1]];
 
 // Each local frame is orthonormal: normal +z, tangent axes +x and +y.
 const CONTACT_FRAME_AXES: [[i128; 3]; 3] = [[0, 0, 1], [1, 0, 0], [0, 1, 0]];
@@ -46,14 +42,7 @@ fn contact_jacobian() -> Jacobian {
         for (axis_index, axis) in CONTACT_FRAME_AXES.iter().copied().enumerate() {
             let moment = cross(point, axis);
             let row = contact * 3 + axis_index;
-            jacobian[row] = [
-                axis[0],
-                axis[1],
-                axis[2],
-                moment[0],
-                moment[1],
-                moment[2],
-            ];
+            jacobian[row] = [axis[0], axis[1], axis[2], moment[0], moment[1], moment[2]];
         }
     }
     jacobian
@@ -195,8 +184,7 @@ mod tests {
                 let block_frobenius_squared: i128 = (0..3)
                     .flat_map(|left_axis| {
                         (0..3).map(move |right_axis| {
-                            delassus[left_contact * 3 + left_axis]
-                                [right_contact * 3 + right_axis]
+                            delassus[left_contact * 3 + left_axis][right_contact * 3 + right_axis]
                                 .pow(2)
                         })
                     })
@@ -222,10 +210,7 @@ mod tests {
                 scatter_contact_impulses(&jacobian, &null_direction),
                 [0_i128; 6]
             );
-            assert_eq!(
-                apply_delassus(&delassus, &null_direction),
-                [0_i128; 9]
-            );
+            assert_eq!(apply_delassus(&delassus, &null_direction), [0_i128; 9]);
         }
 
         let impulses = [2_i128, -3, 5, 7, -11, 13, -17, 19, -23];
@@ -243,10 +228,7 @@ mod tests {
             let mut basis = [0_i128; 9];
             basis[basis_index] = 1;
             assert_eq!(
-                gather_body_velocity(
-                    &jacobian,
-                    &scatter_contact_impulses(&jacobian, &basis)
-                ),
+                gather_body_velocity(&jacobian, &scatter_contact_impulses(&jacobian, &basis)),
                 apply_delassus(&delassus, &basis)
             );
         }
@@ -256,14 +238,17 @@ mod tests {
     fn exact_geometry_fixture_has_expected_rank_and_contact_coupling() {
         let jacobian = contact_jacobian();
         let delassus = assemble_delassus(&jacobian);
-        assert_eq!(body_gram(&jacobian), [
-            [3, 0, 0, 0, 0, -2],
-            [0, 3, 0, 0, 0, 2],
-            [0, 0, 3, 2, -2, 0],
-            [0, 0, 2, 2, -1, 0],
-            [0, 0, -2, -1, 2, 0],
-            [-2, 2, 0, 0, 0, 4],
-        ]);
+        assert_eq!(
+            body_gram(&jacobian),
+            [
+                [3, 0, 0, 0, 0, -2],
+                [0, 3, 0, 0, 0, 2],
+                [0, 0, 3, 2, -2, 0],
+                [0, 0, 2, 2, -1, 0],
+                [0, 0, -2, -1, 2, 0],
+                [-2, 2, 0, 0, 0, 4],
+            ]
+        );
         assert_eq!(determinant_bareiss(body_gram(&jacobian)), 12);
         assert_eq!(delassus.len(), 9);
     }
