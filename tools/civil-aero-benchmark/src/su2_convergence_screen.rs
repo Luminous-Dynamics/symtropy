@@ -5,7 +5,7 @@
 //! spatial/temporal convergence, validation accuracy, or airworthiness.
 
 use crate::integrity::sha256_hex;
-use crate::su2_history::{Su2HistoryReport, SU2_HISTORY_EVIDENCE_LEVEL};
+use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResidualCriterion {
@@ -141,17 +141,7 @@ pub fn screen_su2_history(
     report: &Su2HistoryReport,
     criteria: &ConvergenceCriteria,
 ) -> Result<ConvergenceScreen, String> {
-    if report.schema != crate::su2_history::SU2_HISTORY_IMPORT_SCHEMA
-        || report.evidence_level != SU2_HISTORY_EVIDENCE_LEVEL
-        || report.points.is_empty()
-        || report.points.iter().any(|point| {
-            point.values.len() != report.numeric_fields.len()
-                || point.values.iter().any(|value| !value.is_finite())
-        })
-        || report.points.windows(2).any(|pair| pair[1].iteration <= pair[0].iteration)
-    {
-        return Err("history import is malformed or has an unrecognized schema/evidence ceiling".to_owned());
-    }
+    verify_su2_history_import(report)?;
     if criteria.residuals.is_empty() || criteria.monitors.is_empty() {
         return Err("at least one residual and one monitor criterion are required".to_owned());
     }
@@ -340,13 +330,16 @@ mod tests {
                 crate::su2_history::Su2HistoryPoint { iteration: 1, values: vec![0.1, 0.41] },
                 crate::su2_history::Su2HistoryPoint { iteration: 2, values: vec![0.001, 0.4102] },
             ],
-            import_sha256: "d".repeat(64),
-            evidence_level: SU2_HISTORY_EVIDENCE_LEVEL.to_owned(),
+            import_sha256: String::new(),
+            evidence_level: crate::su2_history::SU2_HISTORY_EVIDENCE_LEVEL.to_owned(),
         }
     }
 
     #[test]
     fn applies_declared_residual_reduction_and_monitor_range_limits() {
+        let mut report = report();
+        report.import_sha256 = crate::su2_history::su2_history_import_sha256(&report)
+            .expect("seal synthetic typed history fixture");
         let criteria = ConvergenceCriteria {
             residuals: vec![ResidualCriterion {
                 column: "RMS_RES".to_owned(),
@@ -359,7 +352,7 @@ mod tests {
                 maximum_absolute_range: 0.001,
             }],
         };
-        let result = screen_su2_history(&report(), &criteria).expect("valid criteria screen");
+        let result = screen_su2_history(&report, &criteria).expect("valid criteria screen");
         assert_eq!(result.status, "declared_thresholds_met");
         assert_eq!(result.passed_count, 2);
         assert_eq!(result.failed_count, 0);
@@ -367,6 +360,9 @@ mod tests {
 
     #[test]
     fn failed_threshold_and_insufficient_window_are_not_silently_passed() {
+        let mut report = report();
+        report.import_sha256 = crate::su2_history::su2_history_import_sha256(&report)
+            .expect("seal synthetic typed history fixture");
         let criteria = ConvergenceCriteria {
             residuals: vec![ResidualCriterion {
                 column: "RMS_RES".to_owned(),
@@ -379,7 +375,7 @@ mod tests {
                 maximum_absolute_range: 0.001,
             }],
         };
-        let result = screen_su2_history(&report(), &criteria).expect("audit returns failed status");
+        let result = screen_su2_history(&report, &criteria).expect("audit returns failed status");
         assert_eq!(result.status, "declared_thresholds_not_met_and_incomplete");
         assert_eq!(result.failed_count, 1);
         assert_eq!(result.insufficient_count, 1);
