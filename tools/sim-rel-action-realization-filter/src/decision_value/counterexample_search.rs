@@ -1510,7 +1510,7 @@ mod tests {
             include_outcome_mass_shifts: false,
             include_apparatus_degradation: false,
             include_realized_action_remapping: false,
-            include_sensor_scoped_variants: false,
+            include_sensor_scoped_variants: true,
         };
         assert!(generate_bounded_perturbation_grid(&[source.clone()], &grid, 1).is_err());
 
