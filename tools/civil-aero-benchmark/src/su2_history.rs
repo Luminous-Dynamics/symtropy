@@ -40,24 +40,54 @@ pub struct Su2HistoryPoint {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Su2HistoryReport {
-    pub schema: String,
-    pub run_id: String,
-    pub solver_id: String,
-    pub solver_version_claim: String,
-    pub executable_sha256: String,
-    pub runner_receipt_sha256: String,
-    pub history_relative_path: String,
-    pub history_byte_length: u64,
-    pub history_sha256: String,
-    pub iteration_column: String,
-    pub expected_header: Vec<String>,
-    pub numeric_fields: Vec<Su2HistoryField>,
-    pub points: Vec<Su2HistoryPoint>,
-    pub import_sha256: String,
-    pub evidence_level: String,
+    pub(crate) schema: String,
+    pub(crate) run_id: String,
+    pub(crate) solver_id: String,
+    pub(crate) solver_version_claim: String,
+    pub(crate) executable_sha256: String,
+    pub(crate) runner_receipt_sha256: String,
+    pub(crate) history_relative_path: String,
+    pub(crate) history_byte_length: u64,
+    pub(crate) history_sha256: String,
+    pub(crate) iteration_column: String,
+    pub(crate) expected_header: Vec<String>,
+    pub(crate) numeric_fields: Vec<Su2HistoryField>,
+    pub(crate) points: Vec<Su2HistoryPoint>,
+    pub(crate) import_sha256: String,
+    pub(crate) evidence_level: String,
 }
 
 impl Su2HistoryReport {
+    /// Immutable run identifier recorded by the external-solver receipt.
+    pub fn run_id(&self) -> &str { &self.run_id }
+
+    /// Immutable solver identifier recorded by the external-solver receipt.
+    pub fn solver_id(&self) -> &str { &self.solver_id }
+
+    /// Caller-supplied version label; not authenticated source/build metadata.
+    pub fn solver_version_claim(&self) -> &str { &self.solver_version_claim }
+
+    /// SHA-256 of the executable bytes recorded in the run receipt.
+    pub fn executable_sha256(&self) -> &str { &self.executable_sha256 }
+
+    /// SHA-256 of the replayable external-solver receipt.
+    pub fn runner_receipt_sha256(&self) -> &str { &self.runner_receipt_sha256 }
+
+    /// SHA-256 of the imported history output bytes.
+    pub fn history_sha256(&self) -> &str { &self.history_sha256 }
+
+    /// Canonical SHA-256 of this receipt-bound import representation.
+    pub fn import_sha256(&self) -> &str { &self.import_sha256 }
+
+    /// Caller-declared, ordered numeric columns and unit labels.
+    pub fn numeric_fields(&self) -> &[Su2HistoryField] { &self.numeric_fields }
+
+    /// Imported finite observations in strictly increasing iteration order.
+    pub fn points(&self) -> &[Su2HistoryPoint] { &self.points }
+
+    /// Evidence ceiling for this import layer.
+    pub fn evidence_level(&self) -> &str { &self.evidence_level }
+
     pub fn to_csv(&self) -> String {
         let mut header = vec![
             "schema".to_owned(),
