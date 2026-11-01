@@ -1263,6 +1263,7 @@ mod schur_reduction_tests {
 mod double_sliding_direction_oracle {
     use super::*;
     use num_bigint::BigInt;
+    use num_rational::BigRational;
 
     #[derive(Clone, Debug)]
     struct DirectionEvaluation {
@@ -1998,4 +1999,282 @@ mod double_sliding_direction_oracle {
         let projected_root = resultant.evaluate_homogeneous_numerator(2, 3, 20);
         assert_eq!(projected_root, BigInt::from(0_u8));
     }
+
+
+    type RationalUnivariatePolynomial = Vec<BigRational>;
+
+    fn trim_rational_polynomial(polynomial: &mut RationalUnivariatePolynomial) {
+        while polynomial.len() > 1
+            && polynomial.last() == Some(&BigRational::from_integer(BigInt::from(0_u8)))
+        {
+            polynomial.pop();
+        }
+    }
+
+    fn resultant_as_rational_polynomial(
+        polynomial: &BigIntegerPolynomial,
+    ) -> RationalUnivariatePolynomial {
+        let degree = polynomial.degree().expect("resultant polynomial is nonzero");
+        let mut result = (0..=degree)
+            .map(|index| BigRational::from_integer(polynomial.coefficients[index].clone()))
+            .collect::<Vec<_>>();
+        trim_rational_polynomial(&mut result);
+        result
+    }
+
+    fn rational_polynomial_derivative(
+        polynomial: &RationalUnivariatePolynomial,
+    ) -> RationalUnivariatePolynomial {
+        if polynomial.len() <= 1 {
+            return vec![BigRational::from_integer(BigInt::from(0_u8))];
+        }
+        let mut derivative = (1..polynomial.len())
+            .map(|degree| {
+                polynomial[degree].clone()
+                    * BigRational::from_integer(BigInt::from(degree))
+            })
+            .collect::<Vec<_>>();
+        trim_rational_polynomial(&mut derivative);
+        derivative
+    }
+
+    fn rational_polynomial_evaluate(
+        polynomial: &RationalUnivariatePolynomial,
+        value: &BigRational,
+    ) -> BigRational {
+        polynomial
+            .iter()
+            .rev()
+            .fold(BigRational::from_integer(BigInt::from(0_u8)), |acc, coefficient| {
+                acc * value.clone() + coefficient.clone()
+            })
+    }
+
+    fn rational_polynomial_remainder(
+        dividend: &RationalUnivariatePolynomial,
+        divisor: &RationalUnivariatePolynomial,
+    ) -> RationalUnivariatePolynomial {
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let mut remainder = dividend.clone();
+        trim_rational_polynomial(&mut remainder);
+        let mut divisor = divisor.clone();
+        trim_rational_polynomial(&mut divisor);
+        assert!(divisor.iter().any(|coefficient| coefficient != &zero));
+
+        while remainder.len() >= divisor.len()
+            && remainder.iter().any(|coefficient| coefficient != &zero)
+        {
+            let shift = remainder.len() - divisor.len();
+            let factor = remainder.last().unwrap().clone() / divisor.last().unwrap().clone();
+            for (index, divisor_coefficient) in divisor.iter().enumerate() {
+                let target = shift + index;
+                remainder[target] = remainder[target].clone()
+                    - factor.clone() * divisor_coefficient.clone();
+            }
+            trim_rational_polynomial(&mut remainder);
+        }
+        remainder
+    }
+
+    /// Exact Sturm sequence over Q. Repeated roots are counted distinctly:
+    /// Euclidean termination at the polynomial gcd is intentional.
+    fn exact_sturm_sequence(
+        polynomial: &RationalUnivariatePolynomial,
+    ) -> Vec<RationalUnivariatePolynomial> {
+        let mut first = polynomial.clone();
+        trim_rational_polynomial(&mut first);
+        let second = rational_polynomial_derivative(&first);
+        let mut sequence = vec![first, second];
+
+        loop {
+            let length = sequence.len();
+            let remainder =
+                rational_polynomial_remainder(&sequence[length - 2], &sequence[length - 1]);
+            if remainder.iter().all(|coefficient| {
+                coefficient == &BigRational::from_integer(BigInt::from(0_u8))
+            }) {
+                break;
+            }
+            sequence.push(remainder.into_iter().map(|coefficient| -coefficient).collect());
+        }
+        sequence
+    }
+
+    fn sturm_variations_at(
+        sequence: &[RationalUnivariatePolynomial],
+        value: &BigRational,
+    ) -> usize {
+        let mut previous_sign = 0_i8;
+        let mut variations = 0;
+        for polynomial in sequence {
+            let evaluated = rational_polynomial_evaluate(polynomial, value);
+            let sign = if evaluated > BigRational::from_integer(BigInt::from(0_u8)) {
+                1
+            } else if evaluated < BigRational::from_integer(BigInt::from(0_u8)) {
+                -1
+            } else {
+                0
+            };
+            if sign == 0 {
+                continue;
+            }
+            if previous_sign != 0 && sign != previous_sign {
+                variations += 1;
+            }
+            previous_sign = sign;
+        }
+        variations
+    }
+
+    fn sturm_root_count(
+        sequence: &[RationalUnivariatePolynomial],
+        left: &BigRational,
+        right: &BigRational,
+    ) -> usize {
+        assert!(left < right);
+        assert_ne!(
+            rational_polynomial_evaluate(&sequence[0], left),
+            BigRational::from_integer(BigInt::from(0_u8)),
+            "Sturm interval left endpoint must not be a root"
+        );
+        assert_ne!(
+            rational_polynomial_evaluate(&sequence[0], right),
+            BigRational::from_integer(BigInt::from(0_u8)),
+            "Sturm interval right endpoint must not be a root"
+        );
+        sturm_variations_at(sequence, left) - sturm_variations_at(sequence, right)
+    }
+
+    fn cauchy_integer_root_bound(polynomial: &BigIntegerPolynomial) -> BigInt {
+        let degree = polynomial.degree().expect("resultant polynomial is nonzero");
+        let leading = polynomial.coefficients[degree].clone();
+        let leading_abs = if leading < BigInt::from(0_u8) {
+            -leading
+        } else {
+            leading
+        };
+        let mut maximum = BigInt::from(0_u8);
+        for coefficient in polynomial.coefficients.iter().take(degree) {
+            let absolute = if coefficient < &BigInt::from(0_u8) {
+                -coefficient
+            } else {
+                coefficient.clone()
+            };
+            if absolute > maximum {
+                maximum = absolute;
+            }
+        }
+        let quotient = &maximum / &leading_abs;
+        let remainder = &maximum % &leading_abs;
+        let mut bound = quotient + BigInt::from(1_u8);
+        if remainder != BigInt::from(0_u8) {
+            bound += BigInt::from(1_u8);
+        }
+        bound
+    }
+
+    fn choose_nonroot_split(
+        polynomial: &RationalUnivariatePolynomial,
+        left: &BigRational,
+        right: &BigRational,
+    ) -> BigRational {
+        let width = right.clone() - left.clone();
+        for denominator in 2_u64.. {
+            let denominator_rational =
+                BigRational::from_integer(BigInt::from(denominator));
+            let candidate =
+                left.clone() + width.clone() / denominator_rational;
+            if rational_polynomial_evaluate(polynomial, &candidate)
+                != BigRational::from_integer(BigInt::from(0_u8))
+            {
+                return candidate;
+            }
+        }
+        unreachable!("a finite-degree polynomial cannot vanish at every rational split")
+    }
+
+    /// Isolate every distinct real root inside the strict Cauchy bound.
+    /// Endpoints are chosen away from roots; all counts come from exact Sturm
+    /// variations, and returned intervals each contain exactly one distinct
+    /// real root. Repeated roots are not duplicated.
+    fn isolate_all_real_resultant_roots(
+        polynomial: &BigIntegerPolynomial,
+    ) -> Vec<(BigRational, BigRational)> {
+        let rational_polynomial = resultant_as_rational_polynomial(polynomial);
+        let sturm = exact_sturm_sequence(&rational_polynomial);
+        let mut bound = cauchy_integer_root_bound(polynomial);
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let one = BigRational::from_integer(BigInt::from(1_u8));
+
+        // The Cauchy bound is inclusive. Expand if its integer endpoints happen
+        // to be roots so all Sturm interval boundaries remain non-roots.
+        loop {
+            let left_integer = -bound.clone();
+            let left = BigRational::from_integer(left_integer);
+            let right = BigRational::from_integer(bound.clone());
+            if rational_polynomial_evaluate(&rational_polynomial, &left) != zero
+                && rational_polynomial_evaluate(&rational_polynomial, &right) != zero
+            {
+                break;
+            }
+            bound += BigInt::from(1_u8);
+        }
+
+        let left = BigRational::from_integer(-bound.clone());
+        let right = BigRational::from_integer(bound);
+        let target_width = BigRational::new(BigInt::from(1_u8), BigInt::from(1_u64 << 30));
+        let total_count = sturm_root_count(&sturm, &left, &right);
+        let mut pending = vec![(left, right, total_count)];
+        let mut isolated = Vec::new();
+
+        while let Some((left, right, count)) = pending.pop() {
+            if count == 0 {
+                continue;
+            }
+            if count == 1 && right.clone() - left.clone() <= target_width {
+                isolated.push((left, right));
+                continue;
+            }
+
+            let split = choose_nonroot_split(&rational_polynomial, &left, &right);
+            let left_count = sturm_root_count(&sturm, &left, &split);
+            let right_count = sturm_root_count(&sturm, &split, &right);
+            assert_eq!(left_count + right_count, count);
+            pending.push((split.clone(), right, right_count));
+            pending.push((left, split, left_count));
+        }
+
+        isolated.sort_by(|left_interval, right_interval| left_interval.0.cmp(&right_interval.0));
+        isolated
+    }
+
+    #[test]
+    fn exact_sturm_isolates_all_four_real_projected_roots_of_the_rational_fixture() {
+        let polynomials = asymmetric_rational_polynomial_fixture();
+        let resultant = exact_direction_resultant(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        );
+        let isolated = isolate_all_real_resultant_roots(&resultant);
+
+        assert_eq!(resultant.degree(), Some(20));
+        assert_eq!(isolated.len(), 4);
+
+        let known_root = BigRational::new(BigInt::from(2_u8), BigInt::from(3_u8));
+        let matching_intervals = isolated
+            .iter()
+            .filter(|(left, right)| left < &known_root && &known_root < right)
+            .count();
+        assert_eq!(matching_intervals, 1);
+
+        for (left, right) in &isolated {
+            assert!(left < right);
+            assert!(right.clone() - left.clone() <= BigRational::new(
+                BigInt::from(1_u8),
+                BigInt::from(1_u64 << 30)
+            ));
+        }
+    }
+
+
 }
