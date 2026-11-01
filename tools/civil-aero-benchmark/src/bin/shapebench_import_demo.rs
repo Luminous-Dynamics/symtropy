@@ -30,13 +30,13 @@ fn run() -> Result<(), String> {
     )?;
     print!("{}", report.to_csv());
     eprintln!(
-        "shapebench_import=pass schema={} rows={} task={} environment={} method={} cost_ledger_admitted={} import_sha256={} evidence_level={}",
+        "shapebench_import=pass schema={} rows={} task={} environment={} method={} cost_ledger_reference_present={} import_sha256={} evidence_level={}",
         report.schema,
         report.rows.len(),
         report.context.task_id,
         report.context.environment_id,
         report.context.method_id,
-        report.evaluation_cost_admissible(),
+        report.cost_ledger_reference_present(),
         report.import_sha256,
         report.evidence_level
     );
