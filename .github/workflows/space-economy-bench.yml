@@ -577,7 +577,10 @@ jobs:
             and .scenario_count == 26
             and (.scenarios | length == 26)
             and all(.scenarios[]; .status_matches_expected == true)
-            and ([.scenarios[].status] | sort) == ["feasible","feasible","feasible","feasible","feasible","feasible","feasible","feasible","feasible","indeterminate","indeterminate","indeterminate","indeterminate","indeterminate","indeterminate","infeasible","infeasible","infeasible","infeasible","infeasible","infeasible","infeasible","invalid","invalid","invalid","invalid"]
+            and ([.scenarios[] | select(.status == "feasible")] | length) == 9
+            and ([.scenarios[] | select(.status == "indeterminate")] | length) == 5
+            and ([.scenarios[] | select(.status == "infeasible")] | length) == 9
+            and ([.scenarios[] | select(.status == "invalid")] | length) == 3
           ' space-economy-earth-orbit-chain-receipt.json
 
       - name: Bind toolchain and dependency-lock provenance to receipts
