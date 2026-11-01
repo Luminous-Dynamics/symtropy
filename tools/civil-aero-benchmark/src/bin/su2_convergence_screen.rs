@@ -64,16 +64,24 @@ fn run() -> Result<bool, String> {
     Ok(audit.status == "declared_thresholds_met")
 }
 
-fn split_spec<'a>(value: &'a str, name: &str, expected_parts: usize) -> Result<Vec<&'a str>, String> {
+fn split_spec<'a>(
+    value: &'a str,
+    name: &str,
+    expected_parts: usize,
+) -> Result<Vec<&'a str>, String> {
     let parts = value.split('|').collect::<Vec<_>>();
     if parts.len() != expected_parts || parts.iter().any(|part| part.trim().is_empty()) {
-        return Err(format!("{name} requires exactly {expected_parts} non-empty pipe-separated fields"));
+        return Err(format!(
+            "{name} requires exactly {expected_parts} non-empty pipe-separated fields"
+        ));
     }
     Ok(parts)
 }
 
 fn parse_f64(value: &str, name: &str) -> Result<f64, String> {
-    value.parse::<f64>().map_err(|error| format!("invalid {name}: {error}"))
+    value
+        .parse::<f64>()
+        .map_err(|error| format!("invalid {name}: {error}"))
 }
 
 fn parse_arguments() -> Result<Options, String> {
@@ -116,9 +124,15 @@ fn parse_arguments() -> Result<Options, String> {
                         .parse()
                         .map_err(|error| format!("invalid log10 residual window: {error}"))?,
                     acceptance: ResidualAcceptance::Log10 {
-                        maximum_final_log10_residual: parse_f64(parts[3], "maximum final log10 residual")?,
+                        maximum_final_log10_residual: parse_f64(
+                            parts[3],
+                            "maximum final log10 residual",
+                        )?,
                         minimum_log10_reduction: parse_f64(parts[4], "minimum log10 reduction")?,
-                        maximum_terminal_span_log10: parse_f64(parts[5], "maximum terminal log10 span")?,
+                        maximum_terminal_span_log10: parse_f64(
+                            parts[5],
+                            "maximum terminal log10 span",
+                        )?,
                     },
                 });
             }
@@ -132,8 +146,14 @@ fn parse_arguments() -> Result<Options, String> {
                         .map_err(|error| format!("invalid linear residual window: {error}"))?,
                     acceptance: ResidualAcceptance::PositiveLinear {
                         maximum_final_value: parse_f64(parts[3], "maximum final residual value")?,
-                        maximum_final_to_initial_ratio: parse_f64(parts[4], "maximum residual ratio")?,
-                        maximum_terminal_range: parse_f64(parts[5], "maximum terminal residual range")?,
+                        maximum_final_to_initial_ratio: parse_f64(
+                            parts[4],
+                            "maximum residual ratio",
+                        )?,
+                        maximum_terminal_range: parse_f64(
+                            parts[5],
+                            "maximum terminal residual range",
+                        )?,
                     },
                 });
             }
