@@ -635,9 +635,6 @@ pub struct ExperimentPairComparison {
     pub experiment_cost_b: Rational,
     /// Multiplier converting one cost unit into terminal-decision-loss units.
     pub cost_to_loss_exchange_rate: Rational,
-    /// Exact nonnegative exchange rate where scalarized A/B totals cross.
-    /// Present only when the pair has a strict cost/decision-loss trade-off.
-    pub cost_to_loss_crossover_rate: Option<Rational>,
     /// Componentwise comparison of (cost, nominal decision risk), without scalarization.
     pub nominal_pareto_relation: ExperimentParetoRelation,
     /// Componentwise comparison of (cost, realized decision risk), without scalarization.
