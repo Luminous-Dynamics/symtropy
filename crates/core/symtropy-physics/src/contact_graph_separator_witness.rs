@@ -39,13 +39,13 @@ struct StickingLeafResponse {
 }
 
 impl StickingLeafMessage {
-    /// Return the block-Schur terms for this regime-conditioned leaf.
+    /// Return the affine impulse response p_leaf = offset + gain * p_separator.
     ///
-    /// A p_leaf + B^T p_separator + q_leaf = 0 gives
-    /// W_eff = C - B A^-1 B^T and q_eff = q_separator - B A^-1 q_leaf.
-    /// The implementation uses a fixed-size SPD Cholesky solve, not an
-    /// explicit inverse. Rank-aware fibres are a separate response-message lane.
-    fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
+    /// The fixed-size SPD Cholesky factorization solves A offset = -q_leaf
+    /// and A gain = -B^T. Rank-aware fibres are a separate response-message lane.
+    fn affine_response_coefficients(
+        &self,
+    ) -> Result<(SVector<f64, 3>, Matrix3<f64>), &'static str> {
         if !self.self_operator.iter().all(|value| value.is_finite())
             || !self
                 .separator_coupling
@@ -61,11 +61,22 @@ impl StickingLeafMessage {
             .self_operator
             .cholesky()
             .ok_or("sticking leaf self-block is not positive definite")?;
-        let inverse_free = factor.solve(&self.free_velocity);
-        let inverse_coupling_transpose = factor.solve(&self.separator_coupling.transpose());
+        let offset = -factor.solve(&self.free_velocity);
+        let separator_gain = -factor.solve(&self.separator_coupling.transpose());
+        Ok((offset, separator_gain))
+    }
+
+    /// Return the block-Schur terms for this regime-conditioned leaf.
+    ///
+    /// A p_leaf + B^T p_separator + q_leaf = 0 gives
+    /// W_eff = C - B A^-1 B^T and q_eff = q_separator - B A^-1 q_leaf.
+    /// Using offset=-A^-1 q_leaf and gain=-A^-1 B^T:
+    /// B A^-1 B^T = -B gain and B A^-1 q_leaf = -B offset.
+    fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
+        let (offset, separator_gain) = self.affine_response_coefficients()?;
         Ok((
-            self.separator_coupling * inverse_coupling_transpose,
-            self.separator_coupling * inverse_free,
+            -(self.separator_coupling * separator_gain),
+            -(self.separator_coupling * offset),
         ))
     }
 
@@ -81,23 +92,11 @@ impl StickingLeafMessage {
         if !tolerance.is_finite()
             || tolerance <= 0.0
             || !separator_impulse.iter().all(|value| value.is_finite())
-            || !self.self_operator.iter().all(|value| value.is_finite())
-            || !self
-                .separator_coupling
-                .iter()
-                .all(|value| value.is_finite())
-            || !self.free_velocity.iter().all(|value| value.is_finite())
-            || !self.friction_coefficient.is_finite()
-            || self.friction_coefficient < 0.0
         {
             return Err("sticking leaf response received invalid or non-finite input");
         }
-        let factor = self
-            .self_operator
-            .cholesky()
-            .ok_or("sticking leaf self-block is not positive definite")?;
-        let rhs = -(self.free_velocity + self.separator_coupling.transpose() * separator_impulse);
-        let impulse = factor.solve(&rhs);
+        let (offset, separator_gain) = self.affine_response_coefficients()?;
+        let impulse = offset + separator_gain * separator_impulse;
         let post_velocity = self.free_velocity
             + self.separator_coupling.transpose() * separator_impulse
             + self.self_operator * impulse;
@@ -417,6 +416,12 @@ fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_re
         friction_coefficient: FRICTION,
     };
     let separator_impulse = SVector::<f64, 3>::new(1.0, -0.5, 0.0);
+
+    let (response_offset, separator_gain) = message.affine_response_coefficients().unwrap();
+    assert!((response_offset[0] - 0.75).abs() < 1.0e-12);
+    assert!((response_offset[1] + 0.125).abs() < 1.0e-12);
+    assert!((separator_gain[(0, 0)] - 0.25).abs() < 1.0e-12);
+    assert!((separator_gain[(1, 1)] + 0.25).abs() < 1.0e-12);
 
     let (schur_operator, schur_free_velocity) = message.schur_terms().unwrap();
     assert!((schur_operator[(0, 0)] - 0.125).abs() < 1.0e-12);
