@@ -1073,4 +1073,80 @@ mod schur_reduction_tests {
         assert_eq!(energy_delta, -2.1875);
         assert!(energy_delta < 0.0);
     }
+
+    fn asymmetric_both_sliding_fixture() -> (Matrix6, Vector6, Vector6) {
+        let cross = Matrix3::from_row_slice(&[
+            1.0 / 8.0,
+            1.0 / 32.0,
+            -1.0 / 64.0,
+            1.0 / 64.0,
+            1.0 / 16.0,
+            1.0 / 32.0,
+            -1.0 / 32.0,
+            1.0 / 64.0,
+            1.0 / 16.0,
+        ]);
+        let mut w = Matrix6::identity();
+        for row in 0..3 {
+            for column in 0..3 {
+                w[(row, column + 3)] = cross[(row, column)];
+                w[(column + 3, row)] = cross[(row, column)];
+            }
+        }
+
+        // Two distinct rational sliding directions: (3/5,4/5) and (5/13,12/13).
+        let q = Vector6::new(
+            -745.0 / 64.0,
+            441.0 / 64.0,
+            1257.0 / 128.0,
+            -917.0 / 64.0,
+            119.0 / 16.0,
+            37.0 / 2.0,
+        );
+        let p = Vector6::new(10.0, -3.0, -4.0, 13.0, -2.5, -6.0);
+        (w, q, p)
+    }
+
+    #[test]
+    fn asymmetric_cross_contact_block_supports_two_distinct_sliding_directions() {
+        let (w, q, p) = asymmetric_both_sliding_fixture();
+        let mu_1: f64 = 0.5;
+        let mu_2: f64 = 0.5;
+        let tau_1: f64 = 1.25;
+        let tau_2: f64 = 2.0;
+
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+
+        // The upper cross-contact block is intentionally non-symmetric.
+        assert_eq!(w[(0, 4)], 1.0 / 32.0);
+        assert_eq!(w[(1, 3)], 1.0 / 64.0);
+        assert_ne!(w[(0, 4)], w[(1, 3)]);
+
+        let u = q + w * p;
+        assert_eq!(
+            u,
+            Vector6::new(0.0, 3.75, 5.0, 0.0, 5.0, 12.0)
+        );
+
+        assert!(p[0] > 0.0 && p[3] > 0.0);
+        assert_eq!(p[0] * u[0], 0.0);
+        assert_eq!(p[3] * u[3], 0.0);
+
+        let disk_margin_1 = (mu_1 * p[0]).powi(2) - p[1].powi(2) - p[2].powi(2);
+        let disk_margin_2 = (mu_2 * p[3]).powi(2) - p[4].powi(2) - p[5].powi(2);
+        assert_eq!(disk_margin_1, 0.0);
+        assert_eq!(disk_margin_2, 0.0);
+
+        assert!(tau_1 > 0.0 && tau_2 > 0.0);
+        assert_eq!(u[1] + tau_1 * p[1], 0.0);
+        assert_eq!(u[2] + tau_1 * p[2], 0.0);
+        assert_eq!(u[4] + tau_2 * p[4], 0.0);
+        assert_eq!(u[5] + tau_2 * p[5], 0.0);
+
+        let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+        assert_eq!(energy_delta, -19455.0 / 64.0);
+        assert!(energy_delta < 0.0);
+    }
+
 }
