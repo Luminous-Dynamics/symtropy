@@ -1287,6 +1287,31 @@ mod tests {
     }
 
     #[test]
+    fn inference_rule_contract_rejects_wrong_binding_and_unnormalized_posteriors() {
+        let assumed = perfect_channel("perfect");
+        let mut wrong_binding = posterior_rule(
+            &assumed,
+            "wrong-binding",
+            vec![
+                vec![Rational::one(), Rational::zero()],
+                vec![Rational::zero(), Rational::one()],
+            ],
+        );
+        wrong_binding.assumed_channel_id = "other-channel".into();
+        assert!(wrong_binding.validate(&assumed).is_err());
+
+        let unnormalized = posterior_rule(
+            &assumed,
+            "unnormalized",
+            vec![
+                vec![rational(3, 4), rational(1, 4)],
+                vec![rational(1, 2), rational(1, 4)],
+            ],
+        );
+        assert!(unnormalized.validate(&assumed).is_err());
+    }
+
+    #[test]
     fn unsupported_observations_fail_closed_to_explicit_abstention() {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let assumed = noisy_channel("assumed");
