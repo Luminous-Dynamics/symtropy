@@ -245,6 +245,17 @@ fn three_contact_island_has_a_three_dimensional_admissible_allocation_fibre() {
         // With sixth-scaled W and q, the common numerator equals -236*d^2.
         let energy_numerator = 2 * d * dot(&p, &q6) + quadratic_form(&w6, &p);
         assert_eq!(energy_numerator, -236 * d.pow(2));
+
+        // p0 is orthogonal to the three-dimensional nullspace. In these
+        // contact coordinates it is the unique minimum-Euclidean-norm
+        // representative, but that selection does not erase the fibre.
+        let norm_increment =
+            dot(&p, &p) - d.pow(2) * dot(&BASE_IMPULSE, &BASE_IMPULSE);
+        assert_eq!(
+            norm_increment,
+            2 * a.pow(2) + 2 * b.pow(2) + 4 * c.pow(2) - 2 * a * c - 2 * b * c
+        );
+        assert!(norm_increment >= 0);
     }
 
     // The three null parameters describe a genuine open neighbourhood around
