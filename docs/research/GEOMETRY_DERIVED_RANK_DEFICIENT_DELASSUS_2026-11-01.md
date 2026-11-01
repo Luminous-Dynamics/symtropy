@@ -144,6 +144,28 @@ points spanning the cube. The algebraic nullspace identities extend the
 response equality to the whole parameter cube; the component bounds establish
 Coulomb feasibility throughout it.
 
+## Contact-count rank law for one rigid body against a fixed plane
+
+The integration suite also constructs exact contact Jacobians for 2, 3, 4 and 8
+points on the same plane, with the first three points non-collinear. For the
+two-point case, the row rank is 5 and the Delassus nullity is 1. Once three
+non-collinear points are present, the generalized rigid-body twist is fully
+observable: \(\operatorname{rank}(J)=\operatorname{rank}(W)=6\). Every additional
+3D point contact adds three rows but no new rigid-body degrees of freedom.
+Consequently, for \(k\ge3\),
+\[
+\operatorname{rank}(W)=6,\qquad \operatorname{nullity}(W)=3k-6.
+\]
+This is the central scaling hazard: for a single rigid body against a fixed
+environment, an increasingly large \(3k\times3k\) Delassus matrix is not
+becoming more positive definite. Its rank stays at most six while its
+impulse-space nullity grows linearly with the number of contact points.
+
+The exact regression currently checks \(k\in\{2,3,4,8\}\). Multi-body islands
+have a larger generalized-coordinate space; the corresponding structural
+bound is determined by the rank of the assembled contact Jacobian, not by
+contact count alone.
+
 ## Paradigm shifts and benchmark implications
 
 1. **Replace “unique impulse” with a set-valued, quotient-aware result.** Report solution-set dimension, nullspace basis, feasible parameter region and unique response status independently.
