@@ -7,6 +7,7 @@
 pub mod approximate_blackwell;
 pub mod blackwell_transfer;
 pub mod counterexample_ledger;
+pub mod scientific_challenge;
 pub mod counterexample_search;
 pub mod experiment_ordering;
 pub mod finite_horizon;
