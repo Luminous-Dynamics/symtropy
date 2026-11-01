@@ -223,25 +223,81 @@ pub fn parse_corpus(input: &str) -> Result<Vec<CorridorCase>, BenchError> {
             family: parse_enum(ModeFamily::parse(fields[1]), "family", line_number)?,
             cargo: parse_enum(CargoClass::parse(fields[2]), "cargo", line_number)?,
             demand_tonnes_per_day: parse_u64(fields[3], "demand", line_number)?,
-            candidate_capacity_tonnes_per_day: parse_u64(fields[4], "candidate capacity", line_number)?,
-            baseline_capacity_tonnes_per_day: parse_u64(fields[5], "baseline capacity", line_number)?,
-            candidate_fixed_annual_cost_minor: parse_u64(fields[6], "candidate fixed cost", line_number)?,
-            baseline_fixed_annual_cost_minor: parse_u64(fields[7], "baseline fixed cost", line_number)?,
-            candidate_variable_cost_minor_per_tonne: parse_u64(fields[8], "candidate variable cost", line_number)?,
-            baseline_variable_cost_minor_per_tonne: parse_u64(fields[9], "baseline variable cost", line_number)?,
-            candidate_transit_minutes: parse_u64(fields[10], "candidate transit minutes", line_number)?,
-            baseline_transit_minutes: parse_u64(fields[11], "baseline transit minutes", line_number)?,
-            candidate_energy_wh_per_tonne: parse_u64(fields[12], "candidate energy intensity", line_number)?,
-            baseline_energy_wh_per_tonne: parse_u64(fields[13], "baseline energy intensity", line_number)?,
-            candidate_emissions_gco2e_per_tonne: parse_u64(fields[14], "candidate emissions intensity", line_number)?,
-            baseline_emissions_gco2e_per_tonne: parse_u64(fields[15], "baseline emissions intensity", line_number)?,
+            candidate_capacity_tonnes_per_day: parse_u64(
+                fields[4],
+                "candidate capacity",
+                line_number,
+            )?,
+            baseline_capacity_tonnes_per_day: parse_u64(
+                fields[5],
+                "baseline capacity",
+                line_number,
+            )?,
+            candidate_fixed_annual_cost_minor: parse_u64(
+                fields[6],
+                "candidate fixed cost",
+                line_number,
+            )?,
+            baseline_fixed_annual_cost_minor: parse_u64(
+                fields[7],
+                "baseline fixed cost",
+                line_number,
+            )?,
+            candidate_variable_cost_minor_per_tonne: parse_u64(
+                fields[8],
+                "candidate variable cost",
+                line_number,
+            )?,
+            baseline_variable_cost_minor_per_tonne: parse_u64(
+                fields[9],
+                "baseline variable cost",
+                line_number,
+            )?,
+            candidate_transit_minutes: parse_u64(
+                fields[10],
+                "candidate transit minutes",
+                line_number,
+            )?,
+            baseline_transit_minutes: parse_u64(
+                fields[11],
+                "baseline transit minutes",
+                line_number,
+            )?,
+            candidate_energy_wh_per_tonne: parse_u64(
+                fields[12],
+                "candidate energy intensity",
+                line_number,
+            )?,
+            baseline_energy_wh_per_tonne: parse_u64(
+                fields[13],
+                "baseline energy intensity",
+                line_number,
+            )?,
+            candidate_emissions_gco2e_per_tonne: parse_u64(
+                fields[14],
+                "candidate emissions intensity",
+                line_number,
+            )?,
+            baseline_emissions_gco2e_per_tonne: parse_u64(
+                fields[15],
+                "baseline emissions intensity",
+                line_number,
+            )?,
             rights: parse_gate(fields[16], "rights", line_number)?,
             geotechnical: parse_gate(fields[17], "geotechnical", line_number)?,
             fire_egress: parse_gate(fields[18], "fire/egress", line_number)?,
             environmental: parse_gate(fields[19], "environmental", line_number)?,
             cargo_compatibility: parse_gate(fields[20], "cargo compatibility", line_number)?,
-            fault_capacity_remaining_percent: parse_u64(fields[21], "fault capacity percent", line_number)?,
-            expected: parse_enum(Disposition::parse(fields[22]), "expected disposition", line_number)?,
+            fault_capacity_remaining_percent: parse_u64(
+                fields[21],
+                "fault capacity percent",
+                line_number,
+            )?,
+            expected: parse_enum(
+                Disposition::parse(fields[22]),
+                "expected disposition",
+                line_number,
+            )?,
         };
 
         if case.demand_tonnes_per_day == 0
@@ -287,18 +343,28 @@ pub fn disposition(case: &CorridorCase) -> Disposition {
     }
 }
 
-fn annual_cost(fixed: u64, variable_per_tonne: u64, delivered_tonnes_per_day: u64, id: &str) -> Result<u64, BenchError> {
+fn annual_cost(
+    fixed: u64,
+    variable_per_tonne: u64,
+    delivered_tonnes_per_day: u64,
+    id: &str,
+) -> Result<u64, BenchError> {
     let annual_delivered = delivered_tonnes_per_day
         .checked_mul(DAYS_PER_YEAR)
         .ok_or_else(|| BenchError::ArithmeticOverflow { id: id.to_owned() })?;
     let variable = annual_delivered
         .checked_mul(variable_per_tonne)
         .ok_or_else(|| BenchError::ArithmeticOverflow { id: id.to_owned() })?;
-    fixed.checked_add(variable)
+    fixed
+        .checked_add(variable)
         .ok_or_else(|| BenchError::ArithmeticOverflow { id: id.to_owned() })
 }
 
-fn annual_intensity(per_tonne: u64, delivered_tonnes_per_day: u64, id: &str) -> Result<u64, BenchError> {
+fn annual_intensity(
+    per_tonne: u64,
+    delivered_tonnes_per_day: u64,
+    id: &str,
+) -> Result<u64, BenchError> {
     delivered_tonnes_per_day
         .checked_mul(DAYS_PER_YEAR)
         .and_then(|annual| annual.checked_mul(per_tonne))
@@ -306,9 +372,11 @@ fn annual_intensity(per_tonne: u64, delivered_tonnes_per_day: u64, id: &str) -> 
 }
 
 fn break_even_demand_tonnes_per_day(case: &CorridorCase) -> Option<u64> {
-    let fixed_delta = case.candidate_fixed_annual_cost_minor
+    let fixed_delta = case
+        .candidate_fixed_annual_cost_minor
         .saturating_sub(case.baseline_fixed_annual_cost_minor);
-    let variable_saving = case.baseline_variable_cost_minor_per_tonne
+    let variable_saving = case
+        .baseline_variable_cost_minor_per_tonne
         .checked_sub(case.candidate_variable_cost_minor_per_tonne)?;
     if fixed_delta == 0 {
         return Some(0);
@@ -319,16 +387,26 @@ fn break_even_demand_tonnes_per_day(case: &CorridorCase) -> Option<u64> {
     let annual = fixed_delta
         .checked_add(variable_saving - 1)?
         .checked_div(variable_saving)?;
-    annual.checked_add(DAYS_PER_YEAR - 1).map(|n| n / DAYS_PER_YEAR)
+    annual
+        .checked_add(DAYS_PER_YEAR - 1)
+        .map(|n| n / DAYS_PER_YEAR)
 }
 
 /// Evaluate a single candidate against the explicit baseline.
 pub fn evaluate(case: &CorridorCase) -> Result<Evaluation, BenchError> {
-    let candidate_delivered = case.demand_tonnes_per_day.min(case.candidate_capacity_tonnes_per_day);
-    let baseline_delivered = case.demand_tonnes_per_day.min(case.baseline_capacity_tonnes_per_day);
-    let fault_capacity = case.candidate_capacity_tonnes_per_day
+    let candidate_delivered = case
+        .demand_tonnes_per_day
+        .min(case.candidate_capacity_tonnes_per_day);
+    let baseline_delivered = case
+        .demand_tonnes_per_day
+        .min(case.baseline_capacity_tonnes_per_day);
+    let fault_capacity = case
+        .candidate_capacity_tonnes_per_day
         .checked_mul(case.fault_capacity_remaining_percent)
-        .ok_or_else(|| BenchError::ArithmeticOverflow { id: case.id.clone() })? / 100;
+        .ok_or_else(|| BenchError::ArithmeticOverflow {
+            id: case.id.clone(),
+        })?
+        / 100;
     let fault_delivered = case.demand_tonnes_per_day.min(fault_capacity);
 
     Ok(Evaluation {
@@ -392,7 +470,10 @@ mod tests {
     fn frozen_corpus_contains_25_unique_cases_and_all_expected_modes() {
         let cases = parse_corpus(CORPUS).unwrap();
         assert_eq!(cases.len(), 25);
-        let modes: BTreeSet<_> = cases.iter().map(|case| format!("{:?}", case.family)).collect();
+        let modes: BTreeSet<_> = cases
+            .iter()
+            .map(|case| format!("{:?}", case.family))
+            .collect();
         assert_eq!(modes.len(), 10);
     }
 
@@ -406,7 +487,10 @@ mod tests {
     #[test]
     fn failed_hard_gate_precedes_cost_or_capacity() {
         let cases = parse_corpus(CORPUS).unwrap();
-        let case = cases.iter().find(|item| item.id == "pod_fire_egress_fail").unwrap();
+        let case = cases
+            .iter()
+            .find(|item| item.id == "pod_fire_egress_fail")
+            .unwrap();
         let result = evaluate(case).unwrap();
         assert_eq!(result.disposition, Disposition::Ineligible);
         assert!(result.candidate_annual_cost_minor < result.baseline_annual_cost_minor);
@@ -415,14 +499,20 @@ mod tests {
     #[test]
     fn unknown_rights_are_needs_evidence_not_eligible() {
         let cases = parse_corpus(CORPUS).unwrap();
-        let case = cases.iter().find(|item| item.id == "magrail_rights_unknown").unwrap();
+        let case = cases
+            .iter()
+            .find(|item| item.id == "magrail_rights_unknown")
+            .unwrap();
         assert_eq!(disposition(case), Disposition::NeedsEvidence);
     }
 
     #[test]
     fn exact_capacity_meets_declared_demand() {
         let cases = parse_corpus(CORPUS).unwrap();
-        let case = cases.iter().find(|item| item.id == "capacity_exactly_demand").unwrap();
+        let case = cases
+            .iter()
+            .find(|item| item.id == "capacity_exactly_demand")
+            .unwrap();
         let result = evaluate(case).unwrap();
         assert_eq!(result.disposition, Disposition::Eligible);
         assert_eq!(result.candidate_nominal_unmet_tonnes_per_day, 0);
@@ -431,10 +521,16 @@ mod tests {
     #[test]
     fn deterministic_fault_is_not_reported_as_a_probability() {
         let cases = parse_corpus(CORPUS).unwrap();
-        let case = cases.iter().find(|item| item.id == "magrail_portal_outage").unwrap();
+        let case = cases
+            .iter()
+            .find(|item| item.id == "magrail_portal_outage")
+            .unwrap();
         let result = evaluate(case).unwrap();
         assert_eq!(result.fault_capacity_supported_tonnes_per_day, 0);
-        assert_eq!(result.fault_nominal_unmet_tonnes_per_day, case.demand_tonnes_per_day);
+        assert_eq!(
+            result.fault_nominal_unmet_tonnes_per_day,
+            case.demand_tonnes_per_day
+        );
     }
 
     #[test]
@@ -447,6 +543,9 @@ mod tests {
     fn duplicate_case_ids_are_rejected() {
         let row = "duplicate|no_build|mixed|1|1|1|0|0|1|1|1|1|1|1|1|1|pass|pass|pass|pass|pass|100|eligible";
         let corpus = format!("{row}\n{row}\n");
-        assert_eq!(parse_corpus(&corpus), Err(BenchError::DuplicateId("duplicate".to_owned())));
+        assert_eq!(
+            parse_corpus(&corpus),
+            Err(BenchError::DuplicateId("duplicate".to_owned()))
+        );
     }
 }
