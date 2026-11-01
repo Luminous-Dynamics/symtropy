@@ -273,10 +273,6 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
         }
 
         let (intermediate, next_coupling) = accepted?;
-        let corrected =
-            subtract(&intermediate, &scaled_add(&next_coupling, -1.0, &coupling));
-        let corrected = scaled_add(&impulse, 0.0, &corrected);
-        let corrected = scaled_add(&corrected, 0.0, &corrected);
         let corrected = scaled_add(
             &intermediate,
             -gamma,
