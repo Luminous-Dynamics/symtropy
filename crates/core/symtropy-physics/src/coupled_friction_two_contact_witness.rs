@@ -1149,4 +1149,87 @@ mod schur_reduction_tests {
         assert!(energy_delta < 0.0);
     }
 
+
+    #[test]
+    fn asymmetric_double_sliding_fixture_has_two_distinct_admissible_branches() {
+        const SCALE: f64 = 1_048_576.0;
+        let w_numerators = [
+            380_770.0, -33_295.0, 274_566.0, 145_422.0, 341_094.0, 356_864.0,
+            -33_295.0, 1_048_576.0, -338_214.0, -131_501.0, 237_374.0, -415_672.0,
+            274_566.0, -338_214.0, 1_001_976.0, 75_838.0, 564_175.0, 587_762.0,
+            145_422.0, -131_501.0, 75_838.0, 812_094.0, -148_076.0, 106_473.0,
+            341_094.0, 237_374.0, 564_175.0, -148_076.0, 769_147.0, 341_152.0,
+            356_864.0, -415_672.0, 587_762.0, 106_473.0, 341_152.0, 854_965.0,
+        ];
+        let w = Matrix6::from_row_slice(&w_numerators) / SCALE;
+        let q = Vector6::from_row_slice(&[
+            -109_587.0,
+            -7_143_822.0,
+            8_213_295.0,
+            -3_226_388.0,
+            7_075_809.0,
+            1_695_813.0,
+        ]) / SCALE;
+        let mu = [1_956_059.0 / SCALE, 380_758.0 / SCALE];
+
+        // Both cross-contact blocks are retained, with a genuinely
+        // non-symmetric upper B block: B[0,1] != B[1,0].
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+        assert_ne!(w[(0, 4)], w[(1, 3)]);
+
+        let candidates = [
+            (
+                Vector6::new(
+                    4.608_844_012_230_929_5,
+                    5.277_782_770_150_771,
+                    -6.786_946_962_897_831,
+                    4.290_844_256_133_09,
+                    -1.396_836_622_802_999_4,
+                    0.690_278_538_078_889_7,
+                ),
+                [0.117_529_947_136_987_67, 3.138_813_543_506_759],
+            ),
+            (
+                Vector6::new(
+                    4.538_161_725_266_375_5,
+                    5.222_183_363_528_369,
+                    -6.663_076_668_053_674,
+                    4.284_143_418_088_06,
+                    -1.402_416_114_964_019_3,
+                    0.673_267_915_990_852_9,
+                ),
+                [0.135_438_734_728_748, 3.142_289_304_836_215_7],
+            ),
+        ];
+
+        for (p, tau) in candidates {
+            let u = q + w * p;
+            for (contact, offset) in [0_usize, 3_usize].into_iter().enumerate() {
+                let lambda = p[offset];
+                let tangent_norm = (p[offset + 1].powi(2) + p[offset + 2].powi(2)).sqrt();
+                let friction_radius = mu[contact] * lambda;
+                let disk_margin = friction_radius.powi(2) - tangent_norm.powi(2);
+                let stationarity_1 = u[offset + 1] + tau[contact] * p[offset + 1];
+                let stationarity_2 = u[offset + 2] + tau[contact] * p[offset + 2];
+
+                assert!(lambda > 0.0);
+                assert!(u[offset].abs() < 1.0e-8);
+                assert!(disk_margin.abs() < 1.0e-8);
+                assert!(tau[contact] > 0.0);
+                assert!(stationarity_1.abs() < 1.0e-8);
+                assert!(stationarity_2.abs() < 1.0e-8);
+            }
+
+            let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+            assert!(energy_delta < -60.0);
+        }
+
+        let impulse_separation = (candidates[0].0 - candidates[1].0).norm();
+        assert!(impulse_separation > 0.1 && impulse_separation < 0.2);
+
+        // These are two isolated numerical witnesses for the same exactly
+        // dyadic W/q/mu input. This is not yet a certified complete root count.
+    }
+
 }
