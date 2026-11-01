@@ -24,9 +24,11 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Run exact rational Sturm oracle
+      - name: Check formatting of the exact root verifier
+        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_sturm.rs
+      - name: Certify coupled two-contact slide/stick angular stratum
+        run: cargo test -p symtropy-physics --lib coupled_friction::sturm::two_contact_slide_stick_stratum_has_exactly_two_admissible_roots --locked
+      - name: Run exact single-contact Sturm regression
         run: cargo test -p symtropy-physics --lib coupled_friction::sturm --locked
       - name: Re-run coupled point-contact regression panel
         run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
