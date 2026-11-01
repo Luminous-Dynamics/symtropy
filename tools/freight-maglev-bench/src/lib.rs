@@ -187,6 +187,13 @@ fn parse_gate(value: &str, name: &str, line: usize) -> Result<Gate, BenchError> 
     })
 }
 
+fn parse_enum<T>(result: Result<T, String>, name: &str, line: usize) -> Result<T, BenchError> {
+    result.map_err(|message| BenchError::Parse {
+        line,
+        message: format!("{name}: {message}"),
+    })
+}
+
 /// Strictly parse the 23-column frozen corpus. Unknown columns are rejected.
 pub fn parse_corpus(input: &str) -> Result<Vec<CorridorCase>, BenchError> {
     let mut cases = Vec::new();
@@ -209,17 +216,10 @@ pub fn parse_corpus(input: &str) -> Result<Vec<CorridorCase>, BenchError> {
         if id.is_empty() || !ids.insert(id.clone()) {
             return Err(BenchError::DuplicateId(id));
         }
-        let parse_enum = |result: Result<_, String>, name: &str| {
-            result.map_err(|message| BenchError::Parse {
-                line: line_number,
-                message: format!("{name}: {message}"),
-            })
-        };
-
         let case = CorridorCase {
             id,
-            family: parse_enum(ModeFamily::parse(fields[1]), "family")?,
-            cargo: parse_enum(CargoClass::parse(fields[2]), "cargo")?,
+            family: parse_enum(ModeFamily::parse(fields[1]), "family", line_number)?,
+            cargo: parse_enum(CargoClass::parse(fields[2]), "cargo", line_number)?,
             demand_tonnes_per_day: parse_u64(fields[3], "demand", line_number)?,
             candidate_capacity_tonnes_per_day: parse_u64(fields[4], "candidate capacity", line_number)?,
             baseline_capacity_tonnes_per_day: parse_u64(fields[5], "baseline capacity", line_number)?,
@@ -239,7 +239,7 @@ pub fn parse_corpus(input: &str) -> Result<Vec<CorridorCase>, BenchError> {
             environmental: parse_gate(fields[19], "environmental", line_number)?,
             cargo_compatibility: parse_gate(fields[20], "cargo compatibility", line_number)?,
             fault_capacity_remaining_percent: parse_u64(fields[21], "fault capacity percent", line_number)?,
-            expected: parse_enum(Disposition::parse(fields[22]), "expected disposition")?,
+            expected: parse_enum(Disposition::parse(fields[22]), "expected disposition", line_number)?,
         };
 
         if case.demand_tonnes_per_day == 0
@@ -387,7 +387,7 @@ mod tests {
     #[test]
     fn frozen_corpus_contains_24_unique_cases_and_all_expected_modes() {
         let cases = parse_corpus(CORPUS).unwrap();
-        assert_eq!(cases.len(), 24);
+        assert_eq!(cases.len(), 25);
         let modes: BTreeSet<_> = cases.iter().map(|case| format!("{:?}", case.family)).collect();
         assert_eq!(modes.len(), 10);
     }
