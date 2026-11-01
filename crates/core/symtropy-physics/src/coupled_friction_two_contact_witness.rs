@@ -3874,8 +3874,27 @@ mod double_sliding_direction_oracle {
                     .all(RationalInterval::is_strictly_positive)
             );
 
-            let lambda1 = certificate.normal_multiplier_ratios[0].clone();
-            let lambda2 = certificate.normal_multiplier_ratios[1].clone();
+            // N_k/Delta is a sign-safe *scaled ratio*, not the physical
+            // normal impulse. The polynomial construction uses
+            // v_k = S(1+t_k^2)d_k and q_numerators = S q, hence
+            // lambda_k = (N_k/Delta) * S * (1+t_k^2).
+            let physical_normal_impulse = |ratio: &RationalInterval,
+                                           direction: &RationalInterval| {
+                let direction_squared = direction.mul(direction);
+                let half_angle_factor =
+                    RationalInterval::point(one.clone()).add(&direction_squared);
+                ratio
+                    .scale(&BigRational::from_integer(scale.clone()))
+                    .mul(&half_angle_factor)
+            };
+            let lambda1 = physical_normal_impulse(
+                &certificate.normal_multiplier_ratios[0],
+                &certificate.domain[0],
+            );
+            let lambda2 = physical_normal_impulse(
+                &certificate.normal_multiplier_ratios[1],
+                &certificate.domain[1],
+            );
             let tangent1 = tangent_impulse(&certificate.domain[0], &mu1, &lambda1);
             let tangent2 = tangent_impulse(&certificate.domain[1], &mu2, &lambda2);
             let p0 = [
@@ -3919,6 +3938,129 @@ mod double_sliding_direction_oracle {
                 BigInt::from(50_i8),
             )));
             assert!(energy3.upper < zero);
+
+            // Replay all nine unreduced equations from W3 and q3. This guards
+            // against treating the reduced sign ratios as physical impulses
+            // or validating only the Schur-reduced energy identity.
+            let leaf_impulse = [
+                leaf_normal.clone(),
+                leaf_tangent_1.clone(),
+                leaf_tangent_2.clone(),
+            ];
+            let full_impulse: [RationalInterval; 9] = std::array::from_fn(|index| {
+                if index < 6 {
+                    p0[index].clone()
+                } else {
+                    leaf_impulse[index - 6].clone()
+                }
+            });
+            let full_velocity: [RationalInterval; 9] = std::array::from_fn(|row| {
+                let mut velocity = RationalInterval::point(q3[row].clone());
+                for column in 0..9 {
+                    velocity = velocity.add(
+                        &full_impulse[column].scale(&w3[row][column]),
+                    );
+                }
+                velocity
+            });
+
+            // Both loaded double-slide contacts have zero normal velocity;
+            // the third contact is strictly sticking in all three axes.
+            for row in [0_usize, 3, 6, 7, 8] {
+                assert!(
+                    !full_velocity[row].excludes_zero(),
+                    "unreduced contact velocity component {row} must enclose zero"
+                );
+            }
+
+            // Recheck each sliding contact's original Coulomb boundary,
+            // tangential direction equation, positive multiplier, and KKT
+            // stationarity using the unreduced 9D post-contact velocity.
+            for (contact, offset, direction, friction, lambda) in [
+                (0_usize, 0_usize, &certificate.domain[0], &mu1, &p0[0]),
+                (1_usize, 3_usize, &certificate.domain[1], &mu2, &p0[3]),
+            ] {
+                let direction_squared = direction.mul(direction);
+                let denominator =
+                    RationalInterval::point(one.clone()).add(&direction_squared);
+                let cosine = RationalInterval::point(one.clone())
+                    .sub(&direction_squared)
+                    .div(&denominator)
+                    .expect("1+t^2 is strictly positive");
+                let sine = direction
+                    .scale(&two)
+                    .div(&denominator)
+                    .expect("1+t^2 is strictly positive");
+                let tangent_velocity_1 = &full_velocity[offset + 1];
+                let tangent_velocity_2 = &full_velocity[offset + 2];
+
+                let direction_residual = sine
+                    .neg()
+                    .mul(tangent_velocity_1)
+                    .add(&cosine.mul(tangent_velocity_2));
+                assert!(
+                    !direction_residual.excludes_zero(),
+                    "contact {contact} tangential direction equation must enclose zero"
+                );
+
+                let friction_radius = lambda.scale(friction);
+                let disk_margin_squared = friction_radius
+                    .mul(&friction_radius)
+                    .sub(&p0[offset + 1].mul(&p0[offset + 1]))
+                    .sub(&p0[offset + 2].mul(&p0[offset + 2]));
+                assert!(
+                    !disk_margin_squared.excludes_zero(),
+                    "contact {contact} impulse must lie on its Coulomb boundary"
+                );
+
+                let tangential_speed = cosine
+                    .mul(tangent_velocity_1)
+                    .add(&sine.mul(tangent_velocity_2));
+                let sliding_multiplier = tangential_speed
+                    .div(&friction_radius)
+                    .expect("strictly positive normal load and friction");
+                assert!(
+                    sliding_multiplier.is_strictly_positive(),
+                    "contact {contact} sliding multiplier must be positive"
+                );
+                let stationarity_1 = tangent_velocity_1.add(
+                    &sliding_multiplier.mul(&p0[offset + 1]),
+                );
+                let stationarity_2 = tangent_velocity_2.add(
+                    &sliding_multiplier.mul(&p0[offset + 2]),
+                );
+                assert!(
+                    !stationarity_1.excludes_zero() && !stationarity_2.excludes_zero(),
+                    "contact {contact} unreduced tangential KKT stationarity must enclose zero"
+                );
+            }
+
+            assert!(leaf_normal.is_strictly_positive());
+            assert!(leaf_disk_margin_squared.is_strictly_positive());
+            assert!(
+                !full_velocity[7].excludes_zero() && !full_velocity[8].excludes_zero(),
+                "the eliminated leaf must remain strictly sticking tangentially"
+            );
+
+            // Independently evaluate the full 9D quadratic energy instead
+            // of relying only on its Schur-complement identity.
+            let mut direct_energy = RationalInterval::point(zero.clone());
+            for row in 0..9 {
+                direct_energy = direct_energy.add(&full_impulse[row].scale(&q3[row]));
+                for column in 0..9 {
+                    let half_w = w3[row][column].clone() / two.clone();
+                    direct_energy = direct_energy.add(
+                        &full_impulse[row]
+                            .mul(&full_impulse[column])
+                            .scale(&half_w),
+                    );
+                }
+            }
+            assert!(direct_energy.upper < zero);
+            assert!(
+                rational_intervals_overlap(&direct_energy, &energy3),
+                "direct 9D energy and exact Schur energy must overlap"
+            );
         }
     }
 }
