@@ -147,6 +147,28 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, String> {
     Ok(path.to_path_buf())
 }
 
+fn canonical_regular_file_under_root(root: &Path, relative: &str) -> Result<PathBuf, String> {
+    let relative_path = validate_relative_path(relative)?;
+    let candidate = root.join(relative_path);
+    let link_metadata = fs::symlink_metadata(&candidate)
+        .map_err(|error| format!("cannot inspect run artifact {relative}: {error}"))?;
+    if link_metadata.file_type().is_symlink() {
+        return Err(format!("run artifact {relative} must not be a symlink"));
+    }
+    let canonical = fs::canonicalize(&candidate)
+        .map_err(|error| format!("cannot resolve run artifact {relative}: {error}"))?;
+    if !canonical.starts_with(root) {
+        return Err(format!("run artifact {relative} resolves outside run directory"));
+    }
+    if !fs::metadata(&canonical)
+        .map_err(|error| format!("cannot inspect run artifact {relative}: {error}"))?
+        .is_file()
+    {
+        return Err(format!("run artifact {relative} is not a regular file"));
+    }
+    Ok(canonical)
+}
+
 fn is_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -401,16 +423,9 @@ fn output_records(root: &Path, expected: &[String]) -> Result<Vec<ExpectedOutput
             }
             Ok(_) => {}
         }
-        let canonical = fs::canonicalize(&candidate)
-            .map_err(|error| format!("cannot resolve solver output {relative}: {error}"))?;
-        if !canonical.starts_with(root) {
-            return Err(format!("solver output {relative} resolves outside run directory"));
-        }
+        let canonical = canonical_regular_file_under_root(root, relative)?;
         let metadata = fs::metadata(&canonical)
             .map_err(|error| format!("cannot inspect solver output {relative}: {error}"))?;
-        if !metadata.is_file() {
-            return Err(format!("solver output {relative} is not a regular file"));
-        }
         records.push(ExpectedOutputRecord {
             relative_path: relative.clone(),
             present: true,
@@ -812,22 +827,17 @@ pub fn verify_external_solver_receipt(
     if !root.is_dir() {
         return Err("external solver run directory must be a directory".to_owned());
     }
-    let invocation_path = root.join(INVOCATION_MANIFEST_FILE);
+    let invocation_path = canonical_regular_file_under_root(&root, INVOCATION_MANIFEST_FILE)?;
     if sha256_file(&invocation_path)? != receipt.invocation_manifest_sha256 {
         return Err("invocation manifest SHA-256 differs from receipt".to_owned());
     }
-    let environment_path = root.join(ENVIRONMENT_MANIFEST_FILE);
+    let environment_path = canonical_regular_file_under_root(&root, ENVIRONMENT_MANIFEST_FILE)?;
     if sha256_file(&environment_path)? != receipt.environment_manifest_sha256 {
         return Err("environment manifest SHA-256 differs from receipt".to_owned());
     }
     for input in &receipt.staged_inputs {
         let relative = validate_relative_path(&input.relative_path)?;
-        let path = root.join(relative);
-        let canonical = fs::canonicalize(&path)
-            .map_err(|error| format!("cannot resolve staged input {}: {error}", input.relative_path))?;
-        if !canonical.starts_with(&root) {
-            return Err(format!("staged input {} resolves outside run directory", input.relative_path));
-        }
+        let canonical = canonical_regular_file_under_root(&root, &input.relative_path)?;
         let metadata = fs::metadata(&canonical)
             .map_err(|error| format!("cannot inspect staged input {}: {error}", input.relative_path))?;
         if !metadata.is_file() || metadata.len() != input.byte_length || sha256_file(&canonical)? != input.sha256 {
@@ -838,14 +848,14 @@ pub fn verify_external_solver_receipt(
         (STDOUT_LOG_FILE, receipt.stdout_sha256.as_str(), receipt.stdout_byte_length),
         (STDERR_LOG_FILE, receipt.stderr_sha256.as_str(), receipt.stderr_byte_length),
     ] {
-        let file = root.join(path);
+        let file = canonical_regular_file_under_root(&root, path)?;
         let metadata = fs::metadata(&file)
             .map_err(|error| format!("cannot inspect persisted {path}: {error}"))?;
         if metadata.len() != expected_length || sha256_file(&file)? != expected {
             return Err(format!("persisted {path} differs from receipt"));
         }
     }
-    let output_manifest_path = root.join(OUTPUT_MANIFEST_FILE);
+    let output_manifest_path = canonical_regular_file_under_root(&root, OUTPUT_MANIFEST_FILE)?;
     let output_manifest_bytes = fs::read(&output_manifest_path)
         .map_err(|error| format!("cannot read expected-output manifest: {error}"))?;
     if sha256_hex(&output_manifest_bytes)? != receipt.output_manifest_sha256 {
@@ -858,7 +868,8 @@ pub fn verify_external_solver_receipt(
     if actual_outputs != receipt.outputs {
         return Err("one or more expected solver outputs differ from receipt".to_owned());
     }
-    let persisted_receipt = fs::read_to_string(root.join(RUN_RECEIPT_FILE))
+    let receipt_path = canonical_regular_file_under_root(&root, RUN_RECEIPT_FILE)?;
+    let persisted_receipt = fs::read_to_string(receipt_path)
         .map_err(|error| format!("cannot read persisted runner receipt: {error}"))?;
     if persisted_receipt != receipt_to_csv(receipt) {
         return Err("persisted runner receipt differs from supplied receipt".to_owned());
@@ -958,6 +969,10 @@ mod tests {
             .expect("environment manifest");
         assert!(!environment_text.contains("secret-fixture-value"));
         verify_external_solver_receipt(&spec.run_directory, &receipt).expect("independent byte replay");
+        fs::write(spec.run_directory.join(STDOUT_LOG_FILE), "tampered").expect("mutate raw stdout");
+        assert!(verify_external_solver_receipt(&spec.run_directory, &receipt)
+            .expect_err("mutated log must fail replay")
+            .contains("persisted stdout.log differs"));
         fs::remove_dir_all(root).expect("remove positive fixture");
     }
 
@@ -1025,8 +1040,10 @@ mod tests {
         let executable = fake_solver(&root, "exit 0");
         let traversal = request(&root, executable.clone(), "traversal-run", Vec::new(), vec!["../escape.csv".to_owned()]);
         assert!(execute_external_solver(&traversal).expect_err("traversal rejected").contains("normal root-relative"));
-        let collision = request(&root, executable, "collision-run", Vec::new(), vec![STDOUT_LOG_FILE.to_owned()]);
+        let collision = request(&root, executable.clone(), "collision-run", Vec::new(), vec![STDOUT_LOG_FILE.to_owned()]);
         assert!(execute_external_solver(&collision).expect_err("reserved path collision rejected").contains("collides"));
+        let prefix = request(&root, executable, "prefix-run", Vec::new(), vec![format!("{STDOUT_LOG_FILE}/nested.csv")]);
+        assert!(execute_external_solver(&prefix).expect_err("file/directory prefix collision rejected").contains("prefix collision"));
         fs::remove_dir_all(root).expect("remove paths fixture");
     }
 }
