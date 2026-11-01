@@ -140,6 +140,8 @@ pub struct Evaluation {
     pub candidate_unmet_tonnes_per_day: u64,
     pub baseline_delivered_tonnes_per_day: u64,
     pub baseline_unmet_tonnes_per_day: u64,
+    pub candidate_transit_minutes: u64,
+    pub baseline_transit_minutes: u64,
     pub candidate_annual_cost_minor: u64,
     pub baseline_annual_cost_minor: u64,
     pub candidate_annual_energy_wh: u64,
@@ -336,6 +338,8 @@ pub fn evaluate(case: &CorridorCase) -> Result<Evaluation, BenchError> {
         candidate_unmet_tonnes_per_day: case.demand_tonnes_per_day - candidate_delivered,
         baseline_delivered_tonnes_per_day: baseline_delivered,
         baseline_unmet_tonnes_per_day: case.demand_tonnes_per_day - baseline_delivered,
+        candidate_transit_minutes: case.candidate_transit_minutes,
+        baseline_transit_minutes: case.baseline_transit_minutes,
         candidate_annual_cost_minor: annual_cost(
             case.candidate_fixed_annual_cost_minor,
             case.candidate_variable_cost_minor_per_tonne,
@@ -385,7 +389,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn frozen_corpus_contains_24_unique_cases_and_all_expected_modes() {
+    fn frozen_corpus_contains_25_unique_cases_and_all_expected_modes() {
         let cases = parse_corpus(CORPUS).unwrap();
         assert_eq!(cases.len(), 25);
         let modes: BTreeSet<_> = cases.iter().map(|case| format!("{:?}", case.family)).collect();
