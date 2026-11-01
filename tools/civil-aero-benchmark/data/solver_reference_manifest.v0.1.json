@@ -23,9 +23,17 @@
       "resolved_commit_sha": "7048fd35f56d4bf52e586429d6746a36a10255f8",
       "comparison_role": "current_release_comparison",
       "upstream_release_url": "https://github.com/su2code/SU2/releases/tag/v8.6.0",
-      "historical_context": "Latest public release observed on 2026-10-31. Compare only after reproducing the same admitted geometry, mesh policy, physics, boundary conditions and convergence criteria as the historical lane.",
+      "historical_context": "GitHub marks v8.6.0 as the latest release (released 2026-10-30). The SU2 download page still listed v8.5.0 prebuilt binaries when checked on 2026-11-01. Treat this as a source-tag pin: build v8.6.0 from the exact source commit and record the executable/build digest; do not assume a prebuilt 8.6.0 binary is available. Compare only after reproducing the same admitted geometry, mesh policy, physics, boundary conditions and convergence criteria as the historical lane.",
       "execution_status": "not_built_not_run",
-      "validation_status": "not_validated"
+      "validation_status": "not_validated",
+      "distribution_observation": {
+        "github_release_page_status": "latest",
+        "github_release_date": "2026-10-30",
+        "github_tag_commit": "7048fd35f56d4bf52e586429d6746a36a10255f8",
+        "binary_download_page_version_observed": "8.5.0",
+        "binary_download_page_observation_date": "2026-11-01",
+        "interpretation": "source release is pinned; binary availability for 8.6.0 is not assumed"
+      }
     }
   ],
   "comparison_controls": {
