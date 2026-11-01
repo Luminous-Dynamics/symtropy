@@ -651,13 +651,14 @@ mod tests {
                                     case.actuator_delivery_fraction_grid = vec![*delivery];
                                     case.sensor_bias_grid = vec![*bias];
                                     case.safe_temperature_grid = vec![*safe];
-                                    let generated =
-                                        generate_finite_thermal_challenge(&case, &registry, checked as u64)
-                                            .unwrap();
-                                    verify_finite_thermal_challenge_from_recipe(
-                                        &generated,
+                                    let generated = generate_finite_thermal_challenge(
                                         &case,
                                         &registry,
+                                        checked as u64,
+                                    )
+                                    .unwrap();
+                                    verify_finite_thermal_challenge_from_recipe(
+                                        &generated, &case, &registry,
                                     )
                                     .unwrap();
                                     checked += 1;
