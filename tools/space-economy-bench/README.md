@@ -370,7 +370,7 @@ The output is a deterministic receipt over the exact fixture bytes and source co
 
 ## Partial Orbital Ring System (PORS) two-body geometry reference (v0.1)
 
-The separate `pors_geometry_reference` example evaluates an idealized symmetric equatorial ballistic arc in a spherical Earth two-body model. The mathematical conic has its apogee at the arc apex; only the exterior arc between the two ground terminals is used. Its continuation through the opposite side of the ellipse is inside Earth and is not part of the PORS segment.
+The separate `pors_geometry_reference` example evaluates an idealized symmetric equatorial ballistic arc in a spherical Earth two-body model. The full equation derivation, frame/epoch assumptions and next qualification tiers are documented in [PORS_TWO_BODY_GEOMETRY_DERIVATION_V0_1.md](../../docs/tech/PORS_TWO_BODY_GEOMETRY_DERIVATION_V0_1.md). The mathematical conic has its apogee at the arc apex; only the exterior arc between the two ground terminals is used. Its continuation through the opposite side of the ellipse is inside Earth and is not part of the PORS segment.
 
 The reference calculates:
 - conic eccentricity and semi-major axis;
