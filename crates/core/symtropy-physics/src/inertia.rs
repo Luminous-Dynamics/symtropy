@@ -519,8 +519,8 @@ mod tests {
     fn parallel_axis_combination_matches_two_component_mass_moments() {
         let body_a = BivectorInertia::<3>::uniform_solid_ball(2.0, 1.0).unwrap();
         let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 0.5).unwrap();
-        let offset_a = SVector::new(-1.0, 0.0, 0.0);
-        let offset_b = SVector::new(2.0, 0.0, 0.0);
+        let offset_a = SVector::<_, 3>::new(-1.0, 0.0, 0.0);
+        let offset_b = SVector::<_, 3>::new(2.0, 0.0, 0.0);
         let combined = BivectorInertia::<3>::combine_at_common_center(
             2.0, &body_a, &offset_a, 1.0, &body_b, &offset_b,
         )
@@ -538,7 +538,7 @@ mod tests {
     #[test]
     fn mass_aware_constructors_preserve_and_validate_total_mass() {
         let ellipsoid =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<_, 3>::new(1.0, 0.8, 0.6))
                 .unwrap();
         assert_eq!(ellipsoid.total_mass(), Some(2.0));
         assert!(ellipsoid.validate_body_mass(2.0, 1e-10).is_ok());
@@ -551,8 +551,8 @@ mod tests {
         assert_eq!(rotated.total_mass(), Some(2.0));
 
         let point_cloud = BivectorInertia::<3>::from_point_masses([
-            (SVector::new(-1.0, 0.0, 0.0), 2.0),
-            (SVector::new(1.0, 0.0, 0.0), 3.0),
+            (SVector::<_, 3>::new(-1.0, 0.0, 0.0), 2.0),
+            (SVector::<_, 3>::new(1.0, 0.0, 0.0), 3.0),
         ])
         .unwrap();
         assert_eq!(point_cloud.total_mass(), Some(5.0));
@@ -570,10 +570,10 @@ mod tests {
             BivectorInertia::<3>::combine_at_common_center(
                 3.0,
                 &body_a,
-                &SVector::new(-1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(-1.0, 0.0, 0.0),
                 1.0,
                 &body_b,
-                &SVector::new(3.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(3.0, 0.0, 0.0),
             )
             .unwrap_err(),
             RotationalInertiaError::MassMismatch
@@ -588,10 +588,10 @@ mod tests {
             BivectorInertia::<3>::combine_at_common_center(
                 1.0,
                 &body_a,
-                &SVector::new(0.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(0.0, 0.0, 0.0),
                 1.0,
                 &body_b,
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             )
             .unwrap_err(),
             RotationalInertiaError::OffsetsNotCentered
@@ -645,7 +645,7 @@ mod tests {
         // Unit mass, semi-axes (2, 1, 0.5): S_ii = a_i^2 / 5.
         // Rotation-plane moments are sums of the corresponding S diagonal.
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
 
         let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
@@ -689,7 +689,7 @@ mod tests {
     #[test]
     fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.63);
         let world_inertia = body_inertia.rotated_by(&rotation);
@@ -725,7 +725,7 @@ mod tests {
     #[test]
     fn gyroscopic_acceleration_is_covariant_between_body_and_world_frames() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.5, 0.9, 0.4))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<_, 3>::new(1.5, 0.9, 0.4))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.71);
         let world_inertia = body_inertia.rotated_by(&rotation);
@@ -763,8 +763,8 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_matches_isotropic_lever_arm() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
-        let offset = SVector::new(1.0, 0.0, 0.0);
-        let normal = SVector::new(0.0, 1.0, 0.0);
+        let offset = SVector::<_, 3>::new(1.0, 0.0, 0.0);
+        let normal = SVector::<_, 3>::new(0.0, 1.0, 0.0);
         let value = inertia
             .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
             .unwrap();
@@ -774,10 +774,10 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_uses_asymmetric_plane_inertia() {
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<_, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
-        let offset = SVector::new(1.0, 0.0, 0.0);
-        let normal = SVector::new(0.0, 1.0, 0.0);
+        let offset = SVector::<_, 3>::new(1.0, 0.0, 0.0);
+        let normal = SVector::<_, 3>::new(0.0, 1.0, 0.0);
         let value = inertia
             .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
             .unwrap();
@@ -791,7 +791,7 @@ mod tests {
         assert_eq!(
             inertia
                 .rotational_inverse_effective_mass(
-                    &SVector::new(1.0, 0.0, 0.0),
+                    &SVector::<_, 3>::new(1.0, 0.0, 0.0),
                     &SVector::zeros(),
                     1e-12,
                 )
