@@ -47,6 +47,35 @@ n=(0,1,0,0,-1,0)^T,\qquad Wn=0.
 \]
 This is a geometry-derived redundancy, not numerical ill-conditioning.
 
+## The mass-metric rank identity: factor the Jacobian, not the normal equations
+
+For any positive-definite generalized mass matrix \(M\),
+\[
+W=JM^{-1}J^T
+\]
+satisfies
+\[
+x^TWx=(J^Tx)^TM^{-1}(J^Tx)\ge0.
+\]
+Because \(M^{-1}\succ0\), equality holds exactly when \(J^Tx=0\). Therefore
+\[
+\ker(W)=\ker(J^T),\qquad
+\operatorname{rank}(W)=\operatorname{rank}(J),\qquad
+\operatorname{range}(W)=\operatorname{range}(J).
+\]
+This is stronger than observing that W is PSD: it identifies the exact contact-impulse nullspace directly from kinematic row dependencies.
+
+For numerical rank diagnosis, form the mass-whitened Jacobian
+\(A=JM^{-1/2}\), so \(W=AA^T\). A rank-revealing QR or SVD of A avoids forming normal equations before rank estimation; forming W can square the condition number. For formal certification, use exact rational row reduction where inputs are rational, or outward-rounded singular-value enclosures / interval rank certificates for uncertain floating-point geometry. A tolerance-only SVD rank is a diagnostic, not a proof.
+
+This suggests a production architecture:
+1. assemble J and a verified SPD mass metric;
+2. determine a certified range/null decomposition from J (or A);
+3. solve the response problem in the reduced range coordinates;
+4. parameterize contact impulses as \(p=p_R+Nz\), where columns of N span \(\ker(J^T)\);
+5. intersect this affine fiber with the contact-specific friction and normal constraints;
+6. report response-class uniqueness and impulse-fiber dimension/extent separately.
+
 ## Exact continuum of admissible contact impulses
 
 Choose
