@@ -900,10 +900,14 @@ fn combine_partial_candidates(
                 return Err("robust decision generated-combination budget exceeded".into());
             }
             let mut next = partial.clone();
-            for index in 0..next.per_world.len() {
-                let probability = probabilities[index];
+            for ((next_world, child_world), probability) in next
+                .per_world
+                .iter_mut()
+                .zip(child.per_world.iter())
+                .zip(probabilities.iter().copied())
+            {
                 if !probability.is_zero() {
-                    next.per_world[index].add_scaled(child.per_world[index], probability)?;
+                    next_world.add_scaled(*child_world, probability)?;
                 }
             }
             next.branches.push(DecisionBranch {
@@ -992,6 +996,7 @@ fn prune_candidates(mut candidates: Vec<Candidate>) -> Result<Vec<Candidate>, St
 /// worlds at that public history. Each world is replayed with its own unchanged
 /// kernel and conditional belief; the evaluator never chooses a world-specific
 /// action or terminal decision.
+#[allow(clippy::too_many_arguments)]
 pub fn replay_shared_policy_across_worlds(
     worlds: &[DecisionModelWorld],
     nominal_world_id: &str,
