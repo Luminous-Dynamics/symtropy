@@ -15,7 +15,7 @@ set -eu
 [ "$2" = "config.cfg" ]
 [ -s config.cfg ]
 [ -s mesh.su2 ]
-printf 'Iteration,CL,CD\n0,0.42,0.018\n' > history.csv
+printf 'Iteration,CL,CD\n0,0.40,0.020\n1,0.42,0.018\n' > history.csv
 printf 'fixture force history\n' > forces_breakdown.dat
 printf 'synthetic SU2-style fixture stdout\n'
 printf 'synthetic SU2-style fixture stderr\n' >&2
