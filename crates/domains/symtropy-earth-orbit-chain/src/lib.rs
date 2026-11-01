@@ -156,6 +156,8 @@ pub enum FindingCode {
     EmptyChain,
     UnknownCargoLot,
     UnknownNode,
+    SelfTransfer,
+    InvalidTimeInterval,
     MissingResourceQualification,
     UnknownResourceQualification,
     RejectedResourceQualification,
@@ -358,16 +360,6 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                         &mut findings,
                         FindingCode::ResourceQualificationDoesNotCoverTransfer,
                         &transfer.id,
-                    );
-                }
-                if matches!(
-                    &qualification.status,
-                    ResourceQualificationStatus::Unknown
-                ) {
-                    push_finding(
-                        &mut findings,
-                        FindingCode::UnknownResourceQualification,
-                        &qualification.id,
                     );
                 }
             }
