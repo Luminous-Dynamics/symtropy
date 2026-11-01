@@ -316,7 +316,12 @@ fn import_su2_history_with_receipt(
             header
                 .iter()
                 .position(|name| name == &field.column)
-                .ok_or_else(|| format!("numeric field {} is absent from history header", field.column))
+                .ok_or_else(|| {
+                    format!(
+                        "numeric field {} is absent from history header",
+                        field.column
+                    )
+                })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -325,7 +330,9 @@ fn import_su2_history_with_receipt(
     for (row_index, line) in lines.enumerate() {
         let line_number = row_index + 2;
         if line.trim().is_empty() {
-            return Err(format!("line {line_number}: blank history records are not permitted"));
+            return Err(format!(
+                "line {line_number}: blank history records are not permitted"
+            ));
         }
         let fields = parse_csv_record(line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
@@ -421,11 +428,12 @@ mod tests {
         fs::create_dir_all(root).expect("create fixture root");
         let executable = root.join("fake-su2-cfd.sh");
         let shell_quoted_history = history.replace('\'', "'\\''");
-        let script = format!(
-            "#!/bin/sh\nset -eu\nprintf '%s' '{shell_quoted_history}' > history.csv\n"
-        );
+        let script =
+            format!("#!/bin/sh\nset -eu\nprintf '%s' '{shell_quoted_history}' > history.csv\n");
         fs::write(&executable, script).expect("write fake solver");
-        let mut permissions = fs::metadata(&executable).expect("fake solver metadata").permissions();
+        let mut permissions = fs::metadata(&executable)
+            .expect("fake solver metadata")
+            .permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).expect("make fake solver executable");
         let run_directory = root.join("run");
