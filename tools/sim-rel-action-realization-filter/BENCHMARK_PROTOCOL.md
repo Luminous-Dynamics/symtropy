@@ -65,6 +65,22 @@ objective and tuning procedure:
    abstention tradeoffs, against naive survivor reuse and Bonferroni-style
    allocation. Only claim its finite-sample coverage when the paper's
    exchangeability, predictable-refitting and fresh-fold assumptions are met.
+15. **Generalised Bayesian optimal experimental design (GBOED, revised
+    October 2026):** replace the likelihood update with a declared loss-based
+    Gibbs posterior and compare Gibbs-EIG as both an inference-rule and
+    acquisition baseline. Calibrate the loss/temperature on a training or
+    calibration split only; do not compare it as ordinary Bayesian EIG or
+    assume robustness to arbitrary shifts.
+16. **Goal-driven BOED (GoBOED, May 2026):** implement its decision-focused
+    design objective with posterior surrogate, convex robust-decision layer
+    and importance-sampling correction where feasible. It is a useful baseline
+    for task-relevant uncertainty reduction, but the reported experiments are
+    single-step; do not attribute a sequential adaptive guarantee to it.
+17. **Robust Bayesian ambiguity-set DRO (Entropy, April 2026):** compare a
+    posterior-propagated ambiguity-set decision rule against finite-world
+    minimax and TV ambiguity. Record the ambiguity-set construction and
+    conservatism/coverage trade-off; derive a new guarantee before applying it
+    to sequential experiment trees or action-realization kernels.
 
 Do not silently retune external baselines on our sealed test worlds. Record
 baseline source revision, parameters, training data, tool versions and compute.
@@ -251,6 +267,13 @@ alone is not evidence of robustness or scientific progress.
   https://doi.org/10.1016/j.ejor.2025.09.024
 - Sequential Conformal Calibration under Recursive Selection, 2026:
   https://arxiv.org/abs/2610.12937
+- Robust Experimental Design via Generalised Bayesian Inference, revised
+  October 16, 2026: https://arxiv.org/abs/2511.07671
+- Goal-driven Bayesian Optimal Experimental Design for Robust Decision-Making
+  under Model Uncertainty, May 25, 2026: https://arxiv.org/abs/2605.26093
+- Decision-Making Under Model Misspecification: DRO with Robust Bayesian
+  Ambiguity Sets, Entropy 28(4), April 11, 2026:
+  https://doi.org/10.3390/e28040430
 - R-IDeA, AISTATS 2026: https://proceedings.mlr.press/v300/tang26d.html
 - Robust Sequential Experimental Design for A/B Testing, ICML 2026:
   https://proceedings.mlr.press/v306/wen26i.html
