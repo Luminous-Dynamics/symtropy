@@ -191,9 +191,9 @@ pub struct FaultOutcomeV1 {
 pub struct CampaignReportV1 {
     pub schema_version: &'static str,
     pub disposition: CampaignDisposition,
-    pub total_payload_mass_grams: u64,
+    pub total_cargo_mass_grams: u64,
     /// Zero unless the entire baseline campaign is Ready.
-    pub accepted_delivered_mass_grams: u64,
+    pub accepted_delivered_cargo_mass_grams: u64,
     pub findings: Vec<Finding>,
     pub fault_outcomes: Vec<FaultOutcomeV1>,
 }
@@ -515,29 +515,20 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         }
     }
 
-    findings.sort();
-    findings.dedup();
-
-    let disposition = if findings.iter().any(|finding| !is_evidence_finding(finding.code)) {
-        CampaignDisposition::Infeasible
-    } else if !findings.is_empty() {
-        CampaignDisposition::NeedsEvidence
-    } else {
-        CampaignDisposition::Ready
-    };
-
-    let total_payload_mass_grams = campaign
+    let total_cargo_mass_grams = campaign
         .cargo_lots
         .iter()
         .try_fold(0_u64, |sum, cargo| sum.checked_add(cargo.mass_grams));
-    if total_payload_mass_grams.is_none() {
+    if total_cargo_mass_grams.is_none() {
         push_finding(
             &mut findings,
             FindingCode::ArithmeticOverflow,
             &campaign.id,
         );
     }
-    let total_payload_mass_grams = total_payload_mass_grams.unwrap_or(0);
+    let total_cargo_mass_grams = total_cargo_mass_grams.unwrap_or(0);
+    findings.sort();
+    findings.dedup();
     let final_disposition = if findings.iter().any(|finding| !is_evidence_finding(finding.code)) {
         CampaignDisposition::Infeasible
     } else if !findings.is_empty() {
@@ -546,8 +537,8 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
         CampaignDisposition::Ready
     };
 
-    let accepted_delivered_mass_grams = if final_disposition == CampaignDisposition::Ready {
-        total_payload_mass_grams
+    let accepted_delivered_cargo_mass_grams = if final_disposition == CampaignDisposition::Ready {
+        total_cargo_mass_grams
     } else {
         0
     };
@@ -561,8 +552,8 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
     CampaignReportV1 {
         schema_version: SCHEMA_VERSION,
         disposition: final_disposition,
-        total_payload_mass_grams,
-        accepted_delivered_mass_grams,
+        total_cargo_mass_grams,
+        accepted_delivered_cargo_mass_grams,
         findings,
         fault_outcomes,
     }
@@ -789,8 +780,8 @@ mod tests {
     fn valid_chain_reconciles_payload_mass_and_destination() {
         let report = evaluate_campaign(&baseline());
         assert_eq!(report.disposition, CampaignDisposition::Ready);
-        assert_eq!(report.total_payload_mass_grams, 1_000);
-        assert_eq!(report.accepted_delivered_mass_grams, 1_000);
+        assert_eq!(report.total_cargo_mass_grams, 1_000);
+        assert_eq!(report.accepted_delivered_cargo_mass_grams, 1_000);
         assert!(report.findings.is_empty());
     }
 
@@ -825,20 +816,47 @@ mod tests {
             id: "payload-2".to_owned(),
             mass_grams: 2_000,
         });
-        campaign.transfers.push(TransferV1 {
-            id: "second-rail-transfer".to_owned(),
-            cargo_lot_id: "payload-2".to_owned(),
-            from_node_id: "factory".to_owned(),
-            to_node_id: "port".to_owned(),
-            resource_id: "rail-section-1".to_owned(),
-            capacity_window_id: "rail-window".to_owned(),
-            mass_grams: 2_000,
-            starts_at_epoch_seconds: 20,
-            ends_at_epoch_seconds: 30,
-            dependency_ids: vec!["rail-power".to_owned()],
-        });
+        campaign.transfers.extend([
+            TransferV1 {
+                id: "second-rail-transfer".to_owned(),
+                cargo_lot_id: "payload-2".to_owned(),
+                from_node_id: "factory".to_owned(),
+                to_node_id: "port".to_owned(),
+                resource_id: "rail-section-1".to_owned(),
+                capacity_window_id: "rail-window".to_owned(),
+                mass_grams: 2_000,
+                starts_at_epoch_seconds: 20,
+                ends_at_epoch_seconds: 30,
+                dependency_ids: vec!["rail-power".to_owned()],
+            },
+            TransferV1 {
+                id: "second-road-transfer".to_owned(),
+                cargo_lot_id: "payload-2".to_owned(),
+                from_node_id: "port".to_owned(),
+                to_node_id: "range".to_owned(),
+                resource_id: "road-1".to_owned(),
+                capacity_window_id: "road-window".to_owned(),
+                mass_grams: 2_000,
+                starts_at_epoch_seconds: 35,
+                ends_at_epoch_seconds: 45,
+                dependency_ids: vec!["access-road".to_owned()],
+            },
+            TransferV1 {
+                id: "second-launch-transfer".to_owned(),
+                cargo_lot_id: "payload-2".to_owned(),
+                from_node_id: "range".to_owned(),
+                to_node_id: "orbit".to_owned(),
+                resource_id: "range-slot-1".to_owned(),
+                capacity_window_id: "launch-window".to_owned(),
+                mass_grams: 2_000,
+                starts_at_epoch_seconds: 50,
+                ends_at_epoch_seconds: 60,
+                dependency_ids: vec!["range-tracking".to_owned()],
+            },
+        ]);
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::Ready);
+        assert_eq!(report.total_cargo_mass_grams, 3_000);
     }
 
     #[test]
@@ -847,7 +865,7 @@ mod tests {
         campaign.capacity_windows[0].evidence = EvidenceStatus::Unknown;
         let report = evaluate_campaign(&campaign);
         assert_eq!(report.disposition, CampaignDisposition::NeedsEvidence);
-        assert_eq!(report.accepted_delivered_mass_grams, 0);
+        assert_eq!(report.accepted_delivered_cargo_mass_grams, 0);
         assert!(has_finding(&report, FindingCode::EvidenceUnknown));
     }
 
