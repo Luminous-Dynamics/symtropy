@@ -808,9 +808,9 @@ pub fn execute_external_solver(
                 if start.elapsed() >= request.timeout {
                     timed_out = true;
                     let _ = child.kill();
-                    break child.wait().map_err(|error| {
-                        format!("cannot wait after solver timeout: {error}")
-                    })?;
+                    break child
+                        .wait()
+                        .map_err(|error| format!("cannot wait after solver timeout: {error}"))?;
                 }
                 thread::sleep(Duration::from_millis(10));
             };
