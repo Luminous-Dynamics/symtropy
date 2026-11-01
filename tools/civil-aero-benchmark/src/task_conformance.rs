@@ -339,7 +339,7 @@ fn csv_escape(value: &str) -> String {
 }
 
 pub const PROTOCOL_CONFORMANCE_CSV_HEADER: &str =
-    "protocol_id,task_id,observation_set_id,key,description,expected,observed,status,source_reference,note,evidence_level";
+    "protocol_id,task_id,observation_set_id,overall_status,key,description,expected,observed,status,source_reference,note,evidence_level";
 
 pub fn report_to_csv(report: &ProtocolAuditReport) -> String {
     let mut output = format!("{PROTOCOL_CONFORMANCE_CSV_HEADER}\n");
@@ -348,6 +348,7 @@ pub fn report_to_csv(report: &ProtocolAuditReport) -> String {
             report.protocol_id.clone(),
             report.task_id.clone(),
             report.observation_set_id.clone(),
+            report.overall_status.to_owned(),
             finding.key.clone(),
             finding.description.clone(),
             finding.expected.clone(),
