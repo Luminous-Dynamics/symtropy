@@ -26,7 +26,7 @@ def main() -> int:
     require(row["case_id"] == "synthetic-oat15a-validation", "wrong case binding")
     require(row["quantity"] == "CD", "wrong quantity")
     require(row["admission_status"].startswith("numerically_admitted_"), "not numerically admitted")
-    require(row["gci_fine_grid_id"] == "L3", "must use the finest grid")
+    require(row["fine_grid_id"] == "L3", "must use the finest grid")
     require(math.isclose(float(row["gci_fine_absolute"]), 1.0, abs_tol=1e-10), "GCI mismatch")
     require(math.isclose(float(row["gci_standard_uncertainty"]), 0.5, abs_tol=1e-10), "GCI conversion mismatch")
     require(math.isclose(float(row["numerical_standard_uncertainty"]), 0.525, abs_tol=1e-10), "epistemic numerical sum mismatch")
