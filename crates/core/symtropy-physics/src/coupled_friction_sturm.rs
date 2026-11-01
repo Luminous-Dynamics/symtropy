@@ -345,8 +345,8 @@ fn sturm_handles_no_real_roots_and_degree_loss() {
 
 #[test]
 fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
-    let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-    let q = SVector::new(-0.8, -2.5, 0.9);
+    let w = Matrix3::<f64>::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
+    let q = SVector::<f64, 3>::new(-0.8, -2.5, 0.9);
     let mu = 0.37;
     let rounded = sliding_quartic(&w, &q, mu);
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
@@ -358,8 +358,8 @@ fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
 
 #[test]
 fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() {
-    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-    let q = SVector::new(-1.0, -3.0, 0.0);
+    let w = Matrix3::<f64>::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    let q = SVector::<f64, 3>::new(-1.0, -3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
     assert!(
@@ -391,8 +391,8 @@ fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() 
 
 #[test]
 fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() {
-    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-    let q = SVector::new(-1.0, 3.0, 0.0);
+    let w = Matrix3::<f64>::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    let q = SVector::<f64, 3>::new(-1.0, 3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
     assert!(exact.len() < 5);
@@ -411,11 +411,11 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 x[i][j] = (k as f64 / 37.0) - 1.2;
             }
         }
-        let m = Matrix3::new(
+        let m = Matrix3::<f64>::new(
             x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
         );
-        let w = m.transpose() * m + Matrix3::identity() * 0.3;
-        let q = SVector::new(
+        let w = m.transpose() * m + Matrix3::<f64>::identity() * 0.3;
+        let q = SVector::<f64, 4>::new(
             -0.2 - (seed % 13) as f64 / 7.0,
             (seed % 17) as f64 / 5.0 - 1.3,
             (seed % 19) as f64 / 6.0 - 1.1,
