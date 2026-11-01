@@ -2328,10 +2328,6 @@ mod double_sliding_direction_oracle {
             self.lower > BigRational::from_integer(BigInt::from(0_u8))
         }
 
-        fn is_strictly_negative(&self) -> bool {
-            self.upper < BigRational::from_integer(BigInt::from(0_u8))
-        }
-
         fn is_strict_subset_of(&self, other: &Self) -> bool {
             self.lower > other.lower && self.upper < other.upper
         }
@@ -2428,8 +2424,10 @@ mod double_sliding_direction_oracle {
         ) -> RationalInterval {
             let zero = BigRational::from_integer(BigInt::from(0_u8));
             let one = BigRational::from_integer(BigInt::from(1_u8));
-            let mut t1_powers = [RationalInterval::point(one.clone()); 5];
-            let mut t2_powers = [RationalInterval::point(one); 5];
+            let mut t1_powers: [RationalInterval; 5] =
+                std::array::from_fn(|_| RationalInterval::point(one.clone()));
+            let mut t2_powers: [RationalInterval; 5] =
+                std::array::from_fn(|_| RationalInterval::point(one.clone()));
             for degree in 1..5 {
                 t1_powers[degree] = t1_powers[degree - 1].mul(t1);
                 t2_powers[degree] = t2_powers[degree - 1].mul(t2);
@@ -2506,7 +2504,9 @@ mod double_sliding_direction_oracle {
             return None;
         }
 
-        let mut jacobian_at_center = [[BigRational::from_integer(BigInt::from(0_u8)); 2]; 2];
+        let zero_rational = BigRational::from_integer(BigInt::from(0_u8));
+        let mut jacobian_at_center: [[BigRational; 2]; 2] =
+            std::array::from_fn(|_| std::array::from_fn(|_| zero_rational.clone()));
         let mut jacobian_interval = [
             [
                 RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
