@@ -1336,7 +1336,6 @@ pub fn verify_external_solver_receipt(
         return Err("environment manifest SHA-256 differs from receipt".to_owned());
     }
     for input in &receipt.staged_inputs {
-        let relative = validate_relative_path(&input.relative_path)?;
         let canonical = canonical_regular_file_under_root(&root, &input.relative_path)?;
         let metadata = fs::metadata(&canonical).map_err(|error| {
             format!(
