@@ -56,7 +56,7 @@ fn contact_supports_from_jacobian(
     if rows_per_contact == 0 || jacobian_support.is_empty() {
         return Err("Jacobian support has no contact rows or zero contact dimension");
     }
-    if jacobian_support.len() % rows_per_contact != 0 {
+    if !jacobian_support.chunks_exact(rows_per_contact).remainder().is_empty() {
         return Err("Jacobian support row count is not divisible by contact dimension");
     }
     let dof_count = jacobian_support[0].len();
@@ -66,10 +66,19 @@ fn contact_supports_from_jacobian(
 
     let mut supports = Vec::with_capacity(jacobian_support.len() / rows_per_contact);
     for contact_rows in jacobian_support.chunks_exact(rows_per_contact) {
-        let support = (0..dof_count)
-            .filter(|dof| contact_rows.iter().any(|row| row[*dof]))
-            .collect::<Vec<_>>();
-        supports.push(support);
+        let mut coordinate_support = vec![false; dof_count];
+        for row in contact_rows {
+            for (dof, supported) in row.iter().copied().enumerate() {
+                coordinate_support[dof] |= supported;
+            }
+        }
+        supports.push(
+            coordinate_support
+                .into_iter()
+                .enumerate()
+                .filter_map(|(dof, supported)| supported.then_some(dof))
+                .collect(),
+        );
     }
     Ok(supports)
 }
@@ -89,9 +98,9 @@ fn derive_contact_graph(
     if dof_count == 0 || inverse_mass_support.iter().any(|row| row.len() != dof_count) {
         return Err("inverse-mass support must be a non-empty square matrix");
     }
-    for row in 0..dof_count {
-        for column in 0..dof_count {
-            if inverse_mass_support[row][column] != inverse_mass_support[column][row] {
+    for (row, support_row) in inverse_mass_support.iter().enumerate() {
+        for (column, supported) in support_row.iter().copied().enumerate() {
+            if supported != inverse_mass_support[column][row] {
                 return Err("inverse-mass support must be structurally symmetric");
             }
         }
@@ -108,19 +117,21 @@ fn derive_contact_graph(
     }
 
     let contact_count = contact_supports.len();
-    let mut adjacency = vec![vec![false; contact_count]; contact_count];
+    let mut adjacency = if support_complete {
+        vec![vec![false; contact_count]; contact_count]
+    } else {
+        let mut conservative = vec![vec![true; contact_count]; contact_count];
+        for (contact, row) in conservative.iter_mut().enumerate() {
+            row[contact] = false;
+        }
+        conservative
+    };
     let mut edge_witnesses = Vec::new();
     let mut omitted_edge_proofs = Vec::new();
 
     if !support_complete {
         // The unknown remainder could couple any pair. Keep the complete graph
         // and refuse certified separator use until the support is completed.
-        for contact_i in 0..contact_count {
-            for contact_j in (contact_i + 1)..contact_count {
-                adjacency[contact_i][contact_j] = true;
-                adjacency[contact_j][contact_i] = true;
-            }
-        }
         return Ok(StructuralContactGraph {
             adjacency,
             edge_witnesses,
@@ -129,12 +140,12 @@ fn derive_contact_graph(
         });
     }
 
-    for contact_i in 0..contact_count {
-        for contact_j in (contact_i + 1)..contact_count {
+    for (contact_i, support_i) in contact_supports.iter().enumerate() {
+        for (contact_j, support_j) in contact_supports.iter().enumerate().skip(contact_i + 1) {
             let mut witness = None;
             let mut support_pairs_checked = 0;
-            for dof_i in &contact_supports[contact_i] {
-                for dof_j in &contact_supports[contact_j] {
+            for dof_i in support_i {
+                for dof_j in support_j {
                     support_pairs_checked += 1;
                     if inverse_mass_support[*dof_i][*dof_j] {
                         witness = Some((*dof_i, *dof_j));
