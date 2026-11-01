@@ -452,9 +452,11 @@ mod tests {
             after_low_signal: FollowUpAction::Expand,
             after_high_signal: FollowUpAction::Hold,
         };
-        assert_eq!(policy.follow_up(Signal::Low), policy.follow_up(Signal::Low));
         let low_paths: Vec<&Scenario> = case.scenarios.iter().filter(|x| x.signal == Signal::Low).collect();
         assert_eq!(low_paths.len(), 2);
+        assert_ne!(low_paths[0].id, low_paths[1].id);
+        assert_eq!(low_paths[0].signal, low_paths[1].signal);
+        assert_eq!(policy.follow_up(low_paths[0].signal), policy.follow_up(low_paths[1].signal));
         assert_ne!(low_paths[0].demand[2], low_paths[1].demand[2]);
     }
 
