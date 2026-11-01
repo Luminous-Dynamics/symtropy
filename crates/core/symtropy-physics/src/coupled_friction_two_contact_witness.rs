@@ -777,4 +777,692 @@ mod schur_reduction_tests {
         assert!(coupled_velocity[3] > 0.0);
         assert!((coupled_velocity[3] - uncoupled_velocity[3]).abs() > 1.0e-3);
     }
+
+
+    #[derive(Clone, Debug)]
+    struct MirroredSchurCandidate {
+        impulse: Vector6,
+        contact_two_regime: CoupledCoulombRegime,
+        contact_two_tau: f64,
+        kinetic_energy_delta: f64,
+        max_velocity_residual: f64,
+    }
+
+    #[derive(Clone, Debug)]
+    struct MirroredSchurOutcome {
+        reduced_status: CoupledCoulombStatus,
+        candidates: Vec<MirroredSchurCandidate>,
+    }
+
+    fn swap_contact_blocks(w: &Matrix6, q: &Vector6) -> (Matrix6, Vector6) {
+        let swap = |index: usize| if index < 3 { index + 3 } else { index - 3 };
+        let permuted_w = Matrix6::from_fn(|i, j| w[(swap(i), swap(j))]);
+        let permuted_q = Vector6::from_fn(|i, _| q[swap(i)]);
+        (permuted_w, permuted_q)
+    }
+
+    fn swap_impulse_blocks(impulse: &Vector6) -> Vector6 {
+        Vector6::new(
+            impulse[3], impulse[4], impulse[5], impulse[0], impulse[1], impulse[2],
+        )
+    }
+
+    /// Mirror the contact-2-separating reduction by permuting contact blocks.
+    ///
+    /// The returned contact_two_regime names the active (non-eliminated)
+    /// original contact. Contact 1 has p_1 = 0 and must separate strictly
+    /// after reconstruction against the original full 6x6 island.
+    fn solve_with_contact_one_separating(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<MirroredSchurOutcome, &'static str> {
+        let (permuted_w, permuted_q) = swap_contact_blocks(w, q);
+        let inner =
+            solve_with_contact_two_separating(&permuted_w, &permuted_q, mu_2, mu_1, tolerance)?;
+
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let mut candidates = Vec::new();
+        for candidate in inner.candidates {
+            let impulse = swap_impulse_blocks(&candidate.impulse);
+            let post_velocity = q + w * impulse;
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+
+            // Contact 1 is strictly separating in the original coordinate order.
+            if impulse.fixed_rows::<3>(0).norm() > impulse_tolerance
+                || post_velocity[0] <= velocity_tolerance
+            {
+                continue;
+            }
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(MirroredSchurCandidate {
+                impulse,
+                contact_two_regime: candidate.contact_one_regime,
+                contact_two_tau: candidate.contact_one_tau,
+                kinetic_energy_delta,
+                max_velocity_residual: candidate.max_velocity_residual,
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            inner.reduced_status
+        };
+        Ok(MirroredSchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    /// Mirror contact-2 sticking elimination to the case where contact 1 sticks.
+    ///
+    /// After permuting contact blocks, the existing Schur reducer eliminates
+    /// the original contact-1 block. The returned candidates are unpermuted and
+    /// independently rechecked for strict contact-1 sticking and full-island energy.
+    fn solve_with_contact_one_sticking(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<MirroredSchurOutcome, &'static str> {
+        let (permuted_w, permuted_q) = swap_contact_blocks(w, q);
+        let inner =
+            solve_with_contact_two_sticking(&permuted_w, &permuted_q, mu_2, mu_1, tolerance)?;
+
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let mut candidates = Vec::new();
+        for candidate in inner.candidates {
+            let impulse = swap_impulse_blocks(&candidate.impulse);
+            let post_velocity = q + w * impulse;
+            let p_1 = SVector::<f64, 3>::new(impulse[0], impulse[1], impulse[2]);
+            let u_1 = SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+            let tangent_impulse_norm = p_1.fixed_rows::<2>(1).norm();
+
+            // Contact 1 must be loaded, stationary, and strictly inside its disk.
+            if p_1[0] <= impulse_tolerance
+                || u_1.norm() > velocity_tolerance
+                || mu_1 * p_1[0] - tangent_impulse_norm <= impulse_tolerance
+            {
+                continue;
+            }
+
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(MirroredSchurCandidate {
+                impulse,
+                contact_two_regime: candidate.contact_one_regime,
+                contact_two_tau: candidate.contact_one_tau,
+                kinetic_energy_delta,
+                max_velocity_residual: candidate.max_velocity_residual.max(u_1.norm()),
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            inner.reduced_status
+        };
+        Ok(MirroredSchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    fn contact_one_separating_contact_two_sliding_fixture(
+        contact_one_normal_free_velocity: f64,
+    ) -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(contact_one_normal_free_velocity, 0.2, -0.1, -1.0, 1.0, 0.0);
+        (w, q)
+    }
+
+    fn contact_one_sticking_contact_two_sliding_fixture() -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(-10.1, 0.05, 0.0, -2.0, 1.0, 0.0);
+        (w, q)
+    }
+
+    #[test]
+    fn contact_one_separating_reduction_recovers_contact_two_sliding() {
+        let (w, q) = contact_one_separating_contact_two_sliding_fixture(1.0);
+        let outcome = solve_with_contact_one_separating(&w, &q, 0.3, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::UniqueWithinTolerance
+        );
+        assert_eq!(outcome.candidates.len(), 1);
+        let candidate = &outcome.candidates[0];
+        assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
+        assert!(candidate.contact_two_tau > 0.0);
+        assert!(candidate.impulse.fixed_rows::<3>(0).norm() == 0.0);
+
+        let post_velocity = q + w * candidate.impulse;
+        assert!(post_velocity[0] > 0.0);
+        assert!(post_velocity[3].abs() < 1.0e-8);
+        assert!(
+            (post_velocity[4] + candidate.contact_two_tau * candidate.impulse[4]).abs() < 1.0e-8
+        );
+        assert!(
+            (post_velocity[5] + candidate.contact_two_tau * candidate.impulse[5]).abs() < 1.0e-8
+        );
+        assert!(candidate.kinetic_energy_delta < 0.0);
+    }
+
+    #[test]
+    fn contact_one_separating_reduction_rejects_inward_full_island_velocity() {
+        let (w, q) = contact_one_separating_contact_two_sliding_fixture(-0.2);
+        let outcome = solve_with_contact_one_separating(&w, &q, 0.3, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::Inconclusive);
+        assert!(outcome.candidates.is_empty());
+    }
+
+    #[test]
+    fn contact_one_sticking_reduction_recovers_contact_two_sliding() {
+        let (w, q) = contact_one_sticking_contact_two_sliding_fixture();
+        let outcome = solve_with_contact_one_sticking(&w, &q, 0.2, 0.5, 1.0e-12).unwrap();
+
+        assert_eq!(
+            outcome.reduced_status,
+            CoupledCoulombStatus::UniqueWithinTolerance
+        );
+        assert_eq!(outcome.candidates.len(), 1);
+        let candidate = &outcome.candidates[0];
+        assert_eq!(candidate.contact_two_regime, CoupledCoulombRegime::Sliding);
+        assert!(candidate.contact_two_tau > 0.0);
+
+        let p = candidate.impulse;
+        assert!((p[0] - 10.0).abs() < 1.0e-8);
+        assert!(p.fixed_rows::<2>(1).norm() < 1.0e-8);
+        assert!((p[3] - 1.0).abs() < 1.0e-8);
+        assert!((p[4] + 0.5).abs() < 1.0e-8);
+        let post_velocity = q + w * p;
+        assert!(post_velocity.fixed_rows::<3>(0).norm() < 1.0e-8);
+        assert!(post_velocity[3].abs() < 1.0e-8);
+        assert!((post_velocity[4] + candidate.contact_two_tau * p[4]).abs() < 1.0e-8);
+        assert!((post_velocity[5] + candidate.contact_two_tau * p[5]).abs() < 1.0e-8);
+        assert!(0.2 * p[0] - p.fixed_rows::<2>(1).norm() > 1.0);
+        assert!(candidate.kinetic_energy_delta < 0.0);
+    }
+
+    fn both_sliding_coupled_fixture() -> (Matrix6, Vector6, Vector6) {
+        let mut w = Matrix6::identity();
+        let coupling = 0.25;
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = coupling;
+            w[(axis + 3, axis)] = coupling;
+        }
+
+        let free_velocity = Vector6::new(-1.25, 1.25, 0.0, -1.25, 1.25, 0.0);
+        let impulse = Vector6::new(1.0, -0.5, 0.0, 1.0, -0.5, 0.0);
+        (w, free_velocity, impulse)
+    }
+
+    #[test]
+    fn both_contacts_can_slide_in_a_genuinely_coupled_spd_island() {
+        let (w, q, p) = both_sliding_coupled_fixture();
+        let mu_1 = 0.5;
+        let mu_2 = 0.5;
+        let tau_1 = 1.25;
+        let tau_2 = 1.25;
+
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+        assert_eq!(w[(0, 3)], 0.25);
+        assert_eq!(w[(3, 0)], 0.25);
+
+        // Both contacts are loaded and normal-post-velocity is exactly zero.
+        let u = q + w * p;
+        assert_eq!(u, Vector6::new(0.0, 0.625, 0.0, 0.0, 0.625, 0.0));
+        assert!(p[0] > 0.0 && p[3] > 0.0);
+        assert_eq!(p[0] * u[0], 0.0);
+        assert_eq!(p[3] * u[3], 0.0);
+
+        // Both impulses lie exactly on their local circular Coulomb boundaries.
+        let disk_margin_1 = (mu_1 * p[0]).powi(2) - p[1].powi(2) - p[2].powi(2);
+        let disk_margin_2 = (mu_2 * p[3]).powi(2) - p[4].powi(2) - p[5].powi(2);
+        assert_eq!(disk_margin_1, 0.0);
+        assert_eq!(disk_margin_2, 0.0);
+
+        // Both sliding KKT multipliers are strictly positive.
+        assert!(tau_1 > 0.0 && tau_2 > 0.0);
+        assert_eq!(u[1] + tau_1 * p[1], 0.0);
+        assert_eq!(u[2] + tau_1 * p[2], 0.0);
+        assert_eq!(u[4] + tau_2 * p[4], 0.0);
+        assert_eq!(u[5] + tau_2 * p[5], 0.0);
+
+        // Full-island energy includes the off-diagonal cross-contact work.
+        let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+        assert_eq!(energy_delta, -2.1875);
+        assert!(energy_delta < 0.0);
+    }
+
+    fn asymmetric_both_sliding_fixture() -> (Matrix6, Vector6, Vector6) {
+        let cross = Matrix3::from_row_slice(&[
+            1.0 / 8.0,
+            1.0 / 32.0,
+            -1.0 / 64.0,
+            1.0 / 64.0,
+            1.0 / 16.0,
+            1.0 / 32.0,
+            -1.0 / 32.0,
+            1.0 / 64.0,
+            1.0 / 16.0,
+        ]);
+        let mut w = Matrix6::identity();
+        for row in 0..3 {
+            for column in 0..3 {
+                w[(row, column + 3)] = cross[(row, column)];
+                w[(column + 3, row)] = cross[(row, column)];
+            }
+        }
+
+        // Two distinct rational sliding directions: (3/5,4/5) and (5/13,12/13).
+        let q = Vector6::new(
+            -745.0 / 64.0,
+            441.0 / 64.0,
+            1257.0 / 128.0,
+            -917.0 / 64.0,
+            119.0 / 16.0,
+            37.0 / 2.0,
+        );
+        let p = Vector6::new(10.0, -3.0, -4.0, 13.0, -2.5, -6.0);
+        (w, q, p)
+    }
+
+    #[test]
+    fn asymmetric_cross_contact_block_supports_two_distinct_sliding_directions() {
+        let (w, q, p) = asymmetric_both_sliding_fixture();
+        let mu_1: f64 = 0.5;
+        let mu_2: f64 = 0.5;
+        let tau_1: f64 = 1.25;
+        let tau_2: f64 = 2.0;
+
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+
+        // The upper cross-contact block is intentionally non-symmetric.
+        assert_eq!(w[(0, 4)], 1.0 / 32.0);
+        assert_eq!(w[(1, 3)], 1.0 / 64.0);
+        assert_ne!(w[(0, 4)], w[(1, 3)]);
+
+        let u = q + w * p;
+        assert_eq!(u, Vector6::new(0.0, 3.75, 5.0, 0.0, 5.0, 12.0));
+
+        assert!(p[0] > 0.0 && p[3] > 0.0);
+        assert_eq!(p[0] * u[0], 0.0);
+        assert_eq!(p[3] * u[3], 0.0);
+
+        let disk_margin_1 = (mu_1 * p[0]).powi(2) - p[1].powi(2) - p[2].powi(2);
+        let disk_margin_2 = (mu_2 * p[3]).powi(2) - p[4].powi(2) - p[5].powi(2);
+        assert_eq!(disk_margin_1, 0.0);
+        assert_eq!(disk_margin_2, 0.0);
+
+        assert!(tau_1 > 0.0 && tau_2 > 0.0);
+        assert_eq!(u[1] + tau_1 * p[1], 0.0);
+        assert_eq!(u[2] + tau_1 * p[2], 0.0);
+        assert_eq!(u[4] + tau_2 * p[4], 0.0);
+        assert_eq!(u[5] + tau_2 * p[5], 0.0);
+
+        let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+        assert_eq!(energy_delta, -19455.0 / 64.0);
+        assert!(energy_delta < 0.0);
+    }
+
+    #[test]
+    fn asymmetric_double_sliding_fixture_has_two_distinct_admissible_branches() {
+        const SCALE: f64 = 1_048_576.0;
+        let w_numerators = [
+            380_770.0,
+            -33_295.0,
+            274_566.0,
+            145_422.0,
+            341_094.0,
+            356_864.0,
+            -33_295.0,
+            1_048_576.0,
+            -338_214.0,
+            -131_501.0,
+            237_374.0,
+            -415_672.0,
+            274_566.0,
+            -338_214.0,
+            1_001_976.0,
+            75_838.0,
+            564_175.0,
+            587_762.0,
+            145_422.0,
+            -131_501.0,
+            75_838.0,
+            812_094.0,
+            -148_076.0,
+            106_473.0,
+            341_094.0,
+            237_374.0,
+            564_175.0,
+            -148_076.0,
+            769_147.0,
+            341_152.0,
+            356_864.0,
+            -415_672.0,
+            587_762.0,
+            106_473.0,
+            341_152.0,
+            854_965.0,
+        ];
+        let w = Matrix6::from_row_slice(&w_numerators) / SCALE;
+        let q = Vector6::from_row_slice(&[
+            -109_587.0,
+            -7_143_822.0,
+            8_213_295.0,
+            -3_226_388.0,
+            7_075_809.0,
+            1_695_813.0,
+        ]) / SCALE;
+        let mu = [1_956_059.0 / SCALE, 380_758.0 / SCALE];
+
+        // Both cross-contact blocks are retained, with a genuinely
+        // non-symmetric upper B block: B[0,1] != B[1,0].
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+        assert_ne!(w[(0, 4)], w[(1, 3)]);
+
+        let candidates = [
+            (
+                Vector6::new(
+                    4.608_844_012_230_929_5,
+                    5.277_782_770_150_771,
+                    -6.786_946_962_897_831,
+                    4.290_844_256_133_09,
+                    -1.396_836_622_802_999_4,
+                    0.690_278_538_078_889_7,
+                ),
+                [0.117_529_947_136_987_67, 3.138_813_543_506_759],
+            ),
+            (
+                Vector6::new(
+                    4.538_161_725_266_375_5,
+                    5.222_183_363_528_369,
+                    -6.663_076_668_053_674,
+                    4.284_143_418_088_06,
+                    -1.402_416_114_964_019_3,
+                    0.673_267_915_990_852_9,
+                ),
+                [0.135_438_734_728_748, 3.142_289_304_836_215_7],
+            ),
+        ];
+
+        for (p, tau) in candidates {
+            let u = q + w * p;
+            for (contact, offset) in [0_usize, 3_usize].into_iter().enumerate() {
+                let lambda = p[offset];
+                let tangent_norm = (p[offset + 1].powi(2) + p[offset + 2].powi(2)).sqrt();
+                let friction_radius = mu[contact] * lambda;
+                let disk_margin = friction_radius.powi(2) - tangent_norm.powi(2);
+                let stationarity_1 = u[offset + 1] + tau[contact] * p[offset + 1];
+                let stationarity_2 = u[offset + 2] + tau[contact] * p[offset + 2];
+
+                assert!(lambda > 0.0);
+                assert!(u[offset].abs() < 1.0e-8);
+                assert!(disk_margin.abs() < 1.0e-8);
+                assert!(tau[contact] > 0.0);
+                assert!(stationarity_1.abs() < 1.0e-8);
+                assert!(stationarity_2.abs() < 1.0e-8);
+            }
+
+            let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+            assert!(energy_delta < -60.0);
+        }
+
+        let impulse_separation = (candidates[0].0 - candidates[1].0).norm();
+        assert!(impulse_separation > 0.1 && impulse_separation < 0.2);
+
+        // These are two isolated numerical witnesses for the same exactly
+        // dyadic W/q/mu input. This is not yet a certified complete root count.
+    }
+}
+
+
+#[cfg(test)]
+mod double_sliding_direction_oracle {
+    use super::*;
+
+    #[derive(Clone, Debug)]
+    struct DirectionEvaluation {
+        residual: [f64; 2],
+        jacobian: [[f64; 2]; 2],
+        impulse: Vector6,
+        sliding_multipliers: [f64; 2],
+        normal_determinant: f64,
+    }
+
+    /// Reduce the two normal equations and evaluate the coupled tangential
+    /// direction system. This is an independent residual/Jacobian oracle,
+    /// not a root finder or a completeness certificate.
+    fn evaluate(
+        w: &Matrix6,
+        q: &Vector6,
+        mu: [f64; 2],
+        theta: [f64; 2],
+    ) -> Option<DirectionEvaluation> {
+        let (c1, s1) = (theta[0].cos(), theta[0].sin());
+        let (c2, s2) = (theta[1].cos(), theta[1].sin());
+
+        let d1 = Vector6::new(1.0, -mu[0] * c1, -mu[0] * s1, 0.0, 0.0, 0.0);
+        let d2 = Vector6::new(0.0, 0.0, 0.0, 1.0, -mu[1] * c2, -mu[1] * s2);
+        let dd1 = Vector6::new(0.0, mu[0] * s1, -mu[0] * c1, 0.0, 0.0, 0.0);
+        let dd2 = Vector6::new(0.0, 0.0, 0.0, 0.0, mu[1] * s2, -mu[1] * c2);
+
+        // H(theta) lambda = -q_n, using the original full-island W.
+        let wd1 = w * d1;
+        let wd2 = w * d2;
+        let h = [
+            [wd1[0], wd2[0]],
+            [wd1[3], wd2[3]],
+        ];
+        let determinant = h[0][0] * h[1][1] - h[0][1] * h[1][0];
+        if !determinant.is_finite() || determinant.abs() <= 1.0e-12 {
+            return None;
+        }
+
+        let rhs = [-q[0], -q[3]];
+        let lambda = [
+            (rhs[0] * h[1][1] - h[0][1] * rhs[1]) / determinant,
+            (h[0][0] * rhs[1] - rhs[0] * h[1][0]) / determinant,
+        ];
+        if !lambda.iter().all(|value| value.is_finite() && *value > 0.0) {
+            return None;
+        }
+
+        let impulse = d1 * lambda[0] + d2 * lambda[1];
+        let post_velocity = q + w * impulse;
+        let residual = [
+            -s1 * post_velocity[1] + c1 * post_velocity[2],
+            -s2 * post_velocity[4] + c2 * post_velocity[5],
+        ];
+        let sliding_multipliers = [
+            (c1 * post_velocity[1] + s1 * post_velocity[2]) / (mu[0] * lambda[0]),
+            (c2 * post_velocity[4] + s2 * post_velocity[5]) / (mu[1] * lambda[1]),
+        ];
+
+        // Analytic implicit derivative:
+        // H d(lambda)/d(theta_j) = -(dH/d(theta_j)) lambda.
+        let mut jacobian = [[0.0_f64; 2]; 2];
+        for (direction, direction_lambda) in lambda.iter().copied().enumerate() {
+            let d_direction = if direction == 0 { &dd1 } else { &dd2 };
+            let wd_direction = w * d_direction;
+            let dh_lambda = [
+                wd_direction[0] * direction_lambda,
+                wd_direction[3] * direction_lambda,
+            ];
+            let d_lambda = [
+                (-h[1][1] * dh_lambda[0] + h[0][1] * dh_lambda[1]) / determinant,
+                (h[1][0] * dh_lambda[0] - h[0][0] * dh_lambda[1]) / determinant,
+            ];
+
+            let d_impulse = d1 * d_lambda[0] + d2 * d_lambda[1] + d_direction * direction_lambda;
+            let d_velocity = w * d_impulse;
+
+            let dg1_direct = if direction == 0 {
+                -c1 * post_velocity[1] - s1 * post_velocity[2]
+            } else {
+                0.0
+            };
+            let dg2_direct = if direction == 1 {
+                -c2 * post_velocity[4] - s2 * post_velocity[5]
+            } else {
+                0.0
+            };
+            jacobian[0][direction] =
+                dg1_direct - s1 * d_velocity[1] + c1 * d_velocity[2];
+            jacobian[1][direction] =
+                dg2_direct - s2 * d_velocity[4] + c2 * d_velocity[5];
+        }
+
+        Some(DirectionEvaluation {
+            residual,
+            jacobian,
+            impulse,
+            sliding_multipliers,
+            normal_determinant: determinant,
+        })
+    }
+
+    fn direction_from_impulse(p: &Vector6, offset: usize) -> f64 {
+        (-p[offset + 2]).atan2(-p[offset + 1])
+    }
+
+    #[test]
+    fn asymmetric_double_slide_branches_are_two_distinct_simple_direction_roots() {
+        const SCALE: f64 = 1_048_576.0;
+        let numerators = [
+            380_770.0,
+            -33_295.0,
+            274_566.0,
+            145_422.0,
+            341_094.0,
+            356_864.0,
+            -33_295.0,
+            1_048_576.0,
+            -338_214.0,
+            -131_501.0,
+            237_374.0,
+            -415_672.0,
+            274_566.0,
+            -338_214.0,
+            1_001_976.0,
+            75_838.0,
+            564_175.0,
+            587_762.0,
+            145_422.0,
+            -131_501.0,
+            75_838.0,
+            812_094.0,
+            -148_076.0,
+            106_473.0,
+            341_094.0,
+            237_374.0,
+            564_175.0,
+            -148_076.0,
+            769_147.0,
+            341_152.0,
+            356_864.0,
+            -415_672.0,
+            587_762.0,
+            106_473.0,
+            341_152.0,
+            854_965.0,
+        ];
+        let w = Matrix6::from_row_slice(&numerators) / SCALE;
+        let q = Vector6::from_row_slice(&[
+            -109_587.0,
+            -7_143_822.0,
+            8_213_295.0,
+            -3_226_388.0,
+            7_075_809.0,
+            1_695_813.0,
+        ]) / SCALE;
+        let mu = [1_956_059.0 / SCALE, 380_758.0 / SCALE];
+
+        let witnesses = [
+            Vector6::new(
+                4.608_844_012_230_929_5,
+                5.277_782_770_150_771,
+                -6.786_946_962_897_831,
+                4.290_844_256_133_09,
+                -1.396_836_622_802_999_4,
+                0.690_278_538_078_889_7,
+            ),
+            Vector6::new(
+                4.538_161_725_266_375_5,
+                5.222_183_363_528_369,
+                -6.663_076_668_053_674,
+                4.284_143_418_088_06,
+                -1.402_416_114_964_019_3,
+                0.673_267_915_990_852_9,
+            ),
+        ];
+
+        let mut roots = Vec::new();
+        for p in witnesses {
+            let theta = [
+                direction_from_impulse(&p, 0),
+                direction_from_impulse(&p, 3),
+            ];
+            let root = evaluate(&w, &q, mu, theta).expect("normal reduction remains regular");
+            assert!(root.residual[0].abs() < 1.0e-8);
+            assert!(root.residual[1].abs() < 1.0e-8);
+            assert!((root.impulse - p).norm() < 1.0e-7);
+            assert!(root.sliding_multipliers.iter().all(|tau| *tau > 0.0));
+
+            let jacobian_determinant =
+                root.jacobian[0][0] * root.jacobian[1][1]
+                    - root.jacobian[0][1] * root.jacobian[1][0];
+            assert!(jacobian_determinant.abs() > 1.0e-8);
+            assert!(root.normal_determinant.abs() > 1.0e-5);
+            roots.push((theta, root));
+        }
+
+        assert!((roots[0].1.impulse - roots[1].1.impulse).norm() > 0.1);
+        assert!((roots[0].0[0] - roots[1].0[0]).abs() < 0.01);
+        assert!((roots[0].0[1] - roots[1].0[1]).abs() < 0.02);
+    }
 }
