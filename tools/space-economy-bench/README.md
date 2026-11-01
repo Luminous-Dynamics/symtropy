@@ -339,3 +339,30 @@ Research context: [NIST CUSUM average-run-length guidance](https://www.itl.nist.
 
 **Pre-CI deterministic oracle (not a Rust execution result):** an independent JavaScript reproduction of the registered PRNG, detector recurrences, seed partitions and threshold grid now uses 512 training-null episodes and selects the threshold only when the upper bound of the two-sided 95% Wilson interval is at most 1%. It predicts selected thresholds of 4,250 (Shewhart-style), 10,000 (CUSUM statistic units), and 1,750 (EWMA state units), with 0/512 false alarms in each training set and 0/512 in each held-out null set; the zero-count Wilson upper bound is 74.47 basis points. For abrupt positive 1-sigma shifts, expected detections are 1/64, 64/64 and 35/64. For abrupt positive 2-sigma shifts, expected detections within five samples are 2/64, 16/64 and 22/64. None meets the proposed 90%-within-five-samples target for a 1-sigma shift. The thresholds and outcomes are pre-CI expected oracles, not observed Rust results; the exact-head workflow must confirm them.
 
+
+
+## Earth-to-orbit campaign reference (v0.1)
+
+The additional `earth_orbit_chain_reference` example is the cross-stage interface verifier for the Earth-to-orbit programme. It is deliberately added to this existing standalone Rust benchmark package rather than creating a second package or optimizer.
+
+It validates 26 synthetic campaigns spanning:
+- existing-provider and no-build reference chains;
+- separated and adjacent port / integration / launch facilities;
+- conventional rail, road, short tunnel, linear-motor MagRail and dedicated maglev concepts;
+- port, integration, launch-range, deadline and weather/range bottlenecks;
+- low-inclination and polar orbit geometry;
+- shared-gateway common-mode failure versus independent gateway N-1 service;
+- unknown capacity, mass loss, technology-label mismatch and unsupported operational claims;
+- conceptual orbital-ring construction cargo and a slanted geostationary tether variant.
+
+Run:
+
+```sh
+cargo test --locked --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference
+cargo run --locked --quiet --manifest-path tools/space-economy-bench/Cargo.toml --example earth_orbit_chain_reference -- \\
+  --source-commit "$(git rev-parse HEAD)"
+```
+
+The evaluator independently recomputes each route's mass continuity, capacity bottleneck, duration, hard-gate disposition, technology semantics and idealized launch-inclination compatibility. It also computes deterministic N-1 service capacity across declared failure domains. It does not estimate probabilities, perform full launch trajectory or range-safety analysis, simulate tunnel or maglev dynamics, or validate an orbital ring / tether.
+
+The output is a deterministic receipt over the exact fixture bytes and source commit. Case values are synthetic. `feasible` means only that the declared synthetic contract is internally feasible; it is not a real-world site or technology qualification.
