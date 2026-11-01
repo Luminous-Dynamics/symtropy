@@ -42,6 +42,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
+      - name: Verify frozen corpus digest
+        working-directory: tools/freight-maglev-bench/corpus
+        run: sha256sum --check cases-v0.1.psv.sha256
+
       - name: Format
         run: cargo fmt --manifest-path tools/freight-maglev-bench/Cargo.toml -- --check
 
