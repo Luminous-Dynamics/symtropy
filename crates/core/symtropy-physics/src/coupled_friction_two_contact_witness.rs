@@ -2332,12 +2332,13 @@ mod double_sliding_direction_oracle {
         }
 
         fn max_abs(&self) -> BigRational {
-            let lower_abs = if self.lower.is_negative() {
+            let zero = BigRational::from_integer(BigInt::from(0_u8));
+            let lower_abs = if self.lower < zero {
                 -self.lower.clone()
             } else {
                 self.lower.clone()
             };
-            let upper_abs = if self.upper.is_negative() {
+            let upper_abs = if self.upper < zero {
                 -self.upper.clone()
             } else {
                 self.upper.clone()
