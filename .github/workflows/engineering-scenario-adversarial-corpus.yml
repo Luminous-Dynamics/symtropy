@@ -31,8 +31,15 @@ jobs:
     name: Generated Rust/Go JCS identity and rejection matrix (Rust 1.96.0 / Go 1.27.3)
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Assert exact subject before execution
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SUBJECT_SHA"
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -141,6 +148,8 @@ jobs:
       - name: Record exact generator, corpus, toolchain and verifier provenance
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SUBJECT_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
           corpus="target/engineering-scenario-jcs-adversarial-corpus"
           {
             printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
