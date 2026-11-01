@@ -997,9 +997,7 @@ mod tests {
                         .candidates
                         .iter()
                         .filter(|row| {
-                            row.task_id == task
-                                && row.policy_id == policy
-                                && row.seed == seed
+                            row.task_id == task && row.policy_id == policy && row.seed == seed
                         })
                         .take(8)
                         .map(|row| row.decision_vector.clone())
