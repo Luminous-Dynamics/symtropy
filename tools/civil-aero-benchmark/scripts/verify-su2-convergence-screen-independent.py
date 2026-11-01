@@ -14,7 +14,7 @@ EVIDENCE = (
     "declared_residual_encoding_terminal_stability_and_monitor_screen_only_"
     "not_complete_CFD_convergence_grid_independence_or_physical_validation"
 )
-SCHEMA = "su2-declared-convergence-screen/0.2.0"
+SCHEMA = "su2-declared-convergence-screen/0.3.0"
 
 
 def require(condition: bool, message: str) -> None:
@@ -176,6 +176,7 @@ def main() -> int:
         require(row["overall_status"] == "declared_thresholds_met", "overall status mismatch")
         require(row["evidence_level"] == EVIDENCE, "evidence ceiling mismatch")
         require(row["run_id"] == receipt["run_id"], "screen run ID mismatch")
+        require(row["solver_id"] == receipt["solver_id"], "screen solver ID mismatch")
         require(row["solver_id"] == receipt["solver_id"], "screen solver ID mismatch")
         require(row["runner_receipt_sha256"] == receipt["receipt_sha256"], "screen receipt digest mismatch")
         require(row["history_sha256"] == history_sha256, "screen history digest mismatch")
