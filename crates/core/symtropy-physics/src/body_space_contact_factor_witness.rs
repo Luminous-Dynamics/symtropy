@@ -189,9 +189,14 @@ mod tests {
                         })
                     })
                     .sum();
-                assert!(
-                    block_frobenius_squared > 0,
-                    "every pair of contacts must be coupled through the shared body"
+                let expected_frobenius_squared = match (left_contact, right_contact) {
+                    (0, 1) => 12,
+                    (0, 2) | (1, 2) => 21,
+                    _ => unreachable!("the loop visits only distinct ordered contact pairs"),
+                };
+                assert_eq!(
+                    block_frobenius_squared, expected_frobenius_squared,
+                    "each shared-body contact block must match the exact frozen coupling"
                 );
             }
         }
@@ -267,8 +272,14 @@ mod tests {
         let p0 = [20_i128, 0, 0, 30, 0, 0, 40, 0, 0];
         let response0 = apply_delassus(&delassus, &p0);
         let body_impulse0 = scatter_contact_impulses(&jacobian, &p0);
+        assert_eq!(body_impulse0, [0, 0, 90, 70, -60, 0]);
         let body_free_velocity = body_impulse0.map(|value| -value);
+        assert_eq!(body_free_velocity, [0, 0, -90, -70, 60, 0]);
         let free_velocity = gather_body_velocity(&jacobian, &body_free_velocity);
+        assert_eq!(
+            free_velocity,
+            [-150, -60, -70, -160, -60, -70, -220, -60, -70]
+        );
         assert_eq!(free_velocity, response0.map(|value| -value));
 
         // M=I_6: the impulse update takes the body from v_free to v_post=0.
@@ -287,12 +298,14 @@ mod tests {
                 .zip(response0.iter())
                 .map(|(impulse, response)| impulse * response)
                 .sum::<i128>();
+        assert_eq!(twice_energy0, -16_600);
         assert!(twice_energy0 < 0);
 
         // The three kernel coordinates span a 3D affine family p0 + Z alpha.
         // Every vertex of [-1,1]^3 is checked exactly. Since each local
         // Coulomb disk is convex and all vertices are strictly interior,
         // the whole parameter cube is an admissible sticking fibre.
+        let mut minimum_disk_margins = [i128::MAX; 3];
         for corner in 0_u8..8 {
             let mut candidate = p0;
             for (basis_index, basis_vector) in NULL_FIBRE_BASIS.iter().enumerate() {
@@ -329,11 +342,16 @@ mod tests {
                 let normal_impulse = candidate[offset];
                 let tangent_1 = candidate[offset + 1];
                 let tangent_2 = candidate[offset + 2];
+                assert_eq!(normal_impulse, p0[offset]);
                 assert!(normal_impulse > 0, "each contact remains loaded");
+                let disk_margin =
+                    normal_impulse * normal_impulse - tangent_1 * tangent_1 - tangent_2 * tangent_2;
                 assert!(
-                    tangent_1 * tangent_1 + tangent_2 * tangent_2 < normal_impulse * normal_impulse,
+                    disk_margin > 0,
                     "sticking impulse must remain strictly inside its mu=1 Coulomb disk"
                 );
+                minimum_disk_margins[contact] =
+                    minimum_disk_margins[contact].min(disk_margin);
             }
 
             let twice_energy: i128 = candidate
@@ -350,8 +368,10 @@ mod tests {
                 twice_energy, twice_energy0,
                 "all points in the multiplier fibre must share the same kinetic-energy change"
             );
+            assert_eq!(twice_energy, -16_600);
             assert!(twice_energy < 0);
         }
+        assert_eq!(minimum_disk_margins, [395, 895, 1_598]);
     }
 
     #[test]
