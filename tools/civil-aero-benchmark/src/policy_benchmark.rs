@@ -774,7 +774,7 @@ mod tests {
                 (
                     "voi",
                     [0.25, 1.75, 2.0, 0.5, 0.5],
-                    ['f', 'g', 'h', 'i', 'j'],
+                    ['f', '0', '1', '2', '3'],
                     [(0.028, 650.0), (0.032, 520.0)],
                 ),
             ] {
@@ -844,7 +844,7 @@ mod tests {
                     Some(true),
                     Some(points[0].0),
                     Some(points[0].1),
-                    &digest('k'),
+                    &digest('6'),
                 ));
                 candidates.push(candidate(
                     "airfoil-multipoint-smoke",
@@ -857,7 +857,7 @@ mod tests {
                     Some(true),
                     Some(points[1].0),
                     Some(points[1].1),
-                    &digest('l'),
+                    &digest('7'),
                 ));
                 candidates.push(candidate(
                     "airfoil-multipoint-smoke",
