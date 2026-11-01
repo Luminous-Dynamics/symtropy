@@ -3097,4 +3097,277 @@ mod double_sliding_direction_oracle {
         assert_ne!(polynomials.tangential_equation_1.coefficients[4][2], 0);
         assert_ne!(polynomials.tangential_equation_2.coefficients[2][4], 0);
     }
+
+    fn exact_quadratic_power_table(coefficients: [i128; 3]) -> Vec<[BigRational; 2]> {
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let one = BigRational::from_integer(BigInt::from(1_u8));
+        let constant = BigRational::from_integer(BigInt::from(coefficients[0]));
+        let linear = BigRational::from_integer(BigInt::from(coefficients[1]));
+        let quadratic = BigRational::from_integer(BigInt::from(coefficients[2]));
+        assert_ne!(quadratic, zero);
+
+        let alpha = -linear / quadratic.clone();
+        let beta = -constant / quadratic;
+        let mut powers = vec![[one.clone(), zero.clone()], [zero, one]];
+        for degree in 2..5 {
+            let previous = powers[degree - 1].clone();
+            let previous_two = powers[degree - 2].clone();
+            powers.push([
+                alpha.clone() * previous[0].clone() + beta.clone() * previous_two[0].clone(),
+                alpha.clone() * previous[1].clone() + beta.clone() * previous_two[1].clone(),
+            ]);
+        }
+        powers
+    }
+
+    /// Reduce an integer bivariate polynomial modulo Q(t1)=0 and A(t2)=0.
+    /// A zero 2x2 remainder proves exact vanishing at every pairing of their
+    /// algebraic roots, without substituting floating approximations.
+    fn reduce_bivariate_mod_quadratics(
+        polynomial: &BivariateIntegerPolynomial,
+        q_t1: [i128; 3],
+        a_t2: [i128; 3],
+    ) -> [[BigRational; 2]; 2] {
+        let t1_powers = exact_quadratic_power_table(q_t1);
+        let t2_powers = exact_quadratic_power_table(a_t2);
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let mut remainder: [[BigRational; 2]; 2] =
+            std::array::from_fn(|_| std::array::from_fn(|_| zero.clone()));
+
+        for (degree_t1, t1_power) in t1_powers.iter().enumerate() {
+            for (degree_t2, t2_power) in t2_powers.iter().enumerate() {
+                let coefficient = BigRational::from_integer(BigInt::from(
+                    polynomial.coefficients[degree_t1][degree_t2],
+                ));
+                if coefficient == zero {
+                    continue;
+                }
+                for reduced_t1 in 0..2 {
+                    for reduced_t2 in 0..2 {
+                        remainder[reduced_t1][reduced_t2] += coefficient.clone()
+                            * t1_power[reduced_t1].clone()
+                            * t2_power[reduced_t2].clone();
+                    }
+                }
+            }
+        }
+        remainder
+    }
+
+    fn interval_from_integer_ratio(numerator: i128, denominator: i128) -> RationalInterval {
+        RationalInterval::point(BigRational::new(
+            BigInt::from(numerator),
+            BigInt::from(denominator),
+        ))
+    }
+
+    fn interval_sum(values: impl IntoIterator<Item = RationalInterval>) -> RationalInterval {
+        values.into_iter().fold(
+            RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
+            |sum, value| sum.add(&value),
+        )
+    }
+
+    fn compatible_singular_normal_fibre_intervals(
+        t1: &RationalInterval,
+        t2: &RationalInterval,
+    ) -> Option<(RationalInterval, RationalInterval)> {
+        const SCALE: i128 = 1_048_576;
+        let flattened_w = [
+            380_770_i128,
+            -33_295,
+            274_566,
+            145_422,
+            341_094,
+            356_864,
+            -33_295,
+            1_048_576,
+            -338_214,
+            -131_501,
+            237_374,
+            -415_672,
+            274_566,
+            -338_214,
+            1_001_976,
+            75_838,
+            564_175,
+            587_762,
+            145_422,
+            -131_501,
+            75_838,
+            812_094,
+            -148_076,
+            106_473,
+            341_094,
+            237_374,
+            564_175,
+            -148_076,
+            769_147,
+            341_152,
+            356_864,
+            -415_672,
+            587_762,
+            106_473,
+            341_152,
+            854_965,
+        ];
+        let w_numerators: [[i128; 6]; 6] =
+            std::array::from_fn(|row| std::array::from_fn(|column| flattened_w[row * 6 + column]));
+        let q_numerators = [
+            -109_587_i128,
+            -7_143_822,
+            8_213_295,
+            -3_226_388,
+            7_075_809,
+            1_695_813,
+        ];
+        let mu_numerators = [1_956_059_i128, 380_758_i128];
+
+        let one = RationalInterval::point(BigRational::from_integer(BigInt::from(1_u8)));
+        let two = RationalInterval::point(BigRational::from_integer(BigInt::from(2_u8)));
+        let t1_squared = t1.mul(t1);
+        let t2_squared = t2.mul(t2);
+        let t1_denominator = one.add(&t1_squared);
+        let t2_denominator = one.add(&t2_squared);
+        let c1 = one.sub(&t1_squared).div(&t1_denominator)?;
+        let s1 = two.mul(t1).div(&t1_denominator)?;
+        let c2 = one.sub(&t2_squared).div(&t2_denominator)?;
+        let s2 = two.mul(t2).div(&t2_denominator)?;
+
+        let mu1 = interval_from_integer_ratio(mu_numerators[0], SCALE);
+        let mu2 = interval_from_integer_ratio(mu_numerators[1], SCALE);
+        let d1 = [
+            one.clone(),
+            c1.scale(&(-mu1.lower.clone())),
+            s1.scale(&(-mu1.lower.clone())),
+        ];
+        let d2 = [
+            one.clone(),
+            c2.scale(&(-mu2.lower.clone())),
+            s2.scale(&(-mu2.lower.clone())),
+        ];
+
+        let w: [[RationalInterval; 6]; 6] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                interval_from_integer_ratio(w_numerators[row][column], SCALE)
+            })
+        });
+        let q: [RationalInterval; 6] = std::array::from_fn(|index| {
+            interval_from_integer_ratio(q_numerators[index], SCALE)
+        });
+
+        // The first normal equation has a nonzero pivot and parameterizes
+        // the complete compatible fibre as lambda_1 = a + b * alpha,
+        // lambda_2 = alpha. Rank one and compatibility are proved separately
+        // by the exact quotient-ring identities in the calling test.
+        let h11 = interval_sum((0..3).map(|axis| w[0][axis].mul(&d1[axis])));
+        let h12 = interval_sum((0..3).map(|axis| w[0][axis + 3].mul(&d2[axis])));
+        if !h11.excludes_zero() {
+            return None;
+        }
+        let lambda1_base = q[0].neg().div(&h11)?;
+        let lambda1_slope = h12.neg().div(&h11)?;
+
+        let mut impulse_base: [RationalInterval; 6] =
+            std::array::from_fn(|_| RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))));
+        let mut impulse_slope = impulse_base.clone();
+        for axis in 0..3 {
+            impulse_base[axis] = d1[axis].mul(&lambda1_base);
+            impulse_slope[axis] = d1[axis].mul(&lambda1_slope);
+            impulse_slope[axis + 3] = d2[axis].clone();
+        }
+
+        let mut velocity_base = q.clone();
+        let mut velocity_slope = impulse_base.clone();
+        for row in 0..6 {
+            velocity_base[row] = velocity_base[row].add(&interval_sum(
+                (0..6).map(|column| w[row][column].mul(&impulse_base[column])),
+            ));
+            velocity_slope[row] = interval_sum(
+                (0..6).map(|column| w[row][column].mul(&impulse_slope[column])),
+            );
+        }
+
+        // Each original tangential direction equation is affine in alpha.
+        let g1_intercept = s1.neg().mul(&velocity_base[1]).add(&c1.mul(&velocity_base[2]));
+        let g1_slope = s1.neg().mul(&velocity_slope[1]).add(&c1.mul(&velocity_slope[2]));
+        let g2_intercept = s2.neg().mul(&velocity_base[4]).add(&c2.mul(&velocity_base[5]));
+        let g2_slope = s2.neg().mul(&velocity_slope[4]).add(&c2.mul(&velocity_slope[5]));
+
+        if !g1_slope.excludes_zero() || !g2_slope.excludes_zero() {
+            return None;
+        }
+        let alpha_from_contact_1 = g1_intercept.neg().div(&g1_slope)?;
+        let alpha_from_contact_2 = g2_intercept.neg().div(&g2_slope)?;
+        Some((alpha_from_contact_1, alpha_from_contact_2))
+    }
+
+    #[test]
+    fn dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre() {
+        const A_T2: [i128; 3] = [
+            -6_635_580_832_593_066,
+            -216_977_548_891_540_199,
+            205_966_130_065_945_770,
+        ];
+        const Q_T1: [i128; 3] = [
+            1_453_414_006_334_584_503,
+            -3_433_061_893_381_690_836,
+            1_089_540_914_828_380_489,
+        ];
+
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+
+        // Exact ideal-membership checks establish Delta=N1=N2=0 at every
+        // algebraic pair A(t2)=Q(t1)=0, rather than merely near zero.
+        for polynomial in [
+            &polynomials.normal_numerator_1,
+            &polynomials.normal_numerator_2,
+            &polynomials.determinant,
+        ] {
+            let remainder = reduce_bivariate_mod_quadratics(polynomial, Q_T1, A_T2);
+            assert!(
+                remainder
+                    .iter()
+                    .flatten()
+                    .all(|coefficient| coefficient == &BigRational::from_integer(BigInt::from(0_u8)))
+            );
+        }
+
+        let mut a_t2 = BigIntegerPolynomial::zero();
+        for (index, coefficient) in A_T2.into_iter().enumerate() {
+            a_t2.coefficients[index] = BigInt::from(coefficient);
+        }
+        let mut q_t1 = BigIntegerPolynomial::zero();
+        for (index, coefficient) in Q_T1.into_iter().enumerate() {
+            q_t1.coefficients[index] = BigInt::from(coefficient);
+        }
+        let root_width = BigRational::new(BigInt::from(1_u8), BigInt::from(1_u8) << 100);
+        let t2_roots = isolate_all_real_resultant_roots_with_width(&a_t2, root_width.clone());
+        let t1_roots = isolate_all_real_resultant_roots_with_width(&q_t1, root_width);
+        assert_eq!(t2_roots.len(), 2);
+        assert_eq!(t1_roots.len(), 2);
+
+        let mut pair_count = 0;
+        for t1_bounds in &t1_roots {
+            for t2_bounds in &t2_roots {
+                let t1 = RationalInterval::new(t1_bounds.0.clone(), t1_bounds.1.clone());
+                let t2 = RationalInterval::new(t2_bounds.0.clone(), t2_bounds.1.clone());
+
+                // A nonzero h11 pivot plus exact Delta=0 gives rank(H)=1.
+                // Exact vanishing of both Cramer numerators proves range
+                // compatibility of H lambda = -q_n.
+                let (alpha_1, alpha_2) =
+                    compatible_singular_normal_fibre_intervals(&t1, &t2)
+                        .expect("a regular normal-row pivot and both tangential slopes");
+
+                assert!(
+                    alpha_1.upper < alpha_2.lower || alpha_2.upper < alpha_1.lower,
+                    "the two contacts require disjoint values of the same fibre parameter"
+                );
+                pair_count += 1;
+            }
+        }
+        assert_eq!(pair_count, 4);
+    }
+
 }
