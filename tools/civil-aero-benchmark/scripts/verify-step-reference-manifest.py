@@ -58,7 +58,7 @@ def main() -> int:
     )
     require(
         manifest.get("status")
-        == "reference_metadata_only_no_source_code_or_problem_data_vendored_no_step_rust_implementation_yet",
+        == "reference_metadata_with_two_clean_room_formula_pilots_committed_pending_exact_head_ci_no_full_step_coverage",
         "manifest evidence status was promoted",
     )
     external = manifest["external_repository"]
