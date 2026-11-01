@@ -541,8 +541,7 @@ impl Default for BoundedPerturbationGrid {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoundedPerturbationGridReport {
-    /// Applicable mutation specifications; the search/apply path constructs
-    /// and validates each candidate kernel before replay.
+    /// All emitted perturbations have already produced a valid candidate kernel.
     pub specs: Vec<PerturbationSpec>,
     /// Deterministic parameter combinations that were inapplicable/no-op.
     pub skipped_inapplicable: usize,
@@ -550,14 +549,13 @@ pub struct BoundedPerturbationGridReport {
     pub attempted: usize,
 }
 
-/// Enumerate a finite, deterministic family of applicable model perturbations.
+/// Enumerate a finite, deterministic family of valid model perturbations.
 ///
 /// Worlds are sorted by ID before enumeration. Candidate IDs and order are
-/// therefore invariant to input-world ordering. A cheap preflight removes
-/// obvious no-op/inapplicable mutations without cloning full kernels. Full
-/// candidate construction and kernel validation occur in the search/apply
-/// path. The explicit attempt cap bounds Cartesian-product growth; exceeding
-/// it returns an error instead of silently truncating the search.
+/// therefore invariant to input-world ordering. Every candidate is validated
+/// by applying it to its immutable source before it is emitted. The explicit
+/// attempt cap bounds Cartesian-product growth; exceeding it returns an error
+/// instead of a silently truncated search.
 pub fn generate_bounded_perturbation_grid(
     worlds: &[DecisionModelWorld],
     grid: &BoundedPerturbationGrid,
