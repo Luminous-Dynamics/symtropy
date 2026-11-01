@@ -949,10 +949,10 @@ mod tests {
     fn deterministic_spd_approach_panel_never_fabricates_a_solution() {
         for seed in 1..=128_u64 {
             let mut x = [[0.0_f64; 3]; 3];
-            for i in 0..3 {
-                for j in 0..3 {
+            for (i, row) in x.iter_mut().enumerate() {
+                for (j, value) in row.iter_mut().enumerate() {
                     let k = (seed * (7 + (i * 3 + j) as u64 * 11)) % 101;
-                    x[i][j] = (k as f64 / 37.0) - 1.2;
+                    *value = (k as f64 / 37.0) - 1.2;
                 }
             }
             let m = Matrix3::new(
