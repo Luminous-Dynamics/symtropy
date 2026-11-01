@@ -59,34 +59,54 @@ pub struct Su2HistoryReport {
 
 impl Su2HistoryReport {
     /// Immutable run identifier recorded by the external-solver receipt.
-    pub fn run_id(&self) -> &str { &self.run_id }
+    pub fn run_id(&self) -> &str {
+        &self.run_id
+    }
 
     /// Immutable solver identifier recorded by the external-solver receipt.
-    pub fn solver_id(&self) -> &str { &self.solver_id }
+    pub fn solver_id(&self) -> &str {
+        &self.solver_id
+    }
 
     /// Caller-supplied version label; not authenticated source/build metadata.
-    pub fn solver_version_claim(&self) -> &str { &self.solver_version_claim }
+    pub fn solver_version_claim(&self) -> &str {
+        &self.solver_version_claim
+    }
 
     /// SHA-256 of the executable bytes recorded in the run receipt.
-    pub fn executable_sha256(&self) -> &str { &self.executable_sha256 }
+    pub fn executable_sha256(&self) -> &str {
+        &self.executable_sha256
+    }
 
     /// SHA-256 of the replayable external-solver receipt.
-    pub fn runner_receipt_sha256(&self) -> &str { &self.runner_receipt_sha256 }
+    pub fn runner_receipt_sha256(&self) -> &str {
+        &self.runner_receipt_sha256
+    }
 
     /// SHA-256 of the imported history output bytes.
-    pub fn history_sha256(&self) -> &str { &self.history_sha256 }
+    pub fn history_sha256(&self) -> &str {
+        &self.history_sha256
+    }
 
     /// Canonical SHA-256 of this receipt-bound import representation.
-    pub fn import_sha256(&self) -> &str { &self.import_sha256 }
+    pub fn import_sha256(&self) -> &str {
+        &self.import_sha256
+    }
 
     /// Caller-declared, ordered numeric columns and unit labels.
-    pub fn numeric_fields(&self) -> &[Su2HistoryField] { &self.numeric_fields }
+    pub fn numeric_fields(&self) -> &[Su2HistoryField] {
+        &self.numeric_fields
+    }
 
     /// Imported finite observations in strictly increasing iteration order.
-    pub fn points(&self) -> &[Su2HistoryPoint] { &self.points }
+    pub fn points(&self) -> &[Su2HistoryPoint] {
+        &self.points
+    }
 
     /// Evidence ceiling for this import layer.
-    pub fn evidence_level(&self) -> &str { &self.evidence_level }
+    pub fn evidence_level(&self) -> &str {
+        &self.evidence_level
+    }
 
     pub fn to_csv(&self) -> String {
         let mut header = vec![
@@ -296,13 +316,20 @@ pub fn verify_su2_history_import(report: &Su2HistoryReport) -> Result<(), String
         return Err("history import identity or source path is incomplete".to_owned());
     }
     if report.expected_header.is_empty()
-        || report.expected_header.iter().any(|name| name.trim().is_empty())
+        || report
+            .expected_header
+            .iter()
+            .any(|name| name.trim().is_empty())
         || report.iteration_column.trim().is_empty()
     {
         return Err("history import header schema is incomplete".to_owned());
     }
     let mut header_names = BTreeSet::new();
-    if report.expected_header.iter().any(|name| !header_names.insert(name)) {
+    if report
+        .expected_header
+        .iter()
+        .any(|name| !header_names.insert(name))
+    {
         return Err("history import header contains duplicate columns".to_owned());
     }
     if !header_names.contains(&report.iteration_column) || report.numeric_fields.is_empty() {
