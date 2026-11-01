@@ -52,6 +52,20 @@ def main() -> int:
                 f"{tag}: source pin must not claim validation")
         require(row.get("upstream_release_url") == f"https://github.com/su2code/SU2/releases/tag/{tag}",
                 f"{tag}: release URL mismatch")
+
+        if tag == "v8.6.0":
+            distribution = row.get("distribution_observation", {})
+            require(distribution.get("github_release_page_status") == "latest",
+                    "v8.6.0 must be identified as the latest GitHub source release")
+            require(distribution.get("github_release_date") == "2026-10-30",
+                    "v8.6.0 source release date observation changed")
+            require(distribution.get("binary_download_page_version_observed") == "8.5.0",
+                    "binary-download-page observation changed; review before updating")
+            require(distribution.get("binary_download_page_observation_date") == "2026-11-01",
+                    "binary-download-page observation date changed")
+            require("do not assume a prebuilt 8.6.0 binary is available"
+                    in row.get("historical_context", ""),
+                    "source-tag and binary-availability distinction must remain explicit")
     controls = data.get("comparison_controls", {})
     for field in (
         "historical_and_current_lanes_must_remain_separate",
