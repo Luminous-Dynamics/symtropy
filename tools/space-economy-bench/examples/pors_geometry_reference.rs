@@ -175,7 +175,7 @@ fn evaluate_arc(
 
     let inertial_arc_deg = direction_sign * 2.0 * half_angle_deg;
     let earth_rotation_during_flight_deg =
-        earth_rotation_rad_s * flight_time_s.to_degrees();
+        (earth_rotation_rad_s * flight_time_s).to_degrees();
     let earth_fixed_endpoint_delta_deg =
         inertial_arc_deg - earth_rotation_during_flight_deg;
     let surface_arc_distance_km =
@@ -239,6 +239,29 @@ fn evaluate_arc(
 
 fn compare_expected(actual: &PorsResult, expected: &Value, at: &str) -> Check<()> {
     let expected_status = req_text(expected, "status", at)?;
+    if expected_status == "invalid" {
+        exact_keys(expected, &["status", "reason_code"], at)?;
+    } else {
+        exact_keys(
+            expected,
+            &[
+                "status",
+                "eccentricity",
+                "semi_major_axis_m",
+                "inertial_arc_deg",
+                "earth_rotation_during_flight_deg",
+                "earth_fixed_endpoint_delta_deg",
+                "surface_arc_distance_km",
+                "flight_time_s",
+                "apex_speed_mps",
+                "ground_inertial_speed_mps",
+                "ground_relative_tangential_speed_mps",
+                "ground_relative_radial_speed_mps",
+                "ground_flight_path_angle_deg",
+            ],
+            at,
+        )?;
+    }
     if expected_status != actual.status {
         return Err(format!(
             "{at}: expected status {expected_status}, got {}",
