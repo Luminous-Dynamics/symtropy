@@ -2000,7 +2000,6 @@ mod double_sliding_direction_oracle {
         assert_eq!(projected_root, BigInt::from(0_u8));
     }
 
-
     type RationalUnivariatePolynomial = Vec<BigRational>;
 
     fn trim_rational_polynomial(polynomial: &mut RationalUnivariatePolynomial) {
@@ -2014,7 +2013,9 @@ mod double_sliding_direction_oracle {
     fn resultant_as_rational_polynomial(
         polynomial: &BigIntegerPolynomial,
     ) -> RationalUnivariatePolynomial {
-        let degree = polynomial.degree().expect("resultant polynomial is nonzero");
+        let degree = polynomial
+            .degree()
+            .expect("resultant polynomial is nonzero");
         let mut result = (0..=degree)
             .map(|index| BigRational::from_integer(polynomial.coefficients[index].clone()))
             .collect::<Vec<_>>();
@@ -2030,8 +2031,7 @@ mod double_sliding_direction_oracle {
         }
         let mut derivative = (1..polynomial.len())
             .map(|degree| {
-                polynomial[degree].clone()
-                    * BigRational::from_integer(BigInt::from(degree))
+                polynomial[degree].clone() * BigRational::from_integer(BigInt::from(degree))
             })
             .collect::<Vec<_>>();
         trim_rational_polynomial(&mut derivative);
@@ -2042,12 +2042,10 @@ mod double_sliding_direction_oracle {
         polynomial: &RationalUnivariatePolynomial,
         value: &BigRational,
     ) -> BigRational {
-        polynomial
-            .iter()
-            .rev()
-            .fold(BigRational::from_integer(BigInt::from(0_u8)), |acc, coefficient| {
-                acc * value.clone() + coefficient.clone()
-            })
+        polynomial.iter().rev().fold(
+            BigRational::from_integer(BigInt::from(0_u8)),
+            |acc, coefficient| acc * value.clone() + coefficient.clone(),
+        )
     }
 
     fn rational_polynomial_remainder(
@@ -2068,8 +2066,8 @@ mod double_sliding_direction_oracle {
             let factor = remainder.last().unwrap().clone() / divisor.last().unwrap().clone();
             for (index, divisor_coefficient) in divisor.iter().enumerate() {
                 let target = shift + index;
-                remainder[target] = remainder[target].clone()
-                    - factor.clone() * divisor_coefficient.clone();
+                remainder[target] =
+                    remainder[target].clone() - factor.clone() * divisor_coefficient.clone();
             }
             trim_rational_polynomial(&mut remainder);
         }
@@ -2090,12 +2088,18 @@ mod double_sliding_direction_oracle {
             let length = sequence.len();
             let remainder =
                 rational_polynomial_remainder(&sequence[length - 2], &sequence[length - 1]);
-            if remainder.iter().all(|coefficient| {
-                coefficient == &BigRational::from_integer(BigInt::from(0_u8))
-            }) {
+            if remainder
+                .iter()
+                .all(|coefficient| coefficient == &BigRational::from_integer(BigInt::from(0_u8)))
+            {
                 break;
             }
-            sequence.push(remainder.into_iter().map(|coefficient| -coefficient).collect());
+            sequence.push(
+                remainder
+                    .into_iter()
+                    .map(|coefficient| -coefficient)
+                    .collect(),
+            );
         }
         sequence
     }
@@ -2180,10 +2184,8 @@ mod double_sliding_direction_oracle {
     ) -> BigRational {
         let width = right.clone() - left.clone();
         for denominator in 2_u64.. {
-            let denominator_rational =
-                BigRational::from_integer(BigInt::from(denominator));
-            let candidate =
-                left.clone() + width.clone() / denominator_rational;
+            let denominator_rational = BigRational::from_integer(BigInt::from(denominator));
+            let candidate = left.clone() + width.clone() / denominator_rational;
             if rational_polynomial_evaluate(polynomial, &candidate)
                 != BigRational::from_integer(BigInt::from(0_u8))
             {
@@ -2204,7 +2206,6 @@ mod double_sliding_direction_oracle {
         let sturm = exact_sturm_sequence(&rational_polynomial);
         let mut bound = cauchy_integer_root_bound(polynomial);
         let zero = BigRational::from_integer(BigInt::from(0_u8));
-        let one = BigRational::from_integer(BigInt::from(1_u8));
 
         // The Cauchy bound is inclusive. Expand if its integer endpoints happen
         // to be roots so all Sturm interval boundaries remain non-roots.
@@ -2269,12 +2270,10 @@ mod double_sliding_direction_oracle {
 
         for (left, right) in &isolated {
             assert!(left < right);
-            assert!(right.clone() - left.clone() <= BigRational::new(
-                BigInt::from(1_u8),
-                BigInt::from(1_u64 << 30)
-            ));
+            assert!(
+                right.clone() - left.clone()
+                    <= BigRational::new(BigInt::from(1_u8), BigInt::from(1_u64 << 30))
+            );
         }
     }
-
-
 }
