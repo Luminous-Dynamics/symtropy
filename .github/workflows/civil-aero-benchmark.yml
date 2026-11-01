@@ -35,8 +35,8 @@ jobs:
       - name: Deterministic report check
         shell: bash
         run: |
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-a.csv
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-b.csv
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-a.csv
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin civil-aero-benchmark -- tools/civil-aero-benchmark/data/example_cases.csv > /tmp/aero-report-b.csv
           cmp /tmp/aero-report-a.csv /tmp/aero-report-b.csv
           test "$(wc -l < /tmp/aero-report-a.csv)" -eq 4
           grep -q "screening_only" /tmp/aero-report-a.csv
@@ -56,11 +56,11 @@ jobs:
       - name: Run deterministic stress-scenario screening
         shell: bash
         run: |
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
             tools/civil-aero-benchmark/data/example_cases.csv \
             tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
             > /tmp/aero-stress-a.csv 2> /tmp/aero-stress-a.txt
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
             tools/civil-aero-benchmark/data/example_cases.csv \
             tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
             > /tmp/aero-stress-b.csv 2> /tmp/aero-stress-b.txt
@@ -70,7 +70,7 @@ jobs:
           awk -F, 'NF != 16 { exit 1 }' /tmp/aero-stress-a.csv
           grep -q "screening_only" /tmp/aero-stress-a.csv
           grep -q "case=synthetic_baseline .*robust_screen_pass=true probability=none" /tmp/aero-stress-a.txt
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
             tools/civil-aero-benchmark/data/robustness_negative_control.csv \
             tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
             > /tmp/aero-stress-negative.csv 2> /tmp/aero-stress-negative.txt
@@ -80,7 +80,7 @@ jobs:
       - name: Generate and audit non-flight coupon mesh
         shell: bash
         run: |
-          cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin coupon_mesh -- \
+          cargo run --quiet --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin coupon_mesh -- \
             --chord-mm 100 --span-mm 80 --chordwise 32 --spanwise 4 \
             --out /tmp/civil-aero-coupon.stl \
             --manifest /tmp/civil-aero-coupon.json
@@ -114,7 +114,7 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin reference_audit -- > /tmp/aero-reference-audit.txt
+          cargo run --quiet --locked --bin reference_audit -- > /tmp/aero-reference-audit.txt
           cat /tmp/aero-reference-audit.txt
           grep -q "dataset=NASA-TMR-NACA0012-LADSON-FORCES observations=53 zones=3" /tmp/aero-reference-audit.txt
           grep -q "dataset=NASA-TMR-NACA0012-LADSON-PRESSURE observations=405 zones=9" /tmp/aero-reference-audit.txt
@@ -124,16 +124,16 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin reference_export -- all > /tmp/aero-reference-all-a.csv
-          cargo run --locked --bin reference_export -- all > /tmp/aero-reference-all-b.csv
+          cargo run --quiet --locked --bin reference_export -- all > /tmp/aero-reference-all-a.csv
+          cargo run --quiet --locked --bin reference_export -- all > /tmp/aero-reference-all-b.csv
           cmp /tmp/aero-reference-all-a.csv /tmp/aero-reference-all-b.csv
           test "$(wc -l < /tmp/aero-reference-all-a.csv)" -eq 532
           test "$(grep -c '^dataset_id,' /tmp/aero-reference-all-a.csv)" -eq 1
           grep -q '"NASA-TMR-NACA0012-LADSON-FORCES",78cd2f6aa4968e80f44cbf6c96f699bd9c6e45681d958ec528a10cf72ed23357,20a39f549dbff988a6accc421ac84dafc4487695,"force","80 grit",6,-4.04,-0.4417,0.00871,,,source_bytes_sha256_verified_parser_output_unqualified,true' /tmp/aero-reference-all-a.csv
           grep -q '"NASA-TMR-NACA0012-LADSON-PRESSURE",547e022634a360cd7697813543348cd447ee0038cdbc8f00a5296c7822ec7af8,20a39f549dbff988a6accc421ac84dafc4487695,"pressure","Re=6 million, alpha=.0169, free transition"' /tmp/aero-reference-all-a.csv
-          cargo run --locked --bin reference_export -- forces > /tmp/aero-reference-forces.csv
-          cargo run --locked --bin reference_export -- ladson-pressure > /tmp/aero-reference-ladson-cp.csv
-          cargo run --locked --bin reference_export -- gregory-pressure > /tmp/aero-reference-gregory-cp.csv
+          cargo run --quiet --locked --bin reference_export -- forces > /tmp/aero-reference-forces.csv
+          cargo run --quiet --locked --bin reference_export -- ladson-pressure > /tmp/aero-reference-ladson-cp.csv
+          cargo run --quiet --locked --bin reference_export -- gregory-pressure > /tmp/aero-reference-gregory-cp.csv
           test "$(wc -l < /tmp/aero-reference-forces.csv)" -eq 54
           test "$(wc -l < /tmp/aero-reference-ladson-cp.csv)" -eq 406
           test "$(wc -l < /tmp/aero-reference-gregory-cp.csv)" -eq 74
@@ -142,8 +142,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-a.csv 2> /tmp/section-polar-a.txt
-          cargo run --locked --bin section_polar_audit -- > /tmp/section-polar-b.csv 2> /tmp/section-polar-b.txt
+          cargo run --quiet --locked --bin section_polar_audit -- > /tmp/section-polar-a.csv 2> /tmp/section-polar-a.txt
+          cargo run --quiet --locked --bin section_polar_audit -- > /tmp/section-polar-b.csv 2> /tmp/section-polar-b.txt
           cmp /tmp/section-polar-a.csv /tmp/section-polar-b.csv
           cmp /tmp/section-polar-a.txt /tmp/section-polar-b.txt
           test "$(wc -l < /tmp/section-polar-a.csv)" -eq 4
@@ -174,7 +174,7 @@ jobs:
           sha256sum /tmp/section-polar-a.csv
           cp data/reference/nasa-tmr/CLCD_Ladson_expdata.dat /tmp/section-polar-tampered.dat
           python3 -c 'from pathlib import Path; p=Path("/tmp/section-polar-tampered.dat"); b=bytearray(p.read_bytes()); b[0] = ord("X"); p.write_bytes(b)'
-          if cargo run --locked --bin section_polar_audit -- /tmp/section-polar-tampered.dat > /tmp/section-polar-tampered.csv 2> /tmp/section-polar-tampered.txt; then
+          if cargo run --quiet --locked --bin section_polar_audit -- /tmp/section-polar-tampered.dat > /tmp/section-polar-tampered.csv 2> /tmp/section-polar-tampered.txt; then
             echo "modified reference bytes unexpectedly received NASA provenance" >&2
             exit 1
           fi
@@ -183,13 +183,13 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-a.csv
-          cargo run --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-b.csv
+          cargo run --quiet --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-a.csv
+          cargo run --quiet --locked --bin budget_audit -- data/decision_value/matched_budget_ledger.csv > /tmp/aero-budget-b.csv
           cmp /tmp/aero-budget-a.csv /tmp/aero-budget-b.csv
           test "$(wc -l < /tmp/aero-budget-a.csv)" -eq 3
           grep -q "naca-smoke,seed-1,random,5.000000,2.500000,2.500000,1.250000,1.000000,2,1,1,true,ledger_audit_only,2,1,1,2,1,1" /tmp/aero-budget-a.csv
           grep -q "naca-smoke,seed-1,voi,5.000000,2.500000,2.500000,1.250000,1.000000,2,2,0,true,ledger_audit_only,6,6,0,6,6,0" /tmp/aero-budget-a.csv
-          if cargo run --locked --bin budget_audit -- data/decision_value/budget_overrun_negative_control.csv > /tmp/aero-budget-overrun.csv 2> /tmp/aero-budget-overrun.txt; then
+          if cargo run --quiet --locked --bin budget_audit -- data/decision_value/budget_overrun_negative_control.csv > /tmp/aero-budget-overrun.csv 2> /tmp/aero-budget-overrun.txt; then
             echo "budget overrun negative control unexpectedly passed" >&2
             exit 1
           fi
@@ -199,8 +199,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin voi_demo > /tmp/aero-evsi-a.csv 2> /tmp/aero-evsi-a.txt
-          cargo run --locked --bin voi_demo > /tmp/aero-evsi-b.csv 2> /tmp/aero-evsi-b.txt
+          cargo run --quiet --locked --bin voi_demo > /tmp/aero-evsi-a.csv 2> /tmp/aero-evsi-a.txt
+          cargo run --quiet --locked --bin voi_demo > /tmp/aero-evsi-b.csv 2> /tmp/aero-evsi-b.txt
           cmp /tmp/aero-evsi-a.csv /tmp/aero-evsi-b.csv
           cmp /tmp/aero-evsi-a.txt /tmp/aero-evsi-b.txt
           test "$(wc -l < /tmp/aero-evsi-a.csv)" -eq 5
@@ -214,8 +214,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-a.csv 2> /tmp/dpw8-v5-a.txt
-          cargo run --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-b.csv 2> /tmp/dpw8-v5-b.txt
+          cargo run --quiet --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-a.csv 2> /tmp/dpw8-v5-a.txt
+          cargo run --quiet --locked --bin dpw8_v5_audit > /tmp/dpw8-v5-b.csv 2> /tmp/dpw8-v5-b.txt
           cmp /tmp/dpw8-v5-a.csv /tmp/dpw8-v5-b.csv
           cmp /tmp/dpw8-v5-a.txt /tmp/dpw8-v5-b.txt
           test "$(wc -l < /tmp/dpw8-v5-a.csv)" -eq 21
@@ -232,7 +232,7 @@ jobs:
           assert content.count(original) == 2
           path.write_text(content.replace(original, "0.70010000 0.01200000", 1))
           PY
-          if cargo run --locked --bin dpw8_v5_audit -- /tmp/dpw8-v5-tampered.dat > /tmp/dpw8-v5-tampered.csv 2> /tmp/dpw8-v5-tampered.txt; then
+          if cargo run --quiet --locked --bin dpw8_v5_audit -- /tmp/dpw8-v5-tampered.dat > /tmp/dpw8-v5-tampered.csv 2> /tmp/dpw8-v5-tampered.txt; then
             echo "single-value cross-view mutation unexpectedly passed Rust parser" >&2
             exit 1
           fi
@@ -242,8 +242,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-a.csv 2> /tmp/dpw8-protocol-a.txt
-          cargo run --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-b.csv 2> /tmp/dpw8-protocol-b.txt
+          cargo run --quiet --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-a.csv 2> /tmp/dpw8-protocol-a.txt
+          cargo run --quiet --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-b.csv 2> /tmp/dpw8-protocol-b.txt
           cmp /tmp/dpw8-protocol-a.csv /tmp/dpw8-protocol-b.csv
           cmp /tmp/dpw8-protocol-a.txt /tmp/dpw8-protocol-b.txt
           test "$(wc -l < /tmp/dpw8-protocol-a.csv)" -eq 8
@@ -256,8 +256,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin grid_convergence_demo > /tmp/gci-a.csv 2> /tmp/gci-a.txt
-          cargo run --locked --bin grid_convergence_demo > /tmp/gci-b.csv 2> /tmp/gci-b.txt
+          cargo run --quiet --locked --bin grid_convergence_demo > /tmp/gci-a.csv 2> /tmp/gci-a.txt
+          cargo run --quiet --locked --bin grid_convergence_demo > /tmp/gci-b.csv 2> /tmp/gci-b.txt
           cmp /tmp/gci-a.csv /tmp/gci-b.csv
           cmp /tmp/gci-a.txt /tmp/gci-b.txt
           test "$(wc -l < /tmp/gci-a.csv)" -eq 5
@@ -306,8 +306,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-a.csv 2> /tmp/policy-benchmark-a.txt
-          cargo run --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-b.csv 2> /tmp/policy-benchmark-b.txt
+          cargo run --quiet --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-a.csv 2> /tmp/policy-benchmark-a.txt
+          cargo run --quiet --locked --bin policy_benchmark_demo > /tmp/policy-benchmark-b.csv 2> /tmp/policy-benchmark-b.txt
           cmp /tmp/policy-benchmark-a.csv /tmp/policy-benchmark-b.csv
           cmp /tmp/policy-benchmark-a.txt /tmp/policy-benchmark-b.txt
           test "$(wc -l < /tmp/policy-benchmark-a.csv)" -eq 5
@@ -318,8 +318,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-a.csv 2> /tmp/unsteady-psd-a.txt
-          cargo run --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-b.csv 2> /tmp/unsteady-psd-b.txt
+          cargo run --quiet --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-a.csv 2> /tmp/unsteady-psd-a.txt
+          cargo run --quiet --locked --bin unsteady_spectrum_demo > /tmp/unsteady-psd-b.csv 2> /tmp/unsteady-psd-b.txt
           cmp /tmp/unsteady-psd-a.csv /tmp/unsteady-psd-b.csv
           cmp /tmp/unsteady-psd-a.txt /tmp/unsteady-psd-b.txt
           test "$(wc -l < /tmp/unsteady-psd-a.csv)" -eq 130
@@ -329,8 +329,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-a.csv 2> /tmp/interval-calibration-a.txt
-          cargo run --locked --bin interval_calibration_demo > /tmp/interval-calibration-b.csv 2> /tmp/interval-calibration-b.txt
+          cargo run --quiet --locked --bin interval_calibration_demo > /tmp/interval-calibration-a.csv 2> /tmp/interval-calibration-a.txt
+          cargo run --quiet --locked --bin interval_calibration_demo > /tmp/interval-calibration-b.csv 2> /tmp/interval-calibration-b.txt
           cmp /tmp/interval-calibration-a.csv /tmp/interval-calibration-b.csv
           cmp /tmp/interval-calibration-a.txt /tmp/interval-calibration-b.txt
           test "$(wc -l < /tmp/interval-calibration-a.csv)" -eq 13
@@ -340,8 +340,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-a.csv 2> /tmp/selective-risk-a.txt
-          cargo run --locked --bin selective_risk_demo > /tmp/selective-risk-b.csv 2> /tmp/selective-risk-b.txt
+          cargo run --quiet --locked --bin selective_risk_demo > /tmp/selective-risk-a.csv 2> /tmp/selective-risk-a.txt
+          cargo run --quiet --locked --bin selective_risk_demo > /tmp/selective-risk-b.csv 2> /tmp/selective-risk-b.txt
           cmp /tmp/selective-risk-a.csv /tmp/selective-risk-b.csv
           cmp /tmp/selective-risk-a.txt /tmp/selective-risk-b.txt
           test "$(wc -l < /tmp/selective-risk-a.csv)" -eq 81
@@ -356,8 +356,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-a.csv 2> /tmp/validation-uncertainty-a.txt
-          cargo run --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-b.csv 2> /tmp/validation-uncertainty-b.txt
+          cargo run --quiet --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-a.csv 2> /tmp/validation-uncertainty-a.txt
+          cargo run --quiet --locked --bin validation_uncertainty_demo > /tmp/validation-uncertainty-b.csv 2> /tmp/validation-uncertainty-b.txt
           cmp /tmp/validation-uncertainty-a.csv /tmp/validation-uncertainty-b.csv
           cmp /tmp/validation-uncertainty-a.txt /tmp/validation-uncertainty-b.txt
           test "$(wc -l < /tmp/validation-uncertainty-a.csv)" -eq 2
@@ -368,8 +368,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin input_lhs_demo > /tmp/input-lhs-a.csv 2> /tmp/input-lhs-a.txt
-          cargo run --locked --bin input_lhs_demo > /tmp/input-lhs-b.csv 2> /tmp/input-lhs-b.txt
+          cargo run --quiet --locked --bin input_lhs_demo > /tmp/input-lhs-a.csv 2> /tmp/input-lhs-a.txt
+          cargo run --quiet --locked --bin input_lhs_demo > /tmp/input-lhs-b.csv 2> /tmp/input-lhs-b.txt
           cmp /tmp/input-lhs-a.csv /tmp/input-lhs-b.csv
           cmp /tmp/input-lhs-a.txt /tmp/input-lhs-b.txt
           test "$(wc -l < /tmp/input-lhs-a.csv)" -eq 385
@@ -379,8 +379,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-a.csv 2> /tmp/policy-aggregate-a.txt
-          cargo run --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-b.csv 2> /tmp/policy-aggregate-b.txt
+          cargo run --quiet --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-a.csv 2> /tmp/policy-aggregate-a.txt
+          cargo run --quiet --locked --bin policy_aggregate_demo > /tmp/policy-aggregate-b.csv 2> /tmp/policy-aggregate-b.txt
           cmp /tmp/policy-aggregate-a.csv /tmp/policy-aggregate-b.csv
           cmp /tmp/policy-aggregate-a.txt /tmp/policy-aggregate-b.txt
           test "$(wc -l < /tmp/policy-aggregate-a.csv)" -eq 4
@@ -393,7 +393,7 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin optimizer_qualification_demo -- /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
+          cargo run --quiet --locked --bin optimizer_qualification_demo -- /tmp/optimizer-quality.csv /tmp/optimizer-candidates.csv
           test "$(wc -l < /tmp/optimizer-quality.csv)" -eq 241
           test "$(wc -l < /tmp/optimizer-candidates.csv)" -eq 60001
           grep -q "synthetic_analytic_optimizer_qualification_not_aerodynamic_evidence" /tmp/optimizer-quality.csv
@@ -402,8 +402,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin credibility_requirements_demo > /tmp/credibility-a.csv 2> /tmp/credibility-a.txt
-          cargo run --locked --bin credibility_requirements_demo > /tmp/credibility-b.csv 2> /tmp/credibility-b.txt
+          cargo run --quiet --locked --bin credibility_requirements_demo > /tmp/credibility-a.csv 2> /tmp/credibility-a.txt
+          cargo run --quiet --locked --bin credibility_requirements_demo > /tmp/credibility-b.csv 2> /tmp/credibility-b.txt
           cmp /tmp/credibility-a.csv /tmp/credibility-b.csv
           cmp /tmp/credibility-a.txt /tmp/credibility-b.txt
           test "$(wc -l < /tmp/credibility-a.csv)" -eq 4
@@ -423,8 +423,8 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
-          cargo run --locked --bin step_pilot_demo > /tmp/step-pilot-a.csv 2> /tmp/step-pilot-a.txt
-          cargo run --locked --bin step_pilot_demo > /tmp/step-pilot-b.csv 2> /tmp/step-pilot-b.txt
+          cargo run --quiet --locked --bin step_pilot_demo > /tmp/step-pilot-a.csv 2> /tmp/step-pilot-a.txt
+          cargo run --quiet --locked --bin step_pilot_demo > /tmp/step-pilot-b.csv 2> /tmp/step-pilot-b.txt
           cmp /tmp/step-pilot-a.csv /tmp/step-pilot-b.csv
           cmp /tmp/step-pilot-a.txt /tmp/step-pilot-b.txt
           test "$(wc -l < /tmp/step-pilot-a.csv)" -eq 9
