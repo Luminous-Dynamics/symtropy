@@ -432,23 +432,19 @@ fn exact_solve_linear_system(
     mut rhs: Vec<Rational>,
 ) -> Option<Vec<Rational>> {
     let dimension = matrix.len();
-    if dimension == 0
-        || rhs.len() != dimension
-        || matrix.iter().any(|row| row.len() != dimension)
-    {
+    if dimension == 0 || rhs.len() != dimension || matrix.iter().any(|row| row.len() != dimension) {
         return None;
     }
 
     for pivot_column in 0..dimension {
-        let pivot_row = (pivot_column..dimension)
-            .find(|&row| !matrix[row][pivot_column].is_zero())?;
+        let pivot_row =
+            (pivot_column..dimension).find(|&row| !matrix[row][pivot_column].is_zero())?;
         matrix.swap(pivot_column, pivot_row);
         rhs.swap(pivot_column, pivot_row);
 
         let pivot = matrix[pivot_column][pivot_column].clone();
         for column in pivot_column..dimension {
-            matrix[pivot_column][column] =
-                matrix[pivot_column][column].clone() / pivot.clone();
+            matrix[pivot_column][column] = matrix[pivot_column][column].clone() / pivot.clone();
         }
         rhs[pivot_column] = rhs[pivot_column].clone() / pivot;
 
@@ -467,18 +463,13 @@ fn exact_solve_linear_system(
     Some(rhs)
 }
 
-fn exact_matrix_vector(
-    matrix: &[Vec<Rational>],
-    vector: &[Rational],
-) -> Vec<Rational> {
+fn exact_matrix_vector(matrix: &[Vec<Rational>], vector: &[Rational]) -> Vec<Rational> {
     matrix
         .iter()
         .map(|row| {
             row.iter()
                 .zip(vector)
-                .fold(Rational::zero(), |sum, (a, b)| {
-                    sum + a.clone() * b.clone()
-                })
+                .fold(Rational::zero(), |sum, (a, b)| sum + a.clone() * b.clone())
         })
         .collect()
 }
