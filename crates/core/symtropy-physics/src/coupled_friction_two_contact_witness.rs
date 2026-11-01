@@ -1325,26 +1325,19 @@ mod double_sliding_direction_oracle {
         // Analytic implicit derivative:
         // H d(lambda)/d(theta_j) = -(dH/d(theta_j)) lambda.
         let mut jacobian = [[0.0_f64; 2]; 2];
-        for direction in 0..2 {
+        for (direction, direction_lambda) in lambda.iter().copied().enumerate() {
             let d_direction = if direction == 0 { &dd1 } else { &dd2 };
             let wd_direction = w * d_direction;
-            let dh_column = if direction == 0 {
-                [wd_direction[0], wd_direction[3]]
-            } else {
-                [wd_direction[0], wd_direction[3]]
-            };
             let dh_lambda = [
-                dh_column[0] * lambda[direction],
-                dh_column[1] * lambda[direction],
+                wd_direction[0] * direction_lambda,
+                wd_direction[3] * direction_lambda,
             ];
             let d_lambda = [
                 (-h[1][1] * dh_lambda[0] + h[0][1] * dh_lambda[1]) / determinant,
                 (h[1][0] * dh_lambda[0] - h[0][0] * dh_lambda[1]) / determinant,
             ];
 
-            let d_impulse = d1 * d_lambda[0]
-                + d2 * d_lambda[1]
-                + d_direction * lambda[direction];
+            let d_impulse = d1 * d_lambda[0] + d2 * d_lambda[1] + d_direction * direction_lambda;
             let d_velocity = w * d_impulse;
 
             let dg1_direct = if direction == 0 {
