@@ -3,6 +3,7 @@ set -euo pipefail
 
 runner="${1:?runner binary path required}"
 replay="${2:?replay binary path required}"
+importer="${3:?SU2 history importer binary path required}"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
 
@@ -44,6 +45,21 @@ executable_sha256="$(sha256sum "$root/fake-su2-cfd" | awk '{print $1}')"
 grep -q 'external_solver_replay=pass' "$root/replay.txt"
 grep -q 'process_status=process_exited_zero_expected_outputs_present' "$root/replay.txt"
 grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_convergence_or_physical_validation' "$root/replay.txt"
+
+"$importer" \
+  --run-dir "$root/run" \
+  --history history.csv \
+  --iteration-column Iteration \
+  --header-column Iteration \
+  --header-column CL \
+  --header-column CD \
+  --field CL=dimensionless \
+  --field CD=dimensionless \
+  --minimum-rows 2 \
+  > "$root/su2-history-import.csv" 2> "$root/su2-history-import.txt"
+test "$(wc -l < "$root/su2-history-import.csv")" -eq 3
+grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=2' "$root/su2-history-import.txt"
+grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
 test -s "$root/run/runner_receipt.csv"
