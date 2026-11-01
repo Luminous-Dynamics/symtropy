@@ -621,8 +621,8 @@ pub enum ExperimentPreference {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ExperimentParetoRelation {
-    A_DominatesB,
-    B_DominatesA,
+    ADominatesB,
+    BDominatesA,
     Tradeoff,
     Equivalent,
 }
@@ -676,8 +676,8 @@ fn pareto_relation(
         a_no_worse,
         b_no_worse,
     ) {
-        (true, false, _, _) => ExperimentParetoRelation::A_DominatesB,
-        (false, true, _, _) => ExperimentParetoRelation::B_DominatesA,
+        (true, false, _, _) => ExperimentParetoRelation::ADominatesB,
+        (false, true, _, _) => ExperimentParetoRelation::BDominatesA,
         (_, _, true, true) => ExperimentParetoRelation::Equivalent,
         _ => ExperimentParetoRelation::Tradeoff,
     }
@@ -1887,11 +1887,11 @@ mod tests {
         assert_eq!(comparison.cost_to_loss_exchange_rate, Rational::one());
         assert_eq!(
             comparison.nominal_pareto_relation,
-            ExperimentParetoRelation::A_DominatesB
+            ExperimentParetoRelation::ADominatesB
         );
         assert_eq!(
             comparison.realized_pareto_relation,
-            ExperimentParetoRelation::B_DominatesA
+            ExperimentParetoRelation::BDominatesA
         );
         assert_eq!(
             comparison.nominal_total_loss_preference,
