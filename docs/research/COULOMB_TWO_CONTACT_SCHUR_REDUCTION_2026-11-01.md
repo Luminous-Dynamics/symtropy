@@ -161,7 +161,7 @@ Both normal impulses are positive and both normal post-velocities are zero. Both
 Both sliding KKT multipliers are \(\tau_1=\tau_2=5/4>0\), so \(u_{t,k}+\tau_kj_{t,k}=0\) at each contact. The full-island energy change is exactly
 
 \[
-\Delta K=p^Tq+\tfrac12p^TWp=-\frac{35}{16}? 
+\Delta K=p^Tq+\tfrac12p^TWp=-\frac{35}{16} 
 \]
 
 The Rust test is the authoritative executable arithmetic check; its frozen expected value is \(-2.1875=-35/16\).
@@ -191,3 +191,54 @@ For the same frozen \(W,q,\mu_1,\mu_2\), the test records two distinct simultane
 Both satisfy positive normal impulses, zero normal post-contact velocity, the two local circular Coulomb boundaries, positive sliding multipliers, tangential KKT stationarity and negative full-island energy within the declared floating residual budget. Their impulse vectors are distinct (Euclidean separation approximately 0.15426), while their direction pairs are deliberately close.
 
 **Claim boundary:** these are two known numerical witnesses for one exact dyadic input. The test does not certify the root-pair count or exclude further branches. This is the first frozen multiple-double-slide fixture for #3215; its next step is exact resultant/subresultant projection plus interval root-pair lifting, with two disjoint certified boxes around these candidates and explicit exclusion of all remaining direction-domain boxes.
+
+
+## Local exact Krawczyk root-pair certificate
+
+The rational double-sliding fixture now has a test-only exact interval-Newton/Krawczyk proof around
+
+\[
+(t_1,t_2)=\left(\frac12,\frac23\right).
+\]
+
+The box is rational and symmetric about that exact root, with radius \(2^{-12}\) in each half-angle coordinate. The implementation:
+
+- evaluates \(G_1,G_2\) and their exact rational Jacobian at the center;
+- inverts \(J(x_0)\) exactly over \(\mathbb Q\);
+- evaluates the full Jacobian over the box using a natural interval extension with rational endpoints;
+- constructs the Krawczyk image \(K(X)=x_0-J(x_0)^{-1}G(x_0)+(I-J(x_0)^{-1}J(X))(X-x_0)\);
+- requires strict component-wise inclusion \(K(X)\subset\operatorname{int}(X)\);
+- proves the cleared normal determinant interval excludes zero;
+- proves both normal multiplier ratios \(N_k/\Delta\) are strictly positive;
+- proves both sliding-multiplier sign ratios \(S_k/N_k\) are strictly positive, with the omitted factors \(S\), \(\mu_{n,k}\), and \((1+t_k^2)^2\) known positive.
+
+This establishes **one unique regular, strictly sliding/strictly loaded physical root pair inside this rational box** for the frozen exact rational fixture. It does not prove that this is the only admissible root pair for the fixture, nor does it lift/classify the other three real projected resultant roots. Global completeness, projective charts, and the \(\Delta=0\) stratum remain open.
+
+
+## Two distinct asymmetric double-slide branches: disjoint Krawczyk boxes
+
+The exact interval implementation is now generalized to nonzero residual at a rational box center. It uses the full Krawczyk correction
+
+\[
+K(X)=x_0-CG(x_0)+(I-CJ(X))(X-x_0),\qquad C=J(x_0)^{-1},
+\]
+
+with exact rational \(C\) and exact rational interval enclosures for \(J(X)\).
+
+For the frozen asymmetric dyadic \(W,q,\mu\) fixture, two rational centers (15 decimal places) are enclosed in disjoint boxes of radius \(10^{-5}\):
+
+| Branch | \(t_1\) center | \(t_2\) center | Box radius |
+|---|---:|---:|---:|
+| A | 2.044412562120879 | -0.233602787384141 | \(10^{-5}\) |
+| B | 2.054286197054429 | -0.227603740377268 | \(10^{-5}\) |
+
+For both boxes, the test requires:
+- strict Krawczyk inclusion in the interior of the box, establishing exactly one reduced direction root in each box;
+- disjointness of the two boxes in both coordinates;
+- an interval normal determinant \(\Delta(X)\) excluding zero;
+- strict positivity of both normal multiplier ratios \(N_k(X)/\Delta(X)\);
+- strict positivity of both sliding-multiplier sign ratios \(S_k(X)/N_k(X)\).
+
+This gives two separately certified, regular, strictly admissible double-sliding branches for one exact rational dyadic input. It is stronger than two floating-point candidates: each box contains exactly one root of the reduced equations, and the interval sign proofs establish physical sliding admissibility throughout each box.
+
+**Claim ceiling:** this is a lower bound of two branches, not a complete root count. It does not exclude additional solutions elsewhere on the finite direction chart, roots at projective infinity, or branches on the determinant-degenerate set \(\Delta=0\). Global root-pair coverage and classification of all projected resultant roots remain open.

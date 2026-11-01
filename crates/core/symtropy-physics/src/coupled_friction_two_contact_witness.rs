@@ -1641,6 +1641,8 @@ mod double_sliding_direction_oracle {
         determinant: BivariateIntegerPolynomial,
         normal_numerator_1: BivariateIntegerPolynomial,
         normal_numerator_2: BivariateIntegerPolynomial,
+        sliding_numerator_1: BivariateIntegerPolynomial,
+        sliding_numerator_2: BivariateIntegerPolynomial,
         tangential_equation_1: BivariateIntegerPolynomial,
         tangential_equation_2: BivariateIntegerPolynomial,
     }
@@ -1727,11 +1729,19 @@ mod double_sliding_direction_oracle {
         let tangential_equation_2 = velocity_numerators[4]
             .mul(t2.scale(-2))
             .add(one_minus_t2_squared.mul(velocity_numerators[5]));
+        let sliding_numerator_1 = one_minus_t1_squared
+            .mul(velocity_numerators[1])
+            .add(t1.scale(2).mul(velocity_numerators[2]));
+        let sliding_numerator_2 = one_minus_t2_squared
+            .mul(velocity_numerators[4])
+            .add(t2.scale(2).mul(velocity_numerators[5]));
 
         ExactDoubleSlidePolynomials {
             determinant,
             normal_numerator_1,
             normal_numerator_2,
+            sliding_numerator_1,
+            sliding_numerator_2,
             tangential_equation_1,
             tangential_equation_2,
         }
@@ -2273,6 +2283,554 @@ mod double_sliding_direction_oracle {
             assert!(
                 right.clone() - left.clone()
                     <= BigRational::new(BigInt::from(1_u8), BigInt::from(1_u64 << 30))
+            );
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct RationalInterval {
+        lower: BigRational,
+        upper: BigRational,
+    }
+
+    impl RationalInterval {
+        fn new(lower: BigRational, upper: BigRational) -> Self {
+            assert!(lower <= upper);
+            Self { lower, upper }
+        }
+
+        fn point(value: BigRational) -> Self {
+            Self {
+                lower: value.clone(),
+                upper: value,
+            }
+        }
+
+        fn symmetric(center: &BigRational, radius: &BigRational) -> Self {
+            assert!(radius > &BigRational::from_integer(BigInt::from(0_u8)));
+            Self::new(
+                center.clone() - radius.clone(),
+                center.clone() + radius.clone(),
+            )
+        }
+
+        fn zero_centered(radius: &BigRational) -> Self {
+            Self::new(-radius.clone(), radius.clone())
+        }
+
+        fn is_point(&self) -> bool {
+            self.lower == self.upper
+        }
+
+        fn excludes_zero(&self) -> bool {
+            self.upper < BigRational::from_integer(BigInt::from(0_u8))
+                || self.lower > BigRational::from_integer(BigInt::from(0_u8))
+        }
+
+        fn is_strictly_positive(&self) -> bool {
+            self.lower > BigRational::from_integer(BigInt::from(0_u8))
+        }
+
+        fn max_abs(&self) -> BigRational {
+            let zero = BigRational::from_integer(BigInt::from(0_u8));
+            let lower_abs = if self.lower < zero {
+                -self.lower.clone()
+            } else {
+                self.lower.clone()
+            };
+            let upper_abs = if self.upper < zero {
+                -self.upper.clone()
+            } else {
+                self.upper.clone()
+            };
+            lower_abs.max(upper_abs)
+        }
+
+        fn is_strict_subset_of(&self, other: &Self) -> bool {
+            self.lower > other.lower && self.upper < other.upper
+        }
+
+        fn add(&self, other: &Self) -> Self {
+            Self::new(
+                self.lower.clone() + other.lower.clone(),
+                self.upper.clone() + other.upper.clone(),
+            )
+        }
+
+        fn neg(&self) -> Self {
+            Self::new(-self.upper.clone(), -self.lower.clone())
+        }
+
+        fn sub(&self, other: &Self) -> Self {
+            self.add(&other.neg())
+        }
+
+        fn mul(&self, other: &Self) -> Self {
+            let products = [
+                self.lower.clone() * other.lower.clone(),
+                self.lower.clone() * other.upper.clone(),
+                self.upper.clone() * other.lower.clone(),
+                self.upper.clone() * other.upper.clone(),
+            ];
+            let mut lower = products[0].clone();
+            let mut upper = products[0].clone();
+            for value in products.iter().skip(1) {
+                if value < &lower {
+                    lower = value.clone();
+                }
+                if value > &upper {
+                    upper = value.clone();
+                }
+            }
+            Self::new(lower, upper)
+        }
+
+        fn scale(&self, scalar: &BigRational) -> Self {
+            self.mul(&Self::point(scalar.clone()))
+        }
+
+        fn reciprocal(&self) -> Option<Self> {
+            if !self.excludes_zero() {
+                return None;
+            }
+            let one = BigRational::from_integer(BigInt::from(1_u8));
+            Some(Self::new(
+                one.clone() / self.upper.clone(),
+                one / self.lower.clone(),
+            ))
+        }
+
+        fn div(&self, denominator: &Self) -> Option<Self> {
+            Some(self.mul(&denominator.reciprocal()?))
+        }
+    }
+
+    impl BivariateIntegerPolynomial {
+        fn partial_t1(&self) -> Self {
+            let mut derivative = Self::zero();
+            for degree_t1 in 1..5 {
+                for degree_t2 in 0..5 {
+                    derivative.coefficients[degree_t1 - 1][degree_t2] = self.coefficients
+                        [degree_t1][degree_t2]
+                        .checked_mul(degree_t1 as i128)
+                        .expect("t1 derivative coefficient fits i128");
+                }
+            }
+            derivative
+        }
+
+        fn partial_t2(&self) -> Self {
+            let mut derivative = Self::zero();
+            for degree_t1 in 0..5 {
+                for degree_t2 in 1..5 {
+                    derivative.coefficients[degree_t1][degree_t2 - 1] = self.coefficients
+                        [degree_t1][degree_t2]
+                        .checked_mul(degree_t2 as i128)
+                        .expect("t2 derivative coefficient fits i128");
+                }
+            }
+            derivative
+        }
+
+        /// Natural interval extension using exact rational interval arithmetic.
+        /// The small coefficient grid is evaluated as a sum of monomial ranges;
+        /// it is conservative, deterministic and contains the polynomial image.
+        fn evaluate_interval(
+            &self,
+            t1: &RationalInterval,
+            t2: &RationalInterval,
+        ) -> RationalInterval {
+            let zero = BigRational::from_integer(BigInt::from(0_u8));
+            let one = BigRational::from_integer(BigInt::from(1_u8));
+            let mut t1_powers: [RationalInterval; 5] =
+                std::array::from_fn(|_| RationalInterval::point(one.clone()));
+            let mut t2_powers: [RationalInterval; 5] =
+                std::array::from_fn(|_| RationalInterval::point(one.clone()));
+            for degree in 1..5 {
+                t1_powers[degree] = t1_powers[degree - 1].mul(t1);
+                t2_powers[degree] = t2_powers[degree - 1].mul(t2);
+            }
+
+            let mut result = RationalInterval::point(zero);
+            for (degree_t1, t1_power) in t1_powers.iter().enumerate() {
+                for (degree_t2, t2_power) in t2_powers.iter().enumerate() {
+                    let coefficient = self.coefficients[degree_t1][degree_t2];
+                    if coefficient == 0 {
+                        continue;
+                    }
+                    let term = t1_power
+                        .mul(t2_power)
+                        .scale(&BigRational::from_integer(BigInt::from(coefficient)));
+                    result = result.add(&term);
+                }
+            }
+            result
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    struct KrawczykRootBox {
+        domain: [RationalInterval; 2],
+        image: [RationalInterval; 2],
+        contraction_row_sum_bound: BigRational,
+        normal_determinant: RationalInterval,
+        normal_multiplier_ratios: [RationalInterval; 2],
+        sliding_multiplier_sign_ratios: [RationalInterval; 2],
+    }
+
+    /// Certify a unique root of the reduced double-sliding polynomial system
+    /// in a rational box and certify strict physical admissibility throughout
+    /// that same box.
+    ///
+    /// The center must be an exact common root. The Krawczyk image is computed
+    /// from an exact rational inverse of J(center) and an exact interval
+    /// enclosure J(X). The strict inclusion K(X) subset int(X) proves one
+    /// unique zero in X. Separate interval ratios prove Delta != 0, lambda > 0
+    /// and tau > 0 throughout X.
+    fn certify_exact_double_slide_root_box(
+        polynomials: &ExactDoubleSlidePolynomials,
+        center: [BigRational; 2],
+        radius: BigRational,
+        friction_numerators: [i128; 2],
+        common_denominator: i128,
+    ) -> Option<KrawczykRootBox> {
+        if common_denominator <= 0 || friction_numerators.iter().any(|value| *value <= 0) {
+            return None;
+        }
+
+        let domain = [
+            RationalInterval::symmetric(&center[0], &radius),
+            RationalInterval::symmetric(&center[1], &radius),
+        ];
+        let g = [
+            &polynomials.tangential_equation_1,
+            &polynomials.tangential_equation_2,
+        ];
+        let dg = [
+            [g[0].partial_t1(), g[0].partial_t2()],
+            [g[1].partial_t1(), g[1].partial_t2()],
+        ];
+
+        let center_box = [
+            RationalInterval::point(center[0].clone()),
+            RationalInterval::point(center[1].clone()),
+        ];
+        let center_residual = [
+            g[0].evaluate_interval(&center_box[0], &center_box[1]),
+            g[1].evaluate_interval(&center_box[0], &center_box[1]),
+        ];
+        if center_residual.iter().any(|value| !value.is_point()) {
+            return None;
+        }
+
+        let zero_rational = BigRational::from_integer(BigInt::from(0_u8));
+        let mut jacobian_at_center: [[BigRational; 2]; 2] =
+            std::array::from_fn(|_| std::array::from_fn(|_| zero_rational.clone()));
+        let mut jacobian_interval = [
+            [
+                RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
+                RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
+            ],
+            [
+                RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
+                RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))),
+            ],
+        ];
+        for row in 0..2 {
+            for column in 0..2 {
+                jacobian_at_center[row][column] = dg[row][column]
+                    .evaluate_interval(&center_box[0], &center_box[1])
+                    .lower
+                    .clone();
+                jacobian_interval[row][column] =
+                    dg[row][column].evaluate_interval(&domain[0], &domain[1]);
+            }
+        }
+
+        let determinant_jacobian = jacobian_at_center[0][0].clone()
+            * jacobian_at_center[1][1].clone()
+            - jacobian_at_center[0][1].clone() * jacobian_at_center[1][0].clone();
+        if determinant_jacobian == BigRational::from_integer(BigInt::from(0_u8)) {
+            return None;
+        }
+        let inverse = [
+            [
+                jacobian_at_center[1][1].clone() / determinant_jacobian.clone(),
+                -jacobian_at_center[0][1].clone() / determinant_jacobian.clone(),
+            ],
+            [
+                -jacobian_at_center[1][0].clone() / determinant_jacobian.clone(),
+                jacobian_at_center[0][0].clone() / determinant_jacobian,
+            ],
+        ];
+
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let one = BigRational::from_integer(BigInt::from(1_u8));
+        let mut krawczyk_matrix = [
+            [
+                RationalInterval::point(zero.clone()),
+                RationalInterval::point(zero.clone()),
+            ],
+            [
+                RationalInterval::point(zero.clone()),
+                RationalInterval::point(zero.clone()),
+            ],
+        ];
+        for row in 0..2 {
+            for column in 0..2 {
+                let product = jacobian_interval[0][column]
+                    .scale(&inverse[row][0])
+                    .add(&jacobian_interval[1][column].scale(&inverse[row][1]));
+                let identity = if row == column {
+                    one.clone()
+                } else {
+                    zero.clone()
+                };
+                krawczyk_matrix[row][column] = RationalInterval::point(identity).sub(&product);
+            }
+        }
+
+        // A strict Krawczyk inclusion proves existence. Also require an
+        // explicit infinity-norm contraction bound: this independently
+        // establishes uniqueness throughout X and makes the claim auditable.
+        let contraction_row_sum_bound = krawczyk_matrix
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(RationalInterval::max_abs)
+                    .sum::<BigRational>()
+            })
+            .max()
+            .expect("the 2x2 Krawczyk matrix has rows");
+        if contraction_row_sum_bound >= one {
+            return None;
+        }
+
+        let centered_domain = [
+            RationalInterval::zero_centered(&radius),
+            RationalInterval::zero_centered(&radius),
+        ];
+        let correction_0 = inverse[0][0].clone() * center_residual[0].lower.clone()
+            + inverse[0][1].clone() * center_residual[1].lower.clone();
+        let correction_1 = inverse[1][0].clone() * center_residual[0].lower.clone()
+            + inverse[1][1].clone() * center_residual[1].lower.clone();
+        let mut image = [
+            RationalInterval::point(center[0].clone() - correction_0),
+            RationalInterval::point(center[1].clone() - correction_1),
+        ];
+        for row in 0..2 {
+            for column in 0..2 {
+                image[row] =
+                    image[row].add(&krawczyk_matrix[row][column].mul(&centered_domain[column]));
+            }
+        }
+        if !image[0].is_strict_subset_of(&domain[0]) || !image[1].is_strict_subset_of(&domain[1]) {
+            return None;
+        }
+
+        let normal_determinant = polynomials
+            .determinant
+            .evaluate_interval(&domain[0], &domain[1]);
+        if !normal_determinant.excludes_zero() {
+            return None;
+        }
+        let normal_multiplier_ratios = [
+            polynomials
+                .normal_numerator_1
+                .evaluate_interval(&domain[0], &domain[1])
+                .div(&normal_determinant)?,
+            polynomials
+                .normal_numerator_2
+                .evaluate_interval(&domain[0], &domain[1])
+                .div(&normal_determinant)?,
+        ];
+        if normal_multiplier_ratios
+            .iter()
+            .any(|ratio| !ratio.is_strictly_positive())
+        {
+            return None;
+        }
+
+        // tau_k has the sign of sliding_numerator_k / normal_numerator_k:
+        // all omitted factors are positive (S, mu_n and (1+t_k^2)^2).
+        let sliding_multiplier_sign_ratios = [
+            polynomials
+                .sliding_numerator_1
+                .evaluate_interval(&domain[0], &domain[1])
+                .div(
+                    &polynomials
+                        .normal_numerator_1
+                        .evaluate_interval(&domain[0], &domain[1]),
+                )?,
+            polynomials
+                .sliding_numerator_2
+                .evaluate_interval(&domain[0], &domain[1])
+                .div(
+                    &polynomials
+                        .normal_numerator_2
+                        .evaluate_interval(&domain[0], &domain[1]),
+                )?,
+        ];
+        if sliding_multiplier_sign_ratios
+            .iter()
+            .any(|ratio| !ratio.is_strictly_positive())
+        {
+            return None;
+        }
+
+        Some(KrawczykRootBox {
+            domain,
+            image,
+            contraction_row_sum_bound,
+            normal_determinant,
+            normal_multiplier_ratios,
+            sliding_multiplier_sign_ratios,
+        })
+    }
+
+    #[test]
+    fn exact_rational_double_slide_root_has_krawczyk_and_physical_admissibility_certificate() {
+        let polynomials = asymmetric_rational_polynomial_fixture();
+        let center = [
+            BigRational::new(BigInt::from(1_u8), BigInt::from(2_u8)),
+            BigRational::new(BigInt::from(2_u8), BigInt::from(3_u8)),
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(4096_u16));
+        let certificate =
+            certify_exact_double_slide_root_box(&polynomials, center, radius, [64, 64], 128)
+                .expect("exact Krawczyk inclusion and strict contact-law margins");
+
+        assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+        assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+        assert!(
+            certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8))
+        );
+        assert!(certificate.normal_determinant.excludes_zero());
+        assert!(
+            certificate
+                .normal_multiplier_ratios
+                .iter()
+                .all(|ratio| ratio.is_strictly_positive())
+        );
+        assert!(
+            certificate
+                .sliding_multiplier_sign_ratios
+                .iter()
+                .all(|ratio| ratio.is_strictly_positive())
+        );
+    }
+
+    fn asymmetric_dyadic_double_slide_polynomials() -> ExactDoubleSlidePolynomials {
+        const SCALE: i128 = 1_048_576;
+        let flattened_w = [
+            380_770_i128,
+            -33_295,
+            274_566,
+            145_422,
+            341_094,
+            356_864,
+            -33_295,
+            1_048_576,
+            -338_214,
+            -131_501,
+            237_374,
+            -415_672,
+            274_566,
+            -338_214,
+            1_001_976,
+            75_838,
+            564_175,
+            587_762,
+            145_422,
+            -131_501,
+            75_838,
+            812_094,
+            -148_076,
+            106_473,
+            341_094,
+            237_374,
+            564_175,
+            -148_076,
+            769_147,
+            341_152,
+            356_864,
+            -415_672,
+            587_762,
+            106_473,
+            341_152,
+            854_965,
+        ];
+        let w =
+            std::array::from_fn(|row| std::array::from_fn(|column| flattened_w[row * 6 + column]));
+        let q = [
+            -109_587_i128,
+            -7_143_822,
+            8_213_295,
+            -3_226_388,
+            7_075_809,
+            1_695_813,
+        ];
+        build_exact_double_slide_polynomials(w, q, [1_956_059, 380_758], SCALE)
+    }
+
+    #[test]
+    fn asymmetric_dyadic_fixture_has_two_disjoint_krawczyk_certified_double_slide_roots() {
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+        assert_eq!(polynomials.tangential_equation_1.max_bidegree(), (4, 2));
+        assert_eq!(polynomials.tangential_equation_2.max_bidegree(), (2, 4));
+
+        let denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
+            ],
+            [
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator.clone()),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+        let certificates = centers.map(|center| {
+            certify_exact_double_slide_root_box(
+                &polynomials,
+                center,
+                radius.clone(),
+                [1_956_059, 380_758],
+                1_048_576,
+            )
+            .expect("strict Krawczyk inclusion and physical sliding margins")
+        });
+
+        // The two certified boxes are disjoint in both direction coordinates.
+        assert!(certificates[0].domain[0].upper < certificates[1].domain[0].lower);
+        assert!(certificates[0].domain[1].upper < certificates[1].domain[1].lower);
+
+        for certificate in &certificates {
+            assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+            assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+            assert!(
+                certificate.contraction_row_sum_bound
+                    < BigRational::from_integer(BigInt::from(1_u8))
+            );
+            assert!(certificate.normal_determinant.excludes_zero());
+            assert!(
+                certificate
+                    .normal_multiplier_ratios
+                    .iter()
+                    .all(|ratio| ratio.is_strictly_positive())
+            );
+            assert!(
+                certificate
+                    .sliding_multiplier_sign_ratios
+                    .iter()
+                    .all(|ratio| ratio.is_strictly_positive())
             );
         }
     }
