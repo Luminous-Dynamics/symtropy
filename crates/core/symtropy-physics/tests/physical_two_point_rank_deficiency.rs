@@ -122,6 +122,16 @@ fn determinant_bareiss(mut matrix: Vec<Vec<i64>>) -> i64 {
     sign * matrix[dimension - 1][dimension - 1]
 }
 
+fn leading_principal_minor(matrix: &Matrix6, size: usize) -> i64 {
+    assert!((1..=6).contains(&size));
+    let minor = matrix
+        .iter()
+        .take(size)
+        .map(|row| row.iter().take(size).copied().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    determinant_bareiss(minor)
+}
+
 fn quadratic_form(matrix: &Matrix6, vector: &Vector6) -> i64 {
     dot(vector, &matrix_times_vector(matrix, vector))
 }
@@ -318,5 +328,29 @@ fn fixed_sliding_response_collapses_the_nullspace_fibre_to_one_admissible_point(
             response[index] += d * q6[index];
         }
         assert_eq!(response, [0, 6 * d, 0, 0, 6 * d, 0]);
+    }
+}
+#[test]
+fn proximal_cone_metric_lifts_rank_five_delassus_to_exact_spd() {
+    let w6 = geometry_delassus_sixths();
+    assert_eq!(principal_minor(&w6, [0, 2, 3, 4, 5]), 2592);
+
+    // W_gamma = W + gamma^{-1} I. Since w6=6W, integer shifts
+    // 3, 6 and 12 correspond to gamma=2, 1 and 1/2 respectively.
+    // Sylvester's criterion is checked exactly on every leading principal
+    // minor. This regularizes the inner cone QP only; physical W stays PSD.
+    for shift in [3_i64, 6, 12] {
+        let lifted = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                w6[row][column] + if row == column { shift } else { 0 }
+            })
+        });
+        for size in 1..=6 {
+            let determinant = leading_principal_minor(&lifted, size);
+            assert!(
+                determinant > 0,
+                "W_gamma leading minor size={size}, shift={shift}: {determinant}"
+            );
+        }
     }
 }
