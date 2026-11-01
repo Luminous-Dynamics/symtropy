@@ -670,7 +670,12 @@ fn pareto_relation(
     let a_strict = cost_a < cost_b || decision_loss_a < decision_loss_b;
     let b_strict = cost_b < cost_a || decision_loss_b < decision_loss_a;
 
-    match (a_no_worse && a_strict, b_no_worse && b_strict, a_no_worse, b_no_worse) {
+    match (
+        a_no_worse && a_strict,
+        b_no_worse && b_strict,
+        a_no_worse,
+        b_no_worse,
+    ) {
         (true, false, _, _) => ExperimentParetoRelation::A_DominatesB,
         (false, true, _, _) => ExperimentParetoRelation::B_DominatesA,
         (_, _, true, true) => ExperimentParetoRelation::Equivalent,
@@ -738,10 +743,8 @@ pub fn compare_experiment_pair_with_inference_rules_and_cost_rate(
         weighted_cost_a.checked_add(evaluation_a.nominal_model_expected_loss)?;
     let nominal_total_loss_b =
         weighted_cost_b.checked_add(evaluation_b.nominal_model_expected_loss)?;
-    let realized_total_loss_a =
-        weighted_cost_a.checked_add(evaluation_a.realized_policy_loss)?;
-    let realized_total_loss_b =
-        weighted_cost_b.checked_add(evaluation_b.realized_policy_loss)?;
+    let realized_total_loss_a = weighted_cost_a.checked_add(evaluation_a.realized_policy_loss)?;
+    let realized_total_loss_b = weighted_cost_b.checked_add(evaluation_b.realized_policy_loss)?;
     let nominal_pareto_relation = pareto_relation(
         cost_a,
         evaluation_a.nominal_model_expected_loss,
@@ -1982,10 +1985,7 @@ mod tests {
             &loss,
         )
         .unwrap();
-        assert_eq!(
-            cheap_cost_conversion.realized_total_loss_a,
-            rational(1, 25)
-        );
+        assert_eq!(cheap_cost_conversion.realized_total_loss_a, rational(1, 25));
         assert_eq!(
             cheap_cost_conversion.realized_total_loss_b,
             rational(21, 100)
