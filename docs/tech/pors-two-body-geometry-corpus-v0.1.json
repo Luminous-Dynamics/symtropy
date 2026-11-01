@@ -28,7 +28,9 @@
         "ground_inertial_speed_mps": 3735.4082164967967,
         "ground_relative_tangential_speed_mps": 3056.7626690846855,
         "ground_relative_radial_speed_mps": -1246.361021775967,
-        "ground_flight_path_angle_deg": 19.491150563987453
+        "ground_flight_path_angle_deg": 19.491150563987453,
+        "ground_relative_speed_mps": 3301.092820826485,
+        "ground_relative_specific_kinetic_energy_j_kg": 5448606.905856081
       }
     },
     {
@@ -49,7 +51,9 @@
         "ground_inertial_speed_mps": 7128.151969469492,
         "ground_relative_tangential_speed_mps": 6636.3522388829315,
         "ground_relative_radial_speed_mps": -622.3364484013052,
-        "ground_flight_path_angle_deg": 5.008690562749275
+        "ground_flight_path_angle_deg": 5.008690562749275,
+        "ground_relative_speed_mps": 6665.468752723641,
+        "ground_relative_specific_kinetic_energy_j_kg": 22214236.846767627
       }
     },
     {
@@ -70,7 +74,9 @@
         "ground_inertial_speed_mps": 3177.224274099916,
         "ground_relative_tangential_speed_mps": 1748.6130427136088,
         "ground_relative_radial_speed_mps": -2279.589388747639,
-        "ground_flight_path_angle_deg": 45.84667262579033
+        "ground_flight_path_angle_deg": 45.84667262579033,
+        "ground_relative_speed_mps": 2873.008067242238,
+        "ground_relative_specific_kinetic_energy_j_kg": 4127087.6772194905
       }
     },
     {
@@ -91,7 +97,9 @@
         "ground_inertial_speed_mps": 4494.710619651811,
         "ground_relative_tangential_speed_mps": 3532.945463074968,
         "ground_relative_radial_speed_mps": -2054.8013423389452,
-        "ground_flight_path_angle_deg": 27.203990689597536
+        "ground_flight_path_angle_deg": 27.203990689597536,
+        "ground_relative_speed_mps": 4087.041986760098,
+        "ground_relative_specific_kinetic_energy_j_kg": 8351956.100769965
       }
     },
     {
@@ -112,7 +120,9 @@
         "ground_inertial_speed_mps": 6259.399854840911,
         "ground_relative_tangential_speed_mps": 5600.665583760403,
         "ground_relative_radial_speed_mps": -1546.891950743429,
-        "ground_flight_path_angle_deg": 14.307806192949316
+        "ground_flight_path_angle_deg": 14.307806192949316,
+        "ground_relative_speed_mps": 5810.363989320554,
+        "ground_relative_specific_kinetic_energy_j_kg": 16880164.84419653
       }
     },
     {
@@ -133,7 +143,9 @@
         "ground_inertial_speed_mps": 7059.683069033074,
         "ground_relative_tangential_speed_mps": 6497.726316401788,
         "ground_relative_radial_speed_mps": -1168.5062205366444,
-        "ground_flight_path_angle_deg": 9.527340608355871
+        "ground_flight_path_angle_deg": 9.527340608355871,
+        "ground_relative_speed_mps": 6601.958351148028,
+        "ground_relative_specific_kinetic_energy_j_kg": 21792927.035146594
       }
     },
     {
@@ -154,7 +166,9 @@
         "ground_inertial_speed_mps": 4325.824644636002,
         "ground_relative_tangential_speed_mps": 2619.123741745384,
         "ground_relative_radial_speed_mps": -3033.7313824943762,
-        "ground_flight_path_angle_deg": 44.53196424975638
+        "ground_flight_path_angle_deg": 44.53196424975638,
+        "ground_relative_speed_mps": 4007.909090249625,
+        "ground_relative_specific_kinetic_energy_j_kg": 8031667.63785279
       }
     },
     {
@@ -175,7 +189,9 @@
         "ground_inertial_speed_mps": 5752.549066333129,
         "ground_relative_tangential_speed_mps": 4704.962134987324,
         "ground_relative_radial_speed_mps": -2523.4199391681896,
-        "ground_flight_path_angle_deg": 26.01849007039225
+        "ground_flight_path_angle_deg": 26.01849007039225,
+        "ground_relative_speed_mps": 5338.943423661284,
+        "ground_relative_specific_kinetic_energy_j_kg": 14252158.440528037
       }
     },
     {
@@ -196,7 +212,9 @@
         "ground_inertial_speed_mps": 6659.356923057533,
         "ground_relative_tangential_speed_mps": -6804.862225444146,
         "ground_relative_radial_speed_mps": -2036.6305826727398,
-        "ground_flight_path_angle_deg": 17.808100729056324
+        "ground_flight_path_angle_deg": 17.808100729056324,
+        "ground_relative_speed_mps": 7103.098903827438,
+        "ground_relative_specific_kinetic_energy_j_kg": 25227007.018777277
       }
     },
     {
