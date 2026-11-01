@@ -72,11 +72,18 @@ row-stochastic garbling matrix G such that
 `B[s,y] = sum_z A[s,z] * G[z,y]`
 
 for every state s and output y. `verify_blackwell_dominance` checks this
-identity exactly. The module also has an exact closed-form solver for the
-two-state/two-observation case: it solves the resulting rational 2x2 system,
-handles singular-but-consistent channels, and re-verifies its witness with the
-general checker. It does not search for witnesses for arbitrary channel
-dimensions or claim to solve the general linear-feasibility problem.
+identity exactly. The module includes a closed-form signed-rational solver for
+the two-state/two-observation case and a bounded general solver for small
+channels using rational Fourier-Motzkin elimination and reverse witness
+reconstruction.
+
+The general solver eliminates the final target-output column using each
+garbling row's sum-to-one constraint. It then solves the remaining bounded
+linear feasibility problem, reconstructs an exact rational witness, and
+rechecks it with the general verifier. Hard limits are 12 free variables,
+25,000 retained constraints and 500,000 elimination pair products. Exceeding a
+limit returns an unsupported-size error, never a negative dominance result.
+This is an exact small-domain method, not a scalable general-purpose LP solver.
 
 This gives a clean nominal experiment-ordering test without conflating the
 mathematical ordering with robustness under misspecification.
