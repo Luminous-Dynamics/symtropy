@@ -58,7 +58,7 @@ def main() -> int:
         if key == "sidewall_boundary_condition":
             if row["expected"] != "periodic":
                 raise ValueError("sidewall requirement no longer reflects the V1a protocol")
-            if "no physical equivalence" not in row["note"]:
+            if "no physical equivalence" not in row["note"].lower():
                 raise ValueError("sidewall difference must not be silently treated as equivalent")
         if key == "grid_level_count" and row["expected"] != "minimum=4; desirable=6":
             raise ValueError("grid minimum/desirable distinction was lost")
