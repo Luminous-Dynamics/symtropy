@@ -216,7 +216,7 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
         let input_mass = req_u64(stage, "input_mass_kg", &at)?;
         let output_mass = req_u64(stage, "output_mass_kg", &at)?;
         if input_mass != payload_mass || output_mass != payload_mass {
-            status = "invalid".to_owned();
+            set_status(&mut status, "invalid");
             reason_codes.push("CARGO_MASS_NOT_CONSERVED".to_owned());
         }
 
