@@ -100,6 +100,23 @@ can arise.
 This is a solver-design deduction from the frozen fixture, not an implemented
 two-contact algorithm or a completeness proof.
 
+## Executable reduced branch
+
+The Rust fixture now independently reconstructs branch A (stick/stick) without
+using the stored impulse vector. In normal/tangent block order it solves
+\[
+j=-W_{tt}^{-1}(q_t+W_{tn}\lambda),
+\qquad
+(W_{nn}-W_{nt}W_{tt}^{-1}W_{tn})\lambda
+=-q_n+W_{nt}W_{tt}^{-1}q_t.
+\]
+The 2x2 Schur complement is SPD, and the reconstructed 6-vector is compared
+against the frozen branch with a fixed residual tolerance. The test separately
+checks both Coulomb disks have strict interior margins. This is a real
+reduced-solver regression for the sticking region; the sliding roots remain
+candidate witnesses checked by their original KKT equations, not solutions of
+a complete island algorithm.
+
 ## What the Rust fixture checks
 
 - full 6x6 symmetry and Cholesky positive definiteness;
