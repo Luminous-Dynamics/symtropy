@@ -1,0 +1,46 @@
+name: SIM-REL-035 Offline Ledger Transcript PR Qualification
+
+on:
+  pull_request:
+    branches: ["research/sim-rel-034-counterexample-admission-ledger-2026-11-01"]
+    paths:
+      - "tools/sim-rel-action-realization-filter/**"
+      - ".github/workflows/sim-rel-035-offline-ledger-pr.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: baseline reconstruction, event replay, mutation rejection and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Isolate Cargo target directory
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-035-ledger-verifier-target" >> "$GITHUB_ENV"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml -- --check
+      - name: Locked offline transcript verifier tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::counterexample_ledger
+      - name: Existing falsifier regression tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::counterexample_search
+      - name: Full locked crate test suite
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib -- -D warnings
+      - name: Verify exact PR head and clean tree
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
