@@ -88,9 +88,16 @@ This is an exact small-domain method, not a scalable general-purpose LP solver.
 This gives a clean nominal experiment-ordering test without conflating the
 mathematical ordering with robustness under misspecification.
 
-The matched-cost experiment-pair audit reports information preference,
-nominal model-risk preference and realized cost-plus-terminal-loss preference.
-It also runs the bounded exact feasibility solver in both directions and
+The experiment-pair audit reports information preference, nominal model-risk
+preference and realized cost-plus-terminal-loss preference. Its
+`cost_to_loss_exchange_rate` explicitly converts one experiment-cost unit to
+terminal-decision-loss units; the default is one, and sensitivity analysis
+should report how choices change over a preregistered range of rates. It also
+reports the two-dimensional Pareto relation over (experiment cost, decision
+loss) separately for nominal and realized outcomes. A scalar preference must
+not conceal a Pareto trade-off.
+
+The audit runs the bounded exact feasibility solver in both directions and
 retains either a checked garbling certificate, a supported non-dominance
 result, or an explicit unsupported-size/arithmetic error. This prevents a
 pairwise benchmark from silently treating solver limits as proof of
