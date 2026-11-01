@@ -161,6 +161,33 @@ Gibbs-posterior update primitive for the GBOED baseline, not the full Gibbs-EIG
 acquisition optimizer; loss and temperature calibration remain caller-owned
 and must use a non-sealed split.
 
+For finite discrete support, `compute_gibbs_eig_exact_finite` evaluates the
+GBOED objective as the normalized pseudo-predictive expectation of
+`KL(Gibbs posterior || prior)`. It returns exact rational pseudo-predictive
+masses and posterior rules; only the logarithmic KL values and final GEIG in
+nats are floating-point. It reproduces ordinary mutual information at unit
+learning rate with negative-log-likelihood loss, and returns zero for a
+constant Gibbs factor (`eta = 0`).
+
+`estimate_gibbs_eig_importance_from_samples` adds the paper's importance
+weight `exp(-eta * loss) / q(y | state)` for caller-supplied draws from the
+prior and proposal. It returns every exact rational weight, normalized weight,
+Kish effective sample size, ESS fraction, maximum normalized weight, the
+self-normalized GEIG estimate, and its absolute error against the exact finite
+oracle. The proposal must cover every positive-prior/positive-Gibbs-mass
+state-observation pair; support gaps fail closed. The implementation validates
+the declared proposal and sample indices but cannot attest that the caller's
+sample generator actually followed that distribution.
+
+This finite oracle deliberately computes the pseudo-predictive normalizer by
+exact enumeration, avoiding the inner nested-Monte-Carlo error present in
+continuous-model estimation. Thus it isolates outer importance-weight
+degeneracy and provides a small exact test bed; it is not a full reproduction
+of GBOED's continuous nested Monte Carlo estimator or its four application
+benchmarks. The low-learning-rate fixture has exact GEIG zero but ESS 6.4/10
+under the working-model proposal, versus ESS 10/10 when the Gibbs factor
+matches the likelihood.
+
 The A/B audit compares nominal information preference, nominal model-risk
 preference and realized cost-plus-terminal-loss preference. Cost is converted
 to terminal-loss units with an explicit exact-rational exchange rate; the
