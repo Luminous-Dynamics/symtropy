@@ -51,16 +51,19 @@ def main() -> int:
 
     with history_path.open(newline="", encoding="utf-8") as stream:
         history_reader = csv.DictReader(stream)
-        require(history_reader.fieldnames == ["Iteration", "CL", "CD", "RMS_RES"], "unexpected fixture history header")
+        expected_header = [
+            "Iteration", "CL", "CD", "RMS_DENSITY", "RMS_MOMENTUM-X"
+        ]
+        require(history_reader.fieldnames == expected_header, "unexpected fixture history header")
         history = list(history_reader)
-    require(len(history) == 2, f"expected two history rows, got {len(history)}")
+    require(len(history) == 8, f"expected eight history rows, got {len(history)}")
 
     with import_path.open(newline="", encoding="utf-8") as stream:
         imported_reader = csv.DictReader(stream)
         imported = list(imported_reader)
         header = imported_reader.fieldnames
     require(header is not None, "import output has no header")
-    require(len(imported) == 2, f"expected two imported rows, got {len(imported)}")
+    require(len(imported) == 8, f"expected eight imported rows, got {len(imported)}")
 
     previous = -1
     for original, reported in zip(history, imported, strict=True):
@@ -68,10 +71,16 @@ def main() -> int:
         require(iteration > previous, "source iteration is not strictly increasing")
         previous = iteration
         require(int(reported["iteration"]) == iteration, "imported iteration differs from history")
-        require(math.isclose(float(reported["CL [dimensionless]"]), float(original["CL"]), rel_tol=0.0, abs_tol=0.0),
-                "imported CL differs from source history")
-        require(math.isclose(float(reported["CD [dimensionless]"]), float(original["CD"]), rel_tol=0.0, abs_tol=0.0),
-                "imported CD differs from source history")
+        for field, output_column, unit in [
+            ("CL", "CL [dimensionless]", "dimensionless"),
+            ("CD", "CD [dimensionless]", "dimensionless"),
+            ("RMS_DENSITY", "RMS_DENSITY [log10(residual)]", "log10(residual)"),
+            ("RMS_MOMENTUM-X", "RMS_MOMENTUM-X [log10(residual)]", "log10(residual)"),
+        ]:
+            require(
+                math.isclose(float(reported[output_column]), float(original[field]), rel_tol=0.0, abs_tol=0.0),
+                f"imported {field} differs from source history",
+            )
         require(reported["run_id"] == receipt["run_id"], "import run ID differs from receipt")
         require(reported["executable_sha256"] == receipt["executable_sha256"],
                 "import executable digest differs from receipt")
