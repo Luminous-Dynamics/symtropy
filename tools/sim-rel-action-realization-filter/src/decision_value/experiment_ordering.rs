@@ -1925,7 +1925,6 @@ fn exact_boxed_linear_feasibility(
     Ok(Some(solution))
 }
 
-
 /// Maximum inequalities accepted by the independent three-variable vertex oracle.
 /// Six box constraints plus two residual constraints per state fit at most 13 states.
 const MAX_BINARY_LECAM_VERTEX_CONSTRAINTS: usize = 32;
@@ -1996,11 +1995,7 @@ fn binary_lecam_constraints(
 
         // a*x + (1-a)*y - epsilon <= b.
         constraints.push(LinearInequality {
-            coefficients: vec![
-                signed(a),
-                signed(not_a),
-                signed(Rational::one()).negated(),
-            ],
+            coefficients: vec![signed(a), signed(not_a), signed(Rational::one()).negated()],
             upper_bound: signed(b),
         });
 
@@ -2089,9 +2084,7 @@ fn solve_three_active_constraints(
     }
 
     for column in 0..3 {
-        let Some(pivot_row) =
-            (column..3).find(|row| !matrix[*row][column].is_zero())
-        else {
+        let Some(pivot_row) = (column..3).find(|row| !matrix[*row][column].is_zero()) else {
             return Ok(None);
         };
         matrix.swap(column, pivot_row);
@@ -2117,10 +2110,7 @@ fn solve_three_active_constraints(
     }
 
     Ok(Some(
-        matrix
-            .into_iter()
-            .map(|row| row[3])
-            .collect::<Vec<_>>(),
+        matrix.into_iter().map(|row| row[3]).collect::<Vec<_>>(),
     ))
 }
 
@@ -2166,7 +2156,8 @@ fn binary_lecam_vertex_lower_bound(
                     &constraints[first],
                     &constraints[second],
                     &constraints[third],
-                )? else {
+                )?
+                else {
                     continue;
                 };
                 if !satisfies_linear_constraints(&candidate, constraints)? {
@@ -2204,18 +2195,12 @@ pub fn solve_binary_le_cam_deficiency(
     target: &FiniteObservationChannel,
 ) -> Result<BinaryLeCamDeficiencyReceipt, String> {
     let constraints = binary_lecam_constraints(more_informative, target)?;
-    let (fme_minimum, fme_pair_products) =
-        project_binary_lecam_minimum(&constraints)?;
-    let (
-        independent_vertex_lower_bound,
-        active_sets_checked,
-        feasible_vertices,
-    ) = binary_lecam_vertex_lower_bound(&constraints)?;
+    let (fme_minimum, fme_pair_products) = project_binary_lecam_minimum(&constraints)?;
+    let (independent_vertex_lower_bound, active_sets_checked, feasible_vertices) =
+        binary_lecam_vertex_lower_bound(&constraints)?;
 
     if fme_minimum != independent_vertex_lower_bound {
-        return Err(
-            "binary Le Cam Fourier-Motzkin and independent vertex optima disagree".into(),
-        );
+        return Err("binary Le Cam Fourier-Motzkin and independent vertex optima disagree".into());
     }
 
     // Substitute the exact optimum epsilon and solve the remaining boxed
@@ -2232,8 +2217,10 @@ pub fn solve_binary_le_cam_deficiency(
             upper_bound: adjusted_bound,
         });
     }
-    let solution = exact_boxed_linear_feasibility(2, fixed_epsilon_constraints)?
-        .ok_or_else(|| "binary Le Cam optimum could not reconstruct a feasible garbling".to_string())?;
+    let solution =
+        exact_boxed_linear_feasibility(2, fixed_epsilon_constraints)?.ok_or_else(|| {
+            "binary Le Cam optimum could not reconstruct a feasible garbling".to_string()
+        })?;
     if solution.len() != 2 {
         return Err("binary Le Cam reconstruction returned the wrong variable count".into());
     }
@@ -2449,10 +2436,7 @@ mod tests {
         );
     }
 
-    fn three_state_binary_channels() -> (
-        FiniteObservationChannel,
-        FiniteObservationChannel,
-    ) {
+    fn three_state_binary_channels() -> (FiniteObservationChannel, FiniteObservationChannel) {
         let source = FiniteObservationChannel {
             channel_id: "three-state-source".into(),
             state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
@@ -2484,19 +2468,17 @@ mod tests {
         assert!(receipt.optimality_verified);
 
         let permutation = [2usize, 0usize, 1usize];
-        let permuted = |channel: &FiniteObservationChannel, id: &str| {
-            FiniteObservationChannel {
-                channel_id: id.into(),
-                state_ids: permutation
-                    .iter()
-                    .map(|index| channel.state_ids[*index].clone())
-                    .collect(),
-                observation_ids: channel.observation_ids.clone(),
-                probabilities: permutation
-                    .iter()
-                    .map(|index| channel.probabilities[*index].clone())
-                    .collect(),
-            }
+        let permuted = |channel: &FiniteObservationChannel, id: &str| FiniteObservationChannel {
+            channel_id: id.into(),
+            state_ids: permutation
+                .iter()
+                .map(|index| channel.state_ids[*index].clone())
+                .collect(),
+            observation_ids: channel.observation_ids.clone(),
+            probabilities: permutation
+                .iter()
+                .map(|index| channel.probabilities[*index].clone())
+                .collect(),
         };
         let permuted_source = permuted(&source, "permuted-source");
         let permuted_target = permuted(&target, "permuted-target");
