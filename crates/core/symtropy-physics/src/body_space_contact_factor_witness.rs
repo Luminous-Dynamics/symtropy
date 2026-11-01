@@ -154,6 +154,7 @@ fn determinant_bareiss(mut matrix: Gram) -> i128 {
 }
 
 #[cfg(test)]
+#[allow(clippy::needless_range_loop)]
 mod tests {
     use super::*;
 
@@ -176,7 +177,7 @@ mod tests {
                     .zip(right_axis.iter())
                     .map(|(left, right)| left * right)
                     .sum();
-                assert_eq!(dot, i128::from(left_index == right_index));
+                assert_eq!(dot, if left_index == right_index { 1 } else { 0 });
             }
         }
 
