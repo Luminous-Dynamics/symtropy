@@ -1925,6 +1925,354 @@ fn exact_boxed_linear_feasibility(
     Ok(Some(solution))
 }
 
+
+/// Maximum inequalities accepted by the independent three-variable vertex oracle.
+/// Six box constraints plus two residual constraints per state fit at most 13 states.
+const MAX_BINARY_LECAM_VERTEX_CONSTRAINTS: usize = 32;
+
+/// Exact directed Le Cam deficiency for two-output finite channels.
+///
+/// For A and B with two observations each, write
+/// x = G(0,0), y = G(1,0). The remaining garbling entries are 1-x and 1-y.
+/// For each state s, the binary-output total variation residual is
+/// |B(s,0) - A(s,0)x - (1-A(s,0))y|. We minimize its maximum exactly.
+///
+/// This is deliberately a small-domain two-output oracle, not a generalized
+/// Le Cam deficiency solver. It provides two independent optimality checks:
+/// Fourier-Motzkin projection and exhaustive exact active-set vertex enumeration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BinaryLeCamDeficiencyReceipt {
+    pub dominance: super::approximate_blackwell::ApproximateBlackwellDominanceReceipt,
+    pub optimal_deficiency: Rational,
+    pub fme_pair_products: usize,
+    pub active_sets_checked: usize,
+    pub feasible_vertices: usize,
+    pub independent_vertex_lower_bound: Rational,
+    pub optimality_verified: bool,
+}
+
+fn binary_lecam_constraints(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+) -> Result<Vec<LinearInequality>, String> {
+    more_informative.validate()?;
+    target.validate()?;
+    if more_informative.state_ids != target.state_ids {
+        return Err("Le Cam channels must share the same ordered state vocabulary".into());
+    }
+    if more_informative.observation_ids.len() != 2 || target.observation_ids.len() != 2 {
+        return Err(
+            "binary Le Cam solver requires exactly two observations in each channel".into(),
+        );
+    }
+    if more_informative.state_ids.len() > 13 {
+        return Err("binary Le Cam vertex oracle supports at most 13 hidden states".into());
+    }
+
+    let mut constraints = Vec::with_capacity(6 + 2 * more_informative.state_ids.len());
+    let signed = SignedRational::from_rational;
+
+    // 0 <= x,y,epsilon <= 1.
+    for variable in 0..3 {
+        let mut lower = vec![signed(Rational::zero()); 3];
+        lower[variable] = signed(Rational::one()).negated();
+        constraints.push(LinearInequality {
+            coefficients: lower,
+            upper_bound: signed(Rational::zero()),
+        });
+        let mut upper = vec![signed(Rational::zero()); 3];
+        upper[variable] = signed(Rational::one());
+        constraints.push(LinearInequality {
+            coefficients: upper,
+            upper_bound: signed(Rational::one()),
+        });
+    }
+
+    // For each state, constrain both signs of the binary-output residual.
+    for (state, source_row) in more_informative.probabilities.iter().enumerate() {
+        let a = source_row[0];
+        let not_a = subtract_nonnegative(Rational::one(), a)?;
+        let b = target.probabilities[state][0];
+
+        // a*x + (1-a)*y - epsilon <= b.
+        constraints.push(LinearInequality {
+            coefficients: vec![
+                signed(a),
+                signed(not_a),
+                signed(Rational::one()).negated(),
+            ],
+            upper_bound: signed(b),
+        });
+
+        // -a*x - (1-a)*y - epsilon <= -b.
+        constraints.push(LinearInequality {
+            coefficients: vec![
+                signed(a).negated(),
+                signed(not_a).negated(),
+                signed(Rational::one()).negated(),
+            ],
+            upper_bound: signed(b).negated(),
+        });
+    }
+
+    if constraints.len() > MAX_BINARY_LECAM_VERTEX_CONSTRAINTS {
+        return Err("binary Le Cam vertex oracle exceeded its inequality cap".into());
+    }
+    Ok(constraints)
+}
+
+/// Return the exact minimum epsilon after eliminating x and y.
+///
+/// The projected system has one variable. Its negative-coefficient inequalities
+/// give lower bounds, its positive-coefficient inequalities give upper bounds.
+fn project_binary_lecam_minimum(
+    constraints: &[LinearInequality],
+) -> Result<(Rational, usize), String> {
+    let mut projected = constraints.to_vec();
+    let mut pair_products = 0usize;
+    for _ in 0..2 {
+        let Some(next) = eliminate_first_variable(projected, &mut pair_products)? else {
+            return Err("binary Le Cam projection found an empty feasible set".into());
+        };
+        projected = next;
+    }
+
+    let zero = SignedRational::from_rational(Rational::zero());
+    let one = SignedRational::from_rational(Rational::one());
+    let mut lower = zero;
+    let mut upper = one;
+
+    for inequality in &projected {
+        if inequality.coefficients.len() != 1 {
+            return Err("binary Le Cam projection did not reduce to one variable".into());
+        }
+        let coefficient = inequality.coefficients[0];
+        if coefficient.is_zero() {
+            if inequality.upper_bound.is_negative() {
+                return Err("binary Le Cam projected constraints are infeasible".into());
+            }
+        } else {
+            let bound = inequality.upper_bound.checked_div(coefficient)?;
+            if coefficient.is_negative() {
+                if bound > lower {
+                    lower = bound;
+                }
+            } else if bound < upper {
+                upper = bound;
+            }
+        }
+    }
+
+    if lower > upper {
+        return Err("binary Le Cam projected interval is empty".into());
+    }
+    let Some(minimum) = lower.as_probability() else {
+        return Err("binary Le Cam projection produced an invalid minimum".into());
+    };
+    Ok((minimum, pair_products))
+}
+
+fn solve_three_active_constraints(
+    first: &LinearInequality,
+    second: &LinearInequality,
+    third: &LinearInequality,
+) -> Result<Option<Vec<SignedRational>>, String> {
+    let selected = [first, second, third];
+    let mut matrix = Vec::with_capacity(3);
+    for constraint in selected {
+        if constraint.coefficients.len() != 3 {
+            return Err("binary Le Cam active constraint has the wrong dimension".into());
+        }
+        let mut row = constraint.coefficients.clone();
+        row.push(constraint.upper_bound);
+        matrix.push(row);
+    }
+
+    for column in 0..3 {
+        let Some(pivot_row) =
+            (column..3).find(|row| !matrix[*row][column].is_zero())
+        else {
+            return Ok(None);
+        };
+        matrix.swap(column, pivot_row);
+
+        let pivot = matrix[column][column];
+        for entry in column..=3 {
+            matrix[column][entry] = matrix[column][entry].checked_div(pivot)?;
+        }
+
+        for row in 0..3 {
+            if row == column {
+                continue;
+            }
+            let factor = matrix[row][column];
+            if factor.is_zero() {
+                continue;
+            }
+            for entry in column..=3 {
+                let product = factor.checked_mul(matrix[column][entry])?;
+                matrix[row][entry] = matrix[row][entry].checked_sub(product)?;
+            }
+        }
+    }
+
+    Ok(Some(
+        matrix
+            .into_iter()
+            .map(|row| row[3])
+            .collect::<Vec<_>>(),
+    ))
+}
+
+fn satisfies_linear_constraints(
+    candidate: &[SignedRational],
+    constraints: &[LinearInequality],
+) -> Result<bool, String> {
+    if candidate.len() != 3 {
+        return Err("binary Le Cam candidate must contain x, y and epsilon".into());
+    }
+    for constraint in constraints {
+        let mut left = SignedRational::from_rational(Rational::zero());
+        for (coefficient, value) in constraint.coefficients.iter().zip(candidate) {
+            left = left.checked_add(coefficient.checked_mul(*value)?)?;
+        }
+        if left > constraint.upper_bound {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// Independently minimize epsilon by enumerating every three-constraint active
+/// set. The feasible polytope is bounded in [0,1]^3, so an optimum is attained
+/// at a vertex with three linearly independent active constraints.
+fn binary_lecam_vertex_lower_bound(
+    constraints: &[LinearInequality],
+) -> Result<(Rational, usize, usize), String> {
+    if constraints.len() > MAX_BINARY_LECAM_VERTEX_CONSTRAINTS {
+        return Err("binary Le Cam vertex oracle exceeded its inequality cap".into());
+    }
+    let mut active_sets_checked = 0usize;
+    let mut feasible_vertices = 0usize;
+    let mut best: Option<Rational> = None;
+
+    for first in 0..constraints.len() {
+        for second in (first + 1)..constraints.len() {
+            for third in (second + 1)..constraints.len() {
+                active_sets_checked = active_sets_checked
+                    .checked_add(1)
+                    .ok_or_else(|| "binary Le Cam active-set counter overflow".to_string())?;
+                let Some(candidate) = solve_three_active_constraints(
+                    &constraints[first],
+                    &constraints[second],
+                    &constraints[third],
+                )? else {
+                    continue;
+                };
+                if !satisfies_linear_constraints(&candidate, constraints)? {
+                    continue;
+                }
+                let Some(epsilon) = candidate[2].as_probability() else {
+                    continue;
+                };
+                feasible_vertices = feasible_vertices
+                    .checked_add(1)
+                    .ok_or_else(|| "binary Le Cam feasible-vertex counter overflow".to_string())?;
+                if best.is_none_or(|current| epsilon < current) {
+                    best = Some(epsilon);
+                }
+            }
+        }
+    }
+
+    let lower_bound = best.ok_or_else(|| {
+        "binary Le Cam vertex oracle found no feasible vertex in a non-empty bounded polytope"
+            .to_string()
+    })?;
+    Ok((lower_bound, active_sets_checked, feasible_vertices))
+}
+
+/// Solve the exact directed Le Cam deficiency for finite channels with
+/// exactly two observations each and at most 13 hidden states.
+///
+/// The minimum is established by agreement between exact Fourier-Motzkin
+/// projection and an independent exact active-set vertex oracle. The returned
+/// channel witness is separately replayed by the SIM-REL-031 approximate
+/// Blackwell verifier, and its maximum state residual must equal the optimum.
+pub fn solve_binary_le_cam_deficiency(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+) -> Result<BinaryLeCamDeficiencyReceipt, String> {
+    let constraints = binary_lecam_constraints(more_informative, target)?;
+    let (fme_minimum, fme_pair_products) =
+        project_binary_lecam_minimum(&constraints)?;
+    let (
+        independent_vertex_lower_bound,
+        active_sets_checked,
+        feasible_vertices,
+    ) = binary_lecam_vertex_lower_bound(&constraints)?;
+
+    if fme_minimum != independent_vertex_lower_bound {
+        return Err(
+            "binary Le Cam Fourier-Motzkin and independent vertex optima disagree".into(),
+        );
+    }
+
+    // Substitute the exact optimum epsilon and solve the remaining boxed
+    // two-variable feasibility problem to reconstruct x and y.
+    let mut fixed_epsilon_constraints = Vec::with_capacity(constraints.len());
+    let epsilon_signed = SignedRational::from_rational(fme_minimum);
+    for constraint in &constraints {
+        let epsilon_coefficient = constraint.coefficients[2];
+        let adjusted_bound = constraint
+            .upper_bound
+            .checked_sub(epsilon_coefficient.checked_mul(epsilon_signed)?)?;
+        fixed_epsilon_constraints.push(LinearInequality {
+            coefficients: constraint.coefficients[..2].to_vec(),
+            upper_bound: adjusted_bound,
+        });
+    }
+    let solution = exact_boxed_linear_feasibility(2, fixed_epsilon_constraints)?
+        .ok_or_else(|| "binary Le Cam optimum could not reconstruct a feasible garbling".to_string())?;
+    if solution.len() != 2 {
+        return Err("binary Le Cam reconstruction returned the wrong variable count".into());
+    }
+    let Some(x) = solution[0].as_probability() else {
+        return Err("binary Le Cam reconstruction produced invalid x".into());
+    };
+    let Some(y) = solution[1].as_probability() else {
+        return Err("binary Le Cam reconstruction produced invalid y".into());
+    };
+
+    let witness = BlackwellGarblingWitness {
+        probabilities: vec![
+            vec![x, subtract_nonnegative(Rational::one(), x)?],
+            vec![y, subtract_nonnegative(Rational::one(), y)?],
+        ],
+    };
+    let dominance = super::approximate_blackwell::verify_approximate_blackwell_dominance(
+        more_informative,
+        target,
+        &witness,
+        fme_minimum,
+    )?;
+    if dominance.maximum_state_residual != fme_minimum {
+        return Err(
+            "binary Le Cam reconstructed witness residual differs from the exact optimum".into(),
+        );
+    }
+
+    Ok(BinaryLeCamDeficiencyReceipt {
+        dominance,
+        optimal_deficiency: fme_minimum,
+        fme_pair_products,
+        active_sets_checked,
+        feasible_vertices,
+        independent_vertex_lower_bound,
+        optimality_verified: true,
+    })
+}
+
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
     if ids.is_empty() {
         return Err(format!("{label} vocabulary must be non-empty"));
