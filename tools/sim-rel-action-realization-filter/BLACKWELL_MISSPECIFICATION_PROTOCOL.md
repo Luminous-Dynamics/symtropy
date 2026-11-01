@@ -192,3 +192,32 @@ https://proceedings.mlr.press/v300/callahan26a.html
 Harikumar et al., *Robust Bayesian Decision Making under Adversarial
 Uncertainty*, UAI 2026:
 https://proceedings.mlr.press/v337/harikumar26a.html
+
+## 8. Constructive decision transfer under exact Blackwell dominance
+
+The new `decision_value::blackwell_transfer` oracle makes the Blackwell
+comparison constructive. Given an exact stochastic garbling witness
+`G(z,y)` and any terminal rule `delta_B(d | y)` for the less-informative
+channel, it builds the randomized rule for the richer observation:
+
+`delta_A(d | z) = sum_y G(z,y) delta_B(d | y)`.
+
+Abstention is transferred as an explicit additional outcome, so the rule's
+probability row remains exactly normalized. The evaluator computes expected
+loss directly from unnormalized joint masses
+`prior(s) K(s,y) delta(d | y) loss(d,s)`; zero-probability symbols are
+accounted for without posterior normalization.
+
+For every accepted witness the certificate requires exact equality between
+the source rule's risk on the less-informative channel and the transferred
+rule's risk on the more-informative channel. It also computes both exact Bayes
+risks and verifies that the more-informative channel cannot have greater Bayes
+risk. The exact non-negative difference is reported as the decision-specific
+value of refinement. This is not an information-theoretic scalar and depends
+on the supplied prior and terminal loss table.
+
+Required negative controls include identity garbling (zero refinement value),
+malformed randomized rules, incompatible vocabularies, unsupported observation
+symbols and a false dominance witness. These certificates establish the
+finite-channel theorem under the supplied model; they do not imply monotonicity
+when the data-generating or inferential model is misspecified.
