@@ -345,7 +345,7 @@ Research context: [NIST CUSUM average-run-length guidance](https://www.itl.nist.
 
 The additional `earth_orbit_chain_reference` example is the cross-stage interface verifier for the Earth-to-orbit programme. It is deliberately added to this existing standalone Rust benchmark package rather than creating a second package or optimizer.
 
-It validates 26 synthetic campaigns spanning:
+It validates 27 synthetic campaigns spanning:
 - existing-provider and no-build reference chains;
 - separated and adjacent port / integration / launch facilities;
 - conventional rail, road, short tunnel, linear-motor MagRail and dedicated maglev concepts;
