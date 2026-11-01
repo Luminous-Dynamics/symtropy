@@ -260,11 +260,7 @@ fn bench_nd_contact_frame_and_wrench(c: &mut Criterion) {
     c.bench_function("contact_wrench_validate_coupled_ellipsoid_4d", |bench| {
         bench.iter(|| {
             ellipsoidal_wrench
-                .validate_ellipsoidal_friction_budget(
-                    black_box(&frame),
-                    black_box(&limits),
-                    1e-12,
-                )
+                .validate_ellipsoidal_friction_budget(black_box(&frame), black_box(&limits), 1e-12)
                 .expect("admissible coupled-ellipsoid 4D wrench")
         });
     });
