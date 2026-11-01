@@ -718,13 +718,16 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     }
     let singular_angles = sturm_isolate_rational(singular_determinant.clone())
         .expect("exact Sturm isolation of permuted singular active-system angles");
-    assert_eq!(singular_angles.len(), 2);
+    assert!(
+        singular_angles.is_empty(),
+        "the reverse slide/stick active matrix is nonsingular at every real angle"
+    );
     assert_eq!(
         polynomial_gcd(&singular_determinant, &numerators[0])
             .expect("permuted Cramer/determinant gcd")
             .len(),
         1,
-        "permuted singular angular systems have no compatible right-hand side"
+        "the active determinant is coprime with the first Cramer numerator"
     );
 
     let classifications = exact_two_contact_slide_stick_branch_intervals(
