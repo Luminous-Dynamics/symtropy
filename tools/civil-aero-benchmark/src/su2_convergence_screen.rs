@@ -403,10 +403,10 @@ pub fn screen_su2_history(
             match criterion.acceptance {
                 ResidualAcceptance::Log10 { .. } => {
                     "residual_log10_final_reduction_and_terminal_span"
-                },
+                }
                 ResidualAcceptance::PositiveLinear { .. } => {
                     "residual_linear_final_reduction_and_terminal_range"
-                },
+                }
             },
             report.points.len(),
             CriterionStatus::Failed,
@@ -424,7 +424,10 @@ pub fn screen_su2_history(
                     .map(|value| residual_log10(*value, false, &criterion.column))
                     .collect::<Result<Vec<_>, _>>()?;
                 let min = terminal_logs.iter().copied().fold(f64::INFINITY, f64::min);
-                let max = terminal_logs.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+                let max = terminal_logs
+                    .iter()
+                    .copied()
+                    .fold(f64::NEG_INFINITY, f64::max);
                 let reduction = initial_log - final_log;
                 let span = max - min;
                 if !reduction.is_finite() || !span.is_finite() {
@@ -483,7 +486,11 @@ pub fn screen_su2_history(
                 let passed = final_value <= maximum_final_value
                     && ratio <= maximum_final_to_initial_ratio
                     && range <= maximum_terminal_range;
-                result.status = if passed { CriterionStatus::Passed } else { CriterionStatus::Failed };
+                result.status = if passed {
+                    CriterionStatus::Passed
+                } else {
+                    CriterionStatus::Failed
+                };
             }
         }
         results.push(result);
