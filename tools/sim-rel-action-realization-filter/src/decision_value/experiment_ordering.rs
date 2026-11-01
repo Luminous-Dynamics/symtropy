@@ -1037,20 +1037,23 @@ pub fn solve_small_blackwell_garbling(
     }
 
     let mut constraints = Vec::new();
-    let mut zero_vector = || vec![SignedRational::from_rational(Rational::zero()); variables];
+    let zero_vector = || vec![SignedRational::from_rational(Rational::zero()); variables];
 
     // For every state and all but the final target observation:
     // sum_z K_more(state,z) * G(z,y) = K_less(state,y).
     for (state, source_row) in more_informative.probabilities.iter().enumerate() {
-        for target_observation in 0..(target_observations - 1) {
+        for (target_observation, target_probability) in less_informative.probabilities[state]
+            .iter()
+            .copied()
+            .take(target_observations - 1)
+            .enumerate()
+        {
             let mut coefficients = zero_vector();
             for (source_observation, probability) in source_row.iter().copied().enumerate() {
                 let variable = source_observation * (target_observations - 1) + target_observation;
                 coefficients[variable] = SignedRational::from_rational(probability);
             }
-            let target_probability = SignedRational::from_rational(
-                less_informative.probabilities[state][target_observation],
-            );
+            let target_probability = SignedRational::from_rational(target_probability);
             constraints.push(LinearInequality {
                 coefficients: coefficients.clone(),
                 upper_bound: target_probability,
@@ -1068,8 +1071,16 @@ pub fn solve_small_blackwell_garbling(
 
     // Each garbling probability is nonnegative.
     for variable in 0..variables {
-        let mut coefficients = zero_vector();
-        coefficients[variable] = SignedRational::from_rational(Rational::one()).negated();
+        let coefficients = (0..variables)
+            .map(|index| {
+                let value = if index == variable {
+                    Rational::one().checked_mul(Rational::one()).expect("one times one")
+                } else {
+                    Rational::zero()
+                };
+                SignedRational::from_rational(value).negated()
+            })
+            .collect();
         constraints.push(LinearInequality {
             coefficients,
             upper_bound: SignedRational::from_rational(Rational::zero()),
@@ -1079,9 +1090,10 @@ pub fn solve_small_blackwell_garbling(
     // Each source-observation row lies in the simplex: sum_y G(z,y) <= 1.
     for source_observation in 0..source_observations {
         let mut coefficients = zero_vector();
-        for target_observation in 0..(target_observations - 1) {
-            let variable = source_observation * (target_observations - 1) + target_observation;
-            coefficients[variable] = SignedRational::from_rational(Rational::one());
+        let start = source_observation * (target_observations - 1);
+        let end = start + target_observations - 1;
+        for coefficient in &mut coefficients[start..end] {
+            *coefficient = SignedRational::from_rational(Rational::one());
         }
         constraints.push(LinearInequality {
             coefficients,
@@ -1094,12 +1106,11 @@ pub fn solve_small_blackwell_garbling(
     };
 
     let mut garbling_rows = Vec::with_capacity(source_observations);
-    for source_observation in 0..source_observations {
+    for solution_row in solution.chunks_exact(target_observations - 1) {
         let mut row = Vec::with_capacity(target_observations);
         let mut assigned_mass = Rational::zero();
-        for target_observation in 0..(target_observations - 1) {
-            let variable = source_observation * (target_observations - 1) + target_observation;
-            let Some(probability) = solution[variable].as_probability() else {
+        for signed_probability in solution_row.iter().copied() {
+            let Some(probability) = signed_probability.as_probability() else {
                 return Err(
                     "Blackwell witness reconstruction produced a negative probability".into(),
                 );
@@ -1614,8 +1625,6 @@ mod tests {
         let third = rational(1, 3);
         let two_thirds = rational(2, 3);
         let quarter = rational(1, 4);
-        let fifth = rational(1, 5);
-        let _ = fifth;
         let garbling = vec![
             vec![two_thirds, third, Rational::zero()],
             vec![Rational::zero(), half, half],
