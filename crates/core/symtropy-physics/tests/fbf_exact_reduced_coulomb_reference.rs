@@ -39,6 +39,7 @@ struct FbfOutcome {
     outer_iterations: usize,
     step_rejections: usize,
     inner_iterations: usize,
+    delassus_applications: usize,
     final_gamma: f64,
 }
 
@@ -81,6 +82,7 @@ fn free_contact_velocity(generalized_velocity: &Vector6) -> Vector6 {
 trait DelassusOperator {
     fn apply(&self, impulse: &Vector6) -> Vector6;
     fn spectral_norm_upper_bound(&self) -> f64;
+    fn applications(&self) -> usize;
 }
 
 struct MatrixFreeDelassus {
@@ -151,11 +153,16 @@ impl DelassusOperator for MatrixFreeDelassus {
     fn spectral_norm_upper_bound(&self) -> f64 {
         self.spectral_norm_bound
     }
+
+    fn applications(&self) -> usize {
+        self.applications()
+    }
 }
 
 struct DenseDelassus {
     matrix: Matrix6,
     spectral_norm_bound: f64,
+    applications: Cell<usize>,
 }
 
 impl DenseDelassus {
@@ -164,17 +171,23 @@ impl DenseDelassus {
         Self {
             matrix,
             spectral_norm_bound,
+            applications: Cell::new(0),
         }
     }
 }
 
 impl DelassusOperator for DenseDelassus {
     fn apply(&self, impulse: &Vector6) -> Vector6 {
+        self.applications.set(self.applications.get() + 1);
         matrix_vector(&self.matrix, impulse)
     }
 
     fn spectral_norm_upper_bound(&self) -> f64 {
         self.spectral_norm_bound
+    }
+
+    fn applications(&self) -> usize {
+        self.applications.get()
     }
 }
 
@@ -369,6 +382,7 @@ fn solve_fbf_reference<O: DelassusOperator>(
     // Conservative base step: gamma * L_B <= 0.8. The adaptive local-variation
     // guard below can shrink it, but never grows it within this solve.
     let mut gamma = 0.8 / lipschitz_bound;
+    let initial_applications = operator.applications();
     let mut impulse = [0.0; 6];
     let mut total_rejections = 0;
     let mut total_inner_iterations = 0;
@@ -422,6 +436,7 @@ fn solve_fbf_reference<O: DelassusOperator>(
                 outer_iterations: outer_iteration,
                 step_rejections: total_rejections,
                 inner_iterations: total_inner_iterations,
+                delassus_applications: operator.applications() - initial_applications,
                 final_gamma: gamma,
             });
         }
@@ -457,7 +472,8 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
     assert!(outcome.residual <= OUTER_TOLERANCE);
     assert!(max_abs_difference(&outcome.impulse, &reference) < 5.0e-5);
     assert!(dense_outcome.residual <= OUTER_TOLERANCE);
-    assert!(matrix_free.applications() > 0);
+    assert!(outcome.delassus_applications > 0);
+    assert_eq!(outcome.delassus_applications, matrix_free.applications());
     // Compare physical response and generalized impulse, not p componentwise:
     // a singular Delassus operator can admit different multiplier representatives.
     assert!(
