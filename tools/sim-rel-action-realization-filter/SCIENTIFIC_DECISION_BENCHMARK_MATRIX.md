@@ -187,3 +187,20 @@ The 10% decision-loss target is an ambition; do not claim it from synthetic fixt
 8. **Abstain when the evidence is insufficient.** A scientific agent should be rewarded for correctly refusing an unsupported claim.
 
 The defensible competitive position is not an unsupported claim of general SOTA. It is an end-to-end scientific decision stack with exact small-domain correctness anchors, explicit model-adequacy attacks, decision-specific approximation bounds, physical execution evidence and independently replayable conclusions.
+
+## 7. Benchmark saturation, scoring audits and adaptive challenge generation
+
+A current industry lesson changes the programme's benchmark strategy:
+
+- **AutoSciBench (October 2026)** adaptively refines task recipes and reports that generated tasks reduce solver accuracy by 22.4 / 25.5 percentage points versus human-curated benchmarks in computational biology/materials science. This is evidence for dynamic challenge generation, not evidence that any one generator is automatically unbiased.
+- **OpenScience (1 October 2026 update)** explicitly reports issues in its evaluation setup and imperfect comparisons on some benchmarks, plus weaker performance on engineering than physical-science tasks. A public leaderboard therefore needs a harness audit and matched reruns before general SOTA conclusions.
+- **DOE (8 October 2026)** selected national-lab autonomous-science projects emphasizing open interfaces, reusable robot skills, digital twins, benchmark tasks, datasets, safety and provenance. This supports portable challenge manifests and evidence receipts.
+
+The new [Adaptive Scientific Benchmark Protocol](ADAPTIVE_SCIENTIFIC_BENCHMARK_PROTOCOL.md) specifies task recipes, hidden parameter generation, independent verifiers, sealed family splits, anti-saturation rules, matched baselines and separate scoring gates. SIM-REL-034/035 provide the split firewall and replayable ledger needed to keep adaptive benchmark refinement from consuming its own calibration/holdout data.
+
+Primary sources:
+- AutoSciBench: https://arxiv.org/abs/2610.05140
+- OpenScience benchmark update: https://www.openscience.sh/benchmark
+- DOE autonomous science selections: https://www.energy.gov/science/articles/doe-announces-four-national-laboratory-led-selections-advance-robotics-and
+
+A benchmark pass means only that a system performed under a declared task recipe, model, tool and harness. It is not proof of open-world scientific capability.
