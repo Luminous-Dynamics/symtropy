@@ -957,7 +957,7 @@ mod tests {
         let second_moment =
             SMatrix::<f64, 3, 3>::from_diagonal(&nalgebra::SVector::from([1.0, 1.0, -5e-13]));
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
-        let minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(inertia.second_moment())
+        let minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(*inertia.second_moment())
             .eigenvalues
             .iter()
             .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
