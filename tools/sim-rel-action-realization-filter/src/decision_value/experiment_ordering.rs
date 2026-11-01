@@ -2148,8 +2148,7 @@ fn binary_lecam_vertex_lower_bound(
         return Err("binary Le Cam vertex oracle exceeded its inequality cap".into());
     }
     let mut active_sets_checked = 0usize;
-    let mut feasible_vertices = 0usize;
-    let mut best: Option<Rational> = None;
+    let mut feasible_candidates = BTreeSet::<Vec<SignedRational>>::new();
 
     for first in 0..constraints.len() {
         for second in (first + 1)..constraints.len() {
@@ -2161,26 +2160,30 @@ fn binary_lecam_vertex_lower_bound(
                     &constraints[first],
                     &constraints[second],
                     &constraints[third],
-                )?
-                else {
+                )? else {
                     continue;
                 };
                 if !satisfies_linear_constraints(&candidate, constraints)? {
                     continue;
                 }
-                let Some(epsilon) = candidate[2].as_probability() else {
+                if candidate[2].as_probability().is_none() {
                     continue;
-                };
-                feasible_vertices = feasible_vertices
-                    .checked_add(1)
-                    .ok_or_else(|| "binary Le Cam feasible-vertex counter overflow".to_string())?;
-                if best.is_none_or(|current| epsilon < current) {
-                    best = Some(epsilon);
                 }
+                feasible_candidates.insert(candidate);
             }
         }
     }
 
+    let feasible_vertices = feasible_candidates.len();
+    let mut best: Option<Rational> = None;
+    for candidate in &feasible_candidates {
+        let epsilon = candidate[2]
+            .as_probability()
+            .ok_or_else(|| "feasible vertex has an invalid epsilon coordinate".to_string())?;
+        if best.is_none_or(|current| epsilon < current) {
+            best = Some(epsilon);
+        }
+    }
     let lower_bound = best.ok_or_else(|| {
         "binary Le Cam vertex oracle found no feasible vertex in a non-empty bounded polytope"
             .to_string()
