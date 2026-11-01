@@ -90,6 +90,32 @@ pub struct FinalPolicySealRecord {
     pub family_revision: u64,
     pub policy_identity: String,
     pub plan: DecisionPlan,
+    pub per_world_metrics: Vec<WorldDecisionObjectives>,
+}
+
+/// Pre-registered numeric acceptance envelope for a sealed evaluation. The
+/// final evaluation verdict is computed from exact replay, not caller supplied.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SealedHoldoutAcceptanceCriteria {
+    pub max_worst_case_total_loss: Rational,
+    pub max_worst_case_terminal_loss: Rational,
+    pub budgets: DecisionBudgets,
+}
+
+impl SealedHoldoutAcceptanceCriteria {
+    fn validate(self) -> Result<(), String> {
+        if !self.max_worst_case_total_loss.is_probability()
+            && self.max_worst_case_total_loss < Rational::zero()
+        {
+            return Err("maximum total-loss criterion must be non-negative".into());
+        }
+        if !self.max_worst_case_terminal_loss.is_probability()
+            && self.max_worst_case_terminal_loss < Rational::zero()
+        {
+            return Err("maximum terminal-loss criterion must be non-negative".into());
+        }
+        self.budgets.validate()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -100,6 +126,10 @@ pub struct SealedHoldoutEvaluationRecord {
     pub policy_identity: String,
     pub world_ids: Vec<String>,
     pub evaluation_artifact_id: String,
+    pub criteria: SealedHoldoutAcceptanceCriteria,
+    pub per_world_metrics: Vec<WorldDecisionObjectives>,
+    pub worst_case_total_loss: Rational,
+    pub worst_case_terminal_loss: Rational,
     pub acceptance_criteria_satisfied: bool,
 }
 
@@ -143,8 +173,10 @@ pub struct ModelFamilyLedgerSnapshot {
     pub development_worlds: Vec<DecisionModelWorld>,
     pub active_policy_identity: Option<String>,
     pub active_policy_plan: Option<DecisionPlan>,
+    pub active_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     pub frozen_policy_identity: Option<String>,
     pub frozen_policy_plan: Option<DecisionPlan>,
+    pub frozen_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     pub frozen_policy_revision: Option<u64>,
     pub reserved_holdout_groups: Vec<SealedHoldoutGroupRegistration>,
     pub consumed_holdout_group_ids: Vec<String>,
@@ -158,9 +190,11 @@ pub struct ModelFamilyLedger {
     family_revision: u64,
     active_policy_identity: Option<String>,
     active_policy_plan: Option<DecisionPlan>,
+    active_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     invalidated_policy_identity: Option<String>,
     frozen_policy_identity: Option<String>,
     frozen_policy_plan: Option<DecisionPlan>,
+    frozen_policy_metrics: Option<Vec<WorldDecisionObjectives>>,
     frozen_policy_revision: Option<u64>,
     reserved_holdouts: BTreeMap<String, SealedHoldoutGroupRegistration>,
     consumed_holdout_group_ids: BTreeSet<String>,
@@ -268,9 +302,11 @@ impl ModelFamilyLedger {
             family_revision: 0,
             active_policy_identity: Some(initial_policy_identity),
             active_policy_plan: Some(initial_policy_plan),
+            active_policy_metrics: Some(initial_replay.per_world),
             invalidated_policy_identity: None,
             frozen_policy_identity: None,
             frozen_policy_plan: None,
+            frozen_policy_metrics: None,
             frozen_policy_revision: None,
             reserved_holdouts,
             consumed_holdout_group_ids: BTreeSet::new(),
@@ -318,8 +354,10 @@ impl ModelFamilyLedger {
             development_worlds: self.development_worlds.clone(),
             active_policy_identity: self.active_policy_identity.clone(),
             active_policy_plan: self.active_policy_plan.clone(),
+            active_policy_metrics: self.active_policy_metrics.clone(),
             frozen_policy_identity: self.frozen_policy_identity.clone(),
             frozen_policy_plan: self.frozen_policy_plan.clone(),
+            frozen_policy_metrics: self.frozen_policy_metrics.clone(),
             frozen_policy_revision: self.frozen_policy_revision,
             reserved_holdout_groups: self.reserved_holdouts.values().cloned().collect(),
             consumed_holdout_group_ids,
@@ -430,6 +468,7 @@ impl ModelFamilyLedger {
         self.invalidated_policy_identity = Some(invalidated_policy_identity);
         self.active_policy_identity = None;
         self.active_policy_plan = None;
+        self.active_policy_metrics = None;
         self.append_event(
             event_receipt_id,
             ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
@@ -517,12 +556,13 @@ impl ModelFamilyLedger {
             event_receipt_id: event_receipt_id.clone(),
             family_revision,
             policy_identity: policy_identity.clone(),
-            plan,
+            plan: plan.clone(),
             replayed_world_ids: expected_world_ids,
-            per_world_metrics: replay.per_world,
+            per_world_metrics: replay.per_world.clone(),
         };
         self.active_policy_identity = Some(policy_identity);
         self.active_policy_plan = Some(plan);
+        self.active_policy_metrics = Some(replay.per_world);
         self.invalidated_policy_identity = None;
         self.append_event(
             event_receipt_id,
@@ -563,14 +603,21 @@ impl ModelFamilyLedger {
             .as_ref()
             .ok_or_else(|| "active policy identity has no retained policy tree".to_string())?
             .clone();
+        let active_metrics = self
+            .active_policy_metrics
+            .as_ref()
+            .ok_or_else(|| "active policy has no retained per-world replay metrics".to_string())?
+            .clone();
         let record = FinalPolicySealRecord {
             event_receipt_id: event_receipt_id.clone(),
             family_revision,
             policy_identity: policy_identity.clone(),
             plan: active_plan.clone(),
+            per_world_metrics: active_metrics.clone(),
         };
         self.frozen_policy_identity = Some(policy_identity);
         self.frozen_policy_plan = Some(active_plan);
+        self.frozen_policy_metrics = Some(active_metrics);
         self.frozen_policy_revision = Some(family_revision);
         self.append_event(
             event_receipt_id,
@@ -579,20 +626,29 @@ impl ModelFamilyLedger {
         Ok(record)
     }
 
-    /// Consume one pre-registered sealed holdout group. A group is consumed
-    /// whether acceptance criteria pass or fail; it cannot be reopened to tune
-    /// the same frozen policy.
+    /// Consume one pre-registered sealed holdout group. The ledger itself
+    /// replays the frozen final policy against the exact registered worlds and
+    /// calculates acceptance from pre-registered numeric criteria. A group is
+    /// consumed whether the criteria pass or fail.
+    #[allow(clippy::too_many_arguments)]
     pub fn record_sealed_holdout_evaluation(
         &mut self,
         event_receipt_id: String,
         family_group_id: String,
         family_revision: u64,
         policy_identity: String,
-        world_ids: Vec<String>,
+        holdout_worlds: &[DecisionModelWorld],
+        nominal_world_id: &str,
+        loss_table: &DecisionLossTable,
+        protocol: ObservationProtocol,
+        command_costs: &[Rational],
+        hazard_loss: Rational,
+        horizon: usize,
+        criteria: SealedHoldoutAcceptanceCriteria,
         evaluation_artifact_id: String,
-        acceptance_criteria_satisfied: bool,
     ) -> Result<SealedHoldoutEvaluationRecord, String> {
         self.validate_new_receipt_id(&event_receipt_id)?;
+        criteria.validate()?;
         let frozen_policy = self
             .frozen_policy_identity
             .as_ref()
@@ -606,6 +662,10 @@ impl ModelFamilyLedger {
         if policy_identity != *frozen_policy {
             return Err("holdout evaluation policy identity differs from the frozen policy".into());
         }
+        let frozen_plan = self
+            .frozen_policy_plan
+            .as_ref()
+            .ok_or_else(|| "frozen policy identity has no retained policy tree".to_string())?;
         let registration = self
             .reserved_holdouts
             .get(&family_group_id)
@@ -613,11 +673,21 @@ impl ModelFamilyLedger {
         if self.consumed_holdout_group_ids.contains(&family_group_id) {
             return Err("sealed holdout group has already been consumed".into());
         }
-        let actual = canonical_world_id_set(&world_ids)?;
-        let mut expected = registration.world_ids.clone();
-        expected.sort();
-        if actual != expected {
-            return Err("holdout evaluation must cover exactly the registered group worlds".into());
+        let expected_world_ids = {
+            let mut ids = registration.world_ids.clone();
+            ids.sort();
+            ids
+        };
+        let mut supplied_world_ids = holdout_worlds
+            .iter()
+            .map(|world| world.id.clone())
+            .collect::<Vec<_>>();
+        supplied_world_ids.sort();
+        if supplied_world_ids != expected_world_ids {
+            return Err("supplied sealed world snapshots must match exactly the registered group".into());
+        }
+        for world in holdout_worlds {
+            world.kernel.validate()?;
         }
         validate_opaque_id(
             &evaluation_artifact_id,
@@ -628,13 +698,60 @@ impl ModelFamilyLedger {
             return Err("model-family ledger event cap would be exceeded".into());
         }
 
+        let replay = replay_shared_policy_across_worlds(
+            holdout_worlds,
+            nominal_world_id,
+            loss_table,
+            protocol,
+            command_costs,
+            hazard_loss,
+            frozen_plan,
+            horizon,
+        )?;
+        let replayed_ids = replay
+            .per_world
+            .iter()
+            .map(|metrics| metrics.world_id.clone())
+            .collect::<Vec<_>>();
+        let mut replayed_ids = canonical_world_id_set(&replayed_ids)?;
+        if replayed_ids != expected_world_ids {
+            return Err("sealed policy replay did not cover the registered holdout group".into());
+        }
+        replayed_ids.sort();
+
+        let worst_case_total_loss = replay
+            .per_world
+            .iter()
+            .map(WorldDecisionObjectives::expected_total_loss)
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .max()
+            .unwrap_or_else(Rational::zero);
+        let worst_case_terminal_loss = replay
+            .per_world
+            .iter()
+            .map(|metrics| metrics.expected_terminal_loss)
+            .max()
+            .unwrap_or_else(Rational::zero);
+        let per_world_budgets_pass = replay.per_world.iter().all(|metrics| {
+            metrics.hazard_probability <= criteria.budgets.max_hazard_probability
+                && metrics.abstention_probability <= criteria.budgets.max_abstention_probability
+        });
+        let acceptance_criteria_satisfied = per_world_budgets_pass
+            && worst_case_total_loss <= criteria.max_worst_case_total_loss
+            && worst_case_terminal_loss <= criteria.max_worst_case_terminal_loss;
+
         let record = SealedHoldoutEvaluationRecord {
             event_receipt_id: event_receipt_id.clone(),
             family_group_id: family_group_id.clone(),
             family_revision,
             policy_identity,
-            world_ids: expected,
+            world_ids: replayed_ids,
             evaluation_artifact_id,
+            criteria,
+            per_world_metrics: replay.per_world,
+            worst_case_total_loss,
+            worst_case_terminal_loss,
             acceptance_criteria_satisfied,
         };
         self.consumed_holdout_group_ids.insert(family_group_id);
