@@ -642,6 +642,35 @@ mod exact_sticking_response_interval {
     #[test]
     fn exact_affine_message_certifies_strict_sticking_over_a_separator_box() {
         let (offset, gain, friction) = exact_leaf_affine_fixture();
+        let self_operator = [
+            [rational(2, 1), rational(0, 1), rational(0, 1)],
+            [rational(0, 1), rational(1, 1), rational(0, 1)],
+            [rational(0, 1), rational(0, 1), rational(1, 1)],
+        ];
+        let separator_coupling = [
+            [rational(-1, 2), rational(0, 1), rational(0, 1)],
+            [rational(0, 1), rational(1, 4), rational(0, 1)],
+            [rational(0, 1), rational(0, 1), rational(1, 4)],
+        ];
+        let free_velocity = [rational(-3, 2), rational(1, 8), rational(0, 1)];
+        let zero = rational(0, 1);
+        for row in 0..3 {
+            let free_residual = (0..3).fold(free_velocity[row].clone(), |sum, column| {
+                sum + self_operator[row][column].clone() * offset[column].clone()
+            });
+            assert_eq!(free_residual, zero);
+            for separator_column in 0..3 {
+                let response_residual = (0..3).fold(
+                    separator_coupling[separator_column][row].clone(),
+                    |sum, leaf_column| {
+                        sum + self_operator[row][leaf_column].clone()
+                            * gain[leaf_column][separator_column].clone()
+                    },
+                );
+                assert_eq!(response_residual, zero);
+            }
+        }
+
         let separator_box = [
             RationalInterval::new(rational(99, 100), rational(101, 100)).unwrap(),
             RationalInterval::new(rational(-51, 100), rational(-49, 100)).unwrap(),
