@@ -1,4 +1,5 @@
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -7,6 +8,9 @@ use civil_aero_benchmark::su2_convergence_screen::{
     screen_su2_history, screen_to_csv,
 };
 use civil_aero_benchmark::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
+use civil_aero_benchmark::su2_run_binding::{
+    Su2RunInputBindings, bind_su2_run_lineage, binding_to_csv,
+};
 
 struct Options {
     run_directory: PathBuf,
@@ -16,6 +20,11 @@ struct Options {
     numeric_fields: Vec<Su2HistoryField>,
     residuals: Vec<ResidualCriterion>,
     monitors: Vec<MonitorCriterion>,
+    physics_configuration_path: Option<String>,
+    geometry_path: Option<String>,
+    mesh_path: Option<String>,
+    additional_output_paths: Vec<String>,
+    lineage_output_path: Option<PathBuf>,
 }
 
 fn main() -> ExitCode {
@@ -31,6 +40,7 @@ fn main() -> ExitCode {
 
 fn run() -> Result<bool, String> {
     let options = parse_arguments()?;
+    let run_directory = options.run_directory.clone();
     let schema = Su2HistorySchema {
         history_relative_path: options.history_relative_path,
         expected_header: options.expected_header,
@@ -38,7 +48,7 @@ fn run() -> Result<bool, String> {
         numeric_fields: options.numeric_fields,
         minimum_rows: 2,
     };
-    let history = import_su2_history(&options.run_directory, &schema)?;
+    let history = import_su2_history(&run_directory, &schema)?;
     let audit = screen_su2_history(
         &history,
         &ConvergenceCriteria {
@@ -60,6 +70,40 @@ fn run() -> Result<bool, String> {
         audit.screen_sha256,
         audit.evidence_level
     );
+
+    let lineage_requested = options.physics_configuration_path.is_some()
+        || options.geometry_path.is_some()
+        || options.mesh_path.is_some()
+        || !options.additional_output_paths.is_empty()
+        || options.lineage_output_path.is_some();
+    if lineage_requested {
+        let input_bindings = Su2RunInputBindings {
+            physics_configuration_path: options.physics_configuration_path
+                .ok_or_else(|| "lineage export requires --config-input".to_owned())?,
+            geometry_path: options.geometry_path
+                .ok_or_else(|| "lineage export requires --geometry-input".to_owned())?,
+            mesh_path: options.mesh_path
+                .ok_or_else(|| "lineage export requires --mesh-input".to_owned())?,
+        };
+        let lineage_output_path = options.lineage_output_path
+            .ok_or_else(|| "lineage export requires --lineage-output".to_owned())?;
+        let binding = bind_su2_run_lineage(
+            &run_directory,
+            &history,
+            &audit,
+            &input_bindings,
+            &options.additional_output_paths,
+        )?;
+        fs::write(&lineage_output_path, binding_to_csv(&binding))
+            .map_err(|error| format!("cannot write lineage receipt {}: {error}", lineage_output_path.display()))?;
+        eprintln!(
+            "su2_run_lineage=pass run_id={} outputs={} binding_sha256={} evidence_level={}",
+            binding.run_id,
+            binding.additional_outputs.len(),
+            binding.binding_sha256,
+            binding.evidence_level
+        );
+    }
     print!("{}", screen_to_csv(&audit));
     Ok(audit.status == "declared_thresholds_met")
 }
@@ -92,6 +136,11 @@ fn parse_arguments() -> Result<Options, String> {
     let mut numeric_fields = Vec::new();
     let mut residuals = Vec::new();
     let mut monitors = Vec::new();
+    let mut physics_configuration_path = None;
+    let mut geometry_path = None;
+    let mut mesh_path = None;
+    let mut additional_output_paths = Vec::new();
+    let mut lineage_output_path = None;
 
     let mut arguments = env::args().skip(1);
     while let Some(argument) = arguments.next() {
@@ -103,6 +152,11 @@ fn parse_arguments() -> Result<Options, String> {
             "--history" => history_relative_path = Some(value),
             "--header-column" => expected_header.push(value),
             "--iteration-column" => iteration_column = Some(value),
+            "--config-input" => physics_configuration_path = Some(value),
+            "--geometry-input" => geometry_path = Some(value),
+            "--mesh-input" => mesh_path = Some(value),
+            "--additional-output" => additional_output_paths.push(value),
+            "--lineage-output" => lineage_output_path = Some(PathBuf::from(value)),
             "--field" => {
                 let (column, unit) = value
                     .split_once('=')
@@ -187,5 +241,10 @@ fn parse_arguments() -> Result<Options, String> {
         numeric_fields,
         residuals,
         monitors,
+        physics_configuration_path,
+        geometry_path,
+        mesh_path,
+        additional_output_paths,
+        lineage_output_path,
     })
 }
