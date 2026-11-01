@@ -1,7 +1,7 @@
 use engineering_scenario_compiler::{
-    compile_with_artifacts, canonical_semantic_ir_bytes, portable_semantic_ir_input_bytes,
-    ArtifactRole, Disposition, SuppliedArtifact, MAX_SOURCE_BYTES, MAX_UPSTREAM_CONFIG_BYTES,
-    MAX_UPSTREAM_MESH_BYTES,
+    ArtifactRole, Disposition, MAX_SOURCE_BYTES, MAX_UPSTREAM_CONFIG_BYTES,
+    MAX_UPSTREAM_MESH_BYTES, SuppliedArtifact, canonical_semantic_ir_bytes, compile_with_artifacts,
+    portable_semantic_ir_input_bytes,
 };
 use std::ffi::{OsStr, OsString};
 use std::fs::File;
@@ -9,11 +9,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-fn read_bounded_bytes<R: Read>(
-    reader: R,
-    maximum: usize,
-    role: &str,
-) -> Result<Vec<u8>, String> {
+fn read_bounded_bytes<R: Read>(reader: R, maximum: usize, role: &str) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     reader
         .take(maximum as u64 + 1)
