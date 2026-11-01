@@ -6,8 +6,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use civil_aero_benchmark::external_solver::{
-    ExternalSolverRequest, StagedInputSpec, execute_external_solver,
-    read_external_solver_receipt,
+    ExternalSolverRequest, StagedInputSpec, execute_external_solver, read_external_solver_receipt,
 };
 use civil_aero_benchmark::integrity::sha256_file;
 
@@ -46,8 +45,9 @@ fn run() -> Result<bool, String> {
         return Err("at least one --output RUN_RELATIVE_PATH is required".to_owned());
     }
     if options.solver_arguments.is_empty() {
-        return Err("solver arguments are required after -- (for SU2_CFD, use -f config.cfg)"
-            .to_owned());
+        return Err(
+            "solver arguments are required after -- (for SU2_CFD, use -f config.cfg)".to_owned(),
+        );
     }
 
     let expected_executable_sha256 = options.expected_executable_sha256.to_ascii_lowercase();
@@ -68,14 +68,19 @@ fn run() -> Result<bool, String> {
 
     let mut staged_inputs = Vec::with_capacity(options.inputs.len());
     for (source_path, relative_path) in &options.inputs {
-        let canonical_source = fs::canonicalize(source_path).map_err(|error| {
-            format!("cannot resolve input {}: {error}", source_path.display())
-        })?;
+        let canonical_source = fs::canonicalize(source_path)
+            .map_err(|error| format!("cannot resolve input {}: {error}", source_path.display()))?;
         let metadata = fs::metadata(&canonical_source).map_err(|error| {
-            format!("cannot inspect input {}: {error}", canonical_source.display())
+            format!(
+                "cannot inspect input {}: {error}",
+                canonical_source.display()
+            )
         })?;
         if !metadata.is_file() {
-            return Err(format!("input {} is not a regular file", canonical_source.display()));
+            return Err(format!(
+                "input {} is not a regular file",
+                canonical_source.display()
+            ));
         }
         staged_inputs.push(StagedInputSpec {
             source_path: canonical_source.clone(),
@@ -121,7 +126,11 @@ fn run() -> Result<bool, String> {
         receipt.solver_id,
         receipt.status,
         executable_pin_matches,
-        receipt.outputs.iter().filter(|output| output.present).count(),
+        receipt
+            .outputs
+            .iter()
+            .filter(|output| output.present)
+            .count(),
         receipt.missing_output_count(),
         receipt.receipt_sha256,
         receipt.evidence_level
@@ -179,7 +188,11 @@ fn parse_arguments() -> Result<Options, String> {
                 let (key, entry_value) = value
                     .split_once('=')
                     .ok_or_else(|| "--env must be KEY=VALUE".to_owned())?;
-                if key.is_empty() || environment.insert(key.to_owned(), entry_value.to_owned()).is_some() {
+                if key.is_empty()
+                    || environment
+                        .insert(key.to_owned(), entry_value.to_owned())
+                        .is_some()
+                {
                     return Err("--env keys must be non-empty and unique".to_owned());
                 }
             }
@@ -210,7 +223,8 @@ fn parse_arguments() -> Result<Options, String> {
             expected_executable_sha256,
             "--expected-executable-sha256",
         )?,
-        run_directory: run_directory.ok_or_else(|| "missing required option --run-dir".to_owned())?,
+        run_directory: run_directory
+            .ok_or_else(|| "missing required option --run-dir".to_owned())?,
         inputs,
         outputs,
         environment,
