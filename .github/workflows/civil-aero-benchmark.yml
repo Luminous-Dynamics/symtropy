@@ -142,6 +142,7 @@ jobs:
         working-directory: tools/civil-aero-benchmark
         shell: bash
         run: |
+          trap 'status=$?; echo "section_polar_ci_failure status=$status command=$BASH_COMMAND" >&2; for artifact in /tmp/section-polar-a.csv /tmp/section-polar-a.txt /tmp/section-polar-tampered.csv /tmp/section-polar-tampered.txt; do if [[ -f "$artifact" ]]; then echo "section_polar_ci_artifact=$artifact" >&2; cat "$artifact" >&2; fi; done; exit "$status"' ERR
           cargo run --quiet --locked --bin section_polar_audit -- > /tmp/section-polar-a.csv 2> /tmp/section-polar-a.txt
           cargo run --quiet --locked --bin section_polar_audit -- > /tmp/section-polar-b.csv 2> /tmp/section-polar-b.txt
           cmp /tmp/section-polar-a.csv /tmp/section-polar-b.csv
