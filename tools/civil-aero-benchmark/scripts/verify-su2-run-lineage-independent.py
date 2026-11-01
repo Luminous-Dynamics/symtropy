@@ -57,18 +57,21 @@ def parse_manifest(path: Path) -> dict[str, str]:
 def main() -> int:
     if len(sys.argv) != 5:
         raise ValueError(
-            "usage: verify-su2-run-lineage-independent.py RUN_DIR HISTORY_IMPORT_CSV SCREEN_CSV LINEAGE_CSV"
+            "usage: verify-su2-run-lineage-independent.py RUN_DIR HISTORY_IMPORT_CSV SCREEN_CSV LINEAGE_CSV MESH_SUMMARY_CSV"
         )
     run = Path(sys.argv[1])
     history_import = rows(Path(sys.argv[2]))
     screen = rows(Path(sys.argv[3]))
     binding_rows = rows(Path(sys.argv[4]))
+    mesh_summary_rows = rows(Path(sys.argv[5]))
     receipt_rows = rows(run / "runner_receipt.csv")
     output_rows = rows(run / "expected_outputs.csv")
     require(len(receipt_rows) == 1, "expected exactly one runner receipt")
     require(len(binding_rows) == 6, f"expected six lineage artifact rows, got {len(binding_rows)}")
     require(len(history_import) == 8, "expected eight imported history rows")
     require(len(screen) == 4, "expected four convergence criteria")
+    require(len(mesh_summary_rows) == 1, "expected one independently checked mesh summary")
+    mesh_summary = mesh_summary_rows[0]
     receipt = receipt_rows[0]
     common = binding_rows[0]
 
@@ -149,6 +152,38 @@ def main() -> int:
         require(record["artifact_sha256"] == expected_digest, f"{role} digest mismatch")
         expected_length = expected["byte_length"]
         require(record["byte_length"] == expected_length, f"{role} byte length mismatch")
+    for name in (
+        "mesh_dimension",
+        "mesh_point_count",
+        "mesh_volume_element_count",
+        "mesh_marker_count",
+        "mesh_boundary_element_count",
+        "mesh_summary_sha256",
+    ):
+        require(all(row[name] == common[name] for row in binding_rows), f"lineage rows disagree on {name}")
+    for binding_name, summary_name in (
+        ("mesh_dimension", "dimension"),
+        ("mesh_point_count", "point_count"),
+        ("mesh_volume_element_count", "volume_element_count"),
+        ("mesh_marker_count", "marker_count"),
+        ("mesh_boundary_element_count", "boundary_element_count"),
+    ):
+        require(common[binding_name] == mesh_summary[summary_name], f"mesh summary {binding_name} mismatch")
+    mesh_summary_digest = hashlib.sha256(
+        Path(sys.argv[5]).read_bytes()
+    ).hexdigest()
+    # The summary CSV is a single deterministic row and the source mesh digest is included within it.
+    require(mesh_summary["mesh_sha256"] == fixed["mesh"]["artifact_sha256"], "parsed mesh summary source digest mismatch")
+    require(
+        common["mesh_summary_sha256"]
+        == hashlib.sha256(
+            (
+                # Canonical summary CSV equals the complete one-row report plus a trailing newline.
+                Path(sys.argv[5]).read_text(encoding="utf-8")
+            ).encode("utf-8")
+        ).hexdigest(),
+        "mesh summary digest mismatch",
+    )
     additional = sorted(
         (row for row in binding_rows if row["artifact_role"] == "additional_output"),
         key=lambda row: row["relative_path"],
@@ -191,6 +226,12 @@ def main() -> int:
         add_string(buffer, value)
     for role in ("physics_configuration", "geometry", "mesh", "history"):
         add_artifact(buffer, fixed[role])
+    add_u64(buffer, int(common["mesh_dimension"]))
+    add_u64(buffer, int(common["mesh_point_count"]))
+    add_u64(buffer, int(common["mesh_volume_element_count"]))
+    add_u64(buffer, int(common["mesh_marker_count"]))
+    add_u64(buffer, int(common["mesh_boundary_element_count"]))
+    add_string(buffer, common["mesh_summary_sha256"])
     add_u64(buffer, int(common["convergence_criterion_count"]))
     add_u64(buffer, int(common["convergence_passed_count"]))
     add_u64(buffer, len(additional))
@@ -202,7 +243,7 @@ def main() -> int:
             "convergence criteria counts mismatch")
     print(
         "independent_su2_run_lineage_oracle=pass artifacts=6 staged_inputs=3 "
-        "history_rows=8 convergence_criteria=4 receipt_replay=pass binding_sha256=" + digest
+        "history_rows=8 convergence_criteria=4 mesh_summary=pass receipt_replay=pass binding_sha256=" + digest
     )
     return 0
 
