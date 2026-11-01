@@ -274,6 +274,7 @@ impl FiniteThermalChallengeRecipe {
         )?;
 
         let minimum_initial = *self.initial_temperature_grid.iter().min().unwrap();
+        let maximum_initial = *self.initial_temperature_grid.iter().max().unwrap();
         let maximum_ambient = *self.ambient_temperature_grid.iter().max().unwrap();
         if minimum_initial < maximum_ambient {
             return Err(
@@ -294,7 +295,7 @@ impl FiniteThermalChallengeRecipe {
         if self
             .safe_temperature_grid
             .iter()
-            .any(|limit| *limit < minimum_initial)
+            .any(|limit| *limit < maximum_initial)
         {
             return Err(
                 "safe-temperature grid cannot be below every initial temperature".into(),
@@ -548,11 +549,35 @@ pub fn verify_finite_thermal_challenge(
     Ok(())
 }
 
+/// Regenerate a challenge from its immutable recipe and pre-registered
+/// split registry, then require exact equality of public, sealed and receipt
+/// artifacts. This is the stronger provenance check; the standalone verifier
+/// above checks only the supplied episode against its declared discrete model.
+pub fn verify_finite_thermal_challenge_from_recipe(
+    challenge: &GeneratedFiniteThermalChallenge,
+    recipe: &FiniteThermalChallengeRecipe,
+    registry: &ChallengeSplitRegistry,
+) -> Result<(), String> {
+    verify_finite_thermal_challenge(challenge)?;
+    let regenerated = generate_finite_thermal_challenge(
+        recipe,
+        registry,
+        challenge.generation_receipt.seed,
+    )?;
+    if regenerated != *challenge {
+        return Err(
+            "regenerated public task, sealed thermal oracle or receipt differs from stored challenge"
+                .into(),
+        );
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         FiniteThermalChallengeRecipe, generate_finite_thermal_challenge,
-        verify_finite_thermal_challenge,
+        verify_finite_thermal_challenge, verify_finite_thermal_challenge_from_recipe,
     };
     use super::super::scientific_challenge::ChallengeSplitRegistry;
     use crate::decision_value::counterexample_ledger::EvidenceSplit;
@@ -598,6 +623,7 @@ mod tests {
         let second = generate_finite_thermal_challenge(&recipe, &registry, 0x5eed).unwrap();
         assert_eq!(first, second);
         verify_finite_thermal_challenge(&first).unwrap();
+        verify_finite_thermal_challenge_from_recipe(&first, &recipe, &registry).unwrap();
         assert!(!format!("{:?}", first.public_task).contains("seed"));
     }
 
