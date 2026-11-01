@@ -56,7 +56,11 @@ fn contact_supports_from_jacobian(
     if rows_per_contact == 0 || jacobian_support.is_empty() {
         return Err("Jacobian support has no contact rows or zero contact dimension");
     }
-    if !jacobian_support.chunks_exact(rows_per_contact).remainder().is_empty() {
+    if !jacobian_support
+        .chunks_exact(rows_per_contact)
+        .remainder()
+        .is_empty()
+    {
         return Err("Jacobian support row count is not divisible by contact dimension");
     }
     let dof_count = jacobian_support[0].len();
@@ -95,7 +99,11 @@ fn derive_contact_graph(
     support_complete: bool,
 ) -> Result<StructuralContactGraph, &'static str> {
     let dof_count = inverse_mass_support.len();
-    if dof_count == 0 || inverse_mass_support.iter().any(|row| row.len() != dof_count) {
+    if dof_count == 0
+        || inverse_mass_support
+            .iter()
+            .any(|row| row.len() != dof_count)
+    {
         return Err("inverse-mass support must be a non-empty square matrix");
     }
     for (row, support_row) in inverse_mass_support.iter().enumerate() {
