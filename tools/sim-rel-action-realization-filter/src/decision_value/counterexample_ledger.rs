@@ -961,6 +961,54 @@ mod tests {
         }
     }
 
+    fn holdout_worlds() -> Vec<DecisionModelWorld> {
+        let first = world("heldout-world-a");
+        let mut shifted = world("heldout-world-b");
+        for row in &mut shifted.kernel.rows {
+            for outcome in &mut row.outcomes {
+                outcome.measurement = outcome.measurement.map(|measurement| 1 - measurement);
+            }
+        }
+        vec![first, shifted]
+    }
+
+    fn holdout_criteria(max_loss: Rational) -> SealedHoldoutAcceptanceCriteria {
+        SealedHoldoutAcceptanceCriteria {
+            max_worst_case_total_loss: max_loss,
+            max_worst_case_terminal_loss: max_loss,
+            budgets: DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        }
+    }
+
+    fn evaluate_holdout(
+        ledger: &mut ModelFamilyLedger,
+        event_id: &str,
+        group_id: &str,
+        family_revision: u64,
+        policy_id: &str,
+        worlds: &[DecisionModelWorld],
+        criteria: SealedHoldoutAcceptanceCriteria,
+    ) -> Result<SealedHoldoutEvaluationRecord, String> {
+        ledger.record_sealed_holdout_evaluation(
+            event_id.into(),
+            group_id.into(),
+            family_revision,
+            policy_id.into(),
+            worlds,
+            "heldout-world-a",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            criteria,
+            format!("{event_id}-artifact"),
+        )
+    }
+
     fn ledger() -> ModelFamilyLedger {
         ModelFamilyLedger::new(
             vec![world("nominal")],
@@ -1344,30 +1392,35 @@ mod tests {
             .unwrap();
         assert!(ledger.is_policy_frozen());
 
-        let evaluated = ledger
-            .record_sealed_holdout_evaluation(
-                "holdout-eval".into(),
-                "sealed-mechanism-family".into(),
-                0,
-                "policy-v1".into(),
-                vec!["heldout-world-b".into(), "heldout-world-a".into()],
-                "evaluation-artifact-01".into(),
-                false,
-            )
-            .unwrap();
+        let worlds = holdout_worlds();
+        let evaluated = evaluate_holdout(
+            &mut ledger,
+            "holdout-eval",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::zero()),
+        )
+        .unwrap();
         assert!(!evaluated.acceptance_criteria_satisfied);
+        assert_eq!(evaluated.worst_case_terminal_loss, Rational::one());
+        assert_eq!(evaluated.per_world_metrics.len(), 2);
+        assert_eq!(
+            evaluated.manifest_id,
+            "heldout-manifest-v1"
+        );
         assert!(ledger.all_sealed_holdouts_consumed());
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "holdout-eval-again".into(),
-                "sealed-mechanism-family".into(),
-                0,
-                "policy-v1".into(),
-                vec!["heldout-world-a".into(), "heldout-world-b".into()],
-                "evaluation-artifact-02".into(),
-                true,
-            )
-            .is_err());
+        assert!(evaluate_holdout(
+            &mut ledger,
+            "holdout-eval-again",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .is_err());
 
         let witness = counterexample(&world("nominal"), "too-late");
         assert!(ledger
@@ -1382,56 +1435,76 @@ mod tests {
     }
 
     #[test]
+    fn a_passing_sealed_holdout_result_is_computed_from_internal_replay() {
+        let mut ledger = ledger();
+        ledger
+            .seal_final_policy("seal-policy".into(), 0, "policy-v1".into())
+            .unwrap();
+        let worlds = vec![world("heldout-world-a"), world("heldout-world-b")];
+        let evaluated = evaluate_holdout(
+            &mut ledger,
+            "passing-holdout-eval",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::zero()),
+        )
+        .unwrap();
+        assert!(evaluated.acceptance_criteria_satisfied);
+        assert_eq!(evaluated.worst_case_terminal_loss, Rational::zero());
+        assert!(ledger.all_sealed_holdouts_consumed());
+    }
+
+    #[test]
     fn holdout_evaluation_must_match_registered_group_revision_policy_and_worlds() {
         let mut ledger = ledger();
         ledger
             .seal_final_policy("seal".into(), 0, "policy-v1".into())
             .unwrap();
+        let worlds = holdout_worlds();
+        let missing_world = vec![world("heldout-world-a")];
 
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "wrong-worlds".into(),
-                "sealed-mechanism-family".into(),
-                0,
-                "policy-v1".into(),
-                vec!["heldout-world-a".into()],
-                "artifact".into(),
-                true,
-            )
-            .is_err());
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "wrong-policy".into(),
-                "sealed-mechanism-family".into(),
-                0,
-                "policy-other".into(),
-                vec!["heldout-world-a".into(), "heldout-world-b".into()],
-                "artifact".into(),
-                true,
-            )
-            .is_err());
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "wrong-revision".into(),
-                "sealed-mechanism-family".into(),
-                1,
-                "policy-v1".into(),
-                vec!["heldout-world-a".into(), "heldout-world-b".into()],
-                "artifact".into(),
-                true,
-            )
-            .is_err());
-        assert!(ledger
-            .record_sealed_holdout_evaluation(
-                "unknown-group".into(),
-                "not-registered".into(),
-                0,
-                "policy-v1".into(),
-                vec!["heldout-world-a".into(), "heldout-world-b".into()],
-                "artifact".into(),
-                true,
-            )
-            .is_err());
+        assert!(evaluate_holdout(
+            &mut ledger,
+            "wrong-worlds",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &missing_world,
+            holdout_criteria(Rational::one()),
+        )
+        .is_err());
+        assert!(evaluate_holdout(
+            &mut ledger,
+            "wrong-policy",
+            "sealed-mechanism-family",
+            0,
+            "policy-other",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .is_err());
+        assert!(evaluate_holdout(
+            &mut ledger,
+            "wrong-revision",
+            "sealed-mechanism-family",
+            1,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .is_err());
+        assert!(evaluate_holdout(
+            &mut ledger,
+            "unknown-group",
+            "not-registered",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .is_err());
     }
 
     #[test]
