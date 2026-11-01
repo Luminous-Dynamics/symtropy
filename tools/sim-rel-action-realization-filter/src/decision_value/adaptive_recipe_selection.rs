@@ -367,12 +367,8 @@ fn summarize(
     } else {
         Some(confidence_interval(counts.solved, counts.valid_attempts)?)
     };
-    let distance = pooled_interval
-        .as_ref()
-        .map(|interval| interval_distance(interval, target_lower, target_upper))
-        .transpose()?;
-
     let mut sample_deficit = 0usize;
+    let mut worst_agent_distance: Option<Rational> = None;
     let mut per_agent = Vec::with_capacity(panel.len());
     for agent_id in panel {
         let counts = agents.get(agent_id).cloned().unwrap_or_default();
@@ -384,6 +380,12 @@ fn summarize(
         } else {
             Some(confidence_interval(counts.solved, counts.valid_attempts)?)
         };
+        if let Some(agent_interval) = &interval {
+            let distance = interval_distance(agent_interval, target_lower, target_upper)?;
+            worst_agent_distance = Some(
+                worst_agent_distance.map_or(distance, |current| current.max(distance)),
+            );
+        }
         per_agent.push(AgentDifficultySummary {
             agent_id: agent_id.clone(),
             valid_attempts: counts.valid_attempts,
@@ -392,6 +394,10 @@ fn summarize(
             interval,
         });
     }
+    // Once the fixed panel meets its minimum sample floor, judge a candidate
+    // by its worst agent's confidence-interval distance from the target band.
+    // Pooled results remain visible but cannot hide an agent-specific collapse.
+    let distance = (sample_deficit == 0).then_some(worst_agent_distance).flatten();
     Ok(RecipeDifficultySummary {
         recipe_id: candidate.recipe_id.clone(),
         recipe_version: candidate.recipe_version.clone(),
@@ -1029,6 +1035,95 @@ mod tests {
                 5,
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn per_agent_difficulty_prevents_pooled_scores_hiding_extreme_agents() {
+        let candidates = candidates();
+        let mut outcomes = Vec::new();
+        for index in 0..30 {
+            let group = ["dev-a", "dev-b", "dev-c"][index % 3];
+            outcomes.push(receipt(
+                &format!("easy-a-{index}"),
+                &format!("easy-task-a-{index}"),
+                group,
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-a",
+                AgentChallengeOutcome::Solved,
+            ));
+            outcomes.push(receipt(
+                &format!("easy-b-{index}"),
+                &format!("easy-task-b-{index}"),
+                group,
+                "sensor-shift-easy",
+                "digest-easy-v1",
+                "sensor-fault",
+                "agent-b",
+                AgentChallengeOutcome::NotSolved,
+            ));
+            outcomes.push(receipt(
+                &format!("hard-a-{index}"),
+                &format!("hard-task-a-{index}"),
+                group,
+                "sensor-shift-hard",
+                "digest-hard-v1",
+                "sensor-fault",
+                "agent-a",
+                if index % 2 == 0 {
+                    AgentChallengeOutcome::Solved
+                } else {
+                    AgentChallengeOutcome::NotSolved
+                },
+            ));
+            outcomes.push(receipt(
+                &format!("hard-b-{index}"),
+                &format!("hard-task-b-{index}"),
+                group,
+                "sensor-shift-hard",
+                "digest-hard-v1",
+                "sensor-fault",
+                "agent-b",
+                if index % 2 == 0 {
+                    AgentChallengeOutcome::Solved
+                } else {
+                    AgentChallengeOutcome::NotSolved
+                },
+            ));
+        }
+
+        let result = select_next_recipe(
+            &candidates,
+            &outcomes,
+            &[],
+            &config(),
+            &registry(),
+            "paired-development-ledger",
+            outcomes.len() as u64,
+            41,
+        )
+        .unwrap();
+
+        // Both candidate recipes have the same 50% pooled success rate.
+        // The first is trivial for one agent and impossible for the other;
+        // the second has balanced 50% outcomes for each panel member.
+        assert_eq!(result.selected_recipe.recipe_id, "sensor-shift-hard");
+        let easy = result
+            .candidate_summaries
+            .iter()
+            .find(|summary| summary.recipe_id == "sensor-shift-easy")
+            .unwrap();
+        let hard = result
+            .candidate_summaries
+            .iter()
+            .find(|summary| summary.recipe_id == "sensor-shift-hard")
+            .unwrap();
+        assert_eq!(easy.pooled_interval, hard.pooled_interval);
+        assert!(
+            easy.distance_from_target_band.unwrap()
+                > hard.distance_from_target_band.unwrap()
         );
     }
 
