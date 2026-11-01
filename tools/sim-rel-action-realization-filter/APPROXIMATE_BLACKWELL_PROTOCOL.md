@@ -101,3 +101,14 @@ Do not assign epsilon from empirical fit error and call it a validated physical 
 ## 8. Claim boundary
 
 This module establishes an exact finite discrete-channel transfer bound conditional on the supplied channels, G, prior and loss table. It does not prove that the true physical process is covered, that a supplied radius is statistically calibrated, that safety is guaranteed under arbitrary omitted shifts, or that the method beats published systems.
+
+## 9. Relation to classical Le Cam deficiency
+
+The approximate-simulation idea is classical. Le Cam deficiency for a directed pair of experiments minimizes the worst-state total-variation residual over Markov post-processing kernels. Its bounded-loss comparison theorem gives a uniform decision-risk transfer bound. Depending on the convention, sources define total variation as the supremum event difference or as the full L1 norm; constants must be normalized before comparing formulas.
+
+SIM-REL-031 does not claim to introduce approximate Blackwell comparison, Le Cam deficiency, or the general TV-to-risk inequality. It implements a fixed supplied witness and retains the complete statewise residual vector. For a supplied prior and terminal loss table, it computes the sharper task-specific quantity sum_s prior(s) epsilon_s rho_s, where rho_s is the action-loss span in state s. It also constructs and replays randomized policies with explicit abstention using exact rational arithmetic.
+
+Relevant references:
+- Le Cam, Comparison of Statistical Experiments, Cambridge University Press (1991): https://www.cambridge.org/core/books/comparison-of-statistical-experiments/405F64D2A2FB3A4E6A1893C1C8A4A60B
+- A concise formulation of deficiency and bounded-loss transfer: https://www.statslab.cam.ac.uk/~nickl/Site/__files/MSL.pdf
+- Raginsky, Shannon meets Blackwell and Le Cam: Channels, codes, and statistical experiments: https://experts.illinois.edu/en/publications/shannon-meets-blackwell-and-le-cam-channels-codes-and-statistical/
