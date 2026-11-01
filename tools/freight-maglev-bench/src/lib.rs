@@ -136,10 +136,10 @@ pub struct CorridorCase {
 pub struct Evaluation {
     pub id: String,
     pub disposition: Disposition,
-    pub candidate_delivered_tonnes_per_day: u64,
-    pub candidate_unmet_tonnes_per_day: u64,
-    pub baseline_delivered_tonnes_per_day: u64,
-    pub baseline_unmet_tonnes_per_day: u64,
+    pub candidate_capacity_supported_tonnes_per_day: u64,
+    pub candidate_nominal_unmet_tonnes_per_day: u64,
+    pub baseline_capacity_supported_tonnes_per_day: u64,
+    pub baseline_nominal_unmet_tonnes_per_day: u64,
     pub candidate_transit_minutes: u64,
     pub baseline_transit_minutes: u64,
     pub candidate_annual_cost_minor: u64,
@@ -148,8 +148,8 @@ pub struct Evaluation {
     pub baseline_annual_energy_wh: u64,
     pub candidate_annual_emissions_gco2e: u64,
     pub baseline_annual_emissions_gco2e: u64,
-    pub fault_delivered_tonnes_per_day: u64,
-    pub fault_unmet_tonnes_per_day: u64,
+    pub fault_capacity_supported_tonnes_per_day: u64,
+    pub fault_nominal_unmet_tonnes_per_day: u64,
     pub break_even_demand_tonnes_per_day: Option<u64>,
 }
 
@@ -334,10 +334,10 @@ pub fn evaluate(case: &CorridorCase) -> Result<Evaluation, BenchError> {
     Ok(Evaluation {
         id: case.id.clone(),
         disposition: disposition(case),
-        candidate_delivered_tonnes_per_day: candidate_delivered,
-        candidate_unmet_tonnes_per_day: case.demand_tonnes_per_day - candidate_delivered,
-        baseline_delivered_tonnes_per_day: baseline_delivered,
-        baseline_unmet_tonnes_per_day: case.demand_tonnes_per_day - baseline_delivered,
+        candidate_capacity_supported_tonnes_per_day: candidate_delivered,
+        candidate_nominal_unmet_tonnes_per_day: case.demand_tonnes_per_day - candidate_delivered,
+        baseline_capacity_supported_tonnes_per_day: baseline_delivered,
+        baseline_nominal_unmet_tonnes_per_day: case.demand_tonnes_per_day - baseline_delivered,
         candidate_transit_minutes: case.candidate_transit_minutes,
         baseline_transit_minutes: case.baseline_transit_minutes,
         candidate_annual_cost_minor: annual_cost(
@@ -372,8 +372,8 @@ pub fn evaluate(case: &CorridorCase) -> Result<Evaluation, BenchError> {
             baseline_delivered,
             &case.id,
         )?,
-        fault_delivered_tonnes_per_day: fault_delivered,
-        fault_unmet_tonnes_per_day: case.demand_tonnes_per_day - fault_delivered,
+        fault_capacity_supported_tonnes_per_day: fault_delivered,
+        fault_nominal_unmet_tonnes_per_day: case.demand_tonnes_per_day - fault_delivered,
         break_even_demand_tonnes_per_day: break_even_demand_tonnes_per_day(case),
     })
 }
@@ -425,7 +425,7 @@ mod tests {
         let case = cases.iter().find(|item| item.id == "capacity_exactly_demand").unwrap();
         let result = evaluate(case).unwrap();
         assert_eq!(result.disposition, Disposition::Eligible);
-        assert_eq!(result.candidate_unmet_tonnes_per_day, 0);
+        assert_eq!(result.candidate_nominal_unmet_tonnes_per_day, 0);
     }
 
     #[test]
@@ -433,8 +433,8 @@ mod tests {
         let cases = parse_corpus(CORPUS).unwrap();
         let case = cases.iter().find(|item| item.id == "magrail_portal_outage").unwrap();
         let result = evaluate(case).unwrap();
-        assert_eq!(result.fault_delivered_tonnes_per_day, 0);
-        assert_eq!(result.fault_unmet_tonnes_per_day, case.demand_tonnes_per_day);
+        assert_eq!(result.fault_capacity_supported_tonnes_per_day, 0);
+        assert_eq!(result.fault_nominal_unmet_tonnes_per_day, case.demand_tonnes_per_day);
     }
 
     #[test]
