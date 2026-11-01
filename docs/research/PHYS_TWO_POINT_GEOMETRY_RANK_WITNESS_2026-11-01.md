@@ -161,6 +161,36 @@ Their intersection contains an open neighbourhood of \((0,0,0)\), so the admissi
 
 The Rust integration test reconstructs the exact 9x9 integer Gram matrix, proves rank six and nullity three, verifies all three null vectors, and checks a rational sample panel in the three-parameter allocation fibre. This is a strict generalization of the two-contact one-dimensional segment: a physically reachable three-contact island can have a three-dimensional family of local contact impulses representing the same body-level impulse and contact response.
 
+## Fixed-response fibres are convex; sliding can collapse the fibre
+
+For a fixed generalized body impulse \(g=J^Tp\), the contact response is fixed:
+\[
+u=q+Wp=q+JM^{-1}g.
+\]
+At each contact, once \(u\) is fixed, the impulse-level Signorini/maximum-dissipation law is a convex local set:
+
+- \(u_n<0\): no admissible multiplier;
+- \(u_n>0\): \(\lambda_n=0\), and the Coulomb disk forces \(j_t=0\);
+- \(u_n=0,\;u_t=0\): \(\lambda_n\ge0\), \(\|j_t\|\le\mu\lambda_n\), a second-order-cone disk;
+- \(u_n=0,\;u_t\ne0\): the sliding direction is fixed, \(j_t=-\mu\lambda_n u_t/\|u_t\|\), \(\lambda_n\ge0\), a convex ray.
+
+Intersecting the product of these local sets with the affine response fibre \(J^Tp=g\) therefore produces a convex feasible multiplier fibre. The overall contact problem can still have multiple body-level response branches; this statement concerns each fixed branch separately.
+
+The Rust suite now includes a sliding counterpart in the two-point rank-five geometry. Set
+\[
+p_s=(2,-1,0,2,-1,0)^T,\quad
+v_{\mathrm{free}}=(-4,3,0,0,0,2/3)^T.
+\]
+Then \(q=Jv_{\mathrm{free}}\), \(q+Wp_s=(0,1,0,0,1,0)^T\), and both contacts slide in positive tangent-1 direction with \(\mu=1/2\), \(\lambda_n=2\), \(j_t=(-1,0)\), and KKT multiplier \(\tau=1\).
+
+The algebraic response fibre remains \(p_s+\alpha n\). For \(\alpha=a/d\), its two tangent-1 impulses are proportional to \(-d+a\) and \(-d-a\); the exact disk slack numerators are
+\[
+s_1=4(2ad-a^2),\qquad s_2=4(-2ad-a^2).
+\]
+For every nonzero \(a\), at least one is strictly negative. At \(a=0\), both disks are saturated and both sliding KKT conditions hold. Thus this same rank-one algebraic nullspace has a **singleton** admissible fibre on the sliding response, compared with the full segment for the zero-slip sticking response.
+
+This prevents a common modeling error: the admissible fibre dimension is not simply nullity(W). It is the dimension of the intersection between the operator's affine response fibre and all contact-local regime constraints.
+
 ## Paradigm shift: report physical outcomes and contact allocations separately
 
 A contact solver must not collapse these into one "unique solution" flag. At minimum, represent:
