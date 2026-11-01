@@ -47,7 +47,7 @@ impl AnalyticTask {
                 Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
                 Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
                 Self::Zdt3 => unreachable!("ZDT3 is handled above"),
-                Self::Zdt4 => (reference_y - 1.0) + 2.0 / 3.0 + (reference_x - 1.0) * reference_y,
+                Self::Zdt4 => (reference_y - 1.0) + 2.0 / 3.0,
             };
             curve_integral + (reference_x - 1.0) * reference_y
         }
@@ -1024,6 +1024,11 @@ mod tests {
 
     #[test]
     fn normalized_hypervolume_uses_known_continuous_pareto_front() {
+        let zdt1 = AnalyticTask::Zdt1.exact_hypervolume();
+        let zdt4 = AnalyticTask::Zdt4.exact_hypervolume();
+        assert!((zdt4 - zdt1).abs() < 1.0e-12);
+        assert!((zdt4 - 0.876_666_666_666_666_8).abs() < 1.0e-12);
+
         let zdt1 = AnalyticTask::Zdt1.exact_hypervolume();
         let zdt2 = AnalyticTask::Zdt2.exact_hypervolume();
         let zdt3 = AnalyticTask::Zdt3.exact_hypervolume();
