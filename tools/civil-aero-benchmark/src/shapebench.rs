@@ -376,8 +376,9 @@ mod tests {
             "benchmark_output_import_only_not_solver_validation_or_physical_evidence"
         );
         assert_eq!(report.to_csv().lines().count(), 4);
-        let repeated = import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
-            .expect("deterministic import");
+        let repeated =
+            import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
+                .expect("deterministic import");
         assert_eq!(report.import_sha256, repeated.import_sha256);
     }
 
