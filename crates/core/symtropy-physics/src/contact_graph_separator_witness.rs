@@ -47,7 +47,10 @@ impl StickingLeafMessage {
     /// explicit inverse. Rank-aware fibres are a separate response-message lane.
     fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
         if !self.self_operator.iter().all(|value| value.is_finite())
-            || !self.separator_coupling.iter().all(|value| value.is_finite())
+            || !self
+                .separator_coupling
+                .iter()
+                .all(|value| value.is_finite())
             || !self.free_velocity.iter().all(|value| value.is_finite())
             || !self.friction_coefficient.is_finite()
             || self.friction_coefficient < 0.0
@@ -95,8 +98,8 @@ impl StickingLeafMessage {
         let post_velocity = self.free_velocity
             + self.separator_coupling.transpose() * separator_impulse
             + self.self_operator * impulse;
-        let strict_disk_margin = self.friction_coefficient * impulse[0]
-            - impulse.fixed_rows::<2>(1).norm();
+        let strict_disk_margin =
+            self.friction_coefficient * impulse[0] - impulse.fixed_rows::<2>(1).norm();
         let impulse_tolerance = tolerance * impulse.norm().max(f64::MIN_POSITIVE) * 500.0;
         let velocity_scale = (self.free_velocity.norm()
             + self.separator_coupling.norm() * separator_impulse.norm()
@@ -202,9 +205,7 @@ fn solve_star_with_strict_sticking_leaves(
     let block = |row_offset: usize, column_offset: usize| {
         Matrix3::from_fn(|row, column| w[(row + row_offset, column + column_offset)])
     };
-    let vector = |offset: usize| {
-        SVector::<f64, 3>::new(q[offset], q[offset + 1], q[offset + 2])
-    };
+    let vector = |offset: usize| SVector::<f64, 3>::new(q[offset], q[offset + 1], q[offset + 2]);
     let separator_block = block(0, 0);
     let mut effective_operator = separator_block;
     let mut effective_free_velocity = vector(0);
@@ -353,7 +354,12 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
     assert!(candidate.post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
     assert!(candidate.post_velocity.fixed_rows::<3>(6).norm() < 1.0e-9);
     assert!((candidate.separator_tau - 1.0).abs() < 1.0e-8);
-    assert!(candidate.leaf_disk_margins.iter().all(|margin| *margin > 0.49));
+    assert!(
+        candidate
+            .leaf_disk_margins
+            .iter()
+            .all(|margin| *margin > 0.49)
+    );
     assert!((candidate.energy_delta + 0.875).abs() < 1.0e-9);
     assert!(candidate.energy_delta < 0.0);
 
@@ -398,7 +404,6 @@ fn leaf_with_noninterior_friction_impulse_is_not_promoted_as_sticking() {
     let candidates = solve_star_with_strict_sticking_leaves(&w, &q).unwrap();
     assert!(candidates.is_empty());
 }
-
 
 #[test]
 fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_response() {
@@ -454,10 +459,12 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
         free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
         friction_coefficient: FRICTION,
     };
-    assert!(boundary
-        .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
-        .unwrap()
-        .is_none());
+    assert!(
+        boundary
+            .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
+            .unwrap()
+            .is_none()
+    );
 
     let indefinite = StickingLeafMessage {
         self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(1.0, -1.0, 1.0)),
@@ -466,7 +473,9 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
         friction_coefficient: FRICTION,
     };
     assert!(indefinite.schur_terms().is_err());
-    assert!(indefinite
-        .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
-        .is_err());
+    assert!(
+        indefinite
+            .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
+            .is_err()
+    );
 }
