@@ -2928,13 +2928,9 @@ mod tests {
             vec![Rational::one(), Rational::one()],
         ];
         let samples = likelihood_proposal_samples();
-        let exact = compute_gibbs_eig_exact_finite(
-            "omega-zero",
-            &channel,
-            &prior,
-            &constant_factors,
-        )
-        .unwrap();
+        let exact =
+            compute_gibbs_eig_exact_finite("omega-zero", &channel, &prior, &constant_factors)
+                .unwrap();
         assert_eq!(exact.value_nats, 0.0);
 
         let receipt = estimate_gibbs_eig_importance_from_samples(
