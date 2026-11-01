@@ -107,11 +107,11 @@ fn required<'a>(options: &'a BTreeMap<String, String>, name: &str) -> Result<&'a
 }
 
 fn write_new_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("cannot create parent directory: {error}"))?;
-        }
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("cannot create parent directory: {error}"))?;
     }
     use std::fs::OpenOptions;
     use std::io::Write;
