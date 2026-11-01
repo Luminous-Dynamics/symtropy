@@ -14,6 +14,33 @@ use nalgebra::{SMatrix, SVector};
 type Matrix6 = SMatrix<f64, 6, 6>;
 type Vector6 = SVector<f64, 6>;
 
+/// Reconstruct the unique tangential minimizer from normal loads and dual
+/// multipliers. The matrix is SPD because it is H plus nonnegative disk
+/// multipliers on its two 2D diagonal blocks.
+fn tangent_impulse_from_duals(
+    w: &Matrix6,
+    q: &Vector6,
+    normal_loads: &SVector<f64, 2>,
+    tau_1: f64,
+    tau_2: f64,
+) -> Option<SVector<f64, 4>> {
+    let normal = [0, 3];
+    let tangent = [1, 2, 4, 5];
+    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| {
+        w[(tangent[row], normal[column])]
+    });
+    let hessian = SMatrix::<f64, 4, 4>::from_fn(|row, column| {
+        w[(tangent[row], tangent[column])]
+    });
+    let q_t = SVector::<f64, 4>::new(q[1], q[2], q[4], q[5]);
+    let dual_shift = SMatrix::<f64, 4, 4>::from_diagonal(&SVector::<f64, 4>::new(
+        tau_1, tau_1, tau_2, tau_2,
+    ));
+    let system = hessian + dual_shift;
+    let rhs = q_t + w_tn * normal_loads;
+    Some(-system.cholesky()?.solve(&rhs))
+}
+
 /// Reconstruct the both-sticking solution through the reduced normal system.
 ///
 /// For fixed normal loads, the tangential minimizer is
@@ -228,6 +255,17 @@ mod tests {
             (ContactOneRegime::Sliding, 0.2654416783961581),
             (ContactOneRegime::Sliding, 4.709435913523664),
         ];
+        let tangent_coordinates = [1, 2, 4, 5];
+        for (candidate, (_, tau_1)) in candidates.iter().zip(regimes) {
+            let normal_loads = SVector::<f64, 2>::new(candidate[0], candidate[3]);
+            let tangent = tangent_impulse_from_duals(&w, &q, &normal_loads, tau_1, 0.0)
+                .expect("the regularized tangential Hessian remains SPD");
+            let expected = SVector::<f64, 4>::from_fn(|index, _| {
+                candidate[tangent_coordinates[index]]
+            });
+            assert!((tangent - expected).norm() < 1.0e-8);
+        }
+
         let mut energy_deltas = Vec::new();
         let mut cross_work = Vec::new();
 
