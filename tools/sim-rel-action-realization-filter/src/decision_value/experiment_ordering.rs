@@ -653,18 +653,32 @@ fn lower_loss_preference(loss_a: Rational, loss_b: Rational) -> ExperimentPrefer
 /// realized downstream loss. The MI ranking is diagnostic; a strict opposite
 /// realized cost-plus-loss ranking is reported as an explicit reversal.
 #[allow(clippy::too_many_arguments)]
-pub fn compare_experiment_pair(
+pub fn compare_experiment_pair_with_inference_rules(
     assumed_a: &FiniteObservationChannel,
     truth_a: &FiniteObservationChannel,
+    inference_rule_a: &InferencePosteriorRule,
     cost_a: Rational,
     assumed_b: &FiniteObservationChannel,
     truth_b: &FiniteObservationChannel,
+    inference_rule_b: &InferencePosteriorRule,
     cost_b: Rational,
     prior: &[Rational],
     table: &ChannelDecisionLossTable,
 ) -> Result<ExperimentPairComparison, String> {
-    let evaluation_a = evaluate_channel_decisions(assumed_a, truth_a, prior, table)?;
-    let evaluation_b = evaluate_channel_decisions(assumed_b, truth_b, prior, table)?;
+    let evaluation_a = evaluate_channel_decisions_with_inference_rule(
+        assumed_a,
+        truth_a,
+        prior,
+        table,
+        inference_rule_a,
+    )?;
+    let evaluation_b = evaluate_channel_decisions_with_inference_rule(
+        assumed_b,
+        truth_b,
+        prior,
+        table,
+        inference_rule_b,
+    )?;
     let information_a = mutual_information_bits(assumed_a, prior)?;
     let information_b = mutual_information_bits(assumed_b, prior)?;
 
@@ -705,6 +719,37 @@ pub fn compare_experiment_pair(
         realized_total_loss_preference,
         information_loss_ranking_reversal,
     })
+}
+
+/// Compare two experiments using exact Bayesian inference under each
+/// experiment's own working channel. Use
+/// `compare_experiment_pair_with_inference_rules` to supply explicit
+/// approximate/alternative posterior procedures.
+#[allow(clippy::too_many_arguments)]
+pub fn compare_experiment_pair(
+    assumed_a: &FiniteObservationChannel,
+    truth_a: &FiniteObservationChannel,
+    cost_a: Rational,
+    assumed_b: &FiniteObservationChannel,
+    truth_b: &FiniteObservationChannel,
+    cost_b: Rational,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<ExperimentPairComparison, String> {
+    let inference_rule_a = exact_bayes_posterior_rule(assumed_a, prior)?;
+    let inference_rule_b = exact_bayes_posterior_rule(assumed_b, prior)?;
+    compare_experiment_pair_with_inference_rules(
+        assumed_a,
+        truth_a,
+        &inference_rule_a,
+        cost_a,
+        assumed_b,
+        truth_b,
+        &inference_rule_b,
+        cost_b,
+        prior,
+        table,
+    )
 }
 
 /// Mutual information in bits under the supplied nominal prior/channel.
