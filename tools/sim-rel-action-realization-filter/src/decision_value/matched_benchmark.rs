@@ -197,8 +197,14 @@ fn validate_manifest(manifest: &MatchedBenchmarkManifest) -> Result<(), MatchedB
         (&manifest.group_id, "evidence group ID"),
         (&manifest.agent_panel_id, "agent panel ID"),
         (&manifest.task_manifest_digest, "task manifest digest"),
-        (&manifest.model_configuration_digest, "model configuration digest"),
-        (&manifest.prompt_configuration_digest, "prompt configuration digest"),
+        (
+            &manifest.model_configuration_digest,
+            "model configuration digest",
+        ),
+        (
+            &manifest.prompt_configuration_digest,
+            "prompt configuration digest",
+        ),
         (&manifest.harness_digest, "harness digest"),
         (&manifest.toolset_digest, "toolset digest"),
         (&manifest.reference_arm_id, "reference arm ID"),
@@ -310,7 +316,10 @@ pub fn validate_and_summarize_matched_campaign(
             (&trial.pair_id, "pair ID"),
             (&trial.task_id, "task ID"),
             (&trial.mechanism_family_id, "mechanism family ID"),
-            (&trial.task_oracle_receipt_digest, "task oracle receipt digest"),
+            (
+                &trial.task_oracle_receipt_digest,
+                "task oracle receipt digest",
+            ),
         ] {
             if !valid_id(value) {
                 return Err(MatchedBenchmarkError::PairIdentity(format!(
@@ -348,9 +357,11 @@ pub fn validate_and_summarize_matched_campaign(
                 accumulator.invalid_tasks_excluded = accumulator
                     .invalid_tasks_excluded
                     .checked_add(1)
-                    .ok_or_else(|| MatchedBenchmarkError::ArithmeticOverflow(
-                        "invalid task count overflow".into(),
-                    ))?;
+                    .ok_or_else(|| {
+                        MatchedBenchmarkError::ArithmeticOverflow(
+                            "invalid task count overflow".into(),
+                        )
+                    })?;
                 continue;
             }
             BenchmarkTaskValidity::Valid => {}
@@ -396,14 +407,16 @@ pub fn validate_and_summarize_matched_campaign(
             ));
         }
 
-        let candidate_delta = i128::from(candidate.terminal_loss_units)
-            - i128::from(reference.terminal_loss_units);
+        let candidate_delta =
+            i128::from(candidate.terminal_loss_units) - i128::from(reference.terminal_loss_units);
         accumulator.candidate_minus_reference_loss_sum = accumulator
             .candidate_minus_reference_loss_sum
             .checked_add(candidate_delta)
-            .ok_or_else(|| MatchedBenchmarkError::ArithmeticOverflow(
-                "paired terminal-loss sum overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                MatchedBenchmarkError::ArithmeticOverflow(
+                    "paired terminal-loss sum overflow".into(),
+                )
+            })?;
         match candidate_delta.cmp(&0) {
             std::cmp::Ordering::Less => {
                 accumulator.candidate_lower_loss_count += 1;
@@ -449,8 +462,7 @@ pub fn validate_and_summarize_matched_campaign(
             candidate_hazard_count: accumulator.candidate_hazard_count,
             reference_abstention_count: accumulator.reference_abstention_count,
             candidate_abstention_count: accumulator.candidate_abstention_count,
-            meets_minimum_pair_count: accumulator.valid_pairs
-                >= manifest.minimum_pairs_per_family,
+            meets_minimum_pair_count: accumulator.valid_pairs >= manifest.minimum_pairs_per_family,
         });
     }
 
@@ -471,12 +483,12 @@ pub fn validate_and_summarize_matched_campaign(
 
 #[cfg(test)]
 mod tests {
+    use super::super::counterexample_ledger::EvidenceSplit;
     use super::{
-        ArmOutcome, BenchmarkScope, MatchedBenchmarkManifest, PairedBenchmarkTrial,
-        ResourceBudget, ResourceUsage, BenchmarkTaskValidity,
+        ArmOutcome, BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest,
+        PairedBenchmarkTrial, ResourceBudget, ResourceUsage,
         validate_and_summarize_matched_campaign,
     };
-    use super::super::counterexample_ledger::EvidenceSplit;
 
     fn budget() -> ResourceBudget {
         ResourceBudget {
@@ -625,11 +637,7 @@ mod tests {
         let duplicate = trial("pair-1", "task-1", 11);
         let mut same = duplicate.clone();
         same.pair_id = "pair-2".into();
-        assert!(validate_and_summarize_matched_campaign(
-            &manifest(),
-            &[duplicate, same]
-        )
-        .is_err());
+        assert!(validate_and_summarize_matched_campaign(&manifest(), &[duplicate, same]).is_err());
 
         let mut reused = trial("pair-2", "task-2", 12);
         reused.reference.as_mut().unwrap().evidence_artifact_digest = "ref-pair-1".into();
