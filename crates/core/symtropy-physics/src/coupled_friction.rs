@@ -695,7 +695,7 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
 fn deduplicate_angles(angles: &mut Vec<f64>, tolerance: f64) {
     angles.sort_by(f64::total_cmp);
     angles.dedup_by(|a, b| {
-        let direct = (a - b).abs();
+        let direct = (*a - *b).abs();
         let wrapped = (2.0 * std::f64::consts::PI - direct).abs();
         direct.min(wrapped) <= 256.0 * tolerance
     });
