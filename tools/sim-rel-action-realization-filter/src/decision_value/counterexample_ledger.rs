@@ -1445,6 +1445,22 @@ mod tests {
     }
 
     #[test]
+    fn candidate_world_id_cannot_alias_a_reserved_sealed_world() {
+        let mut ledger = ledger();
+        let witness = counterexample(&world("nominal"), "heldout-world-a");
+        assert!(ledger
+            .admit_counterexample(
+                &witness,
+                provenance("policy-v1", EvidenceSplit::Development, "dev-not-sealed"),
+                validation(),
+                "candidate-aliases-holdout".into(),
+            )
+            .is_err());
+        assert_eq!(ledger.family_revision(), 0);
+        assert_eq!(ledger.development_world_ids(), vec!["nominal"]);
+    }
+
+    #[test]
     fn reserved_holdout_family_group_cannot_enter_development_search() {
         let mut ledger = ledger();
         let witness = counterexample(&world("nominal"), "leaked-holdout");
