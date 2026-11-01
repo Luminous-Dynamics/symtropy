@@ -141,13 +141,13 @@ pub fn audit_protocol(
                 observation.key
             ));
         }
-        if let Some(ObservedProtocolValue::Number(value)) = &observation.value {
-            if !value.is_finite() {
-                return Err(format!(
-                    "observed numeric value {} is non-finite",
-                    observation.key
-                ));
-            }
+        if let Some(ObservedProtocolValue::Number(value)) = &observation.value
+            && !value.is_finite()
+        {
+            return Err(format!(
+                "observed numeric value {} is non-finite",
+                observation.key
+            ));
         }
         if observation_by_key
             .insert(observation.key.as_str(), observation)
@@ -548,7 +548,7 @@ mod tests {
                 unit: "1".to_owned(),
             },
         );
-        assert!(audit_protocol("p", "t", "o", &[numeric.clone()], &nonfinite).is_err());
+        assert!(audit_protocol("p", "t", "o", std::slice::from_ref(&numeric), &nonfinite).is_err());
 
         let invalid_tolerance = requirement(
             "mach",
