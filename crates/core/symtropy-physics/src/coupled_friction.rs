@@ -256,9 +256,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             SVector::zeros(),
-            CoupledCoulombRegime::Separating,
-            0.0,
-            None,
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Separating,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
         );
         let candidates = candidate.into_iter().collect::<Vec<_>>();
