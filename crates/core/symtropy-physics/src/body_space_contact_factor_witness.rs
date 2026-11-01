@@ -350,8 +350,7 @@ mod tests {
                     disk_margin > 0,
                     "sticking impulse must remain strictly inside its mu=1 Coulomb disk"
                 );
-                minimum_disk_margins[contact] =
-                    minimum_disk_margins[contact].min(disk_margin);
+                minimum_disk_margins[contact] = minimum_disk_margins[contact].min(disk_margin);
             }
 
             let twice_energy: i128 = candidate
