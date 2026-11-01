@@ -1046,6 +1046,318 @@ pub fn compare_experiment_pair(
     )
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct GibbsEigExactReceipt {
+    pub rule_id: String,
+    /// C(xi) = sum_y sum_theta prior(theta) * exp(-eta * loss(theta,xi,y)).
+    pub pseudo_predictive_normalizer: Rational,
+    /// Unnormalized pseudo-predictive mass for each observation.
+    pub pseudo_predictive_mass_by_observation: Vec<Rational>,
+    /// Normalized pseudo-predictive distribution over observations.
+    pub normalized_pseudo_predictive: Vec<Rational>,
+    pub posterior_rule: InferencePosteriorRule,
+    /// KL(Gibbs posterior || prior), by observation, in nats.
+    pub conditional_kl_nats: Vec<f64>,
+    /// Pseudo-predictive-weighted KL contribution, by observation, in nats.
+    pub contribution_nats: Vec<f64>,
+    /// Exact finite-discrete Gibbs EIG oracle, reported in nats.
+    pub value_nats: f64,
+}
+
+/// Compute the exact finite-discrete Gibbs EIG by exhaustive summation.
+///
+/// GEIG(xi) = sum_y [m(y)/C] KL(q_Gibbs(theta|y) || prior(theta)),
+/// where m(y) = sum_theta prior(theta) * factor(theta,y) and
+/// C = sum_y m(y). The finite rational masses and posterior are exact; only
+/// logarithms and the reported information value are floating-point.
+///
+/// This is an exact oracle for small finite problems, not a Monte Carlo
+/// approximation. The corresponding importance-sampling estimator is below.
+pub fn compute_gibbs_eig_exact_finite(
+    rule_id: &str,
+    assumed: &FiniteObservationChannel,
+    prior: &[Rational],
+    gibbs_factors: &[Vec<Rational>],
+) -> Result<GibbsEigExactReceipt, String> {
+    let posterior_rule = generalized_bayes_posterior_rule_from_weights(
+        rule_id,
+        assumed,
+        prior,
+        gibbs_factors,
+    )?;
+
+    let mut pseudo_predictive_mass_by_observation =
+        Vec::with_capacity(assumed.observation_ids.len());
+    let mut normalizer = Rational::zero();
+
+    for (observation, factors) in gibbs_factors.iter().enumerate() {
+        let mut marginal_mass = Rational::zero();
+        for (prior_mass, factor) in prior.iter().copied().zip(factors.iter().copied()) {
+            marginal_mass =
+                marginal_mass.checked_add(prior_mass.checked_mul(factor)?)?;
+        }
+        if marginal_mass.is_zero() {
+            return Err(format!(
+                "Gibbs EIG observation {observation} has zero pseudo-predictive mass"
+            ));
+        }
+        normalizer = normalizer.checked_add(marginal_mass)?;
+        pseudo_predictive_mass_by_observation.push(marginal_mass);
+    }
+    if normalizer.is_zero() {
+        return Err("Gibbs EIG has a zero pseudo-predictive normalizer".into());
+    }
+
+    let normalized_pseudo_predictive = pseudo_predictive_mass_by_observation
+        .iter()
+        .map(|mass| mass.checked_div(normalizer))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut conditional_kl_nats = Vec::with_capacity(assumed.observation_ids.len());
+    let mut contribution_nats = Vec::with_capacity(assumed.observation_ids.len());
+    let mut total = 0.0_f64;
+    let mut compensation = 0.0_f64;
+
+    for (observation, posterior) in
+        posterior_rule.posterior_by_observation.iter().enumerate()
+    {
+        let mut kl = 0.0_f64;
+        let mut kl_compensation = 0.0_f64;
+        for (gibbs_probability, prior_probability) in
+            posterior.iter().copied().zip(prior.iter().copied())
+        {
+            if gibbs_probability.is_zero() {
+                continue;
+            }
+            if prior_probability.is_zero() {
+                return Err(
+                    "Gibbs posterior assigned positive mass outside prior support".into(),
+                );
+            }
+            let ratio_log = rational_to_f64(gibbs_probability).ln()
+                - rational_to_f64(prior_probability).ln();
+            let term = rational_to_f64(gibbs_probability) * ratio_log;
+            kahan_add(&mut kl, &mut kl_compensation, term);
+        }
+        if kl < -1.0e-12 {
+            return Err(format!(
+                "computed Gibbs posterior KL was materially negative for observation {observation}"
+            ));
+        }
+        let kl = kl.max(0.0);
+        let predictive_probability =
+            rational_to_f64(normalized_pseudo_predictive[observation]);
+        let contribution = predictive_probability * kl;
+        conditional_kl_nats.push(kl);
+        contribution_nats.push(contribution);
+        kahan_add(&mut total, &mut compensation, contribution);
+    }
+
+    if !total.is_finite() || total < -1.0e-12 {
+        return Err("finite Gibbs EIG computation was non-finite or negative".into());
+    }
+
+    Ok(GibbsEigExactReceipt {
+        rule_id: rule_id.to_string(),
+        pseudo_predictive_normalizer: normalizer,
+        pseudo_predictive_mass_by_observation,
+        normalized_pseudo_predictive,
+        posterior_rule,
+        conditional_kl_nats,
+        contribution_nats,
+        value_nats: total.max(0.0),
+    })
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GibbsImportanceSample {
+    pub state_index: usize,
+    pub observation_index: usize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GibbsEigImportanceReceipt {
+    pub proposal_id: String,
+    pub sample_count: usize,
+    /// Exact importance weights factor(theta,y) / q(y|theta) for every sample.
+    pub unnormalized_importance_weights: Vec<Rational>,
+    /// Exact normalized self-normalized importance weights.
+    pub normalized_importance_weights: Vec<Rational>,
+    /// Exact Kish ESS = (sum w)^2 / sum(w^2).
+    pub effective_sample_size: Rational,
+    pub effective_sample_size_fraction: f64,
+    pub maximum_normalized_weight: Rational,
+    pub estimated_gibbs_eig_nats: f64,
+    pub exact_oracle_gibbs_eig_nats: f64,
+    pub absolute_error_nats: f64,
+}
+
+/// Estimate finite-discrete Gibbs EIG using user-supplied draws from
+/// theta~prior and y~q(.|theta), with exact finite-model pseudo-predictive
+/// marginals and a self-normalized importance correction.
+///
+/// The per-sample importance weight is factor(theta,y)/q(y|theta). The
+/// diagnostic returns exact weights and Kish ESS, plus the Monte Carlo
+/// estimate and its discrepancy from the exact finite-support oracle. It
+/// validates proposal support, but it cannot verify that the caller actually
+/// generated samples from the declared prior/proposal distribution. Sample
+/// seeds and sampler version must therefore be recorded by the caller.
+///
+/// This separates proposal/ESS error from the nested Monte Carlo error in
+/// approximating m(y); here m(y) is evaluated exactly because the model is
+/// finite. It is a controlled discrete diagnostic, not a substitute for the
+/// paper's continuous-model nested Monte Carlo implementation.
+pub fn estimate_gibbs_eig_importance_from_samples(
+    proposal_id: &str,
+    assumed: &FiniteObservationChannel,
+    prior: &[Rational],
+    gibbs_factors: &[Vec<Rational>],
+    proposal_probabilities: &[Vec<Rational>],
+    samples: &[GibbsImportanceSample],
+) -> Result<GibbsEigImportanceReceipt, String> {
+    if proposal_id.trim().is_empty() {
+        return Err("importance proposal ID must be non-empty".into());
+    }
+    assumed.validate()?;
+    validate_prior(prior, assumed.state_ids.len())?;
+    if samples.is_empty() {
+        return Err("Gibbs EIG importance estimate requires at least one sample".into());
+    }
+    if gibbs_factors.len() != assumed.observation_ids.len()
+        || proposal_probabilities.len() != assumed.state_ids.len()
+    {
+        return Err("Gibbs factors/proposal dimensions do not match the channel".into());
+    }
+    for (observation, factors) in gibbs_factors.iter().enumerate() {
+        if factors.len() != assumed.state_ids.len() {
+            return Err(format!("Gibbs factor row {observation} has the wrong state dimension"));
+        }
+    }
+    for (state, proposal_row) in proposal_probabilities.iter().enumerate() {
+        if proposal_row.len() != assumed.observation_ids.len() {
+            return Err(format!("proposal row {state} has the wrong observation dimension"));
+        }
+        let mut row_mass = Rational::zero();
+        for probability in proposal_row {
+            if !probability.is_probability() {
+                return Err(format!("proposal row {state} has an invalid probability"));
+            }
+            row_mass = row_mass.checked_add(*probability)?;
+        }
+        if row_mass != Rational::one() {
+            return Err(format!("proposal row {state} must sum exactly to one"));
+        }
+    }
+
+    for (state, prior_mass) in prior.iter().copied().enumerate() {
+        if prior_mass.is_zero() {
+            continue;
+        }
+        for observation in 0..assumed.observation_ids.len() {
+            if !gibbs_factors[observation][state].is_zero()
+                && proposal_probabilities[state][observation].is_zero()
+            {
+                return Err(format!(
+                    "proposal has zero support for positive Gibbs mass at state {state}, observation {observation}"
+                ));
+            }
+        }
+    }
+
+    let exact = compute_gibbs_eig_exact_finite(
+        &format!("importance-oracle:{proposal_id}"),
+        assumed,
+        prior,
+        gibbs_factors,
+    )?;
+
+    let mut importance_weights = Vec::with_capacity(samples.len());
+    let mut weight_sum = Rational::zero();
+    let mut squared_weight_sum = Rational::zero();
+    let mut weighted_utility = 0.0_f64;
+    let mut utility_compensation = 0.0_f64;
+
+    for sample in samples {
+        if sample.state_index >= assumed.state_ids.len()
+            || sample.observation_index >= assumed.observation_ids.len()
+        {
+            return Err("importance sample index is outside the channel vocabulary".into());
+        }
+        let proposal_probability =
+            proposal_probabilities[sample.state_index][sample.observation_index];
+        if proposal_probability.is_zero() {
+            return Err("importance sample lies outside proposal support".into());
+        }
+        let gibbs_factor =
+            gibbs_factors[sample.observation_index][sample.state_index];
+        let weight = gibbs_factor.checked_div(proposal_probability)?;
+        weight_sum = weight_sum.checked_add(weight)?;
+        squared_weight_sum =
+            squared_weight_sum.checked_add(weight.checked_mul(weight)?)?;
+        importance_weights.push(weight);
+
+        if weight.is_zero() {
+            continue;
+        }
+        let marginal_mass =
+            exact.pseudo_predictive_mass_by_observation[sample.observation_index];
+        let log_ratio = rational_to_f64(gibbs_factor).ln()
+            - rational_to_f64(marginal_mass).ln();
+        let weighted_term = rational_to_f64(weight) * log_ratio;
+        kahan_add(
+            &mut weighted_utility,
+            &mut utility_compensation,
+            weighted_term,
+        );
+    }
+
+    if weight_sum.is_zero() || squared_weight_sum.is_zero() {
+        return Err("all sampled Gibbs importance weights are zero".into());
+    }
+    let effective_sample_size =
+        weight_sum.checked_mul(weight_sum)?.checked_div(squared_weight_sum)?;
+    let sample_count = Rational::from_u64(samples.len() as u64);
+    let effective_sample_size_fraction = rational_to_f64(effective_sample_size)
+        / rational_to_f64(sample_count);
+    let normalized_importance_weights = importance_weights
+        .iter()
+        .map(|weight| weight.checked_div(weight_sum))
+        .collect::<Result<Vec<_>, _>>()?;
+    let maximum_normalized_weight = normalized_importance_weights
+        .iter()
+        .copied()
+        .max()
+        .unwrap_or_else(Rational::zero);
+    let estimated = weighted_utility / rational_to_f64(weight_sum);
+    if !estimated.is_finite() {
+        return Err("importance-sampled Gibbs EIG was non-finite".into());
+    }
+
+    Ok(GibbsEigImportanceReceipt {
+        proposal_id: proposal_id.to_string(),
+        sample_count: samples.len(),
+        unnormalized_importance_weights: importance_weights,
+        normalized_importance_weights,
+        effective_sample_size,
+        effective_sample_size_fraction,
+        maximum_normalized_weight,
+        estimated_gibbs_eig_nats: estimated,
+        exact_oracle_gibbs_eig_nats: exact.value_nats,
+        absolute_error_nats: (estimated - exact.value_nats).abs(),
+    })
+}
+
+fn rational_to_f64(value: Rational) -> f64 {
+    value.numerator() as f64 / value.denominator() as f64
+}
+
+fn kahan_add(sum: &mut f64, compensation: &mut f64, value: f64) {
+    let adjusted = value - *compensation;
+    let next = *sum + adjusted;
+    *compensation = (next - *sum) - adjusted;
+    *sum = next;
+}
+
 /// Mutual information in bits under the supplied nominal prior/channel.
 ///
 /// This uses floating-point logarithms and is a diagnostic comparator only;
@@ -2505,6 +2817,142 @@ mod tests {
         assert_eq!(pair.realized_total_loss_preference, ExperimentPreference::B);
         assert_eq!(pair.experiment_a.inference_rule_id, "posterior-inverted");
         assert_eq!(pair.experiment_b.inference_rule_id, exact_rule.rule_id);
+    }
+
+    fn likelihood_proposal_samples() -> Vec<GibbsImportanceSample> {
+        vec![
+            GibbsImportanceSample { state_index: 0, observation_index: 0 },
+            GibbsImportanceSample { state_index: 0, observation_index: 0 },
+            GibbsImportanceSample { state_index: 0, observation_index: 0 },
+            GibbsImportanceSample { state_index: 0, observation_index: 0 },
+            GibbsImportanceSample { state_index: 0, observation_index: 1 },
+            GibbsImportanceSample { state_index: 1, observation_index: 0 },
+            GibbsImportanceSample { state_index: 1, observation_index: 1 },
+            GibbsImportanceSample { state_index: 1, observation_index: 1 },
+            GibbsImportanceSample { state_index: 1, observation_index: 1 },
+            GibbsImportanceSample { state_index: 1, observation_index: 1 },
+        ]
+    }
+
+    #[test]
+    fn exact_gibbs_eig_reduces_to_mutual_information_at_unit_log_likelihood() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("gibbs-unit-likelihood");
+        let factors = vec![
+            vec![channel.probabilities[0][0], channel.probabilities[1][0]],
+            vec![channel.probabilities[0][1], channel.probabilities[1][1]],
+        ];
+        let exact = compute_gibbs_eig_exact_finite(
+            "ordinary-bayes",
+            &channel,
+            &prior,
+            &factors,
+        )
+        .unwrap();
+        let mutual_information_nats =
+            mutual_information_bits(&channel, &prior).unwrap() * std::f64::consts::LN_2;
+        assert!((exact.value_nats - mutual_information_nats).abs() < 1.0e-12);
+        assert_eq!(exact.pseudo_predictive_normalizer, Rational::one());
+    }
+
+    #[test]
+    fn exact_gibbs_eig_is_zero_at_zero_learning_rate() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("gibbs-zero-rate");
+        let factors = vec![
+            vec![Rational::one(), Rational::one()],
+            vec![Rational::one(), Rational::one()],
+        ];
+        let exact = compute_gibbs_eig_exact_finite(
+            "zero-learning-rate",
+            &channel,
+            &prior,
+            &factors,
+        )
+        .unwrap();
+        assert_eq!(exact.value_nats, 0.0);
+        assert_eq!(
+            exact.normalized_pseudo_predictive,
+            vec![rational(1, 2), rational(1, 2)]
+        );
+    }
+
+    #[test]
+    fn importance_sampler_has_unit_ess_when_proposal_matches_gibbs_likelihood() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("importance-matched");
+        let factors = vec![
+            vec![channel.probabilities[0][0], channel.probabilities[1][0]],
+            vec![channel.probabilities[0][1], channel.probabilities[1][1]],
+        ];
+        let samples = likelihood_proposal_samples();
+        let receipt = estimate_gibbs_eig_importance_from_samples(
+            "working-model-proposal",
+            &channel,
+            &prior,
+            &factors,
+            &channel.probabilities,
+            &samples,
+        )
+        .unwrap();
+        assert_eq!(receipt.effective_sample_size, Rational::from_u64(10));
+        assert_eq!(receipt.effective_sample_size_fraction, 1.0);
+        assert!((receipt.estimated_gibbs_eig_nats - receipt.exact_oracle_gibbs_eig_nats).abs() < 1.0e-12);
+        assert_eq!(receipt.maximum_normalized_weight, rational(1, 10));
+    }
+
+    #[test]
+    fn importance_sampler_reports_exact_weight_degeneracy_and_oracle_error() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("importance-weighted");
+        let factors = vec![
+            vec![Rational::from_u64(3), Rational::one()],
+            vec![Rational::one(), Rational::from_u64(3)],
+        ];
+        let samples = likelihood_proposal_samples();
+        let receipt = estimate_gibbs_eig_importance_from_samples(
+            "working-model-proposal",
+            &channel,
+            &prior,
+            &factors,
+            &channel.probabilities,
+            &samples,
+        )
+        .unwrap();
+        assert_eq!(receipt.effective_sample_size, rational(128, 13));
+        assert!(receipt.effective_sample_size_fraction < 1.0);
+        assert!(receipt.absolute_error_nats < 1.0e-12);
+    }
+
+    #[test]
+    fn gibbs_eig_importance_rejects_proposal_support_gaps_and_empty_samples() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("importance-support-gap");
+        let factors = vec![
+            vec![Rational::one(), Rational::one()],
+            vec![Rational::one(), Rational::one()],
+        ];
+        assert!(estimate_gibbs_eig_importance_from_samples(
+            "empty",
+            &channel,
+            &prior,
+            &factors,
+            &channel.probabilities,
+            &[],
+        ).is_err());
+
+        let proposal = vec![
+            vec![Rational::one(), Rational::zero()],
+            vec![Rational::one(), Rational::zero()],
+        ];
+        assert!(estimate_gibbs_eig_importance_from_samples(
+            "support-gap",
+            &channel,
+            &prior,
+            &factors,
+            &proposal,
+            &[GibbsImportanceSample { state_index: 0, observation_index: 0 }],
+        ).is_err());
     }
 
     #[test]
