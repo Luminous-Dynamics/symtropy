@@ -8,6 +8,8 @@ use super::{
     polynomial_multiply, polynomial_scale, remainder, sturm_isolate_rational, trim,
 };
 use nalgebra::{SMatrix, SVector};
+use num_bigint::BigInt;
+use num_traits::{One, Zero};
 
 type RationalInterval = (Rational, Rational);
 
