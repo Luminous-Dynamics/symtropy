@@ -56,16 +56,16 @@ fn determinant_bareiss(mut matrix: Vec<Vec<i64>>) -> i64 {
             sign = -sign;
         }
         let pivot = matrix[pivot_index][pivot_index];
-        for row in pivot_index + 1..dimension {
+        let (pivot_rows, remaining_rows) = matrix.split_at_mut(pivot_index + 1);
+        let pivot_row = &pivot_rows[pivot_index];
+        for row in remaining_rows.iter_mut() {
             for column in pivot_index + 1..dimension {
-                let numerator = matrix[row][column] * pivot
-                    - matrix[row][pivot_index] * matrix[pivot_index][column];
+                let numerator = row[column] * pivot
+                    - row[pivot_index] * pivot_row[column];
                 assert_eq!(numerator % previous_pivot, 0);
-                matrix[row][column] = numerator / previous_pivot;
+                row[column] = numerator / previous_pivot;
             }
-        }
-        for row in pivot_index + 1..dimension {
-            matrix[row][pivot_index] = 0;
+            row[pivot_index] = 0;
         }
         previous_pivot = pivot;
     }
