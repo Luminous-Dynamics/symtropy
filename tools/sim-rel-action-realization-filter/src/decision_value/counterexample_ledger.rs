@@ -198,6 +198,9 @@ pub struct ModelFamilyLedgerSnapshot {
     pub baseline_development_worlds: Vec<DecisionModelWorld>,
     pub initial_policy_identity: String,
     pub initial_policy_plan: DecisionPlan,
+    /// Immutable exact replay metrics for the initial policy on the baseline
+    /// development family, retained independently of the current active policy.
+    pub initial_policy_metrics: Vec<WorldDecisionObjectives>,
     pub family_revision: u64,
     pub replay_context: DecisionReplayContext,
     pub development_worlds: Vec<DecisionModelWorld>,
@@ -223,6 +226,7 @@ pub struct ModelFamilyLedger {
     baseline_development_worlds: Vec<DecisionModelWorld>,
     initial_policy_identity: String,
     initial_policy_plan: DecisionPlan,
+    initial_policy_metrics: Vec<WorldDecisionObjectives>,
     replay_context: DecisionReplayContext,
     development_worlds: Vec<DecisionModelWorld>,
     family_revision: u64,
@@ -396,10 +400,12 @@ impl ModelFamilyLedger {
             }
         }
 
+        let initial_policy_metrics = initial_replay.per_world.clone();
         Ok(Self {
             baseline_development_worlds: baseline_worlds.clone(),
             initial_policy_identity: initial_policy_identity.clone(),
             initial_policy_plan: initial_policy_plan.clone(),
+            initial_policy_metrics,
             replay_context,
             development_worlds: baseline_worlds,
             family_revision: 0,
@@ -459,6 +465,7 @@ impl ModelFamilyLedger {
             baseline_development_worlds: self.baseline_development_worlds.clone(),
             initial_policy_identity: self.initial_policy_identity.clone(),
             initial_policy_plan: self.initial_policy_plan.clone(),
+            initial_policy_metrics: self.initial_policy_metrics.clone(),
             family_revision: self.family_revision,
             replay_context: self.replay_context.clone(),
             development_worlds: self.development_worlds.clone(),
