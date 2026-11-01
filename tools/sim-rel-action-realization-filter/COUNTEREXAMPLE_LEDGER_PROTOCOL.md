@@ -236,3 +236,17 @@ Most importantly, the ledger does not trust the search report's outcome class. I
 The witness claim must match the replay-derived typed outcome and exact metric payload. For policy-contract invalidation, the class must match and the ledger retains its own specific replay error string. A mismatched claim, NoViolation result, or unclassified replay error is rejected. The admission event stores the independently replayed outcome.
 
 This turns candidate admission from “the generator says this is a counterexample” into “the ledger independently reproduced the claimed finite-world policy/decision failure.”
+
+
+## 14. Calibration split reservation and deterministic evaluation
+
+The ledger now requires calibration family groups to be registered separately from sealed holdout groups before search begins. Calibration and sealed group IDs must be globally disjoint; their world IDs must be disjoint from one another and from all baseline development world IDs.
+
+A candidate is rejected as Development if either its family-group ID or its world ID aliases any reserved calibration or sealed group. This is stronger than checking the candidate's declared `EvidenceSplit` alone: the split-group registry is an independent admission constraint.
+
+The constructor canonicalizes baseline world order, calibration/holdout group world-ID order, and group map order. Sealed world snapshots are canonicalized by world ID before exact replay and event recording. Reordering input world snapshots therefore does not change the replay result's canonical ordering.
+
+Policy identities and sealed evaluation artifact IDs are single-use across the entire ledger lifetime, not just the currently invalidated revision or one holdout group. A stale ID cannot be recycled after later family revisions or across distinct sealed groups.
+
+The holdout attempt is consumed after group/world/policy/manifest bindings pass, even if the shared-policy replay or checked metric aggregation fails. Replay failure is retained as `replay_succeeded=false` plus an explicit error, and cannot be retried against the same sealed group. A valid replay with failing acceptance criteria is also consumed.
+
