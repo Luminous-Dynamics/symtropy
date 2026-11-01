@@ -96,6 +96,7 @@ pub struct CriterionResult {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ConvergenceScreen {
     pub run_id: String,
+    pub solver_id: String,
     pub runner_receipt_sha256: String,
     pub history_sha256: String,
     pub history_import_sha256: String,
@@ -131,6 +132,7 @@ fn canonical_screen_bytes(screen: &ConvergenceScreen) -> Vec<u8> {
     for value in [
         CONVERGENCE_SCREEN_SCHEMA,
         screen.run_id.as_str(),
+        screen.solver_id.as_str(),
         screen.runner_receipt_sha256.as_str(),
         screen.history_sha256.as_str(),
         screen.history_import_sha256.as_str(),
@@ -581,6 +583,7 @@ pub fn screen_su2_history(
     .to_owned();
     let mut screen = ConvergenceScreen {
         run_id: report.run_id.clone(),
+        solver_id: report.solver_id.clone(),
         runner_receipt_sha256: report.runner_receipt_sha256.clone(),
         history_sha256: report.history_sha256.clone(),
         history_import_sha256: report.import_sha256.clone(),
@@ -701,6 +704,7 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
     let header = [
         "schema",
         "run_id",
+        "solver_id",
         "runner_receipt_sha256",
         "history_sha256",
         "history_import_sha256",
@@ -740,6 +744,7 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
         let fields = [
             CONVERGENCE_SCREEN_SCHEMA.to_owned(),
             screen.run_id.clone(),
+            screen.solver_id.clone(),
             screen.runner_receipt_sha256.clone(),
             screen.history_sha256.clone(),
             screen.history_import_sha256.clone(),
