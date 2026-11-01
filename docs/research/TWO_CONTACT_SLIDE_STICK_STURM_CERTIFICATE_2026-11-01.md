@@ -40,7 +40,7 @@ Multiplying by `1+t^2` yields a polynomial matrix. Cramer's rule gives exact rat
 
 The remaining contact-1 sliding KKT condition is
 `(-sin(theta), cos(theta)) dot u_t1 = 0`.
-After clearing the common denominator and removing the nonzero factor `(1+t^2)^3`, the resulting equation is a quartic. The Rust test derives this polynomial from the exact dyadic values of every binary64 entry in W, q and mu; it does not copy the production coefficient array or parse decimal approximations.
+After clearing the active-system and sliding-direction denominators, the angular numerator contains the exact nonzero factor `(1+t^2)^4`. Removing all four copies leaves the quartic. The active-system determinant separately contains `(1+t^2)^3`; the singular-angle test removes those three copies before root counting. The Rust test derives this polynomial from the exact dyadic values of every binary64 entry in W, q and mu; it does not copy the production coefficient array or parse decimal approximations.
 
 One positive rescaling of the exact quartic has descending integer coefficients:
 
@@ -130,6 +130,23 @@ The new test reuses the existing `BigRational`/Sturm machinery in `coupled_frict
 6. The nonzero leading coefficient excludes a projective root at infinity.
 
 The dedicated workflow runs rustfmt on the modified verifier, this exact test, the existing exact single-contact Sturm suite, and the single-contact physical regression suite.
+
+## Metamorphic exact controls
+
+The executable integration suite additionally transforms the same physical
+island in two ways:
+
+- A signed-permutation quarter-turn of both tangent frames maps
+  `W' = T W T^T`, `q' = T q`. The exact quartic remains square-free with four
+  real roots, the reduced active determinant retains two singular directions,
+  and the admissibility classification remains two positive-multiplier and
+  two negative-multiplier branches.
+- Coherent scaling `W' = 2W`, `q' = 2q` leaves the angular roots and physical
+  classification unchanged.
+
+The reverse contact ordering is independently certified above. These
+controls exercise coordinate invariance and unit/coefficient scaling without
+using approximate rotations or comparing only decimal outputs.
 
 ## Claim ceiling
 
