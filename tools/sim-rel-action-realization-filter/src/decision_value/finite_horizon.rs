@@ -791,7 +791,7 @@ fn exhaustive_from_belief(
             },
         }));
     }
-    independent_pairwise_frontier(candidates)
+    Ok(independent_pairwise_frontier(candidates))
 }
 
 /// Independent quadratic nondominance filter used only by the exhaustive
