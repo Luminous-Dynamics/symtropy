@@ -4,10 +4,39 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 
 	"webpki.org/jsoncanonicalizer"
 )
+
+func readBoundedFile(path string, maxBytes int64) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("open %s: %w", path, err)
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("stat %s: %w", path, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("%s is not a regular file", path)
+	}
+	if info.Size() > maxBytes {
+		return nil, fmt.Errorf("%s exceeds %d-byte limit", path, maxBytes)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("bounded read %s: %w", path, err)
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("%s exceeded %d-byte limit while reading", path, maxBytes)
+	}
+	return data, nil
+}
 
 func main() {
 	if len(os.Args) != 3 {
@@ -15,14 +44,19 @@ func main() {
 		os.Exit(64)
 	}
 
-	input, err := os.ReadFile(os.Args[1])
+	input, err := readBoundedFile(os.Args[1], maxJCSInputBytes)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "read input: %v\n", err)
 		os.Exit(2)
 	}
-	expected, err := os.ReadFile(os.Args[2])
+	expected, err := readBoundedFile(os.Args[2], maxJCSInputBytes)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "read expected canonical bytes: %v\n", err)
+		os.Exit(2)
+	}
+
+	if err := validateStrictJCSInput(input); err != nil {
+		fmt.Fprintf(os.Stderr, "strict JCS input validation failed: %v\n", err)
 		os.Exit(2)
 	}
 

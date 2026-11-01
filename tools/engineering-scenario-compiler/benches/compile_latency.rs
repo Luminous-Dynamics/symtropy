@@ -1,12 +1,10 @@
 use engineering_scenario_compiler::{
-    canonical_semantic_ir_bytes, compile_bytes, Disposition, COMPILER_VERSION,
-    MAX_SOURCE_BYTES,
+    COMPILER_VERSION, Disposition, MAX_SOURCE_BYTES, canonical_semantic_ir_bytes, compile_bytes,
 };
 use std::hint::black_box;
 use std::time::Instant;
 
-const FIXTURE: &[u8] =
-    include_bytes!("../../../benchmarks/aero/naca0012-inc-rans/case.toml");
+const FIXTURE: &[u8] = include_bytes!("../../../benchmarks/aero/naca0012-inc-rans/case.toml");
 const SAMPLE_COUNT: usize = 500;
 const WARMUP_COUNT: usize = 50;
 const INPUT_SIZES: [usize; 5] = [4 * 1024, 16 * 1024, 64 * 1024, 256 * 1024, 512 * 1024];
@@ -84,8 +82,8 @@ fn main() {
         .scenario_ir
         .as_ref()
         .expect("frozen scenario compiles to typed IR");
-    let canonical_example = canonical_semantic_ir_bytes(scenario)
-        .expect("typed IR has valid JCS encoding");
+    let canonical_example =
+        canonical_semantic_ir_bytes(scenario).expect("typed IR has valid JCS encoding");
     let canonical_output_bytes = canonical_example.len();
     let canonical_sha256 = baseline
         .semantic_ir_jcs_sha256

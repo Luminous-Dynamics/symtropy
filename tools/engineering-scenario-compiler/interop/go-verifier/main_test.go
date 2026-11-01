@@ -22,11 +22,103 @@ func TestRFC8785GoldenVector(t *testing.T) {
 		t.Fatalf("read JCS expected vector: %v", err)
 	}
 
+	if err := validateStrictJCSInput(input); err != nil {
+		t.Fatalf("strict JCS input validation: %v", err)
+	}
+
 	actual, err := jsoncanonicalizer.Transform(input)
 	if err != nil {
 		t.Fatalf("independent JCS transformation: %v", err)
 	}
 	if !bytes.Equal(actual, bytes.TrimSpace(expected)) {
 		t.Fatalf("canonical bytes differ\nactual:   %s\nexpected: %s", actual, bytes.TrimSpace(expected))
+	}
+}
+
+func TestRFC8785AdversarialUnicodeAndBinary64Boundaries(t *testing.T) {
+	inputPath := filepath.Join("..", "golden", "adversarial-input.json")
+	expectedPath := filepath.Join("..", "golden", "adversarial-output.jcs")
+
+	input, err := os.ReadFile(inputPath)
+	if err != nil {
+		t.Fatalf("read adversarial JCS input: %v", err)
+	}
+	expected, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("read adversarial JCS expected bytes: %v", err)
+	}
+	if err := validateStrictJCSInput(input); err != nil {
+		t.Fatalf("strict preflight rejected valid adversarial JCS input: %v", err)
+	}
+	actual, err := jsoncanonicalizer.Transform(input)
+	if err != nil {
+		t.Fatalf("independent adversarial JCS transform: %v", err)
+	}
+	if !bytes.Equal(actual, bytes.TrimSpace(expected)) {
+		t.Fatalf("adversarial canonical bytes differ\nactual:   %s\nexpected: %s", actual, bytes.TrimSpace(expected))
+	}
+}
+
+func TestStrictJCSInputRejectsAmbiguousAndInvalidJSON(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+	}{
+		{name: "duplicate top-level member", input: []byte("{\"x\":1,\"x\":2}")},
+		{name: "duplicate nested member", input: []byte("{\"outer\":{\"x\":1,\"x\":2}}")},
+		{name: "escaped duplicate member name", input: []byte("{\"a\":1,\"\\u0061\":2}")},
+		{name: "duplicate nested inside array", input: []byte("{\"items\":[{\"x\":1,\"x\":2}]}")},
+		{name: "escaped Unicode duplicate property", input: []byte("{\"é\":1,\"\\u00e9\":2}")},
+		{name: "invalid UTF-8", input: []byte{0xff, 0x7b, 0x7d}},
+		{name: "unpaired high surrogate", input: []byte("{\"x\":\"\\uD800\"}")},
+		{name: "unpaired low surrogate", input: []byte("{\"x\":\"\\uDC00\"}")},
+		{name: "escaped BMP noncharacter value", input: []byte("{\"x\":\"\\uFDD0\"}")},
+		{name: "escaped BMP noncharacter property", input: []byte("{\"\\uFFFF\":1}")},
+		{name: "escaped supplementary-plane noncharacter", input: []byte("{\"x\":\"\\uD83F\\uDFFE\"}")},
+		{name: "literal BMP noncharacter", input: []byte("{\"x\":\"\uFDD0\"}")},
+		{name: "non-finite binary64 overflow", input: []byte("1e9999")},
+		{name: "unsafe positive integer literal", input: []byte("9007199254740992")},
+		{name: "unsafe negative integer literal", input: []byte("-9007199254740992")},
+		{name: "integer token beyond u64", input: []byte("18446744073709551617")},
+		{name: "integer token below i64", input: []byte("-9223372036854775809")},
+		{name: "trailing JSON value", input: []byte("{} {}")},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := validateStrictJCSInput(test.input); err == nil {
+				t.Fatalf("expected strict validation to reject %q", test.input)
+			}
+		})
+	}
+}
+
+func TestStrictJCSInputEnforcesSizeAndNestingBounds(t *testing.T) {
+	oversized := bytes.Repeat([]byte{' '}, maxJCSInputBytes+1)
+	if err := validateStrictJCSInput(oversized); err == nil {
+		t.Fatal("expected oversized JCS input to be rejected")
+	}
+	atSizeLimit := append([]byte{'0'}, bytes.Repeat([]byte{' '}, maxJCSInputBytes-1)...)
+	if err := validateStrictJCSInput(atSizeLimit); err != nil {
+		t.Fatalf("input at the byte limit was rejected: %v", err)
+	}
+
+	depth := maxJCSNestingDepth + 1
+	tooDeep := append(bytes.Repeat([]byte{'['}, depth), '0')
+	tooDeep = append(tooDeep, bytes.Repeat([]byte{']'}, depth)...)
+	if err := validateStrictJCSInput(tooDeep); err == nil {
+		t.Fatal("expected excessive JSON nesting to be rejected")
+	}
+
+	atLimit := append(bytes.Repeat([]byte{'['}, maxJCSNestingDepth), '0')
+	atLimit = append(atLimit, bytes.Repeat([]byte{']'}, maxJCSNestingDepth)...)
+	if err := validateStrictJCSInput(atLimit); err != nil {
+		t.Fatalf("input at the declared nesting limit was rejected: %v", err)
+	}
+}
+
+func TestStrictJCSInputAcceptsValidSurrogatePairAndNestedValues(t *testing.T) {
+	input := []byte("{\"outer\":[{\"symbol\":\"\\uD834\\uDD1E\"},-0,1e30,9007199254740991,true,null]}")
+	if err := validateStrictJCSInput(input); err != nil {
+		t.Fatalf("valid JCS input rejected: %v", err)
 	}
 }
