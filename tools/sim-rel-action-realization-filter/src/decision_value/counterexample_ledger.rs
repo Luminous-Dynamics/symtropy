@@ -1168,6 +1168,46 @@ mod tests {
         }
     }
 
+    fn recovered_policy() -> DecisionPlan {
+        DecisionPlan::Experiment {
+            command: 0,
+            branches: vec![
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Value(0),
+                        measurement: ObservationField::Value(0),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                },
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Value(0),
+                        measurement: ObservationField::Value(1),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(1) }),
+                },
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Missing,
+                        measurement: ObservationField::Value(0),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(0) }),
+                },
+                super::super::finite_horizon::DecisionBranch {
+                    observation: PublicObservation {
+                        hazard: false,
+                        readback: ObservationField::Missing,
+                        measurement: ObservationField::Value(1),
+                    },
+                    plan: Box::new(DecisionPlan::TerminalDecision { decision: Some(1) }),
+                },
+            ],
+        }
+    }
+
     fn ledger() -> ModelFamilyLedger {
         ModelFamilyLedger::new(
             vec![world("nominal")],
@@ -1237,10 +1277,10 @@ mod tests {
             seed: 42,
             family_revision: if policy_id == "policy-v2" { 1 } else { 0 },
             policy_identity: policy_id.into(),
-            attacked_policy: if policy_id == "policy-v1" {
-                test_policy()
-            } else {
-                terminal_plan()
+            attacked_policy: match policy_id {
+                "policy-v1" => test_policy(),
+                "policy-v2" => recovered_policy(),
+                _ => terminal_plan(),
             },
         }
     }
@@ -1524,7 +1564,7 @@ mod tests {
         let mut duplicate_content = counterexample(&world("nominal"), "candidate-b");
         duplicate_content.candidate_world.kernel =
             witness.candidate_world.kernel.clone();
-        replan(&mut ledger, "replan", 1, "policy-v2", terminal_plan()).unwrap();
+        replan(&mut ledger, "replan", 1, "policy-v2", recovered_policy()).unwrap();
         assert!(ledger
             .admit_counterexample(
                 &duplicate_content,
