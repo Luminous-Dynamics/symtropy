@@ -419,3 +419,19 @@ documented in [APPROXIMATE_BLACKWELL_PROTOCOL.md](APPROXIMATE_BLACKWELL_PROTOCOL
 This is a finite-channel guarantee conditional on the supplied witness, prior
 and loss table; it does not itself establish a sound continuous physical
 abstraction or a calibrated residual radius.
+
+
+## Exact binary-output Le Cam deficiency (SIM-REL-032)
+
+The `decision_value::experiment_ordering::solve_binary_le_cam_deficiency`
+oracle minimizes the directed worst-state total-variation simulation error
+over every row-stochastic garbling kernel for channels with exactly two
+observations each. It is restricted to at most 13 hidden states.
+
+The exact optimum is accepted only when Fourier-Motzkin projection and an
+independent exhaustive active-set vertex oracle agree, the reconstructed
+kernel is stochastic, and the SIM-REL-031 residual verifier reproduces the
+optimum. The complete mathematical protocol and conformance fixtures are in
+[LECAM_DEFICIENCY_PROTOCOL.md](LECAM_DEFICIENCY_PROTOCOL.md).
+
+This is a small-domain two-output oracle, not a generalized Le Cam solver.

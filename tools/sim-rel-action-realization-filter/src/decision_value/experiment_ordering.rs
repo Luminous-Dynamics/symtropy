@@ -1925,6 +1925,350 @@ fn exact_boxed_linear_feasibility(
     Ok(Some(solution))
 }
 
+/// Maximum inequalities accepted by the independent three-variable vertex oracle.
+/// Six box constraints plus two residual constraints per state fit at most 13 states.
+const MAX_BINARY_LECAM_VERTEX_CONSTRAINTS: usize = 32;
+
+/// Exact directed Le Cam deficiency for two-output finite channels.
+///
+/// For A and B with two observations each, write
+/// x = G(0,0), y = G(1,0). The remaining garbling entries are 1-x and 1-y.
+/// For each state s, the binary-output total variation residual is
+/// |B(s,0) - A(s,0)x - (1-A(s,0))y|. We minimize its maximum exactly.
+///
+/// This is deliberately a small-domain two-output oracle, not a generalized
+/// Le Cam deficiency solver. It provides two independent optimality checks:
+/// Fourier-Motzkin projection and exhaustive exact active-set vertex enumeration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BinaryLeCamDeficiencyReceipt {
+    pub dominance: super::approximate_blackwell::ApproximateBlackwellDominanceReceipt,
+    pub optimal_deficiency: Rational,
+    pub fme_pair_products: usize,
+    pub active_sets_checked: usize,
+    pub feasible_vertices: usize,
+    pub independent_vertex_lower_bound: Rational,
+    pub optimality_verified: bool,
+}
+
+fn binary_lecam_constraints(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+) -> Result<Vec<LinearInequality>, String> {
+    more_informative.validate()?;
+    target.validate()?;
+    if more_informative.state_ids != target.state_ids {
+        return Err("Le Cam channels must share the same ordered state vocabulary".into());
+    }
+    if more_informative.observation_ids.len() != 2 || target.observation_ids.len() != 2 {
+        return Err(
+            "binary Le Cam solver requires exactly two observations in each channel".into(),
+        );
+    }
+    if more_informative.state_ids.len() > 13 {
+        return Err("binary Le Cam vertex oracle supports at most 13 hidden states".into());
+    }
+
+    let mut constraints = Vec::with_capacity(6 + 2 * more_informative.state_ids.len());
+    let signed = SignedRational::from_rational;
+
+    // 0 <= x,y,epsilon <= 1.
+    for variable in 0..3 {
+        let mut lower = vec![signed(Rational::zero()); 3];
+        lower[variable] = signed(Rational::one()).negated();
+        constraints.push(LinearInequality {
+            coefficients: lower,
+            upper_bound: signed(Rational::zero()),
+        });
+        let mut upper = vec![signed(Rational::zero()); 3];
+        upper[variable] = signed(Rational::one());
+        constraints.push(LinearInequality {
+            coefficients: upper,
+            upper_bound: signed(Rational::one()),
+        });
+    }
+
+    // For each state, constrain both signs of the binary-output residual.
+    for (state, source_row) in more_informative.probabilities.iter().enumerate() {
+        let a = source_row[0];
+        let not_a = subtract_nonnegative(Rational::one(), a)?;
+        let b = target.probabilities[state][0];
+
+        // a*x + (1-a)*y - epsilon <= b.
+        constraints.push(LinearInequality {
+            coefficients: vec![signed(a), signed(not_a), signed(Rational::one()).negated()],
+            upper_bound: signed(b),
+        });
+
+        // -a*x - (1-a)*y - epsilon <= -b.
+        constraints.push(LinearInequality {
+            coefficients: vec![
+                signed(a).negated(),
+                signed(not_a).negated(),
+                signed(Rational::one()).negated(),
+            ],
+            upper_bound: signed(b).negated(),
+        });
+    }
+
+    if constraints.len() > MAX_BINARY_LECAM_VERTEX_CONSTRAINTS {
+        return Err("binary Le Cam vertex oracle exceeded its inequality cap".into());
+    }
+    Ok(constraints)
+}
+
+/// Return the exact minimum epsilon after eliminating x and y.
+///
+/// The projected system has one variable. Its negative-coefficient inequalities
+/// give lower bounds, its positive-coefficient inequalities give upper bounds.
+fn project_binary_lecam_minimum(
+    constraints: &[LinearInequality],
+) -> Result<(Rational, usize), String> {
+    let mut projected = constraints.to_vec();
+    let mut pair_products = 0usize;
+    for _ in 0..2 {
+        let Some(next) = eliminate_first_variable(projected, &mut pair_products)? else {
+            return Err("binary Le Cam projection found an empty feasible set".into());
+        };
+        projected = next;
+    }
+
+    let zero = SignedRational::from_rational(Rational::zero());
+    let one = SignedRational::from_rational(Rational::one());
+    let mut lower = zero;
+    let mut upper = one;
+
+    for inequality in &projected {
+        if inequality.coefficients.len() != 1 {
+            return Err("binary Le Cam projection did not reduce to one variable".into());
+        }
+        let coefficient = inequality.coefficients[0];
+        if coefficient.is_zero() {
+            if inequality.upper_bound.is_negative() {
+                return Err("binary Le Cam projected constraints are infeasible".into());
+            }
+        } else {
+            let bound = inequality.upper_bound.checked_div(coefficient)?;
+            if coefficient.is_negative() {
+                if bound > lower {
+                    lower = bound;
+                }
+            } else if bound < upper {
+                upper = bound;
+            }
+        }
+    }
+
+    if lower > upper {
+        return Err("binary Le Cam projected interval is empty".into());
+    }
+    let Some(minimum) = lower.as_probability() else {
+        return Err("binary Le Cam projection produced an invalid minimum".into());
+    };
+    Ok((minimum, pair_products))
+}
+
+fn solve_three_active_constraints(
+    first: &LinearInequality,
+    second: &LinearInequality,
+    third: &LinearInequality,
+) -> Result<Option<Vec<SignedRational>>, String> {
+    let selected = [first, second, third];
+    let mut matrix = Vec::with_capacity(3);
+    for constraint in selected {
+        if constraint.coefficients.len() != 3 {
+            return Err("binary Le Cam active constraint has the wrong dimension".into());
+        }
+        let mut row = constraint.coefficients.clone();
+        row.push(constraint.upper_bound);
+        matrix.push(row);
+    }
+
+    for column in 0..3 {
+        let Some(pivot_row) = (column..3).find(|row| !matrix[*row][column].is_zero()) else {
+            return Ok(None);
+        };
+        matrix.swap(column, pivot_row);
+
+        let pivot = matrix[column][column];
+        for entry in matrix[column].iter_mut().skip(column) {
+            *entry = entry.checked_div(pivot)?;
+        }
+        let normalized_pivot_row = matrix[column].clone();
+
+        for (row_index, row_values) in matrix.iter_mut().enumerate() {
+            if row_index == column {
+                continue;
+            }
+            let factor = row_values[column];
+            if factor.is_zero() {
+                continue;
+            }
+            for (entry, pivot_entry) in row_values
+                .iter_mut()
+                .zip(&normalized_pivot_row)
+                .skip(column)
+            {
+                let product = factor.checked_mul(*pivot_entry)?;
+                *entry = entry.checked_sub(product)?;
+            }
+        }
+    }
+
+    Ok(Some(
+        matrix.into_iter().map(|row| row[3]).collect::<Vec<_>>(),
+    ))
+}
+
+fn satisfies_linear_constraints(
+    candidate: &[SignedRational],
+    constraints: &[LinearInequality],
+) -> Result<bool, String> {
+    if candidate.len() != 3 {
+        return Err("binary Le Cam candidate must contain x, y and epsilon".into());
+    }
+    for constraint in constraints {
+        let mut left = SignedRational::from_rational(Rational::zero());
+        for (coefficient, value) in constraint.coefficients.iter().zip(candidate) {
+            left = left.checked_add(coefficient.checked_mul(*value)?)?;
+        }
+        if left > constraint.upper_bound {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// Independently minimize epsilon by enumerating every three-constraint active
+/// set. The feasible polytope is bounded in [0,1]^3, so an optimum is attained
+/// at a vertex with three linearly independent active constraints.
+fn binary_lecam_vertex_lower_bound(
+    constraints: &[LinearInequality],
+) -> Result<(Rational, usize, usize), String> {
+    if constraints.len() > MAX_BINARY_LECAM_VERTEX_CONSTRAINTS {
+        return Err("binary Le Cam vertex oracle exceeded its inequality cap".into());
+    }
+    let mut active_sets_checked = 0usize;
+    let mut feasible_candidates = BTreeSet::<Vec<SignedRational>>::new();
+
+    for first in 0..constraints.len() {
+        for second in (first + 1)..constraints.len() {
+            for third in (second + 1)..constraints.len() {
+                active_sets_checked = active_sets_checked
+                    .checked_add(1)
+                    .ok_or_else(|| "binary Le Cam active-set counter overflow".to_string())?;
+                let Some(candidate) = solve_three_active_constraints(
+                    &constraints[first],
+                    &constraints[second],
+                    &constraints[third],
+                )?
+                else {
+                    continue;
+                };
+                if !satisfies_linear_constraints(&candidate, constraints)? {
+                    continue;
+                }
+                if candidate[2].as_probability().is_none() {
+                    continue;
+                }
+                feasible_candidates.insert(candidate);
+            }
+        }
+    }
+
+    let feasible_vertices = feasible_candidates.len();
+    let mut best: Option<Rational> = None;
+    for candidate in &feasible_candidates {
+        let epsilon = candidate[2]
+            .as_probability()
+            .ok_or_else(|| "feasible vertex has an invalid epsilon coordinate".to_string())?;
+        if best.is_none_or(|current| epsilon < current) {
+            best = Some(epsilon);
+        }
+    }
+    let lower_bound = best.ok_or_else(|| {
+        "binary Le Cam vertex oracle found no feasible vertex in a non-empty bounded polytope"
+            .to_string()
+    })?;
+    Ok((lower_bound, active_sets_checked, feasible_vertices))
+}
+
+/// Solve the exact directed Le Cam deficiency for finite channels with
+/// exactly two observations each and at most 13 hidden states.
+///
+/// The minimum is established by agreement between exact Fourier-Motzkin
+/// projection and an independent exact active-set vertex oracle. The returned
+/// channel witness is separately replayed by the SIM-REL-031 approximate
+/// Blackwell verifier, and its maximum state residual must equal the optimum.
+pub fn solve_binary_le_cam_deficiency(
+    more_informative: &FiniteObservationChannel,
+    target: &FiniteObservationChannel,
+) -> Result<BinaryLeCamDeficiencyReceipt, String> {
+    let constraints = binary_lecam_constraints(more_informative, target)?;
+    let (fme_minimum, fme_pair_products) = project_binary_lecam_minimum(&constraints)?;
+    let (independent_vertex_lower_bound, active_sets_checked, feasible_vertices) =
+        binary_lecam_vertex_lower_bound(&constraints)?;
+
+    if fme_minimum != independent_vertex_lower_bound {
+        return Err("binary Le Cam Fourier-Motzkin and independent vertex optima disagree".into());
+    }
+
+    // Substitute the exact optimum epsilon and solve the remaining boxed
+    // two-variable feasibility problem to reconstruct x and y.
+    let mut fixed_epsilon_constraints = Vec::with_capacity(constraints.len());
+    let epsilon_signed = SignedRational::from_rational(fme_minimum);
+    for constraint in &constraints {
+        let epsilon_coefficient = constraint.coefficients[2];
+        let adjusted_bound = constraint
+            .upper_bound
+            .checked_sub(epsilon_coefficient.checked_mul(epsilon_signed)?)?;
+        fixed_epsilon_constraints.push(LinearInequality {
+            coefficients: constraint.coefficients[..2].to_vec(),
+            upper_bound: adjusted_bound,
+        });
+    }
+    let solution =
+        exact_boxed_linear_feasibility(2, fixed_epsilon_constraints)?.ok_or_else(|| {
+            "binary Le Cam optimum could not reconstruct a feasible garbling".to_string()
+        })?;
+    if solution.len() != 2 {
+        return Err("binary Le Cam reconstruction returned the wrong variable count".into());
+    }
+    let Some(x) = solution[0].as_probability() else {
+        return Err("binary Le Cam reconstruction produced invalid x".into());
+    };
+    let Some(y) = solution[1].as_probability() else {
+        return Err("binary Le Cam reconstruction produced invalid y".into());
+    };
+
+    let witness = BlackwellGarblingWitness {
+        probabilities: vec![
+            vec![x, subtract_nonnegative(Rational::one(), x)?],
+            vec![y, subtract_nonnegative(Rational::one(), y)?],
+        ],
+    };
+    let dominance = super::approximate_blackwell::verify_approximate_blackwell_dominance(
+        more_informative,
+        target,
+        &witness,
+        fme_minimum,
+    )?;
+    if dominance.maximum_state_residual != fme_minimum {
+        return Err(
+            "binary Le Cam reconstructed witness residual differs from the exact optimum".into(),
+        );
+    }
+
+    Ok(BinaryLeCamDeficiencyReceipt {
+        dominance,
+        optimal_deficiency: fme_minimum,
+        fme_pair_products,
+        active_sets_checked,
+        feasible_vertices,
+        independent_vertex_lower_bound,
+        optimality_verified: true,
+    })
+}
+
 fn validate_unique_ids(ids: &[String], label: &str) -> Result<(), String> {
     if ids.is_empty() {
         return Err(format!("{label} vocabulary must be non-empty"));
@@ -2023,6 +2367,232 @@ mod tests {
                 vec![Rational::one(), Rational::zero()],
             ],
         }
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_is_zero_for_perfect_to_noisy() {
+        let perfect = perfect_channel("perfect");
+        let noisy = noisy_channel("noisy");
+        let receipt = solve_binary_le_cam_deficiency(&perfect, &noisy).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(0, 1));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(0, 1));
+        assert!(receipt.optimality_verified);
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(0, 1));
+        assert!(receipt.dominance.within_declared_radius);
+        assert!(receipt.active_sets_checked > 0);
+        assert!(receipt.feasible_vertices > 0);
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 5), rational(4, 5)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_is_three_tenths_for_uninformative_to_noisy() {
+        let uninformative = FiniteObservationChannel {
+            channel_id: "uninformative".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 2), rational(1, 2)],
+            ],
+        };
+        let noisy = noisy_channel("noisy");
+        let receipt = solve_binary_le_cam_deficiency(&uninformative, &noisy).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(3, 10));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(3, 10));
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(3, 10));
+        assert!(receipt.optimality_verified);
+        // Multiple kernels attain the optimum because the source channel
+        // rows are identical. The exact FME reconstruction deterministically
+        // selects the identity kernel.
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(0, 1), rational(1, 1)],
+            ]
+        );
+        assert_eq!(
+            solve_binary_le_cam_deficiency(&uninformative, &noisy)
+                .unwrap()
+                .dominance
+                .witness
+                .probabilities,
+            receipt.dominance.witness.probabilities
+        );
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_is_one_tenth_for_seventy_to_eighty_percent() {
+        let source = FiniteObservationChannel {
+            channel_id: "seventy-percent".into(),
+            state_ids: vec!["s0".into(), "s1".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(7, 10), rational(3, 10)],
+                vec![rational(3, 10), rational(7, 10)],
+            ],
+        };
+        let target = noisy_channel("eighty-percent");
+        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+
+        assert_eq!(receipt.optimal_deficiency, rational(1, 10));
+        assert_eq!(receipt.independent_vertex_lower_bound, rational(1, 10));
+        assert!(receipt.optimality_verified);
+        assert_eq!(receipt.dominance.maximum_state_residual, rational(1, 10));
+        assert_eq!(
+            receipt.dominance.witness.probabilities,
+            vec![
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(0, 1), rational(1, 1)],
+            ]
+        );
+    }
+
+    #[test]
+    fn binary_le_cam_fme_and_vertex_oracles_agree_on_exhaustive_three_point_grid() {
+        let grid = [rational(0, 1), rational(1, 2), rational(1, 1)];
+        let mut cases = 0usize;
+        for source_state_zero in grid {
+            for source_state_one in grid {
+                for target_state_zero in grid {
+                    for target_state_one in grid {
+                        let make_channel = |id: String, first: Rational, second: Rational| {
+                            FiniteObservationChannel {
+                                channel_id: id,
+                                state_ids: vec!["s0".into(), "s1".into()],
+                                observation_ids: vec!["o0".into(), "o1".into()],
+                                probabilities: vec![
+                                    vec![
+                                        first,
+                                        subtract_nonnegative(Rational::one(), first).unwrap(),
+                                    ],
+                                    vec![
+                                        second,
+                                        subtract_nonnegative(Rational::one(), second).unwrap(),
+                                    ],
+                                ],
+                            }
+                        };
+                        let source = make_channel(
+                            format!("grid-source-{cases}"),
+                            source_state_zero,
+                            source_state_one,
+                        );
+                        let target = make_channel(
+                            format!("grid-target-{cases}"),
+                            target_state_zero,
+                            target_state_one,
+                        );
+                        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+                        assert!(receipt.optimality_verified);
+                        assert_eq!(
+                            receipt.optimal_deficiency,
+                            receipt.independent_vertex_lower_bound
+                        );
+                        assert_eq!(
+                            receipt.dominance.maximum_state_residual,
+                            receipt.optimal_deficiency
+                        );
+                        cases += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(cases, 81);
+    }
+
+    fn three_state_binary_channels() -> (FiniteObservationChannel, FiniteObservationChannel) {
+        let source = FiniteObservationChannel {
+            channel_id: "three-state-source".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["z0".into(), "z1".into()],
+            probabilities: vec![
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(0, 1), rational(1, 1)],
+            ],
+        };
+        let target = FiniteObservationChannel {
+            channel_id: "three-state-target".into(),
+            state_ids: source.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into()],
+            probabilities: vec![
+                vec![rational(4, 5), rational(1, 5)],
+                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 5), rational(4, 5)],
+            ],
+        };
+        (source, target)
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_supports_three_states_and_state_permutations() {
+        let (source, target) = three_state_binary_channels();
+        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+        assert_eq!(receipt.optimal_deficiency, rational(0, 1));
+        assert!(receipt.optimality_verified);
+
+        let permutation = [2usize, 0usize, 1usize];
+        let permuted = |channel: &FiniteObservationChannel, id: &str| FiniteObservationChannel {
+            channel_id: id.into(),
+            state_ids: permutation
+                .iter()
+                .map(|index| channel.state_ids[*index].clone())
+                .collect(),
+            observation_ids: channel.observation_ids.clone(),
+            probabilities: permutation
+                .iter()
+                .map(|index| channel.probabilities[*index].clone())
+                .collect(),
+        };
+        let permuted_source = permuted(&source, "permuted-source");
+        let permuted_target = permuted(&target, "permuted-target");
+        let permuted_receipt =
+            solve_binary_le_cam_deficiency(&permuted_source, &permuted_target).unwrap();
+        assert_eq!(
+            permuted_receipt.optimal_deficiency,
+            receipt.optimal_deficiency
+        );
+        assert_eq!(
+            permuted_receipt.independent_vertex_lower_bound,
+            receipt.independent_vertex_lower_bound
+        );
+        assert!(permuted_receipt.optimality_verified);
+    }
+
+    #[test]
+    fn binary_le_cam_deficiency_rejects_nonbinary_channels_and_malformed_vocabularies() {
+        let binary = perfect_channel("binary");
+        let nonbinary = FiniteObservationChannel {
+            channel_id: "three-observations".into(),
+            state_ids: binary.state_ids.clone(),
+            observation_ids: vec!["a".into(), "b".into(), "c".into()],
+            probabilities: vec![
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+            ],
+        };
+        assert!(solve_binary_le_cam_deficiency(&binary, &nonbinary).is_err());
+
+        let mut malformed = noisy_channel("wrong-state-vocabulary");
+        malformed.state_ids[1] = "different-state".into();
+        assert!(solve_binary_le_cam_deficiency(&binary, &malformed).is_err());
+
+        let oversized = FiniteObservationChannel {
+            channel_id: "fourteen-states".into(),
+            state_ids: (0..14).map(|index| format!("s{index}")).collect(),
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![vec![rational(1, 2), rational(1, 2)]; 14],
+        };
+        assert!(solve_binary_le_cam_deficiency(&oversized, &oversized).is_err());
     }
 
     fn posterior_rule(
