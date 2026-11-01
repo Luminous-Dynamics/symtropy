@@ -165,13 +165,19 @@ changes working-vs-true error; their joint interaction can be non-additive.
 This is an exact synthetic counterexample, not empirical physical evidence.
 
 The module validates explicit garbling witnesses for general finite
-channels and also solves the exact two-state/two-observation case with a
-closed-form rational system. The binary solver handles nonsingular channels
-and the singular-but-consistent case, then rechecks its generated witness with
-the general verifier. It does not solve Blackwell feasibility for arbitrary
-channel dimensions. EGIG and the paper's model/inference error penalties remain
-external comparator implementations to be added under SIM-REL-030 / issue
-#3189.
+channels, solves the exact two-state/two-observation case with a closed-form
+rational system, and now includes a bounded general small-channel solver.
+The binary solver covers nonsingular channels and the singular-but-consistent
+case. The general solver formulates the garbling matrix as bounded rational
+linear feasibility, uses Fourier-Motzkin elimination and reverse substitution,
+then rechecks its witness with the general verifier. It supports up to 12 free
+variables, 25,000 retained constraints and 500,000 elimination pair products;
+exceeding a cap is an explicit unsupported-size error, not a negative answer.
+Tests cover an asymmetric 3x3 channel, singular feasible/infeasible cases,
+non-dominance and the one-output edge case. Larger channel dimensions still
+require a scalable LP solver or a stronger exact method. EGIG and the paper's
+model/inference error penalties remain external comparator implementations
+under SIM-REL-030 / issue #3189.
 
 ## Fresh-fold sequential conformal calibration
 
