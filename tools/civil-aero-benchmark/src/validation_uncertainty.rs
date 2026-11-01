@@ -412,7 +412,7 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
             if !value.is_finite() || !(-1.0..=1.0).contains(value) {
                 return Err("correlation matrix entries must be finite and in [-1, 1]".to_owned());
             }
-            if (value - values[column_index][row_index]).abs() > MATRIX_SYMMETRY_TOLERANCE {
+            if (*value - values[column_index][row_index]).abs() > MATRIX_SYMMETRY_TOLERANCE {
                 return Err("correlation matrix must be symmetric".to_owned());
             }
         }
