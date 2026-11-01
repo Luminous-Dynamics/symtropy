@@ -101,7 +101,12 @@ fn next_nonempty<'a>(
     Err(format!("unexpected end of mesh while reading {context}"))
 }
 
-fn parse_key_count(line_number: usize, line: &str, key: &str) -> Result<u64, String> {
+fn parse_key_count(
+    line_number: usize,
+    line: &str,
+    key: &str,
+    allow_zero: bool,
+) -> Result<u64, String> {
     let value = line
         .strip_prefix(key)
         .ok_or_else(|| format!("line {line_number}: expected {key}"))?
@@ -109,7 +114,7 @@ fn parse_key_count(line_number: usize, line: &str, key: &str) -> Result<u64, Str
     let parsed = value
         .parse::<u64>()
         .map_err(|error| format!("line {line_number}: invalid {key} count: {error}"))?;
-    if parsed == 0 {
+    if parsed == 0 && !allow_zero {
         return Err(format!("line {line_number}: {key} must be positive"));
     }
     Ok(parsed)
@@ -121,7 +126,7 @@ fn parse_element_type(
     dimension: u8,
     boundary: bool,
     point_count: Option<u64>,
-) -> Result<u8, String> {
+) -> Result<(u8, Vec<u64>), String> {
     let fields = line.split_whitespace().collect::<Vec<_>>();
     if fields.is_empty() {
         return Err(format!("line {line_number}: empty element connectivity"));
@@ -151,6 +156,7 @@ fn parse_element_type(
             "line {line_number}: element type {kind} requires {expected_nodes} node indices and an optional trailing legacy index"
         ));
     }
+    let mut node_indices = Vec::with_capacity(expected_nodes);
     for token in &fields[1..=expected_nodes] {
         let index = token
             .parse::<u64>()
@@ -161,13 +167,14 @@ fn parse_element_type(
                 point_count.unwrap_or_default()
             ));
         }
+        node_indices.push(index);
     }
     if fields.len() == expected_nodes + 2 {
         fields[expected_nodes + 1]
             .parse::<u64>()
             .map_err(|error| format!("line {line_number}: invalid optional legacy element index: {error}"))?;
     }
-    Ok(kind)
+    Ok((kind, node_indices))
 }
 
 /// Parse and validate one native ASCII SU2 mesh byte sequence.
@@ -218,7 +225,7 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
             if point_count.is_some() {
                 return Err(format!("line {line_number}: duplicate NPOIN section"));
             }
-            let count = parse_key_count(line_number, line, "NPOIN=")?;
+            let count = parse_key_count(line_number, line, "NPOIN=", false)?;
             for _ in 0..count {
                 let (point_line, point_record) =
                     next_nonempty(&lines, &mut cursor, "point coordinate record")?;
@@ -253,23 +260,22 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
             if volume_element_count.is_some() {
                 return Err(format!("line {line_number}: duplicate NELEM section"));
             }
-            let count = parse_key_count(line_number, line, "NELEM=")?;
+            let count = parse_key_count(line_number, line, "NELEM=", false)?;
             for _ in 0..count {
                 let (element_line, element_record) =
                     next_nonempty(&lines, &mut cursor, "volume element connectivity")?;
-                let kind = parse_element_type(
+                let (kind, node_indices) = parse_element_type(
                     element_line,
                     element_record,
                     dimension,
                     false,
                     point_count,
                 )?;
-                let fields = element_record.split_whitespace().collect::<Vec<_>>();
-                for token in &fields[1..] {
-                    if let Ok(index) = token.parse::<u64>() {
-                        node_references.push((element_line, index));
-                    }
-                }
+                node_references.extend(
+                    node_indices
+                        .into_iter()
+                        .map(|index| (element_line, index)),
+                );
                 *volume_element_type_counts.entry(kind).or_default() += 1;
             }
             volume_element_count = Some(count);
@@ -277,7 +283,7 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
             if marker_count.is_some() {
                 return Err(format!("line {line_number}: duplicate NMARK section"));
             }
-            let count = parse_key_count(line_number, line, "NMARK=")?;
+            let count = parse_key_count(line_number, line, "NMARK=", true)?;
             for _ in 0..count {
                 let (tag_line, tag_record) =
                     next_nonempty(&lines, &mut cursor, "MARKER_TAG")?;
@@ -292,23 +298,22 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                 }
                 let (count_line, count_record) =
                     next_nonempty(&lines, &mut cursor, "MARKER_ELEMS")?;
-                let element_count = parse_key_count(count_line, count_record, "MARKER_ELEMS=")?;
+                let element_count = parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
                 for _ in 0..element_count {
                     let (element_line, element_record) =
                         next_nonempty(&lines, &mut cursor, "marker element connectivity")?;
-                    parse_element_type(
+                    let (_kind, node_indices) = parse_element_type(
                         element_line,
                         element_record,
                         dimension,
                         true,
                         point_count,
                     )?;
-                    let fields = element_record.split_whitespace().collect::<Vec<_>>();
-                    for token in &fields[1..] {
-                        if let Ok(index) = token.parse::<u64>() {
-                            node_references.push((element_line, index));
-                        }
-                    }
+                    node_references.extend(
+                        node_indices
+                            .into_iter()
+                            .map(|index| (element_line, index)),
+                    );
                 }
                 total_boundary_elements = total_boundary_elements
                     .checked_add(element_count)
