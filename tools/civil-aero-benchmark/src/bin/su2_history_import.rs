@@ -35,13 +35,13 @@ fn run() -> Result<(), String> {
     let report = import_su2_history(&options.run_directory, &schema)?;
     eprintln!(
         "su2_history_import=pass run_id={} points={} selected_fields={} history_sha256={} runner_receipt_sha256={} import_sha256={} evidence_level={}",
-        report.run_id,
-        report.points.len(),
-        report.numeric_fields.len(),
-        report.history_sha256,
-        report.runner_receipt_sha256,
-        report.import_sha256,
-        report.evidence_level
+        report.run_id(),
+        report.points().len(),
+        report.numeric_fields().len(),
+        report.history_sha256(),
+        report.runner_receipt_sha256(),
+        report.import_sha256(),
+        report.evidence_level()
     );
     print!("{}", report.to_csv());
     Ok(())
