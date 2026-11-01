@@ -68,12 +68,12 @@ pub fn try_integrate<const D: usize>(
     // Sanitize into local values first. This keeps the body's state and
     // accumulators untouched if the validated inertia solve below fails.
     let force_accumulator = if body.force_accumulator.iter().all(|v| v.is_finite()) {
-        body.force_accumulator.clone()
+        body.force_accumulator
     } else {
         SVector::zeros()
     };
     let torque_accumulator = if body.torque_accumulator.is_finite() {
-        body.torque_accumulator.clone()
+        body.torque_accumulator
     } else {
         Bivector::zero()
     };
@@ -732,11 +732,11 @@ mod tests {
         body.apply_force(SVector::<_, 3>::new(4.0, -2.0, 1.0));
         body.apply_torque(Bivector::<3>::unit_plane(1, 2));
 
-        let position_before = body.transform.translation.0.clone();
-        let linear_before = body.linear_velocity.clone();
-        let angular_before = body.angular_velocity.clone();
-        let force_before = body.force_accumulator.clone();
-        let torque_before = body.torque_accumulator.clone();
+        let position_before = body.transform.translation.0;
+        let linear_before = body.linear_velocity;
+        let angular_before = body.angular_velocity;
+        let force_before = body.force_accumulator;
+        let torque_before = body.torque_accumulator;
 
         let error =
             try_integrate(&mut body, &SVector::<_, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
@@ -812,12 +812,12 @@ mod tests {
         body.apply_force(SVector::<_, 3>::new(4.0, -2.0, 1.0));
         body.apply_torque(Bivector::<3>::unit_plane(0, 2));
 
-        let position_before = body.transform.translation.0.clone();
+        let position_before = body.transform.translation.0;
         let rotation_before = body.transform.rotation.clone();
-        let linear_before = body.linear_velocity.clone();
-        let angular_before = body.angular_velocity.clone();
-        let force_before = body.force_accumulator.clone();
-        let torque_before = body.torque_accumulator.clone();
+        let linear_before = body.linear_velocity;
+        let angular_before = body.angular_velocity;
+        let force_before = body.force_accumulator;
+        let torque_before = body.torque_accumulator;
 
         assert_eq!(
             try_integrate(&mut body, &SVector::zeros(), 0.01),
@@ -861,7 +861,7 @@ mod tests {
             ))
             .unwrap(),
         );
-        let before = body.angular_velocity.clone();
+        let before = body.angular_velocity;
         let error =
             try_apply_angular_impulse(&mut body, &Bivector::<3>::unit_plane(1, 2)).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
