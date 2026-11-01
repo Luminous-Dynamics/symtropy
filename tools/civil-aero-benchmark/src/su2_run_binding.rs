@@ -428,7 +428,6 @@ pub fn binding_to_csv(binding: &Su2RunLineageBinding) -> String {
     ];
     let mut rows = artifacts
         .into_iter()
-        .map(|(role, artifact)| (role, artifact))
         .chain(
             binding
                 .additional_outputs
