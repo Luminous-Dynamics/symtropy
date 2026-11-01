@@ -192,6 +192,103 @@ fn derive_contact_graph(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct MinFillAnalysis {
+    elimination_order: Vec<usize>,
+    separator_sizes: Vec<usize>,
+    induced_width_upper_bound: usize,
+    fill_edges: Vec<(usize, usize)>,
+}
+
+/// Produce a deterministic min-fill elimination order for a certified
+/// structural contact graph. The induced width of this order is an upper
+/// bound on graph treewidth, not an exact treewidth computation.
+fn min_fill_elimination(
+    graph: &StructuralContactGraph,
+) -> Result<MinFillAnalysis, &'static str> {
+    if !graph.separator_graph_is_certified() {
+        return Err("incomplete structural support cannot certify separator elimination");
+    }
+
+    let contact_count = graph.adjacency.len();
+    for (row_index, row) in graph.adjacency.iter().enumerate() {
+        if row.len() != contact_count || row[row_index] {
+            return Err("contact adjacency must be square with a false diagonal");
+        }
+        for (column_index, adjacent) in row.iter().copied().enumerate() {
+            if adjacent != graph.adjacency[column_index][row_index] {
+                return Err("contact adjacency must be symmetric");
+            }
+        }
+    }
+
+    let mut adjacency = graph.adjacency.clone();
+    let mut active = vec![true; contact_count];
+    let mut elimination_order = Vec::with_capacity(contact_count);
+    let mut separator_sizes = Vec::with_capacity(contact_count);
+    let mut induced_width_upper_bound = 0;
+    let mut fill_edges = Vec::new();
+
+    for _ in 0..contact_count {
+        let mut best: Option<(usize, usize, usize, Vec<usize>)> = None;
+        for (node, is_active) in active.iter().copied().enumerate() {
+            if !is_active {
+                continue;
+            }
+            let neighbors = active
+                .iter()
+                .copied()
+                .enumerate()
+                .filter_map(|(neighbor, neighbor_is_active)| {
+                    (neighbor_is_active && adjacency[node][neighbor]).then_some(neighbor)
+                })
+                .collect::<Vec<_>>();
+
+            let mut missing_neighbor_edges = 0;
+            for (index, neighbor_i) in neighbors.iter().copied().enumerate() {
+                for neighbor_j in neighbors.iter().copied().skip(index + 1) {
+                    if !adjacency[neighbor_i][neighbor_j] {
+                        missing_neighbor_edges += 1;
+                    }
+                }
+            }
+
+            let candidate = (missing_neighbor_edges, neighbors.len(), node, neighbors);
+            if best
+                .as_ref()
+                .is_none_or(|current| (candidate.0, candidate.1, candidate.2) < (current.0, current.1, current.2))
+            {
+                best = Some(candidate);
+            }
+        }
+
+        let (_, _, node, neighbors) =
+            best.ok_or("min-fill failed to select an active contact")?;
+        separator_sizes.push(neighbors.len());
+        induced_width_upper_bound = induced_width_upper_bound.max(neighbors.len());
+
+        for (index, neighbor_i) in neighbors.iter().copied().enumerate() {
+            for neighbor_j in neighbors.iter().copied().skip(index + 1) {
+                if !adjacency[neighbor_i][neighbor_j] {
+                    adjacency[neighbor_i][neighbor_j] = true;
+                    adjacency[neighbor_j][neighbor_i] = true;
+                    fill_edges.push((neighbor_i.min(neighbor_j), neighbor_i.max(neighbor_j)));
+                }
+            }
+        }
+
+        active[node] = false;
+        elimination_order.push(node);
+    }
+
+    Ok(MinFillAnalysis {
+        elimination_order,
+        separator_sizes,
+        induced_width_upper_bound,
+        fill_edges,
+    })
+}
+
 fn star_jacobian_support() -> Vec<Vec<bool>> {
     let mut support = vec![vec![false; 12]; 9];
     for axis in 0..3 {
@@ -350,4 +447,69 @@ fn contact_graph_support_validation_rejects_malformed_patterns() {
     ];
     assert!(derive_contact_graph(&[vec![0, 4]], &symmetric_pattern, true).is_err());
     assert!(derive_contact_graph(&[vec![0, 0]], &symmetric_pattern, true).is_err());
+}
+
+
+#[test]
+fn min_fill_reports_width_one_for_the_body_generated_star() {
+    let jacobian_support = star_jacobian_support();
+    let contact_supports = contact_supports_from_jacobian(&jacobian_support, 3).unwrap();
+    let inverse_mass_support = body_local_inverse_mass_support();
+    let graph = derive_contact_graph(&contact_supports, &inverse_mass_support, true).unwrap();
+    let analysis = min_fill_elimination(&graph).unwrap();
+
+    assert_eq!(analysis.induced_width_upper_bound, 1);
+    assert_eq!(analysis.fill_edges, Vec::<(usize, usize)>::new());
+    assert_eq!(analysis.elimination_order.len(), 3);
+    assert!(analysis.separator_sizes.iter().all(|size| *size <= 1));
+}
+
+#[test]
+fn min_fill_exposes_cycle_fill_in_and_dense_clique_cost() {
+    let cycle = StructuralContactGraph {
+        adjacency: vec![
+            vec![false, true, false, true],
+            vec![true, false, true, false],
+            vec![false, true, false, true],
+            vec![true, false, true, false],
+        ],
+        edge_witnesses: Vec::new(),
+        omitted_edge_proofs: Vec::new(),
+        support_complete: true,
+    };
+    let cycle_analysis = min_fill_elimination(&cycle).unwrap();
+    assert_eq!(cycle_analysis.induced_width_upper_bound, 2);
+    assert_eq!(cycle_analysis.fill_edges, vec![(1, 3)]);
+
+    let clique_size = 5;
+    let clique = StructuralContactGraph {
+        adjacency: (0..clique_size)
+            .map(|row| (0..clique_size).map(|column| row != column).collect())
+            .collect(),
+        edge_witnesses: Vec::new(),
+        omitted_edge_proofs: Vec::new(),
+        support_complete: true,
+    };
+    let clique_analysis = min_fill_elimination(&clique).unwrap();
+    assert_eq!(clique_analysis.induced_width_upper_bound, clique_size - 1);
+    assert!(clique_analysis.fill_edges.is_empty());
+}
+
+#[test]
+fn min_fill_refuses_incomplete_or_asymmetric_graphs() {
+    let incomplete = StructuralContactGraph {
+        adjacency: vec![vec![false, true], vec![true, false]],
+        edge_witnesses: Vec::new(),
+        omitted_edge_proofs: Vec::new(),
+        support_complete: false,
+    };
+    assert!(min_fill_elimination(&incomplete).is_err());
+
+    let asymmetric = StructuralContactGraph {
+        adjacency: vec![vec![false, true], vec![false, false]],
+        edge_witnesses: Vec::new(),
+        omitted_edge_proofs: Vec::new(),
+        support_complete: true,
+    };
+    assert!(min_fill_elimination(&asymmetric).is_err());
 }
