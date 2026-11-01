@@ -633,7 +633,8 @@ mod tests {
 
     #[test]
     fn tangent_projector_is_symmetric_idempotent_and_annihilates_normal() {
-        let frame = ContactFrame::<5>::new(SVector::<_, 5>::new(0.2, -0.3, 0.4, 0.1, -0.5), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<5>::new(SVector::<_, 5>::new(0.2, -0.3, 0.4, 0.1, -0.5), 1e-12).unwrap();
         let projector = frame.tangent_projector();
         assert!((projector - projector.transpose()).norm() < 1e-12);
         assert!((projector * projector - projector).norm() < 1e-12);
@@ -675,7 +676,8 @@ mod tests {
 
     #[test]
     fn rotating_contact_frame_preserves_decomposition_and_orthogonality() {
-        let frame = ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, 0.4, -0.1, 0.3), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, 0.4, -0.1, 0.3), 1e-12).unwrap();
         let angular = Bivector::<4>::from_wedge(
             &SVector::<_, 4>::new(0.2, 0.4, 0.6, 0.8),
             &SVector::<_, 4>::new(-0.3, 0.1, 0.5, -0.2),
@@ -716,7 +718,8 @@ mod tests {
 
     #[test]
     fn contact_wrench_bounds_validate_tangential_rolling_and_torsional_impulses() {
-        let frame = ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, -0.3, 0.4, 0.1), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, -0.3, 0.4, 0.1), 1e-12).unwrap();
         let limits = ContactWrenchFrictionLimits::new(0.5, 0.02, 0.03, 0.4, 0.2).unwrap();
         let wrench = ContactWrenchImpulse::<4> {
             normal: 10.0,
@@ -847,7 +850,8 @@ mod tests {
 
     #[test]
     fn transported_frame_tracks_normal_and_preserves_local_wrench_coordinates() {
-        let frame = ContactFrame::<4>::new(SVector::<_, 4>::new(1.0, 0.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(1.0, 0.0, 0.0, 0.0), 1e-12).unwrap();
         let target_normal = SVector::<_, 4>::new(0.2, 0.3, -0.4, 0.5);
         let transported = frame.transported_to(target_normal, 1e-12).unwrap();
         let target_unit = target_normal.normalize();
