@@ -1277,6 +1277,9 @@ pub fn estimate_gibbs_eig_importance_from_samples(
         {
             return Err("importance sample index is outside the channel vocabulary".into());
         }
+        if prior[sample.state_index].is_zero() {
+            return Err("importance sample lies outside prior support".into());
+        }
         let proposal_probability =
             proposal_probabilities[sample.state_index][sample.observation_index];
         if proposal_probability.is_zero() {
