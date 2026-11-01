@@ -1141,6 +1141,7 @@ mod tests {
             normal: tangent,
             ..frictionless_normal.clone()
         };
+        let matrix = assemble_contact_wrench_delassus(&bodies, &[row], 1e-12).unwrap();
         let normal_metric = assemble_delassus(&bodies, &[frictionless_normal], 1e-12).unwrap();
         let tangent_metric = assemble_delassus(&bodies, &[frictionless_tangent], 1e-12).unwrap();
         assert!(
@@ -1152,7 +1153,6 @@ mod tests {
             "tangent diagonal differs from frictionless reference"
         );
 
-        let matrix = assemble_contact_wrench_delassus(&bodies, &[row], 1e-12).unwrap();
         let scale = matrix.norm().max(f64::MIN_POSITIVE);
         assert!(
             (&matrix - matrix.transpose()).norm() <= 1e-10 * scale,
