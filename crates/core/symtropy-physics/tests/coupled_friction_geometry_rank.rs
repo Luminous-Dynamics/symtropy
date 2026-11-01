@@ -475,3 +475,62 @@ fn three_non_collinear_point_contacts_have_a_three_dimensional_impulse_fiber() {
 
     assert!(allocations.windows(2).all(|pair| pair[0] != pair[1]));
 }
+
+
+fn plane_contact_jacobian(points: &[(i64, i64)]) -> Matrix {
+    let mut jacobian = Vec::with_capacity(3 * points.len());
+    for &(x, y) in points {
+        // Coordinates are generalized twist (v, omega), the contact normal is
+        // ez, and the two tangent axes are ex and ey.
+        jacobian.push(vec![z(), z(), i(1), i(y), i(-x), z()]);
+        jacobian.push(vec![i(1), z(), z(), z(), z(), i(-y)]);
+        jacobian.push(vec![z(), i(1), z(), z(), z(), i(x)]);
+    }
+    jacobian
+}
+
+fn rigid_body_inverse_mass() -> Matrix {
+    vec![
+        vec![i(1), z(), z(), z(), z(), z()],
+        vec![z(), i(1), z(), z(), z(), z()],
+        vec![z(), z(), i(1), z(), z(), z()],
+        vec![z(), z(), z(), i(1), z(), z()],
+        vec![z(), z(), z(), z(), r(1, 2), z()],
+        vec![z(), z(), z(), z(), z(), r(1, 3)],
+    ]
+}
+
+#[test]
+fn geometry_contact_count_exposes_the_rank_and_nullity_scaling_law() {
+    let points = [
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (2, 0),
+        (-1, 2),
+        (2, 2),
+        (3, -1),
+    ];
+    let inverse_mass = rigid_body_inverse_mass();
+
+    for contact_count in [2_usize, 3, 4, 8] {
+        let jacobian = plane_contact_jacobian(&points[..contact_count]);
+        let delassus = multiply(
+            &multiply(&jacobian, &inverse_mass),
+            &transpose(&jacobian),
+        );
+        let expected_rank = if contact_count == 2 { 5 } else { 6 };
+        let expected_nullity = if contact_count == 2 {
+            1
+        } else {
+            3 * contact_count - 6
+        };
+
+        assert_eq!(jacobian.len(), 3 * contact_count);
+        assert_eq!(rank(&jacobian), expected_rank);
+        assert_eq!(rank(&delassus), expected_rank);
+        assert_eq!(3 * contact_count - rank(&delassus), expected_nullity);
+        assert_eq!(delassus, transpose(&delassus));
+    }
+}
