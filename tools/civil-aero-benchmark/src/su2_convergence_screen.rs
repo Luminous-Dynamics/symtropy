@@ -635,9 +635,7 @@ fn empty_result(
 
 /// Verify aggregate status counts and recompute the canonical screen digest before downstream binding.
 pub fn verify_convergence_screen(screen: &ConvergenceScreen) -> Result<(), String> {
-    if screen.evidence_level != CONVERGENCE_SCREEN_EVIDENCE_LEVEL
-        || screen.results.is_empty()
-    {
+    if screen.evidence_level != CONVERGENCE_SCREEN_EVIDENCE_LEVEL || screen.results.is_empty() {
         return Err("convergence screen evidence level or result set is invalid".to_owned());
     }
     let passed = screen
@@ -662,7 +660,9 @@ pub fn verify_convergence_screen(screen: &ConvergenceScreen) -> Result<(), Strin
             screen.insufficient_count,
         )
     {
-        return Err("convergence screen aggregate counts do not match criterion statuses".to_owned());
+        return Err(
+            "convergence screen aggregate counts do not match criterion statuses".to_owned(),
+        );
     }
     let expected_status = match (failed, insufficient) {
         (0, 0) => "declared_thresholds_met",
@@ -671,7 +671,9 @@ pub fn verify_convergence_screen(screen: &ConvergenceScreen) -> Result<(), Strin
         _ => "declared_thresholds_not_met_and_incomplete",
     };
     if screen.status != expected_status {
-        return Err("convergence screen aggregate status does not match criterion statuses".to_owned());
+        return Err(
+            "convergence screen aggregate status does not match criterion statuses".to_owned(),
+        );
     }
     let mut columns = std::collections::BTreeSet::new();
     if screen.results.iter().any(|row| {
