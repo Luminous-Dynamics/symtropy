@@ -619,12 +619,26 @@ pub enum ExperimentPreference {
     Tie,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExperimentParetoRelation {
+    A_DominatesB,
+    B_DominatesA,
+    Tradeoff,
+    Equivalent,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExperimentPairComparison {
     pub experiment_a: ChannelDecisionEvaluation,
     pub experiment_b: ChannelDecisionEvaluation,
     pub experiment_cost_a: Rational,
     pub experiment_cost_b: Rational,
+    /// Multiplier converting one cost unit into terminal-decision-loss units.
+    pub cost_to_loss_exchange_rate: Rational,
+    /// Componentwise comparison of (cost, nominal decision risk), without scalarization.
+    pub nominal_pareto_relation: ExperimentParetoRelation,
+    /// Componentwise comparison of (cost, realized decision risk), without scalarization.
+    pub realized_pareto_relation: ExperimentParetoRelation,
     pub mutual_information_a_bits: f64,
     pub mutual_information_b_bits: f64,
     pub information_preference: ExperimentPreference,
@@ -645,6 +659,25 @@ pub struct ExperimentPairComparison {
     pub information_loss_ranking_reversal: bool,
 }
 
+fn pareto_relation(
+    cost_a: Rational,
+    decision_loss_a: Rational,
+    cost_b: Rational,
+    decision_loss_b: Rational,
+) -> ExperimentParetoRelation {
+    let a_no_worse = cost_a <= cost_b && decision_loss_a <= decision_loss_b;
+    let b_no_worse = cost_b <= cost_a && decision_loss_b <= decision_loss_a;
+    let a_strict = cost_a < cost_b || decision_loss_a < decision_loss_b;
+    let b_strict = cost_b < cost_a || decision_loss_b < decision_loss_a;
+
+    match (a_no_worse && a_strict, b_no_worse && b_strict, a_no_worse, b_no_worse) {
+        (true, false, _, _) => ExperimentParetoRelation::A_DominatesB,
+        (false, true, _, _) => ExperimentParetoRelation::B_DominatesA,
+        (_, _, true, true) => ExperimentParetoRelation::Equivalent,
+        _ => ExperimentParetoRelation::Tradeoff,
+    }
+}
+
 fn lower_loss_preference(loss_a: Rational, loss_b: Rational) -> ExperimentPreference {
     if loss_a < loss_b {
         ExperimentPreference::A
@@ -655,15 +688,12 @@ fn lower_loss_preference(loss_a: Rational, loss_b: Rational) -> ExperimentPrefer
     }
 }
 
-/// Compare two experiments using their own working and true channels under one
-/// common prior and terminal loss. The inference rule for each experiment is
-/// exact Bayes under that experiment's working channel.
-///
-/// Costs are charged once per experiment and added to both nominal and
-/// realized downstream loss. The MI ranking is diagnostic; a strict opposite
-/// realized cost-plus-loss ranking is reported as an explicit reversal.
+/// Compare two experiments under an explicit conversion from cost units to
+/// terminal-decision-loss units. Cost and decision loss are also retained as
+/// separate Pareto objectives, so the caller can inspect trade-offs without
+/// relying on any scalarization coefficient.
 #[allow(clippy::too_many_arguments)]
-pub fn compare_experiment_pair_with_inference_rules(
+pub fn compare_experiment_pair_with_inference_rules_and_cost_rate(
     assumed_a: &FiniteObservationChannel,
     truth_a: &FiniteObservationChannel,
     inference_rule_a: &InferencePosteriorRule,
@@ -672,6 +702,7 @@ pub fn compare_experiment_pair_with_inference_rules(
     truth_b: &FiniteObservationChannel,
     inference_rule_b: &InferencePosteriorRule,
     cost_b: Rational,
+    cost_to_loss_exchange_rate: Rational,
     prior: &[Rational],
     table: &ChannelDecisionLossTable,
 ) -> Result<ExperimentPairComparison, String> {
@@ -701,10 +732,28 @@ pub fn compare_experiment_pair_with_inference_rules(
     } else {
         ExperimentPreference::Tie
     };
-    let nominal_total_loss_a = cost_a.checked_add(evaluation_a.nominal_model_expected_loss)?;
-    let nominal_total_loss_b = cost_b.checked_add(evaluation_b.nominal_model_expected_loss)?;
-    let realized_total_loss_a = cost_a.checked_add(evaluation_a.realized_policy_loss)?;
-    let realized_total_loss_b = cost_b.checked_add(evaluation_b.realized_policy_loss)?;
+    let weighted_cost_a = cost_a.checked_mul(cost_to_loss_exchange_rate)?;
+    let weighted_cost_b = cost_b.checked_mul(cost_to_loss_exchange_rate)?;
+    let nominal_total_loss_a =
+        weighted_cost_a.checked_add(evaluation_a.nominal_model_expected_loss)?;
+    let nominal_total_loss_b =
+        weighted_cost_b.checked_add(evaluation_b.nominal_model_expected_loss)?;
+    let realized_total_loss_a =
+        weighted_cost_a.checked_add(evaluation_a.realized_policy_loss)?;
+    let realized_total_loss_b =
+        weighted_cost_b.checked_add(evaluation_b.realized_policy_loss)?;
+    let nominal_pareto_relation = pareto_relation(
+        cost_a,
+        evaluation_a.nominal_model_expected_loss,
+        cost_b,
+        evaluation_b.nominal_model_expected_loss,
+    );
+    let realized_pareto_relation = pareto_relation(
+        cost_a,
+        evaluation_a.realized_policy_loss,
+        cost_b,
+        evaluation_b.realized_policy_loss,
+    );
     let nominal_total_loss_preference =
         lower_loss_preference(nominal_total_loss_a, nominal_total_loss_b);
     let realized_total_loss_preference =
@@ -720,6 +769,9 @@ pub fn compare_experiment_pair_with_inference_rules(
         experiment_b: evaluation_b,
         experiment_cost_a: cost_a,
         experiment_cost_b: cost_b,
+        cost_to_loss_exchange_rate,
+        nominal_pareto_relation,
+        realized_pareto_relation,
         mutual_information_a_bits: information_a,
         mutual_information_b_bits: information_b,
         information_preference,
@@ -733,6 +785,38 @@ pub fn compare_experiment_pair_with_inference_rules(
         realized_total_loss_preference,
         information_loss_ranking_reversal,
     })
+}
+
+/// Compare two experiments with explicit inference rules and the default
+/// one-to-one cost-to-loss exchange rate. Use
+/// `compare_experiment_pair_with_inference_rules_and_cost_rate` when the
+/// currency/utility conversion differs from one.
+#[allow(clippy::too_many_arguments)]
+pub fn compare_experiment_pair_with_inference_rules(
+    assumed_a: &FiniteObservationChannel,
+    truth_a: &FiniteObservationChannel,
+    inference_rule_a: &InferencePosteriorRule,
+    cost_a: Rational,
+    assumed_b: &FiniteObservationChannel,
+    truth_b: &FiniteObservationChannel,
+    inference_rule_b: &InferencePosteriorRule,
+    cost_b: Rational,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<ExperimentPairComparison, String> {
+    compare_experiment_pair_with_inference_rules_and_cost_rate(
+        assumed_a,
+        truth_a,
+        inference_rule_a,
+        cost_a,
+        assumed_b,
+        truth_b,
+        inference_rule_b,
+        cost_b,
+        Rational::one(),
+        prior,
+        table,
+    )
 }
 
 /// Compare two experiments using exact Bayesian inference under each
