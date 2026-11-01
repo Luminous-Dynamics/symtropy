@@ -238,6 +238,20 @@ jobs:
           fi
           grep -q "cross-view mismatch" /tmp/dpw8-v5-tampered.txt
           python3 scripts/verify-dpw8-v5-independent.py /tmp/dpw8-v5-tampered.dat /tmp/dpw8-v5-tampered.csv --expect-reject
+      - name: Audit DPW-8 participant metadata against the official V1a protocol
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-a.csv 2> /tmp/dpw8-protocol-a.txt
+          cargo run --locked --bin dpw8_protocol_conformance_demo > /tmp/dpw8-protocol-b.csv 2> /tmp/dpw8-protocol-b.txt
+          cmp /tmp/dpw8-protocol-a.csv /tmp/dpw8-protocol-b.csv
+          cmp /tmp/dpw8-protocol-a.txt /tmp/dpw8-protocol-b.txt
+          test "$(wc -l < /tmp/dpw8-protocol-a.csv)" -eq 8
+          grep -q "overall_status=deviations_detected_and_incomplete findings=7 conforms=4 deviations=1 minimum_below_desirable=1 unknown=1" /tmp/dpw8-protocol-a.txt
+          grep -q '"sidewall_boundary_condition".*"periodic".*"symmetric".*"deviates"' /tmp/dpw8-protocol-a.csv
+          grep -q '"grid_level_count".*"minimum=4; desirable=6".*"4".*"meets_minimum_below_desirable"' /tmp/dpw8-protocol-a.csv
+          python3 scripts/verify-dpw8-protocol-conformance-independent.py /tmp/dpw8-protocol-a.csv
+          sha256sum /tmp/dpw8-protocol-a.csv
       - name: Verify grid-convergence order, Richardson limit, and GCI with independent oracle
         working-directory: tools/civil-aero-benchmark
         shell: bash
