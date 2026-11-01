@@ -23,18 +23,10 @@ type Vector6 = SVector<f64, 6>;
 fn solve_sticking_sticking_reduced(w: &Matrix6, q: &Vector6) -> Option<Vector6> {
     let normal = [0, 3];
     let tangent = [1, 2, 4, 5];
-    let w_nn = SMatrix::<f64, 2, 2>::from_fn(|row, column| {
-        w[(normal[row], normal[column])]
-    });
-    let w_nt = SMatrix::<f64, 2, 4>::from_fn(|row, column| {
-        w[(normal[row], tangent[column])]
-    });
-    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| {
-        w[(tangent[row], normal[column])]
-    });
-    let w_tt = SMatrix::<f64, 4, 4>::from_fn(|row, column| {
-        w[(tangent[row], tangent[column])]
-    });
+    let w_nn = SMatrix::<f64, 2, 2>::from_fn(|row, column| w[(normal[row], normal[column])]);
+    let w_nt = SMatrix::<f64, 2, 4>::from_fn(|row, column| w[(normal[row], tangent[column])]);
+    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| w[(tangent[row], normal[column])]);
+    let w_tt = SMatrix::<f64, 4, 4>::from_fn(|row, column| w[(tangent[row], tangent[column])]);
     let q_n = SVector::<f64, 2>::new(q[0], q[3]);
     let q_t = SVector::<f64, 4>::new(q[1], q[2], q[4], q[5]);
 
