@@ -55,12 +55,7 @@ fn multiply_matrix_vector(matrix: &Matrix6, vector: &Vector6) -> Vector6 {
 
 /// Compute J^T p without division. The caller chooses a common denominator.
 fn generalized_impulse_numerator(j: &Jacobian6x3, p: &Vector6) -> [i64; 3] {
-    core::array::from_fn(|dof| {
-        j.iter()
-            .zip(p)
-            .map(|(row, value)| row[dof] * value)
-            .sum()
-    })
+    core::array::from_fn(|dof| j.iter().zip(p).map(|(row, value)| row[dof] * value).sum())
 }
 
 /// Scaled numerator for p(t) = (t,0,0,1-t,0,0), t = k/4.
@@ -69,9 +64,7 @@ fn normal_allocation_numerator(k: i64) -> Vector6 {
 }
 
 fn is_frictionless_contact_admissible(p: &Vector6, normal_index: usize) -> bool {
-    p[normal_index] >= 0
-        && p[normal_index + 1] == 0
-        && p[normal_index + 2] == 0
+    p[normal_index] >= 0 && p[normal_index + 1] == 0 && p[normal_index + 2] == 0
 }
 
 #[cfg(test)]
@@ -106,9 +99,7 @@ mod tests {
         ] {
             let wx = multiply_matrix_vector(&w, &x);
             let quadratic = x.iter().zip(wx).map(|(a, b)| a * b).sum::<i64>();
-            let gram_square = (x[0] + x[3]).pow(2)
-                + (x[1] + x[4]).pow(2)
-                + (x[2] + x[5]).pow(2);
+            let gram_square = (x[0] + x[3]).pow(2) + (x[1] + x[4]).pow(2) + (x[2] + x[5]).pow(2);
             assert_eq!(quadratic, gram_square);
             assert!(quadratic >= 0);
         }
@@ -142,9 +133,8 @@ mod tests {
 
             // All quantities use the common denominator four.
             let wp = multiply_matrix_vector(&w, &p);
-            let post_velocity_numerator = core::array::from_fn::<_, 6, _>(|index| {
-                FREE_VELOCITY_NUMERATOR[index] + wp[index]
-            });
+            let post_velocity_numerator =
+                core::array::from_fn::<_, 6, _>(|index| FREE_VELOCITY_NUMERATOR[index] + wp[index]);
             assert_eq!(post_velocity_numerator, [0; 6]);
 
             // The two local normal impulses are nonnegative and both normal
@@ -174,14 +164,14 @@ mod tests {
                 .zip(FREE_VELOCITY_NUMERATOR)
                 .map(|(left, right)| left * right)
                 .sum::<i64>();
-            let quadratic_work_numerator =
-                p.iter().zip(wp).map(|(left, right)| left * right).sum::<i64>();
+            let quadratic_work_numerator = p
+                .iter()
+                .zip(wp)
+                .map(|(left, right)| left * right)
+                .sum::<i64>();
             assert_eq!(linear_work_numerator, -16);
             assert_eq!(quadratic_work_numerator, 16);
-            assert_eq!(
-                2 * linear_work_numerator + quadratic_work_numerator,
-                -16
-            );
+            assert_eq!(2 * linear_work_numerator + quadratic_work_numerator, -16);
         }
     }
 
