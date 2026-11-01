@@ -815,7 +815,7 @@ mod tests {
             .map(|body| {
                 let mut rotated = RigidBody::<3>::dynamic_sphere(
                     body.handle,
-                    Point::new(global_rotation.rotate_vector(&body.transform.translation.0)),
+                    Point::new(global_rotation.rotate_vector(&body.transform.translation.0).into()),
                     0.5,
                     body.mass,
                 );
