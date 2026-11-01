@@ -1,0 +1,29 @@
+name: Geometry-derived rank-deficient Delassus assurance
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/coupled_friction_geometry_rank.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm_support.rs"
+      - "docs/research/GEOMETRY_DERIVED_RANK_DEFICIENT_DELASSUS_2026-11-01.md"
+      - ".github/workflows/contact-geometry-rank-quotient.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-geometry-rank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting of the geometry rank test
+        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/coupled_friction_geometry_rank.rs
+      - name: Compile the production physics library
+        run: cargo check -p symtropy-physics --lib --locked
+      - name: Certify exact geometry-derived PSD and impulse equivalence
+        run: cargo test -p symtropy-physics --test coupled_friction_geometry_rank --locked
