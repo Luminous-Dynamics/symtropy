@@ -127,7 +127,7 @@ python3 scripts/verify-su2-convergence-screen-independent.py "$root/run" "$root/
 test "$(wc -l < "$root/su2-run-lineage.csv")" -eq 7
 grep -q 'su2_run_lineage=pass run_id=ci-su2-process-fixture outputs=2' "$root/su2-convergence-screen.txt"
 grep -q 'su2-run-lineage-binding/0.1.0' "$root/su2-run-lineage.csv"
-python3 scripts/verify-su2-run-lineage-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv" "$root/su2-run-lineage.csv"
+python3 scripts/verify-su2-run-lineage-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv" "$root/su2-run-lineage.csv" "$root/su2-mesh-summary.csv"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
 test -s "$root/run/runner_receipt.csv"
