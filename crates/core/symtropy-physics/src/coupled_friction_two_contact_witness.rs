@@ -1559,7 +1559,10 @@ mod double_sliding_direction_oracle {
                             if right == 0 {
                                 continue;
                             }
-                            assert!(i + k < 5 && j + l < 5, "unexpected polynomial degree overflow");
+                            assert!(
+                                i + k < 5 && j + l < 5,
+                                "unexpected polynomial degree overflow"
+                            );
                             let term = left
                                 .checked_mul(right)
                                 .expect("bivariate polynomial product fits i128");
@@ -1662,38 +1665,14 @@ mod double_sliding_direction_oracle {
         let q1 = q_numerators[0];
         let q2 = q_numerators[3];
         let v1 = [
-            BivariateIntegerPolynomial::in_t1([
-                common_denominator,
-                0,
-                common_denominator,
-            ]),
-            BivariateIntegerPolynomial::in_t1([
-                -friction_numerators[0],
-                0,
-                friction_numerators[0],
-            ]),
-            BivariateIntegerPolynomial::in_t1([
-                0,
-                -2 * friction_numerators[0],
-                0,
-            ]),
+            BivariateIntegerPolynomial::in_t1([common_denominator, 0, common_denominator]),
+            BivariateIntegerPolynomial::in_t1([-friction_numerators[0], 0, friction_numerators[0]]),
+            BivariateIntegerPolynomial::in_t1([0, -2 * friction_numerators[0], 0]),
         ];
         let v2 = [
-            BivariateIntegerPolynomial::in_t2([
-                common_denominator,
-                0,
-                common_denominator,
-            ]),
-            BivariateIntegerPolynomial::in_t2([
-                -friction_numerators[1],
-                0,
-                friction_numerators[1],
-            ]),
-            BivariateIntegerPolynomial::in_t2([
-                0,
-                -2 * friction_numerators[1],
-                0,
-            ]),
+            BivariateIntegerPolynomial::in_t2([common_denominator, 0, common_denominator]),
+            BivariateIntegerPolynomial::in_t2([-friction_numerators[1], 0, friction_numerators[1]]),
+            BivariateIntegerPolynomial::in_t2([0, -2 * friction_numerators[1], 0]),
         ];
 
         let h11 = linear_combination(
