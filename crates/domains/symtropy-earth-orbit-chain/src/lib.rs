@@ -605,11 +605,7 @@ fn validate_evidence(evidence: &EvidenceStatus, subject_id: &str, findings: &mut
     match evidence {
         EvidenceStatus::Qualified { receipt_sha256 } => {
             if !is_sha256(receipt_sha256) {
-                push_finding(
-                    findings,
-                    FindingCode::MalformedReceiptDigest,
-                    subject_id,
-                );
+                push_finding(findings, FindingCode::MalformedReceiptDigest, subject_id);
             }
         }
         EvidenceStatus::Unknown => {
