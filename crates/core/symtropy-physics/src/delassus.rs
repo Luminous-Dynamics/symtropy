@@ -927,6 +927,9 @@ mod tests {
             offset_b: SVector::<_, 3>::new(0.2, -0.1, 0.3),
             frame,
         };
+        let free_linear_velocity = dynamic_body.linear_velocity;
+        let free_angular_velocity = dynamic_body.angular_velocity.clone();
+        let free_rotation = dynamic_body.transform.rotation.clone();
         let reference =
             assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
                 .unwrap();
@@ -944,13 +947,13 @@ mod tests {
         );
         let mut rotated_dynamic =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
-        rotated_dynamic.linear_velocity = rotation.rotate_vector(&dynamic_body.linear_velocity);
+        rotated_dynamic.linear_velocity = rotation.rotate_vector(&free_linear_velocity);
         rotated_dynamic.angular_velocity = Bivector::from_matrix(
             &(rotation.to_matrix()
-                * dynamic_body.angular_velocity.to_matrix()
+                * free_angular_velocity.to_matrix()
                 * rotation.to_matrix().transpose()),
         );
-        rotated_dynamic.transform.rotation = rotation.compose(&dynamic_body.transform.rotation);
+        rotated_dynamic.transform.rotation = rotation.compose(&free_rotation);
         let rotated_row = ContactWrenchRow {
             body_a: row.body_a,
             body_b: row.body_b,
@@ -963,10 +966,10 @@ mod tests {
             &[rotated_row],
         )
         .unwrap();
+        let rotation_error = (&rotated - &reference).norm();
         assert!(
-            (&rotated - reference).norm() < 1e-10,
-            "global rotation changed free wrench velocity by {}",
-            (&rotated - reference).norm()
+            rotation_error < 1e-10,
+            "global rotation changed free wrench velocity by {rotation_error}"
         );
     }
 
