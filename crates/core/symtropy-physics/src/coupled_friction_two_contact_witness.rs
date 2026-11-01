@@ -37,13 +37,13 @@ fn fixture() -> (Matrix6, Vector6) {
         0.80910089,
         0.019271919047677163,
         0.025741864981422207,
-        -0.0083170671965776075,
+        -0.008_317_067_196_577_608,
         -0.63542426,
         0.80910089,
         0.94522735,
         0.002331483384856203,
         0.013469705454618652,
-        0.0078042835950851083,
+        0.007_804_283_595_085_108,
         -0.0015969863578854011,
         0.019271919047677163,
         0.002331483384856203,
@@ -163,7 +163,7 @@ mod tests {
 
         // Symmetry and strict positive definiteness are checked on the full
         // coupled matrix, not on two separate 3x3 diagonal blocks.
-        assert!((&w - w.transpose()).norm() < 1.0e-15);
+        assert!((w - w.transpose()).norm() < 1.0e-15);
         assert!(w.cholesky().is_some());
 
         let mut cross_norm_squared = 0.0;
