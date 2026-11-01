@@ -3,8 +3,7 @@ name: Two-contact coupled Coulomb multiple-solution witness
 on:
   pull_request:
     paths:
-      - "crates/core/symtropy-physics/src/lib.rs"
-      - "crates/core/symtropy-physics/src/coupled_friction_two_contact_witness.rs"
+      - "crates/core/symtropy-physics/tests/coupled_friction_two_contact_witness.rs"
       - "docs/research/COULOMB_TWO_CONTACT_MULTIROOT_WITNESS_2026-10-31.md"
       - ".github/workflows/coupled-coulomb-two-contact-witness.yml"
   workflow_dispatch:
