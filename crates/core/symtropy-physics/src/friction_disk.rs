@@ -76,7 +76,9 @@ pub fn solve_tangential_friction_disk(
     relative_tolerance: f64,
 ) -> Result<TangentialFrictionDiskSolution, FrictionDiskError> {
     if !effective_mass_tangent.iter().all(|value| value.is_finite())
-        || !free_tangential_velocity.iter().all(|value| value.is_finite())
+        || !free_tangential_velocity
+            .iter()
+            .all(|value| value.is_finite())
         || !friction_coefficient.is_finite()
         || !normal_impulse.is_finite()
     {
@@ -115,9 +117,8 @@ pub fn solve_tangential_friction_disk(
     let zero = SVector::<f64, 2>::zeros();
     let zero_result = |impulse: SVector<f64, 2>| {
         let post_slip_velocity = free_tangential_velocity + metric * impulse;
-        let frictional_work_delta = impulse.dot(
-            &(free_tangential_velocity + 0.5 * metric * impulse),
-        );
+        let frictional_work_delta =
+            impulse.dot(&(free_tangential_velocity + 0.5 * metric * impulse));
         TangentialFrictionDiskSolution {
             impulse,
             post_slip_velocity,
@@ -147,9 +148,9 @@ pub fn solve_tangential_friction_disk(
     if unconstrained.norm() <= radius + radius_tolerance {
         let mut solution = zero_result(unconstrained);
         solution.post_slip_velocity = free_tangential_velocity + metric * solution.impulse;
-        solution.frictional_work_delta = solution.impulse.dot(
-            &(free_tangential_velocity + 0.5 * metric * solution.impulse),
-        );
+        solution.frictional_work_delta = solution
+            .impulse
+            .dot(&(free_tangential_velocity + 0.5 * metric * solution.impulse));
         let velocity_scale = free_tangential_velocity
             .norm()
             .max(matrix_scale * solution.impulse.norm())
@@ -223,9 +224,7 @@ pub fn solve_tangential_friction_disk(
         .max(f64::MIN_POSITIVE);
     let normalized_stationarity_residual = stationarity.norm() / velocity_scale;
     let cone_violation = (impulse.norm() - radius).max(0.0);
-    let frictional_work_delta = impulse.dot(
-        &(free_tangential_velocity + 0.5 * metric * impulse),
-    );
+    let frictional_work_delta = impulse.dot(&(free_tangential_velocity + 0.5 * metric * impulse));
 
     let solution = TangentialFrictionDiskSolution {
         impulse,
@@ -255,7 +254,10 @@ fn validate_dissipation(
     work_scale: f64,
 ) -> Result<(), FrictionDiskError> {
     if !solution.frictional_work_delta.is_finite()
-        || !solution.post_slip_velocity.iter().all(|value| value.is_finite())
+        || !solution
+            .post_slip_velocity
+            .iter()
+            .all(|value| value.is_finite())
     {
         return Err(FrictionDiskError::NonFinite);
     }
@@ -294,8 +296,7 @@ mod tests {
         let metric = Matrix2::new(2.0, 0.35, 0.35, 1.2);
         let free_velocity = SVector::new(-0.2, 0.1);
         let solution =
-            solve_tangential_friction_disk(&metric, &free_velocity, 0.8, 1.0, 1e-12)
-                .unwrap();
+            solve_tangential_friction_disk(&metric, &free_velocity, 0.8, 1.0, 1e-12).unwrap();
         assert!(!solution.is_sliding);
         check_kkt(&solution, 1e-10);
     }
@@ -305,26 +306,23 @@ mod tests {
         let metric = Matrix2::new(2.0, 0.6, 0.6, 1.0);
         let free_velocity = SVector::new(-3.0, 1.0);
         let solution =
-            solve_tangential_friction_disk(&metric, &free_velocity, 0.2, 0.5, 1e-12)
-                .unwrap();
+            solve_tangential_friction_disk(&metric, &free_velocity, 0.2, 0.5, 1e-12).unwrap();
         assert!(solution.is_sliding);
         check_kkt(&solution, 2e-10);
     }
 
     #[test]
     fn normal_tangent_coupling_is_folded_into_free_slip_before_disk_solve() {
-        let full_metric = nalgebra::Matrix3::new(
-            3.0, 0.4, -0.2,
-            0.4, 2.0, 0.5,
-            -0.2, 0.5, 1.5,
-        );
+        let full_metric = nalgebra::Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let normal_impulse = 0.6;
         let q_tangent = SVector::new(1.2, -0.9);
         let normal_tangent_column = SVector::new(full_metric[(1, 0)], full_metric[(2, 0)]);
         let free_slip = q_tangent + normal_tangent_column * normal_impulse;
         let tangent_metric = Matrix2::new(
-            full_metric[(1, 1)], full_metric[(1, 2)],
-            full_metric[(2, 1)], full_metric[(2, 2)],
+            full_metric[(1, 1)],
+            full_metric[(1, 2)],
+            full_metric[(2, 1)],
+            full_metric[(2, 2)],
         );
         let solution = solve_tangential_friction_disk(
             &tangent_metric,
@@ -332,7 +330,8 @@ mod tests {
             0.25,
             normal_impulse,
             1e-12,
-        ).unwrap();
+        )
+        .unwrap();
         check_kkt(&solution, 2e-10);
         assert!(solution.impulse_radius > 0.0);
     }
@@ -345,16 +344,10 @@ mod tests {
         let rotation = Matrix2::new(c, -s, s, c);
         let rotated_metric = rotation * metric * rotation.transpose();
         let rotated_velocity = rotation * velocity;
-        let direct =
-            solve_tangential_friction_disk(&metric, &velocity, 0.45, 0.8, 1e-12)
+        let direct = solve_tangential_friction_disk(&metric, &velocity, 0.45, 0.8, 1e-12).unwrap();
+        let rotated =
+            solve_tangential_friction_disk(&rotated_metric, &rotated_velocity, 0.45, 0.8, 1e-12)
                 .unwrap();
-        let rotated = solve_tangential_friction_disk(
-            &rotated_metric,
-            &rotated_velocity,
-            0.45,
-            0.8,
-            1e-12,
-        ).unwrap();
         assert!((rotated.impulse - rotation * direct.impulse).norm() < 2e-10);
         assert!((rotated.post_slip_velocity - rotation * direct.post_slip_velocity).norm() < 2e-10);
         assert!((rotated.disk_multiplier - direct.disk_multiplier).abs() < 2e-10);
@@ -366,8 +359,7 @@ mod tests {
         let velocity = SVector::new(2.0, -1.0);
         for (mu, load) in [(0.0, 2.0), (0.5, 0.0)] {
             let solution =
-                solve_tangential_friction_disk(&metric, &velocity, mu, load, 1e-12)
-                    .unwrap();
+                solve_tangential_friction_disk(&metric, &velocity, mu, load, 1e-12).unwrap();
             assert_eq!(solution.impulse, SVector::zeros());
             assert_eq!(solution.frictional_work_delta, 0.0);
         }
@@ -378,25 +370,21 @@ mod tests {
         let metric = Matrix2::identity();
         let velocity = SVector::new(1.0, 0.2);
         assert_eq!(
-            solve_tangential_friction_disk(&metric, &velocity, -0.1, 1.0, 1e-12)
-                .unwrap_err(),
+            solve_tangential_friction_disk(&metric, &velocity, -0.1, 1.0, 1e-12).unwrap_err(),
             FrictionDiskError::InvalidFrictionCoefficient
         );
         assert_eq!(
-            solve_tangential_friction_disk(&metric, &velocity, 0.1, -1.0, 1e-12)
-                .unwrap_err(),
+            solve_tangential_friction_disk(&metric, &velocity, 0.1, -1.0, 1e-12).unwrap_err(),
             FrictionDiskError::InvalidNormalImpulse
         );
         let asymmetric = Matrix2::new(1.0, 0.4, 0.1, 1.0);
         assert_eq!(
-            solve_tangential_friction_disk(&asymmetric, &velocity, 0.1, 1.0, 1e-12)
-                .unwrap_err(),
+            solve_tangential_friction_disk(&asymmetric, &velocity, 0.1, 1.0, 1e-12).unwrap_err(),
             FrictionDiskError::NotSymmetric
         );
         let indefinite = Matrix2::new(1.0, 2.0, 2.0, 1.0);
         assert_eq!(
-            solve_tangential_friction_disk(&indefinite, &velocity, 0.1, 1.0, 1e-12)
-                .unwrap_err(),
+            solve_tangential_friction_disk(&indefinite, &velocity, 0.1, 1.0, 1e-12).unwrap_err(),
             FrictionDiskError::NotPositiveDefinite
         );
     }
@@ -407,8 +395,12 @@ mod tests {
             let a = ((seed * 17) % 53) as f64 / 31.0;
             let b = ((seed * 29) % 47) as f64 / 37.0 - 0.5;
             let c = ((seed * 13) % 41) as f64 / 29.0;
-            let metric = Matrix2::new(1.0 + a * a, 0.3 * a * c + b * 0.1,
-                0.3 * a * c + b * 0.1, 1.0 + c * c);
+            let metric = Matrix2::new(
+                1.0 + a * a,
+                0.3 * a * c + b * 0.1,
+                0.3 * a * c + b * 0.1,
+                1.0 + c * c,
+            );
             let velocity = SVector::new(
                 ((seed * 7) % 61) as f64 / 13.0 - 2.0,
                 ((seed * 11) % 59) as f64 / 17.0 - 1.5,
@@ -419,7 +411,8 @@ mod tests {
                 0.05 + ((seed * 3) % 9) as f64 * 0.12,
                 0.1 + ((seed * 5) % 11) as f64 * 0.2,
                 1e-11,
-            ).unwrap_or_else(|error| panic!("seed={seed}: {error:?}"));
+            )
+            .unwrap_or_else(|error| panic!("seed={seed}: {error:?}"));
             check_kkt(&solution, 2e-8);
         }
     }

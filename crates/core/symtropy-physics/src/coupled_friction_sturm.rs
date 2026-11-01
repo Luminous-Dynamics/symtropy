@@ -10,345 +10,15 @@
 //! input binary64 coefficients, not the unrounded physical parameters.
 
 use super::{real_polynomial_roots, sliding_quartic};
+use crate::coupled_friction_sturm_support::{
+    Polynomial, Rational, cauchy_bound, count_open, derivative, evaluate, exact_f64, is_zero,
+    isolate_recursive, move_endpoint_off_root, normalize_positive, one_sided_sign, polynomial_add,
+    polynomial_multiply, polynomial_scale, remainder, sturm_chain, sturm_isolate_rational, trim,
+    variations,
+};
 use nalgebra::{Matrix3, SVector};
 use num_bigint::BigInt;
-use num_rational::BigRational;
 use num_traits::{One, Signed, ToPrimitive, Zero};
-
-type Rational = BigRational;
-type Polynomial = Vec<Rational>;
-
-fn exact_f64(value: f64) -> Result<Rational, &'static str> {
-    if !value.is_finite() {
-        return Err("non-finite binary64 coefficient");
-    }
-    let bits = value.to_bits();
-    let negative = (bits >> 63) != 0;
-    let exponent_bits = ((bits >> 52) & 0x7ff) as i32;
-    let fraction = bits & ((1_u64 << 52) - 1);
-    let (mantissa, exponent) = if exponent_bits == 0 {
-        (fraction, -1074)
-    } else {
-        ((1_u64 << 52) | fraction, exponent_bits - 1023 - 52)
-    };
-    if mantissa == 0 {
-        return Ok(Rational::zero());
-    }
-    let mut numerator = BigInt::from(mantissa);
-    if negative {
-        numerator = -numerator;
-    }
-    if exponent >= 0 {
-        numerator <<= exponent as usize;
-        Ok(Rational::from_integer(numerator))
-    } else {
-        let denominator = BigInt::one() << (-exponent) as usize;
-        Ok(Rational::new(numerator, denominator))
-    }
-}
-
-fn trim(poly: &mut Polynomial) {
-    while poly.last().is_some_and(|coefficient| coefficient.is_zero()) {
-        poly.pop();
-    }
-}
-
-fn is_zero(poly: &[Rational]) -> bool {
-    poly.iter().all(|coefficient| coefficient.is_zero())
-}
-
-fn derivative(poly: &[Rational]) -> Polynomial {
-    if poly.len() <= 1 {
-        return Vec::new();
-    }
-    poly.iter()
-        .enumerate()
-        .skip(1)
-        .map(|(power, coefficient)| {
-            coefficient.clone() * Rational::from_integer(BigInt::from(power))
-        })
-        .collect()
-}
-
-fn evaluate(poly: &[Rational], x: &Rational) -> Rational {
-    poly.iter().rev().fold(Rational::zero(), |value, coefficient| {
-        value * x.clone() + coefficient.clone()
-    })
-}
-
-fn normalize_positive(poly: &mut Polynomial) {
-    trim(poly);
-    if let Some(leading) = poly.last() {
-        let scale = leading.abs();
-        if !scale.is_zero() {
-            for coefficient in poly.iter_mut() {
-                *coefficient = coefficient.clone() / scale.clone();
-            }
-        }
-    }
-}
-
-fn remainder(dividend: &[Rational], divisor: &[Rational]) -> Result<Polynomial, &'static str> {
-    if is_zero(divisor) {
-        return Err("zero divisor in exact polynomial remainder");
-    }
-    let mut rest = dividend.to_vec();
-    trim(&mut rest);
-    while !is_zero(&rest) && rest.len() >= divisor.len() {
-        let shift = rest.len() - divisor.len();
-        let factor = rest.last().ok_or("empty polynomial remainder")?.clone()
-            / divisor.last().ok_or("empty polynomial divisor")?.clone();
-        for (index, coefficient) in divisor.iter().enumerate() {
-            let slot = index + shift;
-            rest[slot] = rest[slot].clone() - factor.clone() * coefficient.clone();
-        }
-        trim(&mut rest);
-    }
-    Ok(rest)
-}
-
-fn sturm_chain(input: &[Rational]) -> Result<Vec<Polynomial>, &'static str> {
-    let mut first = input.to_vec();
-    trim(&mut first);
-    if is_zero(&first) {
-        return Err("zero polynomial has no finite isolated root set");
-    }
-    if first.len() == 1 {
-        return Ok(vec![first]);
-    }
-    normalize_positive(&mut first);
-    let mut second = derivative(&first);
-    normalize_positive(&mut second);
-    let mut sequence = vec![first, second];
-    loop {
-        let n = sequence.len();
-        let mut next = remainder(&sequence[n - 2], &sequence[n - 1])?;
-        for coefficient in &mut next {
-            *coefficient = -coefficient.clone();
-        }
-        trim(&mut next);
-        if is_zero(&next) {
-            break;
-        }
-        normalize_positive(&mut next);
-        sequence.push(next);
-    }
-    Ok(sequence)
-}
-
-/// Exact sign immediately to one side of x; side is -1 (left) or +1 (right).
-fn one_sided_sign(poly: &[Rational], x: &Rational, side: i8) -> Result<i8, &'static str> {
-    let mut current = poly.to_vec();
-    let mut derivative_order = 0_usize;
-    loop {
-        if current.is_empty() {
-            return Err("identically zero Sturm member");
-        }
-        let value = evaluate(&current, x);
-        if !value.is_zero() {
-            let mut sign = if value.is_positive() { 1 } else { -1 };
-            if side < 0 && derivative_order % 2 == 1 {
-                sign = -sign;
-            }
-            return Ok(sign);
-        }
-        current = derivative(&current);
-        derivative_order += 1;
-    }
-}
-
-fn variations(sequence: &[Polynomial], x: &Rational, side: i8) -> Result<usize, &'static str> {
-    let signs = sequence
-        .iter()
-        .map(|poly| one_sided_sign(poly, x, side))
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(signs.windows(2).filter(|pair| pair[0] != pair[1]).count())
-}
-
-/// Number of distinct real roots in the open interval (lower, upper).
-fn count_open(
-    sequence: &[Polynomial],
-    lower: &Rational,
-    upper: &Rational,
-) -> Result<usize, &'static str> {
-    if lower >= upper {
-        return Ok(0);
-    }
-    let left = variations(sequence, lower, 1)?;
-    let right = variations(sequence, upper, -1)?;
-    left.checked_sub(right)
-        .ok_or("Sturm variation count increased across an interval")
-}
-
-fn cauchy_bound(poly: &[Rational]) -> Result<Rational, &'static str> {
-    if poly.len() <= 1 {
-        return Ok(Rational::one());
-    }
-    let leading = poly.last().ok_or("missing leading coefficient")?.abs();
-    if leading.is_zero() {
-        return Err("zero leading coefficient after trim");
-    }
-    let mut largest = Rational::zero();
-    for coefficient in &poly[..poly.len() - 1] {
-        let ratio = coefficient.abs() / leading.clone();
-        if ratio > largest {
-            largest = ratio;
-        }
-    }
-    // Use a strict enclosure, not the sharp non-strict Cauchy bound: no
-    // polynomial root may sit on either outer endpoint.
-    Ok(Rational::from_integer(BigInt::from(2)) + largest)
-}
-
-/// Move a known exact-root endpoint a rational distance into the
-/// adjacent root-free gap. The resulting endpoint is non-root, and the open
-/// interval between the old and new endpoints is proven to contain no root.
-fn move_endpoint_off_root(
-    poly: &[Rational],
-    chain: &[Polynomial],
-    endpoint: &Rational,
-    toward: &Rational,
-    endpoint_is_lower: bool,
-) -> Result<Rational, &'static str> {
-    for exponent in 1..=512_usize {
-        let denominator = Rational::from_integer(BigInt::one() << exponent);
-        let candidate =
-            endpoint.clone() + (toward.clone() - endpoint.clone()) / denominator;
-        if evaluate(poly, &candidate).is_zero() {
-            continue;
-        }
-        let empty_gap = if endpoint_is_lower {
-            count_open(chain, endpoint, &candidate)?
-        } else {
-            count_open(chain, &candidate, endpoint)?
-        };
-        if empty_gap == 0 {
-            return Ok(candidate);
-        }
-    }
-    Err("could not move a rational interval endpoint off an exact root")
-}
-
-fn isolate_recursive(
-    poly: &[Rational],
-    chain: &[Polynomial],
-    lower: Rational,
-    upper: Rational,
-    count: usize,
-    relative_width: &Rational,
-    depth: usize,
-    intervals: &mut Vec<(Rational, Rational)>,
-) -> Result<(), &'static str> {
-    if count == 0 {
-        return Ok(());
-    }
-    if depth > 512 {
-        return Err("exact Sturm isolation exceeded 512 bisections");
-    }
-    let midpoint = (&lower + &upper) / Rational::from_integer(BigInt::from(2));
-    let midpoint_value = evaluate(poly, &midpoint);
-
-    // Preserve an exactly dyadic rational root as a point interval and count
-    // the open subintervals independently using one-sided Sturm signs.
-    if midpoint_value.is_zero() {
-        let left_count = count_open(chain, &lower, &midpoint)?;
-        let right_count = count_open(chain, &midpoint, &upper)?;
-        if left_count + right_count + 1 != count {
-            return Err("Sturm count disagrees at an exact midpoint root");
-        }
-        intervals.push((midpoint.clone(), midpoint.clone()));
-        isolate_recursive(
-            poly, chain, lower, midpoint.clone(), left_count, relative_width, depth + 1, intervals,
-        )?;
-        isolate_recursive(
-            poly, chain, midpoint, upper, right_count, relative_width, depth + 1, intervals,
-        )?;
-        return Ok(());
-    }
-
-    let width = upper.clone() - lower.clone();
-    let target = relative_width.clone() * (Rational::one() + midpoint.abs());
-    if count == 1 && width <= target {
-        let isolated_lower = if evaluate(poly, &lower).is_zero() {
-            move_endpoint_off_root(poly, chain, &lower, &upper, true)?
-        } else {
-            lower
-        };
-        let isolated_upper = if evaluate(poly, &upper).is_zero() {
-            move_endpoint_off_root(poly, chain, &upper, &isolated_lower, false)?
-        } else {
-            upper
-        };
-        if evaluate(poly, &isolated_lower).is_zero()
-            || evaluate(poly, &isolated_upper).is_zero()
-            || count_open(chain, &isolated_lower, &isolated_upper)? != 1
-        {
-            return Err("isolating interval endpoint/count certificate failed");
-        }
-        intervals.push((isolated_lower, isolated_upper));
-        return Ok(());
-    }
-
-    let left_count = count_open(chain, &lower, &midpoint)?;
-    let right_count = count_open(chain, &midpoint, &upper)?;
-    if left_count + right_count != count {
-        return Err("Sturm count was not conserved during bisection");
-    }
-    isolate_recursive(
-        poly, chain, lower, midpoint.clone(), left_count, relative_width, depth + 1, intervals,
-    )?;
-    isolate_recursive(
-        poly, chain, midpoint, upper, right_count, relative_width, depth + 1, intervals,
-    )?;
-    Ok(())
-}
-
-fn sturm_isolate_rational(
-    mut poly: Polynomial,
-) -> Result<Vec<(Rational, Rational)>, &'static str> {
-    trim(&mut poly);
-    if poly.is_empty() {
-        return Err("zero polynomial");
-    }
-    if poly.len() == 1 {
-        return Ok(Vec::new());
-    }
-    let chain = sturm_chain(&poly)?;
-    let bound = cauchy_bound(&poly)?;
-    let lower = -bound.clone();
-    let upper = bound;
-    let count = count_open(&chain, &lower, &upper)?;
-    let relative_width = Rational::new(BigInt::one(), BigInt::one() << 72_usize);
-    let mut intervals = Vec::with_capacity(count);
-    isolate_recursive(
-        &poly, &chain, lower, upper, count, &relative_width, 0, &mut intervals,
-    )?;
-    intervals.sort_by(|a, b| a.0.cmp(&b.0));
-    if intervals.len() != count {
-        return Err("isolated interval count does not match Sturm count");
-    }
-    let mut previous_upper: Option<&Rational> = None;
-    for (lower, upper) in &intervals {
-        if let Some(previous) = previous_upper {
-            if previous >= lower {
-                return Err("Sturm isolating intervals are not pairwise disjoint");
-            }
-        }
-        if lower == upper {
-            if !evaluate(&poly, lower).is_zero() {
-                return Err("point interval does not evaluate to an exact root");
-            }
-        } else if lower > upper
-            || evaluate(&poly, lower).is_zero()
-            || evaluate(&poly, upper).is_zero()
-            || count_open(&chain, lower, upper)? != 1
-        {
-            return Err("open isolating interval lacks non-root endpoints or unit Sturm count");
-        }
-        previous_upper = Some(upper);
-    }
-    Ok(intervals)
-}
 
 /// Returns disjoint rational intervals for the exact dyadic values of f64
 /// coefficients, not for the decimal text used to display those values.
@@ -385,22 +55,21 @@ fn exact_projective_pi_candidate(
     if mu <= Rational::zero() {
         return Ok(false);
     }
-    let denominator = a + mu.clone() * d1.clone();
+    let denominator = a.clone() + mu.clone() * d1.clone();
     if denominator.is_zero() {
         return Ok(false);
     }
-    let lambda = -qn / denominator;
+    let lambda = -qn.clone() / denominator;
     if lambda <= Rational::zero() {
         return Ok(false);
     }
     let tangent_one = mu.clone() * lambda.clone();
-    let post_tangent_two =
-        q2 + lambda.clone() * d2 + tangent_one.clone() * a12;
+    let post_tangent_two = q2 + lambda.clone() * d2 + tangent_one.clone() * a12;
     if !post_tangent_two.is_zero() {
         return Ok(false);
     }
     let post_tangent_one =
-        q1 + lambda.clone() * d1 + tangent_one.clone() * a11;
+        q1.clone() + lambda.clone() * d1.clone() + tangent_one.clone() * a11.clone();
     let disk_multiplier = -post_tangent_one / tangent_one.clone();
     if disk_multiplier < Rational::zero() {
         return Ok(false);
@@ -409,49 +78,11 @@ fn exact_projective_pi_candidate(
     // Independently evaluate the full impulse kinetic-energy change:
     // Delta K = p^T q + 1/2 p^T W p, with p=(lambda, mu*lambda, 0).
     let wp_normal = a.clone() * lambda.clone() + d1.clone() * tangent_one.clone();
-    let wp_tangent_one = d1 * lambda.clone() + a11 * tangent_one.clone();
+    let wp_tangent_one = d1.clone() * lambda.clone() + a11 * tangent_one.clone();
     let energy_linear = lambda.clone() * qn + tangent_one.clone() * q1;
-    let energy_quadratic =
-        lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
-    let energy_delta =
-        energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
+    let energy_quadratic = lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
+    let energy_delta = energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
     Ok(energy_delta <= Rational::zero())
-}
-
-fn polynomial_add(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
-    let mut sum = vec![Rational::zero(); lhs.len().max(rhs.len())];
-    for (index, coefficient) in lhs.iter().enumerate() {
-        sum[index] += coefficient.clone();
-    }
-    for (index, coefficient) in rhs.iter().enumerate() {
-        sum[index] += coefficient.clone();
-    }
-    trim(&mut sum);
-    sum
-}
-
-fn polynomial_scale(poly: &[Rational], factor: &Rational) -> Polynomial {
-    let mut scaled = poly
-        .iter()
-        .map(|coefficient| coefficient.clone() * factor.clone())
-        .collect::<Polynomial>();
-    trim(&mut scaled);
-    scaled
-}
-
-fn polynomial_multiply(lhs: &[Rational], rhs: &[Rational]) -> Polynomial {
-    if lhs.is_empty() || rhs.is_empty() {
-        return Vec::new();
-    }
-    let mut product = vec![Rational::zero(); lhs.len() + rhs.len() - 1];
-    for (left_power, left) in lhs.iter().enumerate() {
-        for (right_power, right) in rhs.iter().enumerate() {
-            let index = left_power + right_power;
-            product[index] += left.clone() * right.clone();
-        }
-    }
-    trim(&mut product);
-    product
 }
 
 /// Independently derive the half-angle quartic from exact dyadic W, q and mu.
@@ -514,10 +145,7 @@ fn exact_sliding_quartic_from_inputs(
 
     let first = polynomial_multiply(&d_numerator, &q_tangent_perp);
     let negative_qn = -qn.clone();
-    let second = polynomial_scale(
-        &polynomial_multiply(&d_perp, &one_plus_t2),
-        &negative_qn,
-    );
+    let second = polynomial_scale(&polynomial_multiply(&d_perp, &one_plus_t2), &negative_qn);
     let third_factor = mu * qn;
     let third = polynomial_scale(&perp_dot_a_s, &third_factor);
     Ok(polynomial_add(&polynomial_add(&first, &second), &third))
@@ -537,7 +165,9 @@ fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
 }
 
 fn rationals_to_f64(poly: &[Rational]) -> Vec<f64> {
-    poly.iter().map(|coefficient| coefficient.to_f64().unwrap()).collect()
+    poly.iter()
+        .map(|coefficient| coefficient.to_f64().unwrap())
+        .collect()
 }
 
 fn assert_f64_coefficients_match_exact(rounded: &[f64], exact: &[Rational]) {
@@ -611,7 +241,10 @@ fn sturm_root_count_is_invariant_under_binary_power_and_sign_scaling() {
     let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
     let expected = sturm_isolate_f64(&coefficients).unwrap().len();
     for factor in [2.0_f64.powi(-600), -2.0_f64.powi(-600), 2.0_f64.powi(500)] {
-        let scaled = coefficients.iter().map(|coefficient| coefficient * factor).collect::<Vec<_>>();
+        let scaled = coefficients
+            .iter()
+            .map(|coefficient| coefficient * factor)
+            .collect::<Vec<_>>();
         let intervals = sturm_isolate_f64(&scaled).unwrap();
         assert_eq!(intervals.len(), expected);
         assert_production_matches_sturm(&scaled, 1.0e-12);
@@ -627,7 +260,7 @@ fn cauchy_bound_is_strict_and_endpoints_are_not_roots() {
     let polynomial = polynomial_from_roots(&roots);
     let bound = cauchy_bound(&polynomial).unwrap();
     assert!(!evaluate(&polynomial, &bound).is_zero());
-    assert!(!evaluate(&polynomial, &-bound).is_zero());
+    assert!(!evaluate(&polynomial, &-bound.clone()).is_zero());
     for root in roots {
         assert!(root.abs() < bound);
     }
@@ -668,7 +301,11 @@ fn sturm_counts_a_root_exactly_on_the_initial_midpoint() {
     let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
     let intervals = sturm_isolate_f64(&coefficients).unwrap();
     assert_eq!(intervals.len(), 3);
-    assert!(intervals.iter().any(|(lower, upper)| lower.is_zero() && upper.is_zero()));
+    assert!(
+        intervals
+            .iter()
+            .any(|(lower, upper)| lower.is_zero() && upper.is_zero())
+    );
     assert!(real_polynomial_roots(&coefficients, 1.0e-12).is_err());
 }
 
@@ -694,7 +331,11 @@ fn sturm_resolves_close_distinct_roots_without_merging_them() {
 fn sturm_handles_no_real_roots_and_degree_loss() {
     let no_real_roots = vec![1.0, 1.0, 1.0, 0.0, 1.0];
     assert!(sturm_isolate_f64(&no_real_roots).unwrap().is_empty());
-    assert!(real_polynomial_roots(&no_real_roots, 1.0e-12).unwrap().is_empty());
+    assert!(
+        real_polynomial_roots(&no_real_roots, 1.0e-12)
+            .unwrap()
+            .is_empty()
+    );
 
     let degree_three = vec![-6.0, 11.0, -6.0, 1.0, 0.0];
     let intervals = sturm_isolate_f64(&degree_three).unwrap();
@@ -704,11 +345,7 @@ fn sturm_handles_no_real_roots_and_degree_loss() {
 
 #[test]
 fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
-    let w = Matrix3::new(
-        3.0, 0.4, -0.2,
-        0.4, 2.0, 0.5,
-        -0.2, 0.5, 1.5,
-    );
+    let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
     let q = SVector::new(-0.8, -2.5, 0.9);
     let mu = 0.37;
     let rounded = sliding_quartic(&w, &q, mu);
@@ -721,33 +358,32 @@ fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
 
 #[test]
 fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() {
-    let w = Matrix3::new(
-        2.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
-    );
+    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, -3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
-    assert!(exact.len() < 5, "theta=pi is the missing leading projective root");
+    assert!(
+        exact.len() < 5,
+        "theta=pi is the missing leading projective root"
+    );
     let finite_roots = sturm_isolate_rational(exact.clone()).unwrap();
     assert_eq!(finite_roots.len(), 1);
     assert!(exact_projective_pi_candidate(&w, &q, mu).unwrap());
     assert_eq!(finite_roots.len() + 1, 2);
 
-    let outcome =
-        super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
+    let outcome = super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
     assert!(
-        outcome.sliding_angles.iter().any(|angle| {
-            (*angle - std::f64::consts::PI).abs() <= 1.0e-10
-        }),
+        outcome
+            .sliding_angles
+            .iter()
+            .any(|angle| { (*angle - std::f64::consts::PI).abs() <= 1.0e-10 }),
         "production path must explicitly retain the projective theta=pi candidate"
     );
     assert!(
         outcome.candidates.iter().any(|candidate| {
-            candidate.sliding_angle.is_some_and(|angle| {
-                (angle - std::f64::consts::PI).abs() <= 1.0e-10
-            })
+            candidate
+                .sliding_angle
+                .is_some_and(|angle| (angle - std::f64::consts::PI).abs() <= 1.0e-10)
         }),
         "the exact projective direction must pass the unreduced impulse/KKT/energy checks"
     );
@@ -755,11 +391,7 @@ fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() 
 
 #[test]
 fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() {
-    let w = Matrix3::new(
-        2.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
-    );
+    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, 3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
@@ -780,9 +412,7 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
             }
         }
         let m = Matrix3::new(
-            x[0][0], x[0][1], x[0][2],
-            x[1][0], x[1][1], x[1][2],
-            x[2][0], x[2][1], x[2][2],
+            x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
         );
         let w = m.transpose() * m + Matrix3::identity() * 0.3;
         let q = SVector::new(
@@ -797,9 +427,8 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 panic!("seed={seed}: exact quartic construction failed: {error}")
             });
         assert_f64_coefficients_match_exact(&coefficients, &exact_polynomial);
-        let exact_intervals = sturm_isolate_rational(exact_polynomial).unwrap_or_else(|error| {
-            panic!("seed={seed}: exact Sturm oracle failed: {error}")
-        });
+        let exact_intervals = sturm_isolate_rational(exact_polynomial)
+            .unwrap_or_else(|error| panic!("seed={seed}: exact Sturm oracle failed: {error}"));
         let rounded_intervals = sturm_isolate_f64(&coefficients).unwrap_or_else(|error| {
             panic!("seed={seed}: rounded-polynomial Sturm oracle failed: {error}")
         });
@@ -819,8 +448,8 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 for interval in &exact_intervals {
                     let midpoint = ((&interval.0 + &interval.1)
                         / Rational::from_integer(BigInt::from(2)))
-                        .to_f64()
-                        .expect("midpoint in f64 range");
+                    .to_f64()
+                    .expect("midpoint in f64 range");
                     let nearest = numerical
                         .iter()
                         .map(|root| (root - midpoint).abs())
@@ -835,5 +464,12 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
             Err(()) => inconclusive += 1,
         }
     }
-    assert!(checked >= 120, "too many inconclusive roots: {inconclusive}");
+    assert!(
+        checked >= 120,
+        "too many inconclusive roots: {inconclusive}"
+    );
 }
+
+#[cfg(test)]
+#[path = "coupled_friction_multicontact_sturm.rs"]
+mod multicontact;
