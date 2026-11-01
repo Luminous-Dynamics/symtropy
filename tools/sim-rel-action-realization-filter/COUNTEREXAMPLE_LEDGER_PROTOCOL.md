@@ -218,3 +218,21 @@ Additional hosted tests cover:
 - computed passing and failing holdout verdicts, including retention of exact per-world metrics and manifest ID.
 
 The current implementation still relies on the external validator to attest physical plausibility and correct split lineage. Independent ledger replay verifies the supplied finite-world consequences; it does not prove open-world model adequacy.
+
+
+## 13. Revision-bound attacks and candidate-outcome replay
+
+Counterexample provenance now includes the exact family revision attacked in addition to the opaque policy identity and exact policy tree. A still-identical policy tree on a later revision does not make an old search run admissible against that later family.
+
+The candidate world ID is also checked against every pre-registered sealed world ID, not only the current development world IDs and sealed group labels.
+
+Most importantly, the ledger does not trust the search report's outcome class. It independently replays the current active shared policy against the complete current family plus the candidate using the immutable replay context. It derives the actual result:
+- policy contract invalidation for a newly reachable public branch or another classified policy-contract failure;
+- hazard budget violation;
+- abstention budget violation;
+- terminal loss amplification beyond the current family worst-case baseline;
+- no violation.
+
+The witness claim must match the replay-derived typed outcome and exact metric payload. For policy-contract invalidation, the class must match and the ledger retains its own specific replay error string. A mismatched claim, NoViolation result, or unclassified replay error is rejected. The admission event stores the independently replayed outcome.
+
+This turns candidate admission from “the generator says this is a counterexample” into “the ledger independently reproduced the claimed finite-world policy/decision failure.”
