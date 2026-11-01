@@ -1,5 +1,5 @@
 use engineering_scenario_compiler::{
-    canonical_semantic_ir_bytes, portable_semantic_ir_input_bytes, compile_with_artifacts,
+    compile_with_artifacts, canonical_semantic_ir_bytes, portable_semantic_ir_input_bytes,
     ArtifactRole, Disposition, SuppliedArtifact, MAX_SOURCE_BYTES, MAX_UPSTREAM_CONFIG_BYTES,
     MAX_UPSTREAM_MESH_BYTES,
 };
@@ -20,7 +20,9 @@ fn read_bounded_bytes<R: Read>(
         .read_to_end(&mut bytes)
         .map_err(|error| format!("could not bounded-read {role}: {error}"))?;
     if bytes.len() > maximum {
-        return Err(format!("{role} exceeded the {maximum} byte CLI limit while reading"));
+        return Err(format!(
+            "{role} exceeded the {maximum} byte CLI limit while reading"
+        ));
     }
     Ok(bytes)
 }
@@ -61,9 +63,7 @@ fn option_path(
     Ok(())
 }
 
-fn parse_options<I>(
-    args: I,
-) -> Result<(Option<PathBuf>, Option<PathBuf>, Option<PathBuf>), String>
+fn parse_options<I>(args: I) -> Result<(Option<PathBuf>, Option<PathBuf>, Option<PathBuf>), String>
 where
     I: IntoIterator<Item = OsString>,
 {
@@ -73,9 +73,7 @@ where
     let mut portable_ir_directory = None;
     while let Some(argument) = args.next() {
         let result = match argument.to_str() {
-            Some("--solver-config") => {
-                option_path(&mut args, "--solver-config", &mut config_path)
-            }
+            Some("--solver-config") => option_path(&mut args, "--solver-config", &mut config_path),
             Some("--mesh") => option_path(&mut args, "--mesh", &mut mesh_path),
             Some("--portable-ir-dir") => {
                 option_path(&mut args, "--portable-ir-dir", &mut portable_ir_directory)
@@ -104,11 +102,7 @@ fn run() -> Result<ExitCode, String> {
         }
     };
 
-    let source = read_bounded(
-        Path::new(&source_path),
-        MAX_SOURCE_BYTES,
-        "scenario source",
-    )?;
+    let source = read_bounded(Path::new(&source_path), MAX_SOURCE_BYTES, "scenario source")?;
     let mut owned_artifacts = Vec::with_capacity(2);
     if let Some(path) = config_path {
         owned_artifacts.push((
@@ -124,18 +118,14 @@ fn run() -> Result<ExitCode, String> {
     }
     let borrowed_artifacts: Vec<SuppliedArtifact<'_>> = owned_artifacts
         .iter()
-        .map(|(role, bytes)| SuppliedArtifact {
-            role: *role,
-            bytes,
-        })
+        .map(|(role, bytes)| SuppliedArtifact { role: *role, bytes })
         .collect();
 
     let report = compile_with_artifacts(&source, &borrowed_artifacts);
     if let Some(directory) = portable_ir_directory {
-        let scenario = report
-            .scenario_ir
-            .as_ref()
-            .ok_or_else(|| "portable IR output requested but compilation produced no typed Scenario IR".to_owned())?;
+        let scenario = report.scenario_ir.as_ref().ok_or_else(|| {
+            "portable IR output requested but compilation produced no typed Scenario IR".to_owned()
+        })?;
         std::fs::create_dir_all(&directory)
             .map_err(|error| format!("create portable IR output directory: {error}"))?;
         let input_bytes = portable_semantic_ir_input_bytes(scenario)?;
@@ -178,9 +168,14 @@ mod tests {
     #[test]
     fn parses_each_optional_artifact_path_once() {
         let (config, mesh, portable_ir) = parse_options(args(&[
-            "--solver-config", "solver.cfg", "--mesh", "grid.su2",
-            "--portable-ir-dir", "identity-output",
-        ])).expect("valid options parse");
+            "--solver-config",
+            "solver.cfg",
+            "--mesh",
+            "grid.su2",
+            "--portable-ir-dir",
+            "identity-output",
+        ]))
+        .expect("valid options parse");
         assert_eq!(config, Some(PathBuf::from("solver.cfg")));
         assert_eq!(mesh, Some(PathBuf::from("grid.su2")));
         assert_eq!(portable_ir, Some(PathBuf::from("identity-output")));
@@ -191,22 +186,23 @@ mod tests {
         assert!(parse_options(args(&["--unknown"])).is_err());
         assert!(parse_options(args(&["--mesh"])).is_err());
         assert!(parse_options(args(&["--portable-ir-dir"])).is_err());
-        assert!(parse_options(args(&[
-            "--mesh", "one.su2", "--mesh", "two.su2",
-        ])).is_err());
-        assert!(parse_options(args(&[
-            "--solver-config", "one.cfg", "--solver-config", "two.cfg",
-        ])).is_err());
+        assert!(parse_options(args(&["--mesh", "one.su2", "--mesh", "two.su2",])).is_err());
+        assert!(
+            parse_options(args(&[
+                "--solver-config",
+                "one.cfg",
+                "--solver-config",
+                "two.cfg",
+            ]))
+            .is_err()
+        );
     }
 
     #[test]
     fn bounded_reader_accepts_exact_limit_and_rejects_one_byte_over() {
-        let at_limit = read_bounded_bytes(
-            std::io::Cursor::new(b"1234".as_slice()),
-            4,
-            "test artifact",
-        )
-        .expect("exactly-at-limit input is accepted");
+        let at_limit =
+            read_bounded_bytes(std::io::Cursor::new(b"1234".as_slice()), 4, "test artifact")
+                .expect("exactly-at-limit input is accepted");
         assert_eq!(at_limit, b"1234");
 
         let over_limit = read_bounded_bytes(
@@ -214,13 +210,18 @@ mod tests {
             4,
             "test artifact",
         );
-        assert!(over_limit.is_err(), "one byte over the cap must be rejected");
+        assert!(
+            over_limit.is_err(),
+            "one byte over the cap must be rejected"
+        );
     }
 
     #[test]
     fn bounded_reader_rejects_directories_before_reading() {
-        assert!(read_bounded(Path::new("."), 1024, "test artifact")
-            .expect_err("directory is not a regular file")
-            .contains("regular file"));
+        assert!(
+            read_bounded(Path::new("."), 1024, "test artifact")
+                .expect_err("directory is not a regular file")
+                .contains("regular file")
+        );
     }
 }
