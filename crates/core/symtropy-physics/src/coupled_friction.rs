@@ -743,7 +743,7 @@ mod tests {
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Separating);
-        assert_eq!(candidate.impulse, SVector::zeros());
+        assert_eq!(candidate.impulse, SVector::<f64, 3>::zeros());
     }
 
     #[test]
