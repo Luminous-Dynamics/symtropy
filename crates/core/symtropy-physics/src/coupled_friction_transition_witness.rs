@@ -55,11 +55,7 @@ fn kinetic_energy_delta(w: &Matrix6, q: &Vector6, p: &Vector6) -> f64 {
 
 /// Recheck the candidate against the original full 6x6 contact law. Contact
 /// 2 is strictly sticking in every member of this family.
-fn assert_full_island_recheck(
-    w: &Matrix6,
-    q: &Vector6,
-    p: &Vector6,
-) -> Vector6 {
+fn assert_full_island_recheck(w: &Matrix6, q: &Vector6, p: &Vector6) -> Vector6 {
     let post_velocity = q + w * p;
 
     for normal in [0, 3] {
@@ -75,8 +71,7 @@ fn assert_full_island_recheck(
     }
 
     assert!(
-        post_velocity[4].abs() < RESIDUAL_TOLERANCE
-            && post_velocity[5].abs() < RESIDUAL_TOLERANCE,
+        post_velocity[4].abs() < RESIDUAL_TOLERANCE && post_velocity[5].abs() < RESIDUAL_TOLERANCE,
         "contact 2 must stick in both tangent directions"
     );
     assert!(
@@ -129,8 +124,7 @@ mod tests {
             );
             assert!(
                 (post_velocity[1] + tau_1 * p[1]).abs() < RESIDUAL_TOLERANCE
-                    && (post_velocity[2] + tau_1 * p[2]).abs()
-                        < RESIDUAL_TOLERANCE,
+                    && (post_velocity[2] + tau_1 * p[2]).abs() < RESIDUAL_TOLERANCE,
                 "contact 1 sliding KKT stationarity"
             );
         }
@@ -184,9 +178,7 @@ mod tests {
         let coupled_velocity = q + w * p;
         let uncoupled_velocity = q + Matrix6::identity() * p;
 
-        assert!(
-            coupled_velocity.fixed_rows::<3>(3).norm() < RESIDUAL_TOLERANCE
-        );
+        assert!(coupled_velocity.fixed_rows::<3>(3).norm() < RESIDUAL_TOLERANCE);
         assert!(
             uncoupled_velocity.fixed_rows::<3>(3).norm() > 1.0,
             "block-diagonal approximation must not masquerade as the coupled result"
