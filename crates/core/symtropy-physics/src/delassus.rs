@@ -825,7 +825,7 @@ mod tests {
                 );
                 rotated.transform.rotation = global_rotation.compose(&body.transform.rotation);
                 rotated.linear_velocity = global_rotation.rotate_vector(&body.linear_velocity);
-                rotated.angular_velocity = body.angular_velocity.clone();
+                rotated.angular_velocity = body.angular_velocity;
                 rotated.inv_mass = body.inv_mass;
                 rotated.inv_inertia = body.inv_inertia;
                 rotated.friction = body.friction;
@@ -928,7 +928,7 @@ mod tests {
             frame,
         };
         let free_linear_velocity = dynamic_body.linear_velocity;
-        let free_angular_velocity = dynamic_body.angular_velocity.clone();
+        let free_angular_velocity = dynamic_body.angular_velocity;
         let free_rotation = dynamic_body.transform.rotation.clone();
         let reference =
             assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
