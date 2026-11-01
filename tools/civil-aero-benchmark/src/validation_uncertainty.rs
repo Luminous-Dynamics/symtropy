@@ -407,17 +407,16 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
         return Err("correlation matrix must be non-empty and square".to_owned());
     }
     let mut values = matrix.to_vec();
-    for row in 0..count {
-        for column in 0..count {
-            let value = values[row][column];
-            if !value.is_finite() || !(-1.0..=1.0).contains(&value) {
+    for (row_index, row_values) in values.iter().enumerate() {
+        for (column_index, value) in row_values.iter().enumerate() {
+            if !value.is_finite() || !(-1.0..=1.0).contains(value) {
                 return Err("correlation matrix entries must be finite and in [-1, 1]".to_owned());
             }
-            if (values[row][column] - values[column][row]).abs() > MATRIX_SYMMETRY_TOLERANCE {
+            if (value - values[column_index][row_index]).abs() > MATRIX_SYMMETRY_TOLERANCE {
                 return Err("correlation matrix must be symmetric".to_owned());
             }
         }
-        if (values[row][row] - 1.0).abs() > MATRIX_SYMMETRY_TOLERANCE {
+        if (row_values[row_index] - 1.0).abs() > MATRIX_SYMMETRY_TOLERANCE {
             return Err("correlation matrix diagonal entries must equal 1".to_owned());
         }
     }
@@ -426,12 +425,12 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
     for _ in 0..max_iterations {
         let mut max_off_diagonal = 0.0;
         let mut pivot = None;
-        for row in 0..count {
-            for column in (row + 1)..count {
-                let magnitude = values[row][column].abs();
+        for (row_index, row_values) in values.iter().enumerate() {
+            for (column_index, value) in row_values.iter().enumerate().skip(row_index + 1) {
+                let magnitude = value.abs();
                 if magnitude > max_off_diagonal {
                     max_off_diagonal = magnitude;
-                    pivot = Some((row, column));
+                    pivot = Some((row_index, column_index));
                 }
             }
         }
@@ -446,17 +445,17 @@ fn minimum_eigenvalue_symmetric(matrix: &[Vec<f64>]) -> Result<f64, String> {
         let cosine = theta.cos();
         let sine = theta.sin();
 
-        for index in 0..count {
+        for (index, row_values) in values.iter_mut().enumerate() {
             if index == p || index == q {
                 continue;
             }
-            let aip = values[index][p];
-            let aiq = values[index][q];
+            let aip = row_values[p];
+            let aiq = row_values[q];
             let new_aip = cosine * aip - sine * aiq;
             let new_aiq = sine * aip + cosine * aiq;
-            values[index][p] = new_aip;
+            row_values[p] = new_aip;
+            row_values[q] = new_aiq;
             values[p][index] = new_aip;
-            values[index][q] = new_aiq;
             values[q][index] = new_aiq;
         }
         values[p][p] = cosine * cosine * app - 2.0 * sine * cosine * apq + sine * sine * aqq;
