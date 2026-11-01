@@ -1372,7 +1372,6 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
         &w,
         &q,
         mu_1,
-        &quartic,
         &determinant,
         &numerators,
         &roots,
