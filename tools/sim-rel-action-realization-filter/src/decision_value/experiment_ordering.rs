@@ -1799,17 +1799,19 @@ mod tests {
     #[test]
     fn general_blackwell_solver_matches_independent_binary_oracle_on_quarter_grid() {
         let probability = |numerator: u128| Rational::new(numerator, 4).unwrap();
-        let make_channel = |id: String, first: Rational, second: Rational| {
-            FiniteObservationChannel {
+        let make_channel =
+            |id: String, first: Rational, second: Rational| FiniteObservationChannel {
                 channel_id: id,
                 state_ids: vec!["s0".into(), "s1".into()],
                 observation_ids: vec!["o0".into(), "o1".into()],
                 probabilities: vec![
                     vec![first, subtract_nonnegative(Rational::one(), first).unwrap()],
-                    vec![second, subtract_nonnegative(Rational::one(), second).unwrap()],
+                    vec![
+                        second,
+                        subtract_nonnegative(Rational::one(), second).unwrap(),
+                    ],
                 ],
-            }
-        };
+            };
 
         let mut comparisons = 0usize;
         for source_state_zero in 0..=4 {
