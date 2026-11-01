@@ -20,6 +20,22 @@ The interaction arm crosses both. It is important not to relabel all errors as
 "model uncertainty"; otherwise a method that fixes one failure mode can appear
 to fix the other without evidence.
 
+## 2A. Loss-based generalized-Bayes inference baseline
+
+For a finite discrete model, a caller may supply exact rational Gibbs factors
+`w(s,y) \propto exp(-eta * loss(s,y))`. The posterior rule is
+`q(s|y) \propto prior(s) * w(s,y)`, normalized independently for each
+observation. The implementation accepts these factors directly so arithmetic
+and posterior receipts remain exact; the factor-generating loss and temperature
+must be calibrated on a development/calibration split and separately versioned.
+
+A negative control sets `w(s,y)=K(y|s)`, which must reproduce ordinary Bayes
+exactly. A misspecification arm uses a non-likelihood Gibbs factor and reports
+its posterior deviation from the exact working-model posterior and from the
+true posterior. This is a finite Gibbs-posterior update primitive, not a
+reimplementation of GBOED's full Gibbs expected-information-gain acquisition
+or its statistical guarantees.
+
 ## 2. Exact channel semantics
 
 A finite observation channel is a stochastic matrix
