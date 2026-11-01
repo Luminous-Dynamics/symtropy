@@ -176,6 +176,7 @@ def main() -> int:
         require(row["overall_status"] == "declared_thresholds_met", "overall status mismatch")
         require(row["evidence_level"] == EVIDENCE, "evidence ceiling mismatch")
         require(row["run_id"] == receipt["run_id"], "screen run ID mismatch")
+        require(row["solver_id"] == receipt["solver_id"], "screen solver ID mismatch")
         require(row["runner_receipt_sha256"] == receipt["receipt_sha256"], "screen receipt digest mismatch")
         require(row["history_sha256"] == history_sha256, "screen history digest mismatch")
         require(row["history_import_sha256"] == first_import["import_sha256"], "screen import digest mismatch")
@@ -184,6 +185,7 @@ def main() -> int:
     for item in [
         SCHEMA,
         receipt["run_id"],
+        receipt["solver_id"],
         receipt["receipt_sha256"],
         history_sha256,
         first_import["import_sha256"],
