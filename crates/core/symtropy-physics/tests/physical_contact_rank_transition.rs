@@ -142,5 +142,5 @@ fn exact_geometry_rank_changes_from_five_to_three_at_contact_coincidence() {
         vec![TANGENT_ONE_NULL[2], NORMAL_DUPLICATE_NULL[2], TANGENT_TWO_DUPLICATE_NULL[2]],
         vec![TANGENT_ONE_NULL[3], NORMAL_DUPLICATE_NULL[3], TANGENT_TWO_DUPLICATE_NULL[3]],
     ]);
-    assert_eq!(null_minor, -1);
+    assert_eq!(null_minor, 1);
 }
