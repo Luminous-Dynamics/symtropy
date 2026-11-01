@@ -69,7 +69,7 @@ jobs:
           test "$(wc -l < /tmp/aero-stress-a.csv)" -eq 25
           awk -F, 'NF != 16 { exit 1 }' /tmp/aero-stress-a.csv
           grep -q "screening_only" /tmp/aero-stress-a.csv
-          grep -q "case=balanced_reference .*robust_screen_pass=true probability=none" /tmp/aero-stress-a.txt
+          grep -q "case=synthetic_baseline .*robust_screen_pass=true probability=none" /tmp/aero-stress-a.txt
           cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml --bin robust -- \
             tools/civil-aero-benchmark/data/robustness_negative_control.csv \
             tools/civil-aero-benchmark/data/illustrative_stress_scenarios.csv \
