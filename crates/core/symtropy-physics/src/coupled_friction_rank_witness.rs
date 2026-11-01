@@ -151,7 +151,7 @@ mod tests {
             // complementarity products vanish because u_n = 0.
             assert!(p[0] >= 0 && p[3] >= 0);
             assert_eq!(p[0] * post_velocity_numerator[0], 0);
-            assert_eq!(p[3] * post_velocity_numerator[3]);
+            assert_eq!(p[3] * post_velocity_numerator[3], 0);
 
             // mu = 0 makes each local Coulomb disk a singleton {j_t = 0}.
             assert_eq!([p[1], p[2], p[4], p[5]], [0; 4]);
