@@ -1,6 +1,6 @@
 //! Algorithm-level qualification on analytic multi-objective functions.
 //!
-//! This lane executes actual optimization policies on ZDT1/ZDT2, whose Pareto fronts are known.
+//! This lane executes optimization policies on ZDT1 through ZDT4, whose Pareto fronts are known.
 //! It measures quality at fixed objective-evaluation checkpoints with identical per-run budgets.
 //! These are cheap synthetic objective calls, not CFD solves or aerodynamic evidence.
 //!
