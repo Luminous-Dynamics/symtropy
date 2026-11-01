@@ -2764,7 +2764,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<_, 3>::new(0.0, 1.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<_, 3>::new(0.0, 1.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
@@ -2963,7 +2966,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<_, 3>::new(1.0, 0.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
