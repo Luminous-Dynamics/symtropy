@@ -895,7 +895,6 @@ pub fn execute_external_solver(
     Ok(receipt)
 }
 
-
 fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
     let characters = line.chars().collect::<Vec<_>>();
     let mut fields = Vec::new();
@@ -953,7 +952,9 @@ fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
 
 fn decode_hex_utf8(value: &str, field: &str) -> Result<String, String> {
     if value.len() % 2 != 0 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err(format!("{field} must be an even-length hexadecimal UTF-8 value"));
+        return Err(format!(
+            "{field} must be an even-length hexadecimal UTF-8 value"
+        ));
     }
     let mut bytes = Vec::with_capacity(value.len() / 2);
     for pair in value.as_bytes().chunks_exact(2) {
@@ -977,16 +978,16 @@ fn parse_key_value_manifest(input: &str) -> Result<BTreeMap<String, String>, Str
             .split_once('=')
             .ok_or_else(|| format!("manifest line {} is not key=value", index + 1))?;
         if key.trim().is_empty() || values.insert(key.to_owned(), value.to_owned()).is_some() {
-            return Err(format!("manifest line {} has an empty or duplicate key", index + 1));
+            return Err(format!(
+                "manifest line {} has an empty or duplicate key",
+                index + 1
+            ));
         }
     }
     Ok(values)
 }
 
-fn manifest_value<'a>(
-    values: &'a BTreeMap<String, String>,
-    key: &str,
-) -> Result<&'a str, String> {
+fn manifest_value<'a>(values: &'a BTreeMap<String, String>, key: &str) -> Result<&'a str, String> {
     values
         .get(key)
         .map(String::as_str)
@@ -1010,7 +1011,9 @@ fn parse_manifest_string(values: &BTreeMap<String, String>, key: &str) -> Result
 
 fn parse_expected_output_manifest(input: &str) -> Result<Vec<ExpectedOutputRecord>, String> {
     let mut lines = input.lines();
-    let header = lines.next().ok_or_else(|| "expected-output manifest is empty".to_owned())?;
+    let header = lines
+        .next()
+        .ok_or_else(|| "expected-output manifest is empty".to_owned())?;
     if header != OUTPUT_MANIFEST_HEADER {
         return Err("expected-output manifest header does not match schema".to_owned());
     }
@@ -1028,10 +1031,16 @@ fn parse_expected_output_manifest(input: &str) -> Result<Vec<ExpectedOutputRecor
         let (present, byte_length, sha256) = match fields[1].as_str() {
             "present" => {
                 let length = fields[2].parse::<u64>().map_err(|error| {
-                    format!("expected-output manifest row {} has invalid byte length: {error}", index + 2)
+                    format!(
+                        "expected-output manifest row {} has invalid byte length: {error}",
+                        index + 2
+                    )
                 })?;
                 if !is_sha256(&fields[3]) {
-                    return Err(format!("expected-output manifest row {} has malformed SHA-256", index + 2));
+                    return Err(format!(
+                        "expected-output manifest row {} has malformed SHA-256",
+                        index + 2
+                    ));
                 }
                 (true, Some(length), Some(fields[3].to_ascii_lowercase()))
             }
@@ -1051,16 +1060,16 @@ fn parse_expected_output_manifest(input: &str) -> Result<Vec<ExpectedOutputRecor
         });
     }
     if outputs.is_empty() {
-        return Err("expected-output manifest must contain at least one declared output".to_owned());
+        return Err(
+            "expected-output manifest must contain at least one declared output".to_owned(),
+        );
     }
     Ok(outputs)
 }
 
 /// Load a completed run's receipt and records from disk, then verify the full bundle. This is the
 /// offline entry point for a verifier that did not run the solver.
-pub fn read_external_solver_receipt(
-    run_directory: &Path,
-) -> Result<ExternalSolverReceipt, String> {
+pub fn read_external_solver_receipt(run_directory: &Path) -> Result<ExternalSolverReceipt, String> {
     let root = fs::canonicalize(run_directory)
         .map_err(|error| format!("cannot resolve external solver run directory: {error}"))?;
     let receipt_path = canonical_regular_file_under_root(&root, RUN_RECEIPT_FILE)?;
@@ -1076,7 +1085,10 @@ pub fn read_external_solver_receipt(
     }
     let fields = parse_csv_record(receipt_lines[1])?;
     if fields.len() != 24 {
-        return Err(format!("runner receipt must have 24 columns, got {}", fields.len()));
+        return Err(format!(
+            "runner receipt must have 24 columns, got {}",
+            fields.len()
+        ));
     }
 
     let parse_u64_field = |index: usize, name: &str| -> Result<u64, String> {
@@ -1111,12 +1123,17 @@ pub fn read_external_solver_receipt(
     let solver_version_claim = parse_manifest_string(&invocation, "solver_version_claim_utf8_hex")?;
     let executable_path = parse_manifest_string(&invocation, "executable_path_utf8_hex")?;
     let executable_sha256 = manifest_value(&invocation, "executable_sha256")?.to_ascii_lowercase();
-    let environment_sha256 = manifest_value(&invocation, "environment_sha256")?.to_ascii_lowercase();
+    let environment_sha256 =
+        manifest_value(&invocation, "environment_sha256")?.to_ascii_lowercase();
     let argument_count = parse_manifest_count(&invocation, "argument_count")?;
     let environment_count = parse_manifest_count(&invocation, "environment_entry_count")?;
     let staged_count = parse_manifest_count(&invocation, "staged_input_count")?;
     let expected_count = parse_manifest_count(&invocation, "expected_output_count")?;
-    if argument_count > 100_000 || environment_count > 100_000 || staged_count > 10_000 || expected_count > 10_000 {
+    if argument_count > 100_000
+        || environment_count > 100_000
+        || staged_count > 10_000
+        || expected_count > 10_000
+    {
         return Err("invocation manifest declares an unreasonable record count".to_owned());
     }
     let expected_manifest_keys = 15_usize
@@ -1142,17 +1159,22 @@ pub fn read_external_solver_receipt(
     let mut staged_inputs = Vec::with_capacity(staged_count);
     let mut seen_input_paths = BTreeSet::new();
     for index in 0..staged_count {
-        let relative_path = parse_manifest_string(&invocation, &format!("input_{index}_path_utf8_hex"))?;
+        let relative_path =
+            parse_manifest_string(&invocation, &format!("input_{index}_path_utf8_hex"))?;
         validate_relative_path(&relative_path)?;
         if !seen_input_paths.insert(relative_path.clone()) {
             return Err("invocation manifest contains duplicate staged-input paths".to_owned());
         }
         let byte_length = parse_manifest_u64(&invocation, &format!("input_{index}_byte_length"))?;
-        let sha256 = manifest_value(&invocation, &format!("input_{index}_sha256"))?.to_ascii_lowercase();
+        let sha256 =
+            manifest_value(&invocation, &format!("input_{index}_sha256"))?.to_ascii_lowercase();
         if !is_sha256(&sha256) {
-            return Err(format!("invocation manifest input {index} has malformed SHA-256"));
+            return Err(format!(
+                "invocation manifest input {index} has malformed SHA-256"
+            ));
         }
-        let source_reference = parse_manifest_string(&invocation, &format!("input_{index}_source_ref_utf8_hex"))?;
+        let source_reference =
+            parse_manifest_string(&invocation, &format!("input_{index}_source_ref_utf8_hex"))?;
         staged_inputs.push(StagedInputReceipt {
             relative_path,
             byte_length,
@@ -1164,7 +1186,10 @@ pub fn read_external_solver_receipt(
     let mut expected_paths = Vec::with_capacity(expected_count);
     let mut seen_output_paths = BTreeSet::new();
     for index in 0..expected_count {
-        let path = parse_manifest_string(&invocation, &format!("expected_output_{index}_path_utf8_hex"))?;
+        let path = parse_manifest_string(
+            &invocation,
+            &format!("expected_output_{index}_path_utf8_hex"),
+        )?;
         validate_relative_path(&path)?;
         if !seen_output_paths.insert(path.clone()) {
             return Err("invocation manifest contains duplicate expected-output paths".to_owned());
@@ -1178,7 +1203,9 @@ pub fn read_external_solver_receipt(
     if environment_lines.first().copied() != Some("schema=civil-external-solver-environment/0.1.0")
         || environment_lines.len() != environment_count + 1
     {
-        return Err("environment manifest entry count or schema differs from invocation".to_owned());
+        return Err(
+            "environment manifest entry count or schema differs from invocation".to_owned(),
+        );
     }
     let mut seen_environment_keys = BTreeSet::new();
     for (index, line) in environment_lines.iter().skip(1).enumerate() {
@@ -1187,10 +1214,15 @@ pub fn read_external_solver_receipt(
             .and_then(|rest| rest.split_once(" value_sha256="))
             .ok_or_else(|| format!("environment manifest entry {} is malformed", index + 1))?;
         let key = decode_hex_utf8(key_hex, "environment key")?;
-        if key.trim().is_empty() || key.contains('=') || !seen_environment_keys.insert(key)
+        if key.trim().is_empty()
+            || key.contains('=')
+            || !seen_environment_keys.insert(key)
             || !is_sha256(value_sha256)
         {
-            return Err(format!("environment manifest entry {} is duplicate or malformed", index + 1));
+            return Err(format!(
+                "environment manifest entry {} is duplicate or malformed",
+                index + 1
+            ));
         }
     }
 
@@ -1198,10 +1230,18 @@ pub fn read_external_solver_receipt(
     let output_text = fs::read_to_string(output_path)
         .map_err(|error| format!("cannot read expected-output manifest: {error}"))?;
     let outputs = parse_expected_output_manifest(&output_text)?;
-    if outputs.iter().map(|output| output.relative_path.as_str()).collect::<Vec<_>>()
-        != expected_paths.iter().map(String::as_str).collect::<Vec<_>>()
+    if outputs
+        .iter()
+        .map(|output| output.relative_path.as_str())
+        .collect::<Vec<_>>()
+        != expected_paths
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
     {
-        return Err("expected-output manifest paths differ from frozen invocation paths".to_owned());
+        return Err(
+            "expected-output manifest paths differ from frozen invocation paths".to_owned(),
+        );
     }
 
     let receipt = ExternalSolverReceipt {
@@ -1214,7 +1254,11 @@ pub fn read_external_solver_receipt(
         invocation_manifest_sha256: parse_digest_field(6, "invocation_manifest_sha256")?,
         environment_sha256: parse_digest_field(7, "environment_sha256")?,
         environment_manifest_sha256: parse_digest_field(8, "environment_manifest_sha256")?,
-        spawn_error: if fields[9].is_empty() { None } else { Some(fields[9].clone()) },
+        spawn_error: if fields[9].is_empty() {
+            None
+        } else {
+            Some(fields[9].clone())
+        },
         stdout_byte_length: parse_u64_field(10, "stdout_byte_length")?,
         stdout_sha256: parse_digest_field(11, "stdout_sha256")?,
         stderr_byte_length: parse_u64_field(12, "stderr_byte_length")?,
@@ -1222,7 +1266,11 @@ pub fn read_external_solver_receipt(
         exit_code: if fields[14].is_empty() {
             None
         } else {
-            Some(fields[14].parse::<i32>().map_err(|error| format!("runner receipt exit_code is invalid: {error}"))?)
+            Some(
+                fields[14]
+                    .parse::<i32>()
+                    .map_err(|error| format!("runner receipt exit_code is invalid: {error}"))?,
+            )
         },
         timed_out: parse_bool_field(15, "timed_out")?,
         output_limit_exceeded: parse_bool_field(16, "output_limit_exceeded")?,
@@ -1247,7 +1295,11 @@ pub fn read_external_solver_receipt(
     if !is_sha256(&environment_sha256) {
         return Err("invocation manifest environment digest is malformed".to_owned());
     }
-    let present = receipt.outputs.iter().filter(|output| output.present).count();
+    let present = receipt
+        .outputs
+        .iter()
+        .filter(|output| output.present)
+        .count();
     let missing = receipt.missing_output_count();
     if fields[18] != present.to_string() || fields[19] != missing.to_string() {
         return Err("receipt output counts disagree with output manifest".to_owned());
@@ -1442,19 +1494,26 @@ mod tests {
         });
         let receipt = execute_external_solver(&spec).expect("run fake solver");
         assert!(receipt.is_process_success());
-        assert_eq!(fs::read_to_string(spec.run_directory.join("args.txt")).expect("args"), "argument with spaces\n$(not-a-shell-command)\n");
+        assert_eq!(
+            fs::read_to_string(spec.run_directory.join("args.txt")).expect("args"),
+            "argument with spaces\n$(not-a-shell-command)\n"
+        );
         assert!(spec.run_directory.join("input/case.cfg").is_file());
-        let environment_text = fs::read_to_string(spec.run_directory.join(ENVIRONMENT_MANIFEST_FILE))
-            .expect("environment manifest");
+        let environment_text =
+            fs::read_to_string(spec.run_directory.join(ENVIRONMENT_MANIFEST_FILE))
+                .expect("environment manifest");
         assert!(!environment_text.contains("secret-fixture-value"));
-        verify_external_solver_receipt(&spec.run_directory, &receipt).expect("independent byte replay");
+        verify_external_solver_receipt(&spec.run_directory, &receipt)
+            .expect("independent byte replay");
         let loaded = read_external_solver_receipt(&spec.run_directory)
             .expect("offline reader reconstructs and verifies persisted receipt");
         assert_eq!(loaded, receipt);
         fs::write(spec.run_directory.join(STDOUT_LOG_FILE), "tampered").expect("mutate raw stdout");
-        assert!(verify_external_solver_receipt(&spec.run_directory, &receipt)
-            .expect_err("mutated log must fail replay")
-            .contains("persisted stdout.log differs"));
+        assert!(
+            verify_external_solver_receipt(&spec.run_directory, &receipt)
+                .expect_err("mutated log must fail replay")
+                .contains("persisted stdout.log differs")
+        );
         fs::remove_dir_all(root).expect("remove positive fixture");
     }
 
