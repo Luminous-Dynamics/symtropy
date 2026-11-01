@@ -11,7 +11,6 @@ pub const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 pub const MAX_STRICT_JCS_INPUT_BYTES: usize = 1_048_576;
 pub const MAX_STRICT_JCS_NESTING_DEPTH: usize = 127;
 
-
 /// I-JSON excludes Unicode noncharacters from member names and string values.
 fn contains_unicode_noncharacter(value: &str) -> bool {
     value.chars().any(|character| {
@@ -47,10 +46,7 @@ fn validate_safe_integer_literals(input: &[u8]) -> Result<(), String> {
                 let start = index;
                 index += 1;
                 while index < input.len()
-                    && matches!(
-                        input[index],
-                        b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-'
-                    )
+                    && matches!(input[index], b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-')
                 {
                     index += 1;
                 }
@@ -115,7 +111,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
         E: de::Error,
     {
         if i128::from(value).abs() > i128::from(MAX_SAFE_INTEGER) {
-            return Err(E::custom("integer is outside the interoperable safe-integer range"));
+            return Err(E::custom(
+                "integer is outside the interoperable safe-integer range",
+            ));
         }
         Ok(Value::Number(Number::from(value)))
     }
@@ -125,7 +123,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
         E: de::Error,
     {
         if value > MAX_SAFE_INTEGER {
-            return Err(E::custom("integer is outside the interoperable safe-integer range"));
+            return Err(E::custom(
+                "integer is outside the interoperable safe-integer range",
+            ));
         }
         Ok(Value::Number(Number::from(value)))
     }
@@ -144,7 +144,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
         E: de::Error,
     {
         if contains_unicode_noncharacter(value) {
-            return Err(E::custom("Unicode noncharacters are not permitted in I-JSON strings"));
+            return Err(E::custom(
+                "Unicode noncharacters are not permitted in I-JSON strings",
+            ));
         }
         Ok(Value::String(value.to_owned()))
     }
@@ -154,7 +156,9 @@ impl<'de> Visitor<'de> for StrictJcsValueVisitor {
         E: de::Error,
     {
         if contains_unicode_noncharacter(&value) {
-            return Err(E::custom("Unicode noncharacters are not permitted in I-JSON strings"));
+            return Err(E::custom(
+                "Unicode noncharacters are not permitted in I-JSON strings",
+            ));
         }
         Ok(Value::String(value))
     }
@@ -356,6 +360,9 @@ mod tests {
         let input = include_bytes!("../interop/golden/adversarial-input.json");
         let expected = include_bytes!("../interop/golden/adversarial-output.jcs");
         let actual = canonicalize_strict_jcs_input(input).unwrap();
-        assert_eq!(actual, std::str::from_utf8(expected).unwrap().trim_end().as_bytes());
+        assert_eq!(
+            actual,
+            std::str::from_utf8(expected).unwrap().trim_end().as_bytes()
+        );
     }
 }
