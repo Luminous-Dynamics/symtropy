@@ -2400,12 +2400,23 @@ mod tests {
         assert_eq!(receipt.independent_vertex_lower_bound, rational(3, 10));
         assert_eq!(receipt.dominance.maximum_state_residual, rational(3, 10));
         assert!(receipt.optimality_verified);
+        // Multiple kernels attain the optimum because the source channel
+        // rows are identical. The exact FME reconstruction deterministically
+        // selects the identity kernel.
         assert_eq!(
             receipt.dominance.witness.probabilities,
             vec![
-                vec![rational(1, 2), rational(1, 2)],
-                vec![rational(1, 2), rational(1, 2)],
+                vec![rational(1, 1), rational(0, 1)],
+                vec![rational(0, 1), rational(1, 1)],
             ]
+        );
+        assert_eq!(
+            solve_binary_le_cam_deficiency(&uninformative, &noisy)
+                .unwrap()
+                .dominance
+                .witness
+                .probabilities,
+            receipt.dominance.witness.probabilities
         );
     }
 
