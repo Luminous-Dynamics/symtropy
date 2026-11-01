@@ -34,7 +34,7 @@ fn run() -> Result<(), String> {
             constraint: ProtocolConstraint::NumericRange {
                 minimum: 0.73,
                 maximum: 0.73,
-                absolute_tolerance: 1.0e-9,
+                absolute_tolerance: 0.0,
                 unit: "1".to_owned(),
             },
         },
@@ -44,7 +44,7 @@ fn run() -> Result<(), String> {
             constraint: ProtocolConstraint::NumericRange {
                 minimum: 3_000_000.0,
                 maximum: 3_000_000.0,
-                absolute_tolerance: 0.5,
+                absolute_tolerance: 0.0,
                 unit: "1".to_owned(),
             },
         },
@@ -54,7 +54,7 @@ fn run() -> Result<(), String> {
             constraint: ProtocolConstraint::NumericRange {
                 minimum: 271.0,
                 maximum: 271.0,
-                absolute_tolerance: 1.0e-6,
+                absolute_tolerance: 0.0,
                 unit: "K".to_owned(),
             },
         },
