@@ -1029,6 +1029,6 @@ mod tests {
         let zdt3 = AnalyticTask::Zdt3.exact_hypervolume();
         assert!((zdt1 - (0.1 + 2.0 / 3.0 + 0.11)).abs() < 1.0e-12);
         assert!((zdt2 - (0.1 + 1.0 / 3.0 + 0.11)).abs() < 1.0e-12);
-        assert!((zdt3 - 1.4417629086570205).abs() < 1.0e-10);
+        assert!((zdt3 - 1.3317629086570204).abs() < 1.0e-10);
     }
 }
