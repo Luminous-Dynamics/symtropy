@@ -930,9 +930,11 @@ mod tests {
         let free_linear_velocity = dynamic_body.linear_velocity;
         let free_angular_velocity = dynamic_body.angular_velocity;
         let free_rotation = dynamic_body.transform.rotation.clone();
-        let reference =
-            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], std::slice::from_ref(&row))
-                .unwrap();
+        let reference = assemble_contact_wrench_free_velocity(
+            &[static_body, dynamic_body],
+            std::slice::from_ref(&row),
+        )
+        .unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
         let rotated_static = RigidBody::<3>::new(
@@ -1012,8 +1014,8 @@ mod tests {
 
     #[test]
     fn contact_wrench_delassus_propagates_singular_rolling_or_torsional_plane() {
-        use nalgebra::SMatrix;
         use crate::body::BodyType;
+        use nalgebra::SMatrix;
         use symtropy_math::{Sphere, Transform};
 
         let static_body = RigidBody::<3>::new(
