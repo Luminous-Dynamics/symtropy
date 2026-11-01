@@ -16,7 +16,7 @@ set -eu
 [ "$2" = "config.cfg" ]
 [ -s config.cfg ]
 [ -s mesh.su2 ]
-printf 'Iteration,CL,CD,RMS_RES\n0,0.40,0.020,0.01\n1,0.42,0.018,0.0001\n' > history.csv
+printf 'Iteration,CL,CD,RMS_DENSITY,RMS_MOMENTUM-X\n0,0.4100,0.0210,-1,-1\n10,0.4200,0.0200,-2,-2\n20,0.4230,0.01820,-6.5,-6.5\n30,0.42305,0.01815,-6.8,-6.8\n40,0.42310,0.01810,-7.1,-7.1\n50,0.42310,0.01808,-7.4,-7.4\n60,0.42315,0.01806,-7.7,-7.7\n70,0.42316,0.01805,-8,-8\n' > history.csv
 printf 'fixture force history\n' > forces_breakdown.dat
 printf 'synthetic SU2-style fixture stdout\n'
 printf 'synthetic SU2-style fixture stderr\n' >&2
@@ -54,14 +54,16 @@ grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_
   --header-column Iteration \
   --header-column CL \
   --header-column CD \
-  --header-column RMS_RES \
+  --header-column RMS_DENSITY \
+  --header-column RMS_MOMENTUM-X \
   --field CL=dimensionless \
   --field CD=dimensionless \
-  --field RMS_RES=1 \
-  --minimum-rows 2 \
+  --field RMS_DENSITY=log10(residual) \
+  --field RMS_MOMENTUM-X=log10(residual) \
+  --minimum-rows 8 \
   > "$root/su2-history-import.csv" 2> "$root/su2-history-import.txt"
-test "$(wc -l < "$root/su2-history-import.csv")" -eq 3
-grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=3' "$root/su2-history-import.txt"
+test "$(wc -l < "$root/su2-history-import.csv")" -eq 9
+grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=8 selected_fields=4' "$root/su2-history-import.txt"
 grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
 python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-history-import.csv"
 
@@ -72,17 +74,20 @@ python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-
   --header-column Iteration \
   --header-column CL \
   --header-column CD \
-  --header-column RMS_RES \
+  --header-column RMS_DENSITY \
+  --header-column RMS_MOMENTUM-X \
   --field CL=dimensionless \
   --field CD=dimensionless \
-  --field RMS_RES=1 \
-  --residual RMS_RES=0.0002:0.02 \
-  --monitor CL=2:0.025 \
-  --monitor CD=2:0.0025 \
+  --field RMS_DENSITY=log10(residual) \
+  --field RMS_MOMENTUM-X=log10(residual) \
+  --residual-log10 'RMS_DENSITY|log10(residual)|6|-8|6|2' \
+  --residual-log10 'RMS_MOMENTUM-X|log10(residual)|6|-8|6|2' \
+  --monitor 'CL|dimensionless|6|0.0004|0.0003|0.02' \
+  --monitor 'CD|dimensionless|6|0.0004|0.0003|0.02' \
   > "$root/su2-convergence-screen.csv" 2> "$root/su2-convergence-screen.txt"
-test "$(wc -l < "$root/su2-convergence-screen.csv")" -eq 4
-grep -q 'su2_convergence_screen=pass run_id=ci-su2-process-fixture passed=3 failed=0 insufficient=0' "$root/su2-convergence-screen.txt"
-grep -q 'declared_residual_and_monitor_threshold_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation' "$root/su2-convergence-screen.txt"
+test "$(wc -l < "$root/su2-convergence-screen.csv")" -eq 5
+grep -q 'su2_convergence_screen=pass run_id=ci-su2-process-fixture passed=4 failed=0 insufficient=0' "$root/su2-convergence-screen.txt"
+grep -q 'declared_residual_encoding_terminal_stability_and_monitor_screen_only_not_complete_CFD_convergence_grid_independence_or_physical_validation' "$root/su2-convergence-screen.txt"
 python3 scripts/verify-su2-convergence-screen-independent.py "$root/run" "$root/su2-history-import.csv" "$root/su2-convergence-screen.csv"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
