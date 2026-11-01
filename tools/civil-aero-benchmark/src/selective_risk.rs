@@ -441,14 +441,14 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const SELECTIVE_RISK_COVERAGE_CSV_HEADER: &str = "task_id,model_id,geometry_family,flow_regime,constraint_id,domain_status,accepted_count,sample_count,uncertainty_threshold,coverage_fraction,selective_mae,selective_rmse,false_feasible_count,false_feasible_rate,false_feasible_rate_wilson95_lower,false_feasible_rate_wilson95_upper,predicted_feasible_count,false_feasible_rate_per_predicted_feasible,false_feasible_given_predicted_feasible_wilson95_lower,false_feasible_given_predicted_feasible_wilson95_upper,missed_feasible_count,area_under_mae_risk_coverage,area_under_false_feasible_risk_coverage,evidence_level";
+pub const SELECTIVE_RISK_COVERAGE_CSV_HEADER: &str = "task_id,model_id,geometry_family,flow_regime,constraint_id,domain_status,accepted_count,sample_count,uncertainty_threshold,coverage_fraction,selective_mae,selective_rmse,false_feasible_count,false_feasible_rate,false_feasible_rate_wilson95_lower,false_feasible_rate_wilson95_upper,predicted_feasible_count,false_feasible_rate_per_predicted_feasible,false_feasible_given_predicted_feasible_wilson95_lower,false_feasible_given_predicted_feasible_wilson95_upper,missed_feasible_count,area_under_mae_risk_coverage,area_under_false_feasible_risk_coverage,dataset_split,evidence_level";
 
 pub fn report_to_csv(report: &SelectiveRiskReport) -> String {
     let mut output = format!("{SELECTIVE_RISK_COVERAGE_CSV_HEADER}\n");
     for summary in &report.summaries {
         for point in &summary.curve {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{:.12},{:.12},{:.12},{},{},{},{},{},{:.12},{:.12},{}\n",
+                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{:.12},{:.12},{:.12},{},{},{},{},{},{:.12},{:.12},{},{}\n",
                 csv_escape(&summary.task_id),
                 csv_escape(&summary.model_id),
                 csv_escape(&summary.geometry_family),
@@ -481,6 +481,7 @@ pub fn report_to_csv(report: &SelectiveRiskReport) -> String {
                 point.missed_feasible_count,
                 point.partial_area_under_mae_risk_coverage,
                 point.partial_area_under_false_feasible_risk_coverage,
+                report.dataset_split,
                 report.evidence_level
             ));
         }
