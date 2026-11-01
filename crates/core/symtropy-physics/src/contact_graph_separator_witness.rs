@@ -347,6 +347,7 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
     assert!(candidate.post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
     assert!(candidate.post_velocity.fixed_rows::<3>(6).norm() < 1.0e-9);
     assert!((candidate.separator_tau - 1.0).abs() < 1.0e-8);
+    assert!(candidate.leaf_disk_margins.iter().all(|margin| *margin > 0.49));
     assert!((candidate.energy_delta + 0.875).abs() < 1.0e-9);
     assert!(candidate.energy_delta < 0.0);
 
