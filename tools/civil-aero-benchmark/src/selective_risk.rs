@@ -145,18 +145,16 @@ pub fn audit_blind_selective_risk(
                 prediction.observed_value.to_bits(),
                 prediction.observed_feasible,
             ),
-        ) {
-            if previous
-                != (
-                    prediction.observed_value.to_bits(),
-                    prediction.observed_feasible,
-                )
-            {
-                return Err(format!(
-                    "sample {} changes observed value or feasibility truth across models",
-                    prediction.sample_id
-                ));
-            }
+        ) && previous
+            != (
+                prediction.observed_value.to_bits(),
+                prediction.observed_feasible,
+            )
+        {
+            return Err(format!(
+                "sample {} changes observed value or feasibility truth across models",
+                prediction.sample_id
+            ));
         }
 
         let group_key = GroupKey {
@@ -201,17 +199,17 @@ pub fn audit_blind_selective_risk(
 
     for (group, model_sets) in &comparison_sets {
         let mut sample_sets = model_sets.values();
-        if let Some(reference_samples) = sample_sets.next() {
-            if sample_sets.any(|samples| samples != reference_samples) {
-                return Err(format!(
-                    "models have different blind sample sets for task={} geometry={} regime={} constraint={} domain={}",
-                    group.task_id,
-                    group.geometry_family,
-                    group.flow_regime,
-                    group.constraint_id,
-                    group.domain_status.as_str()
-                ));
-            }
+        if let Some(reference_samples) = sample_sets.next()
+            && sample_sets.any(|samples| samples != reference_samples)
+        {
+            return Err(format!(
+                "models have different blind sample sets for task={} geometry={} regime={} constraint={} domain={}",
+                group.task_id,
+                group.geometry_family,
+                group.flow_regime,
+                group.constraint_id,
+                group.domain_status.as_str()
+            ));
         }
     }
 
