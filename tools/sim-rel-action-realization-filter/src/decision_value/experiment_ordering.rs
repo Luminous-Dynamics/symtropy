@@ -1314,10 +1314,11 @@ fn exact_boxed_linear_feasibility(
                 }
             }
         }
-        if let (Some(lower), Some(upper)) = (lower_bound, upper_bound) {
-            if lower > upper {
-                return Ok(None);
-            }
+        if lower_bound
+            .zip(upper_bound)
+            .is_some_and(|(lower, upper)| lower > upper)
+        {
+            return Ok(None);
         }
         solution[variable] = match (lower_bound, upper_bound) {
             (Some(lower), _) if lower > zero => lower,
