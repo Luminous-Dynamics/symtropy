@@ -2534,6 +2534,162 @@ mod tests {
         .is_err());
     }
 
+    fn completed_campaign_snapshot() -> ModelFamilyLedgerSnapshot {
+        let mut ledger = ledger();
+        let witness = counterexample(&world("nominal"), "transcript-sensor-dropout");
+        ledger
+            .admit_counterexample(
+                &witness,
+                provenance("policy-v1", EvidenceSplit::Development, "dev-family-a"),
+                validation(),
+                "transcript-admission".into(),
+            )
+            .unwrap();
+        replan(
+            &mut ledger,
+            "transcript-replan",
+            1,
+            "policy-v2",
+            recovered_policy(),
+        )
+        .unwrap();
+        ledger
+            .seal_final_policy("transcript-seal".into(), 1, "policy-v2".into())
+            .unwrap();
+        evaluate_holdout(
+            &mut ledger,
+            "transcript-holdout",
+            "sealed-mechanism-family",
+            1,
+            "policy-v2",
+            &holdout_worlds(),
+            holdout_criteria(Rational::one()),
+        )
+        .unwrap();
+        ledger.snapshot()
+    }
+
+    #[test]
+    fn offline_transcript_verifier_accepts_empty_baseline_snapshot() {
+        let snapshot = ledger().snapshot();
+        let receipt = super::verify_model_family_ledger_snapshot(&snapshot).unwrap();
+        assert_eq!(receipt.event_count, 0);
+        assert_eq!(receipt.admission_count, 0);
+        assert_eq!(receipt.final_family_revision, 0);
+        assert_eq!(receipt.development_world_ids, vec!["nominal"]);
+        assert_eq!(receipt.calibration_group_count, 1);
+        assert_eq!(receipt.sealed_holdout_group_count, 1);
+        assert!(receipt.snapshot_exactly_reconstructed);
+        assert_eq!(receipt.active_policy_identity.as_deref(), Some("policy-v1"));
+    }
+
+    #[test]
+    fn offline_transcript_verifier_reconstructs_full_campaign_end_to_end() {
+        let snapshot = completed_campaign_snapshot();
+        let receipt = super::verify_model_family_ledger_snapshot(&snapshot).unwrap();
+        assert_eq!(receipt.event_count, 4);
+        assert_eq!(receipt.admission_count, 1);
+        assert_eq!(receipt.replan_count, 1);
+        assert_eq!(receipt.final_policy_seal_count, 1);
+        assert_eq!(receipt.sealed_evaluation_count, 1);
+        assert_eq!(receipt.final_family_revision, 1);
+        assert_eq!(
+            receipt.development_world_ids,
+            vec!["nominal".to_string(), "transcript-sensor-dropout".to_string()]
+        );
+        assert!(receipt.snapshot_exactly_reconstructed);
+        assert_eq!(receipt.active_policy_identity, None);
+        assert_eq!(receipt.frozen_policy_identity.as_deref(), Some("policy-v2"));
+        assert_eq!(
+            receipt.consumed_holdout_group_ids,
+            vec!["sealed-mechanism-family".to_string()]
+        );
+    }
+
+    #[test]
+    fn offline_transcript_verifier_rejects_sequence_gaps_and_event_tampering() {
+        let snapshot = completed_campaign_snapshot();
+
+        let mut sequence_tamper = snapshot.clone();
+        sequence_tamper.events[0].sequence = 7;
+        let error = super::verify_model_family_ledger_snapshot(&sequence_tamper)
+            .expect_err("non-contiguous event sequence must be rejected");
+        assert_eq!(
+            error.phase,
+            LedgerTranscriptVerificationPhase::EventSequence
+        );
+
+        let mut event_tamper = snapshot.clone();
+        if let ModelFamilyLedgerEvent::CounterexampleAdmitted(record) =
+            &mut event_tamper.events[0].event
+        {
+            record.candidate_world_snapshot.id = "changed-candidate-id".into();
+        } else {
+            panic!("first campaign event must be counterexample admission");
+        }
+        let error = super::verify_model_family_ledger_snapshot(&event_tamper)
+            .expect_err("tampered candidate snapshot must be rejected");
+        assert!(matches!(
+            error.phase,
+            LedgerTranscriptVerificationPhase::CounterexampleAdmission
+                | LedgerTranscriptVerificationPhase::EventEquality
+        ));
+
+        let mut final_state_tamper = snapshot;
+        final_state_tamper.frozen_policy_identity = Some("forged-policy".into());
+        let error = super::verify_model_family_ledger_snapshot(&final_state_tamper)
+            .expect_err("tampered final policy identity must be rejected");
+        assert_eq!(
+            error.phase,
+            LedgerTranscriptVerificationPhase::FinalSnapshotEquality
+        );
+    }
+
+    #[test]
+    fn offline_transcript_verifier_replays_failed_sealed_holdout_attempts() {
+        let mut ledger = ledger();
+        ledger
+            .seal_final_policy("failed-transcript-seal".into(), 0, "policy-v1".into())
+            .unwrap();
+
+        let source = world("external-holdout-source");
+        let perturbation = ModelWorldPerturbation::DropReadback {
+            command: 0,
+            sensor_state: Some(0),
+            dropout_probability: q(1, 2),
+        };
+        let failing_world =
+            super::super::counterexample_search::apply_model_world_perturbation(
+                &source,
+                "heldout-world-b",
+                &perturbation,
+            )
+            .unwrap();
+        let worlds = vec![world("heldout-world-a"), failing_world];
+        let record = evaluate_holdout(
+            &mut ledger,
+            "failed-transcript-evaluation",
+            "sealed-mechanism-family",
+            0,
+            "policy-v1",
+            &worlds,
+            holdout_criteria(Rational::one()),
+        )
+        .unwrap();
+        assert!(!record.replay_succeeded);
+        assert!(record.replay_error.is_some());
+        let snapshot = ledger.snapshot();
+
+        let receipt = super::verify_model_family_ledger_snapshot(&snapshot).unwrap();
+        assert_eq!(receipt.event_count, 2);
+        assert_eq!(receipt.final_policy_seal_count, 1);
+        assert_eq!(receipt.sealed_evaluation_count, 1);
+        assert_eq!(
+            receipt.consumed_holdout_group_ids,
+            vec!["sealed-mechanism-family".to_string()]
+        );
+    }
+
     #[test]
     fn event_revisions_and_snapshots_are_append_only_and_canonical() {
         let mut ledger = ledger();
