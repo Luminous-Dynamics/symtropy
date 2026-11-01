@@ -1073,12 +1073,11 @@ pub fn solve_small_blackwell_garbling(
     for variable in 0..variables {
         let coefficients = (0..variables)
             .map(|index| {
-                let value = if index == variable {
-                    Rational::one().checked_mul(Rational::one()).expect("one times one")
+                if index == variable {
+                    SignedRational::from_rational(Rational::one()).negated()
                 } else {
-                    Rational::zero()
-                };
-                SignedRational::from_rational(value).negated()
+                    SignedRational::from_rational(Rational::zero())
+                }
             })
             .collect();
         constraints.push(LinearInequality {
