@@ -349,33 +349,27 @@ mod tests {
 
     const RESULTS: &str = concat!(
         "iteration,design,reward,best_reward\n",
-        "1,\"{\"sweep\":25.0,\"twist\":0.1}\",0.42,0.42\n",
-        "2,\"{\"sweep\":25.5,\"twist\":0.2}\",0.51,0.51\n",
-        "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51\n"
+        "1,\"shape-a,twist=0.1\",0.42,0.42\n",
+        "2,\"shape-b,twist=0.2\",0.51,0.51\n",
+        "3,\"shape-c,twist=0.15\",0.48,0.51\n"
     );
 
     #[test]
     fn imports_quoted_design_and_checks_running_best_without_inventing_cost() {
-        let report = import_shape_bench_results_csv(
-            RESULTS,
-            context(),
-            RewardDirection::Maximize,
-        )
-        .expect("valid result trajectory");
+        let report =
+            import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
+                .expect("valid result trajectory");
         assert_eq!(report.rows.len(), 3);
-        assert_eq!(report.rows[0].design_payload, "{\"sweep\":25.0,\"twist\":0.1}");
+        assert_eq!(report.rows[0].design_payload, "shape-a,twist=0.1");
         assert!(!report.evaluation_cost_admissible());
         assert_eq!(
             report.evidence_level,
             "benchmark_output_import_only_not_solver_validation_or_physical_evidence"
         );
         assert_eq!(report.to_csv().lines().count(), 4);
-        let repeated = import_shape_bench_results_csv(
-            RESULTS,
-            context(),
-            RewardDirection::Maximize,
-        )
-        .expect("deterministic import");
+        let repeated =
+            import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
+                .expect("deterministic import");
         assert_eq!(report.import_sha256, repeated.import_sha256);
     }
 
@@ -383,16 +377,17 @@ mod tests {
     fn cost_comparison_requires_a_separate_pinned_ledger() {
         let mut run = context();
         run.cost_ledger_sha256 = Some("a".repeat(64));
-        let report = import_shape_bench_results_csv(RESULTS, run, RewardDirection::Maximize)
-            .expect("valid run");
+        let report =
+            import_shape_bench_results_csv(RESULTS, run, RewardDirection::Maximize)
+                .expect("valid run");
         assert!(report.evaluation_cost_admissible());
     }
 
     #[test]
     fn rejects_duplicate_or_non_monotonic_iterations_and_bad_best_reward() {
         let duplicate = RESULTS.replace(
-            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
-            "2,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
+            "3,\"shape-c,twist=0.15\",0.48,0.51",
+            "2,\"shape-c,twist=0.15\",0.48,0.51",
         );
         assert!(
             import_shape_bench_results_csv(&duplicate, context(), RewardDirection::Maximize)
@@ -400,8 +395,8 @@ mod tests {
                 .contains("strictly increasing")
         );
         let false_best = RESULTS.replace(
-            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
-            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.48",
+            "3,\"shape-c,twist=0.15\",0.48,0.51",
+            "3,\"shape-c,twist=0.15\",0.48,0.48",
         );
         assert!(
             import_shape_bench_results_csv(&false_best, context(), RewardDirection::Maximize)
@@ -413,40 +408,41 @@ mod tests {
     #[test]
     fn rejects_non_finite_rewards_wrong_schema_and_invalid_source_identity() {
         let non_finite = RESULTS.replace(
-            "2,\"{\"sweep\":25.5,\"twist\":0.2}\",0.51,0.51",
-            "2,\"{\"sweep\":25.5,\"twist\":0.2}\",NaN,0.51",
+            "2,\"shape-b,twist=0.2\",0.51,0.51",
+            "2,\"shape-b,twist=0.2\",NaN,0.51",
         );
         assert!(
             import_shape_bench_results_csv(&non_finite, context(), RewardDirection::Maximize)
                 .expect_err("NaN rejected")
                 .contains("finite")
         );
-        assert!(import_shape_bench_results_csv(
-            &RESULTS.replace("best_reward", "best"),
-            context(),
-            RewardDirection::Maximize
-        )
-        .is_err());
+        assert!(
+            import_shape_bench_results_csv(
+                &RESULTS.replace("best_reward", "best"),
+                context(),
+                RewardDirection::Maximize
+            )
+            .is_err()
+        );
         let mut bad_source = context();
         bad_source.source_commit = "main".to_owned();
-        assert!(import_shape_bench_results_csv(RESULTS, bad_source, RewardDirection::Maximize)
-            .is_err());
+        assert!(
+            import_shape_bench_results_csv(RESULTS, bad_source, RewardDirection::Maximize)
+                .is_err()
+        );
     }
 
     #[test]
     fn supports_minimization_without_misreading_best_so_far() {
         let input = concat!(
             "iteration,design,reward,best_reward\n",
-            "0,\"{\"shape\":0}\",1.0,1.0\n",
-            "1,\"{\"shape\":1}\",0.8,0.8\n",
-            "2,\"{\"shape\":2}\",0.9,0.8\n"
+            "0,\"shape-a\",1.0,1.0\n",
+            "1,\"shape-b\",0.8,0.8\n",
+            "2,\"shape-c\",0.9,0.8\n"
         );
-        let report = import_shape_bench_results_csv(
-            input,
-            context(),
-            RewardDirection::Minimize,
-        )
-        .expect("valid minimization trajectory");
+        let report =
+            import_shape_bench_results_csv(input, context(), RewardDirection::Minimize)
+                .expect("valid minimization trajectory");
         assert_eq!(report.rows[2].best_reward, 0.8);
     }
 }
