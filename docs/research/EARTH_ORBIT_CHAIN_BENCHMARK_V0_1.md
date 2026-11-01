@@ -92,6 +92,40 @@ Keep geography architecture-specific:
 
 An orbital ring is not a space elevator. Do not infer that all ring surface terminals must lie on the equator.
 
+## 5A. Orbital last-mile delivery is a separate service
+
+A successful primary launch does not necessarily complete the customer's mission. Rideshare customers may be inserted into a primary orbit chosen for another payload; an OTV/OMV can provide a separate maneuvering / last-mile service toward the customer's required orbit, phasing or destination state.
+
+Compare:
+- dedicated launch directly to the target orbit;
+- rideshare with already-compatible orbit;
+- rideshare plus one OTV/OMV;
+- rideshare plus a time-expanded sequence of multiple cooperating servicers / depots;
+- existing provider / no-build.
+
+NASA's 2026 Small Spacecraft Technology State-of-the-Art Chapter 10 describes the OTV/OMV market as nascent, with many planned systems but few having flight heritage. Distinguish propulsion-oriented OTVs from hosted-function OMVs, and record exact vehicle configuration, flown-vs-proposed status, payload envelope, propellant, power, navigation, communications and capture interface. See https://www.nasa.gov/smallsat-institute/sst-soa/integration-launch-and-deployment/ (section 10.5).
+
+The planning layer models discrete mission assignments, vehicle schedules, depots, inventory, payload compatibility, deadlines and transfer windows. It consumes orbit/trajectory/rendezvous qualification receipts; it does not independently certify trajectory dynamics, docking or capture. Physical object custody during interbody travel remains with Symtropy #103.
+
+Benchmark failure cases where:
+- primary injection does not satisfy final target orbit;
+- phasing / plane-change / altitude requirements exceed the qualified propulsion budget;
+- a missed rendezvous or failed capture leaves cargo in transit;
+- a servicing vehicle or depot outage breaks a multi-hop plan;
+- nominally independent servicers share navigation, comms, power, supplier or depot dependencies.
+
+## 5B. Resilience must include irrecoverable and no-resupply states
+
+Do not assume every failure is repairable, replaceable or eventually replenished. For each deterministic scenario, state whether repair, reroute, spare, resupply, recycling, local manufacture or ISRU is actually available within the mission horizon and evidence tier.
+
+A closed-loop pathway is not qualified merely because a mass can be collected or processed: record resulting material grade, yield, energy, tools, facility, contamination and qualification for reuse. Unknown recovery remains Unknown / NeedsEvidence. A deterministic fault set is not a calibrated probability distribution.
+
+The OECD's 2026 assessment identifies concentrated launch activity, qualified supplier scarcity, specialized inputs and critical-material concentration as real space-economy vulnerability classes. Map sub-tier suppliers and common processing dependencies; two nominal vendors are not independent if they rely on the same qualified material, semiconductor or component source. See https://www.oecd.org/en/publications/the-space-economy-at-a-glance-2026_cbf9b240-en/full-report/managing-vulnerabilities-dependencies-and-sustainability-risks-of-the-space-economy_4d97ef6d.html.
+
+Research/benchmark owners:
+- Orbital last-mile service: Symtropy #3253.
+- No-resupply, recovery and qualified closed-loop supply: Symtropy #3254.
+
 ## 6. Frozen synthetic corpus
 
 Freeze at least 24 synthetic cases across the following dimensions:
@@ -170,6 +204,9 @@ Keep private financial, public fiscal, economic resource, distributional, enviro
 - Birch, P., [Orbital Ring Systems and Jacob's Ladders — I](https://nss.org/wp-content/uploads/Orbital-Rings.pdf), *Journal of the British Interplanetary Society*, 35 (1982), pp. 475–497. Primary concept source for off-equatorial geostationary cables, stationary skyhooks and orbital-ring variants; the paper expressly describes the analysis as preliminary and exploratory.
 - Kenya PPP Directorate, [proposed spaceport feasibility study](https://pppkenya.go.ke/kenya-advances-plans-for-proposed-spaceport-project/), 1 October 2026; Space in Africa, [transaction-advisory appointment](https://spaceinafrica.com/2026/10/28/kenya-appoints-consortium-to-advise-on-proposed-commercial-spaceport/), 28 October 2026. These are feasibility steps, not a construction decision.
 - NASA, [Small Spacecraft Technology State of the Art — In-Space Propulsion](https://www.nasa.gov/smallsat-institute/sst-soa/in-space_propulsion/): documented tether flight demonstrations; not an Earth elevator or orbital-ring demonstration.
+- NASA, [Small Spacecraft Technology State of the Art — Integration, Launch, Deployment and Orbital Transport](https://www.nasa.gov/smallsat-institute/sst-soa/integration-launch-and-deployment/), 18 May 2026, §10.5: OTV/OMV last-mile service and the distinction between nascent announced systems and vehicles with flight heritage.
+- OECD, [The Space Economy at a Glance 2026 — managing vulnerabilities, dependencies and sustainability risks](https://www.oecd.org/en/publications/the-space-economy-at-a-glance-2026_cbf9b240-en/full-report/managing-vulnerabilities-dependencies-and-sustainability-risks-of-the-space-economy_4d97ef6d.html): launch-provider concentration, specialist supplier dependencies and critical-material concentration.
+- Selvamurugan, Lightsey and Ho, [Time-optimal trajectory design of distributed space systems for in-space transportation in Earth Orbit](https://doi.org/10.1016/j.actaastro.2026.05.056), *Acta Astronautica* 248 (November 2026), pp. 17–35. A time-expanded multi-vehicle trajectory/scheduling case study; preliminary case-specific findings, not universal superiority.
 - Hu et al., [A state-of-the-art review of underground logistics systems](https://doi.org/10.1016/j.tust.2025.106641), 2025, reviewing 243 publications.
 - IEEE, [A Reality Check on Maglev Technology for the Hyperloop Transportation System](https://doi.org/10.1109/ACCESS.2024.3491904), 2024.
 - DP World / Deendayal Port Authority / Nevomo, [750 m MagRail pilot exploration](https://www.dpworld.com/en/news/dp-world-deendayal-port-authority-and-nevomo-sign-mou-to-explore-autonomous-magnetic-rail-freight-movement-in-india), 2025. This is port-scale exploration, not proof of a long-haul underground freight network.
