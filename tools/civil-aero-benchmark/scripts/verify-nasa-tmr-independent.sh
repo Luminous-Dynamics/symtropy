@@ -90,16 +90,25 @@ function numeric(s) {
   if (NF != 2) exit 43
   if (!numeric($1) || !numeric($2)) exit 44
   x = $1 + 0
-  if (x < 0 || x > 1) exit 45
+  # These source coordinates were digitized from a photocopy. Preserve the raw
+  # values, but allow only a 0.001-chord edge tolerance for digitization error.
+  if (x < -0.001 || x > 1.001) {
+    range_error = 1
+  }
+  if (x < min_x) min_x = x
+  if (x > max_x) max_x = x
   rows++
   by_zone[current]++
 }
 END {
-  if (rows != 73 || zone_count != 3 ||
+  if (range_error || rows != 73 || zone_count != 3 ||
       by_zone["alpha=0"] != 25 ||
       by_zone["alpha=10"] != 24 ||
-      by_zone["alpha=15"] != 24) exit 46
-  print "gregory_pressure_rows=" rows " zones=3 counts=alpha0:25,alpha10:24,alpha15:24"
+      by_zone["alpha=15"] != 24) {
+    print "Gregory pressure audit failed: rows=" rows       " zones=" zone_count " x/c_range=" min_x ".." max_x > "/dev/stderr"
+    exit 46
+  }
+  print "gregory_pressure_rows=" rows " zones=3 counts=alpha0:25,alpha10:24,alpha15:24 x/c_raw_range=" min_x ".." max_x " tolerance=+/-0.001"
 }
 ' data/reference/nasa-tmr/CP_Gregory_expdata.dat
 
