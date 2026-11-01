@@ -397,10 +397,22 @@ mod tests {
 
     #[test]
     fn parses_optional_legacy_point_and_element_indices() {
-        let mesh = "NDIME= 2\nNPOIN= 3\n0 0 0\n1 0 1\n0 1 2\nNELEM= 1\n5 0 1 2 0\nNMARK= 0\n";
+        let mesh = "NDIME= 2\nNPOIN= 3\n0 0 10\n1 0 11\n0 1 12\nNELEM= 1\n5 0 1 2 99\nNMARK= 0\n";
         let summary = inspect_su2_mesh(mesh.as_bytes()).expect("legacy index mesh");
         assert_eq!(summary.point_count, 3);
         assert_eq!(summary.volume_element_count, 1);
+    }
+
+    #[test]
+    fn parses_3d_tetrahedral_mesh_and_triangular_marker() {
+        let mesh = "NDIME= 3\nNPOIN= 4\n0 0 0\n1 0 0\n0 1 0\n0 0 1\nNELEM= 1\n10 0 1 2 3\nNMARK= 1\nMARKER_TAG= wall\nMARKER_ELEMS= 1\n5 0 1 2\n";
+        let summary = inspect_su2_mesh(mesh.as_bytes()).expect("valid tetrahedral mesh");
+        assert_eq!(summary.dimension, 3);
+        assert_eq!(summary.point_count, 4);
+        assert_eq!(summary.volume_element_type_counts.get(&10), Some(&1));
+        assert_eq!(summary.boundary_element_count, 1);
+        assert_eq!(summary.minimum_coordinates, [Some(0.0), Some(0.0), Some(0.0)]);
+        assert_eq!(summary.maximum_coordinates, [Some(1.0), Some(1.0), Some(1.0)]);
     }
 
     #[test]
