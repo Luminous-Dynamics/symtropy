@@ -82,7 +82,10 @@ impl StickingLeafMessage {
             || tolerance <= 0.0
             || !separator_impulse.iter().all(|value| value.is_finite())
             || !self.self_operator.iter().all(|value| value.is_finite())
-            || !self.separator_coupling.iter().all(|value| value.is_finite())
+            || !self
+                .separator_coupling
+                .iter()
+                .all(|value| value.is_finite())
             || !self.free_velocity.iter().all(|value| value.is_finite())
             || !self.friction_coefficient.is_finite()
             || self.friction_coefficient < 0.0
