@@ -8,7 +8,7 @@
 //! enumeration for at most eight rows. The existing sequential-impulse solver
 //! remains the runtime baseline until matched-work experiments justify a change.
 
-use nalgebra::{DMatrix, DVector, SMatrix, SVector};
+use nalgebra::{DMatrix, DVector, SVector};
 
 use crate::body::{BodyHandle, RigidBody};
 use crate::contact_frame::ContactFrame;
@@ -931,7 +931,7 @@ mod tests {
         let free_angular_velocity = dynamic_body.angular_velocity;
         let free_rotation = dynamic_body.transform.rotation.clone();
         let reference =
-            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], &[row.clone()])
+            assemble_contact_wrench_free_velocity(&[static_body, dynamic_body], std::slice::from_ref(&row))
                 .unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.41);
@@ -1012,6 +1012,7 @@ mod tests {
 
     #[test]
     fn contact_wrench_delassus_propagates_singular_rolling_or_torsional_plane() {
+        use nalgebra::SMatrix;
         use crate::body::BodyType;
         use symtropy_math::{Sphere, Transform};
 
