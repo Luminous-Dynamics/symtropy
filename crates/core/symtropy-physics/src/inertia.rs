@@ -526,13 +526,14 @@ mod tests {
         )
         .unwrap();
 
-        // S_xx = 0.4 + 2*1^2 + 0.0125 + 1*2^2 = 5.4125.
-        // S_yy = S_zz = 0.4 + 0.0125 = 0.4125.
-        assert!((combined.second_moment()[(0, 0)] - 5.4125).abs() < 1e-12);
-        assert!((combined.second_moment()[(1, 1)] - 0.4125).abs() < 1e-12);
-        assert!((combined.second_moment()[(2, 2)] - 0.4125).abs() < 1e-12);
+        // Body A contributes S = 2/5 I; body B contributes S = 1/20 I.
+        // Parallel-axis terms add 2*(-1)^2 + 1*(2)^2 = 6 to S_xx.
+        // Thus S_xx = 6.45, S_yy = S_zz = 0.45, and I_xy = S_xx + S_yy.
+        assert!((combined.second_moment()[(0, 0)] - 6.45).abs() < 1e-12);
+        assert!((combined.second_moment()[(1, 1)] - 0.45).abs() < 1e-12);
+        assert!((combined.second_moment()[(2, 2)] - 0.45).abs() < 1e-12);
         let plane_xy = Bivector::<3>::unit_plane(0, 1);
-        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 5.825).abs() < 1e-12);
+        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 6.9).abs() < 1e-12);
     }
 
     #[test]
