@@ -478,6 +478,7 @@ mod tests {
     use crate::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
     use std::collections::BTreeMap;
     use std::os::unix::fs::PermissionsExt;
+    use std::path::PathBuf;
     use std::time::Duration;
 
     fn temp_root() -> PathBuf {
