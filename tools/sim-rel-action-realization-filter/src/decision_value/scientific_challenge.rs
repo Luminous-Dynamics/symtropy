@@ -79,7 +79,10 @@ impl ChallengeSplitRegistry {
             EvidenceSplit::Calibration => &self.calibration_group_ids,
             EvidenceSplit::SealedHoldout => &self.sealed_holdout_group_ids,
         };
-        if !allowed.iter().any(|registered| registered == family_group_id) {
+        if !allowed
+            .iter()
+            .any(|registered| registered == family_group_id)
+        {
             return Err("challenge split/group pair was not pre-registered".into());
         }
         Ok(())
@@ -224,7 +227,9 @@ impl SplitMix64 {
 
 fn validate_id(value: &str, label: &str) -> Result<(), String> {
     if value.trim().is_empty() || value.len() > 256 {
-        return Err(format!("{label} must be non-empty and no longer than 256 bytes"));
+        return Err(format!(
+            "{label} must be non-empty and no longer than 256 bytes"
+        ));
     }
     Ok(())
 }
@@ -286,10 +291,10 @@ fn normalize_prior(raw_weights: &[Rational]) -> Result<Vec<Rational>, String> {
     if raw_weights.is_empty() {
         return Err("prior weight vector must be non-empty".into());
     }
-    let total = raw_weights.iter().copied().try_fold(
-        Rational::zero(),
-        |sum, value| sum.checked_add(value),
-    )?;
+    let total = raw_weights
+        .iter()
+        .copied()
+        .try_fold(Rational::zero(), |sum, value| sum.checked_add(value))?;
     if total.is_zero() {
         return Err("prior weights cannot all be zero".into());
     }
@@ -356,12 +361,7 @@ fn channel_from_first_output(
     }
     let probabilities = first_probabilities
         .iter()
-        .map(|first| {
-            Ok(vec![
-                *first,
-                subtract_nonnegative(Rational::one(), *first)?,
-            ])
-        })
+        .map(|first| Ok(vec![*first, subtract_nonnegative(Rational::one(), *first)?]))
         .collect::<Result<Vec<_>, String>>()?;
     let channel = FiniteObservationChannel {
         channel_id,
@@ -378,18 +378,14 @@ fn channel_from_first_output(
 fn oracle_from_minimax(
     task: &PublicScientificDecisionTask,
 ) -> Result<SealedScientificDecisionOracle, String> {
-    let solution = solve_binary_le_cam_deficiency(
-        &task.source_channel,
-        &task.target_channel,
-    )?;
+    let solution = solve_binary_le_cam_deficiency(&task.source_channel, &task.target_channel)?;
     let audit = verify_approximate_blackwell_dominance(
         &task.source_channel,
         &task.target_channel,
         &solution.dominance.witness,
         solution.optimal_deficiency,
     )?;
-    if !solution.optimality_verified
-        || audit.maximum_state_residual != solution.optimal_deficiency
+    if !solution.optimality_verified || audit.maximum_state_residual != solution.optimal_deficiency
     {
         return Err("exact minimax solver failed independent residual replay".into());
     }
@@ -580,13 +576,12 @@ pub fn verify_generated_challenge_from_recipe(
     recipe: &BinaryChannelChallengeRecipe,
     registry: &ChallengeSplitRegistry,
 ) -> Result<(), String> {
-    let regenerated = generate_binary_channel_challenge(
-        recipe,
-        registry,
-        challenge.generation_receipt.seed,
-    )?;
+    let regenerated =
+        generate_binary_channel_challenge(recipe, registry, challenge.generation_receipt.seed)?;
     if regenerated != *challenge {
-        return Err("regenerated public/oracle/receipt artifacts differ from stored challenge".into());
+        return Err(
+            "regenerated public/oracle/receipt artifacts differ from stored challenge".into(),
+        );
     }
     verify_generated_challenge_oracle(challenge)
 }
@@ -650,7 +645,10 @@ mod tests {
         recipe_b.task_id = "challenge-002".into();
         let first = generate_binary_channel_challenge(&recipe_a, &registry, 17).unwrap();
         let second = generate_binary_channel_challenge(&recipe_b, &registry, 18).unwrap();
-        assert_ne!(first.public_task.source_channel, second.public_task.source_channel);
+        assert_ne!(
+            first.public_task.source_channel,
+            second.public_task.source_channel
+        );
         assert_eq!(first.generation_receipt.seed, 17);
         assert!(!format!("{:?}", first.public_task).contains("seed"));
         verify_generated_challenge_oracle(&first).unwrap();
@@ -681,12 +679,14 @@ mod tests {
             calibration_group_ids: vec!["same".into()],
             sealed_holdout_group_ids: vec![],
         };
-        assert!(generate_binary_channel_challenge(
-            &recipe(ChallengeObjective::ClassicalWorstStateDeficiency),
-            &invalid_registry,
-            1,
-        )
-        .is_err());
+        assert!(
+            generate_binary_channel_challenge(
+                &recipe(ChallengeObjective::ClassicalWorstStateDeficiency),
+                &invalid_registry,
+                1,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -694,8 +694,8 @@ mod tests {
         let mut calibration_recipe = recipe(ChallengeObjective::ClassicalWorstStateDeficiency);
         calibration_recipe.split = EvidenceSplit::Calibration;
         calibration_recipe.family_group_id = "cal-mechanism-family".into();
-        let calibration = generate_binary_channel_challenge(&calibration_recipe, &registry(), 301)
-            .unwrap();
+        let calibration =
+            generate_binary_channel_challenge(&calibration_recipe, &registry(), 301).unwrap();
         verify_generated_challenge_oracle(&calibration).unwrap();
 
         let mut sealed_recipe = recipe(ChallengeObjective::PriorLossSpanWeightedDeficiency);
