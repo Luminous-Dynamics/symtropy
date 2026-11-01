@@ -216,7 +216,6 @@ fn physical_two_point_delassus_is_rank_five_and_has_a_continuum_of_sticking_impu
     // For every alpha in (-1,1), both tangential impulses have magnitude
     // |alpha|<1, so this is a continuum of strictly sticking solutions.
     let half = Rational::new(BigInt::one(), BigInt::from(2));
-    let one = Rational::one();
     for alpha in [
         Rational::new(BigInt::from(-3), BigInt::from(4)),
         Rational::new(BigInt::from(-1), BigInt::from(2)),
@@ -259,8 +258,4 @@ fn physical_two_point_delassus_is_rank_five_and_has_a_continuum_of_sticking_impu
     // inequalities above reduce to 1-alpha^2>0, proving the open interval
     // (-1,1) consists entirely of admissible impulse allocations.
     assert_eq!(matrix_vector(&delassus, &p0), wp0);
-    assert_eq!(
-        one - Rational::new(BigInt::from(3), BigInt::from(4)),
-        Rational::new(BigInt::one(), BigInt::from(4))
-    );
 }
