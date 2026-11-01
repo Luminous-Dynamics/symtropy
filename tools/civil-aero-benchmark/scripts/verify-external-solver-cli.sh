@@ -58,8 +58,8 @@ grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_
   --header-column RMS_MOMENTUM-X \
   --field CL=dimensionless \
   --field CD=dimensionless \
-  --field RMS_DENSITY=log10(residual) \
-  --field RMS_MOMENTUM-X=log10(residual) \
+  --field 'RMS_DENSITY=log10(residual)' \
+  --field 'RMS_MOMENTUM-X=log10(residual)' \
   --minimum-rows 8 \
   > "$root/su2-history-import.csv" 2> "$root/su2-history-import.txt"
 test "$(wc -l < "$root/su2-history-import.csv")" -eq 9
@@ -78,8 +78,8 @@ python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-
   --header-column RMS_MOMENTUM-X \
   --field CL=dimensionless \
   --field CD=dimensionless \
-  --field RMS_DENSITY=log10(residual) \
-  --field RMS_MOMENTUM-X=log10(residual) \
+  --field 'RMS_DENSITY=log10(residual)' \
+  --field 'RMS_MOMENTUM-X=log10(residual)' \
   --residual-log10 'RMS_DENSITY|log10(residual)|6|-8|6|2' \
   --residual-log10 'RMS_MOMENTUM-X|log10(residual)|6|-8|6|2' \
   --monitor 'CL|dimensionless|6|0.0004|0.0003|0.02' \
