@@ -4,24 +4,39 @@ use engineering_scenario_compiler::{
     MAX_UPSTREAM_MESH_BYTES,
 };
 use std::ffi::{OsStr, OsString};
+use std::fs::File;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+fn read_bounded_bytes<R: Read>(
+    reader: R,
+    maximum: usize,
+    role: &str,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
+    reader
+        .take(maximum as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| format!("could not bounded-read {role}: {error}"))?;
+    if bytes.len() > maximum {
+        return Err(format!("{role} exceeded the {maximum} byte CLI limit while reading"));
+    }
+    Ok(bytes)
+}
+
 fn read_bounded(path: &Path, maximum: usize, role: &str) -> Result<Vec<u8>, String> {
-    let metadata = std::fs::metadata(path)
-        .map_err(|error| format!("could not inspect {role} path: {error}"))?;
-    if !metadata.file_type().is_file() {
+    let file = File::open(path).map_err(|error| format!("could not open {role}: {error}"))?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| format!("could not inspect opened {role}: {error}"))?;
+    if !metadata.is_file() {
         return Err(format!("{role} path must identify a regular file"));
     }
     if metadata.len() > maximum as u64 {
         return Err(format!("{role} exceeds the {maximum} byte CLI limit"));
     }
-    let bytes = std::fs::read(path)
-        .map_err(|error| format!("could not read {role}: {error}"))?;
-    if bytes.len() > maximum {
-        return Err(format!("{role} exceeded the {maximum} byte CLI limit while reading"));
-    }
-    Ok(bytes)
+    read_bounded_bytes(file, maximum, role)
 }
 
 fn usage(program: &OsStr) {
@@ -182,6 +197,24 @@ mod tests {
         assert!(parse_options(args(&[
             "--solver-config", "one.cfg", "--solver-config", "two.cfg",
         ])).is_err());
+    }
+
+    #[test]
+    fn bounded_reader_accepts_exact_limit_and_rejects_one_byte_over() {
+        let at_limit = read_bounded_bytes(
+            std::io::Cursor::new(b"1234".as_slice()),
+            4,
+            "test artifact",
+        )
+        .expect("exactly-at-limit input is accepted");
+        assert_eq!(at_limit, b"1234");
+
+        let over_limit = read_bounded_bytes(
+            std::io::Cursor::new(b"12345".as_slice()),
+            4,
+            "test artifact",
+        );
+        assert!(over_limit.is_err(), "one byte over the cap must be rejected");
     }
 
     #[test]
