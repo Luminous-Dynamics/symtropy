@@ -635,10 +635,15 @@ pub struct ExperimentPairComparison {
     pub experiment_cost_b: Rational,
     /// Multiplier converting one cost unit into terminal-decision-loss units.
     pub cost_to_loss_exchange_rate: Rational,
+    /// Exact nonnegative exchange rate where scalarized A/B totals cross.
+    /// Present only when the pair has a strict cost/decision-loss trade-off.
+    pub cost_to_loss_crossover_rate: Option<Rational>,
     /// Componentwise comparison of (cost, nominal decision risk), without scalarization.
     pub nominal_pareto_relation: ExperimentParetoRelation,
     /// Componentwise comparison of (cost, realized decision risk), without scalarization.
     pub realized_pareto_relation: ExperimentParetoRelation,
+    pub nominal_cost_to_loss_crossover_rate: Option<Rational>,
+    pub realized_cost_to_loss_crossover_rate: Option<Rational>,
     pub mutual_information_a_bits: f64,
     pub mutual_information_b_bits: f64,
     pub information_preference: ExperimentPreference,
@@ -657,6 +662,25 @@ pub struct ExperimentPairComparison {
     /// True when the nominal information ranking and realized cost-plus-loss
     /// ranking strictly prefer opposite experiments.
     pub information_loss_ranking_reversal: bool,
+}
+
+fn cost_to_loss_crossover_rate(
+    cost_a: Rational,
+    loss_a: Rational,
+    cost_b: Rational,
+    loss_b: Rational,
+) -> Result<Option<Rational>, String> {
+    if cost_a > cost_b && loss_a < loss_b {
+        let loss_advantage_a = subtract_nonnegative(loss_b, loss_a)?;
+        let extra_cost_a = subtract_nonnegative(cost_a, cost_b)?;
+        return Ok(Some(loss_advantage_a.checked_div(extra_cost_a)?));
+    }
+    if cost_b > cost_a && loss_b < loss_a {
+        let loss_advantage_b = subtract_nonnegative(loss_a, loss_b)?;
+        let extra_cost_b = subtract_nonnegative(cost_b, cost_a)?;
+        return Ok(Some(loss_advantage_b.checked_div(extra_cost_b)?));
+    }
+    Ok(None)
 }
 
 fn pareto_relation(
@@ -757,6 +781,18 @@ pub fn compare_experiment_pair_with_inference_rules_and_cost_rate(
         cost_b,
         evaluation_b.realized_policy_loss,
     );
+    let nominal_cost_to_loss_crossover_rate = cost_to_loss_crossover_rate(
+        cost_a,
+        evaluation_a.nominal_model_expected_loss,
+        cost_b,
+        evaluation_b.nominal_model_expected_loss,
+    )?;
+    let realized_cost_to_loss_crossover_rate = cost_to_loss_crossover_rate(
+        cost_a,
+        evaluation_a.realized_policy_loss,
+        cost_b,
+        evaluation_b.realized_policy_loss,
+    )?;
     let nominal_total_loss_preference =
         lower_loss_preference(nominal_total_loss_a, nominal_total_loss_b);
     let realized_total_loss_preference =
@@ -775,6 +811,8 @@ pub fn compare_experiment_pair_with_inference_rules_and_cost_rate(
         cost_to_loss_exchange_rate,
         nominal_pareto_relation,
         realized_pareto_relation,
+        nominal_cost_to_loss_crossover_rate,
+        realized_cost_to_loss_crossover_rate,
         mutual_information_a_bits: information_a,
         mutual_information_b_bits: information_b,
         information_preference,
@@ -1964,6 +2002,14 @@ mod tests {
         assert_eq!(
             low_cost_weight.realized_pareto_relation,
             ExperimentParetoRelation::Tradeoff
+        );
+        assert_eq!(
+            low_cost_weight.realized_cost_to_loss_crossover_rate,
+            Some(rational(2, 3))
+        );
+        assert_eq!(
+            low_cost_weight.nominal_cost_to_loss_crossover_rate,
+            Some(rational(2, 3))
         );
         // The default exchange rate is one: 0.4 vs 0.1 + 0.2, so B wins.
         assert_eq!(
