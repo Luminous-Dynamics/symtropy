@@ -1,0 +1,33 @@
+name: Contact structural support graph
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/contact_graph_structure_witness.rs"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - ".github/workflows/contact-structural-support-graph.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contact-structural-support-graph-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  structural-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check workspace formatting
+        run: cargo fmt --all -- --check
+      - name: Run structural contact graph witnesses
+        run: cargo test -p symtropy-physics --lib contact_graph_structure_witness --locked
+      - name: Run strict physics package Clippy
+        run: cargo clippy -p symtropy-physics --all-targets --all-features --locked -- -D warnings
