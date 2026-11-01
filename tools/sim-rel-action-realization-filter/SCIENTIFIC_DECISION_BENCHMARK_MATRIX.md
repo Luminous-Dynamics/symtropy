@@ -14,7 +14,7 @@ The programme should compete on decision quality, execution fidelity, and eviden
 
 | Evaluation dimension | Strong external reference | What it evaluates | SIM-REL opportunity |
 |---|---|---|---|
-| Constrained sequential planning | COPEx, ICML 2026 | Amortized posterior/policy plus online multi-step scenario-tree planning under dynamic budgets and physical constraints | Exact finite-horizon decision/risk oracle; shared-policy robust worlds; replayable certificates |
+| Constrained sequential planning | Constrained Bayesian Experimental Design via Online Planning, ICML 2026 | Amortized posterior/policy plus online multi-step scenario-tree planning under dynamic budgets and physical constraints | Exact finite-horizon decision/risk oracle; shared-policy robust worlds; replayable certificates |
 | Adversarial decision stability | Harikumar et al., UAI 2026 | Sequential decision-aware design under hidden/adversarial outcome perturbations | Persistent worlds, adversarial counterexamples, policy stability, exact per-world risk constraints |
 | Covariate shift and error amplification | R-IDeA, AISTATS 2026 | Representativeness, informativeness and error de-amplification under misspecification | Separate these diagnostics and measure downstream decision regret under sealed target shifts |
 | Inferential/model misspecification | EGIG and model-error criterion, AISTATS 2026 | Distinguishes inferential error from data-generating model error; shows more information can harm under misspecification | Separate inferential and physical-model worlds; test whether the selected action remains justified |
@@ -31,7 +31,7 @@ Primary sources:
 - EmbodiedLab (26 October 2026): https://arxiv.org/abs/2610.35385
 - Autonomous Science Bench 0.1: https://www.autonomous-science-bench.ai/
 
-The benchmarks are complementary, not interchangeable. In particular, COPEx is not just one-step EIG; SafeLab is not a scientific-discovery leaderboard; and a planner-only score is not comparable to an entire agent/model/tool/harness configuration.
+The benchmarks are complementary, not interchangeable. In particular, the ICML scenario-tree planner is not just one-step EIG; SafeLab is not a scientific-discovery leaderboard; and a planner-only score is not comparable to an entire agent/model/tool/harness configuration.
 
 ## 2. Four benchmark tiers
 
@@ -87,7 +87,7 @@ Compare, under identical experiment, hazard and compute budgets:
 - Random/design-prior baseline.
 - Standard EIG and expected information gain.
 - Expected one-step Bayes-risk reduction.
-- COPEx-style multi-step scenario-tree planning.
+- constrained multi-step scenario-tree planning.
 - R-IDeA acquisition.
 - EGIG and model-error penalty.
 - Sequential adversarial robust decision-aware design.
@@ -152,7 +152,7 @@ Report both the aggregate and each failure stratum. Do not hide rare but high-co
 - Sealed mechanism-family, apparatus-condition and target-distribution holdouts.
 - Pre-register primary outcomes, stopping criteria and failure categories.
 - Preserve all seeds, raw observations, realized-action receipts, instrument readbacks, policy traces and verifier outputs.
-- Report the cases where EIG, COPEx, R-IDeA, EGIG or robust adversarial design wins.
+- Report the cases where EIG, constrained scenario-tree planning, R-IDeA, EGIG or robust adversarial design wins.
 - Distinguish algorithmic quality from model/tool/harness quality.
 - For live laboratories, calibrate physical safety outcomes against expert-reviewed and instrumented replay; do not treat simulator agreement as ground truth.
 
@@ -204,3 +204,27 @@ Primary sources:
 - DOE autonomous science selections: https://www.energy.gov/science/articles/doe-announces-four-national-laboratory-led-selections-advance-robotics-and
 
 A benchmark pass means only that a system performed under a declared task recipe, model, tool and harness. It is not proof of open-world scientific capability.
+
+
+## 8. SIM-REL implementation map (1 November 2026)
+
+| Increment | Purpose | Current evidence boundary |
+|---|---|---|
+| SIM-REL-034 / PR #3236 | Append-only admission, split reservations, invalidation and re-plan ledger | Open draft; latest recorded qualification was `action_required` with no completed jobs. Not qualified. |
+| SIM-REL-035 / PR #3245 | Offline transcript reconstruction | Open draft; no exact-head PR check run was returned in the live status check. Not qualified. The verifier shares the producer's transition and physical/policy replay code. |
+| SIM-REL-036 / issue #3246 | Exact binary-channel challenge compiler | Implementation branch exists. It generates deterministic tasks with public/sealed artifacts and exact references; it does not yet adapt recipe selection or generate physical apparatus challenges. |
+| SIM-REL-037 / PR #3265 | Independent logical transition oracle | Open draft. The focused module tests passed on its first exact-head run, but the full crate run exposed two pre-existing test defects in the stacked branch; fixes were pushed and rerun evidence is pending. Not qualified. |
+| SIM-REL-038 / issue #3266 | Development-only adaptive recipe selection | Research issue and branch created; implementation and qualification remain pending. |
+| SIM-REL-039 / issue #3267 | Exact finite physical challenge compiler | Research issue created; implementation and qualification remain pending. |
+
+SIM-REL-037 checks transition ordering, revision/policy lifecycle, split/receipt integrity and snapshot consistency in a separate implementation. It is not an independent physics or policy replay engine. The baseline policy metrics are retained as a distinct immutable replay receipt, but this receipt is not cryptographically authenticated by the transition auditor.
+
+The intended assurance composition is therefore:
+
+1. **Physical/intervention oracle:** independently validate apparatus state, action realization and measurement semantics.
+2. **Policy/risk replay:** recompute decision loss and risk from exact public histories and the supplied model family.
+3. **Logical transition oracle:** independently validate admission, invalidation, re-planning, sealing, split use and transcript state.
+4. **Provenance/split authority:** authenticate calibration, development and sealed-holdout manifests and artifact identities.
+5. **Open-world adequacy evaluation:** use sealed physical/mechanism-family holdouts and explicit limits; no finite test family proves universal model adequacy.
+
+A result qualifies only for the layers that actually ran and passed on the exact source, lockfile, input manifest and workflow checkout identity.
