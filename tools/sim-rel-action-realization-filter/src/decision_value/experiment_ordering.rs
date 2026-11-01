@@ -158,6 +158,64 @@ impl ChannelDecisionLossTable {
     }
 }
 
+/// Construct a finite-rational generalized-Bayes/Gibbs posterior rule.
+///
+/// The supplied factors are indexed [observation][state] and represent
+/// nonnegative weights proportional to exp(-eta * loss(state, observation)).
+/// They are normalized against the prior separately for each observation.
+/// Keeping the factors explicit allows exact rational oracle tests; callers
+/// must document how the factors/temperature were calibrated. This is the
+/// Gibbs posterior update primitive, not the full Gibbs-EIG design optimizer.
+pub fn generalized_bayes_posterior_rule_from_weights(
+    rule_id: &str,
+    assumed: &FiniteObservationChannel,
+    prior: &[Rational],
+    gibbs_factors: &[Vec<Rational>],
+) -> Result<InferencePosteriorRule, String> {
+    if rule_id.trim().is_empty() {
+        return Err("generalized-Bayes rule ID must be non-empty".into());
+    }
+    assumed.validate()?;
+    validate_prior(prior, assumed.state_ids.len())?;
+    if gibbs_factors.len() != assumed.observation_ids.len() {
+        return Err("Gibbs factor row count must equal the observation vocabulary size".into());
+    }
+
+    let mut posterior_by_observation = Vec::with_capacity(gibbs_factors.len());
+    for (observation, factors) in gibbs_factors.iter().enumerate() {
+        if factors.len() != assumed.state_ids.len() {
+            return Err(format!("Gibbs factor row {observation} has the wrong state dimension"));
+        }
+        let mut unnormalized = Vec::with_capacity(prior.len());
+        let mut normalizer = Rational::zero();
+        for (prior_mass, factor) in prior.iter().copied().zip(factors.iter().copied()) {
+            let mass = prior_mass.checked_mul(factor)?;
+            normalizer = normalizer.checked_add(mass)?;
+            unnormalized.push(mass);
+        }
+        if normalizer.is_zero() {
+            return Err(format!(
+                "Gibbs factor row {observation} has zero prior-weighted normalizer"
+            ));
+        }
+        let posterior = unnormalized
+            .iter()
+            .map(|mass| mass.checked_div(normalizer))
+            .collect::<Result<Vec<_>, _>>()?;
+        posterior_by_observation.push(posterior);
+    }
+
+    let rule = InferencePosteriorRule {
+        rule_id: rule_id.to_string(),
+        assumed_channel_id: assumed.channel_id.clone(),
+        state_ids: assumed.state_ids.clone(),
+        observation_ids: assumed.observation_ids.clone(),
+        posterior_by_observation,
+    };
+    rule.validate(assumed)?;
+    Ok(rule)
+}
+
 /// A posterior-producing inference procedure over a declared observation
 /// alphabet. It is separate from the working likelihood channel so model
 /// misspecification and inferential approximation can be varied independently.
@@ -2445,6 +2503,89 @@ mod tests {
         assert_eq!(pair.realized_total_loss_preference, ExperimentPreference::B);
         assert_eq!(pair.experiment_a.inference_rule_id, "posterior-inverted");
         assert_eq!(pair.experiment_b.inference_rule_id, exact_rule.rule_id);
+    }
+
+    #[test]
+    fn generalized_bayes_weights_reduce_to_exact_bayes_when_equal_to_likelihoods() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let assumed = noisy_channel("gibbs-equivalent");
+        let likelihood_weights = vec![
+            vec![
+                assumed.probabilities[0][0],
+                assumed.probabilities[1][0],
+            ],
+            vec![
+                assumed.probabilities[0][1],
+                assumed.probabilities[1][1],
+            ],
+        ];
+        let gibbs = generalized_bayes_posterior_rule_from_weights(
+            "gibbs-equals-bayes",
+            &assumed,
+            &prior,
+            &likelihood_weights,
+        )
+        .unwrap();
+        let bayes = exact_bayes_posterior_rule(&assumed, &prior).unwrap();
+        assert_eq!(gibbs.posterior_by_observation, bayes.posterior_by_observation);
+    }
+
+    #[test]
+    fn generalized_bayes_weights_produce_exact_loss_based_posteriors() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let assumed = noisy_channel("gibbs-loss-based");
+        let factors = vec![
+            vec![Rational::from_u64(3), Rational::one()],
+            vec![Rational::one(), Rational::from_u64(3)],
+        ];
+        let rule = generalized_bayes_posterior_rule_from_weights(
+            "gibbs-tempered",
+            &assumed,
+            &prior,
+            &factors,
+        )
+        .unwrap();
+        assert_eq!(
+            rule.posterior_by_observation,
+            vec![
+                vec![rational(3, 4), rational(1, 4)],
+                vec![rational(1, 4), rational(3, 4)],
+            ]
+        );
+
+        let evaluation = evaluate_channel_decisions_with_inference_rule(
+            &assumed,
+            &assumed,
+            &prior,
+            &binary_decisions(),
+            &rule,
+        )
+        .unwrap();
+        assert_eq!(evaluation.expected_inference_posterior_tv_distance, rational(1, 20));
+        assert_eq!(evaluation.realized_policy_loss, rational(1, 5));
+    }
+
+    #[test]
+    fn generalized_bayes_weights_reject_malformed_and_zero_normalizers() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let assumed = noisy_channel("gibbs-invalid");
+        assert!(generalized_bayes_posterior_rule_from_weights(
+            "bad-dimension",
+            &assumed,
+            &prior,
+            &[vec![Rational::one()]],
+        )
+        .is_err());
+        assert!(generalized_bayes_posterior_rule_from_weights(
+            "zero-normalizer",
+            &assumed,
+            &prior,
+            &[
+                vec![Rational::zero(), Rational::zero()],
+                vec![Rational::one(), Rational::one()],
+            ],
+        )
+        .is_err());
     }
 
     #[test]
