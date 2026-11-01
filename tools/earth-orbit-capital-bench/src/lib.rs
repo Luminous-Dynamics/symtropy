@@ -299,9 +299,14 @@ pub fn perfect_foresight_total_delivered(case: &BenchmarkCase, initial: InitialA
         let expand_caps = [base, mid, mid.saturating_add(case.expansion_capacity)];
         let mut hold_delivered = 0_u64;
         let mut expand_delivered = 0_u64;
-        for period in 0..3 {
-            hold_delivered = hold_delivered.saturating_add(u64::from(scenario.demand[period].min(hold_caps[period])));
-            expand_delivered = expand_delivered.saturating_add(u64::from(scenario.demand[period].min(expand_caps[period])));
+        for ((&demand, &hold_capacity), &expand_capacity) in scenario
+            .demand
+            .iter()
+            .zip(hold_caps.iter())
+            .zip(expand_caps.iter())
+        {
+            hold_delivered = hold_delivered.saturating_add(u64::from(demand.min(hold_capacity)));
+            expand_delivered = expand_delivered.saturating_add(u64::from(demand.min(expand_capacity)));
         }
         let best = if case.evidence_gate == EvidenceGate::Pass {
             hold_delivered.max(expand_delivered)
@@ -351,11 +356,11 @@ fn oracle_pareto_policies(case: &BenchmarkCase) -> BTreeSet<Policy> {
                     let caps = [c0, c1, c2];
                     let mut delivered = 0_u64;
                     let mut unmet = 0_u64;
-                    for period in 0..3 {
-                        let d = u64::from(scenario.demand[period]);
-                        let served = d.min(u64::from(caps[period]));
+                    for (&demand, &capacity) in scenario.demand.iter().zip(caps.iter()) {
+                        let required = u64::from(demand);
+                        let served = required.min(u64::from(capacity));
                         delivered += served;
-                        unmet += d - served;
+                        unmet += required - served;
                     }
                     let mut cost = 0_u64;
                     if initial_index == 1 {
