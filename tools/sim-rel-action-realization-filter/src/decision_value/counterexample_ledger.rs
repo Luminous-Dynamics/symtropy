@@ -1293,7 +1293,7 @@ pub fn verify_model_family_ledger_snapshot(
                             reason,
                         )
                     })?;
-                if &regenerated != record {
+                if &regenerated != record.as_ref() {
                     return Err(transcript_verification_error(
                         Some(sequenced.sequence),
                         LedgerTranscriptVerificationPhase::EventEquality,
