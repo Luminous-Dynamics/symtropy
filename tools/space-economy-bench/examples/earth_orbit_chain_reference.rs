@@ -109,6 +109,19 @@ fn checked_add(left: u64, right: u64, at: &str) -> Check<u64> {
         .ok_or_else(|| format!("{at}: integer overflow"))
 }
 
+fn set_status(status: &mut String, candidate: &str) {
+    let rank = |value: &str| match value {
+        "feasible" => 0,
+        "indeterminate" => 1,
+        "infeasible" => 2,
+        "invalid" => 3,
+        _ => 4,
+    };
+    if rank(candidate) > rank(status) {
+        *status = candidate.to_owned();
+    }
+}
+
 fn gate_state(value: &Value, at: &str) -> Check<String> {
     let state = text(value, at)?;
     if !matches!(state.as_str(), "pass" | "fail" | "unknown") {
@@ -217,9 +230,7 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
             "unknown" if stage_capacity == 0 => {
                 has_unknown_capacity = true;
                 potential_bottleneck = potential_bottleneck.min(payload_mass);
-                if status == "feasible" {
-                    status = "indeterminate".to_owned();
-                }
+                set_status(&mut status, "indeterminate");
                 reason_codes.push("CAPACITY_UNKNOWN".to_owned());
             }
             "known" => return Err(format!("{at}: known capacity must be positive")),
@@ -251,15 +262,11 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
             match gate_state(field(gates, gate_name, &at)?, &format!("{at}.hard_gates.{gate_name}"))?.as_str() {
                 "pass" => {}
                 "fail" => {
-                    if status != "invalid" {
-                        status = "infeasible".to_owned();
-                    }
+                    set_status(&mut status, "infeasible");
                     reason_codes.push(format!("HARD_GATE_{gate_name.to_uppercase()}_FAILED"));
                 }
                 "unknown" => {
-                    if status == "feasible" {
-                        status = "indeterminate".to_owned();
-                    }
+                    set_status(&mut status, "indeterminate");
                     reason_codes.push(format!("HARD_GATE_{gate_name.to_uppercase()}_UNKNOWN"));
                 }
                 _ => unreachable!(),
@@ -268,7 +275,7 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
 
         let levitation_claim = boolean(field(stage, "levitation_claim", &at)?, &at)?;
         if (technology == "maglev_freight") != levitation_claim {
-            status = "invalid".to_owned();
+            set_status(&mut status, "invalid");
             reason_codes.push("MAGNETIC_LEVITATION_LABEL_MISMATCH".to_owned());
         }
 
@@ -284,12 +291,10 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
             &at,
         )?;
         if operational_claim && maturity != "operational_reference" {
-            status = "invalid".to_owned();
+            set_status(&mut status, "invalid");
             reason_codes.push("UNQUALIFIED_CAPABILITY_CLAIMED_OPERATIONAL".to_owned());
         } else if maturity != "operational_reference" {
-            if status == "feasible" {
-                status = "indeterminate".to_owned();
-            }
+            set_status(&mut status, "indeterminate");
             reason_codes.push("CAPABILITY_NOT_OPERATIONAL_REFERENCE".to_owned());
         }
 
@@ -315,12 +320,12 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
             let azimuth = req_u64(geometry, "launch_azimuth_mdeg", &at)?;
             let geometry_target = req_u64(geometry, "target_inclination_mdeg", &at)?;
             if geometry_target != target_inclination || geometry_target > 180_000 {
-                status = "infeasible".to_owned();
+                set_status(&mut status, "infeasible");
                 reason_codes.push("TARGET_ORBIT_GEOMETRY_MISMATCH".to_owned());
             } else {
                 let actual = orbit_inclination_mdeg(latitude, azimuth)?;
                 if (actual - geometry_target as f64).abs() > 100.0 {
-                    status = "infeasible".to_owned();
+                    set_status(&mut status, "infeasible");
                     reason_codes.push("LAUNCH_AZIMUTH_CANNOT_REACH_TARGET_INCLINATION".to_owned());
                 }
             }
@@ -337,9 +342,7 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
                         reason_codes.push(format!("LAUNCH_{gate_name.to_uppercase()}_FAILED"));
                     }
                     "unknown" => {
-                        if status == "feasible" {
-                            status = "indeterminate".to_owned();
-                        }
+                        set_status(&mut status, "indeterminate");
                         reason_codes.push(format!("LAUNCH_{gate_name.to_uppercase()}_UNKNOWN"));
                     }
                     _ => unreachable!(),
@@ -351,7 +354,7 @@ fn evaluate_route(route: &Value, mission: &Value) -> Check<RouteResult> {
     }
 
     if duration > deadline && status != "invalid" {
-        status = "infeasible".to_owned();
+        set_status(&mut status, "infeasible");
         reason_codes.push("CAMPAIGN_DEADLINE_EXCEEDED".to_owned());
     }
 
