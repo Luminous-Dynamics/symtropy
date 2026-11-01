@@ -3252,9 +3252,8 @@ mod double_sliding_direction_oracle {
                 interval_from_integer_ratio(w_numerators[row][column], SCALE)
             })
         });
-        let q: [RationalInterval; 6] = std::array::from_fn(|index| {
-            interval_from_integer_ratio(q_numerators[index], SCALE)
-        });
+        let q: [RationalInterval; 6] =
+            std::array::from_fn(|index| interval_from_integer_ratio(q_numerators[index], SCALE));
 
         // The first normal equation has a nonzero pivot and parameterizes
         // the complete compatible fibre as lambda_1 = a + b * alpha,
@@ -3268,8 +3267,9 @@ mod double_sliding_direction_oracle {
         let lambda1_base = q[0].neg().div(&h11)?;
         let lambda1_slope = h12.neg().div(&h11)?;
 
-        let mut impulse_base: [RationalInterval; 6] =
-            std::array::from_fn(|_| RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8))));
+        let mut impulse_base: [RationalInterval; 6] = std::array::from_fn(|_| {
+            RationalInterval::point(BigRational::from_integer(BigInt::from(0_u8)))
+        });
         let mut impulse_slope = impulse_base.clone();
         for axis in 0..3 {
             impulse_base[axis] = d1[axis].mul(&lambda1_base);
@@ -3283,16 +3283,27 @@ mod double_sliding_direction_oracle {
             velocity_base[row] = velocity_base[row].add(&interval_sum(
                 (0..6).map(|column| w[row][column].mul(&impulse_base[column])),
             ));
-            velocity_slope[row] = interval_sum(
-                (0..6).map(|column| w[row][column].mul(&impulse_slope[column])),
-            );
+            velocity_slope[row] =
+                interval_sum((0..6).map(|column| w[row][column].mul(&impulse_slope[column])));
         }
 
         // Each original tangential direction equation is affine in alpha.
-        let g1_intercept = s1.neg().mul(&velocity_base[1]).add(&c1.mul(&velocity_base[2]));
-        let g1_slope = s1.neg().mul(&velocity_slope[1]).add(&c1.mul(&velocity_slope[2]));
-        let g2_intercept = s2.neg().mul(&velocity_base[4]).add(&c2.mul(&velocity_base[5]));
-        let g2_slope = s2.neg().mul(&velocity_slope[4]).add(&c2.mul(&velocity_slope[5]));
+        let g1_intercept = s1
+            .neg()
+            .mul(&velocity_base[1])
+            .add(&c1.mul(&velocity_base[2]));
+        let g1_slope = s1
+            .neg()
+            .mul(&velocity_slope[1])
+            .add(&c1.mul(&velocity_slope[2]));
+        let g2_intercept = s2
+            .neg()
+            .mul(&velocity_base[4])
+            .add(&c2.mul(&velocity_base[5]));
+        let g2_slope = s2
+            .neg()
+            .mul(&velocity_slope[4])
+            .add(&c2.mul(&velocity_slope[5]));
 
         if !g1_slope.excludes_zero() || !g2_slope.excludes_zero() {
             return None;
@@ -3326,10 +3337,9 @@ mod double_sliding_direction_oracle {
         ] {
             let remainder = reduce_bivariate_mod_quadratics(polynomial, Q_T1, A_T2);
             assert!(
-                remainder
-                    .iter()
-                    .flatten()
-                    .all(|coefficient| coefficient == &BigRational::from_integer(BigInt::from(0_u8)))
+                remainder.iter().flatten().all(
+                    |coefficient| coefficient == &BigRational::from_integer(BigInt::from(0_u8))
+                )
             );
         }
 
@@ -3356,9 +3366,8 @@ mod double_sliding_direction_oracle {
                 // A nonzero h11 pivot plus exact Delta=0 gives rank(H)=1.
                 // Exact vanishing of both Cramer numerators proves range
                 // compatibility of H lambda = -q_n.
-                let (alpha_1, alpha_2) =
-                    compatible_singular_normal_fibre_intervals(&t1, &t2)
-                        .expect("a regular normal-row pivot and both tangential slopes");
+                let (alpha_1, alpha_2) = compatible_singular_normal_fibre_intervals(&t1, &t2)
+                    .expect("a regular normal-row pivot and both tangential slopes");
 
                 assert!(
                     alpha_1.upper < alpha_2.lower || alpha_2.upper < alpha_1.lower,
@@ -3369,5 +3378,4 @@ mod double_sliding_direction_oracle {
         }
         assert_eq!(pair_count, 4);
     }
-
 }
