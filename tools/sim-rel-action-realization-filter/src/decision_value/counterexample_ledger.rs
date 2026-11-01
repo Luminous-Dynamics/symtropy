@@ -7,7 +7,7 @@
 
 use super::counterexample_search::{
     CounterexampleClass, CounterexampleOutcome, CounterexampleWitness, ModelWorldPerturbation,
-    is_policy_invalidated_error,
+    apply_model_world_perturbation, is_policy_invalidated_error,
 };
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
 use super::robust_finite_horizon::{
@@ -459,6 +459,14 @@ impl ModelFamilyLedger {
             .cloned()
             .ok_or_else(|| "counterexample source world is not in the current development family".to_string())?;
         validate_world_identity(&witness.candidate_world)?;
+        let reconstructed_candidate = apply_model_world_perturbation(
+            &source,
+            &witness.candidate_world.id,
+            &witness.spec.perturbation,
+        )?;
+        if reconstructed_candidate != witness.candidate_world {
+            return Err("candidate model world does not equal the declared source-plus-perturbation result".into());
+        }
 
         if self
             .development_worlds
@@ -1568,10 +1576,38 @@ mod tests {
             .admit_counterexample(
                 &valid,
                 provenance("policy-v1", EvidenceSplit::Development, "dev-b"),
-                validation(),
+                CounterexampleValidationReceipt {
+                    receipt_id: "validation-02".into(),
+                    ..validation()
+                },
                 "duplicate-id-event".into(),
             )
             .is_err());
+    }
+
+    #[test]
+    fn candidate_world_must_be_reproduced_from_the_declared_perturbation() {
+        let mut ledger = ledger();
+        let mut forged = counterexample(&world("nominal"), "forged-candidate");
+        for row in &mut forged.candidate_world.kernel.rows {
+            for outcome in &mut row.outcomes {
+                outcome.measurement = outcome.measurement.map(|measurement| 1 - measurement);
+            }
+        }
+        // The changed candidate remains a structurally valid kernel and still
+        // exposes the missing-readback branch, but it is not the exact output
+        // of the declared DropReadback perturbation.
+        assert!(forged.candidate_world.kernel.validate().is_ok());
+        assert!(ledger
+            .admit_counterexample(
+                &forged,
+                provenance("policy-v1", EvidenceSplit::Development, "dev-a"),
+                validation(),
+                "forged-candidate-event".into(),
+            )
+            .is_err());
+        assert_eq!(ledger.family_revision(), 0);
+        assert_eq!(ledger.active_policy_identity(), Some("policy-v1"));
     }
 
     #[test]
