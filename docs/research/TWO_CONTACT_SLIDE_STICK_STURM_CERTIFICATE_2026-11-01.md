@@ -85,28 +85,29 @@ the physical island and its exact SPD property while making original contact
 friction coefficients are permuted with the contact roles:
 `mu_sliding = 1`, `mu_sticking = 1.383289774658335`.
 
-The exact dyadic quartic for this reverse orientation is square-free and has
-**zero finite real angular roots** under the existing Sturm isolator. Its
-nonzero leading coefficient excludes a root at the projective direction
-\(\theta=\pi\). The active 4x4 determinant has two real singular directions;
-the reduced determinant and a Cramer replacement numerator are coprime, so
-neither singular direction can satisfy the active equations. Consequently
-this entire both-normal-active reverse slide/stick stratum has no admissible
-solution for the frozen input. There are no angular candidates to classify by
-the sliding multiplier; the previous draft's two-root decimal table was
-incorrect and has been removed.
+The corrected exact dyadic quartic for this reverse orientation is square-free
+and has exactly **two finite real angular roots** by the existing Sturm
+isolator. Its nonzero leading coefficient excludes a root at the projective
+direction \(\theta=\pi\). The active 4x4 determinant has two real singular
+directions; the reduced determinant and a Cramer replacement numerator are
+coprime, so neither singular direction can satisfy the active equations.
+Exact rational interval evaluation of both isolated roots then proves that
+their sliding disk multipliers are strictly negative. Both candidates are
+therefore rejected by the original KKT law. The proof is based on the exact
+rational isolating intervals, not on the rounded exploratory values from the
+initial numerical prototype.
 
 The exact orientation-specific conclusions are therefore:
 
 - Original contact 1 sliding / original contact 2 sticking: four finite real
   angular roots, exactly two KKT-admissible.
-- Original contact 2 sliding / original contact 1 sticking: zero finite real
-  angular roots; singular active-system directions are incompatible, and the
-  projective direction is excluded.
+- Original contact 2 sliding / original contact 1 sticking: two finite real
+  angular roots, zero KKT-admissible.
 
-This illustrates why the exact root count must be authoritative: the reverse
-orientation was not a pair of inadmissible physical branches. It has no real
-active angular branch at all.
+This gives us a useful asymmetry control: contact permutation does not
+preserve the number of roots in this non-associated friction law, but the
+root count and KKT classification are independently certified in both
+orientations.
 
 Neither result covers slide/slide, separating contacts, simultaneous active-set
 boundaries, or uncertain parameter families.
