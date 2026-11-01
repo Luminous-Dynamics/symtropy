@@ -24,6 +24,8 @@ pub mod contact_frame;
 pub mod coupled_friction;
 #[cfg(test)]
 mod coupled_friction_two_contact_witness;
+#[cfg(test)]
+mod contact_graph_separator_witness;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
