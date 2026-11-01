@@ -306,11 +306,7 @@ pub fn screen_su2_history(
 
 pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
     let mut output = "schema,run_id,runner_receipt_sha256,history_sha256,history_import_sha256,criterion_kind,column,unit,rows_used,observed_initial_absolute,observed_final_absolute,observed_final_to_initial_ratio,maximum_final_absolute,maximum_final_to_initial_ratio,observed_window_range,maximum_window_range,criterion_status,overall_status,passed_count,failed_count,insufficient_count,screen_sha256,evidence_level\n".to_owned();
-    let optional = |value: Option<f64>| {
-        value
-            .map(|number| format!("{number:.17}"))
-            .unwrap_or_default()
-    };
+    let optional = |value: Option<f64>| value.map(|number| number.to_string()).unwrap_or_default();
     for row in &screen.results {
         let fields = [
             CONVERGENCE_SCREEN_SCHEMA.to_owned(),
