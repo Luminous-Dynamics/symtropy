@@ -446,7 +446,8 @@ impl TransitionState {
 
     fn replan(
         &mut self,
-        event: &SequencedLedgerEvent,
+        record: &super::counterexample_ledger::FamilyReplanRecord,
+        budgets: DecisionBudgets,
     ) -> Result<(), String> {
         if self.frozen_policy.is_some() || !self.consumed_holdout_group_ids.is_empty() {
             return Err("policy replan is forbidden after final sealing or holdout use".into());
@@ -454,9 +455,6 @@ impl TransitionState {
         if self.active_policy.is_some() || self.invalidated_policy_identity.is_none() {
             return Err("policy replan requires an invalidated policy".into());
         }
-        let ModelFamilyLedgerEvent::PolicyReplanned(record) = &event.event else {
-            return Err("internal transition type mismatch".into());
-        };
         if record.family_revision != self.revision {
             return Err("policy replan is bound to a stale family revision".into());
         }
@@ -475,9 +473,7 @@ impl TransitionState {
         validate_metric_values(
             &record.per_world_metrics,
             &expected_world_ids,
-            // Replan metrics are constrained by the immutable development
-            // budgets, checked by the caller below through the snapshot.
-            event_budget_placeholder(),
+            budgets,
             "replan metrics",
         )?;
         self.policy_identities.insert(record.policy_identity.clone());
@@ -491,15 +487,6 @@ impl TransitionState {
             .checked_add(1)
             .ok_or_else(|| "replan count overflow".to_string())?;
         Ok(())
-    }
-}
-
-fn event_budget_placeholder() -> DecisionBudgets {
-    // Replaced by the snapshot's immutable budgets in the public audit entry
-    // point. This local value only validates probability-shaped fields.
-    DecisionBudgets {
-        max_hazard_probability: Rational::one(),
-        max_abstention_probability: Rational::one(),
     }
 }
 
@@ -681,17 +668,7 @@ fn verify_event(
 
     let result = match &sequenced.event {
         ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => state.admit(record),
-        ModelFamilyLedgerEvent::PolicyReplanned(_) => state.replan(sequenced).and_then(|()| {
-            let ModelFamilyLedgerEvent::PolicyReplanned(record) = &sequenced.event else {
-                unreachable!()
-            };
-            metrics_for_snapshot(
-                &record.per_world_metrics,
-                &state.development_world_ids.iter().cloned().collect::<Vec<_>>(),
-                budgets,
-                "replan metrics",
-            )
-        }),
+        ModelFamilyLedgerEvent::PolicyReplanned(record) => state.replan(record, budgets),
         ModelFamilyLedgerEvent::FinalPolicySealed(record) => {
             handle_seal(state, record, budgets)
         }
