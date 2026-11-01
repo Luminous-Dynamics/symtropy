@@ -276,7 +276,12 @@ mod tests {
         epoch_tai_seconds: 0,
     };
 
-    fn input(latitude_deg: f64, longitude_deg: f64, azimuth_deg: f64, speed_m_s: f64) -> LaunchInput {
+    fn input(
+        latitude_deg: f64,
+        longitude_deg: f64,
+        azimuth_deg: f64,
+        speed_m_s: f64,
+    ) -> LaunchInput {
         LaunchInput {
             latitude_rad: latitude_deg.to_radians(),
             longitude_rad: longitude_deg.to_radians(),
@@ -352,6 +357,62 @@ mod tests {
             .unwrap();
         close(first.inclination_deg, second.inclination_deg, 1e-10);
         assert_ne!(first.position_inertial_m, second.position_inertial_m);
+    }
+
+    #[test]
+    fn vector_result_matches_scalar_inclination_cross_check() {
+        let result = EARTH_SPHERE
+            .direct_insertion_plane(FRAME, input(18.0, 121.0, 58.0, 7_650.0))
+            .unwrap();
+        let cos_inclination = 18.0_f64.to_radians().cos()
+            * result.east_velocity_inertial_m_s
+            / result.horizontal_speed_inertial_m_s;
+        let scalar_inclination = cos_inclination.clamp(-1.0, 1.0).acos();
+        close(result.inclination_rad, scalar_inclination, 1e-12);
+    }
+
+    #[test]
+    fn disabling_earth_rotation_changes_the_inertial_plane() {
+        let still_earth = EarthModel {
+            rotation_rate_rad_s: 0.0,
+            ..EARTH_SPHERE
+        };
+        let rotating = EARTH_SPHERE
+            .direct_insertion_plane(FRAME, input(0.0, 0.0, 0.0, 7_800.0))
+            .unwrap();
+        let stationary = still_earth
+            .direct_insertion_plane(FRAME, input(0.0, 0.0, 0.0, 7_800.0))
+            .unwrap();
+        close(stationary.inclination_deg, 90.0, 1e-10);
+        assert!(rotating.inclination_deg < stationary.inclination_deg);
+    }
+
+    #[test]
+    fn non_finite_azimuth_is_rejected() {
+        let mut invalid = input(0.0, 0.0, 90.0, 7_800.0);
+        invalid.azimuth_rad = f64::NAN;
+        let result = EARTH_SPHERE.direct_insertion_plane(FRAME, invalid);
+        assert_eq!(result, Err(GeometryError::InvalidAzimuth));
+    }
+
+    #[test]
+    fn inertial_frame_identity_is_required() {
+        let bad_frame = FrameEpoch {
+            inertial_frame_id: "  ",
+            ..FRAME
+        };
+        let result = EARTH_SPHERE.direct_insertion_plane(bad_frame, input(0.0, 0.0, 90.0, 7_800.0));
+        assert_eq!(result, Err(GeometryError::EmptyInertialFrameId));
+    }
+
+    #[test]
+    fn epoch_subtraction_overflow_is_rejected() {
+        let model = EarthModel {
+            reference_epoch_tai_seconds: i64::MIN,
+            ..EARTH_SPHERE
+        };
+        let result = model.rotation_angle_at_epoch(i64::MAX);
+        assert_eq!(result, Err(GeometryError::EpochDifferenceOverflow));
     }
 
     #[test]
