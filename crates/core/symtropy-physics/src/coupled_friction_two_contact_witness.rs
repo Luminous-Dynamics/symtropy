@@ -1262,6 +1262,7 @@ mod schur_reduction_tests {
 #[cfg(test)]
 mod double_sliding_direction_oracle {
     use super::*;
+    use num_bigint::BigInt;
 
     #[derive(Clone, Debug)]
     struct DirectionEvaluation {
@@ -1733,8 +1734,7 @@ mod double_sliding_direction_oracle {
         }
     }
 
-    #[test]
-    fn exact_asymmetric_direction_polynomials_recover_a_rational_double_slide_root() {
+    fn asymmetric_rational_polynomial_fixture() -> ExactDoubleSlidePolynomials {
         // The physical inputs are all exact rationals with common denominator 128.
         let mut w = [[0_i128; 6]; 6];
         for index in 0..6 {
@@ -1749,8 +1749,12 @@ mod double_sliding_direction_oracle {
         }
         let q = [-1490_i128, 882, 1257, -1834, 952, 2368];
         let mu = [64_i128, 64];
+        build_exact_double_slide_polynomials(w, q, mu, 128)
+    }
 
-        let polynomials = build_exact_double_slide_polynomials(w, q, mu, 128);
+    #[test]
+    fn exact_asymmetric_direction_polynomials_recover_a_rational_double_slide_root() {
+        let polynomials = asymmetric_rational_polynomial_fixture();
         assert_eq!(polynomials.determinant.max_bidegree(), (2, 2));
         assert_eq!(polynomials.normal_numerator_1.max_bidegree(), (0, 2));
         assert_eq!(polynomials.normal_numerator_2.max_bidegree(), (2, 0));
@@ -1787,4 +1791,236 @@ mod double_sliding_direction_oracle {
         assert!(n1 * determinant > 0);
         assert!(n2 * determinant > 0);
     }
+
+    const RESULTANT_COEFFICIENTS: usize = 25;
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct BigIntegerPolynomial {
+        coefficients: [BigInt; RESULTANT_COEFFICIENTS],
+    }
+
+    impl BigIntegerPolynomial {
+        fn zero() -> Self {
+            Self {
+                coefficients: std::array::from_fn(|_| BigInt::from(0_u8)),
+            }
+        }
+
+        fn one() -> Self {
+            let mut polynomial = Self::zero();
+            polynomial.coefficients[0] = BigInt::from(1_u8);
+            polynomial
+        }
+
+        fn from_bivariate_t1_coefficient(
+            polynomial: BivariateIntegerPolynomial,
+            degree_t1: usize,
+        ) -> Self {
+            let mut result = Self::zero();
+            for degree_t2 in 0..5 {
+                result.coefficients[degree_t2] =
+                    BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
+            }
+            result
+        }
+
+        fn add_assign(&mut self, other: &Self) {
+            for index in 0..RESULTANT_COEFFICIENTS {
+                self.coefficients[index] =
+                    &self.coefficients[index] + &other.coefficients[index];
+            }
+        }
+
+        fn sub_assign(&mut self, other: &Self) {
+            for index in 0..RESULTANT_COEFFICIENTS {
+                self.coefficients[index] =
+                    &self.coefficients[index] - &other.coefficients[index];
+            }
+        }
+
+        fn mul(&self, other: &Self) -> Self {
+            let mut result = Self::zero();
+            for left_degree in 0..RESULTANT_COEFFICIENTS {
+                if self.coefficients[left_degree] == BigInt::from(0_u8) {
+                    continue;
+                }
+                for right_degree in 0..(RESULTANT_COEFFICIENTS - left_degree) {
+                    if other.coefficients[right_degree] == BigInt::from(0_u8) {
+                        continue;
+                    }
+                    let product =
+                        &self.coefficients[left_degree] * &other.coefficients[right_degree];
+                    result.coefficients[left_degree + right_degree] =
+                        &result.coefficients[left_degree + right_degree] + product;
+                }
+            }
+            result
+        }
+
+        fn degree(&self) -> Option<usize> {
+            (0..RESULTANT_COEFFICIENTS)
+                .rev()
+                .find(|degree| self.coefficients[*degree] != BigInt::from(0_u8))
+        }
+
+        /// Exact numerator of P(num/den) after multiplication by den^degree.
+        fn evaluate_homogeneous_numerator(
+            &self,
+            numerator: i128,
+            denominator: i128,
+            degree: usize,
+        ) -> BigInt {
+            let numerator = BigInt::from(numerator);
+            let denominator = BigInt::from(denominator);
+            let mut result = BigInt::from(0_u8);
+            for power in 0..=degree {
+                let coefficient = &self.coefficients[power];
+                if coefficient == &BigInt::from(0_u8) {
+                    continue;
+                }
+                let term = coefficient
+                    * numerator.pow(power as u32)
+                    * denominator.pow((degree - power) as u32);
+                result += term;
+            }
+            result
+        }
+
+        fn maximum_decimal_digits(&self) -> usize {
+            self.coefficients
+                .iter()
+                .map(|coefficient| {
+                    coefficient
+                        .to_string()
+                        .trim_start_matches('-')
+                        .len()
+                })
+                .max()
+                .unwrap_or(1)
+        }
+    }
+
+    /// Compute the exact Sylvester resultant Res_t1(G1,G2) using arbitrary
+    /// precision integer coefficients. G1 has t1-degree four and G2 has
+    /// t1-degree two, so the Sylvester matrix is 6x6 and the resultant's
+    /// t2-degree is bounded by 4*4 + 2*2 = 20.
+    fn exact_direction_resultant(
+        g1: BivariateIntegerPolynomial,
+        g2: BivariateIntegerPolynomial,
+    ) -> BigIntegerPolynomial {
+        const DEGREE_G1_T1: usize = 4;
+        const DEGREE_G2_T1: usize = 2;
+        const SYLVESTER_DIMENSION: usize = DEGREE_G1_T1 + DEGREE_G2_T1;
+
+        let g1_coefficients: [BigIntegerPolynomial; DEGREE_G1_T1 + 1] =
+            std::array::from_fn(|index| {
+                BigIntegerPolynomial::from_bivariate_t1_coefficient(
+                    g1,
+                    DEGREE_G1_T1 - index,
+                )
+            });
+        let g2_coefficients: [BigIntegerPolynomial; DEGREE_G2_T1 + 1] =
+            std::array::from_fn(|index| {
+                BigIntegerPolynomial::from_bivariate_t1_coefficient(
+                    g2,
+                    DEGREE_G2_T1 - index,
+                )
+            });
+
+        let mut sylvester: [[BigIntegerPolynomial; SYLVESTER_DIMENSION]; SYLVESTER_DIMENSION] =
+            std::array::from_fn(|_| {
+                std::array::from_fn(|_| BigIntegerPolynomial::zero())
+            });
+
+        // Two shifted rows of G1 (degree two of G2).
+        for shift in 0..DEGREE_G2_T1 {
+            for coefficient in 0..=DEGREE_G1_T1 {
+                sylvester[shift][shift + coefficient] =
+                    g1_coefficients[coefficient].clone();
+            }
+        }
+        // Four shifted rows of G2 (degree four of G1).
+        for shift in 0..DEGREE_G1_T1 {
+            for coefficient in 0..=DEGREE_G2_T1 {
+                sylvester[DEGREE_G2_T1 + shift][shift + coefficient] =
+                    g2_coefficients[coefficient].clone();
+            }
+        }
+
+        fn accumulate_permutations(
+            row: usize,
+            used_columns: u8,
+            permutation: &mut [usize; SYLVESTER_DIMENSION],
+            matrix: &[[BigIntegerPolynomial; SYLVESTER_DIMENSION]; SYLVESTER_DIMENSION],
+            determinant: &mut BigIntegerPolynomial,
+        ) {
+            if row == SYLVESTER_DIMENSION {
+                let mut term = BigIntegerPolynomial::one();
+                for matrix_row in 0..SYLVESTER_DIMENSION {
+                    term = term.mul(&matrix[matrix_row][permutation[matrix_row]]);
+                }
+                let mut inversions = 0;
+                for left in 0..SYLVESTER_DIMENSION {
+                    for right in (left + 1)..SYLVESTER_DIMENSION {
+                        if permutation[left] > permutation[right] {
+                            inversions += 1;
+                        }
+                    }
+                }
+                if inversions % 2 == 0 {
+                    determinant.add_assign(&term);
+                } else {
+                    determinant.sub_assign(&term);
+                }
+                return;
+            }
+
+            for column in 0..SYLVESTER_DIMENSION {
+                let bit = 1_u8 << column;
+                if used_columns & bit != 0 {
+                    continue;
+                }
+                permutation[row] = column;
+                accumulate_permutations(
+                    row + 1,
+                    used_columns | bit,
+                    permutation,
+                    matrix,
+                    determinant,
+                );
+            }
+        }
+
+        let mut determinant = BigIntegerPolynomial::zero();
+        let mut permutation = [0_usize; SYLVESTER_DIMENSION];
+        accumulate_permutations(
+            0,
+            0,
+            &mut permutation,
+            &sylvester,
+            &mut determinant,
+        );
+        determinant
+    }
+
+    #[test]
+    fn exact_sylvester_resultant_has_degree_twenty_and_contains_known_direction_root() {
+        let polynomials = asymmetric_rational_polynomial_fixture();
+        let resultant = exact_direction_resultant(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        );
+
+        assert_eq!(resultant.degree(), Some(20));
+        assert!(resultant.maximum_decimal_digits() >= 30);
+
+        // The exact common root pair t1=1/2, t2=2/3 forces t2=2/3
+        // to be a root of Res_t1(G1,G2). The bivariate test above separately
+        // verifies the t1 lift and the nonzero normal-response determinant.
+        let projected_root =
+            resultant.evaluate_homogeneous_numerator(2, 3, 20);
+        assert_eq!(projected_root, BigInt::from(0_u8));
+    }
+
+
 }
