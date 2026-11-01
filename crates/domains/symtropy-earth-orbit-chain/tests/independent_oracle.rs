@@ -270,7 +270,7 @@ fn reference_disposition(campaign: &CampaignV1) -> CampaignDisposition {
             (
                 leg.starts_at_epoch_seconds,
                 leg.ends_at_epoch_seconds,
-                leg.id.as_str(),
+                leg.id.clone(),
             )
         });
         let mut seen_nodes = BTreeSet::new();
@@ -428,7 +428,8 @@ fn corpus() -> Vec<(&'static str, CampaignV1)> {
     cases.push(("18-duplicate-transfer-id", c));
 
     let mut c = baseline();
-    c.nodes.push(c.nodes[0].clone());
+    let duplicate_node = c.nodes[0].clone();
+    c.nodes.push(duplicate_node);
     cases.push(("19-duplicate-node-id", c));
 
     let mut c = baseline();
@@ -436,7 +437,8 @@ fn corpus() -> Vec<(&'static str, CampaignV1)> {
     cases.push(("20-dangling-node-reference", c));
 
     let mut c = baseline();
-    c.cargo_lots.push(c.cargo_lots[0].clone());
+    let duplicate_cargo = c.cargo_lots[0].clone();
+    c.cargo_lots.push(duplicate_cargo);
     cases.push(("21-duplicate-cargo-id", c));
 
     let mut c = baseline();
