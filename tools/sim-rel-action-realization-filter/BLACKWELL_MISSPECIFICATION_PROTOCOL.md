@@ -88,6 +88,16 @@ This is an exact small-domain method, not a scalable general-purpose LP solver.
 This gives a clean nominal experiment-ordering test without conflating the
 mathematical ordering with robustness under misspecification.
 
+The matched-cost experiment-pair audit reports information preference,
+nominal model-risk preference and realized cost-plus-terminal-loss preference.
+It also runs the bounded exact feasibility solver in both directions and
+retains either a checked garbling certificate, a supported non-dominance
+result, or an explicit unsupported-size/arithmetic error. This prevents a
+pairwise benchmark from silently treating solver limits as proof of
+incomparability. A dominance certificate proves only the nominal channel
+ordering; its consequences under a shifted true generator are measured by the
+separate decision-loss evaluator.
+
 ## 4. Executable two-state counterexample
 
 Use prior P(S=0)=P(S=1)=1/2 and zero-one terminal losses with abstention loss
