@@ -178,6 +178,12 @@ pub fn screen_su2_history(
         } else {
             Some(final_value / initial)
         };
+        if ratio.is_some_and(|value| !value.is_finite()) {
+            return Err(format!(
+                "residual reduction ratio overflowed for {}",
+                criterion.column
+            ));
+        }
         let passed = final_value <= criterion.maximum_final_absolute_value
             && ratio.is_some_and(|value| value <= criterion.maximum_final_to_initial_ratio);
         results.push(CriterionResult {
@@ -416,6 +422,32 @@ mod tests {
         assert_eq!(result.status, "declared_thresholds_met");
         assert_eq!(result.passed_count, 2);
         assert_eq!(result.failed_count, 0);
+    }
+
+    #[test]
+    fn rejects_overflowed_residual_reduction_ratio() {
+        let mut report = report();
+        report.points[0].values[0] = 1.0e-308;
+        report.points[2].values[0] = 1.0e308;
+        report.import_sha256 = crate::su2_history::su2_history_import_sha256(&report)
+            .expect("seal extreme synthetic history");
+        let criteria = ConvergenceCriteria {
+            residuals: vec![ResidualCriterion {
+                column: "RMS_RES".to_owned(),
+                maximum_final_absolute_value: 1.0e308,
+                maximum_final_to_initial_ratio: 1.0,
+            }],
+            monitors: vec![MonitorCriterion {
+                column: "CL".to_owned(),
+                trailing_window_rows: 2,
+                maximum_absolute_range: 1.0,
+            }],
+        };
+        assert!(
+            screen_su2_history(&report, &criteria)
+                .expect_err("overflowed ratio must not enter a report")
+                .contains("reduction ratio overflowed")
+        );
     }
 
     #[test]
