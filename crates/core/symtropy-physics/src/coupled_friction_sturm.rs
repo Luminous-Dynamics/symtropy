@@ -78,7 +78,7 @@ fn exact_projective_pi_candidate(
     // Independently evaluate the full impulse kinetic-energy change:
     // Delta K = p^T q + 1/2 p^T W p, with p=(lambda, mu*lambda, 0).
     let wp_normal = a.clone() * lambda.clone() + d1.clone() * tangent_one.clone();
-    let wp_tangent_one = d1.clone() * lambda.clone() + a11 * tangent_one.clone();
+    let wp_tangent_one = d1.clone() * lambda.clone() + a11.clone() * tangent_one.clone();
     let energy_linear = lambda.clone() * qn + tangent_one.clone() * q1;
     let energy_quadratic = lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
     let energy_delta = energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
