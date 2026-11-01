@@ -488,11 +488,17 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
             &dense.apply(&dense_outcome.impulse),
         ) < 5.0e-5
     );
-    assert!(outcome.outer_iterations < MAX_OUTER_ITERATIONS);
+    assert!(outcome.outer_iterations < 300);
     assert!(outcome.final_gamma > 0.0);
     assert!(norm(&add(&q, &matrix_free.apply(&outcome.impulse))) < 5.0e-5);
-    assert!(outcome.step_rejections <= 8);
+    assert_eq!(outcome.step_rejections, 0);
     assert!(outcome.inner_iterations >= outcome.outer_iterations);
+    assert!(outcome.inner_iterations < 12_000);
+    assert_eq!(
+        outcome.delassus_applications,
+        outcome.inner_iterations + 3 * outcome.outer_iterations + outcome.step_rejections,
+        "matrix-free operator-call accounting must match the outer/inner trace"
+    );
 }
 
 #[test]
@@ -513,10 +519,16 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
 
     assert!(outcome.residual <= OUTER_TOLERANCE);
     assert!(max_abs_difference(&outcome.impulse, &reference) < 5.0e-5);
-    assert!(outcome.outer_iterations < MAX_OUTER_ITERATIONS);
+    assert!(outcome.outer_iterations < 300);
     assert!(outcome.final_gamma > 0.0);
-    assert!(outcome.step_rejections <= 8);
+    assert_eq!(outcome.step_rejections, 0);
     assert!(outcome.inner_iterations >= outcome.outer_iterations);
+    assert!(outcome.inner_iterations < 12_000);
+    assert_eq!(
+        outcome.delassus_applications,
+        outcome.inner_iterations + 3 * outcome.outer_iterations + outcome.step_rejections,
+        "matrix-free operator-call accounting must match the outer/inner trace"
+    );
     assert!(dense_outcome.residual <= OUTER_TOLERANCE);
     assert!(
         max_abs_difference(
