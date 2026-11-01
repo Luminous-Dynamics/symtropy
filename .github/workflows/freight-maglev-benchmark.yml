@@ -1,0 +1,52 @@
+name: Freight MagRail Benchmark
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/freight-maglev-bench/**"
+      - ".github/workflows/freight-maglev-benchmark.yml"
+  push:
+    branches: ["feat/freight-maglev-corpus-evaluator-v0-1"]
+    paths:
+      - "tools/freight-maglev-bench/**"
+      - ".github/workflows/freight-maglev-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: freight-maglev-benchmark-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frozen-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Verify exact source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Format
+        run: cargo fmt --manifest-path tools/freight-maglev-bench/Cargo.toml -- --check
+
+      - name: Frozen corpus and independent evaluator
+        run: cargo test --locked --manifest-path tools/freight-maglev-bench/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/freight-maglev-bench/Cargo.toml --all-targets -- -D warnings
