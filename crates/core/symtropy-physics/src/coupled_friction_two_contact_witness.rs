@@ -1458,11 +1458,12 @@ mod double_sliding_direction_oracle {
                 plus_theta[direction] += step;
                 minus_theta[direction] -= step;
                 let plus = evaluate(&w, &q, mu, plus_theta).expect("positive normal branch at +h");
-                let minus = evaluate(&w, &q, mu, minus_theta).expect("positive normal branch at -h");
+                let minus =
+                    evaluate(&w, &q, mu, minus_theta).expect("positive normal branch at -h");
                 for (residual_index, jacobian_row) in root.jacobian.iter().enumerate() {
-                    let finite_difference =
-                        (plus.residual[residual_index] - minus.residual[residual_index])
-                            / (2.0 * step);
+                    let finite_difference = (plus.residual[residual_index]
+                        - minus.residual[residual_index])
+                        / (2.0 * step);
                     assert!((finite_difference - jacobian_row[direction]).abs() < 2.0e-6);
                 }
             }
