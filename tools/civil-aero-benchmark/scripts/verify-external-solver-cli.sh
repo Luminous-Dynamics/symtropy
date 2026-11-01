@@ -60,6 +60,7 @@ grep -q 'evidence_level=process_receipt_only_caller_version_claim_unverified_no_
 test "$(wc -l < "$root/su2-history-import.csv")" -eq 3
 grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=2 selected_fields=2' "$root/su2-history-import.txt"
 grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
+python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-history-import.csv"
 test -s "$root/run/invocation_manifest.txt"
 test -s "$root/run/environment_manifest.txt"
 test -s "$root/run/runner_receipt.csv"
