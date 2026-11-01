@@ -1,0 +1,52 @@
+name: Orbital Launch Geometry Reference
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/domains/symtropy-orbital-access/**"
+      - ".github/workflows/orbital-launch-geometry.yml"
+  push:
+    branches: ["feat/orbital-launch-geometry-reference-v0-1"]
+    paths:
+      - "crates/domains/symtropy-orbital-access/**"
+      - ".github/workflows/orbital-launch-geometry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orbital-launch-geometry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Verify exact source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Format
+        run: cargo fmt --manifest-path crates/domains/symtropy-orbital-access/Cargo.toml -- --check
+
+      - name: Unit and analytic reference tests
+        run: cargo test --locked --manifest-path crates/domains/symtropy-orbital-access/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path crates/domains/symtropy-orbital-access/Cargo.toml --all-targets -- -D warnings
