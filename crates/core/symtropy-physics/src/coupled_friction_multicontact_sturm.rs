@@ -427,6 +427,70 @@ fn exact_two_contact_slide_stick_branch_intervals(
     Ok(classifications)
 }
 
+fn exact_solve_linear_system(
+    mut matrix: Vec<Vec<Rational>>,
+    mut rhs: Vec<Rational>,
+) -> Option<Vec<Rational>> {
+    let dimension = matrix.len();
+    if dimension == 0
+        || rhs.len() != dimension
+        || matrix.iter().any(|row| row.len() != dimension)
+    {
+        return None;
+    }
+
+    for pivot_column in 0..dimension {
+        let pivot_row = (pivot_column..dimension)
+            .find(|&row| !matrix[row][pivot_column].is_zero())?;
+        matrix.swap(pivot_column, pivot_row);
+        rhs.swap(pivot_column, pivot_row);
+
+        let pivot = matrix[pivot_column][pivot_column].clone();
+        for column in pivot_column..dimension {
+            matrix[pivot_column][column] =
+                matrix[pivot_column][column].clone() / pivot.clone();
+        }
+        rhs[pivot_column] = rhs[pivot_column].clone() / pivot;
+
+        for row in 0..dimension {
+            if row == pivot_column {
+                continue;
+            }
+            let factor = matrix[row][pivot_column].clone();
+            for column in pivot_column..dimension {
+                matrix[row][column] = matrix[row][column].clone()
+                    - factor.clone() * matrix[pivot_column][column].clone();
+            }
+            rhs[row] = rhs[row].clone() - factor * rhs[pivot_column].clone();
+        }
+    }
+    Some(rhs)
+}
+
+fn exact_matrix_vector(
+    matrix: &[Vec<Rational>],
+    vector: &[Rational],
+) -> Vec<Rational> {
+    matrix
+        .iter()
+        .map(|row| {
+            row.iter()
+                .zip(vector)
+                .fold(Rational::zero(), |sum, (a, b)| {
+                    sum + a.clone() * b.clone()
+                })
+        })
+        .collect()
+}
+
+fn exact_dot(lhs: &[Rational], rhs: &[Rational]) -> Rational {
+    lhs.iter()
+        .zip(rhs)
+        .fold(Rational::zero(), |sum, (a, b)| {
+            sum + a.clone() * b.clone()
+        })
+}
+
 fn two_contact_witness() -> (SMatrix<f64, 6, 6>, SVector<f64, 6>) {
     let w = SMatrix::<f64, 6, 6>::from_row_slice(&[
         0.59497432,
@@ -468,6 +532,64 @@ fn two_contact_witness() -> (SMatrix<f64, 6, 6>, SVector<f64, 6>) {
     ]);
     let q = SVector::<f64, 6>::new(-0.10770302, 1.49149027, -0.95561905, -1.0, 0.1, -0.1);
     (w, q)
+}
+
+#[test]
+fn two_contact_stick_stick_branch_is_exactly_reconstructed_and_strictly_admissible() {
+    let (w, q) = two_contact_witness();
+    let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
+    let mut exact_q = vec![Rational::zero(); 6];
+    for row in 0..6 {
+        exact_q[row] = exact_f64(q[row]).unwrap();
+        for column in 0..6 {
+            exact_w[row][column] = exact_f64(w[(row, column)]).unwrap();
+        }
+    }
+    assert!(exact_symmetric_matrix_is_spd(&exact_w));
+
+    // In the all-sticking stratum u = q + Wp = 0. Exact SPD gives a unique
+    // solution; solve the six rational equations without using f64 LU.
+    let impulse = exact_solve_linear_system(
+        exact_w.clone(),
+        exact_q.iter().map(|value| -value.clone()).collect(),
+    )
+    .expect("exact SPD all-sticking linear system must have a unique solution");
+    let velocity = exact_matrix_vector(&exact_w, &impulse)
+        .into_iter()
+        .zip(&exact_q)
+        .map(|(value, free)| value + free.clone())
+        .collect::<Vec<_>>();
+    assert!(
+        velocity.iter().all(Rational::is_zero),
+        "the exact all-sticking equations must be satisfied without residual tolerance"
+    );
+
+    let mu_1 = exact_f64(1.383_289_774_658_335).unwrap();
+    let mu_2 = Rational::one();
+    assert!(impulse[0] > Rational::zero());
+    assert!(impulse[3] > Rational::zero());
+
+    let disk_1_margin = (&mu_1 * &impulse[0]).pow(2)
+        - impulse[1].clone().pow(2)
+        - impulse[2].clone().pow(2);
+    let disk_2_margin = (&mu_2 * &impulse[3]).pow(2)
+        - impulse[4].clone().pow(2)
+        - impulse[5].clone().pow(2);
+    assert!(disk_1_margin > Rational::zero());
+    assert!(disk_2_margin > Rational::zero());
+
+    // Exact impulse work for the full island: p^T q + 1/2 p^T W p.
+    let wp = exact_matrix_vector(&exact_w, &impulse);
+    let one_half = Rational::new(BigInt::one(), BigInt::from(2));
+    let energy_delta =
+        exact_dot(&impulse, &exact_q) + one_half * exact_dot(&impulse, &wp);
+    assert!(energy_delta < Rational::zero());
+
+    // Positive definiteness makes the sticking solution unique within this
+    // active stratum. The exact rational vector must also remain well separated
+    // from zero in normal load and from both Coulomb disk boundaries.
+    assert!(disk_1_margin > Rational::new(BigInt::one(), BigInt::from(10)));
+    assert!(disk_2_margin > Rational::new(BigInt::one(), BigInt::from(10)));
 }
 
 #[test]
