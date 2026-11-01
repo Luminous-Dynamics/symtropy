@@ -2,9 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use civil_aero_benchmark::su2_history::{
-    Su2HistoryField, Su2HistorySchema, import_su2_history,
-};
+use civil_aero_benchmark::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
 
 struct Options {
     run_directory: PathBuf,
@@ -90,9 +88,11 @@ fn parse_arguments() -> Result<Options, String> {
 
     Ok(Options {
         run_directory: run_directory.ok_or_else(|| "missing --run-dir".to_owned())?,
-        history_relative_path: history_relative_path.ok_or_else(|| "missing --history".to_owned())?,
+        history_relative_path: history_relative_path
+            .ok_or_else(|| "missing --history".to_owned())?,
         expected_header,
-        iteration_column: iteration_column.ok_or_else(|| "missing --iteration-column".to_owned())?,
+        iteration_column: iteration_column
+            .ok_or_else(|| "missing --iteration-column".to_owned())?,
         numeric_fields,
         minimum_rows,
     })
