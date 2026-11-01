@@ -107,8 +107,7 @@ impl MatrixFreeDelassus {
             .fold(0.0, f64::max);
         let jacobian_norm_bound = (norm_one * norm_infinity).sqrt();
         let inverse_mass_norm = INVERSE_MASS.iter().copied().fold(0.0, f64::max);
-        let spectral_norm_bound =
-            jacobian_norm_bound * jacobian_norm_bound * inverse_mass_norm;
+        let spectral_norm_bound = jacobian_norm_bound * jacobian_norm_bound * inverse_mass_norm;
 
         Self {
             jacobian: CONTACT_JACOBIAN,
@@ -262,14 +261,7 @@ fn saxce_coupling<O: DelassusOperator>(
     let post_velocity = add(q, &operator.apply(impulse));
     let first_tangent = post_velocity[1].hypot(post_velocity[2]);
     let second_tangent = post_velocity[4].hypot(post_velocity[5]);
-    [
-        mu * first_tangent,
-        0.0,
-        0.0,
-        mu * second_tangent,
-        0.0,
-        0.0,
-    ]
+    [mu * first_tangent, 0.0, 0.0, mu * second_tangent, 0.0, 0.0]
 }
 
 fn proximal_cone_qp<O: DelassusOperator>(
@@ -296,19 +288,13 @@ fn proximal_cone_qp<O: DelassusOperator>(
             &scaled_add(&operator.apply(&extrapolated), 1.0 / gamma, &extrapolated),
             q_linear,
         );
-        let candidate = project_product_cone(
-            &scaled_add(&extrapolated, -step, &gradient),
-            mu,
-        );
-        if norm(&subtract(&candidate, &current))
-            <= 1.0e-13 * (1.0 + norm(&current))
-        {
+        let candidate = project_product_cone(&scaled_add(&extrapolated, -step, &gradient), mu);
+        if norm(&subtract(&candidate, &current)) <= 1.0e-13 * (1.0 + norm(&current)) {
             current = candidate;
             return (current, iteration + 1);
         }
 
-        let next_acceleration =
-            (1.0 + (1.0 + 4.0 * acceleration * acceleration).sqrt()) / 2.0;
+        let next_acceleration = (1.0 + (1.0 + 4.0 * acceleration * acceleration).sqrt()) / 2.0;
         let momentum = (acceleration - 1.0) / next_acceleration;
         extrapolated = scaled_add(&candidate, momentum, &subtract(&candidate, &current));
         current = candidate;
@@ -421,11 +407,7 @@ fn solve_fbf_reference<O: DelassusOperator>(
         }
 
         let (intermediate, next_coupling) = accepted?;
-        let corrected = scaled_add(
-            &intermediate,
-            -gamma,
-            &subtract(&next_coupling, &coupling),
-        );
+        let corrected = scaled_add(&intermediate, -gamma, &subtract(&next_coupling, &coupling));
         let next_impulse = project_product_cone(&corrected, mu);
         let residual = original_reduced_law_residual(operator, q, &next_impulse, mu);
 
@@ -565,4 +547,3 @@ fn circular_coulomb_cone_projection_matches_closed_form_cases() {
     assert_eq!(boundary[2], 0.0);
     assert!((boundary[1].hypot(boundary[2]) - FRICTION * boundary[0]).abs() < 1.0e-14);
 }
-
