@@ -21,11 +21,11 @@ pub mod ccd;
 pub mod constraint;
 pub mod contact;
 pub mod contact_frame;
+#[cfg(test)]
+mod contact_graph_separator_witness;
 pub mod coupled_friction;
 #[cfg(test)]
 mod coupled_friction_two_contact_witness;
-#[cfg(test)]
-mod contact_graph_separator_witness;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
