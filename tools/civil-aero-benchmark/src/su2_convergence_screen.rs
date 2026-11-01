@@ -9,7 +9,7 @@
 use crate::integrity::sha256_hex;
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResidualAcceptance {
     Log10 {
         maximum_final_log10_residual: f64,
