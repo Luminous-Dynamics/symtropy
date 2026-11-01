@@ -361,20 +361,27 @@ fn posterior_tv_distance(left: &[Rational], right: &[Rational]) -> Result<Ration
     l1_distance.checked_div(Rational::from_u64(2))
 }
 
-fn posterior_brier_score(left: &[Rational], right: &[Rational]) -> Result<Rational, String> {
-    if left.len() != right.len() {
+/// Expected multiclass Brier score for a predictive posterior under a
+/// categorical truth distribution: E_{S~truth}[sum_j (prediction_j - 1[S=j])^2].
+fn posterior_expected_brier_score(
+    prediction: &[Rational],
+    truth: &[Rational],
+) -> Result<Rational, String> {
+    if prediction.len() != truth.len() {
         return Err("posterior vectors must have the same dimension".into());
     }
-    let mut score = Rational::zero();
-    for (left_probability, right_probability) in left.iter().zip(right.iter()) {
-        let difference = if left_probability >= right_probability {
-            subtract_nonnegative(*left_probability, *right_probability)?
-        } else {
-            subtract_nonnegative(*right_probability, *left_probability)?
-        };
-        score = score.checked_add(difference.checked_mul(difference)?)?;
+    let mut prediction_squared_norm = Rational::zero();
+    let mut probability_dot_product = Rational::zero();
+    for (predicted_probability, true_probability) in prediction.iter().zip(truth.iter()) {
+        prediction_squared_norm = prediction_squared_norm
+            .checked_add(predicted_probability.checked_mul(*predicted_probability)?)?;
+        probability_dot_product = probability_dot_product
+            .checked_add(predicted_probability.checked_mul(*true_probability)?)?;
     }
-    Ok(score)
+    let twice_dot_product = probability_dot_product.checked_mul(Rational::from_u64(2))?;
+    prediction_squared_norm
+        .checked_add(Rational::one())?
+        .checked_sub(twice_dot_product)
 }
 
 fn bayes_decision(
@@ -497,7 +504,7 @@ pub fn evaluate_channel_decisions_with_inference_rule(
             let total_tv =
                 posterior_tv_distance(&actual_inference_posterior, &true_posterior)?;
             let total_brier =
-                posterior_brier_score(&actual_inference_posterior, &true_posterior)?;
+                posterior_expected_brier_score(&actual_inference_posterior, &true_posterior)?;
 
             expected_inference_posterior_tv_distance =
                 expected_inference_posterior_tv_distance
