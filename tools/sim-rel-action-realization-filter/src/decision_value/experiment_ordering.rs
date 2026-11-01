@@ -2160,7 +2160,8 @@ fn binary_lecam_vertex_lower_bound(
                     &constraints[first],
                     &constraints[second],
                     &constraints[third],
-                )? else {
+                )?
+                else {
                     continue;
                 };
                 if !satisfies_linear_constraints(&candidate, constraints)? {
