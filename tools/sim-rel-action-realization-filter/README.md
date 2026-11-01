@@ -487,3 +487,17 @@ world IDs. Most importantly, admission independently replays the active policy
 against the full current family plus the candidate and derives the actual
 violation class/metrics. A witness whose claim disagrees with that replay is
 rejected; the admission record retains the ledger-derived result.
+
+
+## Offline ledger transcript verifier (SIM-REL-035)
+
+The `decision_value::counterexample_ledger::verify_model_family_ledger_snapshot`
+entry point reconstructs a fresh ledger from the exported immutable baseline,
+initial policy, replay context and split registrations. It replays every
+admission, replan, final seal and sealed evaluation event, compares regenerated
+records exactly, and requires the reconstructed final snapshot to equal the
+exported snapshot. It returns a typed failure phase and event sequence on
+tampering or inconsistency. This is a separate audit entry point using the
+same exact domain transition functions, not an independent physics engine;
+see the transcript-verification limitations and follow-on benchmark in
+[COUNTEREXAMPLE_LEDGER_PROTOCOL.md](COUNTEREXAMPLE_LEDGER_PROTOCOL.md).
