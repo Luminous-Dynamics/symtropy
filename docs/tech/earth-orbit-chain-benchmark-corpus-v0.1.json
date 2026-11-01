@@ -1,0 +1,3169 @@
+{
+  "suite_id": "earth-orbit-chain",
+  "suite_version": "0.1.0",
+  "manifest_kind": "synthetic-end-to-orbit-campaigns",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "Synthetic benchmark semantics only. No real site, corridor, launch range, orbit transfer, tether, orbital ring, safety, licensing, or commercial feasibility is qualified.",
+  "scenarios": [
+    {
+      "id": "BASELINE_EXISTING_PROVIDER",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "primary",
+          "stages": [
+            {
+              "id": "primary_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:primary",
+                "grid:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "COASTAL_GATEWAY_ADJACENT_RANGE",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "short_gateway",
+          "stages": [
+            {
+              "id": "short_road",
+              "technology_family": "road_freight",
+              "capacity_state": "known",
+              "capacity_kg": 1600,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 20,
+              "cost_scu": 10,
+              "energy_wh": 150,
+              "dependency_domains": [
+                "road:short"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "coastal_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1600,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 45,
+              "cost_scu": 25,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:coastal"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "coastal_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 45,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "integration:coastal"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "coastal_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:coastal",
+                "grid:coastal"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SEPARATED_PORT_INTEGRATION_LAUNCH",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "primary",
+          "stages": [
+            {
+              "id": "primary_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:primary",
+                "grid:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "INLAND_CONVENTIONAL_RAIL_ORIGIN",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "primary",
+          "stages": [
+            {
+              "id": "primary_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:primary",
+                "grid:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ROAD_ONLY_CAPACITY_SHORTFALL",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "road",
+          "stages": [
+            {
+              "id": "road_inland",
+              "technology_family": "road_freight",
+              "capacity_state": "known",
+              "capacity_kg": 600,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:road"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "road_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:road"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "road_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:road"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "road_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:road",
+                "grid:road"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MAGRAIL_LINEAR_MOTOR_PILOT",
+      "expected_status": "indeterminate",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "magrail",
+          "stages": [
+            {
+              "id": "magrail_inland",
+              "technology_family": "linear_motor_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:magrail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "pilot_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "magrail_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:magrail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "magrail_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:magrail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "magrail_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:magrail",
+                "grid:magrail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DEDICATED_UNDERGROUND_MAGLEV_CONCEPT",
+      "expected_status": "indeterminate",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "maglev",
+          "stages": [
+            {
+              "id": "maglev_inland",
+              "technology_family": "maglev_freight",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:maglev"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": true,
+              "capability_maturity": "concept_only",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "maglev_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:maglev"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "maglev_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:maglev"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "maglev_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:maglev",
+                "grid:maglev"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CONVENTIONAL_RAIL_SHORT_TUNNEL_BYPASS",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "tunnelled_rail",
+          "stages": [
+            {
+              "id": "tunnelled_rail_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1400,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:tunnelled_rail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "tunnelled_rail_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:tunnelled_rail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "tunnelled_rail_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:tunnelled_rail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "tunnelled_rail_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:tunnelled_rail",
+                "grid:tunnelled_rail"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "NO_BUILD_EXISTING_PROVIDER_WINS",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "primary",
+          "stages": [
+            {
+              "id": "primary_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "primary_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:primary",
+                "grid:primary"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PORT_CAPACITY_BOTTLENECK",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "port_bottleneck",
+          "stages": [
+            {
+              "id": "port_bottleneck_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:port_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "port_bottleneck_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:port_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "port_bottleneck_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:port_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "port_bottleneck_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:port_bottleneck",
+                "grid:port_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAYLOAD_INTEGRATION_CAPACITY_BOTTLENECK",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "integration_bottleneck",
+          "stages": [
+            {
+              "id": "integration_bottleneck_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:integration_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "integration_bottleneck_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:integration_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "integration_bottleneck_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 400,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:integration_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "integration_bottleneck_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:integration_bottleneck",
+                "grid:integration_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "LAUNCH_RANGE_CAPACITY_BOTTLENECK",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "range_bottleneck",
+          "stages": [
+            {
+              "id": "range_bottleneck_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:range_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_bottleneck_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:range_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_bottleneck_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:range_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_bottleneck_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:range_bottleneck",
+                "grid:range_bottleneck"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MISSED_LAUNCH_WINDOW_DEADLINE",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "missed_window",
+          "stages": [
+            {
+              "id": "missed_window_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:missed_window"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "missed_window_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:missed_window"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "missed_window_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:missed_window"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "missed_window_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 1500,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:missed_window",
+                "grid:missed_window"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RANGE_CLOSURE",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "range_closed",
+          "stages": [
+            {
+              "id": "range_closed_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:range_closed"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_closed_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:range_closed"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_closed_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:range_closed"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "range_closed_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:range_closed",
+                "grid:range_closed"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "fail",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "POLAR_MISSION_NORTHBOUND",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "polar",
+        "target_inclination_mdeg": 90000
+      },
+      "routes": [
+        {
+          "id": "polar",
+          "stages": [
+            {
+              "id": "polar_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:polar"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "polar_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:polar"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "polar_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:polar"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "polar_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:polar",
+                "grid:polar"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 5000,
+                "launch_azimuth_mdeg": 0,
+                "target_inclination_mdeg": 90000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "LOW_INCLINATION_EQUATORWARD_ACCESS",
+      "expected_status": "feasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 5000
+      },
+      "routes": [
+        {
+          "id": "equatorial_low",
+          "stages": [
+            {
+              "id": "equatorial_low_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:equatorial_low"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "equatorial_low_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:equatorial_low"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "equatorial_low_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:equatorial_low"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "equatorial_low_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:equatorial_low",
+                "grid:equatorial_low"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 5000,
+                "launch_azimuth_mdeg": 90000,
+                "target_inclination_mdeg": 5000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "INVALID_EQUATORIAL_ORBIT_ASSUMPTION",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 0
+      },
+      "routes": [
+        {
+          "id": "orbit_mismatch",
+          "stages": [
+            {
+              "id": "orbit_mismatch_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:orbit_mismatch"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "orbit_mismatch_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:orbit_mismatch"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "orbit_mismatch_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:orbit_mismatch"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "orbit_mismatch_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:orbit_mismatch",
+                "grid:orbit_mismatch"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 5000,
+                "launch_azimuth_mdeg": 90000,
+                "target_inclination_mdeg": 0,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SHARED_GATEWAY_COMMON_MODE_N_MINUS_ONE",
+      "expected_status": "infeasible",
+      "require_n_minus_one": true,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "shared_a",
+          "stages": [
+            {
+              "id": "shared_a_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:shared_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_a_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "gateway:shared"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_a_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:shared_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_a_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:shared_a",
+                "grid:shared_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        },
+        {
+          "id": "shared_b",
+          "stages": [
+            {
+              "id": "shared_b_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:shared_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_b_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "gateway:shared"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_b_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:shared_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "shared_b_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:shared_b",
+                "grid:shared_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "INDEPENDENT_GATEWAYS_N_MINUS_ONE",
+      "expected_status": "feasible",
+      "require_n_minus_one": true,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "independent_a",
+          "stages": [
+            {
+              "id": "independent_a_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:independent_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_a_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:independent_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_a_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:independent_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_a_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:independent_a",
+                "grid:independent_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        },
+        {
+          "id": "independent_b",
+          "stages": [
+            {
+              "id": "independent_b_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:independent_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_b_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:independent_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_b_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:independent_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "independent_b_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:independent_b",
+                "grid:independent_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UNKNOWN_SHARED_GRID_CAPACITY",
+      "expected_status": "indeterminate",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "grid_unknown",
+          "stages": [
+            {
+              "id": "grid_unknown_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:grid_unknown"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "grid_unknown_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:grid_unknown"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "grid_unknown_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:grid_unknown"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "grid_unknown_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 0,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:grid_unknown",
+                "grid:grid_unknown"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "unknown",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SUPPLIER_DELAY_EXCEEDS_CAMPAIGN_DEADLINE",
+      "expected_status": "infeasible",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "supplier_delay",
+          "stages": [
+            {
+              "id": "supplier_delay_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 1600,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:supplier_delay"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "supplier_delay_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:supplier_delay"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "supplier_delay_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:supplier_delay"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "supplier_delay_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:supplier_delay",
+                "grid:supplier_delay"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PAYLOAD_MASS_LOSS_AT_TRANSFER",
+      "expected_status": "invalid",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "mass_loss",
+          "stages": [
+            {
+              "id": "mass_loss_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:mass_loss"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "mass_loss_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:mass_loss"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "mass_loss_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 999,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:mass_loss"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "mass_loss_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:mass_loss",
+                "grid:mass_loss"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FUTURE_ORBITAL_RING_CONSTRUCTION_CARGO",
+      "expected_status": "indeterminate",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 50,
+        "deadline_minutes": 2000,
+        "orbit_class": "orbital_ring_construction",
+        "target_inclination_mdeg": 0
+      },
+      "routes": [
+        {
+          "id": "ring_build",
+          "stages": [
+            {
+              "id": "ring_build_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "rail:ring_build"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "ring_build_gateway",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "port:ring_build"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "ring_build_space_access",
+              "technology_family": "orbital_ring",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 1000,
+              "energy_wh": 10000,
+              "dependency_domains": [
+                "orbital_structure:ring_build"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "concept_only",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "LINEAR_MOTOR_MISLABELED_AS_MAGLEV",
+      "expected_status": "invalid",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "lim_mislabeled",
+          "stages": [
+            {
+              "id": "lim_mislabeled_inland",
+              "technology_family": "linear_motor_rail",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:lim_mislabeled"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": true,
+              "capability_maturity": "pilot_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "lim_mislabeled_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:lim_mislabeled"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "lim_mislabeled_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:lim_mislabeled"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "lim_mislabeled_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:lim_mislabeled",
+                "grid:lim_mislabeled"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "UNQUALIFIED_RING_CLAIMED_OPERATIONAL",
+      "expected_status": "invalid",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 50,
+        "deadline_minutes": 2000,
+        "orbit_class": "orbital_ring_construction",
+        "target_inclination_mdeg": 0
+      },
+      "routes": [
+        {
+          "id": "ring_overclaim",
+          "stages": [
+            {
+              "id": "ring_overclaim_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "rail:ring_overclaim"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "ring_overclaim_gateway",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "port:ring_overclaim"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "ring_overclaim_space_access",
+              "technology_family": "orbital_ring",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 1000,
+              "energy_wh": 10000,
+              "dependency_domains": [
+                "orbital_structure:ring_overclaim"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "concept_only",
+              "operational_capability_claim": true,
+              "launch_geometry": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SLANTED_GEO_TETHER_CONCEPT",
+      "expected_status": "indeterminate",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 50,
+        "deadline_minutes": 2000,
+        "orbit_class": "geostationary_transfer",
+        "target_inclination_mdeg": 0
+      },
+      "routes": [
+        {
+          "id": "slanted_geo_tether",
+          "stages": [
+            {
+              "id": "slanted_geo_tether_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "rail:slanted_geo_tether"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "slanted_geo_tether_gateway",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 20,
+              "energy_wh": 300,
+              "dependency_domains": [
+                "port:slanted_geo_tether"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "slanted_geo_tether_space_access",
+              "technology_family": "space_elevator_slanted",
+              "capacity_state": "known",
+              "capacity_kg": 500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 240,
+              "cost_scu": 1000,
+              "energy_wh": 10000,
+              "dependency_domains": [
+                "orbital_structure:slanted_geo_tether"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "concept_only",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
