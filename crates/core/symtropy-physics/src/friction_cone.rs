@@ -117,7 +117,7 @@ pub fn solve_planar_friction_cone(
         if positive_denominator > relative_tolerance * matrix_scale {
             let normal_impulse = -free_velocity[0] / positive_denominator;
             if normal_impulse > impulse_tolerance {
-                let sliding = SVector::new(normal_impulse, -mu * normal_impulse);
+                let sliding = SVector::<_, 2>::new(normal_impulse, -mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
                 if post[0].abs() <= 10.0 * velocity_tolerance && post[1] >= -velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingPositive));
@@ -130,7 +130,7 @@ pub fn solve_planar_friction_cone(
         if negative_denominator > relative_tolerance * matrix_scale {
             let normal_impulse = -free_velocity[0] / negative_denominator;
             if normal_impulse > impulse_tolerance {
-                let sliding = SVector::new(normal_impulse, mu * normal_impulse);
+                let sliding = SVector::<_, 2>::new(normal_impulse, mu * normal_impulse);
                 let post = matrix * sliding + free_velocity;
                 if post[0].abs() <= 10.0 * velocity_tolerance && post[1] <= velocity_tolerance {
                     admissible.push((sliding, ContactMode::SlidingNegative));
@@ -204,8 +204,8 @@ mod tests {
 
     #[test]
     fn sticking_solution_satisfies_normal_and_tangential_constraints() {
-        let effective_mass = Matrix2::from_diagonal(&SVector::new(2.0, 1.0));
-        let free_velocity = SVector::new(-1.0, -0.2);
+        let effective_mass = Matrix2::from_diagonal(&SVector::<_, 2>::new(2.0, 1.0));
+        let free_velocity = SVector::<_, 2>::new(-1.0, -0.2);
         let solution =
             solve_planar_friction_cone(&effective_mass, &free_velocity, 1.0, 1e-12).unwrap();
 
@@ -219,8 +219,8 @@ mod tests {
 
     #[test]
     fn sliding_solution_satisfies_signorini_and_maximum_dissipation() {
-        let effective_mass = Matrix2::from_diagonal(&SVector::new(2.0, 1.0));
-        let free_velocity = SVector::new(-1.0, -1.0);
+        let effective_mass = Matrix2::from_diagonal(&SVector::<_, 2>::new(2.0, 1.0));
+        let free_velocity = SVector::<_, 2>::new(-1.0, -1.0);
         let solution =
             solve_planar_friction_cone(&effective_mass, &free_velocity, 0.5, 1e-12).unwrap();
 
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn separating_contact_returns_zero_impulse_even_with_large_tangential_slip() {
         let effective_mass = Matrix2::identity();
-        let free_velocity = SVector::new(0.1, 10.0);
+        let free_velocity = SVector::<_, 2>::new(0.1, 10.0);
         let solution =
             solve_planar_friction_cone(&effective_mass, &free_velocity, 0.5, 1e-12).unwrap();
 
@@ -249,7 +249,7 @@ mod tests {
     #[test]
     fn zero_friction_reduces_to_a_normal_only_contact() {
         let effective_mass = Matrix2::new(2.0, 0.25, 0.25, 1.5);
-        let free_velocity = SVector::new(-1.0, -0.8);
+        let free_velocity = SVector::<_, 2>::new(-1.0, -0.8);
         let solution =
             solve_planar_friction_cone(&effective_mass, &free_velocity, 0.0, 1e-12).unwrap();
 
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn off_diagonal_normal_tangent_coupling_preserves_friction_dissipation() {
         let effective_mass = Matrix2::new(2.0, 0.6, 0.6, 1.5);
-        let free_velocity = SVector::new(-1.0, -0.8);
+        let free_velocity = SVector::<_, 2>::new(-1.0, -0.8);
         for friction_coefficient in [0.0, 0.2, 0.8, 2.0] {
             let solution = solve_planar_friction_cone(
                 &effective_mass,
@@ -283,7 +283,7 @@ mod tests {
     #[test]
     fn friction_reference_rejects_invalid_inputs_and_non_spd_metrics() {
         let identity = Matrix2::identity();
-        let velocity = SVector::new(-1.0, 0.0);
+        let velocity = SVector::<_, 2>::new(-1.0, 0.0);
         assert_eq!(
             solve_planar_friction_cone(&identity, &velocity, -0.1, 1e-12).unwrap_err(),
             FrictionConeError::InvalidFrictionCoefficient
@@ -302,7 +302,7 @@ mod tests {
     #[test]
     fn planar_contact_solution_is_invariant_to_common_metric_velocity_scaling() {
         let matrix = Matrix2::new(2.0, 0.25, 0.25, 1.5);
-        let velocity = SVector::new(-1.0, -0.8);
+        let velocity = SVector::<_, 2>::new(-1.0, -0.8);
         let reference = solve_planar_friction_cone(&matrix, &velocity, 0.4, 1e-12).unwrap();
         for scale in [1e-12, 1.0, 1e12] {
             let scaled =
@@ -329,7 +329,7 @@ mod tests {
             let c = 0.5 + deterministic_sample(&mut state).abs();
             // AᵀA + epsilon*I is SPD while retaining off-diagonal coupling.
             let effective_mass = Matrix2::new(a * a + 0.05, a * b, a * b, b * b + c * c + 0.05);
-            let free_velocity = SVector::new(
+            let free_velocity = SVector::<_, 2>::new(
                 2.0 * deterministic_sample(&mut state),
                 2.0 * deterministic_sample(&mut state),
             );

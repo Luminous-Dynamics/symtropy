@@ -294,7 +294,7 @@ mod tests {
     #[test]
     fn sticking_solution_is_the_unconstrained_anisotropic_minimizer() {
         let metric = Matrix2::new(2.0, 0.35, 0.35, 1.2);
-        let free_velocity = SVector::new(-0.2, 0.1);
+        let free_velocity = SVector::<_, 2>::new(-0.2, 0.1);
         let solution =
             solve_tangential_friction_disk(&metric, &free_velocity, 0.8, 1.0, 1e-12).unwrap();
         assert!(!solution.is_sliding);
@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn sliding_solution_saturates_the_coulomb_disk_and_opposes_slip() {
         let metric = Matrix2::new(2.0, 0.6, 0.6, 1.0);
-        let free_velocity = SVector::new(-3.0, 1.0);
+        let free_velocity = SVector::<_, 2>::new(-3.0, 1.0);
         let solution =
             solve_tangential_friction_disk(&metric, &free_velocity, 0.2, 0.5, 1e-12).unwrap();
         assert!(solution.is_sliding);
@@ -315,8 +315,8 @@ mod tests {
     fn normal_tangent_coupling_is_folded_into_free_slip_before_disk_solve() {
         let full_metric = nalgebra::Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let normal_impulse = 0.6;
-        let q_tangent = SVector::new(1.2, -0.9);
-        let normal_tangent_column = SVector::new(full_metric[(1, 0)], full_metric[(2, 0)]);
+        let q_tangent = SVector::<_, 2>::new(1.2, -0.9);
+        let normal_tangent_column = SVector::<_, 2>::new(full_metric[(1, 0)], full_metric[(2, 0)]);
         let free_slip = q_tangent + normal_tangent_column * normal_impulse;
         let tangent_metric = Matrix2::new(
             full_metric[(1, 1)],
@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn tangential_solver_is_equivariant_under_contact_frame_rotation() {
         let metric = Matrix2::new(1.8, 0.4, 0.4, 2.3);
-        let velocity = SVector::new(-2.0, 0.7);
+        let velocity = SVector::<_, 2>::new(-2.0, 0.7);
         let (s, c) = 0.63_f64.sin_cos();
         let rotation = Matrix2::new(c, -s, s, c);
         let rotated_metric = rotation * metric * rotation.transpose();
@@ -356,11 +356,11 @@ mod tests {
     #[test]
     fn frictionless_and_zero_load_controls_return_zero_impulse() {
         let metric = Matrix2::new(2.0, 0.2, 0.2, 1.0);
-        let velocity = SVector::new(2.0, -1.0);
+        let velocity = SVector::<_, 2>::new(2.0, -1.0);
         for (mu, load) in [(0.0, 2.0), (0.5, 0.0)] {
             let solution =
                 solve_tangential_friction_disk(&metric, &velocity, mu, load, 1e-12).unwrap();
-            assert_eq!(solution.impulse, SVector::zeros());
+            assert_eq!(solution.impulse, SVector::<f64, 2>::zeros());
             assert_eq!(solution.frictional_work_delta, 0.0);
         }
     }
@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn rejects_invalid_normal_load_friction_and_metric() {
         let metric = Matrix2::identity();
-        let velocity = SVector::new(1.0, 0.2);
+        let velocity = SVector::<_, 2>::new(1.0, 0.2);
         assert_eq!(
             solve_tangential_friction_disk(&metric, &velocity, -0.1, 1.0, 1e-12).unwrap_err(),
             FrictionDiskError::InvalidFrictionCoefficient
@@ -401,7 +401,7 @@ mod tests {
                 0.3 * a * c + b * 0.1,
                 1.0 + c * c,
             );
-            let velocity = SVector::new(
+            let velocity = SVector::<_, 2>::new(
                 ((seed * 7) % 61) as f64 / 13.0 - 2.0,
                 ((seed * 11) % 59) as f64 / 17.0 - 1.5,
             );

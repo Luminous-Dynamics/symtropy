@@ -163,10 +163,10 @@ impl<const D: usize> BodyStepSnapshot<D> {
     fn capture(body: &RigidBody<D>) -> Self {
         Self {
             transform: body.transform.clone(),
-            linear_velocity: body.linear_velocity.clone(),
-            angular_velocity: body.angular_velocity.clone(),
-            force_accumulator: body.force_accumulator.clone(),
-            torque_accumulator: body.torque_accumulator.clone(),
+            linear_velocity: body.linear_velocity,
+            angular_velocity: body.angular_velocity,
+            force_accumulator: body.force_accumulator,
+            torque_accumulator: body.torque_accumulator,
             sleeping: body.sleeping,
             sleep_timer: body.sleep_timer,
             sleep_counter: body.sleep_counter,
@@ -2764,7 +2764,10 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::new(0.0, 1.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<_, 3>::new(0.0, 1.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
@@ -2778,17 +2781,17 @@ mod transformed_halfspace_tests {
         );
         block.set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
-        block.linear_velocity = SVector::new(0.25, 0.0, 0.0);
-        block.apply_force(SVector::new(1.0, 0.0, 0.0));
+        block.linear_velocity = SVector::<_, 3>::new(0.25, 0.0, 0.0);
+        block.apply_force(SVector::<_, 3>::new(1.0, 0.0, 0.0));
         let block_handle = world.add_body(block);
 
-        let block_position = world.bodies[1].transform.translation.0.clone();
-        let block_velocity = world.bodies[1].linear_velocity.clone();
-        let block_force = world.bodies[1].force_accumulator.clone();
+        let block_position = world.bodies[1].transform.translation.0;
+        let block_velocity = world.bodies[1].linear_velocity;
+        let block_force = world.bodies[1].force_accumulator;
         let previous_contacts = world.contacts.clone();
         let previous_events = world.collision_events.clone();
 
@@ -2813,29 +2816,29 @@ mod transformed_halfspace_tests {
         world.add_sphere(Point::origin(), 0.5, 1.0);
         world.add_sphere(Point::new([10.0, 0.0, 0.0]), 0.5, 1.0);
 
-        world.bodies[0].linear_velocity = SVector::new(0.25, -0.5, 0.75);
-        world.bodies[0].apply_force(SVector::new(3.0, 0.0, 0.0));
+        world.bodies[0].linear_velocity = SVector::<_, 3>::new(0.25, -0.5, 0.75);
+        world.bodies[0].apply_force(SVector::<_, 3>::new(3.0, 0.0, 0.0));
         world.bodies[1].set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
         world.bodies[1].apply_torque(Bivector::unit_plane(1, 2));
 
-        let first_position = world.bodies[0].transform.translation.0.clone();
-        let first_velocity = world.bodies[0].linear_velocity.clone();
-        let first_force = world.bodies[0].force_accumulator.clone();
-        let second_position = world.bodies[1].transform.translation.0.clone();
-        let second_torque = world.bodies[1].torque_accumulator.clone();
+        let first_position = world.bodies[0].transform.translation.0;
+        let first_velocity = world.bodies[0].linear_velocity;
+        let first_force = world.bodies[0].force_accumulator;
+        let second_position = world.bodies[1].transform.translation.0;
+        let second_torque = world.bodies[1].torque_accumulator;
         let first_handle = world.bodies[0].handle;
         let second_handle = world.bodies[1].handle;
-        let cache_point = SVector::new(0.0, 0.0, 0.0);
+        let cache_point = SVector::<_, 3>::new(0.0, 0.0, 0.0);
 
         world.contacts.push(ContactManifold::single(
             first_handle,
             second_handle,
-            SVector::new(1.0, 0.0, 0.0),
+            SVector::<_, 3>::new(1.0, 0.0, 0.0),
             cache_point,
             0.1,
         ));
@@ -2843,7 +2846,7 @@ mod transformed_halfspace_tests {
             body_a: first_handle,
             body_b: second_handle,
             impulse: 0.25,
-            normal: SVector::new(1.0, 0.0, 0.0),
+            normal: SVector::<_, 3>::new(1.0, 0.0, 0.0),
             depth: 0.1,
         });
         world.sensor_events.push(crate::contact::SensorEvent {
@@ -2898,7 +2901,7 @@ mod transformed_halfspace_tests {
         let body_b = world.add_sphere(Point::new([2.0, 0.0, 0.0]), 0.5, 1.0);
         world.bodies[0].set_rotational_inertia_operator(
             BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::from_diagonal(
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<_, 3>::new(1.0, 0.0, 0.0),
             ))
             .unwrap(),
         );
@@ -2906,12 +2909,12 @@ mod transformed_halfspace_tests {
         let contact = ContactManifold::single(
             body_a,
             body_b,
-            SVector::new(0.0, 0.0, 1.0),
-            SVector::new(0.0, 1.0, 0.0),
+            SVector::<_, 3>::new(0.0, 0.0, 1.0),
+            SVector::<_, 3>::new(0.0, 1.0, 0.0),
             0.2,
         );
-        let before_a = world.bodies[0].linear_velocity.clone();
-        let before_b = world.bodies[1].linear_velocity.clone();
+        let before_a = world.bodies[0].linear_velocity;
+        let before_b = world.bodies[1].linear_velocity;
         let mut callback = NoOpCallback;
 
         let error = world
@@ -2963,13 +2966,16 @@ mod transformed_halfspace_tests {
         let floor = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
-            Box::new(HalfSpace::<3>::new(SVector::new(1.0, 0.0, 0.0), 0.0)),
+            Box::new(HalfSpace::<3>::new(
+                SVector::<_, 3>::new(1.0, 0.0, 0.0),
+                0.0,
+            )),
         );
         let floor_handle = world.add_body(floor);
 
         let mut sphere =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([0.49, 0.0, 0.0]), 0.5, 1.0);
-        sphere.linear_velocity = SVector::new(-0.1, 1.0, 0.0);
+        sphere.linear_velocity = SVector::<_, 3>::new(-0.1, 1.0, 0.0);
         sphere.friction = 0.5;
         sphere.restitution = 0.0;
         let sphere_handle = world.add_body(sphere);
@@ -2989,7 +2995,7 @@ mod transformed_halfspace_tests {
         let point = contact.primary_point();
         let body = &world.bodies[1];
         let offset = point.position - body.position();
-        let tangent = SVector::new(0.0, 1.0, 0.0);
+        let tangent = SVector::<_, 3>::new(0.0, 1.0, 0.0);
         let tangential_speed_after = (body.linear_velocity
             + integrator::angular_point_velocity(&body.angular_velocity, &offset))
         .dot(&tangent);

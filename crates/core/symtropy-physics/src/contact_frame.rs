@@ -615,10 +615,10 @@ mod tests {
 
     #[test]
     fn tangent_and_bivector_decomposition_is_complete_in_2d_3d_4d_and_5d() {
-        assert_frame::<2>(SVector::new(1.0, 0.0));
-        assert_frame::<3>(SVector::new(0.3, -0.4, 0.5));
-        assert_frame::<4>(SVector::new(0.1, -0.2, 0.3, 0.4));
-        assert_frame::<5>(SVector::new(-0.2, 0.3, 0.4, -0.1, 0.5));
+        assert_frame::<2>(SVector::<_, 2>::new(1.0, 0.0));
+        assert_frame::<3>(SVector::<_, 3>::new(0.3, -0.4, 0.5));
+        assert_frame::<4>(SVector::<_, 4>::new(0.1, -0.2, 0.3, 0.4));
+        assert_frame::<5>(SVector::<_, 5>::new(-0.2, 0.3, 0.4, -0.1, 0.5));
     }
 
     #[test]
@@ -628,12 +628,13 @@ mod tests {
                 SVector::<f64, 4>::from_fn(|index, _| if index == axis { 1.0 } else { 0.0 });
             assert_frame::<4>(normal);
         }
-        assert_frame::<4>(SVector::new(1.0, 1e-14, -1e-14, 2e-14));
+        assert_frame::<4>(SVector::<_, 4>::new(1.0, 1e-14, -1e-14, 2e-14));
     }
 
     #[test]
     fn tangent_projector_is_symmetric_idempotent_and_annihilates_normal() {
-        let frame = ContactFrame::<5>::new(SVector::new(0.2, -0.3, 0.4, 0.1, -0.5), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<5>::new(SVector::<_, 5>::new(0.2, -0.3, 0.4, 0.1, -0.5), 1e-12).unwrap();
         let projector = frame.tangent_projector();
         assert!((projector - projector.transpose()).norm() < 1e-12);
         assert!((projector * projector - projector).norm() < 1e-12);
@@ -675,16 +676,17 @@ mod tests {
 
     #[test]
     fn rotating_contact_frame_preserves_decomposition_and_orthogonality() {
-        let frame = ContactFrame::<4>::new(SVector::new(0.2, 0.4, -0.1, 0.3), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, 0.4, -0.1, 0.3), 1e-12).unwrap();
         let angular = Bivector::<4>::from_wedge(
-            &SVector::new(0.2, 0.4, 0.6, 0.8),
-            &SVector::new(-0.3, 0.1, 0.5, -0.2),
+            &SVector::<_, 4>::new(0.2, 0.4, 0.6, 0.8),
+            &SVector::<_, 4>::new(-0.3, 0.1, 0.5, -0.2),
         );
         let rotation = Rotor::from_plane_angle(&Bivector::<4>::unit_plane(0, 3), 0.71);
         let rotated_frame = frame.rotated_by(&rotation);
         let rotated_angular = Bivector::<4>::from_wedge(
-            &rotation.rotate_vector(&SVector::new(0.2, 0.4, 0.6, 0.8)),
-            &rotation.rotate_vector(&SVector::new(-0.3, 0.1, 0.5, -0.2)),
+            &rotation.rotate_vector(&SVector::<_, 4>::new(0.2, 0.4, 0.6, 0.8)),
+            &rotation.rotate_vector(&SVector::<_, 4>::new(-0.3, 0.1, 0.5, -0.2)),
         );
         let coordinates = frame.decompose_angular(&angular).unwrap();
         let rotated_coordinates = rotated_frame.decompose_angular(&rotated_angular).unwrap();
@@ -716,7 +718,8 @@ mod tests {
 
     #[test]
     fn contact_wrench_bounds_validate_tangential_rolling_and_torsional_impulses() {
-        let frame = ContactFrame::<4>::new(SVector::new(0.2, -0.3, 0.4, 0.1), 1e-12).unwrap();
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(0.2, -0.3, 0.4, 0.1), 1e-12).unwrap();
         let limits = ContactWrenchFrictionLimits::new(0.5, 0.02, 0.03, 0.4, 0.2).unwrap();
         let wrench = ContactWrenchImpulse::<4> {
             normal: 10.0,
@@ -733,11 +736,11 @@ mod tests {
 
     #[test]
     fn contact_wrench_rejects_tangent_projection_and_each_friction_limit() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
         let base = ContactWrenchImpulse::<3> {
             normal: 2.0,
-            tangential: SVector::new(0.0, 0.5, 0.0),
+            tangential: SVector::<_, 3>::new(0.0, 0.5, 0.0),
             rolling: vec![0.1, 0.0],
             torsional: vec![0.05],
         };
@@ -781,7 +784,7 @@ mod tests {
 
     #[test]
     fn independent_channel_bounds_and_coupled_ellipsoidal_budget_are_distinct_models() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
         let all_channels_at_their_independent_limits = ContactWrenchImpulse::<3> {
             normal: 2.0,
@@ -819,7 +822,7 @@ mod tests {
 
     #[test]
     fn ellipsoidal_friction_budget_rejects_nonzero_impulse_on_zero_bound_channel() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let limits = ContactWrenchFrictionLimits::new(0.0, 0.1, 0.1, 0.5, 0.25).unwrap();
         let wrench = ContactWrenchImpulse::<3> {
             normal: 1.0,
@@ -847,8 +850,9 @@ mod tests {
 
     #[test]
     fn transported_frame_tracks_normal_and_preserves_local_wrench_coordinates() {
-        let frame = ContactFrame::<4>::new(SVector::new(1.0, 0.0, 0.0, 0.0), 1e-12).unwrap();
-        let target_normal = SVector::new(0.2, 0.3, -0.4, 0.5);
+        let frame =
+            ContactFrame::<4>::new(SVector::<_, 4>::new(1.0, 0.0, 0.0, 0.0), 1e-12).unwrap();
+        let target_normal = SVector::<_, 4>::new(0.2, 0.3, -0.4, 0.5);
         let transported = frame.transported_to(target_normal, 1e-12).unwrap();
         let target_unit = target_normal.normalize();
         assert!((transported.normal() - target_unit).norm() < 1e-10);
@@ -883,11 +887,11 @@ mod tests {
 
     #[test]
     fn antipodal_contact_frame_transport_uses_deterministic_half_turn() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let transported = frame
-            .transported_to(SVector::new(-1.0, 0.0, 0.0), 1e-12)
+            .transported_to(SVector::<_, 3>::new(-1.0, 0.0, 0.0), 1e-12)
             .unwrap();
-        assert!((transported.normal() - SVector::new(-1.0, 0.0, 0.0)).norm() < 1e-12);
+        assert!((transported.normal() - SVector::<_, 3>::new(-1.0, 0.0, 0.0)).norm() < 1e-12);
         assert_eq!(transported.tangent_basis().len(), 2);
         assert_eq!(transported.rolling_basis().len(), 2);
         assert_eq!(transported.torsional_basis().len(), 1);
@@ -895,11 +899,11 @@ mod tests {
 
     #[test]
     fn contact_wrench_is_invariant_to_consistent_length_unit_conversion() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let si_limits = ContactWrenchFrictionLimits::new(0.5, 0.1, 0.1, 0.5, 0.25).unwrap();
         let si_wrench = ContactWrenchImpulse::<3> {
             normal: 10.0,
-            tangential: SVector::new(0.0, 4.0, 0.0),
+            tangential: SVector::<_, 3>::new(0.0, 4.0, 0.0),
             rolling: vec![0.3, 0.1],
             torsional: vec![0.2],
         };
@@ -932,7 +936,7 @@ mod tests {
 
     #[test]
     fn contact_wrench_validation_rechecks_model_parameters() {
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let invalid_limits = ContactWrenchFrictionLimits {
             tangential_coefficient: 0.5,
             rolling_coefficient: 0.1,
@@ -942,7 +946,7 @@ mod tests {
         };
         let wrench = ContactWrenchImpulse::<3> {
             normal: 1.0,
-            tangential: SVector::new(0.0, 0.0, 0.0),
+            tangential: SVector::<_, 3>::new(0.0, 0.0, 0.0),
             rolling: vec![0.0, 0.0],
             torsional: vec![0.0],
         };
@@ -959,11 +963,11 @@ mod tests {
             ContactFrameError::InvalidNormal
         );
         assert_eq!(
-            ContactFrame::<1>::new(SVector::new(1.0), 1e-12).unwrap_err(),
+            ContactFrame::<1>::new(SVector::<_, 1>::new(1.0), 1e-12).unwrap_err(),
             ContactFrameError::InvalidDimension
         );
 
-        let frame = ContactFrame::<3>::new(SVector::new(1.0, 0.0, 0.0), 1e-12).unwrap();
+        let frame = ContactFrame::<3>::new(SVector::<_, 3>::new(1.0, 0.0, 0.0), 1e-12).unwrap();
         let bad = ContactAngularCoordinates {
             rolling: vec![1.0],
             torsional: Vec::new(),

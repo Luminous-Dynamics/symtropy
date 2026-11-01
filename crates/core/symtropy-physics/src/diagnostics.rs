@@ -304,8 +304,11 @@ mod tests {
             .body_mut(handle)
             .unwrap()
             .set_rotational_inertia_operator(
-                BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
-                    .unwrap(),
+                BivectorInertia::<3>::uniform_solid_ellipsoid(
+                    2.0,
+                    SVector::<_, 3>::new(1.0, 0.8, 0.6),
+                )
+                .unwrap(),
             );
 
         let snapshot = world.invariant_snapshot();

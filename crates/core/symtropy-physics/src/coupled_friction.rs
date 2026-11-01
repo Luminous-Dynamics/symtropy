@@ -150,11 +150,11 @@ pub fn solve_coupled_signorini_coulomb(
         return Err(CoupledCoulombError::NotPositiveDefinite);
     }
     let scaled_input = effective_mass / matrix_scale;
-    let scaled_asymmetry = (&scaled_input - scaled_input.transpose()).norm();
+    let scaled_asymmetry = (scaled_input - scaled_input.transpose()).norm();
     if !scaled_asymmetry.is_finite() || scaled_asymmetry > relative_tolerance {
         return Err(CoupledCoulombError::NotSymmetric);
     }
-    let scaled_w = (&scaled_input + scaled_input.transpose()) * 0.5;
+    let scaled_w = (scaled_input + scaled_input.transpose()) * 0.5;
     let eigenvalues = nalgebra::linalg::SymmetricEigen::new(scaled_w).eigenvalues;
     let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |a, b| a.min(*b));
     if minimum_eigenvalue <= 0.0 {
@@ -185,9 +185,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             impulse,
-            regime,
-            0.0,
-            None,
+            CandidateBranch {
+                regime,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
         );
         let candidates = candidate.into_iter().collect::<Vec<_>>();
@@ -216,9 +218,11 @@ pub fn solve_coupled_signorini_coulomb(
                 free_velocity,
                 mu,
                 SVector::zeros(),
-                CoupledCoulombRegime::Separating,
-                0.0,
-                None,
+                CandidateBranch {
+                    regime: CoupledCoulombRegime::Separating,
+                    disk_multiplier: 0.0,
+                    sliding_angle: None,
+                },
                 relative_tolerance,
             );
             let candidates = candidate.into_iter().collect::<Vec<_>>();
@@ -252,9 +256,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             SVector::zeros(),
-            CoupledCoulombRegime::Separating,
-            0.0,
-            None,
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Separating,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
         );
         let candidates = candidate.into_iter().collect::<Vec<_>>();
@@ -279,38 +285,43 @@ pub fn solve_coupled_signorini_coulomb(
     // Separating is an exact candidate whenever the incoming normal velocity
     // is positive. It may coexist with positive-load branches in the
     // non-associated Coulomb law when normal/tangent coupling is strong.
-    if qn > 0.0 {
-        if let Some(candidate) = validate_candidate(
+    if qn > 0.0
+        && let Some(candidate) = validate_candidate(
             &w,
             free_velocity,
             mu,
             SVector::zeros(),
-            CoupledCoulombRegime::Separating,
-            0.0,
-            None,
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Separating,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
-        ) {
-            push_distinct(&mut candidates, candidate, relative_tolerance);
-        }
+        )
+    {
+        push_distinct(&mut candidates, candidate, relative_tolerance);
     }
 
     // Sticking is the full 3x3 unconstrained minimizer. It is admissible only
     // when its normal impulse is nonnegative and its tangent impulse is in
     // the Coulomb disk.
     if let Some(impulse) = w.lu().solve(&(-free_velocity)) {
-        if impulse.iter().all(|x| x.is_finite()) && impulse[0] >= 0.0 {
-            if let Some(candidate) = validate_candidate(
+        if impulse.iter().all(|x| x.is_finite())
+            && impulse[0] >= 0.0
+            && let Some(candidate) = validate_candidate(
                 &w,
                 free_velocity,
                 mu,
                 impulse,
-                CoupledCoulombRegime::Sticking,
-                0.0,
-                None,
+                CandidateBranch {
+                    regime: CoupledCoulombRegime::Sticking,
+                    disk_multiplier: 0.0,
+                    sliding_angle: None,
+                },
                 relative_tolerance,
-            ) {
-                push_distinct(&mut candidates, candidate, relative_tolerance);
-            }
+            )
+        {
+            push_distinct(&mut candidates, candidate, relative_tolerance);
         }
     } else {
         unresolved = true;
@@ -376,9 +387,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             impulse,
-            CoupledCoulombRegime::Sliding,
-            tau.max(0.0),
-            Some(*theta),
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Sliding,
+                disk_multiplier: tau.max(0.0),
+                sliding_angle: Some(*theta),
+            },
             relative_tolerance,
         ) {
             push_distinct(&mut candidates, candidate, relative_tolerance);
@@ -407,16 +420,24 @@ pub fn solve_coupled_signorini_coulomb(
     })
 }
 
+#[derive(Clone, Copy, Debug)]
+struct CandidateBranch {
+    regime: CoupledCoulombRegime,
+    disk_multiplier: f64,
+    sliding_angle: Option<f64>,
+}
+
 fn validate_candidate(
     w: &Matrix3<f64>,
     q: &SVector<f64, 3>,
     mu: f64,
     impulse: SVector<f64, 3>,
-    regime: CoupledCoulombRegime,
-    disk_multiplier: f64,
-    sliding_angle: Option<f64>,
+    branch: CandidateBranch,
     tolerance: f64,
 ) -> Option<CoupledCoulombCandidate> {
+    let regime = branch.regime;
+    let disk_multiplier = branch.disk_multiplier;
+    let sliding_angle = branch.sliding_angle;
     if !impulse.iter().all(|x| x.is_finite()) || !disk_multiplier.is_finite() {
         return None;
     }
@@ -678,7 +699,7 @@ fn real_polynomial_roots(input: &[f64], tolerance: f64) -> Result<Vec<f64>, ()> 
 fn deduplicate_angles(angles: &mut Vec<f64>, tolerance: f64) {
     angles.sort_by(f64::total_cmp);
     angles.dedup_by(|a, b| {
-        let direct = (a - b).abs();
+        let direct = (*a - *b).abs();
         let wrapped = (2.0 * std::f64::consts::PI - direct).abs();
         direct.min(wrapped) <= 256.0 * tolerance
     });
@@ -698,25 +719,27 @@ mod tests {
     #[test]
     fn diagonal_sticking_matches_full_unconstrained_solution() {
         let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.8);
-        let q = SVector::new(-1.0, 0.2, -0.1);
+        let q = SVector::<_, 3>::new(-1.0, 0.2, -0.1);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.6, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sticking);
-        assert!((candidate.impulse - SVector::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10);
+        assert!(
+            (candidate.impulse - SVector::<_, 3>::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10
+        );
         assert_candidate(candidate, 1.0e-9);
     }
 
     #[test]
     fn diagonal_sliding_matches_circular_maximum_dissipation() {
         let w = Matrix3::identity();
-        let q = SVector::new(-1.0, -3.0, 1.0);
+        let q = SVector::<_, 3>::new(-1.0, -3.0, 1.0);
         let mu = 0.25;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sliding);
-        let expected = SVector::new(1.0, 3.0 * mu / 10.0_f64.sqrt(), -mu / 10.0_f64.sqrt());
+        let expected = SVector::<_, 3>::new(1.0, 3.0 * mu / 10.0_f64.sqrt(), -mu / 10.0_f64.sqrt());
         assert!((candidate.impulse - expected).norm() < 1.0e-9);
         assert_candidate(candidate, 1.0e-8);
     }
@@ -724,7 +747,7 @@ mod tests {
     #[test]
     fn off_diagonal_normal_tangent_coupling_is_solved_in_one_system() {
         let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let q = SVector::<_, 3>::new(-0.8, -2.5, 0.9);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.22, 1.0e-12).unwrap();
         assert_ne!(outcome.status, CoupledCoulombStatus::Inconclusive);
         assert!(!outcome.candidates.is_empty());
@@ -736,12 +759,12 @@ mod tests {
     #[test]
     fn separating_contact_returns_zero_impulse() {
         let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
-        let q = SVector::new(0.5, 2.0, -1.0);
+        let q = SVector::<_, 3>::new(0.5, 2.0, -1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Separating);
-        assert_eq!(candidate.impulse, SVector::zeros());
+        assert_eq!(candidate.impulse, SVector::<f64, 3>::zeros());
     }
 
     #[test]
@@ -757,7 +780,7 @@ mod tests {
             0.80910089,
             0.94522735,
         );
-        let q = SVector::new(-0.10770302, 1.49149027, -0.95561905);
+        let q = SVector::<_, 3>::new(-0.10770302, 1.49149027, -0.95561905);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 1.383289774658335, 1.0e-11).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
         assert!(outcome.candidates.len() >= 2);
@@ -779,7 +802,7 @@ mod tests {
             -1.19836457,
             4.53646300,
         );
-        let q = SVector::new(0.93301773, 0.94422924, 2.42911533);
+        let q = SVector::<_, 3>::new(0.93301773, 0.94422924, 2.42911533);
         let mu = 2.609311810828915;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-11).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
@@ -805,7 +828,7 @@ mod tests {
 
     #[test]
     fn distinguishes_indefinite_from_positive_but_ill_conditioned_metrics() {
-        let q = SVector::new(-1.0, 0.2, 0.1);
+        let q = SVector::<_, 3>::new(-1.0, 0.2, 0.1);
         let ill_conditioned = Matrix3::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-14);
         assert_eq!(
             solve_coupled_signorini_coulomb(&ill_conditioned, &q, 0.4, 1.0e-12).unwrap_err(),
@@ -816,8 +839,8 @@ mod tests {
     #[test]
     fn rejects_nonfinite_velocity_and_invalid_friction_or_tolerance() {
         let w = Matrix3::identity();
-        let finite_q = SVector::new(-1.0, 0.2, 0.1);
-        let nonfinite_q = SVector::new(f64::NAN, 0.2, 0.1);
+        let finite_q = SVector::<_, 3>::new(-1.0, 0.2, 0.1);
+        let nonfinite_q = SVector::<_, 3>::new(f64::NAN, 0.2, 0.1);
         assert_eq!(
             solve_coupled_signorini_coulomb(&w, &nonfinite_q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NonFinite
@@ -835,7 +858,7 @@ mod tests {
     #[test]
     fn contact_frame_rotation_preserves_candidate_impulses_and_classification() {
         let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let q = SVector::<_, 3>::new(-0.8, -2.5, 0.9);
         let (sin, cos) = 0.73_f64.sin_cos();
         let tangent_rotation = Matrix2::new(cos, -sin, sin, cos);
         let transform = Matrix3::new(
@@ -868,7 +891,7 @@ mod tests {
     #[test]
     fn quartic_coefficients_match_the_unreduced_angular_equation() {
         let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let q = SVector::<_, 3>::new(-0.8, -2.5, 0.9);
         let mu = 0.37;
         let coefficients = sliding_quartic(&w, &q, mu);
         for index in 0..64 {
@@ -889,7 +912,7 @@ mod tests {
     #[test]
     fn grazing_with_singular_normal_coupling_is_not_guessed_through() {
         let w = Matrix3::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0);
-        let q = SVector::new(0.0, -1.0, 0.5);
+        let q = SVector::<_, 3>::new(0.0, -1.0, 0.5);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 2.0, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::Inconclusive);
         assert!(outcome.unique_solution().is_none());
@@ -898,7 +921,7 @@ mod tests {
     #[test]
     fn grazing_with_positive_global_coupling_margin_is_separating() {
         let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
-        let q = SVector::new(0.0, -2.0, 1.0);
+        let q = SVector::<_, 3>::new(0.0, -2.0, 1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         assert_eq!(
@@ -909,7 +932,7 @@ mod tests {
 
     #[test]
     fn rejects_asymmetric_and_indefinite_effective_mass() {
-        let q = SVector::new(-1.0, 0.2, 0.1);
+        let q = SVector::<_, 3>::new(-1.0, 0.2, 0.1);
         let asymmetric = Matrix3::new(1.0, 0.3, 0.0, 0.1, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             solve_coupled_signorini_coulomb(&asymmetric, &q, 0.4, 1.0e-12).unwrap_err(),
@@ -925,18 +948,12 @@ mod tests {
     #[test]
     fn deterministic_spd_approach_panel_never_fabricates_a_solution() {
         for seed in 1..=128_u64 {
-            let mut x = [[0.0_f64; 3]; 3];
-            for i in 0..3 {
-                for j in 0..3 {
-                    let k = (seed * (7 + (i * 3 + j) as u64 * 11)) % 101;
-                    x[i][j] = (k as f64 / 37.0) - 1.2;
-                }
-            }
-            let m = Matrix3::new(
-                x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
-            );
+            let m = Matrix3::from_fn(|i, j| {
+                let k = (seed * (7 + (i * 3 + j) as u64 * 11)) % 101;
+                (k as f64 / 37.0) - 1.2
+            });
             let w = m.transpose() * m + Matrix3::identity() * 0.3;
-            let q = SVector::new(
+            let q = SVector::<_, 3>::new(
                 -0.2 - (seed % 13) as f64 / 7.0,
                 (seed % 17) as f64 / 5.0 - 1.3,
                 (seed % 19) as f64 / 6.0 - 1.1,

@@ -378,7 +378,7 @@ mod tests {
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 2.0);
         body.transform.rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), 0.73);
 
-        let local_negative_x = SVector::new(-1.0, 0.0, 0.0);
+        let local_negative_x = SVector::<_, 3>::new(-1.0, 0.0, 0.0);
         let world_direction = body.transform.rotation.rotate_vector(&local_negative_x);
         let before = body.world_support(&world_direction);
 
@@ -401,19 +401,14 @@ mod tests {
         let mut body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([3.0, -2.0, 1.0]), 1.0, 1.0);
         body.set_rotational_inertia_operator(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.0, 0.8, 0.6))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<_, 3>::new(1.0, 0.8, 0.6))
                 .unwrap(),
         );
-        let direction = SVector::new(1.0, 0.0, 0.0);
+        let direction = SVector::<_, 3>::new(1.0, 0.0, 0.0);
         let support_before = body.world_support(&direction);
-        let position_before = body.transform.translation.0.clone();
+        let position_before = body.transform.translation.0;
         let mass_before = body.mass;
-        let inertia_before = body
-            .rotational_inertia
-            .as_ref()
-            .unwrap()
-            .second_moment()
-            .clone();
+        let inertia_before = *body.rotational_inertia.as_ref().unwrap().second_moment();
 
         let error = body
             .try_merge_toolhead(
