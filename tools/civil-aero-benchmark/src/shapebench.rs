@@ -74,11 +74,11 @@ impl ShapeBenchImportReport {
 
     pub fn to_csv(&self) -> String {
         let mut output = String::from(
-            "task_id,environment_id,method_id,source_commit,task_config_sha256,run_manifest_sha256,reward_direction,iteration,design_payload_sha256,results_json_sha256,cost_ledger_sha256,reward,best_reward,import_sha256,evidence_level\\n",
+            "task_id,environment_id,method_id,source_commit,task_config_sha256,run_manifest_sha256,reward_direction,iteration,design_payload_sha256,results_json_sha256,cost_ledger_sha256,reward,best_reward,import_sha256,evidence_level\n",
         );
         for row in &self.rows {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{},{},{},{:.17},{:.17},{},{}\\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{:.17},{:.17},{},{}\n",
                 csv_escape(&self.context.task_id),
                 csv_escape(&self.context.environment_id),
                 csv_escape(&self.context.method_id),
@@ -102,9 +102,9 @@ impl ShapeBenchImportReport {
 
 fn validate_token(value: &str, name: &str) -> Result<(), String> {
     if value.trim().is_empty()
-        || value.contains('\\n')
-        || value.contains('\\r')
-        || value.contains('\\0')
+        || value.contains('\n')
+        || value.contains('\r')
+        || value.contains('\0')
         || value.contains(',')
     {
         return Err(format!("{name} must be non-empty and single-line"));
@@ -247,7 +247,7 @@ pub fn import_shape_bench_results_csv(
     let header = lines
         .next()
         .ok_or_else(|| "ShapeBench results CSV is empty".to_owned())?
-        .trim_end_matches('\\r');
+        .trim_end_matches('\r');
     if header != SHAPEBENCH_RESULTS_CSV_HEADER {
         return Err(format!(
             "ShapeBench results CSV header mismatch; expected {SHAPEBENCH_RESULTS_CSV_HEADER}"
@@ -262,7 +262,7 @@ pub fn import_shape_bench_results_csv(
         if raw_line.trim().is_empty() {
             return Err(format!("line {line_number}: blank CSV record is not permitted"));
         }
-        let fields = parse_csv_record(raw_line.trim_end_matches('\\r'))
+        let fields = parse_csv_record(raw_line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
         if fields.len() != 4 {
             return Err(format!(
@@ -279,9 +279,9 @@ pub fn import_shape_bench_results_csv(
             ));
         }
         if fields[1].is_empty()
-            || fields[1].contains('\\n')
-            || fields[1].contains('\\r')
-            || fields[1].contains('\\0')
+            || fields[1].contains('\n')
+            || fields[1].contains('\r')
+            || fields[1].contains('\0')
         {
             return Err(format!("line {line_number}: design payload must be non-empty and single-line"));
         }
@@ -348,10 +348,10 @@ mod tests {
     }
 
     const RESULTS: &str = concat!(
-        "iteration,design,reward,best_reward\\n",
-        "1,\"{\\"sweep\\":25.0,\\"twist\\":0.1}\",0.42,0.42\\n",
-        "2,\"{\\"sweep\\":25.5,\\"twist\\":0.2}\",0.51,0.51\\n",
-        "3,\"{\\"sweep\\":25.2,\\"twist\\":0.15}\",0.48,0.51\\n"
+        "iteration,design,reward,best_reward\n",
+        "1,\"{\"sweep\":25.0,\"twist\":0.1}\",0.42,0.42\n",
+        "2,\"{\"sweep\":25.5,\"twist\":0.2}\",0.51,0.51\n",
+        "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51\n"
     );
 
     #[test]
@@ -391,8 +391,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_or_non_monotonic_iterations_and_bad_best_reward() {
         let duplicate = RESULTS.replace(
-            "3,\"{\\"sweep\\":25.2,\\"twist\\":0.15}\",0.48,0.51",
-            "2,\"{\\"sweep\\":25.2,\\"twist\\":0.15}\",0.48,0.51",
+            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
+            "2,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
         );
         assert!(
             import_shape_bench_results_csv(&duplicate, context(), RewardDirection::Maximize)
@@ -400,8 +400,8 @@ mod tests {
                 .contains("strictly increasing")
         );
         let false_best = RESULTS.replace(
-            "3,\"{\\"sweep\\":25.2,\\"twist\\":0.15}\",0.48,0.51",
-            "3,\"{\\"sweep\\":25.2,\\"twist\\":0.15}\",0.48,0.48",
+            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.51",
+            "3,\"{\"sweep\":25.2,\"twist\":0.15}\",0.48,0.48",
         );
         assert!(
             import_shape_bench_results_csv(&false_best, context(), RewardDirection::Maximize)
@@ -413,8 +413,8 @@ mod tests {
     #[test]
     fn rejects_non_finite_rewards_wrong_schema_and_invalid_source_identity() {
         let non_finite = RESULTS.replace(
-            "2,\"{\\"sweep\\":25.5,\\"twist\\":0.2}\",0.51,0.51",
-            "2,\"{\\"sweep\\":25.5,\\"twist\\":0.2}\",NaN,0.51",
+            "2,\"{\"sweep\":25.5,\"twist\":0.2}\",0.51,0.51",
+            "2,\"{\"sweep\":25.5,\"twist\":0.2}\",NaN,0.51",
         );
         assert!(
             import_shape_bench_results_csv(&non_finite, context(), RewardDirection::Maximize)
@@ -436,10 +436,10 @@ mod tests {
     #[test]
     fn supports_minimization_without_misreading_best_so_far() {
         let input = concat!(
-            "iteration,design,reward,best_reward\\n",
-            "0,\"{\\"shape\\":0}\",1.0,1.0\\n",
-            "1,\"{\\"shape\\":1}\",0.8,0.8\\n",
-            "2,\"{\\"shape\\":2}\",0.9,0.8\\n"
+            "iteration,design,reward,best_reward\n",
+            "0,\"{\"shape\":0}\",1.0,1.0\n",
+            "1,\"{\"shape\":1}\",0.8,0.8\n",
+            "2,\"{\"shape\":2}\",0.9,0.8\n"
         );
         let report = import_shape_bench_results_csv(
             input,
