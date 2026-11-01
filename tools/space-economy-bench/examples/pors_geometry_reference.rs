@@ -504,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    fn Earth_rotation_changes_the_paired_ground_terminal_longitude() {
+    fn earth_rotation_changes_the_paired_ground_terminal_longitude() {
         let root = corpus();
         let prograde = result_for(&root, "PORS_300KM_APEX_20DEG_PROGRADE");
         let retrograde = result_for(&root, "PORS_600KM_APEX_30DEG_RETROGRADE");
@@ -553,7 +553,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_and_unknown_case_ids() {
         let mut root = corpus();
-        root["scenarios"][1]["id"] = root["scenarios"][0]["id"].clone();
+        let first_id = root["scenarios"][0]["id"].clone();
+        root["scenarios"][1]["id"] = first_id;
         let bytes =
             include_bytes!("../../../docs/tech/pors-two-body-geometry-corpus-v0.1.json");
         let digest = format!("{:x}", Sha256::digest(bytes));
