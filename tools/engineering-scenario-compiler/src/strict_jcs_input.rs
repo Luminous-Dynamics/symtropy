@@ -340,7 +340,7 @@ mod tests {
 
         let mut at_size_limit = Vec::with_capacity(MAX_STRICT_JCS_INPUT_BYTES);
         at_size_limit.push(b'0');
-        at_size_limit.extend(std::iter::repeat(b' ').take(MAX_STRICT_JCS_INPUT_BYTES - 1));
+        at_size_limit.extend(std::iter::repeat_n(b' ', MAX_STRICT_JCS_INPUT_BYTES - 1));
         assert!(parse_strict_jcs_input(&at_size_limit).is_ok());
 
         let depth = MAX_STRICT_JCS_NESTING_DEPTH + 1;
