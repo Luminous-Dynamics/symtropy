@@ -19,6 +19,9 @@ pub mod body;
 pub mod broadphase;
 pub mod ccd;
 pub mod constraint;
+#[cfg(test)]
+mod coupled_friction_sturm_support;
+
 pub mod contact;
 pub mod coupled_friction;
 pub mod contact_frame;
