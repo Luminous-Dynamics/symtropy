@@ -880,8 +880,7 @@ mod tests {
             .find(|record| record.role == CfdArtifactRole::FieldOutput)
             .expect("field artifact");
         record.relative_path = "run-1/escape-link.dat".to_owned();
-        record.byte_length = u64::try_from(fs::metadata(&outside_file).expect("metadata").len())
-            .expect("file length fits u64");
+        record.byte_length = fs::metadata(&outside_file).expect("metadata").len();
         record.sha256 = sha256_hex(&fs::read(&outside_file).expect("read outside artifact"))
             .expect("outside digest");
         let error = verify_cfd_study_artifacts(&study, &root, &manifests)
