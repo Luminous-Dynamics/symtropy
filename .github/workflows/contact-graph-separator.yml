@@ -1,0 +1,34 @@
+name: Contact graph separator Schur witness
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/contact_graph_separator_witness.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction.rs"
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - ".github/workflows/contact-graph-separator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contact-graph-separator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  star-separator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check workspace formatting
+        run: cargo fmt --all -- --check
+      - name: Run three-contact star separator witness
+        run: cargo test -p symtropy-physics --lib contact_graph_separator_witness --locked
+      - name: Run strict physics package Clippy
+        run: cargo clippy -p symtropy-physics --all-targets --all-features --locked -- -D warnings
