@@ -10,9 +10,7 @@
 //! Signorini-Coulomb problem. Every reconstructed candidate is checked against
 //! the original 9x9 contact law and full-island energy.
 
-use crate::coupled_friction::{
-    CoupledCoulombRegime, solve_coupled_signorini_coulomb,
-};
+use crate::coupled_friction::{CoupledCoulombRegime, solve_coupled_signorini_coulomb};
 use nalgebra::{Matrix3, SMatrix, SVector};
 
 type Matrix9 = SMatrix<f64, 9, 9>;
@@ -91,8 +89,7 @@ fn solve_star_with_strict_sticking_leaves(
     let q_separator = SVector::<f64, 3>::new(q[0], q[1], q[2]);
     let q_leaf_1 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
     let q_leaf_2 = SVector::<f64, 3>::new(q[6], q[7], q[8]);
-    let effective_free_velocity =
-        q_separator - COUPLING * q_leaf_1 - COUPLING * q_leaf_2;
+    let effective_free_velocity = q_separator - COUPLING * q_leaf_1 - COUPLING * q_leaf_2;
 
     let reduced = solve_coupled_signorini_coulomb(
         &effective_operator,
@@ -138,18 +135,14 @@ fn solve_star_with_strict_sticking_leaves(
             continue;
         }
 
-        let separator_velocity = SVector::<f64, 3>::new(
-            post_velocity[0],
-            post_velocity[1],
-            post_velocity[2],
-        );
+        let separator_velocity =
+            SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
         let separator_tau = separator.disk_multiplier;
-        let separator_kkt = separator_velocity.fixed_rows::<2>(1)
-            + separator_tau * p_0.fixed_rows::<2>(1);
+        let separator_kkt =
+            separator_velocity.fixed_rows::<2>(1) + separator_tau * p_0.fixed_rows::<2>(1);
         if separator.regime != CoupledCoulombRegime::Sliding
             || p_0[0] <= impulse_tolerance
-            || (FRICTION * p_0[0] - p_0.fixed_rows::<2>(1).norm()).abs()
-                > impulse_tolerance
+            || (FRICTION * p_0[0] - p_0.fixed_rows::<2>(1).norm()).abs() > impulse_tolerance
             || separator_velocity[0].abs() > velocity_tolerance
             || separator_tau <= 0.0
             || separator_kkt.norm() > velocity_tolerance
@@ -238,9 +231,18 @@ fn leaf_sticking_reduction_is_invariant_to_leaf_permutation() {
 
     assert_eq!(original.len(), 1);
     assert_eq!(permuted.len(), 1);
-    assert!((original[0].impulse.fixed_rows::<3>(0) - permuted[0].impulse.fixed_rows::<3>(0)).norm() < 1.0e-10);
-    assert!((original[0].impulse.fixed_rows::<3>(3) - permuted[0].impulse.fixed_rows::<3>(6)).norm() < 1.0e-10);
-    assert!((original[0].impulse.fixed_rows::<3>(6) - permuted[0].impulse.fixed_rows::<3>(3)).norm() < 1.0e-10);
+    assert!(
+        (original[0].impulse.fixed_rows::<3>(0) - permuted[0].impulse.fixed_rows::<3>(0)).norm()
+            < 1.0e-10
+    );
+    assert!(
+        (original[0].impulse.fixed_rows::<3>(3) - permuted[0].impulse.fixed_rows::<3>(6)).norm()
+            < 1.0e-10
+    );
+    assert!(
+        (original[0].impulse.fixed_rows::<3>(6) - permuted[0].impulse.fixed_rows::<3>(3)).norm()
+            < 1.0e-10
+    );
 }
 
 #[test]
