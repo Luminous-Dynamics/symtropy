@@ -14,7 +14,7 @@ const REQUIRED_CASES: [&str; 26] = [
     "MAGRAIL_LINEAR_MOTOR_PILOT",
     "DEDICATED_UNDERGROUND_MAGLEV_CONCEPT",
     "CONVENTIONAL_RAIL_SHORT_TUNNEL_BYPASS",
-    "NO_BUILD_EXISTING_PROVIDER_WINS",
+    "EXISTING_PROVIDER_NO_BUILD_BASELINE",
     "PORT_CAPACITY_BOTTLENECK",
     "PAYLOAD_INTEGRATION_CAPACITY_BOTTLENECK",
     "LAUNCH_RANGE_CAPACITY_BOTTLENECK",
@@ -693,7 +693,7 @@ mod tests {
         let mismatch = result_for(&root, "INVALID_EQUATORIAL_ORBIT_ASSUMPTION");
         assert_eq!(polar["status"], "feasible");
         assert_eq!(mismatch["status"], "infeasible");
-        assert!(orbit_inclination_mdeg(5_000, 0).unwrap() - 90_000.0 < 0.1);
+        assert!((orbit_inclination_mdeg(5_000, 0).unwrap() - 90_000.0).abs() < 0.1);
     }
 
     #[test]
