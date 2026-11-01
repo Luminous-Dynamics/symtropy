@@ -269,7 +269,10 @@ fn validate_event_identity(
     Ok(())
 }
 
-fn assess_realization(command: &CommandIntent, readback: &ActuatorReadback) -> Result<RealizationAssessment, String> {
+fn assess_realization(
+    command: &CommandIntent,
+    readback: &ActuatorReadback,
+) -> Result<RealizationAssessment, String> {
     let tolerance = i64::try_from(command.tolerance)
         .map_err(|_| "command tolerance exceeds signed measurement range".to_string())?;
     let uncertainty = i64::try_from(readback.measurement_uncertainty)
@@ -619,18 +622,21 @@ pub fn audit_causal_execution_bundle(
     }
 
     if bundle.physical_transition.parent_actuator_event_id != bundle.actuator_readback.event_id
-        || bundle.sensor_acquisition.parent_transition_event_id != bundle.physical_transition.event_id
+        || bundle.sensor_acquisition.parent_transition_event_id
+            != bundle.physical_transition.event_id
         || bundle.inference.sensor_event_ids != vec![bundle.sensor_acquisition.event_id.clone()]
         || bundle.decision.inference_event_id != bundle.inference.event_id
     {
         return Err(CausalExecutionError {
             stage: CausalExecutionStage::FinalConsistency,
             sequence: None,
-            reason: "causal parent references do not form one consistent command-to-decision chain".into(),
+            reason: "causal parent references do not form one consistent command-to-decision chain"
+                .into(),
         });
     }
     if bundle.dispatch.payload_digest.trim().is_empty()
-        || bundle.physical_transition.pre_state_digest == bundle.physical_transition.post_state_digest
+        || bundle.physical_transition.pre_state_digest
+            == bundle.physical_transition.post_state_digest
     {
         return Err(CausalExecutionError {
             stage: CausalExecutionStage::FinalConsistency,
@@ -721,7 +727,10 @@ pub fn audit_causal_execution_bundle(
     ];
     Ok(CausalExecutionAuditReceipt {
         command_id: command_id.into(),
-        event_ids: events.iter().map(|(event_id, _, _)| (*event_id).clone()).collect(),
+        event_ids: events
+            .iter()
+            .map(|(event_id, _, _)| (*event_id).clone())
+            .collect(),
         realization_assessment,
         resolved_delivery: acknowledgement,
         decision_status,
@@ -737,10 +746,9 @@ pub fn audit_causal_execution_bundle(
 mod tests {
     use super::{
         AcknowledgementState, ActuatorReadback, CausalExecutionBundle, CommandIntent,
-        DecisionEvidence, DecisionEvidenceStatus, DispatchReceipt, DispatchState,
-        DeviceAcknowledgement, PhysicalTransitionEvidence, RealizationAssessment,
-        SensorAcquisition, UncertainTimestamp, InferenceEvidence,
-        audit_causal_execution_bundle,
+        DecisionEvidence, DecisionEvidenceStatus, DeviceAcknowledgement, DispatchReceipt,
+        DispatchState, InferenceEvidence, PhysicalTransitionEvidence, RealizationAssessment,
+        SensorAcquisition, UncertainTimestamp, audit_causal_execution_bundle,
     };
 
     fn clock(index: u64) -> UncertainTimestamp {
@@ -842,9 +850,15 @@ mod tests {
     #[test]
     fn accepts_complete_causal_chain_and_separates_command_ack_from_realization() {
         let receipt = audit_causal_execution_bundle(&bundle()).unwrap();
-        assert_eq!(receipt.realization_assessment, RealizationAssessment::WithinTolerance);
+        assert_eq!(
+            receipt.realization_assessment,
+            RealizationAssessment::WithinTolerance
+        );
         assert_eq!(receipt.resolved_delivery, AcknowledgementState::Accepted);
-        assert_eq!(receipt.decision_status, DecisionEvidenceStatus::RiskBudgetSatisfied);
+        assert_eq!(
+            receipt.decision_status,
+            DecisionEvidenceStatus::RiskBudgetSatisfied
+        );
         assert!(receipt.sequence_complete);
         assert!(receipt.timestamp_intervals_strictly_ordered);
         assert!(receipt.causal_references_consistent);
@@ -858,7 +872,10 @@ mod tests {
         evidence.acknowledgement.state = AcknowledgementState::Absent;
         evidence.acknowledgement.echoed_value = None;
         let receipt = audit_causal_execution_bundle(&evidence).unwrap();
-        assert_eq!(receipt.realization_assessment, RealizationAssessment::Unattributed);
+        assert_eq!(
+            receipt.realization_assessment,
+            RealizationAssessment::Unattributed
+        );
         assert_eq!(receipt.resolved_delivery, AcknowledgementState::Absent);
     }
 
@@ -868,14 +885,18 @@ mod tests {
         evidence.actuator_readback.measured_value = 80;
         evidence.actuator_readback.measurement_uncertainty = 1;
         assert_eq!(
-            audit_causal_execution_bundle(&evidence).unwrap().realization_assessment,
+            audit_causal_execution_bundle(&evidence)
+                .unwrap()
+                .realization_assessment,
             RealizationAssessment::OutsideTolerance
         );
 
         evidence.actuator_readback.measured_value = 95;
         evidence.actuator_readback.measurement_uncertainty = 1;
         assert_eq!(
-            audit_causal_execution_bundle(&evidence).unwrap().realization_assessment,
+            audit_causal_execution_bundle(&evidence)
+                .unwrap()
+                .realization_assessment,
             RealizationAssessment::MeasurementAmbiguous
         );
     }
@@ -919,13 +940,17 @@ mod tests {
         evidence.decision.abstained = true;
         evidence.decision.risk_budget_satisfied = false;
         assert_eq!(
-            audit_causal_execution_bundle(&evidence).unwrap().decision_status,
+            audit_causal_execution_bundle(&evidence)
+                .unwrap()
+                .decision_status,
             DecisionEvidenceStatus::Abstained
         );
 
         evidence.decision.abstained = false;
         assert_eq!(
-            audit_causal_execution_bundle(&evidence).unwrap().decision_status,
+            audit_causal_execution_bundle(&evidence)
+                .unwrap()
+                .decision_status,
             DecisionEvidenceStatus::RiskBudgetViolation
         );
     }
