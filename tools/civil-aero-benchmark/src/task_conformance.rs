@@ -109,11 +109,20 @@ pub fn audit_protocol(
     for requirement in requirements {
         validate_key(&requirement.key, "requirement")?;
         if requirement.description.trim().is_empty() {
-            return Err(format!("requirement {} has an empty description", requirement.key));
+            return Err(format!(
+                "requirement {} has an empty description",
+                requirement.key
+            ));
         }
         validate_constraint(&requirement.key, &requirement.constraint)?;
-        if requirement_by_key.insert(requirement.key.as_str(), requirement).is_some() {
-            return Err(format!("duplicate protocol requirement {}", requirement.key));
+        if requirement_by_key
+            .insert(requirement.key.as_str(), requirement)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate protocol requirement {}",
+                requirement.key
+            ));
         }
     }
 
@@ -134,11 +143,20 @@ pub fn audit_protocol(
         }
         if let Some(ObservedProtocolValue::Number(value)) = &observation.value {
             if !value.is_finite() {
-                return Err(format!("observed numeric value {} is non-finite", observation.key));
+                return Err(format!(
+                    "observed numeric value {} is non-finite",
+                    observation.key
+                ));
             }
         }
-        if observation_by_key.insert(observation.key.as_str(), observation).is_some() {
-            return Err(format!("duplicate protocol observation {}", observation.key));
+        if observation_by_key
+            .insert(observation.key.as_str(), observation)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate protocol observation {}",
+                observation.key
+            ));
         }
     }
 
@@ -191,9 +209,9 @@ fn validate_key(key: &str, kind: &str) -> Result<(), String> {
 
 fn validate_constraint(key: &str, constraint: &ProtocolConstraint) -> Result<(), String> {
     match constraint {
-        ProtocolConstraint::ExactText { expected, .. } if expected.trim().is_empty() => {
-            Err(format!("requirement {key} has an empty expected text value"))
-        }
+        ProtocolConstraint::ExactText { expected, .. } if expected.trim().is_empty() => Err(
+            format!("requirement {key} has an empty expected text value"),
+        ),
         ProtocolConstraint::NumericRange {
             minimum,
             maximum,
@@ -205,12 +223,16 @@ fn validate_constraint(key: &str, constraint: &ProtocolConstraint) -> Result<(),
             || minimum > maximum
             || *absolute_tolerance < 0.0 =>
         {
-            Err(format!("requirement {key} has an invalid numeric range or tolerance"))
+            Err(format!(
+                "requirement {key} has an invalid numeric range or tolerance"
+            ))
         }
         ProtocolConstraint::MinimumDesirableCount { minimum, desirable }
             if *minimum == 0 || minimum > desirable =>
         {
-            Err(format!("requirement {key} has an invalid minimum/desirable count pair"))
+            Err(format!(
+                "requirement {key} has an invalid minimum/desirable count pair"
+            ))
         }
         _ => Ok(()),
     }
@@ -223,9 +245,9 @@ fn evaluate_requirement(
     let source_reference = observation
         .map(|item| item.source_reference.clone())
         .unwrap_or_default();
-    let note = observation.map(|item| item.note.clone()).unwrap_or_else(|| {
-        "no observation supplied; status remains unknown".to_owned()
-    });
+    let note = observation
+        .map(|item| item.note.clone())
+        .unwrap_or_else(|| "no observation supplied; status remains unknown".to_owned());
     let Some(value) = observation.and_then(|item| item.value.as_ref()) else {
         return Ok(ProtocolFinding {
             key: requirement.key.clone(),
@@ -283,10 +305,7 @@ fn evaluate_requirement(
             )
         }
         (
-            ProtocolConstraint::MinimumDesirableCount {
-                minimum,
-                desirable,
-            },
+            ProtocolConstraint::MinimumDesirableCount { minimum, desirable },
             ObservedProtocolValue::Count(observed),
         ) => {
             let status = if observed < minimum {
@@ -330,10 +349,9 @@ fn expected_display(constraint: &ProtocolConstraint) -> String {
             absolute_tolerance,
             unit,
         } => format!("[{minimum}, {maximum}] {unit} ± tolerance {absolute_tolerance}"),
-        ProtocolConstraint::MinimumDesirableCount {
-            minimum,
-            desirable,
-        } => format!("minimum={minimum}; desirable={desirable}"),
+        ProtocolConstraint::MinimumDesirableCount { minimum, desirable } => {
+            format!("minimum={minimum}; desirable={desirable}")
+        }
     }
 }
 
@@ -341,8 +359,7 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const PROTOCOL_CONFORMANCE_CSV_HEADER: &str =
-    "protocol_id,task_id,observation_set_id,overall_status,key,description,expected,observed,status,source_reference,note,evidence_level";
+pub const PROTOCOL_CONFORMANCE_CSV_HEADER: &str = "protocol_id,task_id,observation_set_id,overall_status,key,description,expected,observed,status,source_reference,note,evidence_level";
 
 pub fn report_to_csv(report: &ProtocolAuditReport) -> String {
     let mut output = format!("{PROTOCOL_CONFORMANCE_CSV_HEADER}\n");
@@ -385,10 +402,7 @@ mod tests {
         }
     }
 
-    fn observation(
-        key: &str,
-        value: ObservedProtocolValue,
-    ) -> ProtocolObservation {
+    fn observation(key: &str, value: ObservedProtocolValue) -> ProtocolObservation {
         ProtocolObservation {
             key: key.to_owned(),
             value: Some(value),
@@ -418,16 +432,21 @@ mod tests {
             ),
         ];
         let observations = vec![
-            observation("sidewall", ObservedProtocolValue::Text("PERIODIC".to_owned())),
+            observation(
+                "sidewall",
+                ObservedProtocolValue::Text("PERIODIC".to_owned()),
+            ),
             observation("mach", ObservedProtocolValue::Number(0.73)),
         ];
         let report = audit_protocol("p", "t", "o", &requirements, &observations)
             .expect("valid observations");
         assert_eq!(report.overall_status, "conforms_to_declared_protocol");
-        assert!(report
-            .findings
-            .iter()
-            .all(|finding| finding.status == ProtocolFindingStatus::Conforms));
+        assert!(
+            report
+                .findings
+                .iter()
+                .all(|finding| finding.status == ProtocolFindingStatus::Conforms)
+        );
     }
 
     #[test]
@@ -443,8 +462,8 @@ mod tests {
             "sidewall",
             ObservedProtocolValue::Text("symmetric".to_owned()),
         )];
-        let report = audit_protocol("p", "t", "o", &requirements, &observations)
-            .expect("valid metadata");
+        let report =
+            audit_protocol("p", "t", "o", &requirements, &observations).expect("valid metadata");
         assert_eq!(report.findings[0].status, ProtocolFindingStatus::Deviates);
         assert_eq!(report.findings[0].observed, "symmetric");
         assert_eq!(report.findings[0].expected, "periodic");
@@ -461,8 +480,8 @@ mod tests {
             },
         )];
         let observations = vec![observation("grid_count", ObservedProtocolValue::Count(4))];
-        let report = audit_protocol("p", "t", "o", &requirements, &observations)
-            .expect("valid grid count");
+        let report =
+            audit_protocol("p", "t", "o", &requirements, &observations).expect("valid grid count");
         assert_eq!(
             report.findings[0].status,
             ProtocolFindingStatus::MeetsMinimumBelowDesirable
@@ -499,8 +518,8 @@ mod tests {
             },
         )];
         let observations = vec![observation("grid_count", ObservedProtocolValue::Count(3))];
-        let report = audit_protocol("p", "t", "o", &requirements, &observations)
-            .expect("count is typed");
+        let report =
+            audit_protocol("p", "t", "o", &requirements, &observations).expect("count is typed");
         assert_eq!(report.findings[0].status, ProtocolFindingStatus::Deviates);
     }
 
@@ -557,7 +576,10 @@ mod tests {
         let mut item = observation("mach", ObservedProtocolValue::Number(0.73));
         item.source_reference.clear();
         assert!(audit_protocol("p", "t", "o", &requirements, &[item]).is_err());
-        let extra = vec![observation("unlisted", ObservedProtocolValue::Text("x".to_owned()))];
+        let extra = vec![observation(
+            "unlisted",
+            ObservedProtocolValue::Text("x".to_owned()),
+        )];
         assert!(audit_protocol("p", "t", "o", &requirements, &extra).is_err());
     }
 
@@ -574,8 +596,8 @@ mod tests {
             "boundary",
             ObservedProtocolValue::Text("symmetric".to_owned()),
         )];
-        let report = audit_protocol("p", "t", "o", &requirements, &observations)
-            .expect("valid report");
+        let report =
+            audit_protocol("p", "t", "o", &requirements, &observations).expect("valid report");
         let first = report_to_csv(&report);
         assert_eq!(first, report_to_csv(&report));
         assert!(first.contains("\"deviates\""));
