@@ -800,9 +800,14 @@ pub fn verify_external_solver_receipt(
     for input in &receipt.staged_inputs {
         let relative = validate_relative_path(&input.relative_path)?;
         let path = root.join(relative);
-        let metadata = fs::metadata(&path)
+        let canonical = fs::canonicalize(&path)
+            .map_err(|error| format!("cannot resolve staged input {}: {error}", input.relative_path))?;
+        if !canonical.starts_with(&root) {
+            return Err(format!("staged input {} resolves outside run directory", input.relative_path));
+        }
+        let metadata = fs::metadata(&canonical)
             .map_err(|error| format!("cannot inspect staged input {}: {error}", input.relative_path))?;
-        if !metadata.is_file() || metadata.len() != input.byte_length || sha256_file(&path)? != input.sha256 {
+        if !metadata.is_file() || metadata.len() != input.byte_length || sha256_file(&canonical)? != input.sha256 {
             return Err(format!("staged input {} differs from receipt", input.relative_path));
         }
     }
@@ -822,6 +827,9 @@ pub fn verify_external_solver_receipt(
         .map_err(|error| format!("cannot read expected-output manifest: {error}"))?;
     if sha256_hex(&output_manifest_bytes)? != receipt.output_manifest_sha256 {
         return Err("expected-output manifest SHA-256 differs from receipt".to_owned());
+    }
+    if output_manifest_bytes != output_manifest_csv(&receipt.outputs).as_bytes() {
+        return Err("expected-output manifest content differs from receipt records".to_owned());
     }
     let actual_outputs = output_records(&root, &receipt.outputs.iter().map(|row| row.relative_path.clone()).collect::<Vec<_>>())?;
     if actual_outputs != receipt.outputs {
@@ -883,7 +891,11 @@ mod tests {
             arguments,
             environment: BTreeMap::new(),
             staged_inputs: Vec::new(),
-            expected_outputs: outputs,
+            expected_outputs: if outputs.is_empty() {
+                vec!["expected.dat".to_owned()]
+            } else {
+                outputs
+            },
             timeout: Duration::from_secs(2),
             max_log_bytes_per_stream: 16 * 1024,
         }
