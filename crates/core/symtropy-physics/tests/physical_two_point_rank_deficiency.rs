@@ -311,8 +311,7 @@ fn fixed_sliding_response_collapses_the_nullspace_fibre_to_one_admissible_point(
         }
 
         let body_impulse = transpose_times_vector(&CONTACT_JACOBIAN, &p);
-        let sliding_body_impulse =
-            transpose_times_vector(&CONTACT_JACOBIAN, &sliding_impulse);
+        let sliding_body_impulse = transpose_times_vector(&CONTACT_JACOBIAN, &sliding_impulse);
         let expected_body_impulse: Vector6 =
             std::array::from_fn(|index| d * sliding_body_impulse[index]);
         assert_eq!(body_impulse, expected_body_impulse);
