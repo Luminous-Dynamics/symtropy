@@ -155,3 +155,24 @@ The current and historical SU2 baselines are recorded in `data/solver_reference_
 ## Risk-proportionate VVUQ
 
 Model credibility effort should scale with model influence and decision consequence, not just model complexity or data volume. The repository adds a qualitative, versioned Luminous requirements matrix inspired by NIST AMS 100-85 (2026). It assigns evidence requirements by model creation type (mechanistic/data-driven/hybrid), logic transparency and artifact access. The output is requirements-only and cannot certify evidence completion or authorize flight/manufacturing. See RISK_PROPORTIONATE_MODEL_CREDIBILITY_PROTOCOL_V0_1.md.
+
+
+## 9. DPW-8 protocol-conformance audit (2026-11-01)
+
+A new comparison must happen before solver reproduction. The official OAT15A V1a instructions require periodic sidewall boundary conditions, while the pinned IISc participant submission metadata states that symmetric boundary conditions were applied. The same official task defines four grids as required and six as desirable; the participant records four. Therefore the participant record meets the grid minimum but has a documented boundary-condition deviation. No physical equivalence between symmetric and periodic treatments is assumed.
+
+The Rust task-conformance module now reports these separately:
+- operating-point values and the five prescribed alpha values conform to the declared V1a conditions;
+- sidewall boundary condition is a deviation (symmetric observed, periodic required);
+- grid family meets the minimum but not the desirable six-grid target;
+- exact geometry, mesh, executable and solver-configuration byte identities remain unknown.
+
+The audit is metadata-only; it does not copy participant bytes or execute SU2. Its aggregate status is deviations_detected_and_incomplete, not a solver pass/fail. See DPW8_TASK_CONFORMANCE_PROTOCOL_V0_1.md and issue #2936.
+
+This changes the reproduction plan:
+1. Historical-participant lane: reproduce the participant's actual symmetric-boundary setup exactly, once lawful source access and all geometry/mesh/configuration artifacts are available.
+2. Strict-task lane: run the official periodic-sidewall V1a protocol on the prescribed grid family.
+3. Compare the lanes only as a declared boundary-condition sensitivity study. Do not combine them into one solver-version comparison.
+4. Ask the participant/workshop maintainers whether the symmetric setup was a permitted variant and request clarification before interpreting the discrepancy.
+
+The lesson generalizes beyond DPW-8: protocol identity must be audited independently from result-file integrity and solver numerical verification. A numerically converged result can still be a result for a different problem.
