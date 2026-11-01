@@ -157,7 +157,6 @@ impl ChannelDecisionLossTable {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
 /// A posterior-producing inference procedure over a declared observation
 /// alphabet. It is separate from the working likelihood channel so model
 /// misspecification and inferential approximation can be varied independently.
@@ -530,7 +529,7 @@ pub fn evaluate_channel_decisions_with_inference_rule(
                 .checked_add(true_probability.checked_mul(total_brier)?)?;
 
             (
-                Some(model_decision),
+                model_decision,
                 Some(actual_inference_posterior),
                 Some(assumed_posterior),
                 Some(inference_tv),
