@@ -608,6 +608,105 @@ pub fn evaluate_channel_decisions(
     )
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExperimentPreference {
+    A,
+    B,
+    Tie,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExperimentPairComparison {
+    pub experiment_a: ChannelDecisionEvaluation,
+    pub experiment_b: ChannelDecisionEvaluation,
+    pub experiment_cost_a: Rational,
+    pub experiment_cost_b: Rational,
+    pub mutual_information_a_bits: f64,
+    pub mutual_information_b_bits: f64,
+    pub information_preference: ExperimentPreference,
+    pub nominal_total_loss_a: Rational,
+    pub nominal_total_loss_b: Rational,
+    pub nominal_total_loss_preference: ExperimentPreference,
+    pub realized_total_loss_a: Rational,
+    pub realized_total_loss_b: Rational,
+    pub realized_total_loss_preference: ExperimentPreference,
+    /// True when the nominal information ranking and realized cost-plus-loss
+    /// ranking strictly prefer opposite experiments.
+    pub information_loss_ranking_reversal: bool,
+}
+
+fn lower_loss_preference(loss_a: Rational, loss_b: Rational) -> ExperimentPreference {
+    if loss_a < loss_b {
+        ExperimentPreference::A
+    } else if loss_b < loss_a {
+        ExperimentPreference::B
+    } else {
+        ExperimentPreference::Tie
+    }
+}
+
+/// Compare two experiments using their own working and true channels under one
+/// common prior and terminal loss. The inference rule for each experiment is
+/// exact Bayes under that experiment's working channel.
+///
+/// Costs are charged once per experiment and added to both nominal and
+/// realized downstream loss. The MI ranking is diagnostic; a strict opposite
+/// realized cost-plus-loss ranking is reported as an explicit reversal.
+#[allow(clippy::too_many_arguments)]
+pub fn compare_experiment_pair(
+    assumed_a: &FiniteObservationChannel,
+    truth_a: &FiniteObservationChannel,
+    cost_a: Rational,
+    assumed_b: &FiniteObservationChannel,
+    truth_b: &FiniteObservationChannel,
+    cost_b: Rational,
+    prior: &[Rational],
+    table: &ChannelDecisionLossTable,
+) -> Result<ExperimentPairComparison, String> {
+    let evaluation_a = evaluate_channel_decisions(assumed_a, truth_a, prior, table)?;
+    let evaluation_b = evaluate_channel_decisions(assumed_b, truth_b, prior, table)?;
+    let information_a = mutual_information_bits(assumed_a, prior)?;
+    let information_b = mutual_information_bits(assumed_b, prior)?;
+
+    let information_preference = if information_a > information_b {
+        ExperimentPreference::A
+    } else if information_b > information_a {
+        ExperimentPreference::B
+    } else {
+        ExperimentPreference::Tie
+    };
+    let nominal_total_loss_a = cost_a.checked_add(evaluation_a.nominal_model_expected_loss)?;
+    let nominal_total_loss_b = cost_b.checked_add(evaluation_b.nominal_model_expected_loss)?;
+    let realized_total_loss_a = cost_a.checked_add(evaluation_a.realized_policy_loss)?;
+    let realized_total_loss_b = cost_b.checked_add(evaluation_b.realized_policy_loss)?;
+    let nominal_total_loss_preference =
+        lower_loss_preference(nominal_total_loss_a, nominal_total_loss_b);
+    let realized_total_loss_preference =
+        lower_loss_preference(realized_total_loss_a, realized_total_loss_b);
+    let information_loss_ranking_reversal = matches!(
+        (information_preference, realized_total_loss_preference),
+        (ExperimentPreference::A, ExperimentPreference::B)
+            | (ExperimentPreference::B, ExperimentPreference::A)
+    );
+
+    Ok(ExperimentPairComparison {
+        experiment_a: evaluation_a,
+        experiment_b: evaluation_b,
+        experiment_cost_a: cost_a,
+        experiment_cost_b: cost_b,
+        mutual_information_a_bits: information_a,
+        mutual_information_b_bits: information_b,
+        information_preference,
+        nominal_total_loss_a,
+        nominal_total_loss_b,
+        nominal_total_loss_preference,
+        realized_total_loss_a,
+        realized_total_loss_b,
+        realized_total_loss_preference,
+        information_loss_ranking_reversal,
+    })
+}
+
 /// Mutual information in bits under the supplied nominal prior/channel.
 ///
 /// This uses floating-point logarithms and is a diagnostic comparator only;
