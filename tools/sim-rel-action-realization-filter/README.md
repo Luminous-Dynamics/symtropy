@@ -152,6 +152,15 @@ Mutual information is provided only as a floating-point acquisition
 diagnostic. All posterior, total-variation, expected-loss, Brier, oracle-regret
 and unsupported-mass receipts use exact rational arithmetic.
 
+The module also exposes `generalized_bayes_posterior_rule_from_weights`: callers
+supply exact rational Gibbs factors proportional to
+`exp(-eta * loss(state, observation))`, which are combined with the prior and
+normalized per observation. When those factors equal the working channel
+likelihood, the result reproduces ordinary Bayes exactly. This is a discrete
+Gibbs-posterior update primitive for the GBOED baseline, not the full Gibbs-EIG
+acquisition optimizer; loss and temperature calibration remain caller-owned
+and must use a non-sealed split.
+
 The A/B audit compares nominal information preference, nominal model-risk
 preference and realized cost-plus-terminal-loss preference. Cost is converted
 to terminal-loss units with an explicit exact-rational exchange rate; the
