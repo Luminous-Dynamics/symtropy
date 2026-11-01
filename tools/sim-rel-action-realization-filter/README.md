@@ -152,6 +152,13 @@ Mutual information is provided only as a floating-point acquisition
 diagnostic. All posterior, total-variation, expected-loss, Brier, oracle-regret
 and unsupported-mass receipts use exact rational arithmetic.
 
+The matched-cost A/B audit compares nominal information preference, nominal
+model-risk preference and realized cost-plus-terminal-loss preference. It also
+runs the bounded exact Blackwell feasibility solver in both directions and
+retains the corresponding garbling certificates or explicit unsupported-size
+errors. A certificate establishes nominal channel dominance only; it does not
+establish robustness under a shifted true channel.
+
 The authored binary fixture certifies that a perfect channel Blackwell-dominates
 a symmetric 80%-accurate channel under the nominal model. The more informative
 channel has one bit of nominal information, but when its sensor labels are
