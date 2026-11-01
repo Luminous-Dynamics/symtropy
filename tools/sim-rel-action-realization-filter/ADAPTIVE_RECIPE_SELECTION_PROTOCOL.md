@@ -139,3 +139,28 @@ A fall in one agent's accuracy is not sufficient evidence that a generated bench
 6. Comparison against static recipes, random selection, difficulty-only selection and AutoSciBench-style iterative refinement under matched task validity and harness rules.
 
 Use at least 30 paired seeds per family where practical; target 100 or more. Report paired confidence intervals and the complete failure taxonomy. Never optimize sealed results, and never advertise benchmark SOTA from a single score drop.
+
+
+## 11. Current executable increment (SIM-REL-038a)
+
+The branch now includes `decision_value::adaptive_recipe_selection`, a deterministic Development-only selector over an immutable, caller-supplied candidate registry.
+
+The implementation currently enforces:
+
+- Every outcome is explicitly tagged `EvidenceSplit::Development`; Calibration and SealedHoldout receipts fail closed.
+- Every outcome is tied to a registered family group, fixed agent panel, recipe ID/version/fingerprint and mechanism stratum.
+- Duplicate attempt IDs and repeated agent × recipe × task attempts are rejected.
+- Invalid tasks are retained in a separate count but excluded from solve-rate and coverage denominators.
+- Mechanism coverage is based on unique valid Development family groups.
+- Candidate summaries preserve pooled and per-agent solved/abstained counts.
+- Difficulty uses a conservative 95% Hoeffding interval with a fixed rational upper radius `sqrt(2/n)`, rounded upward in integer parts-per-million. No floating-point arithmetic is used.
+- Candidate selection is deterministic from the caller seed and prior Development-ledger digest; the derived FNV tie-break is only a deterministic tie-break, not a cryptographic commitment.
+- An immutable selection receipt records the prior digest/event count, selected candidate, reason, coverage state and all candidate difficulty summaries.
+
+### Explicit implementation limits
+
+This increment selects among already registered immutable recipe descriptors. It does not yet synthesize harder/easier recipe variants, perform semantic near-duplicate detection, or automatically evolve a recipe grammar. Those are later increments and must not rewrite recipes already exposed to an agent.
+
+The caller-supplied ledger digest is validated as an identifier but not recomputed or authenticated here. The selection API trusts the supplied Development outcome receipts after checking their split, registry, agent-panel and identity bindings. Authentication of the external outcome/artifact ledger remains a separate provenance responsibility.
+
+The 35–70% solve-rate band is a configurable initial operating hypothesis, not an empirically optimized or universal target. Per-agent intervals remain visible because a pooled score can mask an agent-specific failure mode. Calibration and sealed holdout outcomes are intentionally unavailable to this selector.
