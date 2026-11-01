@@ -111,7 +111,7 @@ def main() -> None:
     print(
         "shape_bench_independent_oracle=pass "
         f"rows={len(output_rows)} family=SuperWing method=CMA-ES "
-        "cost_ledger_admitted=false surrogate_or_solver_validation_not_implied=true "
+        "cost_ledger_reference_present=false surrogate_or_solver_validation_not_implied=true "
         f"import_sha256={expected_digest}"
     )
 
