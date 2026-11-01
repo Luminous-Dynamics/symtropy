@@ -483,6 +483,7 @@ pub fn select_next_recipe(
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
     let mut attempt_ids = BTreeSet::new();
+    let mut task_agent_attempts = BTreeSet::new();
     let mut recipe_counts = BTreeMap::<(String, String), Counts>::new();
     let mut agent_counts =
         BTreeMap::<(String, String), BTreeMap<String, AgentCounts>>::new();
@@ -514,6 +515,14 @@ pub fn select_next_recipe(
         }
         if !attempt_ids.insert(outcome.attempt_id.clone()) {
             return Err("Development attempt ID is duplicated".into());
+        }
+        if !task_agent_attempts.insert((
+            outcome.recipe_id.clone(),
+            outcome.recipe_version.clone(),
+            outcome.task_id.clone(),
+            outcome.agent_id.clone(),
+        )) {
+            return Err("an agent has more than one attempt on the same recipe/task pair".into());
         }
         let identity = (
             outcome.recipe_id.as_str(),
@@ -948,7 +957,21 @@ mod tests {
         )
         .is_err());
 
-        let mut unknown = first;
+        let mut repeated_task = first.clone();
+        repeated_task.attempt_id = "attempt-2".into();
+        assert!(select_next_recipe(
+            &candidates(),
+            &[first.clone(), repeated_task],
+            &[],
+            &config(),
+            &registry(),
+            "ledger-digest",
+            2,
+            5,
+        )
+        .is_err());
+
+        let mut unknown = first; 
         unknown.attempt_id = "attempt-unknown-agent".into();
         unknown.agent_id = "agent-c".into();
         assert!(select_next_recipe(
