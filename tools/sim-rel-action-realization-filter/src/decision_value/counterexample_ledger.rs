@@ -798,6 +798,52 @@ mod tests {
         .unwrap()
     }
 
+    fn loss_table() -> DecisionLossTable {
+        DecisionLossTable {
+            decision_ids: vec!["claim-h0".into(), "claim-h1".into()],
+            losses: vec![
+                vec![
+                    vec![vec![vec![Rational::zero()]]],
+                    vec![vec![vec![Rational::one()]]],
+                ],
+                vec![
+                    vec![vec![vec![Rational::one()]]],
+                    vec![vec![vec![Rational::zero()]]],
+                ],
+            ],
+            abstention_loss: Rational::one(),
+        }
+    }
+
+    fn replan(
+        ledger: &mut ModelFamilyLedger,
+        event_id: &str,
+        revision: u64,
+        policy_id: &str,
+        plan: DecisionPlan,
+    ) -> Result<FamilyReplanRecord, String> {
+        ledger.record_replan(
+            event_id.into(),
+            revision,
+            policy_id.into(),
+            plan,
+            "nominal",
+            &loss_table(),
+            ObservationProtocol::fully_observed(),
+            &[Rational::zero(), Rational::zero()],
+            Rational::one(),
+            2,
+            DecisionBudgets {
+                max_hazard_probability: Rational::zero(),
+                max_abstention_probability: Rational::zero(),
+            },
+        )
+    }
+
+    fn terminal_plan() -> DecisionPlan {
+        DecisionPlan::TerminalDecision { decision: Some(0) }
+    }
+
     fn counterexample(source: &DecisionModelWorld, candidate_id: &str) -> CounterexampleWitness {
         let perturbation = ModelWorldPerturbation::SwapSensorCalibration {
             sensor_state: 0,
@@ -888,44 +934,37 @@ mod tests {
             )
             .unwrap();
 
-        assert!(ledger
-            .record_replan(
-                "replan-missing-world".into(),
-                1,
-                "policy-v2".into(),
-                vec!["nominal".into()],
-                true,
-            )
-            .is_err());
-        assert!(ledger
-            .record_replan(
-                "replan-stale".into(),
-                0,
-                "policy-v2".into(),
-                vec!["nominal".into(), "sensor-inversion".into()],
-                true,
-            )
-            .is_err());
-        assert!(ledger
-            .record_replan(
-                "replan-failed".into(),
-                1,
-                "policy-v2".into(),
-                vec!["nominal".into(), "sensor-inversion".into()],
-                false,
-            )
-            .is_err());
+        // A malformed policy with missing public-observation branches is
+        // rejected by the ledger's own exact shared-policy replay.
+        assert!(replan(
+            &mut ledger,
+            "replan-incomplete-policy",
+            1,
+            "policy-v2",
+            DecisionPlan::Experiment {
+                command: 0,
+                branches: Vec::new(),
+            },
+        )
+        .is_err());
+        assert!(replan(
+            &mut ledger,
+            "replan-stale",
+            0,
+            "policy-v2",
+            terminal_plan(),
+        )
+        .is_err());
         assert_eq!(ledger.active_policy_identity(), None);
 
-        let receipt = ledger
-            .record_replan(
-                "replan-complete".into(),
-                1,
-                "policy-v2".into(),
-                vec!["sensor-inversion".into(), "nominal".into()],
-                true,
-            )
-            .unwrap();
+        let receipt = replan(
+            &mut ledger,
+            "replan-complete",
+            1,
+            "policy-v2",
+            terminal_plan(),
+        )
+        .unwrap();
         assert_eq!(receipt.replayed_world_ids, vec!["nominal", "sensor-inversion"]);
         assert_eq!(ledger.active_policy_identity(), Some("policy-v2"));
     }
@@ -1057,15 +1096,7 @@ mod tests {
         let mut duplicate_content = counterexample(&world("nominal"), "candidate-b");
         duplicate_content.candidate_world.kernel =
             witness.candidate_world.kernel.clone();
-        ledger
-            .record_replan(
-                "replan".into(),
-                1,
-                "policy-v2".into(),
-                vec!["nominal".into(), "candidate-a".into()],
-                true,
-            )
-            .unwrap();
+        replan(&mut ledger, "replan", 1, "policy-v2", terminal_plan()).unwrap();
         assert!(ledger
             .admit_counterexample(
                 &duplicate_content,
@@ -1121,15 +1152,7 @@ mod tests {
                 "too-late-event".into(),
             )
             .is_err());
-        assert!(ledger
-            .record_replan(
-                "too-late-replan".into(),
-                0,
-                "policy-v2".into(),
-                vec!["nominal".into()],
-                true,
-            )
-            .is_err());
+        assert!(replan(&mut ledger, "too-late-replan", 0, "policy-v2", terminal_plan()).is_err());
     }
 
     #[test]
@@ -1197,15 +1220,7 @@ mod tests {
                 "same-event".into(),
             )
             .unwrap();
-        assert!(ledger
-            .record_replan(
-                "same-event".into(),
-                1,
-                "policy-v2".into(),
-                vec!["nominal".into(), "candidate".into()],
-                true,
-            )
-            .is_err());
+        assert!(replan(&mut ledger, "same-event", 1, "policy-v2", terminal_plan()).is_err());
 
         assert!(ModelFamilyLedger::new(
             vec![world("nominal"), world("nominal")],
@@ -1238,15 +1253,7 @@ mod tests {
                 "admit".into(),
             )
             .unwrap();
-        ledger
-            .record_replan(
-                "replan".into(),
-                1,
-                "policy-v2".into(),
-                vec!["candidate".into(), "nominal".into()],
-                true,
-            )
-            .unwrap();
+        replan(&mut ledger, "replan", 1, "policy-v2", terminal_plan()).unwrap();
         let snapshot = ledger.snapshot();
         assert_eq!(snapshot.family_revision, 1);
         assert_eq!(snapshot.events.len(), 2);
