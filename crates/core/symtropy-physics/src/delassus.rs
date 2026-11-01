@@ -1225,7 +1225,7 @@ mod tests {
             frame,
         };
         let mut bodies = vec![static_body, dynamic_body];
-        let reference = assemble_contact_wrench_delassus(&bodies, &[row.clone()], 1e-12).unwrap();
+        let reference = assemble_contact_wrench_delassus(&bodies, std::slice::from_ref(&row), 1e-12).unwrap();
 
         let rotation = Rotor::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.53);
         for body in &mut bodies {
