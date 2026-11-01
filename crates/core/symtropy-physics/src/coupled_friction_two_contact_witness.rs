@@ -2150,7 +2150,9 @@ mod double_sliding_direction_oracle {
     }
 
     fn cauchy_integer_root_bound(polynomial: &BigIntegerPolynomial) -> BigInt {
-        let degree = polynomial.degree().expect("resultant polynomial is nonzero");
+        let degree = polynomial
+            .degree()
+            .expect("resultant polynomial is nonzero");
         let leading = polynomial.coefficients[degree].clone();
         let leading_abs = if leading < BigInt::from(0_u8) {
             -leading
