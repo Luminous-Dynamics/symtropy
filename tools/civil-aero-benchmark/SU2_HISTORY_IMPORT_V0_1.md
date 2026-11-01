@@ -46,3 +46,8 @@ A passing import is not a passing CFD run. A future convergence classifier must 
 ## Test fixture
 
 The CI integration test invokes a deterministic fake executable, captures its history as an expected output, imports it through this module, and verifies receipt replay and tamper rejection. The fixture is not SU2 and is not aerodynamic evidence.
+
+
+## API construction boundary
+
+The imported report's fields are crate-visible rather than externally constructible. Downstream consumers receive read-only accessors for the run ID, solver claim, executable/receipt/history/import digests, selected fields, observations and evidence ceiling. Only the receipt-replaying importer can construct a report through the public API. The convergence screen also recomputes the canonical import digest and checks header/field/point invariants before evaluation. This prevents ordinary external Rust callers from manufacturing a self-consistent fake report by filling public struct fields and hashing them; it does not replace receipt replay or cryptographic attestation of the solver build.
