@@ -18,12 +18,6 @@ pub enum BenchmarkScope {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BenchmarkArmRole {
-    Reference,
-    Candidate,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BenchmarkTaskValidity {
     Valid,
     Invalid,
@@ -190,6 +184,10 @@ struct FamilyAccumulator {
 
 fn valid_id(value: &str) -> bool {
     !value.trim().is_empty() && value.len() <= MAX_ID_BYTES
+}
+
+fn count_flag(value: bool) -> usize {
+    if value { 1 } else { 0 }
 }
 
 fn validate_manifest(manifest: &MatchedBenchmarkManifest) -> Result<(), MatchedBenchmarkError> {
@@ -419,14 +417,14 @@ pub fn validate_and_summarize_matched_campaign(
         }
 
         accumulator.valid_pairs += 1;
-        accumulator.reference_completed_count += usize::from(reference.task_completed);
-        accumulator.candidate_completed_count += usize::from(candidate.task_completed);
-        accumulator.reference_safe_success_count += usize::from(reference.safe_success);
-        accumulator.candidate_safe_success_count += usize::from(candidate.safe_success);
-        accumulator.reference_hazard_count += usize::from(reference.hazard_observed);
-        accumulator.candidate_hazard_count += usize::from(candidate.hazard_observed);
-        accumulator.reference_abstention_count += usize::from(reference.abstained);
-        accumulator.candidate_abstention_count += usize::from(candidate.abstained);
+        accumulator.reference_completed_count += count_flag(reference.task_completed);
+        accumulator.candidate_completed_count += count_flag(candidate.task_completed);
+        accumulator.reference_safe_success_count += count_flag(reference.safe_success);
+        accumulator.candidate_safe_success_count += count_flag(candidate.safe_success);
+        accumulator.reference_hazard_count += count_flag(reference.hazard_observed);
+        accumulator.candidate_hazard_count += count_flag(candidate.hazard_observed);
+        accumulator.reference_abstention_count += count_flag(reference.abstained);
+        accumulator.candidate_abstention_count += count_flag(candidate.abstained);
     }
 
     let mut family_summaries = Vec::with_capacity(families.len());
