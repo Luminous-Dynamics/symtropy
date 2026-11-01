@@ -34,7 +34,7 @@ The pipe-delimited file has 23 columns:
 
 Gate values are pass, fail or unknown. A failed gate makes a candidate ineligible; an unknown gate yields needs-evidence; only after gates pass is capacity assessed. Cost cannot compensate for a failed or unknown hard gate.
 
-All values in v0.1 are synthetic. Cost units are deliberately abstract, not South African rand, Swiss francs or any procurement currency. Transit time is end-to-end in the candidate service boundary, not maximum vehicle speed. Fault percentages are deterministic stress inputs, not inferred failure probabilities.
+All values in v0.1 are synthetic. Cost units are deliberately abstract, not South African rand, Swiss francs or any procurement currency. Transit time is end-to-end in the candidate service boundary, not maximum vehicle speed. Fault percentages are deterministic stress inputs, not inferred failure probabilities. Capacity-supported tonnes and associated costs are hypothetical model outputs even when gates fail; they must not be interpreted as actual or authorized deliveries.
 
 ## Run
 
