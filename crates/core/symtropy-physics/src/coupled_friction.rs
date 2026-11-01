@@ -735,34 +735,34 @@ mod tests {
 
     #[test]
     fn diagonal_sticking_matches_full_unconstrained_solution() {
-        let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.8);
-        let q = SVector::new(-1.0, 0.2, -0.1);
+        let w = Matrix3::<f64>::new(2.0, 0.0, 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.8);
+        let q = SVector::<f64, 3>::new(-1.0, 0.2, -0.1);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.6, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sticking);
-        assert!((candidate.impulse - SVector::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10);
+        assert!((candidate.impulse - SVector::<f64, 3>::new(0.5, -0.2 / 1.5, 0.1 / 0.8)).norm() < 1.0e-10);
         assert_candidate(candidate, 1.0e-9);
     }
 
     #[test]
     fn diagonal_sliding_matches_circular_maximum_dissipation() {
-        let w = Matrix3::identity();
-        let q = SVector::new(-1.0, -3.0, 1.0);
+        let w = Matrix3::<f64>::identity();
+        let q = SVector::<f64, 3>::new(-1.0, -3.0, 1.0);
         let mu = 0.25;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
         assert_eq!(candidate.regime, CoupledCoulombRegime::Sliding);
-        let expected = SVector::new(1.0, 3.0 * mu / 10.0_f64.sqrt(), -mu / 10.0_f64.sqrt());
+        let expected = SVector::<f64, 3>::new(1.0, 3.0 * mu / 10.0_f64.sqrt(), -mu / 10.0_f64.sqrt());
         assert!((candidate.impulse - expected).norm() < 1.0e-9);
         assert_candidate(candidate, 1.0e-8);
     }
 
     #[test]
     fn off_diagonal_normal_tangent_coupling_is_solved_in_one_system() {
-        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let w = Matrix3::<f64>::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
+        let q = SVector::<f64, 3>::new(-0.8, -2.5, 0.9);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.22, 1.0e-12).unwrap();
         assert_ne!(outcome.status, CoupledCoulombStatus::Inconclusive);
         assert!(!outcome.candidates.is_empty());
@@ -773,8 +773,8 @@ mod tests {
 
     #[test]
     fn separating_contact_returns_zero_impulse() {
-        let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
-        let q = SVector::new(0.5, 2.0, -1.0);
+        let w = Matrix3::<f64>::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
+        let q = SVector::<f64, 3>::new(0.5, 2.0, -1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         let candidate = outcome.unique_solution().unwrap();
@@ -784,7 +784,7 @@ mod tests {
 
     #[test]
     fn multiple_admissible_solutions_are_reported_not_arbitrarily_selected() {
-        let w = Matrix3::new(
+        let w = Matrix3::<f64>::new(
             0.59497432,
             -0.39054620,
             -0.63542426,
@@ -795,7 +795,7 @@ mod tests {
             0.80910089,
             0.94522735,
         );
-        let q = SVector::new(-0.10770302, 1.49149027, -0.95561905);
+        let q = SVector::<f64, 3>::new(-0.10770302, 1.49149027, -0.95561905);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 1.383289774658335, 1.0e-11).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
         assert!(outcome.candidates.len() >= 2);
@@ -806,7 +806,7 @@ mod tests {
 
     #[test]
     fn strong_coupling_can_create_multiple_solutions_from_initial_separation() {
-        let w = Matrix3::new(
+        let w = Matrix3::<f64>::new(
             3.38215268,
             1.97328063,
             2.48164591,
@@ -817,7 +817,7 @@ mod tests {
             -1.19836457,
             4.53646300,
         );
-        let q = SVector::new(0.93301773, 0.94422924, 2.42911533);
+        let q = SVector::<f64, 3>::new(0.93301773, 0.94422924, 2.42911533);
         let mu = 2.609311810828915;
         let outcome = solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-11).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::MultipleSolutions);
@@ -843,8 +843,8 @@ mod tests {
 
     #[test]
     fn distinguishes_indefinite_from_positive_but_ill_conditioned_metrics() {
-        let q = SVector::new(-1.0, 0.2, 0.1);
-        let ill_conditioned = Matrix3::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-14);
+        let q = SVector::<f64, 3>::new(-1.0, 0.2, 0.1);
+        let ill_conditioned = Matrix3::<f64>::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0e-14);
         assert_eq!(
             solve_coupled_signorini_coulomb(&ill_conditioned, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::IllConditioned
@@ -853,9 +853,9 @@ mod tests {
 
     #[test]
     fn rejects_nonfinite_velocity_and_invalid_friction_or_tolerance() {
-        let w = Matrix3::identity();
-        let finite_q = SVector::new(-1.0, 0.2, 0.1);
-        let nonfinite_q = SVector::new(f64::NAN, 0.2, 0.1);
+        let w = Matrix3::<f64>::identity();
+        let finite_q = SVector::<f64, 3>::new(-1.0, 0.2, 0.1);
+        let nonfinite_q = SVector::<f64, 3>::new(f64::NAN, 0.2, 0.1);
         assert_eq!(
             solve_coupled_signorini_coulomb(&w, &nonfinite_q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NonFinite
@@ -872,11 +872,11 @@ mod tests {
 
     #[test]
     fn contact_frame_rotation_preserves_candidate_impulses_and_classification() {
-        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let w = Matrix3::<f64>::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
+        let q = SVector::<f64, 3>::new(-0.8, -2.5, 0.9);
         let (sin, cos) = 0.73_f64.sin_cos();
         let tangent_rotation = Matrix2::new(cos, -sin, sin, cos);
-        let transform = Matrix3::new(
+        let transform = Matrix3::<f64>::new(
             1.0,
             0.0,
             0.0,
@@ -916,8 +916,8 @@ mod tests {
 
     #[test]
     fn quartic_coefficients_match_the_unreduced_angular_equation() {
-        let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
-        let q = SVector::new(-0.8, -2.5, 0.9);
+        let w = Matrix3::<f64>::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
+        let q = SVector::<f64, 3>::new(-0.8, -2.5, 0.9);
         let mu = 0.37;
         let coefficients = sliding_quartic(&w, &q, mu);
         for index in 0..64 {
@@ -937,8 +937,8 @@ mod tests {
 
     #[test]
     fn grazing_with_singular_normal_coupling_is_not_guessed_through() {
-        let w = Matrix3::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0);
-        let q = SVector::new(0.0, -1.0, 0.5);
+        let w = Matrix3::<f64>::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0);
+        let q = SVector::<f64, 3>::new(0.0, -1.0, 0.5);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 2.0, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::Inconclusive);
         assert!(outcome.unique_solution().is_none());
@@ -946,8 +946,8 @@ mod tests {
 
     #[test]
     fn grazing_with_positive_global_coupling_margin_is_separating() {
-        let w = Matrix3::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
-        let q = SVector::new(0.0, -2.0, 1.0);
+        let w = Matrix3::<f64>::new(2.0, 0.1, 0.0, 0.1, 1.0, 0.2, 0.0, 0.2, 1.4);
+        let q = SVector::<f64, 3>::new(0.0, -2.0, 1.0);
         let outcome = solve_coupled_signorini_coulomb(&w, &q, 0.5, 1.0e-12).unwrap();
         assert_eq!(outcome.status, CoupledCoulombStatus::UniqueWithinTolerance);
         assert_eq!(
@@ -958,13 +958,13 @@ mod tests {
 
     #[test]
     fn rejects_asymmetric_and_indefinite_effective_mass() {
-        let q = SVector::new(-1.0, 0.2, 0.1);
-        let asymmetric = Matrix3::new(1.0, 0.3, 0.0, 0.1, 1.0, 0.0, 0.0, 0.0, 1.0);
+        let q = SVector::<f64, 3>::new(-1.0, 0.2, 0.1);
+        let asymmetric = Matrix3::<f64>::new(1.0, 0.3, 0.0, 0.1, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             solve_coupled_signorini_coulomb(&asymmetric, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NotSymmetric
         );
-        let indefinite = Matrix3::new(1.0, 2.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+        let indefinite = Matrix3::<f64>::new(1.0, 2.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1.0);
         assert_eq!(
             solve_coupled_signorini_coulomb(&indefinite, &q, 0.4, 1.0e-12).unwrap_err(),
             CoupledCoulombError::NotPositiveDefinite
@@ -981,11 +981,11 @@ mod tests {
                     x[i][j] = (k as f64 / 37.0) - 1.2;
                 }
             }
-            let m = Matrix3::new(
+            let m = Matrix3::<f64>::new(
                 x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
             );
-            let w = m.transpose() * m + Matrix3::identity() * 0.3;
-            let q = SVector::new(
+            let w = m.transpose() * m + Matrix3::<f64>::identity() * 0.3;
+            let q = SVector::<f64, 4>::new(
                 -0.2 - (seed % 13) as f64 / 7.0,
                 (seed % 17) as f64 / 5.0 - 1.3,
                 (seed % 19) as f64 / 6.0 - 1.1,
