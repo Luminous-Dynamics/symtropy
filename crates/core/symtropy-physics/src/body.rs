@@ -406,14 +406,13 @@ mod tests {
         );
         let direction = SVector::<_, 3>::new(1.0, 0.0, 0.0);
         let support_before = body.world_support(&direction);
-        let position_before = body.transform.translation.0.clone();
+        let position_before = body.transform.translation.0;
         let mass_before = body.mass;
         let inertia_before = body
             .rotational_inertia
             .as_ref()
             .unwrap()
-            .second_moment()
-            .clone();
+            .second_moment();
 
         let error = body
             .try_merge_toolhead(
