@@ -24,6 +24,7 @@ pub mod robust_voi;
 pub mod robustness;
 pub mod run_artifacts;
 pub mod section_polar;
+pub mod task_conformance;
 pub mod selective_risk;
 pub mod unsteady_spectrum;
 pub mod validation_uncertainty;
