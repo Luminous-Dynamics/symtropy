@@ -164,3 +164,57 @@ Trustworthy scientific ML verification and validation guidance stresses explicit
 The SIM-REL sequential conformal module remains responsible for its separate fresh-fold calibration contract. SIM-REL-034 prevents those calibration or application/holdout observations from entering the development counterexample family through the ledger API.
 
 Claim boundary: the ledger enforces declared provenance and split contracts. It cannot prove external group labels are honest, validator judgements are correct, the perturbation family is complete, or the true physical system lies inside the finite development family. No open-world proof, physical safety guarantee, or distribution-free coverage guarantee is claimed.
+
+## 10. Immutable replay context and independent counterexample verification
+
+At ledger initialization, one immutable `DecisionReplayContext` is captured:
+- nominal development world ID;
+- complete terminal `DecisionLossTable`;
+- observation protocol;
+- command-cost vector and hazard loss;
+- finite horizon;
+- development hazard and abstention budgets.
+
+The initial policy is replayed against every baseline development world before it can be stored as active. Its plan and per-world metrics are retained in the snapshot.
+
+Every later replan uses this stored context rather than accepting a new loss table, observation protocol, cost schedule or horizon. This prevents policy status from being changed by silently changing the evaluation problem between family revisions.
+
+Counterexample admission independently replays the exact active policy on the current family plus the candidate world. The ledger classifies the actual result as:
+- policy invalidation due to a newly reachable public observation branch;
+- hazard-budget violation;
+- abstention-budget violation;
+- terminal-decision loss amplification over the current family worst case;
+- no violation.
+
+The claimed search-witness outcome must agree with the independently replayed typed class and exact metrics (policy-invalidation reason text may differ because the ledger records its own specific error). A NoViolation result or any mismatch is rejected. The actual replay-derived outcome is stored in the admission record. Search-run/generator provenance remains attached but is not treated as proof by itself.
+
+## 11. Sealed holdout replay and computed acceptance
+
+The sealed evaluation operation no longer accepts a caller-supplied pass/fail Boolean or caller-supplied loss/measurement semantics. It requires:
+- the actual sealed `DecisionModelWorld` snapshots;
+- an exact match to the pre-registered group world IDs;
+- a frozen policy and revision;
+- pre-registered numeric acceptance ceilings for worst-case total loss and worst-case terminal loss;
+- pre-registered hazard and abstention budgets;
+- a non-empty evaluation artifact ID.
+
+The ledger validates every supplied holdout kernel and independently runs the frozen shared policy against the sealed worlds using the immutable replay context. It computes:
+- exact per-world experiment cost, terminal loss, hazard probability and abstention probability;
+- worst-case total loss and terminal loss;
+- pass/fail by comparing all metrics to the supplied criteria.
+
+The resulting event retains the registered manifest ID, holdout world snapshots, evaluation artifact ID, criteria, per-world metrics, worst-case values and computed verdict. The group is consumed whether the verdict passes or fails. A caller cannot reopen the same group and tune the policy against it.
+
+The ledger verifies world IDs and captures the actual supplied snapshots, but the relationship between those snapshots and an external sealed manifest remains an external provenance contract. Opaque IDs are not cryptographic digests; a future signed-manifest or canonical content-addressing layer may strengthen that binding.
+
+## 12. State-machine conformance additions
+
+Additional hosted tests cover:
+- initial policy branch completeness and baseline replay before activation;
+- policy tree identity, not merely a caller-supplied policy label;
+- independent candidate replay and rejection when the claimed counterexample outcome disagrees;
+- immutable replay context through every replan;
+- sealed holdout replay on actual supplied model worlds;
+- computed passing and failing holdout verdicts, including retention of exact per-world metrics and manifest ID.
+
+The current implementation still relies on the external validator to attest physical plausibility and correct split lineage. Independent ledger replay verifies the supplied finite-world consequences; it does not prove open-world model adequacy.
