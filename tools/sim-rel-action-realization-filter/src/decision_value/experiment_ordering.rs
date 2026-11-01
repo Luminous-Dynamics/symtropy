@@ -628,6 +628,12 @@ pub struct ExperimentPairComparison {
     pub mutual_information_a_bits: f64,
     pub mutual_information_b_bits: f64,
     pub information_preference: ExperimentPreference,
+    /// Exact nominal Blackwell certificate search from A to B. An inner None
+    /// means no dominance witness was found; Err denotes the bounded solver's
+    /// unsupported-size/arithmetic boundary.
+    pub blackwell_a_dominates_b: Result<Option<BlackwellDominanceReceipt>, String>,
+    /// Reverse nominal Blackwell certificate search from B to A.
+    pub blackwell_b_dominates_a: Result<Option<BlackwellDominanceReceipt>, String>,
     pub nominal_total_loss_a: Rational,
     pub nominal_total_loss_b: Rational,
     pub nominal_total_loss_preference: ExperimentPreference,
@@ -685,6 +691,10 @@ pub fn compare_experiment_pair_with_inference_rules(
     )?;
     let information_a = mutual_information_bits(assumed_a, prior)?;
     let information_b = mutual_information_bits(assumed_b, prior)?;
+    let blackwell_a_dominates_b =
+        solve_small_blackwell_garbling(assumed_a, assumed_b);
+    let blackwell_b_dominates_a =
+        solve_small_blackwell_garbling(assumed_b, assumed_a);
 
     let information_preference = if information_a > information_b {
         ExperimentPreference::A
@@ -715,6 +725,8 @@ pub fn compare_experiment_pair_with_inference_rules(
         mutual_information_a_bits: information_a,
         mutual_information_b_bits: information_b,
         information_preference,
+        blackwell_a_dominates_b,
+        blackwell_b_dominates_a,
         nominal_total_loss_a,
         nominal_total_loss_b,
         nominal_total_loss_preference,
@@ -1800,6 +1812,16 @@ mod tests {
         assert_eq!(comparison.realized_total_loss_a, rational(11, 10));
         assert_eq!(comparison.realized_total_loss_b, rational(3, 10));
         assert!(comparison.information_loss_ranking_reversal);
+        assert!(comparison
+            .blackwell_a_dominates_b
+            .as_ref()
+            .unwrap()
+            .is_some());
+        assert!(comparison
+            .blackwell_b_dominates_a
+            .as_ref()
+            .unwrap()
+            .is_none());
 
         assert_eq!(evaluation_a.nominal_model_expected_loss, Rational::zero());
         assert_eq!(
