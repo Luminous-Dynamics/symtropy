@@ -403,7 +403,9 @@ fn exact_two_contact_slide_stick_branch_intervals(
             || impulse[3].0 <= Rational::zero()
             || disk_2_margin.0 <= Rational::zero()
         {
-            return Err("a root does not have positive normal loads and a strict sticking-disk margin");
+            return Err(
+                "a root does not have positive normal loads and a strict sticking-disk margin",
+            );
         }
         if tau.0 > Rational::zero() {
             if energy.1 <= Rational::zero() {
@@ -547,7 +549,6 @@ fn two_contact_slide_stick_stratum_has_exactly_two_admissible_roots() {
     );
 }
 
-
 #[test]
 fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     // Swapping contact blocks maps original contact 2 to the sliding contact
@@ -555,11 +556,9 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     // exact coordinate relabeling, not a new physical problem.
     let (w, q) = two_contact_witness();
     let permutation = [3_usize, 4, 5, 0, 1, 2];
-    let permuted_w = SMatrix::<f64, 6, 6>::from_fn(|row, column| {
-        w[(permutation[row], permutation[column])]
-    });
-    let permuted_q =
-        SVector::<f64, 6>::from_fn(|row, _| q[permutation[row]]);
+    let permuted_w =
+        SMatrix::<f64, 6, 6>::from_fn(|row, column| w[(permutation[row], permutation[column])]);
+    let permuted_q = SVector::<f64, 6>::from_fn(|row, _| q[permutation[row]]);
     let mu_sliding = 1.0;
     let mu_sticking = 1.383_289_774_658_335;
 
@@ -587,7 +586,11 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
     );
     let roots = sturm_isolate_rational(quartic.clone())
         .expect("exact Sturm isolation of the permuted slide/stick quartic");
-    assert_eq!(roots.len(), 2, "the permuted stratum has two real angular roots");
+    assert_eq!(
+        roots.len(),
+        2,
+        "the permuted stratum has two real angular roots"
+    );
 
     let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
     let mut singular_determinant = determinant.clone();
