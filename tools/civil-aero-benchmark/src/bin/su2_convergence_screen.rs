@@ -78,14 +78,18 @@ fn run() -> Result<bool, String> {
         || options.lineage_output_path.is_some();
     if lineage_requested {
         let input_bindings = Su2RunInputBindings {
-            physics_configuration_path: options.physics_configuration_path
+            physics_configuration_path: options
+                .physics_configuration_path
                 .ok_or_else(|| "lineage export requires --config-input".to_owned())?,
-            geometry_path: options.geometry_path
+            geometry_path: options
+                .geometry_path
                 .ok_or_else(|| "lineage export requires --geometry-input".to_owned())?,
-            mesh_path: options.mesh_path
+            mesh_path: options
+                .mesh_path
                 .ok_or_else(|| "lineage export requires --mesh-input".to_owned())?,
         };
-        let lineage_output_path = options.lineage_output_path
+        let lineage_output_path = options
+            .lineage_output_path
             .ok_or_else(|| "lineage export requires --lineage-output".to_owned())?;
         let binding = bind_su2_run_lineage(
             &run_directory,
@@ -94,8 +98,12 @@ fn run() -> Result<bool, String> {
             &input_bindings,
             &options.additional_output_paths,
         )?;
-        fs::write(&lineage_output_path, binding_to_csv(&binding))
-            .map_err(|error| format!("cannot write lineage receipt {}: {error}", lineage_output_path.display()))?;
+        fs::write(&lineage_output_path, binding_to_csv(&binding)).map_err(|error| {
+            format!(
+                "cannot write lineage receipt {}: {error}",
+                lineage_output_path.display()
+            )
+        })?;
         eprintln!(
             "su2_run_lineage=pass run_id={} outputs={} binding_sha256={} evidence_level={}",
             binding.run_id,
