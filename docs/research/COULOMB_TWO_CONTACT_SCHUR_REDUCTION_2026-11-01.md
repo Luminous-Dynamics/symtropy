@@ -242,3 +242,50 @@ For both boxes, the test requires:
 This gives two separately certified, regular, strictly admissible double-sliding branches for one exact rational dyadic input. It is stronger than two floating-point candidates: each box contains exactly one root of the reduced equations, and the interval sign proofs establish physical sliding admissibility throughout each box.
 
 **Claim ceiling:** this is a lower bound of two branches, not a complete root count. It does not exclude additional solutions elsewhere on the finite direction chart, roots at projective infinity, or branches on the determinant-degenerate set \(\Delta=0\). Global root-pair coverage and classification of all projected resultant roots remain open.
+
+
+## Exact subresultant lift and finite-fixture branch classification
+
+The rational asymmetric seed now has an exact lifting step beyond the projected degree-20 resultant.
+
+Treat \(G_1,G_2\) as polynomials in \(t_1\) over \(\mathbb Z[t_2]\). Their exact pseudo-remainder has degree one:
+
+\[
+\operatorname{prem}_{t_1}(G_1,G_2)=R_0(t_2)+R_1(t_2)t_1.
+\]
+
+For every real projected resultant root, the test first proves the leading \(t_1\)-coefficients of both \(G_1,G_2\) and \(R_1(t_2)\) exclude zero on its rational Sturm interval. Since the exact Sylvester resultant vanishes there and the degrees do not drop, a common root exists; the degree-one pseudo-remainder then forces its unique lift
+
+\[
+t_1=-R_0(t_2)/R_1(t_2).
+\]
+
+The implementation lifts all four distinct real projected roots using rational intervals of width at most \(2^{-80}\), then evaluates exact interval bounds for \(\Delta\), both normal multiplier ratios \(N_k/\Delta\), and both sliding multiplier sign ratios \(S_k/N_k\).
+
+For this exact rational fixture:
+- all four real projected roots lift to finite real \(t_1\) roots;
+- all four have \(\Delta\ne0\) and both normal impulses strictly positive;
+- exactly one has \(\tau_1>0\) and \(\tau_2>0\);
+- each of the other three has at least one strictly negative sliding multiplier and is therefore not a strictly-sliding Coulomb branch.
+
+The unique strictly admissible branch is the exact rational pair \((t_1,t_2)=(1/2,2/3)\), which is independently covered by the local Krawczyk box from #3240.
+
+### Singular normal-response stratum
+
+A real solution with \(\Delta=0\) would require compatibility of the singular 2x2 normal system; in particular its first adjugate-right-hand-side numerator \(N_1(t_2)\) must vanish. In this fixture
+
+\[
+N_1(t_2)=20\,186\,624\,t_2^2-469\,504\,t_2+21\,125\,632,
+\]
+
+whose exact discriminant is \(-1\,705\,600\,325\,779\,456<0\). Thus \(N_1\) has no real root, so there is no real compatible singular-normal branch in this rational fixture's finite chart.
+
+### Projective charts
+
+The exact leading-\(t_1\) coefficient polynomials of \(G_1,G_2\) are coprime over \(\mathbb Q[t_2]\), excluding a common root at \(t_1=\infty\). The leading-\(t_2\) coefficient polynomials are also coprime over \(\mathbb Q[t_1]\), excluding a common root at \(t_2=\infty\). The bidegree-corner coefficients are both nonzero, excluding a common root at \((t_1,t_2)=(\infty,\infty)\).
+
+### Claim boundary
+
+Together, the exact resultant, Sturm isolation, pseudo-remainder lift, interval sign classification, singular compatibility exclusion and projective-boundary gcd checks give a complete classification of the **strictly-sliding / strictly-sliding direction equations for this one frozen rational SPD fixture**: four real algebraic finite direction pairs exist, exactly one is physically admissible, and no projective or compatible singular-normal solution is omitted.
+
+This is a fixture-level theorem/test, not a general two-contact double-sliding solver. The separate exact dyadic input with two close admissible branches still has a certified lower bound of two branches from #3240, but has not yet received global root-count exclusion. Higher-contact islands and uncertain parameter families are also outside this result.

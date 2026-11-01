@@ -1837,6 +1837,46 @@ mod double_sliding_direction_oracle {
             result
         }
 
+        fn from_bivariate_t2_coefficient(
+            polynomial: BivariateIntegerPolynomial,
+            degree_t2: usize,
+        ) -> Self {
+            let mut result = Self::zero();
+            for degree_t1 in 0..5 {
+                result.coefficients[degree_t1] =
+                    BigInt::from(polynomial.coefficients[degree_t1][degree_t2]);
+            }
+            result
+        }
+
+        fn is_zero(&self) -> bool {
+            self.coefficients
+                .iter()
+                .all(|coefficient| coefficient == &BigInt::from(0_u8))
+        }
+
+        fn sub(&self, other: &Self) -> Self {
+            let mut result = Self::zero();
+            for index in 0..RESULTANT_COEFFICIENTS {
+                result.coefficients[index] = &self.coefficients[index] - &other.coefficients[index];
+            }
+            result
+        }
+
+        fn evaluate_interval(&self, value: &RationalInterval) -> RationalInterval {
+            let zero = BigRational::from_integer(BigInt::from(0_u8));
+            let mut result = RationalInterval::point(zero);
+            for coefficient in self.coefficients.iter().rev() {
+                result =
+                    result
+                        .mul(value)
+                        .add(&RationalInterval::point(BigRational::from_integer(
+                            coefficient.clone(),
+                        )));
+            }
+            result
+        }
+
         fn add_assign(&mut self, other: &Self) {
             for index in 0..RESULTANT_COEFFICIENTS {
                 self.coefficients[index] = &self.coefficients[index] + &other.coefficients[index];
@@ -2209,8 +2249,9 @@ mod double_sliding_direction_oracle {
     /// Endpoints are chosen away from roots; all counts come from exact Sturm
     /// variations, and returned intervals each contain exactly one distinct
     /// real root. Repeated roots are not duplicated.
-    fn isolate_all_real_resultant_roots(
+    fn isolate_all_real_resultant_roots_with_width(
         polynomial: &BigIntegerPolynomial,
+        target_width: BigRational,
     ) -> Vec<(BigRational, BigRational)> {
         let rational_polynomial = resultant_as_rational_polynomial(polynomial);
         let sturm = exact_sturm_sequence(&rational_polynomial);
@@ -2233,7 +2274,6 @@ mod double_sliding_direction_oracle {
 
         let left = BigRational::from_integer(-bound.clone());
         let right = BigRational::from_integer(bound);
-        let target_width = BigRational::new(BigInt::from(1_u8), BigInt::from(1_u64 << 30));
         let total_count = sturm_root_count(&sturm, &left, &right);
         let mut pending = vec![(left, right, total_count)];
         let mut isolated = Vec::new();
@@ -2257,6 +2297,15 @@ mod double_sliding_direction_oracle {
 
         isolated.sort_by(|left_interval, right_interval| left_interval.0.cmp(&right_interval.0));
         isolated
+    }
+
+    fn isolate_all_real_resultant_roots(
+        polynomial: &BigIntegerPolynomial,
+    ) -> Vec<(BigRational, BigRational)> {
+        isolate_all_real_resultant_roots_with_width(
+            polynomial,
+            BigRational::new(BigInt::from(1_u8), BigInt::from(1_u64 << 30)),
+        )
     }
 
     #[test]
@@ -2308,7 +2357,10 @@ mod double_sliding_direction_oracle {
 
         fn symmetric(center: &BigRational, radius: &BigRational) -> Self {
             assert!(radius > &BigRational::from_integer(BigInt::from(0_u8)));
-            Self::new(center.clone() - radius.clone(), center.clone() + radius.clone())
+            Self::new(
+                center.clone() - radius.clone(),
+                center.clone() + radius.clone(),
+            )
         }
 
         fn zero_centered(radius: &BigRational) -> Self {
@@ -2326,6 +2378,10 @@ mod double_sliding_direction_oracle {
 
         fn is_strictly_positive(&self) -> bool {
             self.lower > BigRational::from_integer(BigInt::from(0_u8))
+        }
+
+        fn is_strictly_negative(&self) -> bool {
+            self.upper < BigRational::from_integer(BigInt::from(0_u8))
         }
 
         fn is_strict_subset_of(&self, other: &Self) -> bool {
@@ -2519,8 +2575,10 @@ mod double_sliding_direction_oracle {
         ];
         for row in 0..2 {
             for column in 0..2 {
-                jacobian_at_center[row][column] =
-                    dg[row][column].evaluate_interval(&center_box[0], &center_box[1]).lower.clone();
+                jacobian_at_center[row][column] = dg[row][column]
+                    .evaluate_interval(&center_box[0], &center_box[1])
+                    .lower
+                    .clone();
                 jacobian_interval[row][column] =
                     dg[row][column].evaluate_interval(&domain[0], &domain[1]);
             }
@@ -2529,9 +2587,7 @@ mod double_sliding_direction_oracle {
         let determinant_jacobian = jacobian_at_center[0][0].clone()
             * jacobian_at_center[1][1].clone()
             - jacobian_at_center[0][1].clone() * jacobian_at_center[1][0].clone();
-        if determinant_jacobian
-            == BigRational::from_integer(BigInt::from(0_u8))
-        {
+        if determinant_jacobian == BigRational::from_integer(BigInt::from(0_u8)) {
             return None;
         }
         let inverse = [
@@ -2562,9 +2618,12 @@ mod double_sliding_direction_oracle {
                 let product = jacobian_interval[0][column]
                     .scale(&inverse[row][0])
                     .add(&jacobian_interval[1][column].scale(&inverse[row][1]));
-                let identity = if row == column { one.clone() } else { zero.clone() };
-                krawczyk_matrix[row][column] =
-                    RationalInterval::point(identity).sub(&product);
+                let identity = if row == column {
+                    one.clone()
+                } else {
+                    zero.clone()
+                };
+                krawczyk_matrix[row][column] = RationalInterval::point(identity).sub(&product);
             }
         }
 
@@ -2582,17 +2641,17 @@ mod double_sliding_direction_oracle {
         ];
         for row in 0..2 {
             for column in 0..2 {
-                image[row] = image[row].add(&krawczyk_matrix[row][column].mul(&centered_domain[column]));
+                image[row] =
+                    image[row].add(&krawczyk_matrix[row][column].mul(&centered_domain[column]));
             }
         }
-        if !image[0].is_strict_subset_of(&domain[0])
-            || !image[1].is_strict_subset_of(&domain[1])
-        {
+        if !image[0].is_strict_subset_of(&domain[0]) || !image[1].is_strict_subset_of(&domain[1]) {
             return None;
         }
 
-        let normal_determinant =
-            polynomials.determinant.evaluate_interval(&domain[0], &domain[1]);
+        let normal_determinant = polynomials
+            .determinant
+            .evaluate_interval(&domain[0], &domain[1]);
         if !normal_determinant.excludes_zero() {
             return None;
         }
@@ -2657,22 +2716,26 @@ mod double_sliding_direction_oracle {
             BigRational::new(BigInt::from(2_u8), BigInt::from(3_u8)),
         ];
         let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(4096_u16));
-        let certificate = certify_exact_double_slide_root_box(
-            &polynomials,
-            center,
-            radius,
-            [64, 64],
-            128,
-        )
-        .expect("exact Krawczyk inclusion and strict contact-law margins");
+        let certificate =
+            certify_exact_double_slide_root_box(&polynomials, center, radius, [64, 64], 128)
+                .expect("exact Krawczyk inclusion and strict contact-law margins");
 
         assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
         assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
         assert!(certificate.normal_determinant.excludes_zero());
-        assert!(certificate.normal_multiplier_ratios.iter().all(|ratio| ratio.is_strictly_positive()));
-        assert!(certificate.sliding_multiplier_sign_ratios.iter().all(|ratio| ratio.is_strictly_positive()));
+        assert!(
+            certificate
+                .normal_multiplier_ratios
+                .iter()
+                .all(|ratio| ratio.is_strictly_positive())
+        );
+        assert!(
+            certificate
+                .sliding_multiplier_sign_ratios
+                .iter()
+                .all(|ratio| ratio.is_strictly_positive())
+        );
     }
-
 
     fn asymmetric_dyadic_double_slide_polynomials() -> ExactDoubleSlidePolynomials {
         const SCALE: i128 = 1_048_576;
@@ -2714,9 +2777,8 @@ mod double_sliding_direction_oracle {
             341_152,
             854_965,
         ];
-        let w = std::array::from_fn(|row| {
-            std::array::from_fn(|column| flattened_w[row * 6 + column])
-        });
+        let w =
+            std::array::from_fn(|row| std::array::from_fn(|column| flattened_w[row * 6 + column]));
         let q = [
             -109_587_i128,
             -7_143_822,
@@ -2737,11 +2799,17 @@ mod double_sliding_direction_oracle {
         let denominator = BigInt::from(1_000_000_000_000_000_i128);
         let centers = [
             [
-                BigRational::new(BigInt::from(2_044_412_562_120_879_i128), denominator.clone()),
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    denominator.clone(),
+                ),
                 BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
             ],
             [
-                BigRational::new(BigInt::from(2_054_286_197_054_429_i128), denominator.clone()),
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    denominator.clone(),
+                ),
                 BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator.clone()),
             ],
         ];
@@ -2758,12 +2826,8 @@ mod double_sliding_direction_oracle {
         });
 
         // The two certified boxes are disjoint in both direction coordinates.
-        assert!(
-            certificates[0].domain[0].upper < certificates[1].domain[0].lower
-        );
-        assert!(
-            certificates[0].domain[1].upper < certificates[1].domain[1].lower
-        );
+        assert!(certificates[0].domain[0].upper < certificates[1].domain[0].lower);
+        assert!(certificates[0].domain[1].upper < certificates[1].domain[1].lower);
 
         for certificate in &certificates {
             assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
@@ -2784,4 +2848,226 @@ mod double_sliding_direction_oracle {
         }
     }
 
+    fn trim_big_integer_polynomial_vector(coefficients: &mut Vec<BigIntegerPolynomial>) {
+        while coefficients
+            .last()
+            .is_some_and(BigIntegerPolynomial::is_zero)
+        {
+            coefficients.pop();
+        }
+    }
+
+    /// Compute the pseudo-remainder of G1(t1,t2) by G2(t1,t2), viewing
+    /// both as polynomials in t1 over Z[t2]. On the regular resultant
+    /// stratum, the resulting degree-one polynomial R0(t2)+R1(t2)t1
+    /// vanishes at every common root pair. This is an exact lifting relation.
+    fn exact_subresultant_linear_lift(
+        g1: BivariateIntegerPolynomial,
+        g2: BivariateIntegerPolynomial,
+    ) -> Option<(BigIntegerPolynomial, BigIntegerPolynomial)> {
+        let mut remainder = (0..=4)
+            .map(|degree_t1| BigIntegerPolynomial::from_bivariate_t1_coefficient(g1, degree_t1))
+            .collect::<Vec<_>>();
+        let divisor = (0..=2)
+            .map(|degree_t1| BigIntegerPolynomial::from_bivariate_t1_coefficient(g2, degree_t1))
+            .collect::<Vec<_>>();
+        if divisor.len() != 3 || divisor.last().is_some_and(BigIntegerPolynomial::is_zero) {
+            return None;
+        }
+
+        while remainder.len() >= divisor.len() {
+            let shift = remainder.len() - divisor.len();
+            let remainder_leading = remainder.last()?.clone();
+            let divisor_leading = divisor.last()?.clone();
+            let mut next = remainder
+                .iter()
+                .map(|coefficient| coefficient.mul(&divisor_leading))
+                .collect::<Vec<_>>();
+            let required_len = shift + divisor.len();
+            next.resize_with(required_len, BigIntegerPolynomial::zero);
+
+            for (index, divisor_coefficient) in divisor.iter().enumerate() {
+                let product = remainder_leading.mul(divisor_coefficient);
+                next[shift + index] = next[shift + index].sub(&product);
+            }
+            trim_big_integer_polynomial_vector(&mut next);
+            if next.len() >= remainder.len() {
+                return None;
+            }
+            remainder = next;
+        }
+
+        if remainder.len() != 2 || remainder[1].is_zero() {
+            return None;
+        }
+        Some((remainder[0].clone(), remainder[1].clone()))
+    }
+
+    fn rational_polynomial_gcd_is_constant(
+        left: &RationalUnivariatePolynomial,
+        right: &RationalUnivariatePolynomial,
+    ) -> bool {
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let mut a = left.clone();
+        let mut b = right.clone();
+        trim_rational_polynomial(&mut a);
+        trim_rational_polynomial(&mut b);
+        if a.iter().all(|coefficient| coefficient == &zero)
+            || b.iter().all(|coefficient| coefficient == &zero)
+        {
+            return false;
+        }
+
+        while b.iter().any(|coefficient| coefficient != &zero) {
+            let remainder = rational_polynomial_remainder(&a, &b);
+            a = b;
+            b = remainder;
+            trim_rational_polynomial(&mut b);
+        }
+        trim_rational_polynomial(&mut a);
+        a.len() == 1
+    }
+
+    #[test]
+    fn exact_subresultant_lifts_all_four_real_projected_roots_and_classifies_physics() {
+        let polynomials = asymmetric_rational_polynomial_fixture();
+        let resultant = exact_direction_resultant(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        );
+        assert_eq!(resultant.degree(), Some(20));
+
+        let subresultant = exact_subresultant_linear_lift(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        )
+        .expect("regular degree-one subresultant lift");
+        let (lift_numerator, lift_denominator) = subresultant;
+
+        // Isolate all distinct real projected roots to 2^-80. The narrower
+        // exact boxes keep the subresultant lift and physical sign intervals
+        // sharp even though its integer coefficients are large.
+        let projected_roots = isolate_all_real_resultant_roots_with_width(
+            &resultant,
+            BigRational::new(BigInt::from(1_u8), BigInt::from(1_u8) << 80),
+        );
+        assert_eq!(projected_roots.len(), 4);
+
+        // A nonzero leading coefficient in each t1 polynomial prevents a
+        // degree-drop artifact from being mistaken for a common finite root.
+        let leading_g1_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_1,
+            4,
+        );
+        let leading_g2_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_2,
+            2,
+        );
+
+        // The linear subresultant denominator and both leading coefficients
+        // must exclude zero over every projected root interval. Then the
+        // unique lift t1=-R0(t2)/R1(t2) is real and finite.
+        let mut physical_root_count = 0;
+        let mut lifted_boxes = Vec::new();
+        for t2_interval in &projected_roots {
+            let t2 = RationalInterval::new(t2_interval.0.clone(), t2_interval.1.clone());
+            let r0 = lift_numerator.evaluate_interval(&t2);
+            let r1 = lift_denominator.evaluate_interval(&t2);
+            let lc1 = leading_g1_t1.evaluate_interval(&t2);
+            let lc2 = leading_g2_t1.evaluate_interval(&t2);
+
+            assert!(r1.excludes_zero());
+            assert!(lc1.excludes_zero());
+            assert!(lc2.excludes_zero());
+
+            let t1 = r0.neg().div(&r1).expect("nonzero subresultant denominator");
+            let delta = polynomials.determinant.evaluate_interval(&t1, &t2);
+            assert!(delta.excludes_zero());
+
+            let normal_1 = polynomials
+                .normal_numerator_1
+                .evaluate_interval(&t1, &t2)
+                .div(&delta)
+                .expect("normal determinant excludes zero");
+            let normal_2 = polynomials
+                .normal_numerator_2
+                .evaluate_interval(&t1, &t2)
+                .div(&delta)
+                .expect("normal determinant excludes zero");
+            assert!(normal_1.is_strictly_positive());
+            assert!(normal_2.is_strictly_positive());
+
+            let tau_1 = polynomials
+                .sliding_numerator_1
+                .evaluate_interval(&t1, &t2)
+                .div(&polynomials.normal_numerator_1.evaluate_interval(&t1, &t2))
+                .expect("normal numerator excludes zero");
+            let tau_2 = polynomials
+                .sliding_numerator_2
+                .evaluate_interval(&t1, &t2)
+                .div(&polynomials.normal_numerator_2.evaluate_interval(&t1, &t2))
+                .expect("normal numerator excludes zero");
+
+            if tau_1.is_strictly_positive() && tau_2.is_strictly_positive() {
+                physical_root_count += 1;
+            } else {
+                assert!(
+                    tau_1.is_strictly_negative() || tau_2.is_strictly_negative(),
+                    "all nonphysical projected roots must violate a strict sliding KKT sign"
+                );
+            }
+            lifted_boxes.push((t1, t2));
+        }
+
+        assert_eq!(
+            physical_root_count, 1,
+            "exactly one of the four finite real algebraic root pairs is strictly Coulomb-admissible"
+        );
+
+        // The exact rational root (1/2,2/3) lies in exactly one lifted pair box.
+        let half = BigRational::new(BigInt::from(1_u8), BigInt::from(2_u8));
+        let two_thirds = BigRational::new(BigInt::from(2_u8), BigInt::from(3_u8));
+        let matching = lifted_boxes
+            .iter()
+            .filter(|(t1, t2)| {
+                t1.lower < half && half < t1.upper && t2.lower < two_thirds && two_thirds < t2.upper
+            })
+            .count();
+        assert_eq!(matching, 1);
+
+        // The normal compatibility numerator is a positive quadratic in t2
+        // with negative discriminant. Thus Delta=0 cannot be compatible with
+        // the two normal equations at any real finite direction pair.
+        let n1 = &polynomials.normal_numerator_1.coefficients[0];
+        assert_ne!(n1[2], 0);
+        assert!(n1[2] > 0);
+        let discriminant = n1[1] * n1[1] - 4 * n1[2] * n1[0];
+        assert!(discriminant < 0);
+
+        // Exact projective charts: at t1=infinity, the leading t1
+        // coefficients of G1/G2 are coprime in t2; at t2=infinity, the
+        // leading t2 coefficients are coprime in t1. Hence neither boundary
+        // chart contains a common root. The projective corner is also excluded.
+        let g1_t2_leading = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_1,
+            2,
+        );
+        let g2_t2_leading = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_2,
+            4,
+        );
+
+        let t1_infinity_gcd = rational_polynomial_gcd_is_constant(
+            &resultant_as_rational_polynomial(&leading_g1_t1),
+            &resultant_as_rational_polynomial(&leading_g2_t1),
+        );
+        let t2_infinity_gcd = rational_polynomial_gcd_is_constant(
+            &resultant_as_rational_polynomial(&g1_t2_leading),
+            &resultant_as_rational_polynomial(&g2_t2_leading),
+        );
+        assert!(t1_infinity_gcd);
+        assert!(t2_infinity_gcd);
+        assert_ne!(polynomials.tangential_equation_1.coefficients[4][2], 0);
+        assert_ne!(polynomials.tangential_equation_2.coefficients[2][4], 0);
+    }
 }
