@@ -5,6 +5,7 @@ runner="${1:?runner binary path required}"
 replay="${2:?replay binary path required}"
 importer="${3:?SU2 history importer binary path required}"
 convergence="${4:?SU2 convergence screen binary path required}"
+mesh_audit="${5:?SU2 mesh audit binary path required}"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
 
@@ -27,7 +28,24 @@ chmod +x "$root/fake-su2-cfd"
 
 printf 'MESH_FILENAME=mesh.su2\nMACH_NUMBER=0.73\n' > "$root/config.cfg"
 printf 'synthetic geometry fixture; not an aircraft geometry\n' > "$root/geometry.dat"
-printf 'synthetic mesh fixture; not a physical mesh\n' > "$root/mesh.su2"
+cat > "$root/mesh.su2" <<'MESH'
+NDIME= 2
+NELEM= 2
+5 0 1 2
+5 0 2 3
+NPOIN= 4
+0.0 0.0
+1.0 0.0
+1.0 1.0
+0.0 1.0
+NMARK= 1
+MARKER_TAG= wall
+MARKER_ELEMS= 4
+3 0 1
+3 1 2
+3 2 3
+3 3 0
+MESH
 executable_sha256="$(sha256sum "$root/fake-su2-cfd" | awk '{print $1}')"
 
 "$runner" \
@@ -71,6 +89,12 @@ test "$(wc -l < "$root/su2-history-import.csv")" -eq 9
 grep -q 'su2_history_import=pass run_id=ci-su2-process-fixture points=8 selected_fields=4' "$root/su2-history-import.txt"
 grep -q 'receipt_bound_history_import_only_not_solver_convergence_or_physical_validation' "$root/su2-history-import.txt"
 python3 scripts/verify-su2-history-import-independent.py "$root/run" "$root/su2-history-import.csv"
+
+"$mesh_audit" "$root/run/mesh.su2" > "$root/su2-mesh-summary.csv" 2> "$root/su2-mesh-summary.txt"
+test "$(wc -l < "$root/su2-mesh-summary.csv")" -eq 2
+grep -q 'su2_mesh_audit=pass dimension=2 points=4 volume_elements=2 markers=1 boundary_elements=4' "$root/su2-mesh-summary.txt"
+grep -q 'su2-native-mesh-summary/0.1.0' "$root/su2-mesh-summary.csv"
+python3 scripts/verify-su2-mesh-independent.py "$root/run/mesh.su2" "$root/su2-mesh-summary.csv"
 
 "$convergence" \
   --run-dir "$root/run" \
