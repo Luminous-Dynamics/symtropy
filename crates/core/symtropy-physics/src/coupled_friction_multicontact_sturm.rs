@@ -631,3 +631,153 @@ fn contact_permutation_slide_stick_stratum_has_no_admissible_root() {
         "both real roots violate the sliding disk KKT multiplier sign"
     );
 }
+
+
+#[test]
+fn tangent_frame_quarter_turn_preserves_slide_stick_root_classification() {
+    let (w, q) = two_contact_witness();
+    let mut frame = SMatrix::<f64, 6, 6>::identity();
+    for (first, second) in [(1_usize, 2_usize), (4_usize, 5_usize)] {
+        frame[(first, first)] = 0.0;
+        frame[(first, second)] = -1.0;
+        frame[(second, first)] = 1.0;
+        frame[(second, second)] = 0.0;
+    }
+    assert_eq!(frame.transpose() * frame, SMatrix::<f64, 6, 6>::identity());
+    let rotated_w = frame * w * frame.transpose();
+    let rotated_q = frame * q;
+    let mu_sliding = 1.383_289_774_658_335;
+    let mu_sticking = 1.0;
+
+    let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            exact_w[row][column] = exact_f64(rotated_w[(row, column)]).unwrap();
+        }
+    }
+    assert!(exact_symmetric_matrix_is_spd(&exact_w));
+
+    let (quartic, determinant, numerators) =
+        exact_two_contact_slide_stick_polynomials(&rotated_w, &rotated_q, mu_sliding)
+            .expect("exact quarter-turned slide/stick polynomial derivation");
+    assert_eq!(quartic.len(), 5);
+    assert_eq!(
+        polynomial_gcd(&quartic, &derivative(&quartic))
+            .expect("quarter-turned square-free polynomial gcd")
+            .len(),
+        1
+    );
+    let roots = sturm_isolate_rational(quartic.clone())
+        .expect("exact Sturm isolation after tangent-frame rotation");
+    assert_eq!(roots.len(), 4);
+
+    let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
+    let mut singular_determinant = determinant.clone();
+    for _ in 0..3 {
+        singular_determinant =
+            polynomial_divide_exact(&singular_determinant, &half_angle_denominator)
+                .expect("remove quarter-turned projective denominator factor");
+    }
+    let singular_angles = sturm_isolate_rational(singular_determinant.clone())
+        .expect("exact singular-angle count after tangent-frame rotation");
+    assert_eq!(singular_angles.len(), 2);
+    assert_eq!(
+        polynomial_gcd(&singular_determinant, &numerators[0])
+            .expect("quarter-turned Cramer/determinant gcd")
+            .len(),
+        1
+    );
+
+    let classifications = exact_two_contact_slide_stick_branch_intervals(
+        &rotated_w,
+        &rotated_q,
+        mu_sliding,
+        mu_sticking,
+        &determinant,
+        &numerators,
+        &roots,
+    )
+    .expect("exact KKT classification after tangent-frame rotation");
+    assert_eq!(
+        classifications
+            .iter()
+            .filter(|&&value| value == SlidingBranchClassification::Admissible)
+            .count(),
+        2
+    );
+    assert_eq!(
+        classifications
+            .iter()
+            .filter(|&&value| value == SlidingBranchClassification::NegativeMultiplier)
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn coherent_delassus_and_velocity_scaling_preserves_contact_solution_set() {
+    let (w, q) = two_contact_witness();
+    let scaled_w = w * 2.0;
+    let scaled_q = q * 2.0;
+    let mu_sliding = 1.383_289_774_658_335;
+    let mu_sticking = 1.0;
+
+    let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            exact_w[row][column] = exact_f64(scaled_w[(row, column)]).unwrap();
+        }
+    }
+    assert!(exact_symmetric_matrix_is_spd(&exact_w));
+
+    let (quartic, determinant, numerators) =
+        exact_two_contact_slide_stick_polynomials(&scaled_w, &scaled_q, mu_sliding)
+            .expect("exact scaled slide/stick polynomial derivation");
+    assert_eq!(quartic.len(), 5);
+    assert_eq!(
+        polynomial_gcd(&quartic, &derivative(&quartic))
+            .expect("scaled square-free polynomial gcd")
+            .len(),
+        1
+    );
+    let roots = sturm_isolate_rational(quartic.clone())
+        .expect("exact Sturm isolation under coherent scaling");
+    assert_eq!(roots.len(), 4);
+
+    let half_angle_denominator = vec![Rational::one(), Rational::zero(), Rational::one()];
+    let mut singular_determinant = determinant.clone();
+    for _ in 0..3 {
+        singular_determinant =
+            polynomial_divide_exact(&singular_determinant, &half_angle_denominator)
+                .expect("remove scaled projective denominator factor");
+    }
+    let singular_angles = sturm_isolate_rational(singular_determinant.clone())
+        .expect("exact singular-angle count under coherent scaling");
+    assert_eq!(singular_angles.len(), 2);
+    assert_eq!(
+        polynomial_gcd(&singular_determinant, &numerators[0])
+            .expect("scaled Cramer/determinant gcd")
+            .len(),
+        1
+    );
+
+    let classifications = exact_two_contact_slide_stick_branch_intervals(
+        &scaled_w,
+        &scaled_q,
+        mu_sliding,
+        mu_sticking,
+        &determinant,
+        &numerators,
+        &roots,
+    )
+    .expect("exact KKT classification under coherent scaling");
+    assert_eq!(
+        classifications,
+        vec![
+            SlidingBranchClassification::Admissible,
+            SlidingBranchClassification::Admissible,
+            SlidingBranchClassification::NegativeMultiplier,
+            SlidingBranchClassification::NegativeMultiplier,
+        ]
+    );
+}
