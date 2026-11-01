@@ -82,7 +82,11 @@ Generation must fail closed if the task has no known solution, if the independen
 - Publish used, rejected, failed-validation and unconsumed task counts.
 - Treat benchmark-generator output as a candidate challenge until an independent verifier accepts it.
 
-SIM-REL-034 governs split and ledger transitions. SIM-REL-035 makes its event transcript portable and replay-verifiable. The benchmark generator must use those controls; it must not implement its own weaker holdout bookkeeping.
+SIM-REL-034 governs split and ledger transitions. SIM-REL-035 makes its event transcript portable and replay-verifiable by replaying the established ledger transition and policy/physics functions; that verifier still has common-mode risk with the producer. SIM-REL-037 adds a separately coded logical transition auditor, but it does not independently establish the physical perturbation or policy metrics. The benchmark generator must use these controls; it must not implement its own weaker holdout bookkeeping.
+
+The initial SIM-REL-036 implementation generates deterministic exact binary-channel tasks with separate public-task and sealed-oracle artifacts. It is a task compiler, not yet an adaptive challenge-selection policy and not yet a physical apparatus generator.
+
+SIM-REL-038 is the planned development-only recipe-selection controller. It must consume Development outcomes only, track difficulty and mechanism coverage by stratum, use confidence-aware updates and freeze its selection policy before calibration/holdout evaluation. Calibration is diagnostic; sealed holdouts must never update the recipe selector.
 
 ## 6. Scoring: separate the scientific outcomes
 

@@ -161,10 +161,10 @@ pub struct SealedHoldoutEvaluationRecord {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ModelFamilyLedgerEvent {
-    CounterexampleAdmitted(CounterexampleAdmissionRecord),
+    CounterexampleAdmitted(Box<CounterexampleAdmissionRecord>),
     PolicyReplanned(FamilyReplanRecord),
     FinalPolicySealed(FinalPolicySealRecord),
-    SealedHoldoutEvaluated(SealedHoldoutEvaluationRecord),
+    SealedHoldoutEvaluated(Box<SealedHoldoutEvaluationRecord>),
 }
 
 impl ModelFamilyLedgerEvent {
@@ -198,6 +198,9 @@ pub struct ModelFamilyLedgerSnapshot {
     pub baseline_development_worlds: Vec<DecisionModelWorld>,
     pub initial_policy_identity: String,
     pub initial_policy_plan: DecisionPlan,
+    /// Immutable exact replay metrics for the initial policy on the baseline
+    /// development family, retained independently of the current active policy.
+    pub initial_policy_metrics: Vec<WorldDecisionObjectives>,
     pub family_revision: u64,
     pub replay_context: DecisionReplayContext,
     pub development_worlds: Vec<DecisionModelWorld>,
@@ -223,6 +226,7 @@ pub struct ModelFamilyLedger {
     baseline_development_worlds: Vec<DecisionModelWorld>,
     initial_policy_identity: String,
     initial_policy_plan: DecisionPlan,
+    initial_policy_metrics: Vec<WorldDecisionObjectives>,
     replay_context: DecisionReplayContext,
     development_worlds: Vec<DecisionModelWorld>,
     family_revision: u64,
@@ -396,10 +400,12 @@ impl ModelFamilyLedger {
             }
         }
 
+        let initial_policy_metrics = initial_replay.per_world.clone();
         Ok(Self {
             baseline_development_worlds: baseline_worlds.clone(),
             initial_policy_identity: initial_policy_identity.clone(),
             initial_policy_plan: initial_policy_plan.clone(),
+            initial_policy_metrics,
             replay_context,
             development_worlds: baseline_worlds,
             family_revision: 0,
@@ -459,6 +465,7 @@ impl ModelFamilyLedger {
             baseline_development_worlds: self.baseline_development_worlds.clone(),
             initial_policy_identity: self.initial_policy_identity.clone(),
             initial_policy_plan: self.initial_policy_plan.clone(),
+            initial_policy_metrics: self.initial_policy_metrics.clone(),
             family_revision: self.family_revision,
             replay_context: self.replay_context.clone(),
             development_worlds: self.development_worlds.clone(),
@@ -721,7 +728,7 @@ impl ModelFamilyLedger {
         self.active_policy_metrics = None;
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::CounterexampleAdmitted(record.clone()),
+            ModelFamilyLedgerEvent::CounterexampleAdmitted(Box::new(record.clone())),
         )?;
         self.validation_receipt_ids
             .insert(record.validation.receipt_id.clone());
@@ -1073,7 +1080,7 @@ impl ModelFamilyLedger {
         self.consumed_holdout_group_ids.insert(family_group_id);
         self.append_event(
             event_receipt_id,
-            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record.clone()),
+            ModelFamilyLedgerEvent::SealedHoldoutEvaluated(Box::new(record.clone())),
         )?;
         self.evaluation_artifact_ids
             .insert(record.evaluation_artifact_id.clone());
@@ -1293,7 +1300,7 @@ pub fn verify_model_family_ledger_snapshot(
                             reason,
                         )
                     })?;
-                if &regenerated != record {
+                if &regenerated != record.as_ref() {
                     return Err(transcript_verification_error(
                         Some(sequenced.sequence),
                         LedgerTranscriptVerificationPhase::EventEquality,
@@ -1386,7 +1393,7 @@ pub fn verify_model_family_ledger_snapshot(
                             reason,
                         )
                     })?;
-                if &regenerated != record {
+                if &regenerated != record.as_ref() {
                     return Err(transcript_verification_error(
                         Some(sequenced.sequence),
                         LedgerTranscriptVerificationPhase::EventEquality,
@@ -2734,7 +2741,7 @@ mod tests {
             ]
         );
         assert!(receipt.snapshot_exactly_reconstructed);
-        assert_eq!(receipt.active_policy_identity, None);
+        assert_eq!(receipt.active_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(receipt.frozen_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(
             receipt.consumed_holdout_group_ids,
