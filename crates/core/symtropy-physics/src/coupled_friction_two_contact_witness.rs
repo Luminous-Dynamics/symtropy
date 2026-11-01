@@ -1856,28 +1856,11 @@ mod double_sliding_direction_oracle {
                 .all(|coefficient| coefficient == &BigInt::from(0_u8))
         }
 
-        fn add(&self, other: &Self) -> Self {
-            let mut result = Self::zero();
-            for index in 0..RESULTANT_COEFFICIENTS {
-                result.coefficients[index] =
-                    &self.coefficients[index] + &other.coefficients[index];
-            }
-            result
-        }
-
         fn sub(&self, other: &Self) -> Self {
             let mut result = Self::zero();
             for index in 0..RESULTANT_COEFFICIENTS {
                 result.coefficients[index] =
                     &self.coefficients[index] - &other.coefficients[index];
-            }
-            result
-        }
-
-        fn scale_bigint(&self, scalar: &BigInt) -> Self {
-            let mut result = Self::zero();
-            for index in 0..RESULTANT_COEFFICIENTS {
-                result.coefficients[index] = &self.coefficients[index] * scalar;
             }
             result
         }
