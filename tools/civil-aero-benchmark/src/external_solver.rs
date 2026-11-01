@@ -24,6 +24,8 @@ pub const STDOUT_LOG_FILE: &str = "stdout.log";
 pub const STDERR_LOG_FILE: &str = "stderr.log";
 pub const OUTPUT_MANIFEST_FILE: &str = "expected_outputs.csv";
 pub const RUN_RECEIPT_FILE: &str = "runner_receipt.csv";
+const RUN_RECEIPT_HEADER: &str = "schema,run_id,solver_id,solver_version_claim,executable_path,executable_sha256,invocation_manifest_sha256,environment_sha256,environment_manifest_sha256,spawn_error,stdout_byte_length,stdout_sha256,stderr_byte_length,stderr_sha256,exit_code,timed_out,output_limit_exceeded,elapsed_milliseconds,expected_outputs_present,expected_outputs_missing,output_manifest_sha256,status,receipt_sha256,evidence_level";
+const OUTPUT_MANIFEST_HEADER: &str = "relative_path,status,byte_length,sha256";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StagedInputSpec {
@@ -810,6 +812,372 @@ pub fn execute_external_solver(
     receipt.receipt_sha256 = sha256_hex(&canonical_receipt_bytes(&receipt))?;
     fs::write(root.join(RUN_RECEIPT_FILE), receipt_to_csv(&receipt))
         .map_err(|error| format!("cannot persist external solver receipt: {error}"))?;
+    Ok(receipt)
+}
+
+
+fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
+    let characters = line.chars().collect::<Vec<_>>();
+    let mut fields = Vec::new();
+    let mut index = 0;
+    loop {
+        let mut field = String::new();
+        if characters.get(index) == Some(&'"') {
+            index += 1;
+            let mut closed = false;
+            while index < characters.len() {
+                if characters[index] == '"' {
+                    if characters.get(index + 1) == Some(&'"') {
+                        field.push('"');
+                        index += 2;
+                    } else {
+                        index += 1;
+                        closed = true;
+                        break;
+                    }
+                } else {
+                    field.push(characters[index]);
+                    index += 1;
+                }
+            }
+            if !closed {
+                return Err("CSV contains an unterminated quoted field".to_owned());
+            }
+            if index < characters.len() && characters[index] != ',' {
+                return Err("CSV contains data after a closing quote".to_owned());
+            }
+        } else {
+            while index < characters.len() && characters[index] != ',' {
+                if characters[index] == '"' {
+                    return Err("CSV contains a quote inside an unquoted field".to_owned());
+                }
+                field.push(characters[index]);
+                index += 1;
+            }
+        }
+        fields.push(field);
+        if index == characters.len() {
+            break;
+        }
+        if characters[index] != ',' {
+            return Err("CSV field delimiter is malformed".to_owned());
+        }
+        index += 1;
+        if index == characters.len() {
+            fields.push(String::new());
+            break;
+        }
+    }
+    Ok(fields)
+}
+
+fn decode_hex_utf8(value: &str, field: &str) -> Result<String, String> {
+    if value.len() % 2 != 0 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(format!("{field} must be an even-length hexadecimal UTF-8 value"));
+    }
+    let mut bytes = Vec::with_capacity(value.len() / 2);
+    for pair in value.as_bytes().chunks_exact(2) {
+        let digit = |byte: u8| -> u8 {
+            match byte {
+                b'0'..=b'9' => byte - b'0',
+                b'a'..=b'f' => byte - b'a' + 10,
+                b'A'..=b'F' => byte - b'A' + 10,
+                _ => 0,
+            }
+        };
+        bytes.push((digit(pair[0]) << 4) | digit(pair[1]));
+    }
+    String::from_utf8(bytes).map_err(|_| format!("{field} is not valid UTF-8"))
+}
+
+fn parse_key_value_manifest(input: &str) -> Result<BTreeMap<String, String>, String> {
+    let mut values = BTreeMap::new();
+    for (index, line) in input.lines().enumerate() {
+        let (key, value) = line
+            .split_once('=')
+            .ok_or_else(|| format!("manifest line {} is not key=value", index + 1))?;
+        if key.trim().is_empty() || values.insert(key.to_owned(), value.to_owned()).is_some() {
+            return Err(format!("manifest line {} has an empty or duplicate key", index + 1));
+        }
+    }
+    Ok(values)
+}
+
+fn manifest_value<'a>(
+    values: &'a BTreeMap<String, String>,
+    key: &str,
+) -> Result<&'a str, String> {
+    values
+        .get(key)
+        .map(String::as_str)
+        .ok_or_else(|| format!("invocation manifest is missing {key}"))
+}
+
+fn parse_manifest_u64(values: &BTreeMap<String, String>, key: &str) -> Result<u64, String> {
+    manifest_value(values, key)?
+        .parse::<u64>()
+        .map_err(|error| format!("invocation manifest {key} is not an unsigned integer: {error}"))
+}
+
+fn parse_manifest_count(values: &BTreeMap<String, String>, key: &str) -> Result<usize, String> {
+    usize::try_from(parse_manifest_u64(values, key)?)
+        .map_err(|_| format!("invocation manifest {key} does not fit usize"))
+}
+
+fn parse_manifest_string(values: &BTreeMap<String, String>, key: &str) -> Result<String, String> {
+    decode_hex_utf8(manifest_value(values, key)?, key)
+}
+
+fn parse_expected_output_manifest(input: &str) -> Result<Vec<ExpectedOutputRecord>, String> {
+    let mut lines = input.lines();
+    let header = lines.next().ok_or_else(|| "expected-output manifest is empty".to_owned())?;
+    if header != OUTPUT_MANIFEST_HEADER {
+        return Err("expected-output manifest header does not match schema".to_owned());
+    }
+    let mut outputs = Vec::new();
+    for (index, line) in lines.enumerate() {
+        let fields = parse_csv_record(line)
+            .map_err(|error| format!("expected-output manifest row {}: {error}", index + 2))?;
+        if fields.len() != 4 {
+            return Err(format!(
+                "expected-output manifest row {} must have four columns",
+                index + 2
+            ));
+        }
+        validate_relative_path(&fields[0])?;
+        let (present, byte_length, sha256) = match fields[1].as_str() {
+            "present" => {
+                let length = fields[2].parse::<u64>().map_err(|error| {
+                    format!("expected-output manifest row {} has invalid byte length: {error}", index + 2)
+                })?;
+                if !is_sha256(&fields[3]) {
+                    return Err(format!("expected-output manifest row {} has malformed SHA-256", index + 2));
+                }
+                (true, Some(length), Some(fields[3].to_ascii_lowercase()))
+            }
+            "missing" if fields[2].is_empty() && fields[3].is_empty() => (false, None, None),
+            _ => {
+                return Err(format!(
+                    "expected-output manifest row {} has inconsistent presence fields",
+                    index + 2
+                ));
+            }
+        };
+        outputs.push(ExpectedOutputRecord {
+            relative_path: fields[0].clone(),
+            present,
+            byte_length,
+            sha256,
+        });
+    }
+    if outputs.is_empty() {
+        return Err("expected-output manifest must contain at least one declared output".to_owned());
+    }
+    Ok(outputs)
+}
+
+/// Load a completed run's receipt and records from disk, then verify the full bundle. This is the
+/// offline entry point for a verifier that did not run the solver.
+pub fn read_external_solver_receipt(
+    run_directory: &Path,
+) -> Result<ExternalSolverReceipt, String> {
+    let root = fs::canonicalize(run_directory)
+        .map_err(|error| format!("cannot resolve external solver run directory: {error}"))?;
+    let receipt_path = canonical_regular_file_under_root(&root, RUN_RECEIPT_FILE)?;
+    let receipt_text = fs::read_to_string(receipt_path)
+        .map_err(|error| format!("cannot read external solver receipt: {error}"))?;
+    let receipt_lines = receipt_text.lines().collect::<Vec<_>>();
+    if receipt_lines.len() != 2 {
+        return Err("runner receipt must contain exactly one header and one data row".to_owned());
+    }
+    let header = parse_csv_record(receipt_lines[0])?;
+    if header != parse_csv_record(RUN_RECEIPT_HEADER)? {
+        return Err("runner receipt header does not match schema".to_owned());
+    }
+    let fields = parse_csv_record(receipt_lines[1])?;
+    if fields.len() != 24 {
+        return Err(format!("runner receipt must have 24 columns, got {}", fields.len()));
+    }
+
+    let parse_u64_field = |index: usize, name: &str| -> Result<u64, String> {
+        fields[index]
+            .parse::<u64>()
+            .map_err(|error| format!("runner receipt {name} is not an unsigned integer: {error}"))
+    };
+    let parse_bool_field = |index: usize, name: &str| -> Result<bool, String> {
+        match fields[index].as_str() {
+            "true" => Ok(true),
+            "false" => Ok(false),
+            _ => Err(format!("runner receipt {name} must be true or false")),
+        }
+    };
+    let parse_digest_field = |index: usize, name: &str| -> Result<String, String> {
+        if !is_sha256(&fields[index]) {
+            return Err(format!("runner receipt {name} is not a SHA-256 digest"));
+        }
+        Ok(fields[index].to_ascii_lowercase())
+    };
+
+    let invocation_path = canonical_regular_file_under_root(&root, INVOCATION_MANIFEST_FILE)?;
+    let invocation_text = fs::read_to_string(invocation_path)
+        .map_err(|error| format!("cannot read invocation manifest: {error}"))?;
+    let invocation_digest = sha256_hex(invocation_text.as_bytes())?;
+    let invocation = parse_key_value_manifest(&invocation_text)?;
+    if manifest_value(&invocation, "schema")? != EXTERNAL_SOLVER_RECEIPT_SCHEMA {
+        return Err("invocation manifest schema does not match".to_owned());
+    }
+    let run_id = parse_manifest_string(&invocation, "run_id_utf8_hex")?;
+    let solver_id = parse_manifest_string(&invocation, "solver_id_utf8_hex")?;
+    let solver_version_claim = parse_manifest_string(&invocation, "solver_version_claim_utf8_hex")?;
+    let executable_path = parse_manifest_string(&invocation, "executable_path_utf8_hex")?;
+    let executable_sha256 = manifest_value(&invocation, "executable_sha256")?.to_ascii_lowercase();
+    let environment_sha256 = manifest_value(&invocation, "environment_sha256")?.to_ascii_lowercase();
+    let argument_count = parse_manifest_count(&invocation, "argument_count")?;
+    let environment_count = parse_manifest_count(&invocation, "environment_entry_count")?;
+    let staged_count = parse_manifest_count(&invocation, "staged_input_count")?;
+    let expected_count = parse_manifest_count(&invocation, "expected_output_count")?;
+    if argument_count > 100_000 || environment_count > 100_000 || staged_count > 10_000 || expected_count > 10_000 {
+        return Err("invocation manifest declares an unreasonable record count".to_owned());
+    }
+    let expected_manifest_keys = 15_usize
+        .checked_add(argument_count)
+        .and_then(|count| count.checked_add(staged_count.checked_mul(4)?))
+        .and_then(|count| count.checked_add(expected_count))
+        .ok_or_else(|| "invocation manifest key count overflow".to_owned())?;
+    if invocation.len() != expected_manifest_keys {
+        return Err("invocation manifest contains missing or unrecognized fields".to_owned());
+    }
+    if parse_manifest_u64(&invocation, "timeout_milliseconds")? == 0
+        || parse_manifest_u64(&invocation, "max_log_bytes_per_stream")? == 0
+    {
+        return Err("invocation manifest has invalid resource limits".to_owned());
+    }
+    for index in 0..argument_count {
+        let argument = parse_manifest_string(&invocation, &format!("argument_{index}_utf8_hex"))?;
+        if argument.contains('\0') {
+            return Err("invocation manifest contains an argument with NUL".to_owned());
+        }
+    }
+
+    let mut staged_inputs = Vec::with_capacity(staged_count);
+    let mut seen_input_paths = BTreeSet::new();
+    for index in 0..staged_count {
+        let relative_path = parse_manifest_string(&invocation, &format!("input_{index}_path_utf8_hex"))?;
+        validate_relative_path(&relative_path)?;
+        if !seen_input_paths.insert(relative_path.clone()) {
+            return Err("invocation manifest contains duplicate staged-input paths".to_owned());
+        }
+        let byte_length = parse_manifest_u64(&invocation, &format!("input_{index}_byte_length"))?;
+        let sha256 = manifest_value(&invocation, &format!("input_{index}_sha256"))?.to_ascii_lowercase();
+        if !is_sha256(&sha256) {
+            return Err(format!("invocation manifest input {index} has malformed SHA-256"));
+        }
+        let source_reference = parse_manifest_string(&invocation, &format!("input_{index}_source_ref_utf8_hex"))?;
+        staged_inputs.push(StagedInputReceipt {
+            relative_path,
+            byte_length,
+            sha256,
+            source_reference,
+        });
+    }
+
+    let mut expected_paths = Vec::with_capacity(expected_count);
+    let mut seen_output_paths = BTreeSet::new();
+    for index in 0..expected_count {
+        let path = parse_manifest_string(&invocation, &format!("expected_output_{index}_path_utf8_hex"))?;
+        validate_relative_path(&path)?;
+        if !seen_output_paths.insert(path.clone()) {
+            return Err("invocation manifest contains duplicate expected-output paths".to_owned());
+        }
+        expected_paths.push(path);
+    }
+    let environment_path = canonical_regular_file_under_root(&root, ENVIRONMENT_MANIFEST_FILE)?;
+    let environment_text = fs::read_to_string(environment_path)
+        .map_err(|error| format!("cannot read environment manifest: {error}"))?;
+    let environment_lines = environment_text.lines().collect::<Vec<_>>();
+    if environment_lines.first().copied() != Some("schema=civil-external-solver-environment/0.1.0")
+        || environment_lines.len() != environment_count + 1
+    {
+        return Err("environment manifest entry count or schema differs from invocation".to_owned());
+    }
+    let mut seen_environment_keys = BTreeSet::new();
+    for (index, line) in environment_lines.iter().skip(1).enumerate() {
+        let (key_hex, value_sha256) = line
+            .strip_prefix("key_utf8_hex=")
+            .and_then(|rest| rest.split_once(" value_sha256="))
+            .ok_or_else(|| format!("environment manifest entry {} is malformed", index + 1))?;
+        let key = decode_hex_utf8(key_hex, "environment key")?;
+        if key.trim().is_empty() || key.contains('=') || !seen_environment_keys.insert(key)
+            || !is_sha256(value_sha256)
+        {
+            return Err(format!("environment manifest entry {} is duplicate or malformed", index + 1));
+        }
+    }
+
+    let output_path = canonical_regular_file_under_root(&root, OUTPUT_MANIFEST_FILE)?;
+    let output_text = fs::read_to_string(output_path)
+        .map_err(|error| format!("cannot read expected-output manifest: {error}"))?;
+    let outputs = parse_expected_output_manifest(&output_text)?;
+    if outputs.iter().map(|output| output.relative_path.as_str()).collect::<Vec<_>>()
+        != expected_paths.iter().map(String::as_str).collect::<Vec<_>>()
+    {
+        return Err("expected-output manifest paths differ from frozen invocation paths".to_owned());
+    }
+
+    let receipt = ExternalSolverReceipt {
+        schema: fields[0].clone(),
+        run_id: fields[1].clone(),
+        solver_id: fields[2].clone(),
+        solver_version_claim: fields[3].clone(),
+        executable_path: fields[4].clone(),
+        executable_sha256: parse_digest_field(5, "executable_sha256")?,
+        invocation_manifest_sha256: parse_digest_field(6, "invocation_manifest_sha256")?,
+        environment_sha256: parse_digest_field(7, "environment_sha256")?,
+        environment_manifest_sha256: parse_digest_field(8, "environment_manifest_sha256")?,
+        spawn_error: if fields[9].is_empty() { None } else { Some(fields[9].clone()) },
+        stdout_byte_length: parse_u64_field(10, "stdout_byte_length")?,
+        stdout_sha256: parse_digest_field(11, "stdout_sha256")?,
+        stderr_byte_length: parse_u64_field(12, "stderr_byte_length")?,
+        stderr_sha256: parse_digest_field(13, "stderr_sha256")?,
+        exit_code: if fields[14].is_empty() {
+            None
+        } else {
+            Some(fields[14].parse::<i32>().map_err(|error| format!("runner receipt exit_code is invalid: {error}"))?)
+        },
+        timed_out: parse_bool_field(15, "timed_out")?,
+        output_limit_exceeded: parse_bool_field(16, "output_limit_exceeded")?,
+        elapsed_milliseconds: parse_u64_field(17, "elapsed_milliseconds")?,
+        outputs,
+        output_manifest_sha256: parse_digest_field(20, "output_manifest_sha256")?,
+        status: fields[21].clone(),
+        receipt_sha256: parse_digest_field(22, "receipt_sha256")?,
+        evidence_level: fields[23].clone(),
+        staged_inputs,
+    };
+    if receipt.run_id != run_id
+        || receipt.solver_id != solver_id
+        || receipt.solver_version_claim != solver_version_claim
+        || receipt.executable_path != executable_path
+        || receipt.executable_sha256 != executable_sha256
+        || receipt.environment_sha256 != environment_sha256
+        || receipt.invocation_manifest_sha256 != invocation_digest
+    {
+        return Err("receipt identity fields disagree with invocation manifest".to_owned());
+    }
+    if !is_sha256(&environment_sha256) {
+        return Err("invocation manifest environment digest is malformed".to_owned());
+    }
+    let present = receipt.outputs.iter().filter(|output| output.present).count();
+    let missing = receipt.missing_output_count();
+    if fields[18] != present.to_string() || fields[19] != missing.to_string() {
+        return Err("receipt output counts disagree with output manifest".to_owned());
+    }
+    if receipt.evidence_level
+        != "process_receipt_only_caller_version_claim_unverified_no_convergence_or_physical_validation"
+    {
+        return Err("runner receipt has an unknown evidence ceiling".to_owned());
+    }
+    verify_external_solver_receipt(&root, &receipt)?;
     Ok(receipt)
 }
 
