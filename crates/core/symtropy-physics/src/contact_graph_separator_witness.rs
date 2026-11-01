@@ -654,17 +654,19 @@ mod exact_sticking_response_interval {
         ];
         let free_velocity = [rational(-3, 2), rational(1, 8), rational(0, 1)];
         let zero = rational(0, 1);
-        for row in 0..3 {
-            let free_residual = (0..3).fold(free_velocity[row].clone(), |sum, column| {
-                sum + self_operator[row][column].clone() * offset[column].clone()
-            });
+        for (row, self_row) in self_operator.iter().enumerate() {
+            let free_residual = self_row
+                .iter()
+                .zip(offset.iter())
+                .fold(free_velocity[row].clone(), |sum, (operator, impulse)| {
+                    sum + operator.clone() * impulse.clone()
+                });
             assert_eq!(free_residual, zero);
-            for separator_column in 0..3 {
-                let response_residual = (0..3).fold(
-                    separator_coupling[separator_column][row].clone(),
-                    |sum, leaf_column| {
-                        sum + self_operator[row][leaf_column].clone()
-                            * gain[leaf_column][separator_column].clone()
+            for (separator_column, coupling_column) in separator_coupling.iter().enumerate() {
+                let response_residual = self_row.iter().zip(gain.iter()).fold(
+                    coupling_column[row].clone(),
+                    |sum, (operator, gain_row)| {
+                        sum + operator.clone() * gain_row[separator_column].clone()
                     },
                 );
                 assert_eq!(response_residual, zero);
