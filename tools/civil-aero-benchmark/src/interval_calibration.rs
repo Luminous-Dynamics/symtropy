@@ -234,13 +234,12 @@ pub fn audit_blind_prediction_intervals(
         };
         if let Some(previous_observation) =
             truth_by_sample.insert(truth_key, prediction.observed_value.to_bits())
+            && previous_observation != prediction.observed_value.to_bits()
         {
-            if previous_observation != prediction.observed_value.to_bits() {
-                return Err(format!(
-                    "sample {} changes observed truth across model predictions",
-                    prediction.sample_id
-                ));
-            }
+            return Err(format!(
+                "sample {} changes observed truth across model predictions",
+                prediction.sample_id
+            ));
         }
 
         let width = prediction.upper - prediction.lower;
@@ -280,17 +279,17 @@ pub fn audit_blind_prediction_intervals(
     // Otherwise hard samples could selectively omit a 95% interval, evading calibration scoring.
     for (group, samples) in &interval_levels_by_sample {
         let mut level_sets = samples.values();
-        if let Some(reference_levels) = level_sets.next() {
-            if level_sets.any(|levels| levels != reference_levels) {
-                return Err(format!(
-                    "samples have different nominal interval level sets for task={} model={} geometry={} regime={} domain={}",
-                    group.task_id,
-                    group.model_id,
-                    group.geometry_family,
-                    group.flow_regime,
-                    group.domain_status.as_str()
-                ));
-            }
+        if let Some(reference_levels) = level_sets.next()
+            && level_sets.any(|levels| levels != reference_levels)
+        {
+            return Err(format!(
+                "samples have different nominal interval level sets for task={} model={} geometry={} regime={} domain={}",
+                group.task_id,
+                group.model_id,
+                group.geometry_family,
+                group.flow_regime,
+                group.domain_status.as_str()
+            ));
         }
     }
 
@@ -298,17 +297,17 @@ pub fn audit_blind_prediction_intervals(
     // model could appear calibrated by silently omitting difficult cases.
     for (group, model_sets) in &comparison_sets {
         let mut sample_sets = model_sets.values();
-        if let Some(reference_samples) = sample_sets.next() {
-            if sample_sets.any(|samples| samples != reference_samples) {
-                return Err(format!(
-                    "models have different blind sample sets for task={} geometry={} regime={} domain={} coverage={}",
-                    group.task_id,
-                    group.geometry_family,
-                    group.flow_regime,
-                    group.domain_status.as_str(),
-                    f64::from_bits(group.nominal_coverage_bits)
-                ));
-            }
+        if let Some(reference_samples) = sample_sets.next()
+            && sample_sets.any(|samples| samples != reference_samples)
+        {
+            return Err(format!(
+                "models have different blind sample sets for task={} geometry={} regime={} domain={} coverage={}",
+                group.task_id,
+                group.geometry_family,
+                group.flow_regime,
+                group.domain_status.as_str(),
+                f64::from_bits(group.nominal_coverage_bits)
+            ));
         }
     }
 
@@ -316,13 +315,13 @@ pub fn audit_blind_prediction_intervals(
         let mut previous: Option<(f64, f64)> = None;
         for (coverage_bits, (lower, upper)) in &sample.intervals {
             let coverage = f64::from_bits(*coverage_bits);
-            if let Some((previous_lower, previous_upper)) = previous {
-                if *lower > previous_lower || *upper < previous_upper {
-                    return Err(format!(
-                        "sample {} has non-nested intervals as nominal coverage increases to {}",
-                        sample_key.sample_id, coverage
-                    ));
-                }
+            if let Some((previous_lower, previous_upper)) = previous
+                && (*lower > previous_lower || *upper < previous_upper)
+            {
+                return Err(format!(
+                    "sample {} has non-nested intervals as nominal coverage increases to {}",
+                    sample_key.sample_id, coverage
+                ));
             }
             previous = Some((*lower, *upper));
         }
