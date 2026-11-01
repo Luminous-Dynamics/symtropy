@@ -117,15 +117,17 @@ def main() -> int:
     bins = Counter((task["objectives"], task["variables"]) for task in tasks)
     expected_bins = {(m, d): 3 for m in (2, 3) for d in (2, 3, 5, 10, 30)}
     require(dict(bins) == expected_bins, "expected exactly three tasks in each of ten dimension/objective bins")
-    require(manifest["current_repository_coverage"]["step_tasks_implemented"] == 0,
-            "reference metadata must not be mistaken for Rust task coverage")
+    require(manifest["current_repository_coverage"]["step_tasks_implemented"] == 2,
+            "expected exactly two clean-room formula pilots")
+    require(manifest["current_repository_coverage"]["implemented_pilot_tasks"] == ["STEP7", "STEP24"],
+            "unexpected pilot task set")
     require(manifest["current_repository_coverage"]["full_step_coverage"] is False,
             "full STEP coverage was claimed prematurely")
 
     print(
         "step_reference_manifest=pass tasks=30 bins=10 tasks_per_bin=3 "
         "source_commit_pinned=true gpl_vendoring=blocked front_data=external_pointer_only "
-        "rust_tasks_implemented=0"
+        "rust_formula_pilots=2 full_step_coverage=false"
     )
     return 0
 

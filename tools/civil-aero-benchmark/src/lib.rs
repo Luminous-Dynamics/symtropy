@@ -8,6 +8,7 @@
 pub mod budget;
 pub mod cfd_admission;
 pub mod comparison;
+pub mod cmo_step_pilot;
 pub mod coupon;
 pub mod dpw8_submission;
 pub mod grid_convergence;

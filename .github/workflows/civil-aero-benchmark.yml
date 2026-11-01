@@ -405,6 +405,17 @@ jobs:
           python3 scripts/verify-step-reference-manifest.py > /tmp/step-b.txt
           cmp /tmp/step-a.txt /tmp/step-b.txt
           grep -q "step_reference_manifest=pass tasks=30 bins=10 tasks_per_bin=3" /tmp/step-a.txt
+      - name: Verify STEP7 and STEP24 clean-room formula pilots with independent oracle
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo run --locked --bin step_pilot_demo > /tmp/step-pilot-a.csv 2> /tmp/step-pilot-a.txt
+          cargo run --locked --bin step_pilot_demo > /tmp/step-pilot-b.csv 2> /tmp/step-pilot-b.txt
+          cmp /tmp/step-pilot-a.csv /tmp/step-pilot-b.csv
+          cmp /tmp/step-pilot-a.txt /tmp/step-pilot-b.txt
+          test "$(wc -l < /tmp/step-pilot-a.csv)" -eq 9
+          grep -q "step_pilot_known_answer=pass tasks=2 rows=8" /tmp/step-pilot-a.txt
+          python3 scripts/verify-step-pilot-independent.py /tmp/step-pilot-a.csv
       - name: Guard blank manufacturing templates against accidental evidence promotion
         shell: bash
         run: |

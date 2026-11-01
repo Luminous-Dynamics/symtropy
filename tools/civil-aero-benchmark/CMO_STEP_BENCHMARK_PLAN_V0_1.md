@@ -83,11 +83,13 @@ Test a two-archive policy with controlled fidelity promotion.
 
 **Multi-fidelity decision policy.** Use a validated low-fidelity model only for screening. Spend high-fidelity calls where feasibility uncertainty or Pareto decision impact is largest. EVSI-style selection is allowed only with calibrated likelihoods; otherwise use transparent deterministic priorities and abstain out of domain. Charge all screens, failed solves, high-fidelity conditions, model fits, solver/mesh setup and audits to total budget.
 
-Two archives/co-evolution alone are not novel: CCMO and c-DPEA are established baselines. Potential contribution to test is their combination with per-constraint diversity, calibrated feasibility uncertainty, independently verified promotion and total-cost/decision-value accounting. Require ablations and literature review before describing it as novel.
+Two archives/co-evolution alone are not novel: CCMO, c-DPEA and the March 2026 DPNCMO method already use related dual-population/co-evolutionary exploration. DPNCMO combines adaptive constraint relaxation with novelty-guided selection, and reports tests on 43 CMOP instances and 12 engineering problems. It is a required baseline, not a novelty claim. Potential contribution to test is the combination with per-constraint diversity, calibrated feasibility uncertainty, independent admission/promotion, selective abstention and total-cost/decision-value accounting. Require ablations and literature review before describing it as novel.
+
+DPNCMO reference: Shiwei Chen et al., DOI 10.1093/jcde/qwag019, https://doi.org/10.1093/jcde/qwag019 (published March 2026).
 
 ## Baselines
 
-Reproduce or compare against, subject to implementation availability and licence: random search with feasibility filtering; constraint-dominance NSGA-II / C-NSGA-II; GDE3 with explicit constraint handling; C-TAEA; CCMO; c-DPEA; AGE-MOEA/AGE-MOEA-II; SPEA2; NSGA-III; C-MOEA/D / MOEA/D-IEpsilon; NSDE and NSDER. Specialist STEP paper baselines should be used where parameters and implementations are independently reproducible.
+Reproduce or compare against, subject to implementation availability and licence: random search with feasibility filtering; constraint-dominance NSGA-II / C-NSGA-II; GDE3 with explicit constraint handling; C-TAEA; CCMO; c-DPEA; DPNCMO; AGE-MOEA/AGE-MOEA-II; SPEA2; NSGA-III; C-MOEA/D / MOEA/D-IEpsilon; NSDE and NSDER. Specialist STEP paper baselines should be used where parameters and implementations are independently reproducible.
 
 Record source revision, implementation identity, parameters, stopping criteria, compute environment and all tuning cost. The benchmark must not be reduced to our existing NSGA-II/GDE3 implementations.
 

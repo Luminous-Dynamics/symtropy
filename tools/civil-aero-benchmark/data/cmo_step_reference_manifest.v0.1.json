@@ -1,6 +1,6 @@
 {
   "schema": "civil-aero-cmo-step-reference-manifest/0.1.0",
-  "status": "reference_metadata_only_no_source_code_or_problem_data_vendored_no_step_rust_implementation_yet",
+  "status": "reference_metadata_with_two_clean_room_formula_pilots_committed_pending_exact_head_ci_no_full_step_coverage",
   "observed_date": "2026-11-01",
   "paper": {
     "title": "Selecting test problems from benchmark suites in constrained multiobjective optimisation",
@@ -531,8 +531,12 @@
   },
   "current_repository_coverage": {
     "zdt1_zdt4_analytic_optimizer_lane": true,
-    "step_tasks_implemented": 0,
+    "step_tasks_implemented": 2,
     "full_step_coverage": false,
-    "no_cfd_validation_claim": true
+    "no_cfd_validation_claim": true,
+    "implemented_pilot_tasks": [
+      "STEP7",
+      "STEP24"
+    ]
   }
 }

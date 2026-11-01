@@ -365,3 +365,8 @@ The risk_credibility module classifies model intended uses using a declared qual
 ## STEP constrained multiobjective benchmark lane
 
 Issue #3195 tracks the clean-room STEP adapter. The reference-only task/commit/blob/terms manifest is in data/cmo_step_reference_manifest.v0.1.json; the experimental protocol and acceptance targets are in CMO_STEP_BENCHMARK_PLAN_V0_1.md. The external jsi-ci/cmo repository reports GPL-3.0: no code or Pareto-front assets have been copied into this crate. All 30 task formulas remain unimplemented and unqualified until independently derived and tested.
+
+
+## Clean-room STEP formula pilots
+
+Two formula-level pilots are implemented: STEP7 (C2-DTLZ2, M=2, D=5) and STEP24 (C1-DTLZ1, M=3, D=5), in src/cmo_step_pilot.rs. Run cargo run --locked --bin step_pilot_demo from this package directory. Rust known-answer tests and an independent standard-library Python oracle check objectives, margins and the positive-feasible sign. This is 2/30 formula pilots, not full suite coverage or evidence of optimizer superiority. See STEP_PILOT_PROTOCOL_V0_1.md and issue #3195.
