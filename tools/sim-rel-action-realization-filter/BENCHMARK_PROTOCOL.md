@@ -175,6 +175,12 @@ real-workflow evaluation.
 - Held-out shift-family worst-case loss and task-family CVaR.
 - Regret to the exact per-world oracle where a per-world oracle is available;
   report the oracle as a non-deployable diagnostic, not a fair policy baseline.
+- Nominal and realized Pareto frontiers over experiment cost and downstream
+  decision loss; report dominated fractions and Pareto regret against the
+  exact small-domain frontier where available.
+- Cost-to-loss crossover rate for pairwise trade-offs, plus a pre-registered
+  sensitivity curve over the exchange-rate range. Do not select a rate by
+  maximizing sealed-test performance.
 
 ### Safety and decision integrity
 
@@ -202,6 +208,9 @@ real-workflow evaluation.
 - Wall-clock time, peak memory, model/query budget and generated policy nodes.
 - Planner/frontier size and exact-oracle resource use.
 - Cost per successful decision and cost per unit reduction in held-out loss.
+- Pareto hypervolume only with a predeclared common reference point and
+  dimensionless axis normalization; also publish the raw two-axis frontier so
+  hypervolume cannot conceal a normalization choice.
 
 EIG, entropy reduction and posterior concentration remain useful diagnostics;
 none is allowed to replace the downstream decision endpoint.
@@ -210,6 +219,9 @@ none is allowed to replace the downstream decision endpoint.
 
 - Freeze task generators, terminal losses, baseline versions, costs, risk
   budgets, compute caps and analysis code before opening sealed test results.
+- Freeze the cost-to-loss exchange-rate range or conversion procedure on the
+  development/calibration split. Report the whole sensitivity curve and exact
+  Pareto frontier; do not choose a single rate after viewing sealed outcomes.
 - Use paired task instances/seeds across all feasible methods.
 - Split by task family, source, ligand/material family or apparatus signature
   wherever those groupings are scientifically meaningful.
