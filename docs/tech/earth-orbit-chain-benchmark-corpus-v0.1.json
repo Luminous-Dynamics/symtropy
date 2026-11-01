@@ -120,7 +120,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "COASTAL_GATEWAY_ADJACENT_RANGE",
@@ -237,7 +238,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "SEPARATED_PORT_INTEGRATION_LAUNCH",
@@ -354,7 +356,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "INLAND_CONVENTIONAL_RAIL_ORIGIN",
@@ -471,7 +474,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "ROAD_ONLY_CAPACITY_SHORTFALL",
@@ -588,7 +592,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "MAGRAIL_LINEAR_MOTOR_PILOT",
@@ -705,7 +710,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "DEDICATED_UNDERGROUND_MAGLEV_CONCEPT",
@@ -822,7 +828,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "CONVENTIONAL_RAIL_SHORT_TUNNEL_BYPASS",
@@ -939,7 +946,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "EXISTING_PROVIDER_NO_BUILD_BASELINE",
@@ -1056,7 +1064,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "PORT_CAPACITY_BOTTLENECK",
@@ -1173,7 +1182,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "PAYLOAD_INTEGRATION_CAPACITY_BOTTLENECK",
@@ -1290,7 +1300,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "LAUNCH_RANGE_CAPACITY_BOTTLENECK",
@@ -1407,7 +1418,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "MISSED_LAUNCH_WINDOW_DEADLINE",
@@ -1524,7 +1536,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "RANGE_CLOSURE",
@@ -1641,7 +1654,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "POLAR_MISSION_NORTHBOUND",
@@ -1758,7 +1772,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "LOW_INCLINATION_EQUATORWARD_ACCESS",
@@ -1875,7 +1890,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "INVALID_EQUATORIAL_ORBIT_ASSUMPTION",
@@ -1992,7 +2008,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "SHARED_GATEWAY_COMMON_MODE_N_MINUS_ONE",
@@ -2213,7 +2230,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "parallel_service"
     },
     {
       "id": "INDEPENDENT_GATEWAYS_N_MINUS_ONE",
@@ -2434,7 +2452,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "parallel_service"
     },
     {
       "id": "UNKNOWN_SHARED_GRID_CAPACITY",
@@ -2551,7 +2570,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "SUPPLIER_DELAY_EXCEEDS_CAMPAIGN_DEADLINE",
@@ -2668,7 +2688,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "PAYLOAD_MASS_LOSS_AT_TRANSFER",
@@ -2785,7 +2806,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "FUTURE_ORBITAL_RING_CONSTRUCTION_CARGO",
@@ -2872,7 +2894,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "LINEAR_MOTOR_MISLABELED_AS_MAGLEV",
@@ -2989,7 +3012,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "UNQUALIFIED_RING_CLAIMED_OPERATIONAL",
@@ -3076,7 +3100,8 @@
             }
           ]
         }
-      ]
+      ],
+      "route_semantics": "alternatives"
     },
     {
       "id": "SLANTED_GEO_TETHER_CONCEPT",
@@ -3160,6 +3185,229 @@
               "capability_maturity": "concept_only",
               "operational_capability_claim": false,
               "launch_geometry": null
+            }
+          ]
+        }
+      ],
+      "route_semantics": "alternatives"
+    },
+    {
+      "id": "MUTUALLY_EXCLUSIVE_PATHS_NOT_ADDED_AS_CAPACITY",
+      "expected_status": "infeasible",
+      "route_semantics": "alternatives",
+      "require_n_minus_one": false,
+      "mission": {
+        "payload_mass_kg": 1000,
+        "deadline_minutes": 1440,
+        "orbit_class": "low_inclination",
+        "target_inclination_mdeg": 28000
+      },
+      "routes": [
+        {
+          "id": "mutually_exclusive_a",
+          "stages": [
+            {
+              "id": "a_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 600,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 40,
+              "energy_wh": 900,
+              "dependency_domains": [
+                "rail:choice_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "a_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:choice_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "a_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:choice_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "a_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:choice_a",
+                "grid:choice_a"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
+            }
+          ]
+        },
+        {
+          "id": "mutually_exclusive_b",
+          "stages": [
+            {
+              "id": "b_inland",
+              "technology_family": "conventional_rail",
+              "capacity_state": "known",
+              "capacity_kg": 600,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 180,
+              "cost_scu": 45,
+              "energy_wh": 950,
+              "dependency_domains": [
+                "rail:choice_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "b_port",
+              "technology_family": "port_transfer",
+              "capacity_state": "known",
+              "capacity_kg": 1500,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 60,
+              "cost_scu": 30,
+              "energy_wh": 200,
+              "dependency_domains": [
+                "port:choice_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "b_integration",
+              "technology_family": "payload_integration",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 120,
+              "cost_scu": 50,
+              "energy_wh": 700,
+              "dependency_domains": [
+                "integration:choice_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": null
+            },
+            {
+              "id": "b_launch",
+              "technology_family": "rocket_launch",
+              "capacity_state": "known",
+              "capacity_kg": 1300,
+              "input_mass_kg": 1000,
+              "output_mass_kg": 1000,
+              "duration_minutes": 90,
+              "cost_scu": 800,
+              "energy_wh": 2000,
+              "dependency_domains": [
+                "range:choice_b",
+                "grid:choice_b"
+              ],
+              "hard_gates": {
+                "rights": "pass",
+                "safety": "pass",
+                "environment": "pass"
+              },
+              "levitation_claim": false,
+              "capability_maturity": "operational_reference",
+              "operational_capability_claim": false,
+              "launch_geometry": {
+                "site_latitude_mdeg": 0,
+                "launch_azimuth_mdeg": 62000,
+                "target_inclination_mdeg": 28000,
+                "range_gate": "pass",
+                "overflight_gate": "pass"
+              }
             }
           ]
         }
