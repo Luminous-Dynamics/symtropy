@@ -132,7 +132,10 @@ fn validate_context(context: &ShapeBenchRunContext) -> Result<(), String> {
         return Err("run_manifest_sha256 must be a 64-character SHA-256 digest".to_owned());
     }
     for (name, digest) in [
-        ("results_json_sha256", context.results_json_sha256.as_deref()),
+        (
+            "results_json_sha256",
+            context.results_json_sha256.as_deref(),
+        ),
         ("cost_ledger_sha256", context.cost_ledger_sha256.as_deref()),
     ] {
         if let Some(value) = digest
@@ -262,7 +265,9 @@ pub fn import_shape_bench_results_csv(
     for (line_index, raw_line) in lines.enumerate() {
         let line_number = line_index + 2;
         if raw_line.trim().is_empty() {
-            return Err(format!("line {line_number}: blank CSV record is not permitted"));
+            return Err(format!(
+                "line {line_number}: blank CSV record is not permitted"
+            ));
         }
         let fields = parse_csv_record(raw_line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
@@ -285,7 +290,9 @@ pub fn import_shape_bench_results_csv(
             || fields[1].contains('\r')
             || fields[1].contains('\0')
         {
-            return Err(format!("line {line_number}: design payload must be non-empty and single-line"));
+            return Err(format!(
+                "line {line_number}: design payload must be non-empty and single-line"
+            ));
         }
         let reward = fields[2]
             .trim()
@@ -328,7 +335,8 @@ pub fn import_shape_bench_results_csv(
         reward_direction,
         rows,
         import_sha256,
-        evidence_level: "benchmark_output_import_only_not_solver_validation_or_physical_evidence".to_owned(),
+        evidence_level: "benchmark_output_import_only_not_solver_validation_or_physical_evidence"
+            .to_owned(),
     })
 }
 
@@ -358,9 +366,8 @@ mod tests {
 
     #[test]
     fn imports_quoted_design_and_checks_running_best_without_inventing_cost() {
-        let report =
-            import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
-                .expect("valid result trajectory");
+        let report = import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
+            .expect("valid result trajectory");
         assert_eq!(report.rows.len(), 3);
         assert_eq!(report.rows[0].design_payload, "shape-a,twist=0.1");
         assert!(!report.cost_ledger_reference_present());
@@ -369,9 +376,8 @@ mod tests {
             "benchmark_output_import_only_not_solver_validation_or_physical_evidence"
         );
         assert_eq!(report.to_csv().lines().count(), 4);
-        let repeated =
-            import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
-                .expect("deterministic import");
+        let repeated = import_shape_bench_results_csv(RESULTS, context(), RewardDirection::Maximize)
+            .expect("deterministic import");
         assert_eq!(report.import_sha256, repeated.import_sha256);
     }
 
@@ -379,9 +385,8 @@ mod tests {
     fn cost_comparison_requires_a_separate_pinned_ledger() {
         let mut run = context();
         run.cost_ledger_sha256 = Some("a".repeat(64));
-        let report =
-            import_shape_bench_results_csv(RESULTS, run, RewardDirection::Maximize)
-                .expect("valid run");
+        let report = import_shape_bench_results_csv(RESULTS, run, RewardDirection::Maximize)
+            .expect("valid run");
         assert!(report.cost_ledger_reference_present());
     }
 
@@ -429,8 +434,7 @@ mod tests {
         let mut bad_source = context();
         bad_source.source_commit = "main".to_owned();
         assert!(
-            import_shape_bench_results_csv(RESULTS, bad_source, RewardDirection::Maximize)
-                .is_err()
+            import_shape_bench_results_csv(RESULTS, bad_source, RewardDirection::Maximize).is_err()
         );
     }
 
@@ -442,9 +446,8 @@ mod tests {
             "1,\"shape-b\",0.8,0.8\n",
             "2,\"shape-c\",0.9,0.8\n"
         );
-        let report =
-            import_shape_bench_results_csv(input, context(), RewardDirection::Minimize)
-                .expect("valid minimization trajectory");
+        let report = import_shape_bench_results_csv(input, context(), RewardDirection::Minimize)
+            .expect("valid minimization trajectory");
         assert_eq!(report.rows[2].best_reward, 0.8);
     }
 }
