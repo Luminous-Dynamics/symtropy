@@ -2741,7 +2741,7 @@ mod tests {
             ]
         );
         assert!(receipt.snapshot_exactly_reconstructed);
-        assert_eq!(receipt.active_policy_identity, None);
+        assert_eq!(receipt.active_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(receipt.frozen_policy_identity.as_deref(), Some("policy-v2"));
         assert_eq!(
             receipt.consumed_holdout_group_ids,
