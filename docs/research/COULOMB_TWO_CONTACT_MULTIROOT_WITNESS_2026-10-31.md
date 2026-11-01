@@ -57,6 +57,49 @@ The independent nonlinear prototype's maximum residual norms were below 1e-9, wi
 
 Both contacts have positive normal impulses in all three branches. The second contact remains strictly inside its friction disk, while the first contact changes between stick and two distinct sliding directions. Cross-contact energy contributions are nonzero in all three branches (approximately -2.16458, -0.19618, and -0.002633 respectively).
 
+## Reduced-normal-map insight for the next solver
+
+Reorder the island coordinates conceptually into normal and tangent blocks,
+\[
+W=\begin{bmatrix}W_{nn}&W_{nt}\\W_{tn}&W_{tt}\end{bmatrix},
+\qquad p=(\lambda,j),\qquad q=(q_n,q_t).
+\]
+Because the full Delassus matrix is SPD, its tangential principal block
+\(H=W_{tt}\) is SPD. For any fixed normal-load vector \(\lambda\ge0\), the
+tangential response is the unique minimizer
+\[
+j^*(\lambda)=\arg\min_{\|j_i\|\le\mu_i\lambda_i}
+\left[\tfrac12j^THj+(q_t+W_{tn}\lambda)^Tj\right].
+\]
+Its KKT system is
+\[
+Hj+q_t+W_{tn}\lambda+
+\operatorname{diag}(\tau_1I_2,\tau_2I_2)j=0,
+\quad \tau_i\ge0,
+\quad \tau_i(\|j_i\|^2-\mu_i^2\lambda_i^2)=0.
+\]
+Strict convexity makes these conditions sufficient for the unique tangential
+minimizer at that \(\lambda\). The remaining coupled problem is the
+two-dimensional normal complementarity map
+\[
+g(\lambda)=q_n+W_{nn}\lambda+W_{nt}j^*(\lambda),
+\quad \lambda\ge0,\quad g(\lambda)\ge0,\quad
+\lambda^Tg(\lambda)=0.
+\]
+
+The three frozen witnesses have positive normal load at both contacts and
+satisfy the tangential QP KKT conditions; their multiplicity therefore appears
+as distinct roots of the reduced normal map, not as ambiguity in the inner
+tangent minimizer. This suggests a future architecture: solve the small
+strongly-convex tangential QP (or its two-multiplier dual) for each trial
+\(\lambda\), then enumerate normal active sets and certify the outer roots
+with interval methods. Do not assume the reduced normal map is monotone; the
+non-associated normal/friction coupling is exactly where multiple branches
+can arise.
+
+This is a solver-design deduction from the frozen fixture, not an implemented
+two-contact algorithm or a completeness proof.
+
 ## What the Rust fixture checks
 
 - full 6x6 symmetry and Cholesky positive definiteness;
