@@ -176,8 +176,9 @@ fn exact_two_contact_slide_stick_polynomials(
         post_velocity_numerators.push(value);
     }
 
-    // Sliding KKT requires s_perp dot u_t1 = 0. The numerator contains
-    // (1+t^2)^3, which has no real zeros; remove it exactly to retain the
+    // Sliding KKT requires s_perp dot u_t1 = 0. After clearing both the
+    // active-system and unit-direction denominators, the numerator contains
+    // (1+t^2)^4, which has no real zeros; remove it exactly to retain the
     // quartic whose distinct real roots are the finite angular candidates.
     let angular_numerator = polynomial_add(
         &polynomial_scale(
@@ -187,7 +188,7 @@ fn exact_two_contact_slide_stick_polynomials(
         &polynomial_multiply(&one_minus_t_squared, &post_velocity_numerators[2]),
     );
     let mut quartic = angular_numerator;
-    for _ in 0..3 {
+    for _ in 0..4 {
         quartic = polynomial_divide_exact(&quartic, &denominator)?;
     }
     if quartic.len() != 5
