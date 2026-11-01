@@ -738,7 +738,8 @@ mod tests {
         let force_before = body.force_accumulator.clone();
         let torque_before = body.torque_accumulator.clone();
 
-        let error = try_integrate(&mut body, &SVector::<_, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
+        let error =
+            try_integrate(&mut body, &SVector::<_, 3>::new(0.0, -9.81, 0.0), 0.01).unwrap_err();
         assert_eq!(error, RotationalInertiaError::SingularInertia);
         assert_eq!(body.transform.translation.0, position_before);
         assert_eq!(body.linear_velocity, linear_before);
