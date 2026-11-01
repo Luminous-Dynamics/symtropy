@@ -450,3 +450,21 @@ This is a weighted directed deficiency specialization known in the statistical
 decision literature, not the classical minimax Le Cam deficiency and not a new
 general definition. See [LOSS_SPAN_WEIGHTED_PROTOCOL.md](LOSS_SPAN_WEIGHTED_PROTOCOL.md)
 for the theorem, exact fixtures, benchmark protocol and claim limits.
+
+
+## Counterexample admission and sealed-holdout firewall (SIM-REL-034)
+
+The `decision_value::counterexample_ledger` module provides an append-only,
+split-aware state machine for evolving the finite development model family.
+Only validated Development-origin counterexamples can be admitted. Admission
+increments the family revision and invalidates the active policy. A policy can
+be reactivated only after the ledger itself runs an exact shared-policy replay
+against every current family world and confirms hazard/abstention budgets.
+The final policy is frozen before sealed evaluation, and each pre-registered
+holdout family group is consumed at most once, whether its result passes or
+fails.
+
+Policy and receipt IDs are opaque caller-supplied identities, not cryptographic
+hashes. The ledger enforces declared split/provenance contracts; it cannot
+prove open-world physical model adequacy. See
+[COUNTEREXAMPLE_LEDGER_PROTOCOL.md](COUNTEREXAMPLE_LEDGER_PROTOCOL.md).
