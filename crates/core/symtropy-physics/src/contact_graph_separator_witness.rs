@@ -24,6 +24,79 @@ const COUPLING: f64 = -0.5;
 const TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug)]
+struct StickingLeafMessage {
+    self_operator: Matrix3<f64>,
+    separator_coupling: Matrix3<f64>,
+    free_velocity: SVector<f64, 3>,
+    friction_coefficient: f64,
+}
+
+#[derive(Clone, Debug)]
+struct StickingLeafResponse {
+    impulse: SVector<f64, 3>,
+    post_velocity: SVector<f64, 3>,
+    strict_disk_margin: f64,
+}
+
+impl StickingLeafMessage {
+    /// Return the exact block-Schur terms for this regime-conditioned leaf.
+    ///
+    /// A p_leaf + B^T p_separator + q_leaf = 0 gives
+    /// W_eff = C - B A^-1 B^T and q_eff = q_separator - B A^-1 q_leaf.
+    /// This prototype admits SPD A only; rank-aware fibres are a separate lane.
+    fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
+        let factor = self
+            .self_operator
+            .cholesky()
+            .ok_or("sticking leaf self-block is not positive definite")?;
+        let inverse_free = factor.solve(&self.free_velocity);
+        let inverse_coupling_transpose = factor.solve(&self.separator_coupling.transpose());
+        Ok((
+            self.separator_coupling * inverse_coupling_transpose,
+            self.separator_coupling * inverse_free,
+        ))
+    }
+
+    /// Evaluate the leaf's set-valued response relation at one separator impulse.
+    ///
+    /// The affine response is retained only where the leaf is strictly loaded,
+    /// strictly inside its Coulomb disk, and zero post-contact velocity holds.
+    fn response_at(
+        &self,
+        separator_impulse: &SVector<f64, 3>,
+        tolerance: f64,
+    ) -> Option<StickingLeafResponse> {
+        let factor = self.self_operator.cholesky()?;
+        let rhs = -(self.free_velocity + self.separator_coupling.transpose() * separator_impulse);
+        let impulse = factor.solve(&rhs);
+        let post_velocity = self.free_velocity
+            + self.separator_coupling.transpose() * separator_impulse
+            + self.self_operator * impulse;
+        let strict_disk_margin = self.friction_coefficient * impulse[0]
+            - impulse.fixed_rows::<2>(1).norm();
+        let impulse_tolerance = tolerance * impulse.norm().max(f64::MIN_POSITIVE) * 500.0;
+        let velocity_scale = (self.free_velocity.norm()
+            + self.separator_coupling.norm() * separator_impulse.norm()
+            + self.self_operator.norm() * impulse.norm())
+        .max(f64::MIN_POSITIVE);
+        let velocity_tolerance = tolerance * velocity_scale * 500.0;
+
+        if impulse[0] <= impulse_tolerance
+            || strict_disk_margin <= impulse_tolerance
+            || post_velocity.norm() > velocity_tolerance
+        {
+            return None;
+        }
+
+        Some(StickingLeafResponse {
+            impulse,
+            post_velocity,
+            strict_disk_margin,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
 struct StarCandidate {
     impulse: Vector9,
     post_velocity: Vector9,
@@ -32,6 +105,7 @@ struct StarCandidate {
     energy_delta: f64,
     effective_operator: Matrix3<f64>,
     effective_free_velocity: SVector<f64, 3>,
+    leaf_disk_margins: [f64; 2],
 }
 
 fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
@@ -99,13 +173,37 @@ fn solve_star_with_strict_sticking_leaves(
         }
     }
 
-    // Each leaf has A_i = I and coupling B_i = rho I to the separator.
-    // Eliminate p_i = -(q_i + B_i^T p_0) under the declared sticking regime.
-    let effective_operator = Matrix3::identity() * (1.0 - 2.0 * COUPLING * COUPLING);
-    let q_separator = SVector::<f64, 3>::new(q[0], q[1], q[2]);
-    let q_leaf_1 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
-    let q_leaf_2 = SVector::<f64, 3>::new(q[6], q[7], q[8]);
-    let effective_free_velocity = q_separator - COUPLING * q_leaf_1 - COUPLING * q_leaf_2;
+    let block = |row_offset: usize, column_offset: usize| {
+        Matrix3::from_fn(|row, column| w[(row + row_offset, column + column_offset)])
+    };
+    let vector = |offset: usize| {
+        SVector::<f64, 3>::new(q[offset], q[offset + 1], q[offset + 2])
+    };
+    let separator_block = block(0, 0);
+    let mut effective_operator = separator_block;
+    let mut effective_free_velocity = vector(0);
+    let messages = [
+        StickingLeafMessage {
+            self_operator: block(3, 3),
+            separator_coupling: block(0, 3),
+            free_velocity: vector(3),
+            friction_coefficient: FRICTION,
+        },
+        StickingLeafMessage {
+            self_operator: block(6, 6),
+            separator_coupling: block(0, 6),
+            free_velocity: vector(6),
+            friction_coefficient: FRICTION,
+        },
+    ];
+
+    // Each leaf contributes a regime-conditioned response message over the
+    // same separator impulse. Their Schur terms update the reduced interface.
+    for message in &messages {
+        let (operator_contribution, free_velocity_contribution) = message.schur_terms()?;
+        effective_operator -= operator_contribution;
+        effective_free_velocity -= free_velocity_contribution;
+    }
 
     let reduced = solve_coupled_signorini_coulomb(
         &effective_operator,
@@ -118,10 +216,22 @@ fn solve_star_with_strict_sticking_leaves(
     let mut candidates = Vec::new();
     for separator in &reduced.candidates {
         let p_0 = separator.impulse;
-        let p_1 = -q_leaf_1 - COUPLING * p_0;
-        let p_2 = -q_leaf_2 - COUPLING * p_0;
+        let Some(leaf_1) = messages[0].response_at(&p_0, TOLERANCE) else {
+            continue;
+        };
+        let Some(leaf_2) = messages[1].response_at(&p_0, TOLERANCE) else {
+            continue;
+        };
         let impulse = Vector9::from_row_slice(&[
-            p_0[0], p_0[1], p_0[2], p_1[0], p_1[1], p_1[2], p_2[0], p_2[1], p_2[2],
+            p_0[0],
+            p_0[1],
+            p_0[2],
+            leaf_1.impulse[0],
+            leaf_1.impulse[1],
+            leaf_1.impulse[2],
+            leaf_2.impulse[0],
+            leaf_2.impulse[1],
+            leaf_2.impulse[2],
         ]);
         let post_velocity = q + w * impulse;
 
@@ -131,20 +241,13 @@ fn solve_star_with_strict_sticking_leaves(
             .max(f64::MIN_POSITIVE);
         let impulse_tolerance = TOLERANCE * impulse_scale * 500.0;
         let velocity_tolerance = TOLERANCE * velocity_scale * 500.0;
-
-        let leaf_1 = SVector::<f64, 3>::new(impulse[3], impulse[4], impulse[5]);
-        let leaf_2 = SVector::<f64, 3>::new(impulse[6], impulse[7], impulse[8]);
         let leaf_1_velocity =
             SVector::<f64, 3>::new(post_velocity[3], post_velocity[4], post_velocity[5]);
         let leaf_2_velocity =
             SVector::<f64, 3>::new(post_velocity[6], post_velocity[7], post_velocity[8]);
 
-        let leaf_1_margin = FRICTION * leaf_1[0] - leaf_1.fixed_rows::<2>(1).norm();
-        let leaf_2_margin = FRICTION * leaf_2[0] - leaf_2.fixed_rows::<2>(1).norm();
-        if leaf_1[0] <= impulse_tolerance
-            || leaf_2[0] <= impulse_tolerance
-            || leaf_1_margin <= impulse_tolerance
-            || leaf_2_margin <= impulse_tolerance
+        if (leaf_1_velocity - leaf_1.post_velocity).norm() > velocity_tolerance
+            || (leaf_2_velocity - leaf_2.post_velocity).norm() > velocity_tolerance
             || leaf_1_velocity.norm() > velocity_tolerance
             || leaf_2_velocity.norm() > velocity_tolerance
         {
@@ -180,6 +283,7 @@ fn solve_star_with_strict_sticking_leaves(
             energy_delta,
             effective_operator,
             effective_free_velocity,
+            leaf_disk_margins: [leaf_1.strict_disk_margin, leaf_2.strict_disk_margin],
         });
     }
     Ok(candidates)
@@ -240,7 +344,7 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
 
 #[test]
 fn leaf_sticking_reduction_is_invariant_to_leaf_permutation() {
-    let (w, q) = star_delassus_and_free_velocity(0.125);
+    let (w, q) = star_body_generated_fixture(-0.25);
     let original = solve_star_with_strict_sticking_leaves(&w, &q).unwrap();
     let (permuted_w, permuted_q) = swap_star_leaves(&w, &q);
     let permuted = solve_star_with_strict_sticking_leaves(&permuted_w, &permuted_q).unwrap();
