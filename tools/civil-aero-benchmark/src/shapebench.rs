@@ -153,7 +153,7 @@ fn csv_escape(value: &str) -> String {
 
 /// Parse one RFC-4180-style record. Quoted fields support commas and doubled quotes.
 /// Multiline fields are deliberately not accepted by this line-oriented import contract.
-fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
+pub(crate) fn parse_csv_record(line: &str) -> Result<Vec<String>, String> {
     let characters = line.chars().collect::<Vec<_>>();
     let mut fields = Vec::new();
     let mut index = 0;
