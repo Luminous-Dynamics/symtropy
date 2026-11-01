@@ -235,6 +235,85 @@ mod tests {
     }
 
     #[test]
+    fn sticking_law_has_a_three_dimensional_admissible_impulse_fibre() {
+        let jacobian = contact_jacobian();
+        let delassus = assemble_delassus(&jacobian);
+
+        // Start from a strictly sticking response with positive normal loads.
+        // q is chosen as -W p0, so u=q+Wp0 is exactly zero at every contact.
+        // With mu=1 and zero tangential impulse, all three contacts are
+        // strictly inside their Coulomb disks.
+        let p0 = [20_i128, 0, 0, 30, 0, 0, 40, 0, 0];
+        let response0 = apply_delassus(&delassus, &p0);
+        let free_velocity = response0.map(|value| -value);
+
+        let twice_energy0: i128 = p0
+            .iter()
+            .zip(free_velocity.iter())
+            .map(|(impulse, free)| 2 * impulse * free)
+            .sum::<i128>()
+            + p0
+                .iter()
+                .zip(response0.iter())
+                .map(|(impulse, response)| impulse * response)
+                .sum::<i128>();
+        assert!(twice_energy0 < 0);
+
+        // The three kernel coordinates span a 3D affine family p0 + Z alpha.
+        // Every vertex of [-1,1]^3 is checked exactly. Since each local
+        // Coulomb disk is convex and all vertices are strictly interior,
+        // the whole parameter cube is an admissible sticking fibre.
+        for corner in 0_u8..8 {
+            let mut candidate = p0;
+            for (basis_index, basis_vector) in NULL_FIBRE_BASIS.iter().enumerate() {
+                let coefficient = if corner & (1 << basis_index) == 0 {
+                    -1_i128
+                } else {
+                    1_i128
+                };
+                for (impulse, direction) in candidate.iter_mut().zip(basis_vector.iter()) {
+                    *impulse += coefficient * direction;
+                }
+            }
+
+            let response = apply_delassus(&delassus, &candidate);
+            assert_eq!(response, response0, "body response must be fibre-invariant");
+            let post_contact_velocity: [i128; 9] =
+                std::array::from_fn(|index| free_velocity[index] + response[index]);
+            assert_eq!(post_contact_velocity, [0_i128; 9]);
+
+            for contact in 0..3 {
+                let offset = contact * 3;
+                let normal_impulse = candidate[offset];
+                let tangent_1 = candidate[offset + 1];
+                let tangent_2 = candidate[offset + 2];
+                assert!(normal_impulse > 0, "each contact remains loaded");
+                assert!(
+                    tangent_1 * tangent_1 + tangent_2 * tangent_2
+                        < normal_impulse * normal_impulse,
+                    "sticking impulse must remain strictly inside its mu=1 Coulomb disk"
+                );
+            }
+
+            let twice_energy: i128 = candidate
+                .iter()
+                .zip(free_velocity.iter())
+                .map(|(impulse, free)| 2 * impulse * free)
+                .sum::<i128>()
+                + candidate
+                    .iter()
+                    .zip(response.iter())
+                    .map(|(impulse, post)| impulse * post)
+                    .sum::<i128>();
+            assert_eq!(
+                twice_energy, twice_energy0,
+                "all points in the multiplier fibre must share the same kinetic-energy change"
+            );
+            assert!(twice_energy < 0);
+        }
+    }
+
+    #[test]
     fn exact_geometry_fixture_has_expected_rank_and_contact_coupling() {
         let jacobian = contact_jacobian();
         let delassus = assemble_delassus(&jacobian);
