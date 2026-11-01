@@ -1,11 +1,16 @@
-use std::{process, process::ExitCode};
+use std::process::ExitCode;
 
 use civil_aero_benchmark::task_conformance::{
     ObservedProtocolValue, ProtocolConstraint, ProtocolObservation, ProtocolRequirement,
     audit_protocol, report_to_csv,
 };
 
-const PARTICIPANT_METADATA_REF: &str = "https://github.com/Drag-Prediction-Workshop/DPW8-Buffet/blob/4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43/TestCase1a/014_IISc/01_SU2_Symmetric_BC/DPW8-AePW4_ForceMoment_v5.dat";
+const PARTICIPANT_METADATA_REF: &str = concat!(
+    "https://github.com/Drag-Prediction-Workshop/DPW8-Buffet/blob/",
+    "4d7582633a2bed4f4fe1fe933af9a9b6f3e2ae43/",
+    "TestCase1a/014_IISc/01_SU2_Symmetric_BC/",
+    "DPW8-AePW4_ForceMoment_v5.dat",
+);
 
 fn main() -> ExitCode {
     match run() {
@@ -79,7 +84,7 @@ fn run() -> Result<(), String> {
         },
         ProtocolRequirement {
             key: "reproduction_artifact_identity".to_owned(),
-            description: "Pinned geometry, mesh, executable, and solver configuration for historical reproduction".to_owned(),
+            description: "Required geometry, mesh, executable, and solver-input byte identities".to_owned(),
             constraint: ProtocolConstraint::ExactText {
                 expected: "geometry_mesh_solver_build_and_config_byte_pins_present".to_owned(),
                 case_sensitive: true,
@@ -112,19 +117,19 @@ fn run() -> Result<(), String> {
                 "1.36;1.50;2.50;3.00;3.10".to_owned(),
             )),
             source_reference: PARTICIPANT_METADATA_REF.to_owned(),
-            note: "Canonical decimal formatting of the five angles listed in the source metadata".to_owned(),
+            note: "Five angles transcribed from participant metadata".to_owned(),
         },
         ProtocolObservation {
             key: "sidewall_boundary_condition".to_owned(),
             value: Some(ObservedProtocolValue::Text("symmetric".to_owned())),
             source_reference: PARTICIPANT_METADATA_REF.to_owned(),
-            note: "Source metadata says symmetric; official V1a instructions specify periodic sidewall conditions. This records a protocol deviation only; no physical equivalence is inferred".to_owned(),
+            note: "Observed symmetric; task requires periodic. No physical equivalence inferred".to_owned(),
         },
         ProtocolObservation {
             key: "grid_level_count".to_owned(),
             value: Some(ObservedProtocolValue::Count(4)),
             source_reference: PARTICIPANT_METADATA_REF.to_owned(),
-            note: "Four levels are listed. This meets the workshop minimum; six are desirable".to_owned(),
+            note: "Four levels meet the minimum; six are desirable".to_owned(),
         },
     ];
 
@@ -159,7 +164,11 @@ fn run() -> Result<(), String> {
 
     print!("{}", report_to_csv(&report));
     eprintln!(
-        "dpw8_protocol_conformance_known_answer overall_status={} findings={} conforms={} deviations={} minimum_below_desirable={} unknown={} no_solver_execution=true no_physical_validation=true",
+        concat!(
+            "dpw8_protocol_conformance_known_answer overall_status={} findings={} ",
+            "conforms={} deviations={} minimum_below_desirable={} unknown={} ",
+            "no_solver_execution=true no_physical_validation=true"
+        ),
         report.overall_status,
         report.findings.len(),
         conforming,
