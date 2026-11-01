@@ -124,14 +124,14 @@ impl MatrixFreeDelassus {
     fn apply_explicit(&self, impulse: &Vector6) -> Vector6 {
         // Matrix-free Delassus application: scatter J^T, apply M^-1, gather J.
         let mut generalized_impulse = [0.0; 6];
-        for contact in 0..6 {
-            for coordinate in 0..6 {
-                generalized_impulse[coordinate] +=
-                    self.jacobian[contact][coordinate] * impulse[contact];
+        for (contact, impulse_component) in impulse.iter().enumerate() {
+            for (coordinate, generalized_component) in generalized_impulse.iter_mut().enumerate() {
+                *generalized_component +=
+                    self.jacobian[contact][coordinate] * impulse_component;
             }
         }
-        for coordinate in 0..6 {
-            generalized_impulse[coordinate] *= self.inverse_mass[coordinate];
+        for (coordinate, generalized_component) in generalized_impulse.iter_mut().enumerate() {
+            *generalized_component *= self.inverse_mass[coordinate];
         }
         std::array::from_fn(|contact| {
             (0..6)
