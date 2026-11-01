@@ -1020,4 +1020,57 @@ mod schur_reduction_tests {
         assert!(0.2 * p[0] - p.fixed_rows::<2>(1).norm() > 1.0);
         assert!(candidate.kinetic_energy_delta < 0.0);
     }
+
+    fn both_sliding_coupled_fixture() -> (Matrix6, Vector6, Vector6) {
+        let mut w = Matrix6::identity();
+        let coupling = 0.25;
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = coupling;
+            w[(axis + 3, axis)] = coupling;
+        }
+
+        let free_velocity = Vector6::new(-1.25, 1.25, 0.0, -1.25, 1.25, 0.0);
+        let impulse = Vector6::new(1.0, -0.5, 0.0, 1.0, -0.5, 0.0);
+        (w, free_velocity, impulse)
+    }
+
+    #[test]
+    fn both_contacts_can_slide_in_a_genuinely_coupled_spd_island() {
+        let (w, q, p) = both_sliding_coupled_fixture();
+        let mu_1 = 0.5;
+        let mu_2 = 0.5;
+        let tau_1 = 1.25;
+        let tau_2 = 1.25;
+
+        assert!((&w - w.transpose()).norm() == 0.0);
+        assert!(w.cholesky().is_some());
+        assert_eq!(w[(0, 3)], 0.25);
+        assert_eq!(w[(3, 0)], 0.25);
+
+        // Both contacts are loaded and normal-post-velocity is exactly zero.
+        let u = q + w * p;
+        assert_eq!(u, Vector6::new(0.0, 0.625, 0.0, 0.0, 0.625, 0.0));
+        assert!(p[0] > 0.0 && p[3] > 0.0);
+        assert_eq!(p[0] * u[0], 0.0);
+        assert_eq!(p[3] * u[3], 0.0);
+
+        // Both impulses lie exactly on their local circular Coulomb boundaries.
+        let disk_margin_1 = (mu_1 * p[0]).powi(2) - p[1].powi(2) - p[2].powi(2);
+        let disk_margin_2 = (mu_2 * p[3]).powi(2) - p[4].powi(2) - p[5].powi(2);
+        assert_eq!(disk_margin_1, 0.0);
+        assert_eq!(disk_margin_2, 0.0);
+
+        // Both sliding KKT multipliers are strictly positive.
+        assert!(tau_1 > 0.0 && tau_2 > 0.0);
+        assert_eq!(u[1] + tau_1 * p[1], 0.0);
+        assert_eq!(u[2] + tau_1 * p[2], 0.0);
+        assert_eq!(u[4] + tau_2 * p[4], 0.0);
+        assert_eq!(u[5] + tau_2 * p[5], 0.0);
+
+        // Full-island energy includes the off-diagonal cross-contact work.
+        let energy_delta = p.dot(&q) + 0.5 * p.dot(&(w * p));
+        assert_eq!(energy_delta, -2.1875);
+        assert!(energy_delta < 0.0);
+    }
+
 }
