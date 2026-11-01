@@ -3878,15 +3878,15 @@ mod double_sliding_direction_oracle {
             // normal impulse. The polynomial construction uses
             // v_k = S(1+t_k^2)d_k and q_numerators = S q, hence
             // lambda_k = (N_k/Delta) * S * (1+t_k^2).
-            let physical_normal_impulse = |ratio: &RationalInterval,
-                                           direction: &RationalInterval| {
-                let direction_squared = direction.mul(direction);
-                let half_angle_factor =
-                    RationalInterval::point(one.clone()).add(&direction_squared);
-                ratio
-                    .scale(&BigRational::from_integer(scale.clone()))
-                    .mul(&half_angle_factor)
-            };
+            let physical_normal_impulse =
+                |ratio: &RationalInterval, direction: &RationalInterval| {
+                    let direction_squared = direction.mul(direction);
+                    let half_angle_factor =
+                        RationalInterval::point(one.clone()).add(&direction_squared);
+                    ratio
+                        .scale(&BigRational::from_integer(scale.clone()))
+                        .mul(&half_angle_factor)
+                };
             let lambda1 = physical_normal_impulse(
                 &certificate.normal_multiplier_ratios[0],
                 &certificate.domain[0],
@@ -3957,9 +3957,7 @@ mod double_sliding_direction_oracle {
             let full_velocity: [RationalInterval; 9] = std::array::from_fn(|row| {
                 let mut velocity = RationalInterval::point(q3[row].clone());
                 for column in 0..9 {
-                    velocity = velocity.add(
-                        &full_impulse[column].scale(&w3[row][column]),
-                    );
+                    velocity = velocity.add(&full_impulse[column].scale(&w3[row][column]));
                 }
                 velocity
             });
@@ -3981,8 +3979,7 @@ mod double_sliding_direction_oracle {
                 (1_usize, 3_usize, &certificate.domain[1], &mu2, &p0[3]),
             ] {
                 let direction_squared = direction.mul(direction);
-                let denominator =
-                    RationalInterval::point(one.clone()).add(&direction_squared);
+                let denominator = RationalInterval::point(one.clone()).add(&direction_squared);
                 let cosine = RationalInterval::point(one.clone())
                     .sub(&direction_squared)
                     .div(&denominator)
@@ -4023,12 +4020,10 @@ mod double_sliding_direction_oracle {
                     sliding_multiplier.is_strictly_positive(),
                     "contact {contact} sliding multiplier must be positive"
                 );
-                let stationarity_1 = tangent_velocity_1.add(
-                    &sliding_multiplier.mul(&p0[offset + 1]),
-                );
-                let stationarity_2 = tangent_velocity_2.add(
-                    &sliding_multiplier.mul(&p0[offset + 2]),
-                );
+                let stationarity_1 =
+                    tangent_velocity_1.add(&sliding_multiplier.mul(&p0[offset + 1]));
+                let stationarity_2 =
+                    tangent_velocity_2.add(&sliding_multiplier.mul(&p0[offset + 2]));
                 assert!(
                     !stationarity_1.excludes_zero() && !stationarity_2.excludes_zero(),
                     "contact {contact} unreduced tangential KKT stationarity must enclose zero"
@@ -4049,11 +4044,8 @@ mod double_sliding_direction_oracle {
                 direct_energy = direct_energy.add(&full_impulse[row].scale(&q3[row]));
                 for column in 0..9 {
                     let half_w = w3[row][column].clone() / two.clone();
-                    direct_energy = direct_energy.add(
-                        &full_impulse[row]
-                            .mul(&full_impulse[column])
-                            .scale(&half_w),
-                    );
+                    direct_energy = direct_energy
+                        .add(&full_impulse[row].mul(&full_impulse[column]).scale(&half_w));
                 }
             }
             assert!(direct_energy.upper < zero);
