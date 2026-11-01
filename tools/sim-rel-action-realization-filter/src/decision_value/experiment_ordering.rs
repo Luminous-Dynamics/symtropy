@@ -1881,6 +1881,15 @@ mod tests {
 
         assert!(comparison.mutual_information_a_bits > comparison.mutual_information_b_bits);
         assert_eq!(comparison.information_preference, ExperimentPreference::A);
+        assert_eq!(comparison.cost_to_loss_exchange_rate, Rational::one());
+        assert_eq!(
+            comparison.nominal_pareto_relation,
+            ExperimentParetoRelation::A_DominatesB
+        );
+        assert_eq!(
+            comparison.realized_pareto_relation,
+            ExperimentParetoRelation::B_DominatesA
+        );
         assert_eq!(
             comparison.nominal_total_loss_preference,
             ExperimentPreference::A
@@ -1925,6 +1934,70 @@ mod tests {
         assert_eq!(evaluation_b.realized_policy_loss, rational(1, 5));
         assert_eq!(evaluation_b.true_bayes_oracle_loss, rational(1, 5));
         assert_eq!(evaluation_b.decision_regret, Rational::zero());
+    }
+
+    #[test]
+    fn cost_to_loss_exchange_rate_exposes_scalarization_sensitivity_and_pareto_tradeoff() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let loss = binary_decisions();
+        let perfect = perfect_channel("expensive-perfect");
+        let noisy = noisy_channel("cheap-noisy");
+
+        let low_cost_weight = compare_experiment_pair(
+            &perfect,
+            &perfect,
+            rational(2, 5),
+            &noisy,
+            &noisy,
+            rational(1, 10),
+            &prior,
+            &loss,
+        )
+        .unwrap();
+        assert_eq!(
+            low_cost_weight.nominal_pareto_relation,
+            ExperimentParetoRelation::Tradeoff
+        );
+        assert_eq!(
+            low_cost_weight.realized_pareto_relation,
+            ExperimentParetoRelation::Tradeoff
+        );
+        // The default exchange rate is one: 0.4 vs 0.1 + 0.2, so B wins.
+        assert_eq!(
+            low_cost_weight.realized_total_loss_preference,
+            ExperimentPreference::B
+        );
+
+        let cheap_cost_conversion = compare_experiment_pair_with_inference_rules_and_cost_rate(
+            &perfect,
+            &perfect,
+            &exact_bayes_posterior_rule(&perfect, &prior).unwrap(),
+            rational(2, 5),
+            &noisy,
+            &noisy,
+            &exact_bayes_posterior_rule(&noisy, &prior).unwrap(),
+            rational(1, 10),
+            rational(1, 10),
+            &prior,
+            &loss,
+        )
+        .unwrap();
+        assert_eq!(
+            cheap_cost_conversion.realized_total_loss_a,
+            rational(1, 25)
+        );
+        assert_eq!(
+            cheap_cost_conversion.realized_total_loss_b,
+            rational(21, 100)
+        );
+        assert_eq!(
+            cheap_cost_conversion.realized_total_loss_preference,
+            ExperimentPreference::A
+        );
+        assert_eq!(
+            cheap_cost_conversion.realized_pareto_relation,
+            ExperimentParetoRelation::Tradeoff
+        );
     }
 
     #[test]
