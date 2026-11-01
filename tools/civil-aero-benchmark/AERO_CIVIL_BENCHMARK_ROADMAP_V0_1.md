@@ -236,3 +236,26 @@ Several other CI blockers on the current programme were test-interface defects e
 
 The work reinforces a core design rule: every metric needs one canonical semantic definition, one typed source schema, and an independent implementation that reconstructs it. A green status from a self-referential demo is not sufficient.
 
+
+
+## 12. Explicit steady-history and solver-to-evidence lineage (2026-11-01)
+
+The SU2 history path has now been separated into three independently verifiable layers:
+
+1. **Process integrity:** the external-solver runner pins the executable digest, stages the config/geometry/mesh inputs into a fresh run directory, captures bounded logs, enforces timeout, declares expected outputs and writes an offline-replayable process receipt.
+2. **Typed history and steady screen:** the history importer binds selected caller-declared columns/units to the exact output bytes. The convergence screen distinguishes log10 from positive-linear residuals, checks per-equation final residual/reduction/terminal span, and checks each declared engineering monitor for terminal range, split-window mean drift and slope. The convergence-screen schema is v0.3.0 and binds solver identity into its canonical digest.
+3. **Run-lineage receipt:** the new binding requires the process receipt, history import, screen, three distinct staged inputs (physics configuration, geometry, mesh), and at least one additional force/field output to refer to the same run. It exports one row per artifact and a canonical SHA-256. An independent Python oracle re-hashes the inputs and outputs, checks cross-document run/receipt/history/screen identities, and reconstructs the binding digest.
+
+This is not a complete CFD evidence chain. The process runner does not yet measure CPU core-hours, peak RSS, GPU hours or energy; the executable digest is not a source/build attestation; and the binding is unsigned. The screen accepts only the declared set of equations/monitors. The bridge into the current numerical GCI/admission/evidence-chain APIs remains open, particularly because the legacy admission fields are positive-linear scalars while SU2 commonly reports log10 residuals. No implicit transformation is allowed.
+
+Files added or extended:
+- SU2_HISTORY_IMPORT_V0_1.md
+- SU2_RUN_LINEAGE_BINDING_V0_1.md
+- src/su2_history.rs
+- src/su2_convergence_screen.rs
+- src/su2_run_binding.rs
+- scripts/verify-su2-history-import-independent.py
+- scripts/verify-su2-convergence-screen-independent.py
+- scripts/verify-su2-run-lineage-independent.py
+
+The next gates are: exact-head format/tests/Clippy; successful CI run of the composed fake-solver lineage fixture and independent oracle; bridge a verified run bundle to a grid-study record without losing raw residual encoding; then add measured resource telemetry with explicit unknown states. A real, lawfully sourced and pinned SU2 run remains a separate next milestone; the synthetic CI fixture is not an SU2 simulation.
