@@ -1786,18 +1786,19 @@ mod tests {
         ledger
             .seal_final_policy("seal-policy".into(), 0, "policy-v1".into())
             .unwrap();
-        let mut invalid_world = world("heldout-world-b");
+        let invalid_source = world("heldout-source");
         let perturbation = ModelWorldPerturbation::DropReadback {
             command: 0,
             sensor_state: Some(0),
             dropout_probability: q(1, 2),
         };
-        invalid_world = super::super::counterexample_search::apply_model_world_perturbation(
-            &invalid_world,
-            "heldout-world-b",
-            &perturbation,
-        )
-        .unwrap();
+        let invalid_world =
+            super::super::counterexample_search::apply_model_world_perturbation(
+                &invalid_source,
+                "heldout-world-b",
+                &perturbation,
+            )
+            .unwrap();
         let worlds = vec![world("heldout-world-a"), invalid_world];
 
         let result = evaluate_holdout(
