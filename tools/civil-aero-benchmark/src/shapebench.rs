@@ -37,9 +37,11 @@ pub struct ShapeBenchRunContext {
     pub task_id: String,
     pub environment_id: String,
     pub method_id: String,
-    /// Full immutable 40-character source revision, not a branch or tag label.
+    /// Caller-supplied full 40-character revision claim, not a branch or tag label.
     pub source_commit: String,
+    /// Caller-supplied digest reference; the importer validates shape, not artifact bytes.
     pub task_config_sha256: String,
+    /// Caller-supplied digest reference; a separate runner/replay step must verify the manifest.
     pub run_manifest_sha256: String,
     /// Optional digest of ShapeBench's companion results.json artifact.
     pub results_json_sha256: Option<String>,
@@ -68,7 +70,7 @@ pub struct ShapeBenchImportReport {
 }
 
 impl ShapeBenchImportReport {
-    pub fn evaluation_cost_admissible(&self) -> bool {
+    pub fn cost_ledger_reference_present(&self) -> bool {
         self.context.cost_ledger_sha256.is_some()
     }
 
@@ -236,7 +238,7 @@ fn canonical_import_bytes(
 }
 
 /// Import a ShapeBench `results.csv` trajectory. Costs are intentionally not inferred from
-/// iteration numbers; a separate cost-ledger digest is required for cost-admissible comparisons.
+/// iteration numbers. A supplied ledger digest is only a reference; its records need a separate verifier.
 pub fn import_shape_bench_results_csv(
     input: &str,
     context: ShapeBenchRunContext,
@@ -361,7 +363,7 @@ mod tests {
                 .expect("valid result trajectory");
         assert_eq!(report.rows.len(), 3);
         assert_eq!(report.rows[0].design_payload, "shape-a,twist=0.1");
-        assert!(!report.evaluation_cost_admissible());
+        assert!(!report.cost_ledger_reference_present());
         assert_eq!(
             report.evidence_level,
             "benchmark_output_import_only_not_solver_validation_or_physical_evidence"
@@ -380,7 +382,7 @@ mod tests {
         let report =
             import_shape_bench_results_csv(RESULTS, run, RewardDirection::Maximize)
                 .expect("valid run");
-        assert!(report.evaluation_cost_admissible());
+        assert!(report.cost_ledger_reference_present());
     }
 
     #[test]
