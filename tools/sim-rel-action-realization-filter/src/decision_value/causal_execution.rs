@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 
 const MAX_ID_BYTES: usize = 256;
-const EVENT_COUNT: u64 = 8;
+const EVENT_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UncertainTimestamp {
@@ -60,6 +60,7 @@ pub enum DecisionEvidenceStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalExecutionStage {
     Command,
+    EventSequence,
     Dispatch,
     Acknowledgement,
     ActuatorReadback,
@@ -388,11 +389,16 @@ pub fn audit_causal_execution_bundle(
                 reason: "event identity is duplicated".into(),
             });
         }
-        if *sequence != index as u64 {
+        let expected_sequence = u64::try_from(index).map_err(|_| CausalExecutionError {
+            stage: CausalExecutionStage::EventSequence,
+            sequence: Some(*sequence),
+            reason: "event index exceeds u64".into(),
+        })?;
+        if *sequence != expected_sequence {
             return Err(CausalExecutionError {
                 stage: CausalExecutionStage::EventSequence,
                 sequence: Some(*sequence),
-                reason: format!("expected contiguous event sequence {index}"),
+                reason: format!("expected contiguous event sequence {expected_sequence}"),
             });
         }
     }
@@ -599,6 +605,19 @@ pub fn audit_causal_execution_bundle(
         }
     }
 
+    if bundle
+        .sensor_acquisition
+        .quality_flags
+        .iter()
+        .any(|flag| !valid_id(flag))
+    {
+        return Err(CausalExecutionError {
+            stage: CausalExecutionStage::SensorAcquisition,
+            sequence: Some(5),
+            reason: "sensor quality flag is empty or overlong".into(),
+        });
+    }
+
     if bundle.physical_transition.parent_actuator_event_id != bundle.actuator_readback.event_id
         || bundle.sensor_acquisition.parent_transition_event_id != bundle.physical_transition.event_id
         || bundle.inference.sensor_event_ids != vec![bundle.sensor_acquisition.event_id.clone()]
@@ -706,7 +725,7 @@ pub fn audit_causal_execution_bundle(
         realization_assessment,
         resolved_delivery: acknowledgement,
         decision_status,
-        sequence_complete: events.len() as u64 == EVENT_COUNT,
+        sequence_complete: events.len() == EVENT_COUNT,
         timestamp_intervals_strictly_ordered: true,
         causal_references_consistent: true,
         device_identity_consistent: true,
