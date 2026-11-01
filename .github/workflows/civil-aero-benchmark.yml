@@ -302,6 +302,12 @@ jobs:
         run: |
           cargo build --locked --bin run_artifact_audit
           python3 scripts/verify-cfd-artifacts-independent.py target/debug/run_artifact_audit
+      - name: Verify pinned external-solver CLI, staged inputs, and offline receipt replay
+        working-directory: tools/civil-aero-benchmark
+        shell: bash
+        run: |
+          cargo build --locked --bin external_solver_run --bin external_solver_replay_audit
+          bash scripts/verify-external-solver-cli.sh target/debug/external_solver_run target/debug/external_solver_replay_audit
       - name: Compare validated Pareto quality under matched total cost
         working-directory: tools/civil-aero-benchmark
         shell: bash
