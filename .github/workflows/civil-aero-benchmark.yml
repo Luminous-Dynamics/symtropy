@@ -176,9 +176,14 @@ jobs:
           python3 -c 'from pathlib import Path; p=Path("/tmp/section-polar-tampered.dat"); b=bytearray(p.read_bytes()); b[0] = ord("X"); p.write_bytes(b)'
           if cargo run --quiet --locked --bin section_polar_audit -- /tmp/section-polar-tampered.dat > /tmp/section-polar-tampered.csv 2> /tmp/section-polar-tampered.txt; then
             echo "modified reference bytes unexpectedly received NASA provenance" >&2
+            cat /tmp/section-polar-tampered.txt >&2
             exit 1
           fi
-          grep -q "SHA-256 mismatch" /tmp/section-polar-tampered.txt
+          if ! grep -Fq "SHA-256 mismatch" /tmp/section-polar-tampered.txt; then
+            echo "tampered-source rejection did not report the required source digest failure:" >&2
+            cat /tmp/section-polar-tampered.txt >&2
+            exit 1
+          fi
       - name: Audit matched-budget experiment costs
         working-directory: tools/civil-aero-benchmark
         shell: bash
