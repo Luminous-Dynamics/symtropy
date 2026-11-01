@@ -16,7 +16,7 @@ fn rational(value: i64) -> Rational {
     Rational::from_integer(BigInt::from(value))
 }
 
-fn rational_matrix(values: &[[i64; 6]; 6]) -> Vec<Vec<Rational>> {
+fn rational_matrix<const ROWS: usize>(values: &[[i64; 6]; ROWS]) -> Vec<Vec<Rational>> {
     values
         .iter()
         .map(|row| row.iter().map(|value| rational(*value)).collect())
@@ -285,3 +285,158 @@ fn physical_two_point_delassus_is_rank_five_and_has_a_continuum_of_sticking_impu
     // (-1,1) consists entirely of admissible impulse allocations.
     assert_eq!(matrix_vector(&delassus, &p0), wp0);
 }
+
+#[test]
+fn three_non_collinear_contacts_have_a_three_dimensional_impulse_equivalence_class() {
+    // One rigid body touches the plane x=0 at three non-collinear points:
+    // r1=(0,0,0), r2=(0,1,0), r3=(0,0,1). All frames use (n,t1,t2)=(ex,ey,ez).
+    // The three point-velocity blocks make J full column rank six, but the
+    // nine contact impulse coordinates necessarily contain three redundancies.
+    let jacobian = rational_matrix(&[
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 0, -1],
+        [0, 1, 0, 0, 0, 0],
+        [0, 0, 1, 1, 0, 0],
+        [1, 0, 0, 0, 1, 0],
+        [0, 1, 0, -1, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+    ]);
+    assert_eq!(exact_rank(&jacobian), 6);
+
+    let inverse_mass_diagonal = [
+        Rational::one(),
+        Rational::one(),
+        Rational::one(),
+        Rational::one(),
+        Rational::new(BigInt::one(), BigInt::from(2)),
+        Rational::new(BigInt::one(), BigInt::from(3)),
+    ];
+    let mut jacobian_inverse_mass = jacobian.clone();
+    for row in &mut jacobian_inverse_mass {
+        for (entry, inverse_mass) in row.iter_mut().zip(&inverse_mass_diagonal) {
+            *entry = entry.clone() * inverse_mass.clone();
+        }
+    }
+    let delassus = matrix_multiply(&jacobian_inverse_mass, &transpose(&jacobian));
+    assert_eq!(delassus.len(), 9);
+    assert_eq!(exact_rank(&delassus), 6);
+
+    // Three independent exact null impulses. For any rigid-body mass matrix
+    // with this J, ker(W)=ker(J^T) because M^-1 is SPD.
+    let null_a = vec![
+        rational(0), rational(-1), rational(0),
+        rational(0), rational(1), rational(0),
+        rational(0), rational(0), rational(0),
+    ];
+    let null_b = vec![
+        rational(0), rational(-1), rational(-1),
+        rational(0), rational(0), rational(1),
+        rational(0), rational(1), rational(0),
+    ];
+    let null_c = vec![
+        rational(0), rational(0), rational(-1),
+        rational(0), rational(0), rational(0),
+        rational(0), rational(0), rational(1),
+    ];
+    for null_vector in [&null_a, &null_b, &null_c] {
+        assert!(
+            matrix_vector(&transpose(&jacobian), null_vector)
+                .iter()
+                .all(Rational::is_zero)
+        );
+        assert!(
+            matrix_vector(&delassus, null_vector)
+                .iter()
+                .all(Rational::is_zero)
+        );
+    }
+    let null_basis = (0..9)
+        .map(|row| {
+            vec![
+                null_a[row].clone(),
+                null_b[row].clone(),
+                null_c[row].clone(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(exact_rank(&null_basis), 3);
+
+    // An all-normal base load produces q=-Wp0. Add independent nullspace
+    // coordinates alpha,beta,gamma to redistribute tangential impulses.
+    let p0 = vec![
+        rational(2), rational(0), rational(0),
+        rational(2), rational(0), rational(0),
+        rational(2), rational(0), rational(0),
+    ];
+    let wp0 = matrix_vector(&delassus, &p0);
+    let q = wp0.iter().map(|value| -value.clone()).collect::<Vec<_>>();
+    let expected_q = vec![
+        rational(-6), rational(0), rational(0),
+        Rational::new(BigInt::from(-20), BigInt::from(3)),
+        rational(0), rational(0),
+        rational(-7), rational(0), rational(0),
+    ];
+    assert_eq!(q, expected_q);
+
+    let quarter = Rational::new(BigInt::one(), BigInt::from(4));
+    let half = Rational::new(BigInt::one(), BigInt::from(2));
+    let one = Rational::one();
+    for alpha_sign in [-1_i64, 1] {
+        for beta_sign in [-1_i64, 1] {
+            for gamma_sign in [-1_i64, 1] {
+                let alpha = quarter.clone() * rational(alpha_sign);
+                let beta = quarter.clone() * rational(beta_sign);
+                let gamma = quarter.clone() * rational(gamma_sign);
+                let impulse = p0
+                    .iter()
+                    .zip(&null_a)
+                    .zip(&null_b)
+                    .zip(&null_c)
+                    .map(|(((base, a), b), c)| {
+                        base.clone()
+                            + alpha.clone() * a.clone()
+                            + beta.clone() * b.clone()
+                            + gamma.clone() * c.clone()
+                    })
+                    .collect::<Vec<_>>();
+
+                assert_eq!(impulse[0], rational(2));
+                assert_eq!(impulse[3], rational(2));
+                assert_eq!(impulse[6], rational(2));
+                let post_velocity = matrix_vector(&delassus, &impulse)
+                    .into_iter()
+                    .zip(&q)
+                    .map(|(response, free)| response + free.clone())
+                    .collect::<Vec<_>>();
+                assert!(post_velocity.iter().all(Rational::is_zero));
+
+                let margins = [
+                    one.clone() - impulse[1].clone().pow(2) - impulse[2].clone().pow(2),
+                    one.clone() - impulse[4].clone().pow(2) - impulse[5].clone().pow(2),
+                    one.clone() - impulse[7].clone().pow(2) - impulse[8].clone().pow(2),
+                ];
+                // The largest possible first-contact tangent components have
+                // magnitude 1/2; the other disks have components at most 1/2.
+                assert!(margins.iter().all(|margin| margin > &Rational::zero()));
+
+                let wp = matrix_vector(&delassus, &impulse);
+                let energy_delta = dot(&impulse, &q) + half.clone() * dot(&impulse, &wp);
+                assert_eq!(
+                    energy_delta,
+                    Rational::new(BigInt::from(-59), BigInt::from(3))
+                );
+            }
+        }
+    }
+
+    // The parameter cube (-1/4,1/4)^3 is wholly inside all three disks:
+    // contact 1's two tangent components are bounded by 1/2, and contacts 2
+    // and 3 have each component bounded by 1/4. This is a 3D open set of
+    // impulse allocations with one and the same contact response.
+    assert_eq!(matrix_vector(&delassus, &null_a), vec![Rational::zero(); 9]);
+    assert_eq!(matrix_vector(&delassus, &null_b), vec![Rational::zero(); 9]);
+    assert_eq!(matrix_vector(&delassus, &null_c), vec![Rational::zero(); 9]);
+}
+
