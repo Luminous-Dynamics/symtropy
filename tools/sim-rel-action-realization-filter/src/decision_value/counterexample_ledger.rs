@@ -1375,6 +1375,17 @@ mod tests {
             )
             .unwrap();
 
+        // The invalidated policy identity cannot be reused for a new
+        // policy tree, even if the caller supplies a different plan.
+        assert!(replan(
+            &mut ledger,
+            "replan-reuses-invalidated-id",
+            1,
+            "policy-v1",
+            terminal_plan(),
+        )
+        .is_err());
+
         // A malformed policy with missing public-observation branches is
         // rejected by the ledger's own exact shared-policy replay.
         assert!(replan(
@@ -1626,6 +1637,7 @@ mod tests {
         assert!(!evaluated.acceptance_criteria_satisfied);
         assert_eq!(evaluated.worst_case_terminal_loss, Rational::one());
         assert_eq!(evaluated.per_world_metrics.len(), 2);
+        assert_eq!(evaluated.holdout_world_snapshots.len(), 2);
         assert_eq!(
             evaluated.manifest_id,
             "heldout-manifest-v1"
@@ -1797,6 +1809,9 @@ mod tests {
         replan(&mut ledger, "replan", 1, "policy-v2", terminal_plan()).unwrap();
         let snapshot = ledger.snapshot();
         assert_eq!(snapshot.family_revision, 1);
+        assert!(snapshot.active_policy_metrics.is_some());
+        assert!(snapshot.active_policy_plan.is_some());
+        assert_eq!(snapshot.replay_context.nominal_world_id, "nominal");
         assert_eq!(snapshot.events.len(), 2);
         assert_eq!(
             snapshot.events.iter().map(|event| event.sequence).collect::<Vec<_>>(),
