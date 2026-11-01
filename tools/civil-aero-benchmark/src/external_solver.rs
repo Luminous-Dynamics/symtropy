@@ -110,7 +110,7 @@ impl ExternalSolverReceipt {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct StreamCapture {
     bytes_written: u64,
     exceeded_limit: bool,
@@ -515,7 +515,7 @@ fn canonical_receipt_bytes(receipt: &ExternalSolverReceipt) -> Vec<u8> {
 
 pub fn receipt_to_csv(receipt: &ExternalSolverReceipt) -> String {
     format!(
-        "schema,run_id,solver_id,solver_version_claim,executable_path,executable_sha256,invocation_manifest_sha256,environment_sha256,environment_manifest_sha256,spawn_error,stdout_byte_length,stdout_sha256,stderr_byte_length,stderr_sha256,exit_code,timed_out,output_limit_exceeded,elapsed_milliseconds,expected_outputs_present,expected_outputs_missing,output_manifest_sha256,status,receipt_sha256,evidence_level\n{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+        "schema,run_id,solver_id,solver_version_claim,executable_path,executable_sha256,invocation_manifest_sha256,environment_sha256,environment_manifest_sha256,spawn_error,stdout_byte_length,stdout_sha256,stderr_byte_length,stderr_sha256,exit_code,timed_out,output_limit_exceeded,elapsed_milliseconds,expected_outputs_present,expected_outputs_missing,output_manifest_sha256,status,receipt_sha256,evidence_level\n{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
         csv_escape(&receipt.schema),
         csv_escape(&receipt.run_id),
         csv_escape(&receipt.solver_id),
@@ -839,7 +839,7 @@ pub fn verify_external_solver_receipt(
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
@@ -939,7 +939,7 @@ mod tests {
     #[test]
     fn timeout_and_output_limits_terminate_the_process_and_preserve_logs() {
         let root = temporary_root("limits");
-        let sleeper = fake_solver(&root, "sleep 2");
+        let sleeper = fake_solver(&root, "exec sleep 2");
         let mut timed = request(&root, sleeper, "timeout-run", Vec::new(), Vec::new());
         timed.timeout = Duration::from_millis(30);
         let receipt = execute_external_solver(&timed).expect("timeout is a receipt status");
