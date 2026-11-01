@@ -25,6 +25,7 @@ pub mod robustness;
 pub mod run_artifacts;
 pub mod section_polar;
 pub mod selective_risk;
+pub mod validation_uncertainty;
 pub mod unsteady_spectrum;
 pub mod voi;
 
