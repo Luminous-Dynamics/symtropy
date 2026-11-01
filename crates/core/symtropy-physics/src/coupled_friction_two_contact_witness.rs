@@ -3675,9 +3675,9 @@ mod double_sliding_direction_oracle {
         let q0: [BigRational; 6] = std::array::from_fn(|index| {
             BigRational::new(BigInt::from(Q0_NUMERATORS[index]), scale.clone())
         });
-        for row in 0..6 {
-            for column in 0..6 {
-                assert_eq!(w0[row][column], w0[column][row]);
+        for (row, row_values) in w0.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert_eq!(value, &w0[column][row]);
             }
         }
 
@@ -3685,8 +3685,8 @@ mod double_sliding_direction_oracle {
         // block operator below is SPD by its exact Schur complement W0.
         let mut lower = vec![vec![zero.clone(); 6]; 6];
         let mut pivots: Vec<BigRational> = Vec::with_capacity(6);
-        for row in 0..6 {
-            lower[row][row] = one.clone();
+        for (row, lower_row) in lower.iter_mut().enumerate() {
+            lower_row[row] = one.clone();
         }
         for column in 0..6 {
             let mut pivot = w0[column][column].clone();
@@ -3761,14 +3761,14 @@ mod double_sliding_direction_oracle {
         // The graph is exactly 1--2--3: W13 is structurally zero, W12 and
         // W23 are nonzero. The Schur complement of C=I is exactly W0.
         assert!((0..3).any(|row| { (3..6).any(|column| w0[row][column] != zero) }));
-        for row in 0..9 {
-            for column in 0..9 {
-                assert_eq!(w3[row][column], w3[column][row]);
+        for (row, row_values) in w3.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert_eq!(value, &w3[column][row]);
             }
         }
-        for contact_one_coordinate in 0..3 {
+        for contact_one_row in w3.iter().take(3) {
             for leaf_coordinate in 0..3 {
-                assert_eq!(w3[contact_one_coordinate][6 + leaf_coordinate], zero);
+                assert_eq!(contact_one_row[6 + leaf_coordinate], zero);
             }
         }
         for coordinate in 0..3 {
@@ -3777,9 +3777,8 @@ mod double_sliding_direction_oracle {
         for row in 0..6 {
             for column in 0..6 {
                 let mut schur_entry = w3[row][column].clone();
-                for leaf_coordinate in 0..3 {
-                    schur_entry -=
-                        b[row][leaf_coordinate].clone() * b[column][leaf_coordinate].clone();
+                for (row_value, column_value) in b[row].iter().zip(b[column].iter()) {
+                    schur_entry -= row_value.clone() * column_value.clone();
                 }
                 assert_eq!(schur_entry, w0[row][column]);
             }
