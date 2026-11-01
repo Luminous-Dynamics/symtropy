@@ -283,15 +283,15 @@ pub fn exact_bayes_risk(
         Vec::with_capacity(channel.observation_ids.len());
     let mut abstention_probabilities = Vec::with_capacity(channel.observation_ids.len());
 
-    for observation in 0..channel.observation_ids.len() {
+    for (observation, _) in channel.observation_ids.iter().enumerate() {
         let mut observation_probability = Rational::zero();
         let mut decision_loss_numerators = vec![Rational::zero(); losses.decision_ids.len()];
 
         for (state, prior_mass) in prior.iter().copied().enumerate() {
             let joint_mass = prior_mass.checked_mul(channel.probabilities[state][observation])?;
             observation_probability = observation_probability.checked_add(joint_mass)?;
-            for (decision, decision_loss) in losses.losses.iter().enumerate() {
-                decision_loss_numerators[decision] = decision_loss_numerators[decision]
+            for (loss_numerator, decision_loss) in decision_loss_numerators.iter_mut().zip(&losses.losses) {
+                *loss_numerator = loss_numerator
                     .checked_add(joint_mass.checked_mul(decision_loss[state])?)?;
             }
         }
@@ -358,11 +358,10 @@ pub fn certify_blackwell_decision_transfer(
     let mut decision_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
     let mut abstention_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
 
-    for source_observation in 0..more_informative.observation_ids.len() {
+    for (source_observation, garbling_row) in witness.probabilities.iter().enumerate() {
         let mut row = vec![Rational::zero(); losses.decision_ids.len()];
         let mut abstention = Rational::zero();
-        for target_observation in 0..less_informative.observation_ids.len() {
-            let garbling_probability = witness.probabilities[source_observation][target_observation];
+        for (target_observation, garbling_probability) in garbling_row.iter().copied().enumerate() {
             for (decision, target_probability) in less_rule.decision_probabilities
                 [target_observation]
                 .iter()
@@ -597,7 +596,6 @@ mod tests {
             certificate.transferred_rule_risk.observations[2].conditional_loss,
             None
         );
-        let _ = witness;
     }
 
     #[test]
