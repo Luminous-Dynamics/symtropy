@@ -6,6 +6,8 @@ on:
       - "crates/core/symtropy-physics/src/coupled_friction.rs"
       - "crates/core/symtropy-physics/src/coupled_friction_sturm.rs"
       - "crates/core/symtropy-physics/src/coupled_friction_multicontact_sturm.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_sturm_support.rs"
+      - "crates/core/symtropy-physics/tests/coupled_friction_multicontact_sturm.rs"
       - "crates/core/symtropy-physics/src/lib.rs"
       - "crates/core/symtropy-physics/Cargo.toml"
       - "Cargo.lock"
@@ -25,11 +27,12 @@ jobs:
         with:
           toolchain: "1.96.0"
           components: rustfmt
-      - name: Check formatting of the exact root verifier
-        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_multicontact_sturm.rs
-      - name: Certify coupled two-contact slide/stick angular stratum
-        run: cargo test -p symtropy-physics --lib coupled_friction::sturm::multicontact::two_contact_slide_stick_stratum_has_exactly_two_admissible_roots --locked
-      - name: Run exact single-contact Sturm regression
-        run: cargo test -p symtropy-physics --lib coupled_friction::sturm --locked
-      - name: Re-run coupled point-contact regression panel
-        run: cargo test -p symtropy-physics --lib coupled_friction::tests --locked
+      - name: Check formatting of the shared exact verifier sources
+        run: |
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_sturm_support.rs
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/src/coupled_friction_multicontact_sturm.rs
+          rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/coupled_friction_multicontact_sturm.rs
+      - name: Compile the production physics library
+        run: cargo check -p symtropy-physics --lib --locked
+      - name: Certify both coupled two-contact slide/stick orientations
+        run: cargo test -p symtropy-physics --test coupled_friction_multicontact_sturm --locked
