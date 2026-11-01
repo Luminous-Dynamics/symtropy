@@ -1605,6 +1605,150 @@ mod tests {
         assert!(solve_binary_blackwell_garbling(&binary, &multi).is_err());
     }
 
+    fn asymmetric_three_by_three_channels() -> (
+        FiniteObservationChannel,
+        FiniteObservationChannel,
+        Vec<Vec<Rational>>,
+    ) {
+        let half = rational(1, 2);
+        let third = rational(1, 3);
+        let two_thirds = rational(2, 3);
+        let quarter = rational(1, 4);
+        let fifth = rational(1, 5);
+        let _ = fifth;
+        let garbling = vec![
+            vec![two_thirds, third, Rational::zero()],
+            vec![Rational::zero(), half, half],
+            vec![third, Rational::zero(), two_thirds],
+        ];
+        let more = FiniteObservationChannel {
+            channel_id: "three-state-source".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["z0".into(), "z1".into(), "z2".into()],
+            probabilities: vec![
+                vec![half, half, Rational::zero()],
+                vec![Rational::zero(), half, half],
+                vec![half, Rational::zero(), half],
+            ],
+        };
+        let less = FiniteObservationChannel {
+            channel_id: "three-state-garbled".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["y0".into(), "y1".into(), "y2".into()],
+            probabilities: vec![
+                vec![third, rational(5, 12), quarter],
+                vec![rational(1, 6), quarter, rational(7, 12)],
+                vec![half, rational(1, 6), third],
+            ],
+        };
+        (more, less, garbling)
+    }
+
+    #[test]
+    fn general_blackwell_solver_recovers_non_symmetric_three_by_three_witness() {
+        let (more, less, expected_witness) = asymmetric_three_by_three_channels();
+        let receipt = solve_small_blackwell_garbling(&more, &less)
+            .unwrap()
+            .unwrap();
+        assert!(receipt.exactly_verified);
+        assert_eq!(receipt.witness.probabilities, expected_witness);
+        verify_blackwell_dominance(&more, &less, &receipt.witness).unwrap();
+    }
+
+    #[test]
+    fn general_blackwell_solver_rejects_an_impossible_three_by_three_channel() {
+        let (more, _, _) = asymmetric_three_by_three_channels();
+        let perfect = FiniteObservationChannel {
+            channel_id: "impossibly-perfect-target".into(),
+            state_ids: more.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into(), "y2".into()],
+            probabilities: vec![
+                vec![Rational::one(), Rational::zero(), Rational::zero()],
+                vec![Rational::zero(), Rational::one(), Rational::zero()],
+                vec![Rational::zero(), Rational::zero(), Rational::one()],
+            ],
+        };
+        assert!(solve_small_blackwell_garbling(&more, &perfect)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn general_blackwell_solver_handles_singular_channels_and_detects_inconsistency() {
+        let more = FiniteObservationChannel {
+            channel_id: "singular-source".into(),
+            state_ids: vec!["s0".into(), "s1".into(), "s2".into()],
+            observation_ids: vec!["z0".into(), "z1".into(), "z2".into()],
+            probabilities: vec![
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+                vec![rational(1, 3), rational(1, 3), rational(1, 3)],
+            ],
+        };
+        let consistent = FiniteObservationChannel {
+            channel_id: "singular-consistent-target".into(),
+            state_ids: more.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into(), "y2".into()],
+            probabilities: vec![
+                vec![rational(1, 2), rational(1, 3), rational(1, 6)],
+                vec![rational(1, 2), rational(1, 3), rational(1, 6)],
+                vec![rational(1, 2), rational(1, 3), rational(1, 6)],
+            ],
+        };
+        let receipt = solve_small_blackwell_garbling(&more, &consistent)
+            .unwrap()
+            .unwrap();
+        verify_blackwell_dominance(&more, &consistent, &receipt.witness).unwrap();
+
+        let inconsistent = FiniteObservationChannel {
+            channel_id: "singular-inconsistent-target".into(),
+            probabilities: vec![
+                vec![Rational::one(), Rational::zero(), Rational::zero()],
+                vec![Rational::zero(), Rational::one(), Rational::zero()],
+                vec![Rational::zero(), Rational::zero(), Rational::one()],
+            ],
+            ..consistent
+        };
+        assert!(solve_small_blackwell_garbling(&more, &inconsistent)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn general_blackwell_solver_fails_closed_when_variable_cap_is_exceeded() {
+        let more = FiniteObservationChannel {
+            channel_id: "too-wide-source".into(),
+            state_ids: vec!["s0".into()],
+            observation_ids: (0..7).map(|index| format!("z{index}")).collect(),
+            probabilities: vec![vec![rational(1, 7); 7]],
+        };
+        let less = FiniteObservationChannel {
+            channel_id: "too-wide-target".into(),
+            state_ids: more.state_ids.clone(),
+            observation_ids: vec!["y0".into(), "y1".into(), "y2".into()],
+            probabilities: vec![vec![rational(1, 3); 3]],
+        };
+        assert!(solve_small_blackwell_garbling(&more, &less).is_err());
+    }
+
+    #[test]
+    fn general_blackwell_solver_handles_a_single_output_target() {
+        let more = perfect_channel("binary-source");
+        let less = FiniteObservationChannel {
+            channel_id: "single-output-target".into(),
+            state_ids: more.state_ids.clone(),
+            observation_ids: vec!["always".into()],
+            probabilities: vec![vec![Rational::one()], vec![Rational::one()]],
+        };
+        let receipt = solve_small_blackwell_garbling(&more, &less)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            receipt.witness.probabilities,
+            vec![vec![Rational::one()], vec![Rational::one()]]
+        );
+    }
+
     #[test]
     fn more_nominal_information_can_produce_greater_realized_decision_loss() {
         let prior = vec![rational(1, 2), rational(1, 2)];
