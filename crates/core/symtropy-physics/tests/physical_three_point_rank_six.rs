@@ -135,6 +135,16 @@ fn six_by_six_gram_minor(matrix: &Matrix9, indices: [usize; 6]) -> i64 {
     determinant_bareiss(minor)
 }
 
+fn leading_principal_minor(matrix: &Matrix9, size: usize) -> i64 {
+    assert!((1..=9).contains(&size));
+    let minor = matrix
+        .iter()
+        .take(size)
+        .map(|row| row.iter().take(size).copied().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    determinant_bareiss(minor)
+}
+
 fn quadratic_form(matrix: &Matrix9, vector: &Vector9) -> i64 {
     dot(vector, &delassus_times_vector(matrix, vector))
 }
@@ -261,4 +271,27 @@ fn three_contact_island_has_a_three_dimensional_admissible_allocation_fibre() {
     // The three null parameters describe a genuine open neighbourhood around
     // zero: the base point has strict slack 4 on all disks, so small perturbations
     // in a,b,c remain locally admissible. No unique contact impulse exists.
+}
+#[test]
+fn proximal_cone_metric_lifts_rank_six_nine_by_nine_delassus_to_exact_spd() {
+    let w6 = geometry_delassus_sixths();
+    assert_eq!(six_by_six_gram_minor(&w6, [0, 1, 2, 3, 5, 6]), 7776);
+
+    // For gamma in {2,1,1/2}, 6(W+gamma^{-1}I)=6W+shift*I
+    // with shift in {3,6,12}. Exact Sylvester minors prove the proximal
+    // inner QP metric SPD even though the unregularized physical W has nullity 3.
+    for shift in [3_i64, 6, 12] {
+        let lifted = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                w6[row][column] + if row == column { shift } else { 0 }
+            })
+        });
+        for size in 1..=9 {
+            let determinant = leading_principal_minor(&lifted, size);
+            assert!(
+                determinant > 0,
+                "W_gamma leading minor size={size}, shift={shift}: {determinant}"
+            );
+        }
+    }
 }
