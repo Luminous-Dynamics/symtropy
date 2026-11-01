@@ -444,6 +444,8 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
     let reference = [2.0, 0.0, 0.0, 2.0, 0.0, 0.0];
     let free_velocity = [-4.0, 0.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
     let q = free_contact_velocity(&free_velocity);
+    // Matrix-free W bound: ||J M^-1 J^T||_2 <= ||J||_2^2 ||M^-1||_2.
+    assert!(matrix_free.spectral_norm_upper_bound() >= matrix_infinity_norm(&w));
     let expected_q = std::array::from_fn(|index| -dense.apply(&reference)[index]);
     assert!(max_abs_difference(&q, &expected_q) < 1.0e-14);
 
@@ -485,6 +487,7 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     let free_velocity = [-4.0, 3.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
     let q = free_contact_velocity(&free_velocity);
     assert!(max_abs_difference(&q, &[-4.0, 3.0, 0.0, -14.0 / 3.0, 3.0, 0.0]) < 1.0e-14);
+    assert!(matrix_free.spectral_norm_upper_bound() >= matrix_infinity_norm(&w));
     let reference = [2.0, -1.0, 0.0, 2.0, -1.0, 0.0];
 
     let dense_outcome = solve_fbf_reference(&dense, &q, FRICTION)
