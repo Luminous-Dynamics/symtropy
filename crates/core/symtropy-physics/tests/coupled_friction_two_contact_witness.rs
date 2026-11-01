@@ -26,12 +26,8 @@ fn tangent_impulse_from_duals(
 ) -> Option<SVector<f64, 4>> {
     let normal = [0, 3];
     let tangent = [1, 2, 4, 5];
-    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| {
-        w[(tangent[row], normal[column])]
-    });
-    let hessian = SMatrix::<f64, 4, 4>::from_fn(|row, column| {
-        w[(tangent[row], tangent[column])]
-    });
+    let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| w[(tangent[row], normal[column])]);
+    let hessian = SMatrix::<f64, 4, 4>::from_fn(|row, column| w[(tangent[row], tangent[column])]);
     let q_t = SVector::<f64, 4>::new(q[1], q[2], q[4], q[5]);
     let dual_shift = SMatrix::<f64, 4, 4>::from_diagonal(&SVector::<f64, 4>::new(
         tau_1, tau_1, tau_2, tau_2,
