@@ -4,15 +4,15 @@
 //! N-dimensional rigid body physics engine.
 //!
 //! Provides dimension-agnostic rigid body dynamics, GJK collision detection,
-//! and constraint solving. All types are `const D: usize` parameterized for
+//! and constraint solving. All types are const D: usize parameterized for
 //! stack-allocated, SIMD-friendly physics at 2D/3D/4D.
 //!
 //! # Architecture
-//! - `RigidBody<D>` — position, velocity, angular velocity (bivector), mass, collider
-//! - `PhysicsWorld<D>` — owns bodies, steps simulation, resolves collisions
-//! - `gjk::intersects()` — GJK intersection test for any `Shape<D>`
-//! - `contact::ContactManifold<D>` — collision contact data
-//! - `integrator` — semi-implicit Euler with bivector angular dynamics
+//! - RigidBody<D> — position, velocity, angular velocity (bivector), mass, collider
+//! - PhysicsWorld<D> — owns bodies, steps simulation, resolves collisions
+//! - gjk::intersects() — GJK intersection test for any Shape<D>
+//! - contact::ContactManifold<D> — collision contact data
+//! - integrator — semi-implicit Euler with bivector angular dynamics
 
 pub mod articulation;
 pub mod body;
@@ -31,6 +31,9 @@ pub mod raycast;
 pub mod replay;
 pub mod support_map;
 pub mod world;
+
+#[cfg(test)]
+mod coupled_friction_transition_witness;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
