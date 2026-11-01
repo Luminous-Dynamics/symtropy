@@ -3313,8 +3313,7 @@ mod double_sliding_direction_oracle {
         Some((alpha_from_contact_1, alpha_from_contact_2))
     }
 
-    #[test]
-    fn dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre() {
+    fn prove_dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre() {
         const A_T2: [i128; 3] = [
             -6_635_580_832_593_066,
             -216_977_548_891_540_199,
@@ -3377,5 +3376,277 @@ mod double_sliding_direction_oracle {
             }
         }
         assert_eq!(pair_count, 4);
+    }
+
+    #[test]
+    fn dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre() {
+        prove_dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre();
+    }
+
+    fn exact_quadratic_integer_polynomial(coefficients: [i128; 3]) -> BigIntegerPolynomial {
+        let mut polynomial = BigIntegerPolynomial::zero();
+        for (degree, coefficient) in coefficients.into_iter().enumerate() {
+            polynomial.coefficients[degree] = BigInt::from(coefficient);
+        }
+        polynomial
+    }
+
+    fn rational_interval_midpoint(interval: &RationalInterval) -> BigRational {
+        (interval.lower.clone() + interval.upper.clone())
+            / BigRational::from_integer(BigInt::from(2_u8))
+    }
+
+    fn rational_intervals_overlap(left: &RationalInterval, right: &RationalInterval) -> bool {
+        left.lower <= right.upper && right.lower <= left.upper
+    }
+
+    #[test]
+    fn dyadic_double_slide_fixture_has_exact_global_finite_and_projective_accounting() {
+        const A_T2: [i128; 3] = [
+            -6_635_580_832_593_066,
+            -216_977_548_891_540_199,
+            205_966_130_065_945_770,
+        ];
+        const Q_T1: [i128; 3] = [
+            1_453_414_006_334_584_503,
+            -3_433_061_893_381_690_836,
+            1_089_540_914_828_380_489,
+        ];
+        const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
+        const COMMON_DENOMINATOR: i128 = 1_048_576;
+
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+        let resultant = exact_direction_resultant(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        );
+        assert_eq!(resultant.degree(), Some(20));
+
+        let root_width = BigRational::new(BigInt::from(1_u8), BigInt::from(1_u8) << 80);
+        let projected_roots =
+            isolate_all_real_resultant_roots_with_width(&resultant, root_width.clone());
+        assert_eq!(
+            projected_roots.len(),
+            10,
+            "the full Cauchy/Sturm domain contains ten distinct finite real projections"
+        );
+
+        // The exact degree-one subresultant is a lift relation on the regular
+        // stratum. A zero denominator is not discarded: it is the singular
+        // normal-response fibre treated by the #3256 proof below.
+        let (lift_numerator, lift_denominator) = exact_subresultant_linear_lift(
+            polynomials.tangential_equation_1,
+            polynomials.tangential_equation_2,
+        )
+        .expect("the exact pseudo-remainder has a linear t1 subresultant");
+
+        let resultant_derivative = resultant.derivative();
+        let resultant_second_derivative = resultant_derivative.derivative();
+        let leading_g1_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_1,
+            4,
+        );
+        let leading_g2_t1 = BigIntegerPolynomial::from_bivariate_t1_coefficient(
+            polynomials.tangential_equation_2,
+            2,
+        );
+        let leading_g1_t2 = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_1,
+            2,
+        );
+        let leading_g2_t2 = BigIntegerPolynomial::from_bivariate_t2_coefficient(
+            polynomials.tangential_equation_2,
+            4,
+        );
+
+        let a_polynomial = exact_quadratic_integer_polynomial(A_T2);
+        let q_polynomial = exact_quadratic_integer_polynomial(Q_T1);
+        let a_roots =
+            isolate_all_real_resultant_roots_with_width(&a_polynomial, root_width.clone());
+        let q_roots =
+            isolate_all_real_resultant_roots_with_width(&q_polynomial, root_width.clone());
+        assert_eq!(a_roots.len(), 2);
+        assert_eq!(q_roots.len(), 2);
+
+        let mut regular_projection_count = 0;
+        let mut singular_projection_count = 0;
+        let mut physical_root_boxes: Vec<[RationalInterval; 2]> = Vec::new();
+        let mut nonphysical_projection_count = 0;
+
+        for (left, right) in &projected_roots {
+            let t2 = RationalInterval::new(left.clone(), right.clone());
+            let r0 = lift_numerator.evaluate_interval(&t2);
+            let r1 = lift_denominator.evaluate_interval(&t2);
+            let first_derivative = resultant_derivative.evaluate_interval(&t2);
+
+            if r1.excludes_zero() {
+                regular_projection_count += 1;
+
+                // A simple projected root and finite non-degenerate leading
+                // coefficients make the degree-one subresultant a unique real
+                // t1 lift. The two leading coefficients cannot both vanish on
+                // this box, so no root is being dropped to t1=infinity.
+                assert!(first_derivative.excludes_zero());
+                let leading_one = leading_g1_t1.evaluate_interval(&t2);
+                let leading_two = leading_g2_t1.evaluate_interval(&t2);
+                assert!(
+                    leading_one.excludes_zero() || leading_two.excludes_zero(),
+                    "a regular projected root cannot be a common t1-degree drop"
+                );
+
+                let t1 = r0
+                    .neg()
+                    .div(&r1)
+                    .expect("the exact subresultant denominator excludes zero");
+                let delta = polynomials.determinant.evaluate_interval(&t1, &t2);
+                assert!(
+                    delta.excludes_zero(),
+                    "a regular lift must stay outside the singular normal-response stratum"
+                );
+
+                let normal_one = polynomials
+                    .normal_numerator_1
+                    .evaluate_interval(&t1, &t2)
+                    .div(&delta)
+                    .expect("the normal determinant is bounded away from zero");
+                let normal_two = polynomials
+                    .normal_numerator_2
+                    .evaluate_interval(&t1, &t2)
+                    .div(&delta)
+                    .expect("the normal determinant is bounded away from zero");
+                assert!(
+                    normal_one.is_strictly_positive() || normal_one.is_strictly_negative(),
+                    "normal impulse 1 sign must be resolved on every regular lift"
+                );
+                assert!(
+                    normal_two.is_strictly_positive() || normal_two.is_strictly_negative(),
+                    "normal impulse 2 sign must be resolved on every regular lift"
+                );
+
+                let tau_one = polynomials
+                    .sliding_numerator_1
+                    .evaluate_interval(&t1, &t2)
+                    .div(&polynomials.normal_numerator_1.evaluate_interval(&t1, &t2))
+                    .expect("normal numerator 1 is sign definite");
+                let tau_two = polynomials
+                    .sliding_numerator_2
+                    .evaluate_interval(&t1, &t2)
+                    .div(&polynomials.normal_numerator_2.evaluate_interval(&t1, &t2))
+                    .expect("normal numerator 2 is sign definite");
+                assert!(
+                    tau_one.is_strictly_positive() || tau_one.is_strictly_negative(),
+                    "sliding multiplier 1 sign must be resolved on every regular lift"
+                );
+                assert!(
+                    tau_two.is_strictly_positive() || tau_two.is_strictly_negative(),
+                    "sliding multiplier 2 sign must be resolved on every regular lift"
+                );
+
+                let admissible = normal_one.is_strictly_positive()
+                    && normal_two.is_strictly_positive()
+                    && tau_one.is_strictly_positive()
+                    && tau_two.is_strictly_positive();
+
+                if admissible {
+                    let center = [
+                        rational_interval_midpoint(&t1),
+                        rational_interval_midpoint(&t2),
+                    ];
+                    let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+                    let certificate = certify_exact_double_slide_root_box(
+                        &polynomials,
+                        center,
+                        radius,
+                        FRICTION_NUMERATORS,
+                        COMMON_DENOMINATOR,
+                    )
+                    .expect(
+                        "every admissible regular lift must have a unique physical Krawczyk box",
+                    );
+
+                    assert!(t1.is_strict_subset_of(&certificate.domain[0]));
+                    assert!(t2.is_strict_subset_of(&certificate.domain[1]));
+                    // The constructor only returns after strict Krawczyk
+                    // inclusion K(X) subset int(X). Replay the defining
+                    // component-wise inclusion here; no separate contraction
+                    // row-sum field is part of the certificate contract.
+                    assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
+                    assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
+                    assert!(certificate.normal_determinant.excludes_zero());
+                    physical_root_boxes.push([t1, t2]);
+                } else {
+                    nonphysical_projection_count += 1;
+                    assert!(
+                        normal_one.is_strictly_negative()
+                            || normal_two.is_strictly_negative()
+                            || tau_one.is_strictly_negative()
+                            || tau_two.is_strictly_negative(),
+                        "every nonphysical regular projection must have a strict KKT sign defeater"
+                    );
+                }
+            } else {
+                singular_projection_count += 1;
+
+                // The subresultant numerator must vanish with its denominator;
+                // these are not lost finite lifts, but the rank-one normal
+                // compatibility stratum handled by the exact fibre proof.
+                assert!(!r0.excludes_zero());
+                assert!(
+                    resultant_second_derivative
+                        .evaluate_interval(&t2)
+                        .excludes_zero(),
+                    "the singular projections have exact multiplicity two"
+                );
+                assert_eq!(
+                    a_roots
+                        .iter()
+                        .filter(|(a_left, a_right)| {
+                            let a_interval = RationalInterval::new(a_left.clone(), a_right.clone());
+                            rational_intervals_overlap(&a_interval, &t2)
+                        })
+                        .count(),
+                    1,
+                    "each singular projection must match exactly one root of A(t2)"
+                );
+            }
+        }
+
+        assert_eq!(regular_projection_count, 8);
+        assert_eq!(singular_projection_count, 2);
+        assert_eq!(nonphysical_projection_count, 6);
+        assert_eq!(physical_root_boxes.len(), 2);
+
+        // The two locally unique physical boxes must be disjoint. Their
+        // isolation boxes came from two different subresultant projections.
+        assert!(
+            physical_root_boxes[0][0].upper < physical_root_boxes[1][0].lower
+                || physical_root_boxes[1][0].upper < physical_root_boxes[0][0].lower
+        );
+        assert!(
+            physical_root_boxes[0][1].upper < physical_root_boxes[1][1].lower
+                || physical_root_boxes[1][1].upper < physical_root_boxes[0][1].lower
+        );
+
+        // Exact projective-chart exclusion. The leading t1 coefficient
+        // polynomials and leading t2 coefficient polynomials have constant
+        // gcds, so there is no common root on either infinity chart. The
+        // nonzero corner coefficients also exclude the projective corner.
+        assert!(rational_polynomial_gcd_is_constant(
+            &resultant_as_rational_polynomial(&leading_g1_t1),
+            &resultant_as_rational_polynomial(&leading_g2_t1),
+        ));
+        assert!(rational_polynomial_gcd_is_constant(
+            &resultant_as_rational_polynomial(&leading_g1_t2),
+            &resultant_as_rational_polynomial(&leading_g2_t2),
+        ));
+        assert_ne!(polynomials.tangential_equation_1.coefficients[4][2], 0);
+        assert_ne!(polynomials.tangential_equation_2.coefficients[2][4], 0);
+
+        // Route all four compatible singular direction pairs through the
+        // exact rank-one normal fibre and two-contact tangential exclusion.
+        // The four pairings are not four candidate impulses: none admits a
+        // common physical fibre parameter.
+        assert_eq!(q_roots.len() * a_roots.len(), 4);
+        prove_dyadic_delta_zero_stratum_has_no_common_tangential_multiplier_fibre();
     }
 }
