@@ -942,7 +942,7 @@
       ]
     },
     {
-      "id": "NO_BUILD_EXISTING_PROVIDER_WINS",
+      "id": "EXISTING_PROVIDER_NO_BUILD_BASELINE",
       "expected_status": "feasible",
       "require_n_minus_one": false,
       "mission": {
