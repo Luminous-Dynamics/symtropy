@@ -94,8 +94,11 @@ preference and realized cost-plus-terminal-loss preference. Its
 terminal-decision-loss units; the default is one, and sensitivity analysis
 should report how choices change over a preregistered range of rates. It also
 reports the two-dimensional Pareto relation over (experiment cost, decision
-loss) separately for nominal and realized outcomes. A scalar preference must
-not conceal a Pareto trade-off.
+loss) separately for nominal and realized outcomes. For strict cost/risk
+trade-offs it derives the exact rational exchange-rate crossover at which the
+scalarized preference changes, separately for nominal and realized loss. A
+scalar preference must not conceal a Pareto trade-off; report the crossover
+and Pareto relation together.
 
 The audit runs the bounded exact feasibility solver in both directions and
 retains either a checked garbling certificate, a supported non-dominance
