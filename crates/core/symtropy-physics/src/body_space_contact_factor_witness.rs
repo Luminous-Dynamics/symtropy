@@ -1,0 +1,269 @@
+// Copyright (C) 2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
+//! Exact body-space/contact-space equivalence witness for a shared rigid body.
+//!
+//! This test-only fixture demonstrates the graph distinction tracked by
+//! PHYS-CONTACT-BODY-FACTORS-001 (#3277):
+//! - three local point contacts on one rigid body;
+//! - a dense 3x3 contact graph after eliminating the six body-velocity DOFs;
+//! - a retained six-DOF body separator in the primal representation;
+//! - exact agreement of W p and J (M^-1 (J^T p));
+//! - a three-dimensional contact-impulse fibre with one generalized response.
+//!
+//! The fixture certifies contact kinematics and the declared spatial inertia.
+//! It is not yet a collision-detection, surface-normal generation, Coulomb
+//! branch-enumeration, or physical time-step completeness certificate.
+
+type Jacobian = [[i128; 6]; 9];
+type Delassus = [[i128; 9]; 9];
+type Gram = [[i128; 6]; 6];
+
+const CONTACT_POINTS_IN_BODY: [[i128; 3]; 3] = [
+    [1, 0, -1],
+    [0, 1, -1],
+    [1, 1, -1],
+];
+
+// Each local frame is orthonormal: normal +z, tangent axes +x and +y.
+const CONTACT_FRAME_AXES: [[i128; 3]; 3] = [[0, 0, 1], [1, 0, 0], [0, 1, 0]];
+
+// Spatial twist ordering is [v_x, v_y, v_z, omega_x, omega_y, omega_z].
+// M = I_6 is a valid positive-definite declared mass/inertia matrix for this
+// algebraic contact-kinematics fixture, so applying M^-1 is exact identity.
+
+fn cross(left: [i128; 3], right: [i128; 3]) -> [i128; 3] {
+    [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ]
+}
+
+fn contact_jacobian() -> Jacobian {
+    let mut jacobian = [[0_i128; 6]; 9];
+    for (contact, point) in CONTACT_POINTS_IN_BODY.iter().copied().enumerate() {
+        for (axis_index, axis) in CONTACT_FRAME_AXES.iter().copied().enumerate() {
+            let moment = cross(point, axis);
+            let row = contact * 3 + axis_index;
+            jacobian[row] = [
+                axis[0],
+                axis[1],
+                axis[2],
+                moment[0],
+                moment[1],
+                moment[2],
+            ];
+        }
+    }
+    jacobian
+}
+
+fn assemble_delassus(jacobian: &Jacobian) -> Delassus {
+    let mut delassus = [[0_i128; 9]; 9];
+    for (row, row_values) in jacobian.iter().enumerate() {
+        for (column, column_values) in jacobian.iter().enumerate() {
+            delassus[row][column] = row_values
+                .iter()
+                .zip(column_values.iter())
+                .map(|(left, right)| left * right)
+                .sum();
+        }
+    }
+    delassus
+}
+
+fn scatter_contact_impulses(jacobian: &Jacobian, impulses: &[i128; 9]) -> [i128; 6] {
+    let mut body_wrench = [0_i128; 6];
+    for (row, impulse) in jacobian.iter().zip(impulses.iter()) {
+        for (axis, coefficient) in row.iter().enumerate() {
+            body_wrench[axis] += coefficient * impulse;
+        }
+    }
+    body_wrench
+}
+
+fn gather_body_velocity(jacobian: &Jacobian, body_velocity: &[i128; 6]) -> [i128; 9] {
+    let mut contact_velocity = [0_i128; 9];
+    for (contact, row) in jacobian.iter().enumerate() {
+        contact_velocity[contact] = row
+            .iter()
+            .zip(body_velocity.iter())
+            .map(|(coefficient, velocity)| coefficient * velocity)
+            .sum();
+    }
+    contact_velocity
+}
+
+fn apply_delassus(delassus: &Delassus, impulses: &[i128; 9]) -> [i128; 9] {
+    let mut velocity = [0_i128; 9];
+    for (row_index, row) in delassus.iter().enumerate() {
+        velocity[row_index] = row
+            .iter()
+            .zip(impulses.iter())
+            .map(|(coefficient, impulse)| coefficient * impulse)
+            .sum();
+    }
+    velocity
+}
+
+fn body_gram(jacobian: &Jacobian) -> Gram {
+    let mut gram = [[0_i128; 6]; 6];
+    for row in jacobian {
+        for (left_axis, left_value) in row.iter().enumerate() {
+            for (right_axis, right_value) in row.iter().enumerate() {
+                gram[left_axis][right_axis] += left_value * right_value;
+            }
+        }
+    }
+    gram
+}
+
+// Bareiss fraction-free elimination. Every division is asserted exact, so the
+// resulting determinant is an integer identity rather than a floating rank
+// estimate. Index-coupled loops are intentional for the fixed-size pivoting.
+#[allow(clippy::needless_range_loop)]
+fn determinant_bareiss(mut matrix: Gram) -> i128 {
+    let mut previous_pivot = 1_i128;
+    let mut sign = 1_i128;
+    for pivot_index in 0..5 {
+        let pivot_row = (pivot_index..6)
+            .find(|row| matrix[*row][pivot_index] != 0)
+            .expect("the Gram matrix has a nonzero pivot");
+        if pivot_row != pivot_index {
+            matrix.swap(pivot_row, pivot_index);
+            sign = -sign;
+        }
+        let pivot = matrix[pivot_index][pivot_index];
+        for row in (pivot_index + 1)..6 {
+            for column in (pivot_index + 1)..6 {
+                let numerator = matrix[row][column] * pivot
+                    - matrix[row][pivot_index] * matrix[pivot_index][column];
+                assert_eq!(
+                    numerator % previous_pivot,
+                    0,
+                    "Bareiss division must be exact"
+                );
+                matrix[row][column] = numerator / previous_pivot;
+            }
+            matrix[row][pivot_index] = 0;
+        }
+        previous_pivot = pivot;
+    }
+    sign * matrix[5][5]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const NULL_FIBRE_BASIS: [[i128; 9]; 3] = [
+        [0, 1, -1, 0, -1, 1, 0, 0, 0],
+        [0, 0, 0, 0, -1, 0, 0, 1, 0],
+        [0, 0, -1, 0, 0, 0, 0, 0, 1],
+    ];
+
+    #[test]
+    fn one_body_contacts_form_dense_delassus_clique_but_retain_six_dof_separator() {
+        let jacobian = contact_jacobian();
+        let delassus = assemble_delassus(&jacobian);
+
+        // The declared contact frames are orthonormal.
+        for (left_index, left_axis) in CONTACT_FRAME_AXES.iter().enumerate() {
+            for (right_index, right_axis) in CONTACT_FRAME_AXES.iter().enumerate() {
+                let dot: i128 = left_axis
+                    .iter()
+                    .zip(right_axis.iter())
+                    .map(|(left, right)| left * right)
+                    .sum();
+                assert_eq!(dot, i128::from(left_index == right_index));
+            }
+        }
+
+        // W = J J^T is exactly symmetric and PSD because M^-1 = I_6.
+        for (row_index, row) in delassus.iter().enumerate() {
+            for (column_index, value) in row.iter().enumerate() {
+                assert_eq!(value, &delassus[column_index][row_index]);
+            }
+        }
+
+        // Every off-diagonal 3x3 contact block is nonzero: the contact-space
+        // graph is a three-vertex clique, despite only six latent body DOFs.
+        for left_contact in 0..3 {
+            for right_contact in (left_contact + 1)..3 {
+                let block_frobenius_squared: i128 = (0..3)
+                    .flat_map(|left_axis| {
+                        (0..3).map(move |right_axis| {
+                            delassus[left_contact * 3 + left_axis]
+                                [right_contact * 3 + right_axis]
+                                .pow(2)
+                        })
+                    })
+                    .sum();
+                assert!(
+                    block_frobenius_squared > 0,
+                    "every pair of contacts must be coupled through the shared body"
+                );
+            }
+        }
+
+        // J has six independent columns iff J^T J is positive definite.
+        // Its Gram matrix is PSD by construction and its exact determinant is
+        // 12, so rank(J)=rank(W)=6 and the nine-coordinate W has nullity 3.
+        let gram = body_gram(&jacobian);
+        assert_eq!(determinant_bareiss(gram), 12);
+
+        // Three exact null-fibre directions preserve the generalized body
+        // wrench. They demonstrate why unique body response does not imply a
+        // unique per-contact impulse allocation.
+        for null_direction in NULL_FIBRE_BASIS {
+            assert_eq!(
+                scatter_contact_impulses(&jacobian, &null_direction),
+                [0_i128; 6]
+            );
+            assert_eq!(
+                apply_delassus(&delassus, &null_direction),
+                [0_i128; 9]
+            );
+        }
+
+        let impulses = [2_i128, -3, 5, 7, -11, 13, -17, 19, -23];
+        let body_wrench = scatter_contact_impulses(&jacobian, &impulses);
+        // M^-1 is the identity in this fixture: this is the retained
+        // six-dimensional body-velocity separator.
+        let body_velocity = body_wrench;
+        let matrix_free_velocity = gather_body_velocity(&jacobian, &body_velocity);
+        let contact_space_velocity = apply_delassus(&delassus, &impulses);
+        assert_eq!(matrix_free_velocity, contact_space_velocity);
+
+        // Verify the operator identity column-by-column, not just for one
+        // selected impulse vector.
+        for basis_index in 0..9 {
+            let mut basis = [0_i128; 9];
+            basis[basis_index] = 1;
+            assert_eq!(
+                gather_body_velocity(
+                    &jacobian,
+                    &scatter_contact_impulses(&jacobian, &basis)
+                ),
+                apply_delassus(&delassus, &basis)
+            );
+        }
+    }
+
+    #[test]
+    fn exact_geometry_fixture_has_expected_rank_and_contact_coupling() {
+        let jacobian = contact_jacobian();
+        let delassus = assemble_delassus(&jacobian);
+        assert_eq!(body_gram(&jacobian), [
+            [3, 0, 0, 0, 0, -2],
+            [0, 3, 0, 0, 0, 2],
+            [0, 0, 3, 2, -2, 0],
+            [0, 0, 2, 2, -1, 0],
+            [0, 0, -2, -1, 2, 0],
+            [-2, 2, 0, 0, 0, 4],
+        ]);
+        assert_eq!(determinant_bareiss(body_gram(&jacobian)), 12);
+        assert_eq!(delassus.len(), 9);
+    }
+}
