@@ -2920,6 +2920,39 @@ mod tests {
     }
 
     #[test]
+    fn low_learning_rate_can_reduce_model_proposal_ess_without_changing_zero_geig() {
+        let prior = vec![rational(1, 2), rational(1, 2)];
+        let channel = noisy_channel("importance-low-rate");
+        let constant_factors = vec![
+            vec![Rational::one(), Rational::one()],
+            vec![Rational::one(), Rational::one()],
+        ];
+        let samples = likelihood_proposal_samples();
+        let exact = compute_gibbs_eig_exact_finite(
+            "omega-zero",
+            &channel,
+            &prior,
+            &constant_factors,
+        )
+        .unwrap();
+        assert_eq!(exact.value_nats, 0.0);
+
+        let receipt = estimate_gibbs_eig_importance_from_samples(
+            "working-model-proposal",
+            &channel,
+            &prior,
+            &constant_factors,
+            &channel.probabilities,
+            &samples,
+        )
+        .unwrap();
+        assert_eq!(receipt.effective_sample_size, rational(32, 5));
+        assert_eq!(receipt.effective_sample_size_fraction, 0.64);
+        assert_eq!(receipt.estimated_gibbs_eig_nats, 0.0);
+        assert_eq!(receipt.exact_oracle_gibbs_eig_nats, 0.0);
+    }
+
+    #[test]
     fn importance_sampler_reports_exact_weight_degeneracy_and_oracle_error() {
         let prior = vec![rational(1, 2), rational(1, 2)];
         let channel = noisy_channel("importance-weighted");
