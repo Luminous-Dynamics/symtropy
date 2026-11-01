@@ -32,6 +32,8 @@ jobs:
         run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml -- --check
       - name: Locked exact channel and decision oracle tests
         run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::experiment_ordering
+      - name: Locked constructive Blackwell decision-transfer tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::blackwell_transfer
       - name: Full locked crate test suite
         run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib
       - name: Strict Clippy
