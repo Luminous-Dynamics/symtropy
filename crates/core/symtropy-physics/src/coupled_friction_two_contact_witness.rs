@@ -551,4 +551,264 @@ mod schur_reduction_tests {
         assert!(outcome.candidates.is_empty());
     }
 
+
+    /// Generate candidates when contact 2 is strictly separating.
+    ///
+    /// Since p_2 = 0, solve contact 1 on its principal 3x3 block, reconstruct
+    /// the complete 6D post-contact velocity, and then prove u_n,2 > 0.
+    /// Contact 2's tangential post-velocity is unrestricted on this branch.
+    fn solve_with_contact_two_separating(
+        w: &Matrix6,
+        q: &Vector6,
+        mu_1: f64,
+        mu_2: f64,
+        tolerance: f64,
+    ) -> Result<SchurOutcome, &'static str> {
+        if !w.iter().all(|value| value.is_finite())
+            || !q.iter().all(|value| value.is_finite())
+            || !mu_1.is_finite()
+            || !mu_2.is_finite()
+            || mu_1 < 0.0
+            || mu_2 < 0.0
+            || !tolerance.is_finite()
+            || tolerance <= 0.0
+        {
+            return Err("invalid or non-finite two-contact input");
+        }
+
+        let scale = w.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Err("zero two-contact Delassus matrix");
+        }
+        let asymmetry = Matrix6::from_fn(|i, j| w[(i, j)] - w[(j, i)]);
+        if asymmetry.norm() > tolerance * scale * 10.0 {
+            return Err("two-contact Delassus matrix is not symmetric");
+        }
+        let symmetric_w = (w + w.transpose()) * 0.5;
+        let scaled_w = symmetric_w / scale;
+        let minimum_eigenvalue = nalgebra::linalg::SymmetricEigen::new(scaled_w)
+            .eigenvalues
+            .iter()
+            .fold(f64::INFINITY, |minimum, value| minimum.min(*value));
+        if minimum_eigenvalue <= tolerance {
+            return Err("two-contact Delassus matrix is not sufficiently positive definite");
+        }
+        if w.cholesky().is_none() {
+            return Err("two-contact Delassus matrix is not positive definite");
+        }
+
+        let a = Matrix3::from_fn(|i, j| w[(i, j)]);
+        let q_1 = SVector::<f64, 3>::new(q[0], q[1], q[2]);
+        let reduced = solve_coupled_signorini_coulomb(&a, &q_1, mu_1, tolerance)
+            .map_err(|_| "active-contact single-contact solver refused the principal block")?;
+
+        if reduced.status == CoupledCoulombStatus::Inconclusive {
+            return Ok(SchurOutcome {
+                reduced_status: CoupledCoulombStatus::Inconclusive,
+                candidates: Vec::new(),
+            });
+        }
+
+        let mut candidates = Vec::new();
+        for candidate in &reduced.candidates {
+            let p_1 = candidate.impulse;
+            let impulse = Vector6::new(p_1[0], p_1[1], p_1[2], 0.0, 0.0, 0.0);
+            let post_velocity = q + w * impulse;
+            let u_1 = SVector::<f64, 3>::new(
+                post_velocity[0],
+                post_velocity[1],
+                post_velocity[2],
+            );
+            let u_2 = SVector::<f64, 3>::new(
+                post_velocity[3],
+                post_velocity[4],
+                post_velocity[5],
+            );
+
+            let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
+            let impulse_tolerance = tolerance * impulse_scale * 250.0;
+            let velocity_tolerance = tolerance * velocity_scale * 250.0;
+
+            // Contact 2 is strictly separating: its complete impulse is zero
+            // and the reconstructed normal velocity is strictly positive.
+            if u_2[0] <= velocity_tolerance {
+                continue;
+            }
+
+            if p_1[0] < -impulse_tolerance {
+                continue;
+            }
+            let p_1_tangent_norm = p_1.fixed_rows::<2>(1).norm();
+            let u_1_tangent = u_1.fixed_rows::<2>(1);
+            let (normal_residual, tangent_residual) = match candidate.regime {
+                CoupledCoulombRegime::Separating => {
+                    if p_1.norm() > impulse_tolerance || u_1[0] <= velocity_tolerance {
+                        continue;
+                    }
+                    (0.0, 0.0)
+                }
+                CoupledCoulombRegime::Frictionless => {
+                    if mu_1 != 0.0
+                        || p_1[0] <= impulse_tolerance
+                        || p_1_tangent_norm > impulse_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), 0.0)
+                }
+                CoupledCoulombRegime::Sticking => {
+                    if p_1[0] <= impulse_tolerance
+                        || mu_1 * p_1[0] - p_1_tangent_norm <= impulse_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                        || u_1_tangent.norm() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), u_1_tangent.norm())
+                }
+                CoupledCoulombRegime::Sliding => {
+                    let disk_residual =
+                        (p_1_tangent_norm - mu_1 * p_1[0]).abs();
+                    let stationarity =
+                        (u_1_tangent + candidate.disk_multiplier * p_1.fixed_rows::<2>(1))
+                            .norm();
+                    if p_1[0] <= impulse_tolerance
+                        || disk_residual > impulse_tolerance
+                        || candidate.disk_multiplier <= 0.0
+                        || stationarity > velocity_tolerance
+                        || u_1[0].abs() > velocity_tolerance
+                    {
+                        continue;
+                    }
+                    (u_1[0].abs(), stationarity)
+                }
+            };
+
+            let kinetic_energy_delta =
+                impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance =
+                tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            if kinetic_energy_delta > energy_tolerance {
+                continue;
+            }
+
+            candidates.push(SchurCandidate {
+                impulse,
+                contact_one_regime: candidate.regime,
+                contact_one_tau: candidate.disk_multiplier,
+                kinetic_energy_delta,
+                max_velocity_residual: normal_residual
+                    .max(tangent_residual)
+                    .max((-u_2[0]).max(0.0)),
+            });
+        }
+
+        let reduced_status = if candidates.is_empty() {
+            // Candidate rejection cannot prove that the complete coupled
+            // problem has no solution; preserve the fail-closed claim ceiling.
+            CoupledCoulombStatus::Inconclusive
+        } else {
+            reduced.status
+        };
+        Ok(SchurOutcome {
+            reduced_status,
+            candidates,
+        })
+    }
+
+    fn contact_two_separating_fixture(
+        q_1: SVector<f64, 3>,
+        contact_two_normal_free_velocity: f64,
+    ) -> (Matrix6, Vector6) {
+        let mut w = Matrix6::identity();
+        for axis in 0..3 {
+            w[(axis, axis + 3)] = 0.1;
+            w[(axis + 3, axis)] = 0.1;
+        }
+        let q = Vector6::new(
+            q_1[0],
+            q_1[1],
+            q_1[2],
+            contact_two_normal_free_velocity,
+            0.2,
+            -0.3,
+        );
+        (w, q)
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_recovers_all_contact_one_regimes() {
+        let cases = [
+            (
+                SVector::<f64, 3>::new(0.5, 0.2, -0.1),
+                CoupledCoulombRegime::Separating,
+            ),
+            (
+                SVector::<f64, 3>::new(-1.0, 0.1, 0.1),
+                CoupledCoulombRegime::Sticking,
+            ),
+            (
+                SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
+                CoupledCoulombRegime::Sliding,
+            ),
+        ];
+
+        for (q_1, expected_regime) in cases {
+            let (w, q) = contact_two_separating_fixture(q_1, 0.25);
+            let outcome =
+                solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12)
+                    .unwrap();
+
+            assert_eq!(outcome.reduced_status, CoupledCoulombStatus::UniqueWithinTolerance);
+            assert_eq!(outcome.candidates.len(), 1);
+            let candidate = &outcome.candidates[0];
+            assert_eq!(candidate.contact_one_regime, expected_regime);
+            assert!(candidate.impulse.fixed_rows::<3>(3).norm() == 0.0);
+
+            let full_velocity = q + w * candidate.impulse;
+            assert!(full_velocity[3] > 0.0);
+            assert!(candidate.max_velocity_residual < 1.0e-8);
+            assert!(candidate.kinetic_energy_delta <= 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_rejects_inward_full_island_velocity() {
+        let (w, q) = contact_two_separating_fixture(
+            SVector::<f64, 3>::new(-1.0, 0.1, 0.1),
+            -0.2,
+        );
+        let outcome =
+            solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12)
+                .unwrap();
+
+        assert_eq!(outcome.reduced_status, CoupledCoulombStatus::Inconclusive);
+        assert!(outcome.candidates.is_empty());
+    }
+
+    #[test]
+    fn separating_contact_two_reduction_retains_cross_contact_coupling() {
+        let (w, q) = contact_two_separating_fixture(
+            SVector::<f64, 3>::new(-1.0, 0.1, 0.1),
+            0.25,
+        );
+        let outcome =
+            solve_with_contact_two_separating(&w, &q, 0.5, 0.8, 1.0e-12)
+                .unwrap();
+        let candidate = &outcome.candidates[0];
+
+        let coupled_velocity = q + w * candidate.impulse;
+        let diagonal_only = Matrix6::identity();
+        let uncoupled_velocity = q + diagonal_only * candidate.impulse;
+
+        assert!(coupled_velocity[3] > 0.0);
+        assert!(
+            (coupled_velocity[3] - uncoupled_velocity[3]).abs() > 1.0e-3
+        );
+    }
+
 }
