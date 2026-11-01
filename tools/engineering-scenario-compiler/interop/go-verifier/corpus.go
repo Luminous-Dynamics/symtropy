@@ -18,17 +18,17 @@ const expectedCorpusSchema = "engineering-scenario-jcs-corpus-v0.1"
 const expectedCorpusProfile = "engineering-scenario-ir-jcs-rfc8785-v1"
 
 type corpusManifest struct {
-	SchemaVersion             string              `json:"schema_version"`
-	GeneratorID               string              `json:"generator_id"`
-	GeneratorVersion          string              `json:"generator_version"`
-	CanonicalizationProfile   string              `json:"canonicalization_profile"`
-	DeterministicSeedHex      string              `json:"deterministic_seed_hex"`
-	GeneratedCaseCount        int                 `json:"generated_case_count"`
-	ValidCaseCount            int                 `json:"valid_case_count"`
-	RejectCaseCount           int                 `json:"reject_case_count"`
-	ValidCases                []validCorpusCase  `json:"valid_cases"`
-	RejectCases               []rejectCorpusCase `json:"reject_cases"`
-	ClaimCeiling              string              `json:"claim_ceiling"`
+	SchemaVersion           string             `json:"schema_version"`
+	GeneratorID             string             `json:"generator_id"`
+	GeneratorVersion        string             `json:"generator_version"`
+	CanonicalizationProfile string             `json:"canonicalization_profile"`
+	DeterministicSeedHex    string             `json:"deterministic_seed_hex"`
+	GeneratedCaseCount      int                `json:"generated_case_count"`
+	ValidCaseCount          int                `json:"valid_case_count"`
+	RejectCaseCount         int                `json:"reject_case_count"`
+	ValidCases              []validCorpusCase  `json:"valid_cases"`
+	RejectCases             []rejectCorpusCase `json:"reject_cases"`
+	ClaimCeiling            string             `json:"claim_ceiling"`
 }
 
 type validCorpusCase struct {
@@ -42,10 +42,10 @@ type validCorpusCase struct {
 }
 
 type rejectCorpusCase struct {
-	CaseID                  string `json:"case_id"`
-	InputFile               string `json:"input_file"`
-	InputSHA256             string `json:"input_sha256"`
-	ExpectedRejectionClass  string `json:"expected_rejection_class"`
+	CaseID                 string `json:"case_id"`
+	InputFile              string `json:"input_file"`
+	InputSHA256            string `json:"input_sha256"`
+	ExpectedRejectionClass string `json:"expected_rejection_class"`
 }
 
 type corpusResult struct {
@@ -221,12 +221,12 @@ func verifyGeneratedCorpus(root, resultPath, summaryPath string) (corpusSummary,
 			summary.ValidStrictRejects++
 			detail := err.Error()
 			if writeErr := writeCorpusResult(writer, corpusResult{
-				CaseID:                 testCase.CaseID,
-				ExpectedClassification: "valid",
-				ActualClassification:   "strict_rejected",
-				InputSHA256:            testCase.InputSHA256,
+				CaseID:                  testCase.CaseID,
+				ExpectedClassification:  "valid",
+				ActualClassification:    "strict_rejected",
+				InputSHA256:             testCase.InputSHA256,
 				ExpectedCanonicalSHA256: &testCase.ExpectedCanonicalSHA256,
-				Detail:                 &detail,
+				Detail:                  &detail,
 			}); writeErr != nil {
 				return summary, writeErr
 			}
@@ -237,12 +237,12 @@ func verifyGeneratedCorpus(root, resultPath, summaryPath string) (corpusSummary,
 			summary.ValidCanonicalMismatches++
 			detail := err.Error()
 			if writeErr := writeCorpusResult(writer, corpusResult{
-				CaseID:                 testCase.CaseID,
-				ExpectedClassification: "valid",
-				ActualClassification:   "canonicalization_error",
-				InputSHA256:            testCase.InputSHA256,
+				CaseID:                  testCase.CaseID,
+				ExpectedClassification:  "valid",
+				ActualClassification:    "canonicalization_error",
+				InputSHA256:             testCase.InputSHA256,
 				ExpectedCanonicalSHA256: &testCase.ExpectedCanonicalSHA256,
-				Detail:                 &detail,
+				Detail:                  &detail,
 			}); writeErr != nil {
 				return summary, writeErr
 			}
