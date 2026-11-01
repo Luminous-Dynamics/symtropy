@@ -1,0 +1,186 @@
+name: Engineering Scenario Adversarial JCS Corpus
+
+on:
+  pull_request:
+    paths:
+      - "tools/engineering-scenario-compiler/interop/corpus-generator/**"
+      - "tools/engineering-scenario-compiler/interop/go-verifier/**"
+      - "tools/engineering-scenario-compiler/interop/golden/**"
+      - "tools/engineering-scenario-compiler/src/strict_jcs_input.rs"
+      - "tools/engineering-scenario-compiler/Cargo.toml"
+      - ".github/workflows/engineering-scenario-adversarial-corpus.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/engineering-scenario-compiler/interop/corpus-generator/**"
+      - "tools/engineering-scenario-compiler/interop/go-verifier/**"
+      - "tools/engineering-scenario-compiler/interop/golden/**"
+      - "tools/engineering-scenario-compiler/src/strict_jcs_input.rs"
+      - "tools/engineering-scenario-compiler/Cargo.toml"
+      - ".github/workflows/engineering-scenario-adversarial-corpus.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engineering-scenario-adversarial-corpus-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-cross-language-identity:
+    name: Generated Rust/Go JCS identity and rejection matrix (Rust 1.96.0 / Go 1.27.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      EXPECTED_SUBJECT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Assert exact subject before execution
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SUBJECT_SHA"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Resolve standalone generator lockfile
+        run: cargo generate-lockfile --manifest-path tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+
+      - name: Format and test strict Rust corpus generator
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml --all -- --check
+          cargo test --manifest-path tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml --locked
+          cargo clippy --manifest-path tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Generate deterministic valid and reject corpus
+        run: |
+          set -euo pipefail
+          cargo run --release --manifest-path tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml --locked -- target/engineering-scenario-jcs-adversarial-corpus
+          corpus="target/engineering-scenario-jcs-adversarial-corpus"
+          jq -e '
+            .schema_version == "engineering-scenario-jcs-corpus-v0.1" and
+            .generator_id == "engineering-scenario-jcs-adversarial-corpus" and
+            .generator_version == "0.1.0" and
+            .canonicalization_profile == "engineering-scenario-ir-jcs-rfc8785-v1" and
+            .generated_case_count == 256 and
+            .valid_case_count == 268 and
+            .reject_case_count == 17 and
+            (.valid_cases | length) == 268 and
+            (.reject_cases | length) == 17
+          ' "$corpus/manifest.json"
+          manifest_expected="$(cut -d ' ' -f 1 "$corpus/manifest.sha256")"
+          manifest_actual="$(sha256sum "$corpus/manifest.json" | cut -d ' ' -f 1)"
+          test "$manifest_actual" = "$manifest_expected"
+          test "$(find "$corpus/valid" -type f -name '*.json' | wc -l)" -eq 268
+          test "$(find "$corpus/expected" -type f -name '*.jcs' | wc -l)" -eq 268
+          test "$(find "$corpus/reject" -type f -name '*.bin' | wc -l)" -eq 17
+
+      - name: Install pinned Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.3"
+
+      - name: Checkout independent Go JCS implementation at immutable commit
+        uses: actions/checkout@v4
+        with:
+          repository: cyberphone/json-canonicalization
+          ref: 32a48195b9b20fe67b1795e39e4509f14d860b45
+          path: _interop/json-canonicalization
+
+      - name: Prepare isolated GOPATH
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/jcs-gopath/src/webpki.org"
+          mkdir -p "$RUNNER_TEMP/jcs-gopath/src/interop"
+          cp -a _interop/json-canonicalization/go/src/webpki.org/jsoncanonicalizer "$RUNNER_TEMP/jcs-gopath/src/webpki.org/"
+          cp -a tools/engineering-scenario-compiler/interop/go-verifier "$RUNNER_TEMP/jcs-gopath/src/interop/"
+          cp -a tools/engineering-scenario-compiler/interop/golden "$RUNNER_TEMP/jcs-gopath/src/interop/"
+
+      - name: Run independent Go verifier tests and generated corpus
+        env:
+          GO111MODULE: "off"
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          go version
+          gofmt -d *.go
+          test -z "$(gofmt -d *.go)"
+          go test .
+          go run . --corpus "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus" "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl" "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-summary.json"
+          jq -e '
+            .valid_case_count == 268 and
+            .reject_case_count == 17 and
+            .valid_canonical_matches == 268 and
+            .valid_canonical_mismatches == 0 and
+            .valid_strict_rejects == 0 and
+            .reject_strict_accepts == 0 and
+            .reject_cases_correctly_denied == 17 and
+            .case_id_count == 285 and
+            .failure_count == 0
+          ' "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-summary.json"
+          test "$(wc -l < "$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus/go-results.jsonl")" -eq 285
+
+      - name: Benchmark strict preflight and JCS across generated payload sizes
+        env:
+          GO111MODULE: "off"
+          GOPATH: ${{ runner.temp }}/jcs-gopath
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/jcs-gopath/src/interop/go-verifier"
+          corpus="$GITHUB_WORKSPACE/target/engineering-scenario-jcs-adversarial-corpus"
+          mkdir -p "$corpus/benchmarks"
+          for case_id in generated-0000 generated-0001 generated-0002 generated-0003; do
+            input="$corpus/valid/$case_id.json"
+            test -s "$input"
+            JCS_BENCH_INPUT="$input" go test . -run='^$' -bench='Benchmark(StrictPreflight|JCSCanonicalize|StrictThenJCS)$' -benchmem -count=5 | tee "$corpus/benchmarks/$case_id-go-bench.txt"
+          done
+          {
+            printf 'input_case_ids=generated-0000,generated-0001,generated-0002,generated-0003\n'
+            sha256sum "$corpus/valid/generated-0000.json" "$corpus/valid/generated-0001.json" "$corpus/valid/generated-0002.json" "$corpus/valid/generated-0003.json"
+          } > "$corpus/benchmarks/reproducibility.txt"
+
+      - name: Record exact generator, corpus, toolchain and verifier provenance
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SUBJECT_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          corpus="target/engineering-scenario-jcs-adversarial-corpus"
+          {
+            printf 'commit_sha=%s\n' "$(git rev-parse HEAD)"
+            printf 'rustc='; rustc --version
+            printf 'cargo='; cargo --version
+            printf 'go='; go version
+            printf 'host='; uname -a
+            printf 'logical_cpus=%s\n' "$(nproc)"
+            printf 'independent_go_jcs_commit=%s\n' "32a48195b9b20fe67b1795e39e4509f14d860b45"
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            sha256sum tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            sha256sum tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            sha256sum tools/engineering-scenario-compiler/interop/go-verifier/*.go
+            sha256sum "$corpus/manifest.json" "$corpus/go-results.jsonl" "$corpus/go-summary.json"
+            sha256sum "$corpus/benchmarks/"*.txt
+            find "$corpus/valid" "$corpus/expected" "$corpus/reject" -type f -print0 | sort -z | xargs -0 sha256sum
+          } > "$corpus/reproducibility.txt"
+
+      - name: Publish generated corpus and independent verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-scenario-jcs-adversarial-corpus-${{ github.sha }}
+          path: |
+            target/engineering-scenario-jcs-adversarial-corpus/
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.toml
+            tools/engineering-scenario-compiler/interop/corpus-generator/Cargo.lock
+            tools/engineering-scenario-compiler/interop/corpus-generator/src/
+            tools/engineering-scenario-compiler/interop/corpus-generator/README.md
+            tools/engineering-scenario-compiler/interop/go-verifier/
+            tools/engineering-scenario-compiler/src/strict_jcs_input.rs
+            tools/engineering-scenario-compiler/interop/golden/
+          if-no-files-found: error
+          retention-days: 14
