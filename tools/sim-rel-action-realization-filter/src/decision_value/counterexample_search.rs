@@ -1774,9 +1774,10 @@ mod tests {
         assert!(candidate.is_err());
 
         let mut split = source.clone();
+        let next_state = split.kernel.rows[0].outcomes[0].next_state;
         split.kernel.rows[0].outcomes.push(TransitionOutcome {
             probability: Rational::new(1, 5).unwrap(),
-            next_state: split.kernel.rows[0].outcomes[0].next_state,
+            next_state,
             realized_action: 0,
             readback: Some(0),
             measurement: Some(1),
