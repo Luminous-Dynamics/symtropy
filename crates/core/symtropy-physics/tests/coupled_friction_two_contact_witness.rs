@@ -29,9 +29,8 @@ fn tangent_impulse_from_duals(
     let w_tn = SMatrix::<f64, 4, 2>::from_fn(|row, column| w[(tangent[row], normal[column])]);
     let hessian = SMatrix::<f64, 4, 4>::from_fn(|row, column| w[(tangent[row], tangent[column])]);
     let q_t = SVector::<f64, 4>::new(q[1], q[2], q[4], q[5]);
-    let dual_shift = SMatrix::<f64, 4, 4>::from_diagonal(&SVector::<f64, 4>::new(
-        tau_1, tau_1, tau_2, tau_2,
-    ));
+    let dual_shift =
+        SMatrix::<f64, 4, 4>::from_diagonal(&SVector::<f64, 4>::new(tau_1, tau_1, tau_2, tau_2));
     let system = hessian + dual_shift;
     let rhs = q_t + w_tn * normal_loads;
     Some(-system.cholesky()?.solve(&rhs))
@@ -256,9 +255,8 @@ mod tests {
             let normal_loads = SVector::<f64, 2>::new(candidate[0], candidate[3]);
             let tangent = tangent_impulse_from_duals(&w, &q, &normal_loads, tau_1, 0.0)
                 .expect("the regularized tangential Hessian remains SPD");
-            let expected = SVector::<f64, 4>::from_fn(|index, _| {
-                candidate[tangent_coordinates[index]]
-            });
+            let expected =
+                SVector::<f64, 4>::from_fn(|index, _| candidate[tangent_coordinates[index]]);
             assert!((tangent - expected).norm() < 1.0e-8);
         }
 
