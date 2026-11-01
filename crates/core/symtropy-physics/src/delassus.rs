@@ -1398,7 +1398,6 @@ mod tests {
     #[test]
     fn assembler_propagates_singular_rotational_plane_error() {
         use crate::inertia::RotationalInertiaError;
-        use nalgebra::SMatrix;
 
         let mut body_a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         body_a.set_rotational_inertia_operator(
