@@ -17,10 +17,7 @@ type Matrix = Vec<Vec<Rational>>;
 type Vector = Vec<Rational>;
 
 fn r(numerator: i64, denominator: i64) -> Rational {
-    Rational::new(
-        BigInt::from(numerator),
-        BigInt::from(denominator),
-    )
+    Rational::new(BigInt::from(numerator), BigInt::from(denominator))
 }
 
 fn z() -> Rational {
@@ -58,9 +55,7 @@ fn mat_vec(matrix: &Matrix, vector: &Vector) -> Vector {
         .map(|row| {
             row.iter()
                 .zip(vector)
-                .fold(z(), |sum, (left, right)| {
-                    sum + left.clone() * right.clone()
-                })
+                .fold(z(), |sum, (left, right)| sum + left.clone() * right.clone())
         })
         .collect()
 }
@@ -68,9 +63,7 @@ fn mat_vec(matrix: &Matrix, vector: &Vector) -> Vector {
 fn dot(lhs: &Vector, rhs: &Vector) -> Rational {
     lhs.iter()
         .zip(rhs)
-        .fold(z(), |sum, (left, right)| {
-            sum + left.clone() * right.clone()
-        })
+        .fold(z(), |sum, (left, right)| sum + left.clone() * right.clone())
 }
 
 fn rank(matrix: &Matrix) -> usize {
@@ -80,16 +73,14 @@ fn rank(matrix: &Matrix) -> usize {
     let mut pivot_row = 0;
 
     for column in 0..columns {
-        let Some(pivot) = (pivot_row..rows).find(|&row| !reduced[row][column].is_zero())
-        else {
+        let Some(pivot) = (pivot_row..rows).find(|&row| !reduced[row][column].is_zero()) else {
             continue;
         };
         reduced.swap(pivot_row, pivot);
 
         let pivot_value = reduced[pivot_row][column].clone();
         for entry in column..columns {
-            reduced[pivot_row][entry] =
-                reduced[pivot_row][entry].clone() / pivot_value.clone();
+            reduced[pivot_row][entry] = reduced[pivot_row][entry].clone() / pivot_value.clone();
         }
 
         for row in 0..rows {
@@ -120,8 +111,7 @@ fn determinant(matrix: &Matrix) -> Rational {
     let mut result = i(1);
 
     for column in 0..size {
-        let Some(pivot) = (column..size).find(|&row| !work[row][column].is_zero())
-        else {
+        let Some(pivot) = (column..size).find(|&row| !work[row][column].is_zero()) else {
             return z();
         };
         if pivot != column {
@@ -134,8 +124,8 @@ fn determinant(matrix: &Matrix) -> Rational {
         for row in (column + 1)..size {
             let factor = work[row][column].clone() / pivot_value.clone();
             for entry in (column + 1)..size {
-                work[row][entry] = work[row][entry].clone()
-                    - factor.clone() * work[column][entry].clone();
+                work[row][entry] =
+                    work[row][entry].clone() - factor.clone() * work[column][entry].clone();
             }
         }
     }
@@ -182,10 +172,7 @@ fn geometry_fixture() -> (Matrix, Matrix, Matrix, Vector, Vector, Vector) {
         vec![z(), z(), i(1), z(), z(), i(2)],
     ];
 
-    let delassus = multiply(
-        &multiply(&jacobian, &inverse_mass),
-        &transpose(&jacobian),
-    );
+    let delassus = multiply(&multiply(&jacobian, &inverse_mass), &transpose(&jacobian));
     assert_eq!(delassus, expected_delassus);
 
     let null_impulse = vec![z(), i(1), z(), z(), i(-1), z()];
@@ -232,8 +219,7 @@ fn physical_two_point_delassus_is_psd_rank_five_with_a_one_dimensional_kernel() 
 
 #[test]
 fn rank_deficiency_creates_a_continuum_of_admissible_equivalent_impulses() {
-    let (_, _, delassus, null_impulse, base_impulse, free_velocity) =
-        geometry_fixture();
+    let (_, _, delassus, null_impulse, base_impulse, free_velocity) = geometry_fixture();
     let mu = r(1, 2);
     let base_response = mat_vec(&delassus, &base_impulse);
     let expected_energy = r(-26, 3);
@@ -269,16 +255,15 @@ fn rank_deficiency_creates_a_continuum_of_admissible_equivalent_impulses() {
         let normal_2 = impulse[3].clone();
         let radius_1 = mu.clone() * normal_1;
         let radius_2 = mu.clone() * normal_2;
-        let tangent_1_squared = impulse[1].clone() * impulse[1].clone()
-            + impulse[2].clone() * impulse[2].clone();
-        let tangent_2_squared = impulse[4].clone() * impulse[4].clone()
-            + impulse[5].clone() * impulse[5].clone();
+        let tangent_1_squared =
+            impulse[1].clone() * impulse[1].clone() + impulse[2].clone() * impulse[2].clone();
+        let tangent_2_squared =
+            impulse[4].clone() * impulse[4].clone() + impulse[5].clone() * impulse[5].clone();
         assert!(normal_1 > Rational::zero() && normal_2 > Rational::zero());
         assert!(radius_1.clone() * radius_1 > tangent_1_squared);
         assert!(radius_2.clone() * radius_2 > tangent_2_squared);
 
-        let energy = dot(&impulse, &free_velocity)
-            + r(1, 2) * dot(&impulse, &response);
+        let energy = dot(&impulse, &free_velocity) + r(1, 2) * dot(&impulse, &response);
         assert_eq!(energy, expected_energy);
         allocations.push(impulse);
     }
@@ -290,16 +275,14 @@ fn rank_deficiency_creates_a_continuum_of_admissible_equivalent_impulses() {
 
 #[test]
 fn arbitrarily_small_exact_nullspace_lift_removes_the_impulse_continuum() {
-    let (_, _, delassus, null_impulse, base_impulse, free_velocity) =
-        geometry_fixture();
+    let (_, _, delassus, null_impulse, base_impulse, free_velocity) = geometry_fixture();
     let epsilon = r(1, 10_000);
     let mut lifted = delassus.clone();
 
     for row in 0..6 {
         for column in 0..6 {
-            lifted[row][column] += epsilon.clone()
-                * null_impulse[row].clone()
-                * null_impulse[column].clone();
+            lifted[row][column] +=
+                epsilon.clone() * null_impulse[row].clone() * null_impulse[column].clone();
         }
     }
 
