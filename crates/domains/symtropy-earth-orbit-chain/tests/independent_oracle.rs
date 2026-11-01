@@ -492,16 +492,59 @@ fn corpus() -> Vec<(&'static str, CampaignV1)> {
     cases
 }
 
+fn frozen_expected_disposition(case_id: &str) -> CampaignDisposition {
+    match case_id {
+        "01-valid-baseline" => CampaignDisposition::Ready,
+        "08-missing-resource-proof"
+        | "09-unknown-resource-proof"
+        | "11-unsupported-resource-proof"
+        | "14-malformed-resource-receipt"
+        | "15-unknown-orbit-compatibility"
+        | "16-unsupported-orbit-compatibility"
+        | "17-malformed-orbit-receipt" => CampaignDisposition::NeedsEvidence,
+        "02-wrong-destination"
+        | "03-delivery-after-deadline"
+        | "04-mass-dropped-at-transfer"
+        | "05-discontinuous-route"
+        | "06-overlapping-handoffs"
+        | "07-cyclic-cargo-path"
+        | "10-rejected-resource-proof"
+        | "12-resource-identity-mismatch"
+        | "13-resource-proof-expired-before-transfer-end"
+        | "18-duplicate-transfer-id"
+        | "19-duplicate-node-id"
+        | "20-dangling-node-reference"
+        | "21-duplicate-cargo-id"
+        | "22-zero-mass-lot"
+        | "23-unknown-failure-domain"
+        | "24-duplicate-dependency"
+        | "25-empty-transfer-interval"
+        | "26-self-transfer"
+        | "27-empty-chain"
+        | "28-empty-campaign"
+        | "29-invalid-resource-window"
+        | "30-duplicate-resource-proof"
+        | "31-destination-has-wrong-role"
+        | "32-invalid-campaign-id" => CampaignDisposition::Infeasible,
+        _ => panic!("unexpected frozen corpus case: {case_id}"),
+    }
+}
+
 #[test]
 fn frozen_campaign_corpus_matches_independent_reference_oracle() {
     let cases = corpus();
     assert!(cases.len() >= 24, "corpus must cover at least 24 cases");
 
     for (case_id, campaign) in cases {
-        let expected = reference_disposition(&campaign);
+        let frozen_expected = frozen_expected_disposition(case_id);
+        let oracle_expected = reference_disposition(&campaign);
+        assert_eq!(
+            oracle_expected, frozen_expected,
+            "independent oracle differs from frozen manual disposition for {case_id}"
+        );
         let actual = evaluate_campaign(&campaign);
         assert_eq!(
-            actual.disposition, expected,
+            actual.disposition, frozen_expected,
             "disposition mismatch for synthetic case {case_id}: findings={:?}",
             actual.findings
         );
@@ -516,7 +559,7 @@ fn frozen_campaign_corpus_matches_independent_reference_oracle() {
             "mass total mismatch for synthetic case {case_id}"
         );
 
-        let delivered = if expected == CampaignDisposition::Ready {
+        let delivered = if frozen_expected == CampaignDisposition::Ready {
             expected_mass
         } else {
             0
