@@ -38,13 +38,21 @@ impl AnalyticTask {
 
     fn exact_hypervolume(self) -> f64 {
         let (reference_x, reference_y) = REFERENCE_POINT;
-        let curve_integral = match self {
-            Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
-            Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
-            Self::Zdt3 => zdt3_exact_hypervolume(reference_x, reference_y),
-            Self::Zdt4 => (reference_y - 1.0) + 2.0 / 3.0 + (reference_x - 1.0) * reference_y,
-        };
-        curve_integral + (reference_x - 1.0) * reference_y
+        if self == Self::Zdt3 {
+            // The ZDT3 integral includes the terminal Pareto point's dominated rectangle
+            // all the way to reference_x. Adding the x > 1 rectangle again double-counts it.
+            zdt3_exact_hypervolume(reference_x, reference_y)
+        } else {
+            let curve_integral = match self {
+                Self::Zdt1 => (reference_y - 1.0) + 2.0 / 3.0,
+                Self::Zdt2 => (reference_y - 1.0) + 1.0 / 3.0,
+                Self::Zdt3 => unreachable!("ZDT3 is handled above"),
+                Self::Zdt4 => {
+                    (reference_y - 1.0) + 2.0 / 3.0 + (reference_x - 1.0) * reference_y
+                }
+            };
+            curve_integral + (reference_x - 1.0) * reference_y
+        }
     }
 
     fn pareto_y(self, x: f64) -> f64 {
@@ -1023,6 +1031,6 @@ mod tests {
         let zdt3 = AnalyticTask::Zdt3.exact_hypervolume();
         assert!((zdt1 - (0.1 + 2.0 / 3.0 + 0.11)).abs() < 1.0e-12);
         assert!((zdt2 - (0.1 + 1.0 / 3.0 + 0.11)).abs() < 1.0e-12);
-        assert!((zdt3 - 1.3317629086570204).abs() < 1.0e-10);
+        assert!((zdt3 - 1.4417629086570205).abs() < 1.0e-10);
     }
 }
