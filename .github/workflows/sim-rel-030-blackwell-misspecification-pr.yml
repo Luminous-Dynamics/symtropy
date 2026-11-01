@@ -1,0 +1,44 @@
+name: SIM-REL-030 Blackwell Misspecification PR Qualification
+
+on:
+  pull_request:
+    branches: ["research/sim-rel-028-robust-decision-dp-2026-10-31"]
+    paths:
+      - "tools/sim-rel-action-realization-filter/**"
+      - ".github/workflows/sim-rel-030-blackwell-misspecification-pr.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: exact-head channel, Blackwell, mismatch and decision-loss oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Isolate Cargo target directory
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-030-blackwell-target" >> "$GITHUB_ENV"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml -- --check
+      - name: Locked exact channel and decision oracle tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::experiment_ordering
+      - name: Full locked crate test suite
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib -- -D warnings
+      - name: Verify exact PR head and clean tree
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
