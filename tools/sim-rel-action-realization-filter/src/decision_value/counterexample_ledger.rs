@@ -8,7 +8,12 @@
 use super::counterexample_search::{
     CounterexampleClass, CounterexampleWitness, ModelWorldPerturbation,
 };
-use super::robust_finite_horizon::DecisionModelWorld;
+use super::finite_horizon::{DecisionBudgets, DecisionPlan};
+use super::robust_finite_horizon::{
+    DecisionModelWorld, WorldDecisionObjectives, replay_shared_policy_across_worlds,
+};
+use super::{DecisionLossTable, ObservationProtocol};
+use crate::Rational;
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_LEDGER_WORLDS: usize = 16;
@@ -73,7 +78,9 @@ pub struct FamilyReplanRecord {
     pub event_receipt_id: String,
     pub family_revision: u64,
     pub policy_identity: String,
+    pub plan: DecisionPlan,
     pub replayed_world_ids: Vec<String>,
+    pub per_world_metrics: Vec<WorldDecisionObjectives>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -381,13 +388,24 @@ impl ModelFamilyLedger {
 
     /// Reactivate a policy only after exact replay against precisely every
     /// development world at the current family revision.
+    /// Reactivate a policy only after the ledger itself has replayed the shared
+    /// policy against every world at the current family revision. The caller
+    /// supplies the complete replay context; a Boolean success flag is never
+    /// accepted as evidence.
+    #[allow(clippy::too_many_arguments)]
     pub fn record_replan(
         &mut self,
         event_receipt_id: String,
         family_revision: u64,
         policy_identity: String,
-        replayed_world_ids: Vec<String>,
-        exact_replay_succeeded: bool,
+        plan: DecisionPlan,
+        nominal_world_id: &str,
+        loss_table: &DecisionLossTable,
+        protocol: ObservationProtocol,
+        command_costs: &[Rational],
+        hazard_loss: Rational,
+        horizon: usize,
+        budgets: DecisionBudgets,
     ) -> Result<FamilyReplanRecord, String> {
         self.ensure_refinement_open()?;
         self.validate_new_receipt_id(&event_receipt_id)?;
@@ -398,16 +416,46 @@ impl ModelFamilyLedger {
             return Err("replan receipt is bound to a stale family revision".into());
         }
         validate_opaque_id(&policy_identity, MAX_RECEIPT_ID_LENGTH, "replanned policy identity")?;
-        if !exact_replay_succeeded {
-            return Err("failed exact replay cannot activate a policy".into());
-        }
-        let expected = self.development_world_ids();
-        let actual = canonical_world_id_set(&replayed_world_ids)?;
-        if actual != expected {
+        budgets.validate()?;
+
+        // The ledger performs the independent replay itself. The plan must
+        // cover all reachable public branches in every current model world.
+        let replay = replay_shared_policy_across_worlds(
+            &self.development_worlds,
+            nominal_world_id,
+            loss_table,
+            protocol,
+            command_costs,
+            hazard_loss,
+            &plan,
+            horizon,
+        )?;
+        let replayed_world_ids = replay
+            .per_world
+            .iter()
+            .map(|metrics| metrics.world_id.clone())
+            .collect::<Vec<_>>();
+        let expected_world_ids = self.development_world_ids();
+        let actual_world_ids = canonical_world_id_set(&replayed_world_ids)?;
+        if actual_world_ids != expected_world_ids {
             return Err(
-                "replan replay must cover exactly every world in the current development family"
+                "independent policy replay did not cover exactly the current development family"
                     .into(),
             );
+        }
+        for metrics in &replay.per_world {
+            if metrics.hazard_probability > budgets.max_hazard_probability {
+                return Err(format!(
+                    "replanned policy violates hazard budget in world {}",
+                    metrics.world_id
+                ));
+            }
+            if metrics.abstention_probability > budgets.max_abstention_probability {
+                return Err(format!(
+                    "replanned policy violates abstention budget in world {}",
+                    metrics.world_id
+                ));
+            }
         }
         if self.events.len() >= MAX_LEDGER_EVENTS {
             return Err("model-family ledger event cap would be exceeded".into());
@@ -417,7 +465,9 @@ impl ModelFamilyLedger {
             event_receipt_id: event_receipt_id.clone(),
             family_revision,
             policy_identity: policy_identity.clone(),
-            replayed_world_ids: expected,
+            plan,
+            replayed_world_ids: expected_world_ids,
+            per_world_metrics: replay.per_world,
         };
         self.active_policy_identity = Some(policy_identity);
         self.invalidated_policy_identity = None;
