@@ -704,6 +704,104 @@ fn pareto_relation(
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExperimentParetoCandidate {
+    pub experiment_id: String,
+    pub experiment_cost: Rational,
+    pub nominal_decision_loss: Rational,
+    pub realized_decision_loss: Rational,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExperimentParetoFrontier {
+    /// Stable-ID-sorted nondominated candidates using (cost, nominal loss).
+    pub nominal_frontier_ids: Vec<String>,
+    pub nominal_dominated_ids: Vec<String>,
+    /// Stable-ID-sorted nondominated candidates using (cost, realized loss).
+    pub realized_frontier_ids: Vec<String>,
+    pub realized_dominated_ids: Vec<String>,
+}
+
+const MAX_PARETO_EXPERIMENTS: usize = 4096;
+
+fn candidate_is_dominated(
+    candidate: &ExperimentParetoCandidate,
+    candidates: &[ExperimentParetoCandidate],
+    realized: bool,
+) -> bool {
+    let candidate_loss = if realized {
+        candidate.realized_decision_loss
+    } else {
+        candidate.nominal_decision_loss
+    };
+    candidates.iter().any(|other| {
+        if other.experiment_id == candidate.experiment_id {
+            return false;
+        }
+        let other_loss = if realized {
+            other.realized_decision_loss
+        } else {
+            other.nominal_decision_loss
+        };
+        other.experiment_cost <= candidate.experiment_cost
+            && other_loss <= candidate_loss
+            && (other.experiment_cost < candidate.experiment_cost || other_loss < candidate_loss)
+    })
+}
+
+/// Extract nominal and realized two-objective Pareto frontiers without
+/// scalarizing experiment cost and decision loss.
+///
+/// Equivalent designs are all retained on the frontier; a design is removed
+/// only when another is no worse on both objectives and strictly better on at
+/// least one. Inputs and outputs are stable-ID sorted. This is quadratic in the
+/// number of candidates and therefore bounded by MAX_PARETO_EXPERIMENTS.
+pub fn compute_experiment_pareto_frontier(
+    candidates: &[ExperimentParetoCandidate],
+) -> Result<ExperimentParetoFrontier, String> {
+    if candidates.is_empty() || candidates.len() > MAX_PARETO_EXPERIMENTS {
+        return Err(format!(
+            "Pareto candidate count must be in 1..={MAX_PARETO_EXPERIMENTS}"
+        ));
+    }
+
+    let mut canonical = candidates.to_vec();
+    canonical.sort_by(|left, right| left.experiment_id.cmp(&right.experiment_id));
+    let mut seen = BTreeSet::new();
+    for candidate in &canonical {
+        if candidate.experiment_id.trim().is_empty()
+            || !seen.insert(candidate.experiment_id.as_str())
+        {
+            return Err("experiment IDs must be non-empty and unique".into());
+        }
+    }
+
+    let mut nominal_frontier_ids = Vec::new();
+    let mut nominal_dominated_ids = Vec::new();
+    let mut realized_frontier_ids = Vec::new();
+    let mut realized_dominated_ids = Vec::new();
+
+    for candidate in &canonical {
+        if candidate_is_dominated(candidate, &canonical, false) {
+            nominal_dominated_ids.push(candidate.experiment_id.clone());
+        } else {
+            nominal_frontier_ids.push(candidate.experiment_id.clone());
+        }
+        if candidate_is_dominated(candidate, &canonical, true) {
+            realized_dominated_ids.push(candidate.experiment_id.clone());
+        } else {
+            realized_frontier_ids.push(candidate.experiment_id.clone());
+        }
+    }
+
+    Ok(ExperimentParetoFrontier {
+        nominal_frontier_ids,
+        nominal_dominated_ids,
+        realized_frontier_ids,
+        realized_dominated_ids,
+    })
+}
+
 fn lower_loss_preference(loss_a: Rational, loss_b: Rational) -> ExperimentPreference {
     if loss_a < loss_b {
         ExperimentPreference::A
@@ -2093,6 +2191,92 @@ mod tests {
             cheap_cost_conversion.realized_pareto_relation,
             ExperimentParetoRelation::Tradeoff
         );
+    }
+
+    #[test]
+    fn pareto_frontier_preserves_tradeoffs_and_changes_under_realized_shift() {
+        let candidates = vec![
+            ExperimentParetoCandidate {
+                experiment_id: "A".into(),
+                experiment_cost: rational(2, 5),
+                nominal_decision_loss: Rational::zero(),
+                realized_decision_loss: Rational::one(),
+            },
+            ExperimentParetoCandidate {
+                experiment_id: "B".into(),
+                experiment_cost: rational(1, 10),
+                nominal_decision_loss: rational(1, 5),
+                realized_decision_loss: rational(1, 5),
+            },
+            ExperimentParetoCandidate {
+                experiment_id: "C".into(),
+                experiment_cost: rational(1, 2),
+                nominal_decision_loss: rational(3, 10),
+                realized_decision_loss: rational(4, 5),
+            },
+            ExperimentParetoCandidate {
+                experiment_id: "D".into(),
+                experiment_cost: rational(1, 10),
+                nominal_decision_loss: rational(1, 4),
+                realized_decision_loss: rational(1, 10),
+            },
+            ExperimentParetoCandidate {
+                experiment_id: "E".into(),
+                experiment_cost: rational(1, 10),
+                nominal_decision_loss: rational(1, 4),
+                realized_decision_loss: rational(1, 10),
+            },
+        ];
+
+        let frontier = compute_experiment_pareto_frontier(&candidates).unwrap();
+        assert_eq!(
+            frontier.nominal_frontier_ids,
+            vec!["A".to_string(), "B".to_string()]
+        );
+        assert_eq!(
+            frontier.nominal_dominated_ids,
+            vec!["C".to_string(), "D".to_string(), "E".to_string()]
+        );
+        // D and E are equivalent and both remain; they jointly dominate every
+        // alternative under the realized channel.
+        assert_eq!(
+            frontier.realized_frontier_ids,
+            vec!["D".to_string(), "E".to_string()]
+        );
+        assert_eq!(
+            frontier.realized_dominated_ids,
+            vec!["A".to_string(), "B".to_string(), "C".to_string()]
+        );
+    }
+
+    #[test]
+    fn pareto_frontier_rejects_empty_duplicate_and_oversized_inputs() {
+        assert!(compute_experiment_pareto_frontier(&[]).is_err());
+        let duplicate = vec![
+            ExperimentParetoCandidate {
+                experiment_id: "same".into(),
+                experiment_cost: Rational::zero(),
+                nominal_decision_loss: Rational::zero(),
+                realized_decision_loss: Rational::zero(),
+            },
+            ExperimentParetoCandidate {
+                experiment_id: "same".into(),
+                experiment_cost: Rational::one(),
+                nominal_decision_loss: Rational::one(),
+                realized_decision_loss: Rational::one(),
+            },
+        ];
+        assert!(compute_experiment_pareto_frontier(&duplicate).is_err());
+
+        let oversized = (0..=MAX_PARETO_EXPERIMENTS)
+            .map(|index| ExperimentParetoCandidate {
+                experiment_id: format!("candidate-{index:04}"),
+                experiment_cost: Rational::from_u64(index as u64),
+                nominal_decision_loss: Rational::from_u64(index as u64),
+                realized_decision_loss: Rational::from_u64(index as u64),
+            })
+            .collect::<Vec<_>>();
+        assert!(compute_experiment_pareto_frontier(&oversized).is_err());
     }
 
     #[test]
