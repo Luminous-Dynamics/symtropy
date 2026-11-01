@@ -487,3 +487,227 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
             .is_err()
     );
 }
+
+
+#[cfg(test)]
+mod exact_sticking_response_interval {
+    use super::*;
+    use num_bigint::BigInt;
+    use num_rational::BigRational;
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct RationalInterval {
+        lower: BigRational,
+        upper: BigRational,
+    }
+
+    impl RationalInterval {
+        fn new(
+            lower: BigRational,
+            upper: BigRational,
+        ) -> Result<Self, &'static str> {
+            if lower > upper {
+                return Err("rational interval lower endpoint exceeds upper endpoint");
+            }
+            Ok(Self { lower, upper })
+        }
+
+        fn point(value: BigRational) -> Self {
+            Self {
+                lower: value.clone(),
+                upper: value,
+            }
+        }
+
+        fn add(&self, other: &Self) -> Self {
+            Self {
+                lower: self.lower.clone() + other.lower.clone(),
+                upper: self.upper.clone() + other.upper.clone(),
+            }
+        }
+
+        fn scale(&self, factor: &BigRational) -> Self {
+            let zero = rational(0, 1);
+            if factor >= &zero {
+                Self {
+                    lower: self.lower.clone() * factor.clone(),
+                    upper: self.upper.clone() * factor.clone(),
+                }
+            } else {
+                Self {
+                    lower: self.upper.clone() * factor.clone(),
+                    upper: self.lower.clone() * factor.clone(),
+                }
+            }
+        }
+
+        fn maximum_absolute_value(&self) -> BigRational {
+            let zero = rational(0, 1);
+            let lower_absolute = if self.lower < zero {
+                -self.lower.clone()
+            } else {
+                self.lower.clone()
+            };
+            let upper_absolute = if self.upper < zero {
+                -self.upper.clone()
+            } else {
+                self.upper.clone()
+            };
+            lower_absolute.max(upper_absolute)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct StrictStickingBoxCertificate {
+        leaf_impulse: [RationalInterval; 3],
+        normal_impulse_lower: BigRational,
+        squared_disk_margin_lower: BigRational,
+    }
+
+    fn rational(numerator: i64, denominator: i64) -> BigRational {
+        BigRational::new(BigInt::from(numerator), BigInt::from(denominator))
+    }
+
+    /// Certify the affine sticking response over an entire separator-impulse
+    /// box. The componentwise interval image encloses every leaf impulse in
+    /// the box. A positive squared disk lower bound proves strict interior for
+    /// every point, not just the centre or sampled corners.
+    fn certify_strict_sticking_box(
+        offset: &[BigRational; 3],
+        separator_gain: &[[BigRational; 3]; 3],
+        friction: &BigRational,
+        separator_box: &[RationalInterval; 3],
+    ) -> Result<Option<StrictStickingBoxCertificate>, &'static str> {
+        let zero = rational(0, 1);
+        if friction < &zero {
+            return Err("friction coefficient cannot be negative");
+        }
+        if separator_box
+            .iter()
+            .any(|interval| interval.lower > interval.upper)
+        {
+            return Err("separator box has a reversed interval");
+        }
+
+        let leaf_impulse = std::array::from_fn(|row| {
+            let mut image = RationalInterval::point(offset[row].clone());
+            for column in 0..3 {
+                image = image.add(&separator_box[column].scale(&separator_gain[row][column]));
+            }
+            image
+        });
+
+        let normal_impulse_lower = leaf_impulse[0].lower.clone();
+        if normal_impulse_lower <= zero {
+            return Ok(None);
+        }
+
+        let friction_radius_lower = friction.clone() * normal_impulse_lower.clone();
+        let tangent_1_absolute_upper = leaf_impulse[1].maximum_absolute_value();
+        let tangent_2_absolute_upper = leaf_impulse[2].maximum_absolute_value();
+        let squared_disk_margin_lower = friction_radius_lower.clone()
+            * friction_radius_lower
+            - tangent_1_absolute_upper.clone() * tangent_1_absolute_upper
+            - tangent_2_absolute_upper.clone() * tangent_2_absolute_upper;
+
+        if squared_disk_margin_lower <= zero {
+            return Ok(None);
+        }
+
+        Ok(Some(StrictStickingBoxCertificate {
+            leaf_impulse,
+            normal_impulse_lower,
+            squared_disk_margin_lower,
+        }))
+    }
+
+    fn exact_leaf_affine_fixture() -> (
+        [BigRational; 3],
+        [[BigRational; 3]; 3],
+        BigRational,
+    ) {
+        (
+            [rational(3, 4), rational(-1, 8), rational(0, 1)],
+            [
+                [rational(1, 4), rational(0, 1), rational(0, 1)],
+                [rational(0, 1), rational(-1, 4), rational(0, 1)],
+                [rational(0, 1), rational(0, 1), rational(-1, 4)],
+            ],
+            rational(1, 2),
+        )
+    }
+
+    #[test]
+    fn exact_affine_message_certifies_strict_sticking_over_a_separator_box() {
+        let (offset, gain, friction) = exact_leaf_affine_fixture();
+        let separator_box = [
+            RationalInterval::new(rational(99, 100), rational(101, 100)).unwrap(),
+            RationalInterval::new(rational(-51, 100), rational(-49, 100)).unwrap(),
+            RationalInterval::new(rational(-1, 100), rational(1, 100)).unwrap(),
+        ];
+
+        let certificate =
+            certify_strict_sticking_box(&offset, &gain, &friction, &separator_box)
+                .unwrap()
+                .expect("entire separator box is strictly inside the leaf sticking domain");
+
+        assert_eq!(certificate.normal_impulse_lower, rational(399, 400));
+        assert_eq!(certificate.leaf_impulse[0].upper, rational(401, 400));
+        assert_eq!(certificate.leaf_impulse[1].lower, rational(-1, 400));
+        assert_eq!(certificate.leaf_impulse[1].upper, rational(1, 400));
+        assert_eq!(certificate.leaf_impulse[2].lower, rational(-1, 400));
+        assert_eq!(certificate.leaf_impulse[2].upper, rational(1, 400));
+        assert!(certificate.squared_disk_margin_lower > rational(0, 1));
+    }
+
+    #[test]
+    fn exact_affine_message_abstains_on_boundary_crossing_and_outside_boxes() {
+        let (offset, gain, friction) = exact_leaf_affine_fixture();
+
+        let boundary_crossing_box = [
+            RationalInterval::new(rational(99, 100), rational(101, 100)).unwrap(),
+            RationalInterval::new(rational(149, 100), rational(151, 100)).unwrap(),
+            RationalInterval::point(rational(0, 1)),
+        ];
+        assert!(
+            certify_strict_sticking_box(&offset, &gain, &friction, &boundary_crossing_box)
+                .unwrap()
+                .is_none()
+        );
+
+        let outside_disk_box = [
+            RationalInterval::point(rational(1, 1)),
+            RationalInterval::new(rational(199, 100), rational(201, 100)).unwrap(),
+            RationalInterval::point(rational(0, 1)),
+        ];
+        assert!(
+            certify_strict_sticking_box(&offset, &gain, &friction, &outside_disk_box)
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn exact_affine_message_rejects_invalid_interval_and_friction_inputs() {
+        let (offset, gain, friction) = exact_leaf_affine_fixture();
+        assert!(RationalInterval::new(rational(2, 1), rational(1, 1)).is_err());
+
+        let separator_box = [
+            RationalInterval::point(rational(1, 1)),
+            RationalInterval::point(rational(-1, 2)),
+            RationalInterval::point(rational(0, 1)),
+        ];
+        assert!(
+            certify_strict_sticking_box(
+                &offset,
+                &gain,
+                &rational(-1, 2),
+                &separator_box
+            )
+            .is_err()
+        );
+        assert!(certify_strict_sticking_box(&offset, &gain, &friction, &separator_box)
+            .unwrap()
+            .is_some());
+    }
+}
