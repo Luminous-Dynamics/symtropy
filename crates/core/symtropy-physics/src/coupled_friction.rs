@@ -150,11 +150,11 @@ pub fn solve_coupled_signorini_coulomb(
         return Err(CoupledCoulombError::NotPositiveDefinite);
     }
     let scaled_input = effective_mass / matrix_scale;
-    let scaled_asymmetry = (&scaled_input - scaled_input.transpose()).norm();
+    let scaled_asymmetry = (scaled_input - scaled_input.transpose()).norm();
     if !scaled_asymmetry.is_finite() || scaled_asymmetry > relative_tolerance {
         return Err(CoupledCoulombError::NotSymmetric);
     }
-    let scaled_w = (&scaled_input + scaled_input.transpose()) * 0.5;
+    let scaled_w = (scaled_input + scaled_input.transpose()) * 0.5;
     let eigenvalues = nalgebra::linalg::SymmetricEigen::new(scaled_w).eigenvalues;
     let minimum_eigenvalue = eigenvalues.iter().fold(f64::INFINITY, |a, b| a.min(*b));
     if minimum_eigenvalue <= 0.0 {
@@ -185,9 +185,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             impulse,
-            regime,
-            0.0,
-            None,
+            CandidateBranch {
+                regime,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
         );
         let candidates = candidate.into_iter().collect::<Vec<_>>();
@@ -216,9 +218,11 @@ pub fn solve_coupled_signorini_coulomb(
                 free_velocity,
                 mu,
                 SVector::zeros(),
-                CoupledCoulombRegime::Separating,
-                0.0,
-                None,
+                CandidateBranch {
+                    regime: CoupledCoulombRegime::Separating,
+                    disk_multiplier: 0.0,
+                    sliding_angle: None,
+                },
                 relative_tolerance,
             );
             let candidates = candidate.into_iter().collect::<Vec<_>>();
@@ -279,38 +283,43 @@ pub fn solve_coupled_signorini_coulomb(
     // Separating is an exact candidate whenever the incoming normal velocity
     // is positive. It may coexist with positive-load branches in the
     // non-associated Coulomb law when normal/tangent coupling is strong.
-    if qn > 0.0 {
-        if let Some(candidate) = validate_candidate(
+    if qn > 0.0
+        && let Some(candidate) = validate_candidate(
             &w,
             free_velocity,
             mu,
             SVector::zeros(),
-            CoupledCoulombRegime::Separating,
-            0.0,
-            None,
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Separating,
+                disk_multiplier: 0.0,
+                sliding_angle: None,
+            },
             relative_tolerance,
-        ) {
-            push_distinct(&mut candidates, candidate, relative_tolerance);
-        }
+        )
+    {
+        push_distinct(&mut candidates, candidate, relative_tolerance);
     }
 
     // Sticking is the full 3x3 unconstrained minimizer. It is admissible only
     // when its normal impulse is nonnegative and its tangent impulse is in
     // the Coulomb disk.
     if let Some(impulse) = w.lu().solve(&(-free_velocity)) {
-        if impulse.iter().all(|x| x.is_finite()) && impulse[0] >= 0.0 {
-            if let Some(candidate) = validate_candidate(
+        if impulse.iter().all(|x| x.is_finite())
+            && impulse[0] >= 0.0
+            && let Some(candidate) = validate_candidate(
                 &w,
                 free_velocity,
                 mu,
                 impulse,
-                CoupledCoulombRegime::Sticking,
-                0.0,
-                None,
+                CandidateBranch {
+                    regime: CoupledCoulombRegime::Sticking,
+                    disk_multiplier: 0.0,
+                    sliding_angle: None,
+                },
                 relative_tolerance,
-            ) {
-                push_distinct(&mut candidates, candidate, relative_tolerance);
-            }
+            )
+        {
+            push_distinct(&mut candidates, candidate, relative_tolerance);
         }
     } else {
         unresolved = true;
@@ -376,9 +385,11 @@ pub fn solve_coupled_signorini_coulomb(
             free_velocity,
             mu,
             impulse,
-            CoupledCoulombRegime::Sliding,
-            tau.max(0.0),
-            Some(*theta),
+            CandidateBranch {
+                regime: CoupledCoulombRegime::Sliding,
+                disk_multiplier: tau.max(0.0),
+                sliding_angle: Some(*theta),
+            },
             relative_tolerance,
         ) {
             push_distinct(&mut candidates, candidate, relative_tolerance);
@@ -407,16 +418,24 @@ pub fn solve_coupled_signorini_coulomb(
     })
 }
 
+#[derive(Clone, Copy, Debug)]
+struct CandidateBranch {
+    regime: CoupledCoulombRegime,
+    disk_multiplier: f64,
+    sliding_angle: Option<f64>,
+}
+
 fn validate_candidate(
     w: &Matrix3<f64>,
     q: &SVector<f64, 3>,
     mu: f64,
     impulse: SVector<f64, 3>,
-    regime: CoupledCoulombRegime,
-    disk_multiplier: f64,
-    sliding_angle: Option<f64>,
+    branch: CandidateBranch,
     tolerance: f64,
 ) -> Option<CoupledCoulombCandidate> {
+    let regime = branch.regime;
+    let disk_multiplier = branch.disk_multiplier;
+    let sliding_angle = branch.sliding_angle;
     if !impulse.iter().all(|x| x.is_finite()) || !disk_multiplier.is_finite() {
         return None;
     }
