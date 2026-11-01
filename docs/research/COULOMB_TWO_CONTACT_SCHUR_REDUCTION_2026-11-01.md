@@ -191,3 +191,56 @@ For the same frozen \(W,q,\mu_1,\mu_2\), the test records two distinct simultane
 Both satisfy positive normal impulses, zero normal post-contact velocity, the two local circular Coulomb boundaries, positive sliding multipliers, tangential KKT stationarity and negative full-island energy within the declared floating residual budget. Their impulse vectors are distinct (Euclidean separation approximately 0.15426), while their direction pairs are deliberately close.
 
 **Claim boundary:** these are two known numerical witnesses for one exact dyadic input. The test does not certify the root-pair count or exclude further branches. This is the first frozen multiple-double-slide fixture for #3215; its next step is exact resultant/subresultant projection plus interval root-pair lifting, with two disjoint certified boxes around these candidates and explicit exclusion of all remaining direction-domain boxes.
+
+
+## Exact bivariate projection and real-root count prototype
+
+The simultaneous-sliding direction reduction is now represented by exact bivariate integer polynomials on a frozen rational fixture.
+
+Let \(S>0\) be a common denominator for \(W,q,\mu_1,\mu_2\), and define the cleared direction columns
+
+\[
+v_1(t_1)=\left(S(1+t_1^2),-\mu_{1,n}(1-t_1^2),-2\mu_{1,n}t_1,0,0,0\right)^T,
+\]
+
+\[
+v_2(t_2)=\left(0,0,0,S(1+t_2^2),-\mu_{2,n}(1-t_2^2),-2\mu_{2,n}t_2\right)^T.
+\]
+
+Writing \(W_n=SW\), construct the \(2\times2\) polynomial normal-response matrix \(H\) from the normal rows of \(W_n[v_1,v_2]\). Set
+
+\[
+\Delta=\det H,\quad
+N_1=-q_{n,1}H_{22}+q_{n,2}H_{12},\quad
+N_2=q_{n,1}H_{21}-q_{n,2}H_{11}.
+\]
+
+Then \(p_{\rm num}=v_1N_1+v_2N_2\) and \(u_{\rm num}=q_n\Delta+W_np_{\rm num}\) clear all divisions. The tangential stationarity direction equations become
+
+\[
+G_1=-2t_1(u_{\rm num})_1+(1-t_1^2)(u_{\rm num})_2=0,
+\]
+
+\[
+G_2=-2t_2(u_{\rm num})_4+(1-t_2^2)(u_{\rm num})_5=0.
+\]
+
+For the frozen rational asymmetric fixture, the exact bidegrees are:
+
+| Polynomial | Degree in \(t_1\) | Degree in \(t_2\) |
+|---|---:|---:|
+| \(\Delta\) | 2 | 2 |
+| \(N_1\) | 0 | 2 |
+| \(N_2\) | 2 | 0 |
+| \(G_1\) | 4 | 2 |
+| \(G_2\) | 2 | 4 |
+
+The Rust test checks the rational common root pair \(t_1=1/2,\ t_2=2/3\) with integer homogeneous evaluation, confirms \(\Delta\ne0\), and checks both reconstructed normal impulses are positive.
+
+### Resultant and Sturm prototype
+
+The exact Sylvester matrix in \(t_1\) has dimension 6 because the t1-degrees are 4 and 2. The resultant has degree at most 20 in \(t_2\); on this fixture it has exact degree 20 and coefficients exceeding fixed-width integer range. num-bigint is therefore a dev-only dependency for its determinant, and num-rational supports exact Euclidean remainders in the Sturm sequence.
+
+The test constructs the determinant by exact 6x6 permutation expansion, builds the rational Sturm chain, obtains a Cauchy bound, and bisects at rational non-root endpoints. Every returned interval has Sturm count one and width at most \(2^{-30}\). The expected fixture has four distinct real projected roots; exactly one interval contains the known rational root \(2/3\).
+
+**This is projected-root isolation, not yet branch isolation.** A resultant root may fail to lift to a real t1, may arise from a leading-coefficient/projective degeneracy, or may reconstruct a non-admissible impulse. The next stage is to lift every projected interval, certify the two-variable root pair with interval Newton/Krawczyk, and exclude all other boxes, including the t1-infinity chart and determinant-degenerate strata. Do not interpret the four projected roots as four physical double-sliding branches.
