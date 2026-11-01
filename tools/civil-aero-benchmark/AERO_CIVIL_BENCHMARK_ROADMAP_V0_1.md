@@ -176,3 +176,20 @@ This changes the reproduction plan:
 4. Ask the participant/workshop maintainers whether the symmetric setup was a permitted variant and request clarification before interpreting the discrepancy.
 
 The lesson generalizes beyond DPW-8: protocol identity must be audited independently from result-file integrity and solver numerical verification. A numerically converged result can still be a result for a different problem.
+
+
+## 10. MDO and solver interoperability programme (2026-11-01)
+
+The next scale-up is not to rewrite every aerospace solver. It is to integrate mature discipline tools behind a Rust-owned, evidence-first coordinator and compete on end-to-end decision quality.
+
+Reference roles:
+- SU2 v8.6.0: open CFD and PDE-constrained aerodynamic optimization baseline; retain 8.0.1 as the historical participant lane.
+- NASA FUN3D 14.3: independent high-end CFD/adjoint/adaptation comparison when legitimately accessible. Its distribution is export-restricted, so it is not a default dependency.
+- OpenMDAO 3.45.x: external MDO framework baseline and interoperability target, not a reason to move Symtropy's production core from Rust to Python.
+- Dymos and pyCycle: reference tools for mission/trajectory optimization and thermodynamic propulsion cycle models.
+- OpenVSP: parametric aircraft geometry import/export and identity-preserving design-space adapter. VSPAERO is useful for conceptual potential-flow analysis but is not a substitute for transonic RANS validation.
+- NASTRAN: structural integration baseline where the exact solver, license and model data are available.
+
+The differentiator to test is system-level evidence: geometry, mesh, CFD, structure, aeroelasticity, propulsion, mission and physical-test claims connected in one traceable evidence graph. Every candidate is evaluated at matched total cost, with failed runs retained, uncertainty carried into decisions, and a blind physical confirmation split.
+
+See AERO-MDO-INTEROP-001 issue #3237 for the adapter contracts, benchmark ladder and acceptance gates.
