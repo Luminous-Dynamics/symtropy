@@ -164,7 +164,7 @@ mod tests {
         // Symmetry and strict positive definiteness are checked on the full
         // coupled matrix, not on two separate 3x3 diagonal blocks.
         assert!((&w - w.transpose()).norm() < 1.0e-15);
-        assert!(w.clone().cholesky().is_some());
+        assert!(w.cholesky().is_some());
 
         let mut cross_norm_squared = 0.0;
         for row in 0..3 {
@@ -280,7 +280,7 @@ mod schur_reduction_tests {
         if full_minimum_eigenvalue <= tolerance {
             return Err("two-contact Delassus matrix is not sufficiently positive definite");
         }
-        if (*w).clone().cholesky().is_none() {
+        if w.cholesky().is_none() {
             return Err("two-contact Delassus matrix is not positive definite");
         }
 
