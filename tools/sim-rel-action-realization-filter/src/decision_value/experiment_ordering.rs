@@ -2090,21 +2090,26 @@ fn solve_three_active_constraints(
         matrix.swap(column, pivot_row);
 
         let pivot = matrix[column][column];
-        for entry in column..=3 {
-            matrix[column][entry] = matrix[column][entry].checked_div(pivot)?;
+        for entry in matrix[column].iter_mut().skip(column) {
+            *entry = entry.checked_div(pivot)?;
         }
+        let normalized_pivot_row = matrix[column].clone();
 
-        for row in 0..3 {
-            if row == column {
+        for (row_index, row_values) in matrix.iter_mut().enumerate() {
+            if row_index == column {
                 continue;
             }
-            let factor = matrix[row][column];
+            let factor = row_values[column];
             if factor.is_zero() {
                 continue;
             }
-            for entry in column..=3 {
-                let product = factor.checked_mul(matrix[column][entry])?;
-                matrix[row][entry] = matrix[row][entry].checked_sub(product)?;
+            for (entry, pivot_entry) in row_values
+                .iter_mut()
+                .zip(&normalized_pivot_row)
+                .skip(column)
+            {
+                let product = factor.checked_mul(*pivot_entry)?;
+                *entry = entry.checked_sub(product)?;
             }
         }
     }
