@@ -2522,7 +2522,7 @@
             {
               "id": "grid_unknown_launch",
               "technology_family": "rocket_launch",
-              "capacity_state": "known",
+              "capacity_state": "unknown",
               "capacity_kg": 0,
               "input_mass_kg": 1000,
               "output_mass_kg": 1000,
