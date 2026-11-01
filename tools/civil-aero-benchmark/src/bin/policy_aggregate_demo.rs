@@ -48,6 +48,12 @@ fn scorecard_row(
         operation_count: 8,
         successful_operations: 7,
         failed_operations: 1,
+        aerodynamic_condition_calls_attempted: 30,
+        aerodynamic_condition_calls_succeeded: 24,
+        aerodynamic_condition_calls_failed: 6,
+        high_fidelity_condition_calls_attempted: 30,
+        high_fidelity_condition_calls_succeeded: 24,
+        high_fidelity_condition_calls_failed: 6,
         high_fidelity_attempts: 5,
         successful_high_fidelity_operations: 4,
         admitted_candidates: 3,
@@ -59,6 +65,8 @@ fn scorecard_row(
         normalized_validated_hypervolume_fraction: score,
         validated_hypervolume_per_cost: Some(score * 10_000.0 / total_cost),
         normalized_hypervolume_per_cost: Some(score / total_cost),
+        validated_hypervolume_per_high_fidelity_condition_call: Some(score * 10_000.0 / 30.0),
+        normalized_hypervolume_per_high_fidelity_condition_call: Some(score / 30.0),
         evidence_level: "synthetic_policy_scorecard_only",
     }
 }
