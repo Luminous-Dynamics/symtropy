@@ -351,7 +351,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
                         &transfer.id,
                     );
                 }
-                if matches!(window.evidence, EvidenceStatus::Qualified { .. })
+                if matches!(&window.evidence, EvidenceStatus::Qualified { .. })
                     && transfer.starts_at_epoch_seconds < transfer.ends_at_epoch_seconds
                     && window.resource_id == transfer.resource_id
                     && transfer.starts_at_epoch_seconds >= window.valid_from_epoch_seconds
@@ -387,21 +387,21 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             push_finding(&mut findings, FindingCode::EmptyChain, &cargo.id);
             continue;
         }
-        legs.sort_by(|left, right| {
+        legs.sort_by_key(|leg| {
             (
-                left.starts_at_epoch_seconds,
-                left.ends_at_epoch_seconds,
-                left.id.as_str(),
+                leg.starts_at_epoch_seconds,
+                leg.ends_at_epoch_seconds,
+                leg.id.clone(),
             )
-                .cmp(&(
-                    right.starts_at_epoch_seconds,
-                    right.ends_at_epoch_seconds,
-                    right.id.as_str(),
-                ))
         });
         let mut visited_nodes = BTreeSet::new();
         if let Some(first) = legs.first() {
             visited_nodes.insert(first.from_node_id.clone());
+        }
+        for leg in &legs {
+            if !visited_nodes.insert(leg.to_node_id.clone()) {
+                push_finding(&mut findings, FindingCode::CargoPathCycle, &leg.id);
+            }
         }
         for pair in legs.windows(2) {
             let previous = pair[0];
@@ -415,9 +415,6 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
             }
             if previous.ends_at_epoch_seconds > next.starts_at_epoch_seconds {
                 push_finding(&mut findings, FindingCode::OverlappingCargoHops, &next.id);
-            }
-            if !visited_nodes.insert(previous.to_node_id.clone()) {
-                push_finding(&mut findings, FindingCode::CargoPathCycle, &previous.id);
             }
         }
         if let Some(last) = legs.last() {
@@ -482,11 +479,7 @@ pub fn evaluate_campaign(campaign: &CampaignV1) -> CampaignReportV1 {
 
     // Aggregate simultaneous mass by exact physical resource capacity window.
     for (window_id, events) in &mut events_by_window {
-        events.sort_by(|left, right| (left.0, left.1, left.3.as_str()).cmp(&(
-            right.0,
-            right.1,
-            right.3.as_str(),
-        )));
+        events.sort_by_key(|event| (event.0, event.1, event.3.clone()));
         let Some(window) = window_by_id.get(window_id) else {
             continue;
         };
@@ -572,20 +565,21 @@ fn evaluate_faults(campaign: &CampaignV1) -> Vec<FaultOutcomeV1> {
         let mut unmet_mass_grams = 0_u64;
 
         for cargo in &campaign.cargo_lots {
-            let cargo_failed = campaign
+            let mut cargo_failed = false;
+            for transfer in campaign
                 .transfers
                 .iter()
                 .filter(|transfer| transfer.cargo_lot_id == cargo.id)
-                .any(|transfer| {
-                    transfer
-                        .dependency_ids
-                        .iter()
-                        .any(|dependency| failed.contains(dependency.as_str()))
-                        && {
-                            failed_transfer_ids.push(transfer.id.clone());
-                            true
-                        }
-                });
+            {
+                if transfer
+                    .dependency_ids
+                    .iter()
+                    .any(|dependency| failed.contains(dependency.as_str()))
+                {
+                    failed_transfer_ids.push(transfer.id.clone());
+                    cargo_failed = true;
+                }
+            }
             if cargo_failed {
                 unmet_mass_grams = unmet_mass_grams.saturating_add(cargo.mass_grams);
             } else {
@@ -601,7 +595,7 @@ fn evaluate_faults(campaign: &CampaignV1) -> Vec<FaultOutcomeV1> {
             failed_transfer_ids,
         });
     }
-    results.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+    results.sort_by_key(|result| result.scenario_id.clone());
     results
 }
 
