@@ -44,9 +44,18 @@ The runner preserves spawn failures, non-zero exits, timeouts, output-cap termin
 
 ## Independent replay
 
-`verify_external_solver_receipt` re-hashes the invocation and environment manifests, staged inputs, stdout/stderr logs, declared outputs and output manifest; it then recomputes the receipt digest and compares the persisted receipt representation.
+`read_external_solver_receipt` loads the persisted bundle from disk, strictly parses the invocation and environment manifests, reconstructs the typed receipt, and invokes `verify_external_solver_receipt`. The replay verifier re-hashes invocation/environment manifests, staged inputs, stdout/stderr logs, declared outputs and output manifest; it then recomputes the receipt digest and compares the persisted receipt representation.
 
-This is an integrity check against a supplied receipt. Without a signature or trusted attestor, it does not prove who created the receipt or whether the declared version/environment is truthful.
+A separate machine can use:
+
+```sh
+cargo run --locked --manifest-path tools/civil-aero-benchmark/Cargo.toml \
+  --bin external_solver_replay_audit -- /path/to/run-directory
+```
+
+The CLI reports both replay status and the original process status. A replay pass with `process_success=false` means the failed process receipt is internally consistent; it does not turn a failed solver run into a successful one.
+
+This is an integrity check against a supplied, unsigned bundle. Without a signature or trusted attestor, it does not prove who created the receipt or whether the declared version/environment is truthful.
 
 ## v0.1 limits (must remain visible)
 
