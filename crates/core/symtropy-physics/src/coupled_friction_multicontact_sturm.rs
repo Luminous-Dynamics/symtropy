@@ -298,7 +298,7 @@ fn exact_two_contact_slide_stick_branch_intervals(
     determinant: &[Rational],
     numerators: &[Polynomial],
     roots: &[(Rational, Rational)],
-) -> Result<Vec<bool>, &'static str> {
+) -> Result<Vec<SlidingBranchClassification>, &'static str> {
     let mut exact_w = vec![vec![Rational::zero(); 6]; 6];
     let mut exact_q = vec![Rational::zero(); 6];
     for row in 0..6 {
