@@ -7,14 +7,15 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Component, Path};
 
-use crate::external_solver::{ExternalSolverReceipt, read_external_solver_receipt, verify_external_solver_receipt};
+use crate::external_solver::{
+    ExternalSolverReceipt, read_external_solver_receipt, verify_external_solver_receipt,
+};
 use crate::integrity::sha256_hex;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 
 pub const SU2_RUN_LINEAGE_SCHEMA: &str = "su2-run-lineage-binding/0.1.0";
-pub const SU2_RUN_LINEAGE_EVIDENCE_LEVEL: &str =
-    "replayed_process_receipt_bound_to_history_screen_and_staged_inputs_unsigned_not_build_source_attested_not_grid_admitted_not_experimentally_validated";
+pub const SU2_RUN_LINEAGE_EVIDENCE_LEVEL: &str = "replayed_process_receipt_bound_to_history_screen_and_staged_inputs_unsigned_not_build_source_attested_not_grid_admitted_not_experimentally_validated";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2RunInputBindings {
@@ -60,13 +61,20 @@ fn validate_relative_path(value: &str) -> Result<(), String> {
         || value.contains('\t')
         || value.contains('\\')
     {
-        return Err("run-lineage path is empty or contains forbidden separators/control characters".to_owned());
+        return Err(
+            "run-lineage path is empty or contains forbidden separators/control characters"
+                .to_owned(),
+        );
     }
     let path = Path::new(value);
     if path.is_absolute()
-        || path.components().any(|part| !matches!(part, Component::Normal(_)))
+        || path
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
     {
-        return Err(format!("run-lineage path is not a safe relative path: {value}"));
+        return Err(format!(
+            "run-lineage path is not a safe relative path: {value}"
+        ));
     }
     Ok(())
 }
@@ -80,15 +88,22 @@ fn staged_input<'a>(
     relative_path: &str,
 ) -> Result<&'a crate::external_solver::StagedInputReceipt, String> {
     validate_relative_path(relative_path)?;
-    let matches = receipt.staged_inputs.iter()
+    let matches = receipt
+        .staged_inputs
+        .iter()
         .filter(|row| row.relative_path == relative_path)
         .collect::<Vec<_>>();
     if matches.len() != 1 {
-        return Err(format!("expected one staged input {relative_path}, found {}", matches.len()));
+        return Err(format!(
+            "expected one staged input {relative_path}, found {}",
+            matches.len()
+        ));
     }
     let row = matches[0];
     if row.byte_length == 0 || !valid_sha256(&row.sha256) {
-        return Err(format!("staged input {relative_path} has malformed byte evidence"));
+        return Err(format!(
+            "staged input {relative_path} has malformed byte evidence"
+        ));
     }
     Ok(row)
 }
@@ -98,22 +113,38 @@ fn bound_output(
     relative_path: &str,
 ) -> Result<Su2BoundArtifact, String> {
     validate_relative_path(relative_path)?;
-    let matches = receipt.outputs.iter()
+    let matches = receipt
+        .outputs
+        .iter()
         .filter(|row| row.relative_path == relative_path)
         .collect::<Vec<_>>();
     if matches.len() != 1 {
-        return Err(format!("expected one declared output {relative_path}, found {}", matches.len()));
+        return Err(format!(
+            "expected one declared output {relative_path}, found {}",
+            matches.len()
+        ));
     }
     let row = matches[0];
     if !row.present {
         return Err(format!("declared output {relative_path} is missing"));
     }
-    let byte_length = row.byte_length.ok_or_else(|| format!("output {relative_path} has no byte length"))?;
-    let sha256 = row.sha256.clone().ok_or_else(|| format!("output {relative_path} has no digest"))?;
+    let byte_length = row
+        .byte_length
+        .ok_or_else(|| format!("output {relative_path} has no byte length"))?;
+    let sha256 = row
+        .sha256
+        .clone()
+        .ok_or_else(|| format!("output {relative_path} has no digest"))?;
     if byte_length == 0 || !valid_sha256(&sha256) {
-        return Err(format!("output {relative_path} has malformed byte evidence"));
+        return Err(format!(
+            "output {relative_path} has malformed byte evidence"
+        ));
     }
-    Ok(Su2BoundArtifact { relative_path: relative_path.to_owned(), byte_length, sha256 })
+    Ok(Su2BoundArtifact {
+        relative_path: relative_path.to_owned(),
+        byte_length,
+        sha256,
+    })
 }
 
 fn append_string(bytes: &mut Vec<u8>, value: &str) {
@@ -199,13 +230,17 @@ pub fn bind_su2_run_lineage(
         || screen.insufficient_count != 0
         || screen.passed_count != screen.results.len()
     {
-        return Err("every declared convergence criterion must pass before lineage binding".to_owned());
+        return Err(
+            "every declared convergence criterion must pass before lineage binding".to_owned(),
+        );
     }
     if inputs.physics_configuration_path == inputs.geometry_path
         || inputs.physics_configuration_path == inputs.mesh_path
         || inputs.geometry_path == inputs.mesh_path
     {
-        return Err("configuration, geometry and mesh must be three distinct staged inputs".to_owned());
+        return Err(
+            "configuration, geometry and mesh must be three distinct staged inputs".to_owned(),
+        );
     }
     let config = staged_input(&receipt, &inputs.physics_configuration_path)?;
     let geometry = staged_input(&receipt, &inputs.geometry_path)?;
@@ -220,7 +255,9 @@ pub fn bind_su2_run_lineage(
     let mut additional_outputs = Vec::with_capacity(additional_output_paths.len());
     for path in additional_output_paths {
         if !unique_outputs.insert(path.as_str()) {
-            return Err(format!("duplicate or history path in additional outputs: {path}"));
+            return Err(format!(
+                "duplicate or history path in additional outputs: {path}"
+            ));
         }
         additional_outputs.push(bound_output(&receipt, path)?);
     }
@@ -258,7 +295,14 @@ pub fn bind_su2_run_lineage(
         evidence_level: SU2_RUN_LINEAGE_EVIDENCE_LEVEL.to_owned(),
     };
     binding.binding_sha256 = sha256_hex(&canonical_binding_bytes(&binding))?;
-    verify_su2_run_lineage_binding(run_directory, history, screen, inputs, additional_output_paths, &binding)?;
+    verify_su2_run_lineage_binding(
+        run_directory,
+        history,
+        screen,
+        inputs,
+        additional_output_paths,
+        &binding,
+    )?;
     Ok(binding)
 }
 
@@ -315,7 +359,10 @@ pub fn verify_su2_run_lineage_binding(
     verify_convergence_screen(screen)?;
 
     for (path, bound) in [
-        (&inputs.physics_configuration_path, &binding.physics_configuration),
+        (
+            &inputs.physics_configuration_path,
+            &binding.physics_configuration,
+        ),
         (&inputs.geometry_path, &binding.geometry),
         (&inputs.mesh_path, &binding.mesh),
     ] {
@@ -334,20 +381,28 @@ pub fn verify_su2_run_lineage_binding(
     expected_paths.sort();
     expected_paths.dedup();
     if expected_paths.len() != additional_output_paths.len()
-        || expected_paths.iter().any(|path| path == &history.history_relative_path)
+        || expected_paths
+            .iter()
+            .any(|path| path == &history.history_relative_path)
     {
         return Err("additional output paths are duplicated or include history".to_owned());
     }
     let mut observed_outputs = binding.additional_outputs.clone();
     observed_outputs.sort_by(|a, b| a.relative_path.cmp(&b.relative_path));
     if observed_outputs.len() != expected_paths.len()
-        || observed_outputs.iter().zip(&expected_paths).any(|(artifact, path)| artifact.relative_path != *path)
+        || observed_outputs
+            .iter()
+            .zip(&expected_paths)
+            .any(|(artifact, path)| artifact.relative_path != *path)
     {
         return Err("additional outputs differ from run-lineage binding".to_owned());
     }
     for artifact in &observed_outputs {
         if bound_output(&receipt, &artifact.relative_path)? != *artifact {
-            return Err(format!("output {} differs from run-lineage binding", artifact.relative_path));
+            return Err(format!(
+                "output {} differs from run-lineage binding",
+                artifact.relative_path
+            ));
         }
     }
     if sha256_hex(&canonical_binding_bytes(binding))? != binding.binding_sha256 {
@@ -356,8 +411,7 @@ pub fn verify_su2_run_lineage_binding(
     Ok(())
 }
 
-pub const SU2_RUN_LINEAGE_CSV_HEADER: &str =
-    "schema,run_id,solver_id,solver_version_claim,executable_sha256,runner_receipt_sha256,artifact_role,relative_path,byte_length,artifact_sha256,history_import_sha256,convergence_screen_sha256,convergence_criterion_count,convergence_passed_count,binding_sha256,evidence_level";
+pub const SU2_RUN_LINEAGE_CSV_HEADER: &str = "schema,run_id,solver_id,solver_version_claim,executable_sha256,runner_receipt_sha256,artifact_role,relative_path,byte_length,artifact_sha256,history_import_sha256,convergence_screen_sha256,convergence_criterion_count,convergence_passed_count,binding_sha256,evidence_level";
 
 fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
@@ -427,9 +481,12 @@ mod tests {
     use std::time::Duration;
 
     fn temp_root() -> PathBuf {
-        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
-            .expect("clock after epoch").as_nanos();
-        let path = std::env::temp_dir().join(format!("su2-run-lineage-{}-{nonce}", std::process::id()));
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("su2-run-lineage-{}-{nonce}", std::process::id()));
         fs::create_dir_all(&path).expect("create temp root");
         path
     }
@@ -446,7 +503,14 @@ mod tests {
          70,0.42316,0.01805,-8,-8\n"
     }
 
-    fn execute_fixture(root: &Path) -> (PathBuf, Su2HistoryReport, ConvergenceScreen, Su2RunInputBindings) {
+    fn execute_fixture(
+        root: &Path,
+    ) -> (
+        PathBuf,
+        Su2HistoryReport,
+        ConvergenceScreen,
+        Su2RunInputBindings,
+    ) {
         fs::create_dir_all(root).expect("create fixture root");
         let config = root.join("config.cfg");
         let geometry = root.join("geometry.dat");
@@ -460,7 +524,9 @@ mod tests {
             history_fixture()
         );
         fs::write(&executable, script).expect("write fake solver");
-        let mut permissions = fs::metadata(&executable).expect("fake solver metadata").permissions();
+        let mut permissions = fs::metadata(&executable)
+            .expect("fake solver metadata")
+            .permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).expect("make executable");
 
@@ -468,7 +534,9 @@ mod tests {
             (&config, "config.cfg"),
             (&geometry, "geometry.dat"),
             (&mesh, "mesh.su2"),
-        ].iter().map(|(path, relative)| {
+        ]
+        .iter()
+        .map(|(path, relative)| {
             let bytes = fs::read(path).expect("read input");
             StagedInputSpec {
                 source_path: (*path).clone(),
@@ -477,7 +545,8 @@ mod tests {
                 expected_sha256: sha256_hex(&bytes).expect("input digest"),
                 source_reference: format!("synthetic_fixture:{relative}"),
             }
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
         let run_directory = root.join("run");
         let request = ExternalSolverRequest {
             run_id: "su2-lineage-ci-fixture".to_owned(),
@@ -498,20 +567,38 @@ mod tests {
         };
         let receipt = execute_external_solver(&request).expect("execute fixture");
         assert!(receipt.is_process_success());
-        assert_eq!(receipt.executable_sha256, sha256_file(&executable).expect("hash executable"));
+        assert_eq!(
+            receipt.executable_sha256,
+            sha256_file(&executable).expect("hash executable")
+        );
 
         let schema = Su2HistorySchema {
             history_relative_path: "history.csv".to_owned(),
             expected_header: vec![
-                "Iteration".to_owned(), "CL".to_owned(), "CD".to_owned(),
-                "RMS_DENSITY".to_owned(), "RMS_MOMENTUM-X".to_owned(),
+                "Iteration".to_owned(),
+                "CL".to_owned(),
+                "CD".to_owned(),
+                "RMS_DENSITY".to_owned(),
+                "RMS_MOMENTUM-X".to_owned(),
             ],
             iteration_column: "Iteration".to_owned(),
             numeric_fields: vec![
-                Su2HistoryField { column: "CL".to_owned(), unit: "dimensionless".to_owned() },
-                Su2HistoryField { column: "CD".to_owned(), unit: "dimensionless".to_owned() },
-                Su2HistoryField { column: "RMS_DENSITY".to_owned(), unit: "log10(residual)".to_owned() },
-                Su2HistoryField { column: "RMS_MOMENTUM-X".to_owned(), unit: "log10(residual)".to_owned() },
+                Su2HistoryField {
+                    column: "CL".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "CD".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "RMS_DENSITY".to_owned(),
+                    unit: "log10(residual)".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "RMS_MOMENTUM-X".to_owned(),
+                    unit: "log10(residual)".to_owned(),
+                },
             ],
             minimum_rows: 8,
         };
@@ -571,7 +658,10 @@ mod tests {
     fn binds_process_history_screen_inputs_and_force_field_outputs() {
         let root = temp_root();
         let (run, history, screen, inputs) = execute_fixture(&root);
-        let outputs = vec!["forces_breakdown.dat".to_owned(), "surface_flow.csv".to_owned()];
+        let outputs = vec![
+            "forces_breakdown.dat".to_owned(),
+            "surface_flow.csv".to_owned(),
+        ];
         let binding = bind_su2_run_lineage(&run, &history, &screen, &inputs, &outputs)
             .expect("bind exact run lineage");
         assert_eq!(binding.run_id, "su2-lineage-ci-fixture");
@@ -587,16 +677,31 @@ mod tests {
         let (run, history, screen, inputs) = execute_fixture(&root.join("first"));
         let mut wrong_screen = screen.clone();
         wrong_screen.run_id = "other-run".to_owned();
-        wrong_screen.screen_sha256 = sha256_hex(wrong_screen.screen_sha256.as_bytes()).expect("recompute non-matching digest");
-        assert!(bind_su2_run_lineage(
-            &run, &history, &wrong_screen, &inputs, &["forces_breakdown.dat".to_owned()]
-        ).is_err());
+        wrong_screen.screen_sha256 = sha256_hex(wrong_screen.screen_sha256.as_bytes())
+            .expect("recompute non-matching digest");
+        assert!(
+            bind_su2_run_lineage(
+                &run,
+                &history,
+                &wrong_screen,
+                &inputs,
+                &["forces_breakdown.dat".to_owned()]
+            )
+            .is_err()
+        );
 
         let (run2, history2, screen2, inputs2) = execute_fixture(&root.join("second"));
         fs::write(run2.join("mesh.su2"), "tampered mesh\n").expect("tamper mesh");
-        assert!(bind_su2_run_lineage(
-            &run2, &history2, &screen2, &inputs2, &["forces_breakdown.dat".to_owned()]
-        ).is_err());
+        assert!(
+            bind_su2_run_lineage(
+                &run2,
+                &history2,
+                &screen2,
+                &inputs2,
+                &["forces_breakdown.dat".to_owned()]
+            )
+            .is_err()
+        );
         fs::remove_dir_all(root).expect("remove fixture root");
     }
 }
