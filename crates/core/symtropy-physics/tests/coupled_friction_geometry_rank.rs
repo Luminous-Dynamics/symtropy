@@ -253,8 +253,8 @@ fn rank_deficiency_creates_a_continuum_of_admissible_equivalent_impulses() {
 
         let normal_1 = impulse[0].clone();
         let normal_2 = impulse[3].clone();
-        let radius_1 = mu.clone() * normal_1;
-        let radius_2 = mu.clone() * normal_2;
+        let radius_1 = mu.clone() * normal_1.clone();
+        let radius_2 = mu.clone() * normal_2.clone();
         let tangent_1_squared =
             impulse[1].clone() * impulse[1].clone() + impulse[2].clone() * impulse[2].clone();
         let tangent_2_squared =
