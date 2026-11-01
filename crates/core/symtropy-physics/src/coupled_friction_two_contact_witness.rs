@@ -827,13 +827,17 @@ mod schur_reduction_tests {
         let inner =
             solve_with_contact_two_separating(&permuted_w, &permuted_q, mu_2, mu_1, tolerance)?;
 
-        let scale = w.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let scale = w
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
         let mut candidates = Vec::new();
         for candidate in inner.candidates {
             let impulse = swap_impulse_blocks(&candidate.impulse);
             let post_velocity = q + w * impulse;
             let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
-            let velocity_scale = (scale * impulse.norm()).max(q.norm()).max(f64::MIN_POSITIVE);
+            let velocity_scale = (scale * impulse.norm())
+                .max(q.norm())
+                .max(f64::MIN_POSITIVE);
             let impulse_tolerance = tolerance * impulse_scale * 250.0;
             let velocity_tolerance = tolerance * velocity_scale * 250.0;
 
@@ -844,10 +848,8 @@ mod schur_reduction_tests {
                 continue;
             }
 
-            let kinetic_energy_delta =
-                impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
-            let energy_tolerance =
-                tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
+            let kinetic_energy_delta = impulse.dot(q) + 0.5 * impulse.dot(&(w * impulse));
+            let energy_tolerance = tolerance * (1.0 + q.norm() * impulse.norm()) * 250.0;
             if kinetic_energy_delta > energy_tolerance {
                 continue;
             }
@@ -894,11 +896,7 @@ mod schur_reduction_tests {
             let impulse = swap_impulse_blocks(&candidate.impulse);
             let post_velocity = q + w * impulse;
             let p_1 = SVector::<f64, 3>::new(impulse[0], impulse[1], impulse[2]);
-            let u_1 = SVector::<f64, 3>::new(
-                post_velocity[0],
-                post_velocity[1],
-                post_velocity[2],
-            );
+            let u_1 = SVector::<f64, 3>::new(post_velocity[0], post_velocity[1], post_velocity[2]);
             let impulse_scale = impulse.norm().max(f64::MIN_POSITIVE);
             let velocity_scale = (scale * impulse.norm()).max(q.norm()).max(f64::MIN_POSITIVE);
             let impulse_tolerance = tolerance * impulse_scale * 250.0;
@@ -926,9 +924,7 @@ mod schur_reduction_tests {
                 contact_two_regime: candidate.contact_one_regime,
                 contact_two_tau: candidate.contact_one_tau,
                 kinetic_energy_delta,
-                max_velocity_residual: candidate
-                    .max_velocity_residual
-                    .max(u_1.norm()),
+                max_velocity_residual: candidate.max_velocity_residual.max(u_1.norm()),
             });
         }
 
@@ -951,14 +947,7 @@ mod schur_reduction_tests {
             w[(axis, axis + 3)] = 0.1;
             w[(axis + 3, axis)] = 0.1;
         }
-        let q = Vector6::new(
-            contact_one_normal_free_velocity,
-            0.2,
-            -0.1,
-            -1.0,
-            1.0,
-            0.0,
-        );
+        let q = Vector6::new(contact_one_normal_free_velocity, 0.2, -0.1, -1.0, 1.0, 0.0);
         (w, q)
     }
 
@@ -990,14 +979,8 @@ mod schur_reduction_tests {
         let post_velocity = q + w * candidate.impulse;
         assert!(post_velocity[0] > 0.0);
         assert!(post_velocity[3].abs() < 1.0e-8);
-        assert!(
-            (post_velocity[4] + candidate.contact_two_tau * candidate.impulse[4]).abs()
-                < 1.0e-8
-        );
-        assert!(
-            (post_velocity[5] + candidate.contact_two_tau * candidate.impulse[5]).abs()
-                < 1.0e-8
-        );
+        assert!((post_velocity[4] + candidate.contact_two_tau * candidate.impulse[4]).abs() < 1.0e-8);
+        assert!((post_velocity[5] + candidate.contact_two_tau * candidate.impulse[5]).abs() < 1.0e-8);
         assert!(candidate.kinetic_energy_delta < 0.0);
     }
 
@@ -1032,14 +1015,9 @@ mod schur_reduction_tests {
         let post_velocity = q + w * p;
         assert!(post_velocity.fixed_rows::<3>(0).norm() < 1.0e-8);
         assert!(post_velocity[3].abs() < 1.0e-8);
-        assert!(
-            (post_velocity[4] + candidate.contact_two_tau * p[4]).abs() < 1.0e-8
-        );
-        assert!(
-            (post_velocity[5] + candidate.contact_two_tau * p[5]).abs() < 1.0e-8
-        );
+        assert!((post_velocity[4] + candidate.contact_two_tau * p[4]).abs() < 1.0e-8);
+        assert!((post_velocity[5] + candidate.contact_two_tau * p[5]).abs() < 1.0e-8);
         assert!(0.2 * p[0] - p.fixed_rows::<2>(1).norm() > 1.0);
         assert!(candidate.kinetic_energy_delta < 0.0);
     }
-
 }
