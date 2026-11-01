@@ -9,6 +9,8 @@
 //! solver and not a root-completeness proof. The acceptance check evaluates the
 //! original unrelaxed De Saxce–Feng law.
 
+use std::cell::Cell;
+
 type Matrix6 = [[f64; 6]; 6];
 type Vector6 = [f64; 6];
 
@@ -76,6 +78,110 @@ fn free_contact_velocity(generalized_velocity: &Vector6) -> Vector6 {
     })
 }
 
+trait DelassusOperator {
+    fn apply(&self, impulse: &Vector6) -> Vector6;
+    fn spectral_norm_upper_bound(&self) -> f64;
+}
+
+struct MatrixFreeDelassus {
+    jacobian: Matrix6,
+    inverse_mass: Vector6,
+    spectral_norm_bound: f64,
+    applications: Cell<usize>,
+}
+
+impl MatrixFreeDelassus {
+    fn from_geometry() -> Self {
+        let norm_one = (0..6)
+            .map(|column| {
+                (0..6)
+                    .map(|row| CONTACT_JACOBIAN[row][column].abs())
+                    .sum::<f64>()
+            })
+            .fold(0.0, f64::max);
+        let norm_infinity = CONTACT_JACOBIAN
+            .iter()
+            .map(|row| row.iter().map(|value| value.abs()).sum::<f64>())
+            .fold(0.0, f64::max);
+        let jacobian_norm_bound = (norm_one * norm_infinity).sqrt();
+        let inverse_mass_norm = INVERSE_MASS.iter().copied().fold(0.0, f64::max);
+        let spectral_norm_bound =
+            jacobian_norm_bound * jacobian_norm_bound * inverse_mass_norm;
+
+        Self {
+            jacobian: CONTACT_JACOBIAN,
+            inverse_mass: INVERSE_MASS,
+            spectral_norm_bound,
+            applications: Cell::new(0),
+        }
+    }
+
+    fn applications(&self) -> usize {
+        self.applications.get()
+    }
+
+    fn reset_applications(&self) {
+        self.applications.set(0);
+    }
+
+    fn apply_explicit(&self, impulse: &Vector6) -> Vector6 {
+        // Matrix-free Delassus application: scatter J^T, apply M^-1, gather J.
+        let mut generalized_impulse = [0.0; 6];
+        for contact in 0..6 {
+            for coordinate in 0..6 {
+                generalized_impulse[coordinate] +=
+                    self.jacobian[contact][coordinate] * impulse[contact];
+            }
+        }
+        for coordinate in 0..6 {
+            generalized_impulse[coordinate] *= self.inverse_mass[coordinate];
+        }
+        std::array::from_fn(|contact| {
+            (0..6)
+                .map(|coordinate| {
+                    self.jacobian[contact][coordinate] * generalized_impulse[coordinate]
+                })
+                .sum()
+        })
+    }
+}
+
+impl DelassusOperator for MatrixFreeDelassus {
+    fn apply(&self, impulse: &Vector6) -> Vector6 {
+        self.applications.set(self.applications.get() + 1);
+        self.apply_explicit(impulse)
+    }
+
+    fn spectral_norm_upper_bound(&self) -> f64 {
+        self.spectral_norm_bound
+    }
+}
+
+struct DenseDelassus {
+    matrix: Matrix6,
+    spectral_norm_bound: f64,
+}
+
+impl DenseDelassus {
+    fn from_matrix(matrix: Matrix6) -> Self {
+        let spectral_norm_bound = matrix_infinity_norm(&matrix);
+        Self {
+            matrix,
+            spectral_norm_bound,
+        }
+    }
+}
+
+impl DelassusOperator for DenseDelassus {
+    fn apply(&self, impulse: &Vector6) -> Vector6 {
+        matrix_vector(&self.matrix, impulse)
+    }
+
+    fn spectral_norm_upper_bound(&self) -> f64 {
+        self.spectral_norm_bound
+    }
+}
+
 fn delassus_from_geometry() -> Matrix6 {
     let mut matrix = [[0.0; 6]; 6];
     for row in 0..6 {
@@ -130,8 +236,13 @@ fn project_product_cone(vector: &Vector6, mu: f64) -> Vector6 {
     ]
 }
 
-fn saxce_coupling(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu: f64) -> Vector6 {
-    let post_velocity = add(q, &matrix_vector(w, impulse));
+fn saxce_coupling<O: DelassusOperator>(
+    operator: &O,
+    q: &Vector6,
+    impulse: &Vector6,
+    mu: f64,
+) -> Vector6 {
+    let post_velocity = add(q, &operator.apply(impulse));
     let first_tangent = post_velocity[1].hypot(post_velocity[2]);
     let second_tangent = post_velocity[4].hypot(post_velocity[5]);
     [
@@ -144,21 +255,17 @@ fn saxce_coupling(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu: f64) -> Vecto
     ]
 }
 
-fn proximal_cone_qp(
-    w: &Matrix6,
+fn proximal_cone_qp<O: DelassusOperator>(
+    operator: &O,
     q_linear: &Vector6,
     initial: &Vector6,
     gamma: f64,
     mu: f64,
 ) -> (Vector6, usize) {
     // min 0.5*x^T*(W + gamma^-1 I)*x + q_linear^T*x
-    // subject to each contact impulse lying in its Coulomb cone.
-    let w_gamma = std::array::from_fn(|row| {
-        std::array::from_fn(|column| {
-            w[row][column] + if row == column { 1.0 / gamma } else { 0.0 }
-        })
-    });
-    let lipschitz = matrix_infinity_norm(&w_gamma);
+    // subject to each contact impulse lying in its Coulomb cone. W is applied
+    // matrix-free; the Lipschitz bound adds gamma^-1 to the operator bound.
+    let lipschitz = operator.spectral_norm_upper_bound() + 1.0 / gamma;
     assert!(lipschitz.is_finite() && lipschitz > 0.0);
     let step = 1.0 / lipschitz;
 
@@ -168,7 +275,10 @@ fn proximal_cone_qp(
     let mut extrapolated = current;
     let mut acceleration = 1.0;
     for iteration in 0..INNER_ITERATIONS {
-        let gradient = add(&matrix_vector(&w_gamma, &extrapolated), q_linear);
+        let gradient = add(
+            &scaled_add(&operator.apply(&extrapolated), 1.0 / gamma, &extrapolated),
+            q_linear,
+        );
         let candidate = project_product_cone(
             &scaled_add(&extrapolated, -step, &gradient),
             mu,
@@ -190,8 +300,13 @@ fn proximal_cone_qp(
     (current, INNER_ITERATIONS)
 }
 
-fn original_reduced_law_residual(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu: f64) -> f64 {
-    let post_velocity = add(q, &matrix_vector(w, impulse));
+fn original_reduced_law_residual<O: DelassusOperator>(
+    operator: &O,
+    q: &Vector6,
+    impulse: &Vector6,
+    mu: f64,
+) -> f64 {
+    let post_velocity = add(q, &operator.apply(impulse));
     let augmented_velocity = [
         post_velocity[0] + mu * post_velocity[1].hypot(post_velocity[2]),
         post_velocity[1],
@@ -225,7 +340,7 @@ fn original_reduced_law_residual(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu
 
     // Freeze the scales from q and the physical W; do not mix impulse and
     // velocity units in one unnormalized norm.
-    let impulse_scale = (norm(q) / matrix_infinity_norm(w)).max(1.0e-12);
+    let impulse_scale = (norm(q) / operator.spectral_norm_upper_bound()).max(1.0e-12);
     let velocity_scale = norm(q).max(1.0e-12);
     let primal = primal_violation / impulse_scale;
     let dual = dual_violation / velocity_scale;
@@ -233,12 +348,16 @@ fn original_reduced_law_residual(w: &Matrix6, q: &Vector6, impulse: &Vector6, mu
     primal.max(dual).max(gap)
 }
 
-fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> {
+fn solve_fbf_reference<O: DelassusOperator>(
+    operator: &O,
+    q: &Vector6,
+    mu: f64,
+) -> Option<FbfOutcome> {
     if !mu.is_finite() || mu <= 0.0 {
         return None;
     }
 
-    let lipschitz_bound = mu * matrix_infinity_norm(w);
+    let lipschitz_bound = mu * operator.spectral_norm_upper_bound();
     if !lipschitz_bound.is_finite() || lipschitz_bound <= 0.0 {
         return None;
     }
@@ -251,7 +370,7 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
     let mut total_inner_iterations = 0;
 
     for outer_iteration in 1..=MAX_OUTER_ITERATIONS {
-        let coupling = saxce_coupling(w, q, &impulse, mu);
+        let coupling = saxce_coupling(operator, q, &impulse, mu);
         let mut accepted = None;
 
         for _ in 0..MAX_STEP_REJECTIONS {
@@ -260,9 +379,9 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
                 &std::array::from_fn(|index| impulse[index] / gamma),
             );
             let (intermediate, inner_iterations) =
-                proximal_cone_qp(w, &q_linear, &impulse, gamma, mu);
+                proximal_cone_qp(operator, &q_linear, &impulse, gamma, mu);
             total_inner_iterations += inner_iterations;
-            let next_coupling = saxce_coupling(w, q, &intermediate, mu);
+            let next_coupling = saxce_coupling(operator, q, &intermediate, mu);
             let state_change = norm(&subtract(&intermediate, &impulse));
             let coupling_change = norm(&subtract(&next_coupling, &coupling));
             let local_variation = if state_change <= 1.0e-14 {
@@ -290,7 +409,7 @@ fn solve_fbf_reference(w: &Matrix6, q: &Vector6, mu: f64) -> Option<FbfOutcome> 
             &subtract(&next_coupling, &coupling),
         );
         let next_impulse = project_product_cone(&corrected, mu);
-        let residual = original_reduced_law_residual(w, q, &next_impulse, mu);
+        let residual = original_reduced_law_residual(operator, q, &next_impulse, mu);
 
         if residual <= OUTER_TOLERANCE {
             return Some(FbfOutcome {
@@ -316,20 +435,28 @@ fn max_abs_difference(lhs: &Vector6, rhs: &Vector6) -> f64 {
 #[test]
 fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
     let w = delassus_from_geometry();
+    let dense = DenseDelassus::from_matrix(w);
+    let matrix_free = MatrixFreeDelassus::from_geometry();
     let reference = [2.0, 0.0, 0.0, 2.0, 0.0, 0.0];
     let free_velocity = [-4.0, 0.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
     let q = free_contact_velocity(&free_velocity);
-    let expected_q = std::array::from_fn(|index| -matrix_vector(&w, &reference)[index]);
+    let expected_q = std::array::from_fn(|index| -dense.apply(&reference)[index]);
     assert!(max_abs_difference(&q, &expected_q) < 1.0e-14);
 
-    let outcome = solve_fbf_reference(&w, &q, FRICTION)
-        .expect("FBF projected-gradient reference should recover the sticking response");
+    let dense_outcome = solve_fbf_reference(&dense, &q, FRICTION)
+        .expect("dense FBF oracle should recover the sticking response");
+    let outcome = solve_fbf_reference(&matrix_free, &q, FRICTION)
+        .expect("matrix-free FBF reference should recover the sticking response");
 
     assert!(outcome.residual <= OUTER_TOLERANCE);
     assert!(max_abs_difference(&outcome.impulse, &reference) < 5.0e-5);
+    assert!(max_abs_difference(&outcome.impulse, &dense_outcome.impulse) < 5.0e-5);
+    assert!(matrix_free.applications() > 0);
+    assert!(max_abs_difference(&outcome.impulse, &dense_outcome.impulse) < 5.0e-5);
+    assert!(matrix_free.applications() > 0);
     assert!(outcome.outer_iterations < MAX_OUTER_ITERATIONS);
     assert!(outcome.final_gamma > 0.0);
-    assert!(norm(&add(&q, &matrix_vector(&w, &outcome.impulse))) < 5.0e-5);
+    assert!(norm(&add(&q, &matrix_free.apply(&outcome.impulse))) < 5.0e-5);
     assert!(outcome.step_rejections <= 8);
     assert!(outcome.inner_iterations >= outcome.outer_iterations);
 }
@@ -337,13 +464,17 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sticking_response() {
 #[test]
 fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     let w = delassus_from_geometry();
+    let dense = DenseDelassus::from_matrix(w);
+    let matrix_free = MatrixFreeDelassus::from_geometry();
     let free_velocity = [-4.0, 3.0, 0.0, 0.0, 0.0, 2.0 / 3.0];
     let q = free_contact_velocity(&free_velocity);
     assert!(max_abs_difference(&q, &[-4.0, 3.0, 0.0, -14.0 / 3.0, 3.0, 0.0]) < 1.0e-14);
     let reference = [2.0, -1.0, 0.0, 2.0, -1.0, 0.0];
 
-    let outcome = solve_fbf_reference(&w, &q, FRICTION)
-        .expect("FBF projected-gradient reference should recover the sliding response");
+    let dense_outcome = solve_fbf_reference(&dense, &q, FRICTION)
+        .expect("dense FBF oracle should recover the sliding response");
+    let outcome = solve_fbf_reference(&matrix_free, &q, FRICTION)
+        .expect("matrix-free FBF reference should recover the sliding response");
 
     assert!(outcome.residual <= OUTER_TOLERANCE);
     assert!(max_abs_difference(&outcome.impulse, &reference) < 5.0e-5);
@@ -352,7 +483,7 @@ fn fbf_exact_reduced_coulomb_recovers_rank_deficient_sliding_response() {
     assert!(outcome.step_rejections <= 8);
     assert!(outcome.inner_iterations >= outcome.outer_iterations);
 
-    let post_velocity = add(&q, &matrix_vector(&w, &outcome.impulse));
+    let post_velocity = add(&q, &matrix_free.apply(&outcome.impulse));
     for contact in 0..2 {
         let offset = 3 * contact;
         assert!(post_velocity[offset].abs() < 5.0e-5);
