@@ -358,7 +358,7 @@ pub fn certify_blackwell_decision_transfer(
     let mut decision_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
     let mut abstention_probabilities = Vec::with_capacity(more_informative.observation_ids.len());
 
-    for (source_observation, garbling_row) in witness.probabilities.iter().enumerate() {
+    for garbling_row in &witness.probabilities {
         let mut row = vec![Rational::zero(); losses.decision_ids.len()];
         let mut abstention = Rational::zero();
         for (target_observation, garbling_probability) in garbling_row.iter().copied().enumerate() {
