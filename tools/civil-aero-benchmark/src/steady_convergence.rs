@@ -150,18 +150,18 @@ impl SteadyConvergenceReport {
             .residual_audits
             .iter()
             .map(|audit| {
-                usize::from(audit.final_residual_pass)
-                    + usize::from(audit.reduction_pass)
-                    + usize::from(audit.terminal_stability_pass)
+                audit.final_residual_pass as usize
+                    + audit.reduction_pass as usize
+                    + audit.terminal_stability_pass as usize
             })
             .sum::<usize>()
             + self
                 .monitor_audits
                 .iter()
                 .map(|audit| {
-                    usize::from(audit.mean_drift_pass)
-                        + usize::from(audit.range_pass)
-                        + usize::from(audit.slope_pass)
+                    audit.mean_drift_pass as usize
+                        + audit.range_pass as usize
+                        + audit.slope_pass as usize
                 })
                 .sum::<usize>();
 
@@ -356,7 +356,8 @@ fn residual_log10(value: f64, encoding: ResidualEncoding, field: &str) -> Result
 }
 
 fn mean(values: &[f64]) -> f64 {
-    values.iter().sum::<f64>() / values.len() as f64
+    let divisor = values.len() as f64;
+    values.iter().map(|value| value / divisor).sum::<f64>()
 }
 
 fn linear_slope_per_1000_iterations(
@@ -369,8 +370,11 @@ fn linear_slope_per_1000_iterations(
             "monitor {field} requires matching iteration/value samples"
         ));
     }
-    let x0 = iterations[0] as f64;
-    let xs = iterations.iter().map(|value| *value as f64 - x0).collect::<Vec<_>>();
+    let first_iteration = iterations[0];
+    let xs = iterations
+        .iter()
+        .map(|value| value.saturating_sub(first_iteration) as f64)
+        .collect::<Vec<_>>();
     let x_mean = mean(&xs);
     let y_mean = mean(values);
     let variance = xs.iter().map(|value| (value - x_mean).powi(2)).sum::<f64>();
@@ -533,12 +537,12 @@ mod tests {
         let raw = [
             (0, 0.4100, 0.0210, -1.0, -1.0),
             (10, 0.4200, 0.0200, -2.0, -2.0),
-            (20, 0.4220, 0.0190, -3.0, -3.0),
-            (30, 0.4228, 0.0182, -4.0, -4.0),
-            (40, 0.4230, 0.0181, -5.0, -5.0),
-            (50, 0.4231, 0.0180, -6.0, -6.0),
-            (60, 0.4231, 0.0180, -7.0, -7.0),
-            (70, 0.4232, 0.0180, -8.0, -8.0),
+            (20, 0.4230, 0.01820, -6.5, -6.5),
+            (30, 0.42305, 0.01815, -6.8, -6.8),
+            (40, 0.42310, 0.01810, -7.1, -7.1),
+            (50, 0.42310, 0.01808, -7.4, -7.4),
+            (60, 0.42315, 0.01806, -7.7, -7.7),
+            (70, 0.42316, 0.01805, -8.0, -8.0),
         ];
         let mut report = Su2HistoryReport {
             schema: crate::su2_history::SU2_HISTORY_IMPORT_SCHEMA.to_owned(),
