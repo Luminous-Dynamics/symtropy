@@ -2456,6 +2456,59 @@ mod tests {
         );
     }
 
+    #[test]
+    fn binary_le_cam_fme_and_vertex_oracles_agree_on_exhaustive_three_point_grid() {
+        let grid = [rational(0, 1), rational(1, 2), rational(1, 1)];
+        let mut cases = 0usize;
+        for source_state_zero in grid {
+            for source_state_one in grid {
+                for target_state_zero in grid {
+                    for target_state_one in grid {
+                        let make_channel = |id: String, first: Rational, second: Rational| {
+                            FiniteObservationChannel {
+                                channel_id: id,
+                                state_ids: vec!["s0".into(), "s1".into()],
+                                observation_ids: vec!["o0".into(), "o1".into()],
+                                probabilities: vec![
+                                    vec![
+                                        first,
+                                        subtract_nonnegative(Rational::one(), first).unwrap(),
+                                    ],
+                                    vec![
+                                        second,
+                                        subtract_nonnegative(Rational::one(), second).unwrap(),
+                                    ],
+                                ],
+                            }
+                        };
+                        let source = make_channel(
+                            format!("grid-source-{cases}"),
+                            source_state_zero,
+                            source_state_one,
+                        );
+                        let target = make_channel(
+                            format!("grid-target-{cases}"),
+                            target_state_zero,
+                            target_state_one,
+                        );
+                        let receipt = solve_binary_le_cam_deficiency(&source, &target).unwrap();
+                        assert!(receipt.optimality_verified);
+                        assert_eq!(
+                            receipt.optimal_deficiency,
+                            receipt.independent_vertex_lower_bound
+                        );
+                        assert_eq!(
+                            receipt.dominance.maximum_state_residual,
+                            receipt.optimal_deficiency
+                        );
+                        cases += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(cases, 81);
+    }
+
     fn three_state_binary_channels() -> (FiniteObservationChannel, FiniteObservationChannel) {
         let source = FiniteObservationChannel {
             channel_id: "three-state-source".into(),
@@ -2532,6 +2585,14 @@ mod tests {
         let mut malformed = noisy_channel("wrong-state-vocabulary");
         malformed.state_ids[1] = "different-state".into();
         assert!(solve_binary_le_cam_deficiency(&binary, &malformed).is_err());
+
+        let oversized = FiniteObservationChannel {
+            channel_id: "fourteen-states".into(),
+            state_ids: (0..14).map(|index| format!("s{index}")).collect(),
+            observation_ids: vec!["o0".into(), "o1".into()],
+            probabilities: vec![vec![rational(1, 2), rational(1, 2)]; 14],
+        };
+        assert!(solve_binary_le_cam_deficiency(&oversized, &oversized).is_err());
     }
 
     fn posterior_rule(
