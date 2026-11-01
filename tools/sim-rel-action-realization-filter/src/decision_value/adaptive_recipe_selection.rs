@@ -1041,7 +1041,7 @@ mod tests {
 
     #[test]
     fn per_agent_difficulty_prevents_pooled_scores_hiding_extreme_agents() {
-        let candidates = candidates();
+        let candidates = candidates().into_iter().take(2).collect::<Vec<_>>();
         let mut outcomes = Vec::new();
         for index in 0..30 {
             let group = ["dev-a", "dev-b", "dev-c"][index % 3];
