@@ -16,10 +16,9 @@
 //!   covers the real world. Those require separate domain and provenance checks.
 
 use super::counterexample_ledger::{
-    CalibrationGroupRegistration, CounterexampleAdmissionRecord,
-    CounterexampleValidationReceipt, EvidenceSplit, FinalPolicySealRecord,
-    ModelFamilyLedgerEvent, ModelFamilyLedgerSnapshot, SealedHoldoutEvaluationRecord,
-    SealedHoldoutGroupRegistration, SequencedLedgerEvent,
+    CalibrationGroupRegistration, CounterexampleAdmissionRecord, CounterexampleValidationReceipt,
+    EvidenceSplit, FinalPolicySealRecord, ModelFamilyLedgerEvent, ModelFamilyLedgerSnapshot,
+    SealedHoldoutEvaluationRecord, SealedHoldoutGroupRegistration, SequencedLedgerEvent,
 };
 use super::counterexample_search::CounterexampleClass;
 use super::finite_horizon::{DecisionBudgets, DecisionPlan};
@@ -184,14 +183,15 @@ fn validate_metric_values(
     Ok(())
 }
 
-fn validate_validation_receipt(
-    receipt: &CounterexampleValidationReceipt,
-) -> Result<(), String> {
+fn validate_validation_receipt(receipt: &CounterexampleValidationReceipt) -> Result<(), String> {
     for (value, label) in [
         (&receipt.receipt_id, "validation receipt ID"),
         (&receipt.validator_id, "validator ID"),
         (&receipt.validator_version, "validator version"),
-        (&receipt.evidence_artifact_id, "validation evidence artifact ID"),
+        (
+            &receipt.evidence_artifact_id,
+            "validation evidence artifact ID",
+        ),
     ] {
         if !valid_id(value) {
             return Err(format!("{label} is empty or overlong"));
@@ -264,7 +264,10 @@ impl TransitionState {
                 || !valid_id(&registration.manifest_id)
                 || registration.world_ids.is_empty()
             {
-                return Err("calibration registration has an invalid ID, manifest, or empty world set".into());
+                return Err(
+                    "calibration registration has an invalid ID, manifest, or empty world set"
+                        .into(),
+                );
             }
             let world_ids = sorted_unique_ids(
                 &registration.world_ids,
@@ -294,7 +297,9 @@ impl TransitionState {
                 || !valid_id(&registration.manifest_id)
                 || registration.world_ids.is_empty()
             {
-                return Err("sealed registration has an invalid ID, manifest, or empty world set".into());
+                return Err(
+                    "sealed registration has an invalid ID, manifest, or empty world set".into(),
+                );
             }
             let world_ids =
                 sorted_unique_ids(&registration.world_ids, "sealed registration world IDs")?;
@@ -361,7 +366,9 @@ impl TransitionState {
 
     fn admit(&mut self, record: &CounterexampleAdmissionRecord) -> Result<(), String> {
         if self.frozen_policy.is_some() || !self.consumed_holdout_group_ids.is_empty() {
-            return Err("counterexample admission is forbidden after final sealing or holdout use".into());
+            return Err(
+                "counterexample admission is forbidden after final sealing or holdout use".into(),
+            );
         }
         if record.revision_before != self.revision {
             return Err("counterexample admission starts from a stale family revision".into());
@@ -371,13 +378,14 @@ impl TransitionState {
             .checked_add(1)
             .ok_or_else(|| "family revision overflow".to_string())?;
         if record.revision_after != next_revision {
-            return Err("counterexample admission does not increment the revision exactly once".into());
+            return Err(
+                "counterexample admission does not increment the revision exactly once".into(),
+            );
         }
 
-        let active = self
-            .active_policy
-            .as_ref()
-            .ok_or_else(|| "counterexample admission occurred without an active policy".to_string())?;
+        let active = self.active_policy.as_ref().ok_or_else(|| {
+            "counterexample admission occurred without an active policy".to_string()
+        })?;
         if record.invalidated_policy_identity != active.identity {
             return Err("counterexample invalidates a policy other than the active policy".into());
         }
@@ -385,7 +393,10 @@ impl TransitionState {
             || record.provenance.attacked_policy != active.plan
             || record.provenance.family_revision != self.revision
         {
-            return Err("counterexample provenance is not bound to the active policy and current revision".into());
+            return Err(
+                "counterexample provenance is not bound to the active policy and current revision"
+                    .into(),
+            );
         }
         if record.provenance.split != EvidenceSplit::Development {
             return Err("only Development evidence may expand the model family".into());
@@ -473,7 +484,11 @@ impl TransitionState {
             return Err("replanned policy identity is invalid or reused".into());
         }
 
-        let expected_world_ids = self.development_world_ids.iter().cloned().collect::<Vec<_>>();
+        let expected_world_ids = self
+            .development_world_ids
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
         let recorded_world_ids =
             sorted_unique_ids(&record.replayed_world_ids, "replayed development world IDs")?;
         if recorded_world_ids != expected_world_ids {
@@ -485,7 +500,8 @@ impl TransitionState {
             budgets,
             "replan metrics",
         )?;
-        self.policy_identities.insert(record.policy_identity.clone());
+        self.policy_identities
+            .insert(record.policy_identity.clone());
         self.active_policy = Some(PolicyState {
             identity: record.policy_identity.clone(),
             plan: record.plan.clone(),
@@ -526,7 +542,11 @@ fn handle_seal(
     if record.policy_identity != active.identity || record.plan != active.plan {
         return Err("final-policy seal does not match the active policy identity and tree".into());
     }
-    let expected_world_ids = state.development_world_ids.iter().cloned().collect::<Vec<_>>();
+    let expected_world_ids = state
+        .development_world_ids
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
     metrics_for_snapshot(
         &record.per_world_metrics,
         &expected_world_ids,
@@ -555,13 +575,24 @@ fn holdout_metrics_match(
     record: &SealedHoldoutEvaluationRecord,
     expected_world_ids: &[String],
 ) -> Result<(), String> {
-    if !record.criteria.budgets.max_hazard_probability.is_probability()
-        || !record.criteria.budgets.max_abstention_probability.is_probability()
+    if !record
+        .criteria
+        .budgets
+        .max_hazard_probability
+        .is_probability()
+        || !record
+            .criteria
+            .budgets
+            .max_abstention_probability
+            .is_probability()
     {
         return Err("holdout risk budget is outside [0,1]".into());
     }
     if !record.replay_succeeded {
-        if record.replay_error.as_ref().is_none_or(|reason| reason.trim().is_empty())
+        if record
+            .replay_error
+            .as_ref()
+            .is_none_or(|reason| reason.trim().is_empty())
             || !record.per_world_metrics.is_empty()
             || record.worst_case_total_loss.is_some()
             || record.worst_case_terminal_loss.is_some()
@@ -593,10 +624,9 @@ fn holdout_metrics_match(
             .map_err(|reason| format!("holdout total-loss arithmetic failed: {reason}"))?;
         worst_total = worst_total.max(total);
         worst_terminal = worst_terminal.max(metric.expected_terminal_loss);
-        budgets_pass &= metric.hazard_probability
-            <= record.criteria.budgets.max_hazard_probability;
-        budgets_pass &= metric.abstention_probability
-            <= record.criteria.budgets.max_abstention_probability;
+        budgets_pass &= metric.hazard_probability <= record.criteria.budgets.max_hazard_probability;
+        budgets_pass &=
+            metric.abstention_probability <= record.criteria.budgets.max_abstention_probability;
     }
     if record.worst_case_total_loss != Some(worst_total)
         || record.worst_case_terminal_loss != Some(worst_terminal)
@@ -673,22 +703,30 @@ fn verify_event(
 ) -> Result<(), TransitionOracleError> {
     state
         .register_event_id(sequenced.event.receipt_id())
-        .map_err(|reason| fail(Some(sequenced.sequence), TransitionOraclePhase::EventSequence, reason))?;
+        .map_err(|reason| {
+            fail(
+                Some(sequenced.sequence),
+                TransitionOraclePhase::EventSequence,
+                reason,
+            )
+        })?;
 
     let result = match &sequenced.event {
         ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => state.admit(record),
         ModelFamilyLedgerEvent::PolicyReplanned(record) => state.replan(record, budgets),
-        ModelFamilyLedgerEvent::FinalPolicySealed(record) => {
-            handle_seal(state, record, budgets)
-        }
+        ModelFamilyLedgerEvent::FinalPolicySealed(record) => handle_seal(state, record, budgets),
         ModelFamilyLedgerEvent::SealedHoldoutEvaluated(record) => handle_holdout(state, record),
     };
 
     let phase = match &sequenced.event {
-        ModelFamilyLedgerEvent::CounterexampleAdmitted(_) => TransitionOraclePhase::CounterexampleAdmission,
+        ModelFamilyLedgerEvent::CounterexampleAdmitted(_) => {
+            TransitionOraclePhase::CounterexampleAdmission
+        }
         ModelFamilyLedgerEvent::PolicyReplanned(_) => TransitionOraclePhase::PolicyReplan,
         ModelFamilyLedgerEvent::FinalPolicySealed(_) => TransitionOraclePhase::FinalPolicySeal,
-        ModelFamilyLedgerEvent::SealedHoldoutEvaluated(_) => TransitionOraclePhase::SealedHoldoutEvaluation,
+        ModelFamilyLedgerEvent::SealedHoldoutEvaluated(_) => {
+            TransitionOraclePhase::SealedHoldoutEvaluation
+        }
     };
     result.map_err(|reason| fail(Some(sequenced.sequence), phase, reason))
 }
@@ -698,15 +736,25 @@ fn compare_final_snapshot(
     state: &TransitionState,
     budgets: DecisionBudgets,
 ) -> Result<(), String> {
-    let expected_world_ids = state.development_world_ids.iter().cloned().collect::<Vec<_>>();
+    let expected_world_ids = state
+        .development_world_ids
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
     if snapshot.initial_policy_metrics != state.initial_policy_metrics {
-        return Err("snapshot initial-policy metrics differ from the immutable baseline receipt".into());
+        return Err(
+            "snapshot initial-policy metrics differ from the immutable baseline receipt".into(),
+        );
     }
     if snapshot.family_revision != state.revision {
-        return Err("snapshot family revision differs from the independently derived revision".into());
+        return Err(
+            "snapshot family revision differs from the independently derived revision".into(),
+        );
     }
     if snapshot.development_worlds != state.development_worlds {
-        return Err("snapshot development worlds differ from the independently derived append order".into());
+        return Err(
+            "snapshot development worlds differ from the independently derived append order".into(),
+        );
     }
     if snapshot.active_policy_identity != state.active_policy.as_ref().map(|p| p.identity.clone()) {
         return Err("snapshot active policy identity differs from the transition state".into());
@@ -714,10 +762,17 @@ fn compare_final_snapshot(
     if snapshot.active_policy_plan != state.active_policy.as_ref().map(|p| p.plan.clone()) {
         return Err("snapshot active policy tree differs from the transition state".into());
     }
-    match state.active_policy.as_ref().and_then(|policy| policy.metrics.as_ref()) {
+    match state
+        .active_policy
+        .as_ref()
+        .and_then(|policy| policy.metrics.as_ref())
+    {
         Some(metrics) => {
             if snapshot.active_policy_metrics.as_ref() != Some(metrics) {
-                return Err("snapshot active-policy metrics differ from the independent replan/seal record".into());
+                return Err(
+                    "snapshot active-policy metrics differ from the independent replan/seal record"
+                        .into(),
+                );
             }
         }
         None if state.active_policy.is_none() => {
@@ -729,7 +784,12 @@ fn compare_final_snapshot(
             let metrics = snapshot.active_policy_metrics.as_ref().ok_or_else(|| {
                 "initial active policy is missing its baseline replay metrics".to_string()
             })?;
-            metrics_for_snapshot(metrics, &expected_world_ids, budgets, "baseline active-policy metrics")?;
+            metrics_for_snapshot(
+                metrics,
+                &expected_world_ids,
+                budgets,
+                "baseline active-policy metrics",
+            )?;
         }
     }
 
@@ -738,10 +798,14 @@ fn compare_final_snapshot(
         || snapshot.frozen_policy_revision != state.frozen_policy.as_ref().map(|p| p.revision)
         || snapshot.frozen_policy_metrics != state.frozen_policy.as_ref().map(|p| p.metrics.clone())
     {
-        return Err("snapshot frozen-policy fields differ from the independently derived seal".into());
+        return Err(
+            "snapshot frozen-policy fields differ from the independently derived seal".into(),
+        );
     }
     if snapshot.invalidated_policy_identity != state.invalidated_policy_identity {
-        return Err("snapshot invalidated-policy identity differs from the transition state".into());
+        return Err(
+            "snapshot invalidated-policy identity differs from the transition state".into(),
+        );
     }
 
     let consumed = state
@@ -773,7 +837,11 @@ fn compare_final_snapshot(
         return Err("snapshot evaluation artifact set differs from the transition state".into());
     }
     if snapshot.reserved_calibration_groups
-        != state.calibration_groups.values().cloned().collect::<Vec<_>>()
+        != state
+            .calibration_groups
+            .values()
+            .cloned()
+            .collect::<Vec<_>>()
         || snapshot.reserved_holdout_groups
             != state.holdout_groups.values().cloned().collect::<Vec<_>>()
     {
@@ -794,26 +862,34 @@ fn compare_final_snapshot(
 pub fn audit_model_family_transitions_independently(
     snapshot: &ModelFamilyLedgerSnapshot,
 ) -> Result<IndependentTransitionAuditReceipt, TransitionOracleError> {
-    let mut state = TransitionState::from_snapshot(snapshot).map_err(|reason| {
-        fail(None, TransitionOraclePhase::SnapshotEnvelope, reason)
-    })?;
+    let mut state = TransitionState::from_snapshot(snapshot)
+        .map_err(|reason| fail(None, TransitionOraclePhase::SnapshotEnvelope, reason))?;
 
     for (index, sequenced) in snapshot.events.iter().enumerate() {
         let expected_sequence = u64::try_from(index).map_err(|_| {
-            fail(None, TransitionOraclePhase::EventSequence, "event index exceeds u64")
+            fail(
+                None,
+                TransitionOraclePhase::EventSequence,
+                "event index exceeds u64",
+            )
         })?;
         if sequenced.sequence != expected_sequence {
             return Err(fail(
                 Some(sequenced.sequence),
                 TransitionOraclePhase::EventSequence,
-                format!("expected sequence {expected_sequence}, found {}", sequenced.sequence),
+                format!(
+                    "expected sequence {expected_sequence}, found {}",
+                    sequenced.sequence
+                ),
             ));
         }
         let expected_revision = match &sequenced.event {
             ModelFamilyLedgerEvent::CounterexampleAdmitted(record) => record.revision_before,
             _ => sequenced.event.family_revision(),
         };
-        if expected_revision < state.revision || expected_revision > state.revision.saturating_add(1) {
+        if expected_revision < state.revision
+            || expected_revision > state.revision.saturating_add(1)
+        {
             return Err(fail(
                 Some(sequenced.sequence),
                 TransitionOraclePhase::EventSequence,
@@ -834,14 +910,15 @@ pub fn audit_model_family_transitions_independently(
     )
     .map_err(|reason| fail(None, TransitionOraclePhase::FinalSnapshotEquality, reason))?;
 
-    let event_count = u64::try_from(snapshot.events.len())
-        .map_err(|_| fail(None, TransitionOraclePhase::EventSequence, "event count exceeds u64"))?;
+    let event_count = u64::try_from(snapshot.events.len()).map_err(|_| {
+        fail(
+            None,
+            TransitionOraclePhase::EventSequence,
+            "event count exceeds u64",
+        )
+    })?;
     let development_world_ids = state.development_world_ids.iter().cloned().collect();
-    let consumed_holdout_group_ids = state
-        .consumed_holdout_group_ids
-        .iter()
-        .cloned()
-        .collect();
+    let consumed_holdout_group_ids = state.consumed_holdout_group_ids.iter().cloned().collect();
     Ok(IndependentTransitionAuditReceipt {
         event_count,
         counterexample_admission_count: state.counts[0],
@@ -859,18 +936,12 @@ pub fn audit_model_family_transitions_independently(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::counterexample_ledger::{
-        ModelFamilyLedger, SealedHoldoutAcceptanceCriteria,
-    };
-    use super::super::counterexample_ledger::{
-        FamilyReplanRecord, SealedHoldoutEvaluationRecord,
-    };
+    use super::super::counterexample_ledger::{FamilyReplanRecord, SealedHoldoutEvaluationRecord};
+    use super::super::counterexample_ledger::{ModelFamilyLedger, SealedHoldoutAcceptanceCriteria};
     use super::super::robust_finite_horizon::DecisionModelWorld;
     use super::super::{DecisionLossTable, ObservationProtocol};
-    use crate::{
-        ActionRealizationKernel, BeliefMass, KernelRow, LatentState, TransitionOutcome,
-    };
+    use super::*;
+    use crate::{ActionRealizationKernel, BeliefMass, KernelRow, LatentState, TransitionOutcome};
 
     fn world(id: &str) -> DecisionModelWorld {
         let state = LatentState {
@@ -1015,7 +1086,9 @@ mod tests {
     #[test]
     fn rejects_duplicate_split_group_registration() {
         let mut snapshot = initial_snapshot();
-        snapshot.reserved_holdout_groups.push(snapshot.reserved_holdout_groups[0].clone());
+        snapshot
+            .reserved_holdout_groups
+            .push(snapshot.reserved_holdout_groups[0].clone());
         let error = audit_model_family_transitions_independently(&snapshot).unwrap_err();
         assert_eq!(error.phase, TransitionOraclePhase::SnapshotEnvelope);
     }
@@ -1047,10 +1120,9 @@ mod tests {
 
         let snapshot = ledger.snapshot();
         let independent = audit_model_family_transitions_independently(&snapshot).unwrap();
-        let replay = super::super::counterexample_ledger::verify_model_family_ledger_snapshot(
-            &snapshot,
-        )
-        .unwrap();
+        let replay =
+            super::super::counterexample_ledger::verify_model_family_ledger_snapshot(&snapshot)
+                .unwrap();
         assert_eq!(independent.event_count, 2);
         assert_eq!(independent.final_policy_seal_count, 1);
         assert_eq!(independent.sealed_holdout_evaluation_count, 1);
