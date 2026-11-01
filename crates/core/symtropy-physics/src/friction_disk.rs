@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn normal_tangent_coupling_is_folded_into_free_slip_before_disk_solve() {
-        let full_metric = nalgebra::Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
+        let full_metric = nalgebra::Matrix3::<f64>::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
         let normal_impulse = 0.6;
         let q_tangent = SVector::<f64, 2>::new(1.2, -0.9);
         let normal_tangent_column = SVector::<f64, 2>::new(full_metric[(1, 0)], full_metric[(2, 0)]);
