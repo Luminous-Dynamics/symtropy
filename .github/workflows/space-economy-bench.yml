@@ -574,12 +574,12 @@ jobs:
             and .source_commit == $source_commit
             and (.source_commit | test("^[0-9a-f]{40}$"))
             and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
-            and .scenario_count == 26
-            and (.scenarios | length == 26)
+            and .scenario_count == 27
+            and (.scenarios | length == 27)
             and all(.scenarios[]; .status_matches_expected == true)
             and ([.scenarios[] | select(.status == "feasible")] | length) == 9
             and ([.scenarios[] | select(.status == "indeterminate")] | length) == 5
-            and ([.scenarios[] | select(.status == "infeasible")] | length) == 9
+            and ([.scenarios[] | select(.status == "infeasible")] | length) == 10
             and ([.scenarios[] | select(.status == "invalid")] | length) == 3
           ' space-economy-earth-orbit-chain-receipt.json
 
