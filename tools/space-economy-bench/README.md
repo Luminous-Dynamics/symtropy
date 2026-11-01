@@ -379,6 +379,7 @@ The reference calculates:
 - signed Earth-fixed endpoint longitude separation, so the two terminal sites are solved jointly rather than selected independently;
 - apex and ground inertial speeds;
 - endpoint radial and tangential velocity relative to the rotating ground;
+- relative terminal speed and its kinetic energy per unit stream mass (an interface-energy indicator, not a net power or regeneration prediction);
 - endpoint flight-path angle;
 - specific-energy and angular-momentum closure.
 
