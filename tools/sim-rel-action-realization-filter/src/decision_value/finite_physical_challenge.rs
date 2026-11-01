@@ -608,6 +608,70 @@ mod tests {
     }
 
     #[test]
+    fn exact_thermal_equation_matches_hand_computed_rational_fixture() {
+        let mut recipe = recipe();
+        recipe.initial_temperature_grid = vec![q(80, 1)];
+        recipe.ambient_temperature_grid = vec![q(20, 1)];
+        recipe.heat_capacity_grid = vec![q(10, 1)];
+        recipe.conductance_grid = vec![q(1, 1)];
+        recipe.time_step_grid = vec![q(1, 1)];
+        recipe.commanded_power_grid = vec![q(5, 1)];
+        recipe.actuator_delivery_fraction_grid = vec![q(1, 2)];
+        recipe.sensor_bias_grid = vec![q(2, 1)];
+        recipe.safe_temperature_grid = vec![q(100, 1)];
+        recipe.horizon = 1;
+
+        let challenge = generate_finite_thermal_challenge(&recipe, &registry(), 7).unwrap();
+        let step = &challenge.sealed_oracle.episode.steps[0];
+        // T1 = (9/10)*80 + (1/10)*20 + (1/10)*(5/2) = 297/4.
+        assert_eq!(step.temperature_after, q(297, 4));
+        assert_eq!(step.realized_power, q(5, 2));
+        assert_eq!(step.measured_temperature_after, q(305, 4));
+        verify_finite_thermal_challenge(&challenge).unwrap();
+    }
+
+    #[test]
+    fn exhaustive_small_parameter_grid_replays_all_128_combinations() {
+        let base = recipe();
+        let registry = registry();
+        let mut checked = 0usize;
+        for initial in &base.initial_temperature_grid {
+            for capacity in &base.heat_capacity_grid {
+                for conductance in &base.conductance_grid {
+                    for power in &base.commanded_power_grid {
+                        for delivery in &base.actuator_delivery_fraction_grid {
+                            for bias in &base.sensor_bias_grid {
+                                for safe in &base.safe_temperature_grid {
+                                    let mut case = base.clone();
+                                    case.task_id = format!("thermal-grid-{checked:03}");
+                                    case.initial_temperature_grid = vec![*initial];
+                                    case.heat_capacity_grid = vec![*capacity];
+                                    case.conductance_grid = vec![*conductance];
+                                    case.commanded_power_grid = vec![*power];
+                                    case.actuator_delivery_fraction_grid = vec![*delivery];
+                                    case.sensor_bias_grid = vec![*bias];
+                                    case.safe_temperature_grid = vec![*safe];
+                                    let generated =
+                                        generate_finite_thermal_challenge(&case, &registry, checked as u64)
+                                            .unwrap();
+                                    verify_finite_thermal_challenge_from_recipe(
+                                        &generated,
+                                        &case,
+                                        &registry,
+                                    )
+                                    .unwrap();
+                                    checked += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(checked, 128);
+    }
+
+    #[test]
     fn verifier_rejects_temperature_actuation_sensor_and_hazard_tampering() {
         let challenge = generate_finite_thermal_challenge(&recipe(), &registry(), 17).unwrap();
 
