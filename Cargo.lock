@@ -9325,6 +9325,8 @@ dependencies = [
  "arrayvec",
  "criterion",
  "nalgebra 0.34.2",
+ "num-bigint",
+ "num-rational",
  "proptest",
  "serde",
  "symtropy-math",
