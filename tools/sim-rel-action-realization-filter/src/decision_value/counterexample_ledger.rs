@@ -104,16 +104,8 @@ pub struct SealedHoldoutAcceptanceCriteria {
 
 impl SealedHoldoutAcceptanceCriteria {
     fn validate(self) -> Result<(), String> {
-        if !self.max_worst_case_total_loss.is_probability()
-            && self.max_worst_case_total_loss < Rational::zero()
-        {
-            return Err("maximum total-loss criterion must be non-negative".into());
-        }
-        if !self.max_worst_case_terminal_loss.is_probability()
-            && self.max_worst_case_terminal_loss < Rational::zero()
-        {
-            return Err("maximum terminal-loss criterion must be non-negative".into());
-        }
+        // Rational is a reduced non-negative type; only the risk budgets are
+        // probabilities and therefore require [0,1] validation.
         self.budgets.validate()
     }
 }
@@ -122,9 +114,11 @@ impl SealedHoldoutAcceptanceCriteria {
 pub struct SealedHoldoutEvaluationRecord {
     pub event_receipt_id: String,
     pub family_group_id: String,
+    pub manifest_id: String,
     pub family_revision: u64,
     pub policy_identity: String,
     pub world_ids: Vec<String>,
+    pub holdout_world_snapshots: Vec<DecisionModelWorld>,
     pub evaluation_artifact_id: String,
     pub criteria: SealedHoldoutAcceptanceCriteria,
     pub per_world_metrics: Vec<WorldDecisionObjectives>,
@@ -713,11 +707,10 @@ impl ModelFamilyLedger {
             .iter()
             .map(|metrics| metrics.world_id.clone())
             .collect::<Vec<_>>();
-        let mut replayed_ids = canonical_world_id_set(&replayed_ids)?;
+        let replayed_ids = canonical_world_id_set(&replayed_ids)?;
         if replayed_ids != expected_world_ids {
             return Err("sealed policy replay did not cover the registered holdout group".into());
         }
-        replayed_ids.sort();
 
         let worst_case_total_loss = replay
             .per_world
@@ -744,9 +737,11 @@ impl ModelFamilyLedger {
         let record = SealedHoldoutEvaluationRecord {
             event_receipt_id: event_receipt_id.clone(),
             family_group_id: family_group_id.clone(),
+            manifest_id: registration.manifest_id.clone(),
             family_revision,
             policy_identity,
             world_ids: replayed_ids,
+            holdout_world_snapshots: holdout_worlds.to_vec(),
             evaluation_artifact_id,
             criteria,
             per_world_metrics: replay.per_world,
