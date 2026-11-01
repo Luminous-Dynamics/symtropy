@@ -24,6 +24,110 @@ const COUPLING: f64 = -0.5;
 const TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug)]
+struct StickingLeafMessage {
+    self_operator: Matrix3<f64>,
+    separator_coupling: Matrix3<f64>,
+    free_velocity: SVector<f64, 3>,
+    friction_coefficient: f64,
+}
+
+#[derive(Clone, Debug)]
+struct StickingLeafResponse {
+    impulse: SVector<f64, 3>,
+    post_velocity: SVector<f64, 3>,
+    strict_disk_margin: f64,
+}
+
+impl StickingLeafMessage {
+    /// Return the affine impulse response p_leaf = offset + gain * p_separator.
+    ///
+    /// The fixed-size SPD Cholesky factorization solves A offset = -q_leaf
+    /// and A gain = -B^T. Rank-aware fibres are a separate response-message lane.
+    fn affine_response_coefficients(
+        &self,
+    ) -> Result<(SVector<f64, 3>, Matrix3<f64>), &'static str> {
+        if !self.self_operator.iter().all(|value| value.is_finite())
+            || !self
+                .separator_coupling
+                .iter()
+                .all(|value| value.is_finite())
+            || !self.free_velocity.iter().all(|value| value.is_finite())
+            || !self.friction_coefficient.is_finite()
+            || self.friction_coefficient < 0.0
+        {
+            return Err("sticking leaf message contains invalid or non-finite data");
+        }
+        let factor = self
+            .self_operator
+            .cholesky()
+            .ok_or("sticking leaf self-block is not positive definite")?;
+        let offset = -factor.solve(&self.free_velocity);
+        let separator_gain = -factor.solve(&self.separator_coupling.transpose());
+        Ok((offset, separator_gain))
+    }
+
+    /// Return the block-Schur terms for this regime-conditioned leaf.
+    ///
+    /// A p_leaf + B^T p_separator + q_leaf = 0 gives
+    /// W_eff = C - B A^-1 B^T and q_eff = q_separator - B A^-1 q_leaf.
+    /// Using offset=-A^-1 q_leaf and gain=-A^-1 B^T:
+    /// B A^-1 B^T = -B gain and B A^-1 q_leaf = -B offset.
+    fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
+        let (offset, separator_gain) = self.affine_response_coefficients()?;
+        Ok((
+            -(self.separator_coupling * separator_gain),
+            -(self.separator_coupling * offset),
+        ))
+    }
+
+    /// Evaluate the leaf's set-valued response relation at one separator impulse.
+    ///
+    /// The affine response is retained only where the leaf is strictly loaded,
+    /// strictly inside its Coulomb disk, and zero post-contact velocity holds.
+    fn response_at(
+        &self,
+        separator_impulse: &SVector<f64, 3>,
+        tolerance: f64,
+    ) -> Result<Option<StickingLeafResponse>, &'static str> {
+        if !tolerance.is_finite()
+            || tolerance <= 0.0
+            || !separator_impulse.iter().all(|value| value.is_finite())
+        {
+            return Err("sticking leaf response received invalid or non-finite input");
+        }
+        let (offset, separator_gain) = self.affine_response_coefficients()?;
+        let impulse = offset + separator_gain * separator_impulse;
+        let post_velocity = self.free_velocity
+            + self.separator_coupling.transpose() * separator_impulse
+            + self.self_operator * impulse;
+        let strict_disk_margin =
+            self.friction_coefficient * impulse[0] - impulse.fixed_rows::<2>(1).norm();
+        let impulse_tolerance = tolerance * impulse.norm().max(f64::MIN_POSITIVE) * 500.0;
+        let velocity_scale = (self.free_velocity.norm()
+            + self.separator_coupling.norm() * separator_impulse.norm()
+            + self.self_operator.norm() * impulse.norm())
+        .max(f64::MIN_POSITIVE);
+        let velocity_tolerance = tolerance * velocity_scale * 500.0;
+
+        // None means this valid message has no strict-sticking response at the
+        // supplied separator impulse. Invalid data and unsupported self-blocks
+        // are errors, so callers must not conflate domain exclusion with failure.
+        if impulse[0] <= impulse_tolerance
+            || strict_disk_margin <= impulse_tolerance
+            || post_velocity.norm() > velocity_tolerance
+        {
+            return Ok(None);
+        }
+
+        Ok(Some(StickingLeafResponse {
+            impulse,
+            post_velocity,
+            strict_disk_margin,
+        }))
+    }
+}
+
+#[derive(Clone, Debug)]
 struct StarCandidate {
     impulse: Vector9,
     post_velocity: Vector9,
@@ -32,6 +136,7 @@ struct StarCandidate {
     energy_delta: f64,
     effective_operator: Matrix3<f64>,
     effective_free_velocity: SVector<f64, 3>,
+    leaf_disk_margins: [f64; 2],
 }
 
 fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
@@ -99,13 +204,35 @@ fn solve_star_with_strict_sticking_leaves(
         }
     }
 
-    // Each leaf has A_i = I and coupling B_i = rho I to the separator.
-    // Eliminate p_i = -(q_i + B_i^T p_0) under the declared sticking regime.
-    let effective_operator = Matrix3::identity() * (1.0 - 2.0 * COUPLING * COUPLING);
-    let q_separator = SVector::<f64, 3>::new(q[0], q[1], q[2]);
-    let q_leaf_1 = SVector::<f64, 3>::new(q[3], q[4], q[5]);
-    let q_leaf_2 = SVector::<f64, 3>::new(q[6], q[7], q[8]);
-    let effective_free_velocity = q_separator - COUPLING * q_leaf_1 - COUPLING * q_leaf_2;
+    let block = |row_offset: usize, column_offset: usize| {
+        Matrix3::from_fn(|row, column| w[(row + row_offset, column + column_offset)])
+    };
+    let vector = |offset: usize| SVector::<f64, 3>::new(q[offset], q[offset + 1], q[offset + 2]);
+    let separator_block = block(0, 0);
+    let mut effective_operator = separator_block;
+    let mut effective_free_velocity = vector(0);
+    let messages = [
+        StickingLeafMessage {
+            self_operator: block(3, 3),
+            separator_coupling: block(0, 3),
+            free_velocity: vector(3),
+            friction_coefficient: FRICTION,
+        },
+        StickingLeafMessage {
+            self_operator: block(6, 6),
+            separator_coupling: block(0, 6),
+            free_velocity: vector(6),
+            friction_coefficient: FRICTION,
+        },
+    ];
+
+    // Each leaf contributes a regime-conditioned response message over the
+    // same separator impulse. Their Schur terms update the reduced interface.
+    for message in &messages {
+        let (operator_contribution, free_velocity_contribution) = message.schur_terms()?;
+        effective_operator -= operator_contribution;
+        effective_free_velocity -= free_velocity_contribution;
+    }
 
     let reduced = solve_coupled_signorini_coulomb(
         &effective_operator,
@@ -118,10 +245,22 @@ fn solve_star_with_strict_sticking_leaves(
     let mut candidates = Vec::new();
     for separator in &reduced.candidates {
         let p_0 = separator.impulse;
-        let p_1 = -q_leaf_1 - COUPLING * p_0;
-        let p_2 = -q_leaf_2 - COUPLING * p_0;
+        let Some(leaf_1) = messages[0].response_at(&p_0, TOLERANCE)? else {
+            continue;
+        };
+        let Some(leaf_2) = messages[1].response_at(&p_0, TOLERANCE)? else {
+            continue;
+        };
         let impulse = Vector9::from_row_slice(&[
-            p_0[0], p_0[1], p_0[2], p_1[0], p_1[1], p_1[2], p_2[0], p_2[1], p_2[2],
+            p_0[0],
+            p_0[1],
+            p_0[2],
+            leaf_1.impulse[0],
+            leaf_1.impulse[1],
+            leaf_1.impulse[2],
+            leaf_2.impulse[0],
+            leaf_2.impulse[1],
+            leaf_2.impulse[2],
         ]);
         let post_velocity = q + w * impulse;
 
@@ -131,20 +270,13 @@ fn solve_star_with_strict_sticking_leaves(
             .max(f64::MIN_POSITIVE);
         let impulse_tolerance = TOLERANCE * impulse_scale * 500.0;
         let velocity_tolerance = TOLERANCE * velocity_scale * 500.0;
-
-        let leaf_1 = SVector::<f64, 3>::new(impulse[3], impulse[4], impulse[5]);
-        let leaf_2 = SVector::<f64, 3>::new(impulse[6], impulse[7], impulse[8]);
         let leaf_1_velocity =
             SVector::<f64, 3>::new(post_velocity[3], post_velocity[4], post_velocity[5]);
         let leaf_2_velocity =
             SVector::<f64, 3>::new(post_velocity[6], post_velocity[7], post_velocity[8]);
 
-        let leaf_1_margin = FRICTION * leaf_1[0] - leaf_1.fixed_rows::<2>(1).norm();
-        let leaf_2_margin = FRICTION * leaf_2[0] - leaf_2.fixed_rows::<2>(1).norm();
-        if leaf_1[0] <= impulse_tolerance
-            || leaf_2[0] <= impulse_tolerance
-            || leaf_1_margin <= impulse_tolerance
-            || leaf_2_margin <= impulse_tolerance
+        if (leaf_1_velocity - leaf_1.post_velocity).norm() > velocity_tolerance
+            || (leaf_2_velocity - leaf_2.post_velocity).norm() > velocity_tolerance
             || leaf_1_velocity.norm() > velocity_tolerance
             || leaf_2_velocity.norm() > velocity_tolerance
         {
@@ -180,6 +312,7 @@ fn solve_star_with_strict_sticking_leaves(
             energy_delta,
             effective_operator,
             effective_free_velocity,
+            leaf_disk_margins: [leaf_1.strict_disk_margin, leaf_2.strict_disk_margin],
         });
     }
     Ok(candidates)
@@ -223,6 +356,12 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
     assert!(candidate.post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
     assert!(candidate.post_velocity.fixed_rows::<3>(6).norm() < 1.0e-9);
     assert!((candidate.separator_tau - 1.0).abs() < 1.0e-8);
+    assert!(
+        candidate
+            .leaf_disk_margins
+            .iter()
+            .all(|margin| *margin > 0.49)
+    );
     assert!((candidate.energy_delta + 0.875).abs() < 1.0e-9);
     assert!(candidate.energy_delta < 0.0);
 
@@ -266,4 +405,85 @@ fn leaf_with_noninterior_friction_impulse_is_not_promoted_as_sticking() {
     let (w, q) = star_body_generated_fixture(-0.8);
     let candidates = solve_star_with_strict_sticking_leaves(&w, &q).unwrap();
     assert!(candidates.is_empty());
+}
+
+#[test]
+fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_response() {
+    let message = StickingLeafMessage {
+        self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(2.0, 1.0, 1.0)),
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(-1.5, 0.125, 0.0),
+        friction_coefficient: FRICTION,
+    };
+    let separator_impulse = SVector::<f64, 3>::new(1.0, -0.5, 0.0);
+
+    let (response_offset, separator_gain) = message.affine_response_coefficients().unwrap();
+    assert!((response_offset[0] - 0.75).abs() < 1.0e-12);
+    assert!((response_offset[1] + 0.125).abs() < 1.0e-12);
+    assert!((separator_gain[(0, 0)] - 0.25).abs() < 1.0e-12);
+    assert!((separator_gain[(1, 1)] + 0.25).abs() < 1.0e-12);
+
+    let (schur_operator, schur_free_velocity) = message.schur_terms().unwrap();
+    assert!((schur_operator[(0, 0)] - 0.125).abs() < 1.0e-12);
+    assert!((schur_operator[(1, 1)] - 0.0625).abs() < 1.0e-12);
+    assert!((schur_free_velocity[0] - 0.375).abs() < 1.0e-12);
+    assert!((schur_free_velocity[1] - 0.03125).abs() < 1.0e-12);
+
+    let response = message
+        .response_at(&separator_impulse, TOLERANCE)
+        .unwrap()
+        .expect("strictly loaded, sticking leaf response");
+    assert!((response.impulse[0] - 1.0).abs() < 1.0e-12);
+    assert!(response.impulse.fixed_rows::<2>(1).norm() < 1.0e-12);
+    assert!(response.post_velocity.norm() < 1.0e-12);
+    assert!((response.strict_disk_margin - 0.5).abs() < 1.0e-12);
+
+    // Nearby separator impulses remain inside the same local strict-sticking
+    // response region, and the message returns the corresponding affine impulse.
+    let nearby_separator_impulse = SVector::<f64, 3>::new(1.1, -0.4, 0.0);
+    let nearby_response = message
+        .response_at(&nearby_separator_impulse, TOLERANCE)
+        .unwrap()
+        .expect("nearby separator impulse remains in the leaf sticking region");
+    assert!((nearby_response.impulse[0] - 1.025).abs() < 1.0e-12);
+    assert!((nearby_response.impulse[1] + 0.025).abs() < 1.0e-12);
+    assert!(nearby_response.strict_disk_margin > 0.48);
+
+    let reduced_c = Matrix3::identity() - schur_operator;
+    let reduced_q = -SVector::<f64, 3>::new(0.0, 0.0, 0.0) - schur_free_velocity;
+    assert!(
+        (reduced_c - Matrix3::from_diagonal(&SVector::<f64, 3>::new(0.875, 0.9375, 0.9375))).norm()
+            < 1.0e-12
+    );
+    assert!((reduced_q[0] + 0.375).abs() < 1.0e-12);
+    assert!((reduced_q[1] + 0.03125).abs() < 1.0e-12);
+}
+
+#[test]
+fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
+    let boundary = StickingLeafMessage {
+        self_operator: Matrix3::identity(),
+        separator_coupling: Matrix3::zeros(),
+        free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
+        friction_coefficient: FRICTION,
+    };
+    assert!(
+        boundary
+            .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
+            .unwrap()
+            .is_none()
+    );
+
+    let indefinite = StickingLeafMessage {
+        self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(1.0, -1.0, 1.0)),
+        separator_coupling: Matrix3::identity(),
+        free_velocity: SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
+        friction_coefficient: FRICTION,
+    };
+    assert!(indefinite.schur_terms().is_err());
+    assert!(
+        indefinite
+            .response_at(&SVector::<f64, 3>::zeros(), TOLERANCE)
+            .is_err()
+    );
 }
