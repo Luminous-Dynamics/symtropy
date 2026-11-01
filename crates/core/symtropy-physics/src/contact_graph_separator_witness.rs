@@ -14,10 +14,13 @@ use crate::coupled_friction::{CoupledCoulombRegime, solve_coupled_signorini_coul
 use nalgebra::{Matrix3, SMatrix, SVector};
 
 type Matrix9 = SMatrix<f64, 9, 9>;
+type Matrix12 = SMatrix<f64, 12, 12>;
+type Jacobian9x12 = SMatrix<f64, 9, 12>;
 type Vector9 = SVector<f64, 9>;
+type Vector12 = SVector<f64, 12>;
 
 const FRICTION: f64 = 0.5;
-const COUPLING: f64 = 0.25;
+const COUPLING: f64 = -0.5;
 const TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug)]
@@ -31,28 +34,41 @@ struct StarCandidate {
     effective_free_velocity: SVector<f64, 3>,
 }
 
-fn star_delassus_and_free_velocity(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
-    let mut w = Matrix9::identity();
+fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
+    // Four translational bodies A/B/C/D, each with mass 2 I. The three
+    // contacts are (B,C), (A,B), and (C,D), so contact 0 is the separator
+    // and contacts 1/2 are leaves. Shared-body Jacobian support creates the
+    // two separator/leaf blocks; the leaf-to-leaf block is structurally zero.
+    let mut jacobian = Jacobian9x12::zeros();
     for axis in 0..3 {
-        w[(axis, axis + 3)] = COUPLING;
-        w[(axis + 3, axis)] = COUPLING;
-        w[(axis, axis + 6)] = COUPLING;
-        w[(axis + 6, axis)] = COUPLING;
+        // Separator contact 0: v_B - v_C.
+        jacobian[(axis, axis + 3)] = 1.0;
+        jacobian[(axis, axis + 6)] = -1.0;
+        // Leaf contact 1: v_A - v_B.
+        jacobian[(axis + 3, axis)] = 1.0;
+        jacobian[(axis + 3, axis + 3)] = -1.0;
+        // Leaf contact 2: v_C - v_D.
+        jacobian[(axis + 6, axis + 6)] = 1.0;
+        jacobian[(axis + 6, axis + 9)] = -1.0;
     }
 
-    // Contact order: separator 0, leaf 1, leaf 2.
-    // The leaf-to-leaf 3x3 block is exactly zero.
-    let q = Vector9::from_row_slice(&[
-        -1.5,
-        1.0,
-        0.0,
-        -1.25,
+    let inverse_mass = Matrix12::identity() * 0.5;
+    let w = jacobian * inverse_mass * jacobian.transpose();
+    let free_body_velocity = Vector12::from_row_slice(&[
+        -0.5,
         first_leaf_tangent,
         0.0,
-        -1.25,
-        0.125,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        0.0,
+        0.5,
+        -0.75,
         0.0,
     ]);
+    let q = jacobian * free_body_velocity;
     (w, q)
 }
 
@@ -67,8 +83,8 @@ fn solve_star_with_strict_sticking_leaves(
         return Err("star Delassus operator must be symmetric positive definite");
     }
 
-    // Validate the declared star sparsity rather than inferring zeros by
-    // thresholding: both leaf diagonal blocks are I and their cross block is 0.
+    // Validate the body-support-derived star sparsity rather than inferring
+    // zeros by thresholding: leaf self-blocks are I and their cross block is 0.
     for row in 0..3 {
         for column in 0..3 {
             if w[(row + 3, column + 6)] != 0.0
@@ -178,7 +194,7 @@ fn swap_star_leaves(w: &Matrix9, q: &Vector9) -> (Matrix9, Vector9) {
 
 #[test]
 fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_island() {
-    let (w, q) = star_delassus_and_free_velocity(0.125);
+    let (w, q) = star_body_generated_fixture(-0.25);
     assert!(w.cholesky().is_some());
     assert_eq!(w[(3, 6)], 0.0);
     assert_eq!(w[(6, 3)], 0.0);
@@ -197,9 +213,9 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
     assert!((candidate.impulse[6] - 1.0).abs() < 1.0e-9);
     assert!(candidate.impulse[7].abs() < 1.0e-9);
 
-    assert!((candidate.effective_operator[(0, 0)] - 0.875).abs() < 1.0e-12);
-    assert!((candidate.effective_free_velocity[0] + 0.875).abs() < 1.0e-12);
-    assert!((candidate.effective_free_velocity[1] - 0.9375).abs() < 1.0e-12);
+    assert!((candidate.effective_operator[(0, 0)] - 0.5).abs() < 1.0e-12);
+    assert!((candidate.effective_free_velocity[0] + 0.5).abs() < 1.0e-12);
+    assert!((candidate.effective_free_velocity[1] - 0.75).abs() < 1.0e-12);
 
     assert!(candidate.post_velocity.fixed_rows::<3>(0).norm() > 0.49);
     assert!(candidate.post_velocity[0].abs() < 1.0e-9);
@@ -207,7 +223,7 @@ fn two_sticking_leaves_reduce_to_one_sliding_separator_and_reconstruct_full_isla
     assert!(candidate.post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
     assert!(candidate.post_velocity.fixed_rows::<3>(6).norm() < 1.0e-9);
     assert!((candidate.separator_tau - 1.0).abs() < 1.0e-8);
-    assert!((candidate.energy_delta + 2.375).abs() < 1.0e-9);
+    assert!((candidate.energy_delta + 0.875).abs() < 1.0e-9);
     assert!(candidate.energy_delta < 0.0);
 
     // Re-evaluate every contact law and the energy from the original 9x9 system.
@@ -247,7 +263,7 @@ fn leaf_sticking_reduction_is_invariant_to_leaf_permutation() {
 
 #[test]
 fn leaf_with_noninterior_friction_impulse_is_not_promoted_as_sticking() {
-    let (w, q) = star_delassus_and_free_velocity(0.8);
+    let (w, q) = star_body_generated_fixture(-0.8);
     let candidates = solve_star_with_strict_sticking_leaves(&w, &q).unwrap();
     assert!(candidates.is_empty());
 }
