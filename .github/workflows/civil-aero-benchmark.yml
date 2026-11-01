@@ -448,7 +448,7 @@ jobs:
           cmp /tmp/shapebench-import-a.csv /tmp/shapebench-import-b.csv
           cmp /tmp/shapebench-import-a.txt /tmp/shapebench-import-b.txt
           test "$(wc -l < /tmp/shapebench-import-a.csv)" -eq 4
-          grep -q "cost_ledger_admitted=false" /tmp/shapebench-import-a.txt
+          grep -q "cost_ledger_reference_present=false" /tmp/shapebench-import-a.txt
           grep -q "benchmark_output_import_only_not_solver_validation_or_physical_evidence" /tmp/shapebench-import-a.txt
           python3 scripts/verify-shapebench-import-independent.py data/shapebench_results_fixture.csv /tmp/shapebench-import-a.csv
       - name: Validate evidence manifest without promoting pending sources
