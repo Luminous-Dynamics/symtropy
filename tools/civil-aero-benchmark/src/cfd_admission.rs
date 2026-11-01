@@ -288,6 +288,15 @@ pub fn evaluate_cfd_evidence_admission(
                     previous.grid_id, run.grid_id
                 ));
             }
+            if previous.mesh_node_count >= run.mesh_node_count {
+                return Err(format!(
+                    "grid runs must have strictly increasing mesh node counts coarse-to-fine: {} has {} then {} has {}",
+                    previous.grid_id,
+                    previous.mesh_node_count,
+                    run.grid_id,
+                    run.mesh_node_count
+                ));
+            }
         }
 
         let residual_reduction_ratio = run.residual_final / run.residual_initial;
@@ -882,7 +891,7 @@ mod tests {
         assert!(first.contains("coarse_cpu_core_hours"));
         assert!(first.contains("study_total_cpu_core_hours"));
         assert!(first.contains(
-            ",5.250000000000,0.150000000000,3,2520.000000000000,6144,10000.000000000000,4"
+            ",5.250000000000,1.500000000000,3,2520.000000000000,6144,10000.000000000000,4"
         ));
         assert_eq!(report.total_cpu_core_hours, 5.25);
         assert_eq!(report.gpu_measured_run_count, 3);
