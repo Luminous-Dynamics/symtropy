@@ -430,6 +430,41 @@ mod tests {
         Rational::new(numerator, denominator).expect("valid rational")
     }
 
+    // Independent exhaustive raw path-mass sum. This deliberately does not
+    // call the production evaluator or normalize any posterior.
+    fn independent_raw_mass_risk(
+        channel: &FiniteObservationChannel,
+        prior: &[Rational],
+        losses: &ChannelDecisionLossTable,
+        rule: &RandomizedTerminalDecisionRule,
+    ) -> Rational {
+        let mut total = q(0, 1);
+        for state in 0..channel.state_ids.len() {
+            for observation in 0..channel.observation_ids.len() {
+                let state_observation_mass =
+                    prior[state].checked_mul(channel.probabilities[state][observation])
+                        .expect("joint state-observation mass");
+                for decision in 0..losses.decision_ids.len() {
+                    let action_mass = state_observation_mass
+                        .checked_mul(rule.decision_probabilities[observation][decision])
+                        .expect("decision path mass");
+                    total = total
+                        .checked_add(action_mass.checked_mul(losses.losses[decision][state])
+                            .expect("decision path loss"))
+                        .expect("total decision risk");
+                }
+                let abstention_mass = state_observation_mass
+                    .checked_mul(rule.abstention_probabilities[observation])
+                    .expect("abstention path mass");
+                total = total
+                    .checked_add(abstention_mass.checked_mul(losses.abstention_loss)
+                        .expect("abstention path loss"))
+                    .expect("total terminal risk");
+            }
+        }
+        total
+    }
+
     fn more_channel() -> FiniteObservationChannel {
         FiniteObservationChannel {
             channel_id: "perfect".into(),
@@ -564,6 +599,14 @@ mod tests {
         assert_eq!(certificate.source_rule_risk.expected_loss, q(21, 100));
         assert_eq!(certificate.transferred_rule_risk.expected_loss, q(1, 5));
         assert_eq!(
+            certificate.source_rule_risk.expected_loss,
+            independent_raw_mass_risk(&target, &[q(1, 2), q(1, 2)], &losses, &rule)
+        );
+        assert_eq!(
+            certificate.transferred_rule_risk.expected_loss,
+            independent_raw_mass_risk(&more, &[q(1, 2), q(1, 2)], &losses, &certificate.transferred_rule)
+        );
+        assert_eq!(
             certificate.candidate_bayes.evaluation.expected_loss,
             q(0, 1)
         );
@@ -688,6 +731,39 @@ mod tests {
             q(3, 2)
         )
         .is_err());
+    }
+
+
+    #[test]
+    fn rare_critical_state_uses_a_tighter_prior_weighted_loss_bound() {
+        let more = more_channel();
+        let target = target_channel(79);
+        let witness = garbling();
+        let rare_sensitive_losses = ChannelDecisionLossTable {
+            decision_ids: vec!["d0".into(), "d1".into()],
+            losses: vec![vec![q(0, 1), q(0, 1)], vec![q(1, 1), q(100, 1)]],
+            abstention_loss: q(0, 1),
+        };
+        let prior = [q(99, 100), q(1, 100)];
+        let rule = deterministic_guess_rule(&target);
+        let certificate = certify_approximate_blackwell_decision_transfer(
+            &more,
+            &target,
+            &witness,
+            &prior,
+            &rare_sensitive_losses,
+            &rule,
+            q(1, 100),
+        )
+        .expect("rare-state risk bound");
+
+        assert_eq!(
+            certificate.state_loss_spans.iter().map(|s| s.loss_span).collect::<Vec<_>>(),
+            vec![q(1, 1), q(100, 1)]
+        );
+        assert_eq!(certificate.decision_specific_transfer_bound, q(199, 10_000));
+        let global_max_tv_times_max_span = q(1, 100).checked_mul(q(100, 1)).unwrap();
+        assert!(certificate.decision_specific_transfer_bound < global_max_tv_times_max_span);
     }
 
     #[test]
