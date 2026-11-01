@@ -9,13 +9,13 @@
 //! rational intervals. The result certifies the polynomial represented by the
 //! input binary64 coefficients, not the unrounded physical parameters.
 
-use super::{real_polynomial_roots, sliding_quartic};
 use super::coupled_friction_sturm_support::{
-    cauchy_bound, count_open, derivative, evaluate, exact_f64, isolate_recursive, is_zero,
-    move_endpoint_off_root, normalize_positive, one_sided_sign, polynomial_add,
-    polynomial_multiply, polynomial_scale, remainder, sturm_chain, sturm_isolate_rational,
-    trim, variations, Polynomial, Rational,
+    Polynomial, Rational, cauchy_bound, count_open, derivative, evaluate, exact_f64, is_zero,
+    isolate_recursive, move_endpoint_off_root, normalize_positive, one_sided_sign, polynomial_add,
+    polynomial_multiply, polynomial_scale, remainder, sturm_chain, sturm_isolate_rational, trim,
+    variations,
 };
+use super::{real_polynomial_roots, sliding_quartic};
 use nalgebra::{Matrix3, SVector};
 use num_bigint::BigInt;
 use num_traits::{One, Signed, ToPrimitive, Zero};
@@ -64,13 +64,11 @@ fn exact_projective_pi_candidate(
         return Ok(false);
     }
     let tangent_one = mu.clone() * lambda.clone();
-    let post_tangent_two =
-        q2 + lambda.clone() * d2 + tangent_one.clone() * a12;
+    let post_tangent_two = q2 + lambda.clone() * d2 + tangent_one.clone() * a12;
     if !post_tangent_two.is_zero() {
         return Ok(false);
     }
-    let post_tangent_one =
-        q1 + lambda.clone() * d1 + tangent_one.clone() * a11;
+    let post_tangent_one = q1 + lambda.clone() * d1 + tangent_one.clone() * a11;
     let disk_multiplier = -post_tangent_one / tangent_one.clone();
     if disk_multiplier < Rational::zero() {
         return Ok(false);
@@ -81,10 +79,8 @@ fn exact_projective_pi_candidate(
     let wp_normal = a.clone() * lambda.clone() + d1.clone() * tangent_one.clone();
     let wp_tangent_one = d1 * lambda.clone() + a11 * tangent_one.clone();
     let energy_linear = lambda.clone() * qn + tangent_one.clone() * q1;
-    let energy_quadratic =
-        lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
-    let energy_delta =
-        energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
+    let energy_quadratic = lambda.clone() * wp_normal + tangent_one.clone() * wp_tangent_one;
+    let energy_delta = energy_linear + energy_quadratic / Rational::from_integer(BigInt::from(2));
     Ok(energy_delta <= Rational::zero())
 }
 
@@ -148,10 +144,7 @@ fn exact_sliding_quartic_from_inputs(
 
     let first = polynomial_multiply(&d_numerator, &q_tangent_perp);
     let negative_qn = -qn.clone();
-    let second = polynomial_scale(
-        &polynomial_multiply(&d_perp, &one_plus_t2),
-        &negative_qn,
-    );
+    let second = polynomial_scale(&polynomial_multiply(&d_perp, &one_plus_t2), &negative_qn);
     let third_factor = mu * qn;
     let third = polynomial_scale(&perp_dot_a_s, &third_factor);
     Ok(polynomial_add(&polynomial_add(&first, &second), &third))
@@ -171,7 +164,9 @@ fn polynomial_from_roots(roots: &[Rational]) -> Polynomial {
 }
 
 fn rationals_to_f64(poly: &[Rational]) -> Vec<f64> {
-    poly.iter().map(|coefficient| coefficient.to_f64().unwrap()).collect()
+    poly.iter()
+        .map(|coefficient| coefficient.to_f64().unwrap())
+        .collect()
 }
 
 fn assert_f64_coefficients_match_exact(rounded: &[f64], exact: &[Rational]) {
@@ -245,7 +240,10 @@ fn sturm_root_count_is_invariant_under_binary_power_and_sign_scaling() {
     let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
     let expected = sturm_isolate_f64(&coefficients).unwrap().len();
     for factor in [2.0_f64.powi(-600), -2.0_f64.powi(-600), 2.0_f64.powi(500)] {
-        let scaled = coefficients.iter().map(|coefficient| coefficient * factor).collect::<Vec<_>>();
+        let scaled = coefficients
+            .iter()
+            .map(|coefficient| coefficient * factor)
+            .collect::<Vec<_>>();
         let intervals = sturm_isolate_f64(&scaled).unwrap();
         assert_eq!(intervals.len(), expected);
         assert_production_matches_sturm(&scaled, 1.0e-12);
@@ -302,7 +300,11 @@ fn sturm_counts_a_root_exactly_on_the_initial_midpoint() {
     let coefficients = rationals_to_f64(&polynomial_from_roots(&roots));
     let intervals = sturm_isolate_f64(&coefficients).unwrap();
     assert_eq!(intervals.len(), 3);
-    assert!(intervals.iter().any(|(lower, upper)| lower.is_zero() && upper.is_zero()));
+    assert!(
+        intervals
+            .iter()
+            .any(|(lower, upper)| lower.is_zero() && upper.is_zero())
+    );
     assert!(real_polynomial_roots(&coefficients, 1.0e-12).is_err());
 }
 
@@ -328,7 +330,11 @@ fn sturm_resolves_close_distinct_roots_without_merging_them() {
 fn sturm_handles_no_real_roots_and_degree_loss() {
     let no_real_roots = vec![1.0, 1.0, 1.0, 0.0, 1.0];
     assert!(sturm_isolate_f64(&no_real_roots).unwrap().is_empty());
-    assert!(real_polynomial_roots(&no_real_roots, 1.0e-12).unwrap().is_empty());
+    assert!(
+        real_polynomial_roots(&no_real_roots, 1.0e-12)
+            .unwrap()
+            .is_empty()
+    );
 
     let degree_three = vec![-6.0, 11.0, -6.0, 1.0, 0.0];
     let intervals = sturm_isolate_f64(&degree_three).unwrap();
@@ -338,11 +344,7 @@ fn sturm_handles_no_real_roots_and_degree_loss() {
 
 #[test]
 fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
-    let w = Matrix3::new(
-        3.0, 0.4, -0.2,
-        0.4, 2.0, 0.5,
-        -0.2, 0.5, 1.5,
-    );
+    let w = Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5);
     let q = SVector::new(-0.8, -2.5, 0.9);
     let mu = 0.37;
     let rounded = sliding_quartic(&w, &q, mu);
@@ -355,33 +357,32 @@ fn exact_dyadic_contact_inputs_rederive_the_production_quartic() {
 
 #[test]
 fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() {
-    let w = Matrix3::new(
-        2.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
-    );
+    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, -3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
-    assert!(exact.len() < 5, "theta=pi is the missing leading projective root");
+    assert!(
+        exact.len() < 5,
+        "theta=pi is the missing leading projective root"
+    );
     let finite_roots = sturm_isolate_rational(exact.clone()).unwrap();
     assert_eq!(finite_roots.len(), 1);
     assert!(exact_projective_pi_candidate(&w, &q, mu).unwrap());
     assert_eq!(finite_roots.len() + 1, 2);
 
-    let outcome =
-        super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
+    let outcome = super::solve_coupled_signorini_coulomb(&w, &q, mu, 1.0e-12).unwrap();
     assert!(
-        outcome.sliding_angles.iter().any(|angle| {
-            (*angle - std::f64::consts::PI).abs() <= 1.0e-10
-        }),
+        outcome
+            .sliding_angles
+            .iter()
+            .any(|angle| { (*angle - std::f64::consts::PI).abs() <= 1.0e-10 }),
         "production path must explicitly retain the projective theta=pi candidate"
     );
     assert!(
         outcome.candidates.iter().any(|candidate| {
-            candidate.sliding_angle.is_some_and(|angle| {
-                (angle - std::f64::consts::PI).abs() <= 1.0e-10
-            })
+            candidate
+                .sliding_angle
+                .is_some_and(|angle| (angle - std::f64::consts::PI).abs() <= 1.0e-10)
         }),
         "the exact projective direction must pass the unreduced impulse/KKT/energy checks"
     );
@@ -389,11 +390,7 @@ fn exact_projective_theta_pi_root_is_counted_and_original_sliding_law_checked() 
 
 #[test]
 fn exact_projective_theta_pi_direction_is_not_promoted_when_kkt_fails() {
-    let w = Matrix3::new(
-        2.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
-    );
+    let w = Matrix3::new(2.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     let q = SVector::new(-1.0, 3.0, 0.0);
     let mu = 0.2;
     let exact = exact_sliding_quartic_from_inputs(&w, &q, mu).unwrap();
@@ -414,9 +411,7 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
             }
         }
         let m = Matrix3::new(
-            x[0][0], x[0][1], x[0][2],
-            x[1][0], x[1][1], x[1][2],
-            x[2][0], x[2][1], x[2][2],
+            x[0][0], x[0][1], x[0][2], x[1][0], x[1][1], x[1][2], x[2][0], x[2][1], x[2][2],
         );
         let w = m.transpose() * m + Matrix3::identity() * 0.3;
         let q = SVector::new(
@@ -431,9 +426,8 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 panic!("seed={seed}: exact quartic construction failed: {error}")
             });
         assert_f64_coefficients_match_exact(&coefficients, &exact_polynomial);
-        let exact_intervals = sturm_isolate_rational(exact_polynomial).unwrap_or_else(|error| {
-            panic!("seed={seed}: exact Sturm oracle failed: {error}")
-        });
+        let exact_intervals = sturm_isolate_rational(exact_polynomial)
+            .unwrap_or_else(|error| panic!("seed={seed}: exact Sturm oracle failed: {error}"));
         let rounded_intervals = sturm_isolate_f64(&coefficients).unwrap_or_else(|error| {
             panic!("seed={seed}: rounded-polynomial Sturm oracle failed: {error}")
         });
@@ -453,8 +447,8 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
                 for interval in &exact_intervals {
                     let midpoint = ((&interval.0 + &interval.1)
                         / Rational::from_integer(BigInt::from(2)))
-                        .to_f64()
-                        .expect("midpoint in f64 range");
+                    .to_f64()
+                    .expect("midpoint in f64 range");
                     let nearest = numerical
                         .iter()
                         .map(|root| (root - midpoint).abs())
@@ -469,7 +463,10 @@ fn sturm_cross_checks_contact_quartics_over_a_deterministic_spd_panel() {
             Err(()) => inconclusive += 1,
         }
     }
-    assert!(checked >= 120, "too many inconclusive roots: {inconclusive}");
+    assert!(
+        checked >= 120,
+        "too many inconclusive roots: {inconclusive}"
+    );
 }
 
 #[cfg(test)]
