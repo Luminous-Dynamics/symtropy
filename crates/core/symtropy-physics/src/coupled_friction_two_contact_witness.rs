@@ -2595,7 +2595,11 @@ mod double_sliding_direction_oracle {
         // establishes uniqueness throughout X and makes the claim auditable.
         let contraction_row_sum_bound = krawczyk_matrix
             .iter()
-            .map(|row| row.iter().map(RationalInterval::max_abs).sum::<BigRational>())
+            .map(|row| {
+                row.iter()
+                    .map(RationalInterval::max_abs)
+                    .sum::<BigRational>()
+            })
             .max()
             .expect("the 2x2 Krawczyk matrix has rows");
         if contraction_row_sum_bound >= one {
@@ -2698,7 +2702,9 @@ mod double_sliding_direction_oracle {
 
         assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
         assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
-        assert!(certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8)));
+        assert!(
+            certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8))
+        );
         assert!(certificate.normal_determinant.excludes_zero());
         assert!(
             certificate
@@ -2809,7 +2815,10 @@ mod double_sliding_direction_oracle {
         for certificate in &certificates {
             assert!(certificate.image[0].is_strict_subset_of(&certificate.domain[0]));
             assert!(certificate.image[1].is_strict_subset_of(&certificate.domain[1]));
-            assert!(certificate.contraction_row_sum_bound < BigRational::from_integer(BigInt::from(1_u8)));
+            assert!(
+                certificate.contraction_row_sum_bound
+                    < BigRational::from_integer(BigInt::from(1_u8))
+            );
             assert!(certificate.normal_determinant.excludes_zero());
             assert!(
                 certificate
