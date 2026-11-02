@@ -1043,6 +1043,9 @@ mod tests {
         let result = run(&requests, SchedulingPolicy::FirstComeFirstServed);
         let ids = result.scheduled.iter().map(|slot| slot.request_id.as_str()).collect::<Vec<_>>();
         assert_eq!(ids, vec!["c", "a", "b"]);
+        assert_eq!(result.metrics.arrival_order_pair_count, 3);
+        assert_eq!(result.metrics.arrival_order_inversion_count, 0);
+        assert_eq!(result.metrics.arrival_order_inversion_rate_ppm, 0);
     }
 
     #[test]
