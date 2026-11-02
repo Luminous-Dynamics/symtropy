@@ -6,6 +6,7 @@ import csv
 import hashlib
 import struct
 import sys
+import traceback
 from pathlib import Path
 
 SCHEMA = "su2-boundary-marker-audit/0.1.0"
@@ -243,4 +244,5 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as error:
         print(f"independent SU2 boundary audit oracle failed: {error}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         raise SystemExit(1)
