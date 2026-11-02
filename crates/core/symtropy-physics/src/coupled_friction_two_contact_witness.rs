@@ -3161,6 +3161,168 @@ mod double_sliding_direction_oracle {
         }
     }
 
+    #[test]
+    fn rational_common_descent_directions_improve_both_certified_branches() {
+        const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
+        const COMMON_DENOMINATOR: i128 = 1_048_576;
+
+        // Rational directions found by minimizing the worst normalized
+        // directional derivative across both branches. Each direction is
+        // expressed in the exact free-velocity numerator coordinates.
+        const OBJECTIVE_DIRECTIONS: [[i128; 6]; 2] = [
+            [
+                1_926_902,
+                19_477_645,
+                22_254_233,
+                -13_069_234,
+                -12_049_157,
+                -196_648,
+            ],
+            [
+                -7_298_352,
+                -14_288_909,
+                -4_107_423,
+                -23_638_462,
+                -17_715_246,
+                -11_828_492,
+            ],
+        ];
+
+        let (w, q) = asymmetric_dyadic_double_slide_inputs();
+        let base = build_exact_double_slide_polynomials(
+            w,
+            q,
+            FRICTION_NUMERATORS,
+            COMMON_DENOMINATOR,
+        );
+
+        // Build all six exact input partials. The double-slide equations are
+        // affine in q, so unit numerator shifts recover the exact partials.
+        let input_partials: [[BivariateIntegerPolynomial; 2]; 6] =
+            std::array::from_fn(|coordinate| {
+                let mut shifted_q = q;
+                shifted_q[coordinate] = shifted_q[coordinate]
+                    .checked_add(1)
+                    .expect("unit input perturbation fits i128");
+                let shifted = build_exact_double_slide_polynomials(
+                    w,
+                    shifted_q,
+                    FRICTION_NUMERATORS,
+                    COMMON_DENOMINATOR,
+                );
+                [
+                    shifted.tangential_equation_1.sub(base.tangential_equation_1),
+                    shifted.tangential_equation_2.sub(base.tangential_equation_2),
+                ]
+            });
+
+        let denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(
+                    BigInt::from(-233_602_787_384_141_i128),
+                    denominator.clone(),
+                ),
+            ],
+            [
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(
+                    BigInt::from(-227_603_740_377_268_i128),
+                    denominator,
+                ),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+
+        // One interval gradient vector per objective and certified root box.
+        let branch_gradients: [[[RationalInterval; 2]; 6]; 2] =
+            std::array::from_fn(|branch_index| {
+                let certificate = certify_exact_double_slide_root_box(
+                    &base,
+                    centers[branch_index].clone(),
+                    radius.clone(),
+                    FRICTION_NUMERATORS,
+                    COMMON_DENOMINATOR,
+                )
+                .expect("both double-slide roots have Krawczyk inclusion certificates");
+                let domain = &certificate.domain;
+                let equations = [
+                    &base.tangential_equation_1,
+                    &base.tangential_equation_2,
+                ];
+                let jacobian = [
+                    [
+                        equations[0].partial_t1().evaluate_interval(&domain[0], &domain[1]),
+                        equations[0].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                    ],
+                    [
+                        equations[1].partial_t1().evaluate_interval(&domain[0], &domain[1]),
+                        equations[1].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                    ],
+                ];
+                let determinant = jacobian[0][0]
+                    .mul(&jacobian[1][1])
+                    .sub(&jacobian[0][1].mul(&jacobian[1][0]));
+                assert!(
+                    determinant.excludes_zero(),
+                    "each certified branch Jacobian must remain nonsingular"
+                );
+
+                std::array::from_fn(|coordinate| {
+                    let parameter_derivative = [
+                        input_partials[coordinate][0]
+                            .evaluate_interval(&domain[0], &domain[1]),
+                        input_partials[coordinate][1]
+                            .evaluate_interval(&domain[0], &domain[1]),
+                    ];
+                    let dt1_numerator = jacobian[1][1]
+                        .mul(&parameter_derivative[0])
+                        .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
+                        .neg();
+                    let dt2_numerator = jacobian[0][0]
+                        .mul(&parameter_derivative[1])
+                        .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
+                        .neg();
+                    [
+                        dt1_numerator
+                            .div(&determinant)
+                            .expect("nonsingular branch Jacobian gives dt1/dq"),
+                        dt2_numerator
+                            .div(&determinant)
+                            .expect("nonsingular branch Jacobian gives dt2/dq"),
+                    ]
+                })
+            });
+
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        for branch_index in 0..2 {
+            for objective in 0..2 {
+                let mut directional_derivative = RationalInterval::point(zero.clone());
+                for coordinate in 0..6 {
+                    let direction_coefficient = BigRational::from_integer(BigInt::from(
+                        OBJECTIVE_DIRECTIONS[objective][coordinate],
+                    ));
+                    directional_derivative = directional_derivative.add(
+                        &branch_gradients[branch_index][coordinate][objective]
+                            .scale(&direction_coefficient),
+                    );
+                }
+
+                assert!(
+                    directional_derivative.upper < zero,
+                    "objective {objective} must have a strictly negative interval derivative on branch {branch_index}: {directional_derivative:?}"
+                );
+            }
+        }
+    }
+
     fn trim_big_integer_polynomial_vector(coefficients: &mut Vec<BigIntegerPolynomial>) {
         while coefficients
             .last()
