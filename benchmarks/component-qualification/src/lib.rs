@@ -289,11 +289,18 @@ pub fn evaluate_dimension(
         inconsistent = true;
     }
     if measurement.report_reference.format == MetrologyReportFormat::QifIso23952_2020 {
-        if measurement.report_reference.format_id != "ISO 23952:2020" {
+        // Missing metadata is an incomplete record (Unknown), not proof that
+        // the declared report format is unsupported. A present but different
+        // identifier/version is explicitly unsupported.
+        if !measurement.report_reference.format_id.trim().is_empty()
+            && measurement.report_reference.format_id != "ISO 23952:2020"
+        {
             reasons.push(ComponentReason::UnsupportedReportFormatIdentifier);
             unsupported = true;
         }
-        if measurement.report_reference.format_version != "3.0" {
+        if !measurement.report_reference.format_version.trim().is_empty()
+            && measurement.report_reference.format_version != "3.0"
+        {
             reasons.push(ComponentReason::UnsupportedReportFormatVersion);
             unsupported = true;
         }
@@ -916,6 +923,16 @@ mod tests {
     fn metrology_report_requires_a_native_format_identifier() {
         let mut m = measurement();
         m.report_reference.format_id.clear();
+        assert_eq!(
+            evaluate(&component(), &requirement(), &m).disposition,
+            ComponentDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn missing_qif_format_version_is_unknown_not_unsupported() {
+        let mut m = measurement();
+        m.report_reference.format_version.clear();
         assert_eq!(
             evaluate(&component(), &requirement(), &m).disposition,
             ComponentDisposition::UnknownReviewRequired
