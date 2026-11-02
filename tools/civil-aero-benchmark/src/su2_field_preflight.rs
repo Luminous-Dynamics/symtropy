@@ -943,6 +943,72 @@ mod tests {
     }
 
     #[test]
+    fn parses_multi_field_steady_and_time_window_convergence_protocols() {
+        let configuration = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nCONV_STARTITER= 25\nCONV_RESIDUAL_MINVAL= -8\nCONV_CAUCHY_EPS= 1E-10\nCONV_CAUCHY_ELEMS= 100\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= HANN_SQUARE\nRESTART_ITER= 100\n",
+        )
+        .expect("well-formed multi-field steady and time-window protocol");
+        assert_eq!(
+            configuration.convergence_protocol.steady_fields,
+            vec!["RMS_DENSITY", "CD"]
+        );
+        assert_eq!(
+            configuration.convergence_protocol.steady_start_iteration,
+            Some(25)
+        );
+        match configuration.convergence_protocol.window {
+            Su2WindowConvergenceProtocol::Enabled {
+                fields,
+                window_start_iter,
+                convergence_start_iter,
+                cauchy_elements,
+                cauchy_epsilon,
+                window_function,
+            } => {
+                assert_eq!(fields, vec!["TAVG_DRAG", "TAVG_LIFT"]);
+                assert_eq!(window_start_iter, 500);
+                assert_eq!(convergence_start_iter, 10);
+                assert_eq!(cauchy_elements, 10);
+                assert_eq!(cauchy_epsilon, "1E-4");
+                assert_eq!(window_function, "HANN_SQUARE");
+            }
+            Su2WindowConvergenceProtocol::Disabled => {
+                panic!("window criterion should be enabled")
+            }
+        }
+
+        let missing_window_fields = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\n",
+        );
+        assert!(
+            missing_window_fields
+                .expect_err("enabled time convergence requires declared fields")
+                .contains("CONV_WINDOW_FIELD")
+        );
+
+        let missing_window_inventory = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\n",
+        )
+        .expect("configuration parser preserves enabled window fields");
+        assert_eq!(
+            match missing_window_inventory.convergence_protocol.window {
+                Su2WindowConvergenceProtocol::Enabled { fields, .. } => fields,
+                Su2WindowConvergenceProtocol::Disabled => Vec::new(),
+            },
+            vec!["TAVG_DRAG", "TAVG_LIFT"]
+        );
+
+        let invalid_restart = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= TAVG_DRAG\nWINDOW_START_ITER= 5\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\nRESTART_ITER= 10\n",
+        );
+        assert!(
+            invalid_restart
+                .expect_err("window average cannot begin before restart")
+                .contains("must not precede RESTART_ITER")
+        );
+    }
+
+    #[test]
     fn rejects_unknown_convergence_field_and_missing_history_field() {
         let root = root();
         let unknown = fixture_run(&root.join("unknown"), "RMS_NOT_A_FIELD", INVENTORY);
