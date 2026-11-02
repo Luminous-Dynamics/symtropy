@@ -792,10 +792,10 @@ fn validate_anchor_responses(
         let (expected_configuration, expected_stratum) = score_metadata.get(&old.agent_id).ok_or_else(|| {
             AnchorEquatingError::AnchorResponse("anchor response agent is missing from the common reference panel".into())
         })?;
-        if old.agent_configuration_digest != *expected_configuration
-            || new.agent_configuration_digest != *expected_configuration
-            || old.agent_stratum_id != *expected_stratum
-            || new.agent_stratum_id != *expected_stratum
+        if old.agent_configuration_digest.as_str() != expected_configuration.as_str()
+            || new.agent_configuration_digest.as_str() != expected_configuration.as_str()
+            || old.agent_stratum_id.as_str() != expected_stratum.as_str()
+            || new.agent_stratum_id.as_str() != expected_stratum.as_str()
             || old.seed_commitment_digest != new.seed_commitment_digest
         {
             return Err(AnchorEquatingError::AnchorResponse(
@@ -1115,14 +1115,14 @@ pub fn link_benchmark_forms(
     }
     let old_score_metadata = older_agent_scores.iter()
         .map(|score| (
-            (score.agent_id.clone(),
-             (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone())),
+            score.agent_id.clone(),
+            (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone()),
         ))
         .collect::<BTreeMap<_, _>>();
     let new_score_metadata = newer_agent_scores.iter()
         .map(|score| (
-            score.agent_id.as_str(),
-            (score.agent_configuration_digest.as_str(), score.agent_stratum_id.as_str()),
+            score.agent_id.clone(),
+            (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone()),
         ))
         .collect::<BTreeMap<_, _>>();
     if old_score_metadata != new_score_metadata {
