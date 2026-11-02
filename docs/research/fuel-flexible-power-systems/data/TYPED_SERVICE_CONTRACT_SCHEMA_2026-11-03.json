@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/typed-service-contract-fixtures-0.1.0.json",
+  "title": "Typed Delivered-Service Contract Fixtures",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "conventions",
+    "scenarios",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_service_contract_oracle_fixtures"
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conventions": {
+      "type": "object",
+      "required": [
+        "energy_unit",
+        "time_unit",
+        "interval_semantics",
+        "service_match_rule",
+        "surplus_rule",
+        "input_energy_rule",
+        "boundary_rule",
+        "output_evidence_rule"
+      ],
+      "additionalProperties": true
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "boundary": {
+      "type": "object",
+      "required": [
+        "interface",
+        "boundary_id",
+        "specification_id"
+      ],
+      "properties": {
+        "interface": {
+          "enum": [
+            "NetAc",
+            "RegulatedDc",
+            "PropulsionWork"
+          ]
+        },
+        "stage": {
+          "enum": [
+            "Shaft",
+            "Wheel",
+            "Propulsor"
+          ]
+        },
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specification_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "interface": {
+                "const": "PropulsionWork"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "stage"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "interface": {
+                "enum": [
+                  "NetAc",
+                  "RegulatedDc"
+                ]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "stage"
+              ]
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "start_unix_seconds",
+        "end_unix_seconds"
+      ],
+      "properties": {
+        "start_unix_seconds": {
+          "type": "integer"
+        },
+        "end_unix_seconds": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "class",
+        "evidence_id"
+      ],
+      "properties": {
+        "class": {
+          "enum": [
+            "physical_measurement",
+            "third_party_test",
+            "independent_laboratory_test",
+            "validated_solver_output",
+            "model_prediction",
+            "analyst_scenario"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "delivered_segment": {
+      "type": "object",
+      "required": [
+        "start_unix_seconds",
+        "end_unix_seconds",
+        "delivered_energy_j",
+        "evidence"
+      ],
+      "properties": {
+        "start_unix_seconds": {
+          "type": "integer"
+        },
+        "end_unix_seconds": {
+          "type": "integer"
+        },
+        "delivered_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      },
+      "additionalProperties": false
+    },
+    "input_energy": {
+      "type": "object",
+      "required": [
+        "basis",
+        "energy_j",
+        "evidence_id"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "FuelChemicalLhv",
+            "FuelChemicalHhv",
+            "PurchasedElectricityAtMeter",
+            "StoredElectricalEnergyAtInitialSoc"
+          ]
+        },
+        "energy_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "system": {
+      "type": "object",
+      "required": [
+        "system_name",
+        "topology_id",
+        "configuration_digest",
+        "boundary",
+        "delivered_segments",
+        "input_energy"
+      ],
+      "properties": {
+        "system_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "topology_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary": {
+          "$ref": "#/$defs/boundary"
+        },
+        "delivered_segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/delivered_segment"
+          }
+        },
+        "input_energy": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/input_energy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "service_segment": {
+      "type": "object",
+      "required": [
+        "start_unix_seconds",
+        "end_unix_seconds",
+        "required_energy_j"
+      ],
+      "properties": {
+        "start_unix_seconds": {
+          "type": "integer"
+        },
+        "end_unix_seconds": {
+          "type": "integer"
+        },
+        "required_energy_j": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "contract": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "version",
+        "boundary",
+        "segments"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary": {
+          "$ref": "#/$defs/boundary"
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/service_segment"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "oracle": {
+      "type": "object",
+      "required": [
+        "interpretation"
+      ],
+      "properties": {
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_service_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "common_service_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reference_input_energy_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "candidate_input_energy_j": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "candidate_service_per_input_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "reference_surplus_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "candidate_surplus_energy_j": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_input_comparison": {
+          "enum": [
+            "Comparable",
+            "DifferentInputBases",
+            "MissingReferenceInput",
+            "MissingCandidateInput"
+          ]
+        },
+        "expected_error": {
+          "enum": [
+            "BoundaryMismatch",
+            "ServiceDeficit"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "scenario": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "title",
+        "expected_result",
+        "contract",
+        "reference",
+        "candidate",
+        "tolerance",
+        "oracle"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "enum": [
+            "comparison_pass_ratio_comparable",
+            "comparison_pass_ratio_not_comparable",
+            "reject_boundary_mismatch",
+            "reject_service_deficit"
+          ]
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        },
+        "reference": {
+          "$ref": "#/$defs/system"
+        },
+        "candidate": {
+          "$ref": "#/$defs/system"
+        },
+        "tolerance": {
+          "type": "object",
+          "required": [
+            "absolute_energy_j",
+            "relative_fraction"
+          ],
+          "properties": {
+            "absolute_energy_j": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "oracle": {
+          "$ref": "#/$defs/oracle"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
