@@ -16,9 +16,7 @@ use crate::grid_convergence::{
 use crate::integrity::sha256_hex;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
-use crate::su2_mesh::{
-    Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh,
-};
+use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
@@ -348,12 +346,20 @@ fn validate_mesh_family_invariants(
     if !current_area.is_finite() || current_area <= 0.0 {
         return Err(format!("grid member {grid_id} has invalid total mesh area"));
     }
-    let current_set = current_markers.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let current_set = current_markers
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     if current_set.len() != current_markers.len() {
-        return Err(format!("grid member {grid_id} has duplicate mesh marker tags"));
+        return Err(format!(
+            "grid member {grid_id} has duplicate mesh marker tags"
+        ));
     }
     if let Some(reference) = reference_markers {
-        let reference_set = reference.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        let reference_set = reference
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
         if reference_set != current_set {
             return Err(format!(
                 "grid member {grid_id} changes the mesh marker-tag set"
@@ -370,8 +376,7 @@ fn validate_mesh_family_invariants(
         {
             return Err(format!(
                 "grid member {grid_id} changes total 2D mesh domain area by {:.6e} relative; limit is {:.6e}",
-                relative_difference,
-                SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
+                relative_difference, SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
             ));
         }
     }
