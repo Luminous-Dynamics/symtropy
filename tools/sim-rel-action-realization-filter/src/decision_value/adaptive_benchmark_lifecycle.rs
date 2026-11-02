@@ -912,8 +912,9 @@ mod tests {
         AdaptiveBenchmarkFreezeReceipt, AdaptiveBenchmarkPlan,
         AdaptiveBenchmarkSealedRelease, AdaptiveBenchmarkTaskArtifact,
         BenchmarkSemanticOverlapAuditor, CalibrationQualificationReceipt,
-        DevelopmentAdaptationEvent, IndependentOracleValidationReceipt,
-        PriorBenchmarkExposure, SemanticOverlapDecision,
+        DevelopmentAdaptationEvent, GenerationInputArtifact, GenerationInputRole,
+        IndependentOracleValidationReceipt, PriorBenchmarkExposure,
+        SemanticOverlapDecision, SplitBoundBenchmarkArtifact,
         verify_adaptive_benchmark_release,
     };
     use super::super::counterexample_ledger::EvidenceSplit;
@@ -927,6 +928,14 @@ mod tests {
 
     struct NoSemanticOverlap;
     impl BenchmarkSemanticOverlapAuditor for NoSemanticOverlap {
+        fn identity(&self) -> &str {
+            "similarity-auditor-c"
+        }
+
+        fn artifact_digest(&self) -> &str {
+            D4
+        }
+
         fn audit_overlap(
             &self,
             _candidate_task_digest: &str,
@@ -938,6 +947,14 @@ mod tests {
 
     struct AlwaysNearDuplicate;
     impl BenchmarkSemanticOverlapAuditor for AlwaysNearDuplicate {
+        fn identity(&self) -> &str {
+            "similarity-auditor-c"
+        }
+
+        fn artifact_digest(&self) -> &str {
+            D4
+        }
+
         fn audit_overlap(
             &self,
             _candidate_task_digest: &str,
@@ -959,6 +976,7 @@ mod tests {
         AdaptiveBenchmarkPlan {
             benchmark_id: "science-benchmark".into(),
             benchmark_version: "v1".into(),
+            plan_digest: D2.into(),
             generator_id: "generator-a".into(),
             generator_version: "v1".into(),
             generator_artifact_digest: D1.into(),
@@ -993,7 +1011,16 @@ mod tests {
             solver_panel_digest: D1.into(),
             solver_trajectory_digest: D2.into(),
             judge_feedback_digest: D4.into(),
-            source_artifact_digests: vec![D1.into(), D2.into()],
+            source_artifacts: vec![
+                SplitBoundBenchmarkArtifact {
+                    artifact_digest: D1.into(),
+                    split: EvidenceSplit::Development,
+                },
+                SplitBoundBenchmarkArtifact {
+                    artifact_digest: D2.into(),
+                    split: EvidenceSplit::Development,
+                },
+            ],
             adapted_at_unix_seconds: 100 + sequence,
         }
     }
@@ -1107,7 +1134,18 @@ mod tests {
             semantic_auditor_artifact_digest: D4.into(),
             hidden_seed_namespace_id: "holdout-seeds".into(),
             hidden_seed_commitment_digest: D5.into(),
-            generation_input_artifact_digests: vec![D1.into(), D2.into()],
+            generation_inputs: vec![
+                GenerationInputArtifact {
+                    artifact_digest: D1.into(),
+                    split: None,
+                    role: GenerationInputRole::FrozenPlan,
+                },
+                GenerationInputArtifact {
+                    artifact_digest: D2.into(),
+                    split: Some(EvidenceSplit::Calibration),
+                    role: GenerationInputRole::CalibrationQualification,
+                },
+            ],
             task_artifacts: tasks,
             prior_exposures: vec![exposure()],
             released_at_unix_seconds: 900,
