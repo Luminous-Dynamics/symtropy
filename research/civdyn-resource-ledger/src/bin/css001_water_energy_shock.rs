@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn adaptive_policy_preserves_donor_service_and_reserve_buffer() {
+    fn adaptive_policy_preserves_donor_service_and_half_tick_buffer() {
         let result = simulate(Policy::AdaptiveServiceDeficit);
         for report in &result.reports {
             let donor = report.regions.iter()
@@ -318,7 +318,28 @@ mod tests {
             assert_eq!(donor.coverage.water, Some(1.0));
             assert_eq!(donor.coverage.energy, Some(1.0));
             assert_eq!(donor.coverage.food, Some(1.0));
+            assert!(donor.closing_stock.water_m3 >= 50.0);
+            assert!(donor.closing_stock.energy_kwh >= 500.0);
+            assert!(donor.closing_stock.food_kg >= 250.0);
         }
+    }
+
+    #[test]
+    fn analytical_transfer_totals_are_resource_specific_and_reproducible() {
+        let fixed = simulate(Policy::FixedSolidarity);
+        assert_eq!(fixed.floor_violations, 0);
+        assert_eq!(fixed.delivered.water_m3, 240.0);
+        assert_eq!(fixed.delivered.energy_kwh, 1_000.0);
+        assert_eq!(fixed.delivered.food_kg, 320.0);
+
+        let adaptive = simulate(Policy::AdaptiveServiceDeficit);
+        assert_eq!(adaptive.floor_violations, 0);
+        assert_eq!(adaptive.delivered.water_m3, 154.0);
+        assert_eq!(adaptive.delivered.energy_kwh, 760.0);
+        assert_eq!(adaptive.delivered.food_kg, 290.0);
+
+        let no_transfer = simulate(Policy::NoTransfer);
+        assert_eq!(no_transfer.floor_violations, 4);
     }
 
     #[test]
