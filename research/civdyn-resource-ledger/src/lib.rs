@@ -294,6 +294,7 @@ impl World {
         policy: TransferPolicy,
     ) -> Result<StepReport, WorldError> {
         let reserve_fraction = policy.reserve_fraction()?;
+        let next_tick = self.tick.checked_add(1).ok_or(WorldError::TickOverflow)?;
         if input.production.len() != self.regions.len() {
             return Err(WorldError::ProductionCountMismatch {
                 expected: self.regions.len(),
@@ -403,7 +404,7 @@ impl World {
         }
 
         self.regions = updated_regions;
-        self.tick = self.tick.checked_add(1).ok_or(WorldError::TickOverflow)?;
+        self.tick = next_tick;
 
         Ok(StepReport {
             tick: self.tick,
@@ -714,6 +715,44 @@ mod tests {
             ),
             Err(WorldError::ProductionCountMismatch { expected: 2, actual: 1 })
         );
+    }
+
+    #[test]
+    fn non_finite_production_is_rejected_without_mutating_world() {
+        let mut world = two_region_world();
+        let before = world.clone();
+        assert_eq!(
+            world.step(
+                &StepInput {
+                    production: vec![
+                        Production { resources: ResourceVector::new(f64::NAN, 0.0, 0.0) },
+                        Production::default(),
+                    ],
+                    transfers: vec![],
+                },
+                TransferPolicy::Unrestricted
+            ),
+            Err(WorldError::NonFiniteValue {
+                field: "production",
+                quantity: "water_m3",
+            })
+        );
+        assert_eq!(world, before);
+    }
+
+    #[test]
+    fn tick_overflow_is_rejected_before_state_mutation() {
+        let mut world = two_region_world();
+        world.tick = u64::MAX;
+        let before = world.clone();
+        assert_eq!(
+            world.step(
+                &StepInput { production: vec![Production::default(); 2], transfers: vec![] },
+                TransferPolicy::Unrestricted
+            ),
+            Err(WorldError::TickOverflow)
+        );
+        assert_eq!(world, before);
     }
 
     #[test]
