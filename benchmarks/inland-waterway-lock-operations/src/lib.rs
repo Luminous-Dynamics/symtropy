@@ -500,17 +500,17 @@ pub fn evaluate_water_cycle(
         }
     };
 
-    if lock_profile_usable && record_evidence_usable {
-        if record
+    if lock_profile_usable
+        && record_evidence_usable
+        && (record
             .opening_system_storage_ml
             .is_some_and(|v| v > lock.total_storage_capacity_ml)
             || record
                 .closing_system_storage_ml
-                .is_some_and(|v| v > lock.total_storage_capacity_ml)
-        {
-            reasons.push(WaterCycleReason::StorageCapacityExceeded);
-            inconsistent = true;
-        }
+                .is_some_and(|v| v > lock.total_storage_capacity_ml))
+    {
+        reasons.push(WaterCycleReason::StorageCapacityExceeded);
+        inconsistent = true;
     }
 
     if record.pump_required {
