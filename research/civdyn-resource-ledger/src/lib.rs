@@ -110,7 +110,6 @@ impl ResourceVector {
             self.food_kg * factor,
         )
     }
-
 }
 
 /// A region's initial inventory and per-capita essential demand.
