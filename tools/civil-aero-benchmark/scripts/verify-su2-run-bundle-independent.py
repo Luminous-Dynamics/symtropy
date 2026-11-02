@@ -367,7 +367,7 @@ def unsteady_inner_screen_evidence(
     convergence_start = int(preflight["window_convergence_start_iter"])
     window_elements = int(preflight["window_cauchy_elements"])
     require(window_elements > 0, "window Cauchy element count must be positive")
-    required_terminal_iteration = window_start + max(convergence_start, window_elements)
+    required_terminal_iteration = window_start + convergence_start + window_elements
 
     time_iterations: list[int] = []
     inner_iterations: list[int] = []
