@@ -208,7 +208,9 @@ fn valid_digest(value: &str) -> bool {
         return false;
     };
     hex.len() == 64
-        && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn require_digest(value: &str, label: &str) -> Result<(), ClusterConfidenceError> {
@@ -223,7 +225,10 @@ fn require_digest(value: &str, label: &str) -> Result<(), ClusterConfidenceError
 fn validate_plan(plan: &RedTeamClusterConfidencePlan) -> Result<f64, ClusterConfidenceError> {
     for (value, label) in [
         (&plan.analysis_id, "cluster confidence analysis ID"),
-        (&plan.analysis_version, "cluster confidence analysis version"),
+        (
+            &plan.analysis_version,
+            "cluster confidence analysis version",
+        ),
         (&plan.source_campaign_id, "source red-team campaign ID"),
     ] {
         require_id(value, label)?;
@@ -231,7 +236,10 @@ fn validate_plan(plan: &RedTeamClusterConfidencePlan) -> Result<f64, ClusterConf
     for (value, label) in [
         (&plan.source_redteam_plan_digest, "source red-team plan"),
         (&plan.source_attack_catalog_digest, "source attack catalog"),
-        (&plan.source_detector_artifact_digest, "source detector artifact"),
+        (
+            &plan.source_detector_artifact_digest,
+            "source detector artifact",
+        ),
         (&plan.source_sealed_release_digest, "source sealed release"),
         (&plan.analysis_plan_digest, "cluster confidence plan"),
     ] {
@@ -335,14 +343,11 @@ fn beta_continued_fraction(a: f64, b: f64, x: f64) -> Result<f64, ClusterConfide
     ))
 }
 
-fn regularized_incomplete_beta(
-    x: f64,
-    a: f64,
-    b: f64,
-) -> Result<f64, ClusterConfidenceError> {
+fn regularized_incomplete_beta(x: f64, a: f64, b: f64) -> Result<f64, ClusterConfidenceError> {
     if !(0.0..=1.0).contains(&x) || a <= 0.0 || b <= 0.0 || !a.is_finite() || !b.is_finite() {
         return Err(ClusterConfidenceError::NumericDomain(
-            "regularized incomplete beta requires x in [0,1] and finite positive shape parameters".into(),
+            "regularized incomplete beta requires x in [0,1] and finite positive shape parameters"
+                .into(),
         ));
     }
     if x == 0.0 {
@@ -351,9 +356,8 @@ fn regularized_incomplete_beta(
     if x == 1.0 {
         return Ok(1.0);
     }
-    let log_beta_factor = log_gamma(a + b) - log_gamma(a) - log_gamma(b)
-        + a * x.ln()
-        + b * (-x).ln_1p();
+    let log_beta_factor =
+        log_gamma(a + b) - log_gamma(a) - log_gamma(b) + a * x.ln() + b * (-x).ln_1p();
     let beta_factor = log_beta_factor.exp();
     let result = if x < (a + 1.0) / (a + b + 2.0) {
         beta_factor * beta_continued_fraction(a, b, x)? / a
@@ -411,12 +415,14 @@ pub fn clopper_pearson_interval(
     trials: usize,
     interval_alpha: f64,
 ) -> Result<ClopperPearsonInterval, ClusterConfidenceError> {
-    if trials == 0 || successes > trials
+    if trials == 0
+        || successes > trials
         || !(0.0..1.0).contains(&interval_alpha)
         || !interval_alpha.is_finite()
     {
         return Err(ClusterConfidenceError::NumericDomain(
-            "Clopper-Pearson requires 0 <= successes <= trials, trials > 0 and alpha in (0,1)".into(),
+            "Clopper-Pearson requires 0 <= successes <= trials, trials > 0 and alpha in (0,1)"
+                .into(),
         ));
     }
     let n = trials as f64;
@@ -484,7 +490,10 @@ fn aggregate_clusters(
     }
     let mut trial_by_scenario = BTreeMap::new();
     for trial in trials {
-        if trial_by_scenario.insert(trial.scenario_id.as_str(), trial).is_some() {
+        if trial_by_scenario
+            .insert(trial.scenario_id.as_str(), trial)
+            .is_some()
+        {
             return Err(ClusterConfidenceError::ScenarioTrialMismatch(
                 "duplicate trial scenario ID encountered during cluster aggregation".into(),
             ));
@@ -529,11 +538,13 @@ fn aggregate_clusters(
 
     let mut clusters: BTreeMap<ClusterKey, ClusterAccumulator> = BTreeMap::new();
     for (scenario, (author_node, is_attack)) in scenarios.iter().zip(scenario_nodes) {
-        let trial = trial_by_scenario.get(scenario.scenario_id.as_str()).ok_or_else(|| {
-            ClusterConfidenceError::ScenarioTrialMismatch(
-                "scenario has no matching trial during cluster aggregation".into(),
-            )
-        })?;
+        let trial = trial_by_scenario
+            .get(scenario.scenario_id.as_str())
+            .ok_or_else(|| {
+                ClusterConfidenceError::ScenarioTrialMismatch(
+                    "scenario has no matching trial during cluster aggregation".into(),
+                )
+            })?;
         let component_id = find_root(&mut parents, author_node);
         let key = ClusterKey {
             family: scenario.family,
@@ -545,40 +556,66 @@ fn aggregate_clusters(
             ClusterConfidenceError::ArithmeticOverflow("cluster scenario count overflow".into())
         })?;
         if !trial.execution_complete {
-            cluster.incomplete_count = cluster.incomplete_count.checked_add(1).ok_or_else(|| {
-                ClusterConfidenceError::ArithmeticOverflow("cluster incomplete count overflow".into())
-            })?;
+            cluster.incomplete_count =
+                cluster.incomplete_count.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow(
+                        "cluster incomplete count overflow".into(),
+                    )
+                })?;
         }
         if is_attack {
             if trial.exploit_succeeded {
-                cluster.successful_exploit_count = cluster.successful_exploit_count.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("cluster successful exploit count overflow".into())
-                })?;
-                if trial.detector_alerted && trial.correctly_attributed_to_family {
-                    cluster.correctly_detected_exploit_count = cluster.correctly_detected_exploit_count.checked_add(1).ok_or_else(|| {
-                        ClusterConfidenceError::ArithmeticOverflow("cluster detected exploit count overflow".into())
+                cluster.successful_exploit_count = cluster
+                    .successful_exploit_count
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "cluster successful exploit count overflow".into(),
+                        )
                     })?;
+                if trial.detector_alerted && trial.correctly_attributed_to_family {
+                    cluster.correctly_detected_exploit_count = cluster
+                        .correctly_detected_exploit_count
+                        .checked_add(1)
+                        .ok_or_else(|| {
+                            ClusterConfidenceError::ArithmeticOverflow(
+                                "cluster detected exploit count overflow".into(),
+                            )
+                        })?;
                 }
                 if trial.contained_before_exposure && !trial.leak_occurred {
-                    cluster.contained_exploit_count = cluster.contained_exploit_count.checked_add(1).ok_or_else(|| {
-                        ClusterConfidenceError::ArithmeticOverflow("cluster contained exploit count overflow".into())
-                    })?;
+                    cluster.contained_exploit_count = cluster
+                        .contained_exploit_count
+                        .checked_add(1)
+                        .ok_or_else(|| {
+                            ClusterConfidenceError::ArithmeticOverflow(
+                                "cluster contained exploit count overflow".into(),
+                            )
+                        })?;
                 }
                 if trial.leak_occurred {
-                    cluster.leaked_exploit_count = cluster.leaked_exploit_count.checked_add(1).ok_or_else(|| {
-                        ClusterConfidenceError::ArithmeticOverflow("cluster leaked exploit count overflow".into())
-                    })?;
+                    cluster.leaked_exploit_count =
+                        cluster.leaked_exploit_count.checked_add(1).ok_or_else(|| {
+                            ClusterConfidenceError::ArithmeticOverflow(
+                                "cluster leaked exploit count overflow".into(),
+                            )
+                        })?;
                 }
             }
         } else if trial.detector_alerted {
-            cluster.clean_alert_count = cluster.clean_alert_count.checked_add(1).ok_or_else(|| {
-                ClusterConfidenceError::ArithmeticOverflow("cluster clean alert count overflow".into())
-            })?;
+            cluster.clean_alert_count =
+                cluster.clean_alert_count.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow(
+                        "cluster clean alert count overflow".into(),
+                    )
+                })?;
         }
     }
     if trial_by_scenario.len() != scenarios.len()
         || trial_by_scenario.keys().any(|scenario_id| {
-            !scenarios.iter().any(|scenario| scenario.scenario_id == *scenario_id)
+            !scenarios
+                .iter()
+                .any(|scenario| scenario.scenario_id == *scenario_id)
         })
     {
         return Err(ClusterConfidenceError::ScenarioTrialMismatch(
@@ -586,19 +623,25 @@ fn aggregate_clusters(
         ));
     }
 
-    let mut results = ThreatFamily::ALL.into_iter()
-        .map(|family| (family, ClusterMetricCounts {
-            attack_clusters: 0,
-            eligible_attack_clusters: 0,
-            no_success_attack_clusters: 0,
-            incomplete_attack_clusters: 0,
-            detection_passing_clusters: 0,
-            containment_passing_clusters: 0,
-            clean_clusters: 0,
-            eligible_clean_clusters: 0,
-            incomplete_clean_clusters: 0,
-            clean_passing_clusters: 0,
-        }))
+    let mut results = ThreatFamily::ALL
+        .into_iter()
+        .map(|family| {
+            (
+                family,
+                ClusterMetricCounts {
+                    attack_clusters: 0,
+                    eligible_attack_clusters: 0,
+                    no_success_attack_clusters: 0,
+                    incomplete_attack_clusters: 0,
+                    detection_passing_clusters: 0,
+                    containment_passing_clusters: 0,
+                    clean_clusters: 0,
+                    eligible_clean_clusters: 0,
+                    incomplete_clean_clusters: 0,
+                    clean_passing_clusters: 0,
+                },
+            )
+        })
         .collect::<BTreeMap<_, _>>();
 
     for (key, cluster) in clusters {
@@ -610,49 +653,91 @@ fn aggregate_clusters(
                 ClusterConfidenceError::ArithmeticOverflow("attack cluster count overflow".into())
             })?;
             if cluster.incomplete_count > 0 {
-                result.incomplete_attack_clusters = result.incomplete_attack_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("incomplete attack cluster count overflow".into())
-                })?;
+                result.incomplete_attack_clusters = result
+                    .incomplete_attack_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "incomplete attack cluster count overflow".into(),
+                        )
+                    })?;
                 continue;
             }
-            if cluster.successful_exploit_count < plan.minimum_successful_exploits_per_attack_cluster {
-                result.no_success_attack_clusters = result.no_success_attack_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("no-success attack cluster count overflow".into())
-                })?;
+            if cluster.successful_exploit_count
+                < plan.minimum_successful_exploits_per_attack_cluster
+            {
+                result.no_success_attack_clusters = result
+                    .no_success_attack_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "no-success attack cluster count overflow".into(),
+                        )
+                    })?;
                 continue;
             }
-            result.eligible_attack_clusters = result.eligible_attack_clusters.checked_add(1).ok_or_else(|| {
-                ClusterConfidenceError::ArithmeticOverflow("eligible attack cluster count overflow".into())
-            })?;
+            result.eligible_attack_clusters = result
+                .eligible_attack_clusters
+                .checked_add(1)
+                .ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow(
+                        "eligible attack cluster count overflow".into(),
+                    )
+                })?;
             if cluster.correctly_detected_exploit_count == cluster.successful_exploit_count {
-                result.detection_passing_clusters = result.detection_passing_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("detection-passing cluster count overflow".into())
-                })?;
+                result.detection_passing_clusters = result
+                    .detection_passing_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "detection-passing cluster count overflow".into(),
+                        )
+                    })?;
             }
             if cluster.contained_exploit_count == cluster.successful_exploit_count
                 && cluster.leaked_exploit_count == 0
             {
-                result.containment_passing_clusters = result.containment_passing_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("containment-passing cluster count overflow".into())
-                })?;
+                result.containment_passing_clusters = result
+                    .containment_passing_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "containment-passing cluster count overflow".into(),
+                        )
+                    })?;
             }
         } else {
             result.clean_clusters = result.clean_clusters.checked_add(1).ok_or_else(|| {
                 ClusterConfidenceError::ArithmeticOverflow("clean cluster count overflow".into())
             })?;
             if cluster.incomplete_count > 0 {
-                result.incomplete_clean_clusters = result.incomplete_clean_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("incomplete clean cluster count overflow".into())
-                })?;
+                result.incomplete_clean_clusters = result
+                    .incomplete_clean_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "incomplete clean cluster count overflow".into(),
+                        )
+                    })?;
                 continue;
             }
-            result.eligible_clean_clusters = result.eligible_clean_clusters.checked_add(1).ok_or_else(|| {
-                ClusterConfidenceError::ArithmeticOverflow("eligible clean cluster count overflow".into())
-            })?;
-            if cluster.clean_alert_count == 0 {
-                result.clean_passing_clusters = result.clean_passing_clusters.checked_add(1).ok_or_else(|| {
-                    ClusterConfidenceError::ArithmeticOverflow("clean-passing cluster count overflow".into())
+            result.eligible_clean_clusters = result
+                .eligible_clean_clusters
+                .checked_add(1)
+                .ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow(
+                        "eligible clean cluster count overflow".into(),
+                    )
                 })?;
+            if cluster.clean_alert_count == 0 {
+                result.clean_passing_clusters = result
+                    .clean_passing_clusters
+                    .checked_add(1)
+                    .ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow(
+                            "clean-passing cluster count overflow".into(),
+                        )
+                    })?;
             }
         }
     }
@@ -681,7 +766,8 @@ pub fn analyze_redteam_cluster_confidence(
         || plan.source_sealed_release_digest != source_receipt.sealed_release_digest
     {
         return Err(ClusterConfidenceError::SourceCampaignMismatch(
-            "cluster confidence plan does not bind the exact SIM-REL-053 campaign identities".into(),
+            "cluster confidence plan does not bind the exact SIM-REL-053 campaign identities"
+                .into(),
         ));
     }
     if !source_receipt.all_trials_complete
@@ -699,44 +785,54 @@ pub fn analyze_redteam_cluster_confidence(
     let mut results = Vec::with_capacity(FAMILY_COUNT);
     for family in ThreatFamily::ALL {
         let counts = clustered.get(&family).ok_or_else(|| {
-            ClusterConfidenceError::ScenarioTrialMismatch("required family missing from cluster aggregate".into())
+            ClusterConfidenceError::ScenarioTrialMismatch(
+                "required family missing from cluster aggregate".into(),
+            )
         })?;
         let attack_floor = counts.attack_clusters >= plan.minimum_attack_clusters_per_family
             && counts.eligible_attack_clusters == counts.attack_clusters;
         let clean_floor = counts.clean_clusters >= plan.minimum_clean_control_clusters_per_family
             && counts.eligible_clean_clusters == counts.clean_clusters;
         let detection_interval = (counts.eligible_attack_clusters > 0)
-            .then(|| confidence_interval(
-                counts.detection_passing_clusters,
-                counts.eligible_attack_clusters,
-                per_metric_alpha,
-            ))
+            .then(|| {
+                confidence_interval(
+                    counts.detection_passing_clusters,
+                    counts.eligible_attack_clusters,
+                    per_metric_alpha,
+                )
+            })
             .transpose()?;
         let containment_interval = (counts.eligible_attack_clusters > 0)
-            .then(|| confidence_interval(
-                counts.containment_passing_clusters,
-                counts.eligible_attack_clusters,
-                per_metric_alpha,
-            ))
+            .then(|| {
+                confidence_interval(
+                    counts.containment_passing_clusters,
+                    counts.eligible_attack_clusters,
+                    per_metric_alpha,
+                )
+            })
             .transpose()?;
         let clean_interval = (counts.eligible_clean_clusters > 0)
-            .then(|| confidence_interval(
-                counts.clean_passing_clusters,
-                counts.eligible_clean_clusters,
-                per_metric_alpha,
-            ))
+            .then(|| {
+                confidence_interval(
+                    counts.clean_passing_clusters,
+                    counts.eligible_clean_clusters,
+                    per_metric_alpha,
+                )
+            })
             .transpose()?;
-        let detection_passed = detection_interval.as_ref()
-            .is_some_and(|interval| interval.lower_bound_ppm >= plan.minimum_detection_lower_bound_ppm);
-        let containment_passed = containment_interval.as_ref()
-            .is_some_and(|interval| interval.lower_bound_ppm >= plan.minimum_containment_lower_bound_ppm);
-        let false_positive_passed = clean_interval.as_ref()
-            .is_some_and(|interval| {
-                INTERVAL_SCALE.saturating_sub(interval.lower_bound_ppm)
-                    <= plan.maximum_false_positive_upper_bound_ppm
-            });
+        let detection_passed = detection_interval.as_ref().is_some_and(|interval| {
+            interval.lower_bound_ppm >= plan.minimum_detection_lower_bound_ppm
+        });
+        let containment_passed = containment_interval.as_ref().is_some_and(|interval| {
+            interval.lower_bound_ppm >= plan.minimum_containment_lower_bound_ppm
+        });
+        let false_positive_passed = clean_interval.as_ref().is_some_and(|interval| {
+            INTERVAL_SCALE.saturating_sub(interval.lower_bound_ppm)
+                <= plan.maximum_false_positive_upper_bound_ppm
+        });
         let floor_passed = attack_floor && clean_floor;
-        let family_passed = floor_passed && detection_passed && containment_passed && false_positive_passed;
+        let family_passed =
+            floor_passed && detection_passed && containment_passed && false_positive_passed;
         results.push(ThreatFamilyClusterConfidence {
             family,
             total_attack_clusters: counts.attack_clusters,
@@ -762,9 +858,15 @@ pub fn analyze_redteam_cluster_confidence(
         });
     }
     let all_cluster_floors_passed = results.iter().all(|result| result.cluster_floor_passed);
-    let all_detection_probability_gates_passed = results.iter().all(|result| result.detection_probability_gate_passed);
-    let all_containment_probability_gates_passed = results.iter().all(|result| result.containment_probability_gate_passed);
-    let all_false_positive_probability_gates_passed = results.iter().all(|result| result.false_positive_probability_gate_passed);
+    let all_detection_probability_gates_passed = results
+        .iter()
+        .all(|result| result.detection_probability_gate_passed);
+    let all_containment_probability_gates_passed = results
+        .iter()
+        .all(|result| result.containment_probability_gate_passed);
+    let all_false_positive_probability_gates_passed = results
+        .iter()
+        .all(|result| result.false_positive_probability_gate_passed);
     let simultaneous_confidence_gates_passed = source_receipt.campaign_integrity_passed
         && all_cluster_floors_passed
         && all_detection_probability_gates_passed
@@ -812,18 +914,17 @@ pub fn analyze_redteam_cluster_confidence(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        RedTeamClusterConfidencePlan, aggregate_clusters, beta_quantile,
-        clopper_pearson_interval, regularized_incomplete_beta,
-    };
     use super::super::adversarial_benchmark_redteam::{
-        AdversarialBenchmarkSource, AdversarialRedTeamPlan, AdversarialScenario,
-        AdversarialTrial, RedTeamResourceChannel, RedTeamResourceMeasurement,
-        ScenarioKind, ThreatFamily, ThreatFamilyRequirement,
-        evaluate_adversarial_redteam_campaign,
+        AdversarialBenchmarkSource, AdversarialRedTeamPlan, AdversarialScenario, AdversarialTrial,
+        RedTeamResourceChannel, RedTeamResourceMeasurement, ScenarioKind, ThreatFamily,
+        ThreatFamilyRequirement, evaluate_adversarial_redteam_campaign,
     };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::BenchmarkScope;
+    use super::{
+        RedTeamClusterConfidencePlan, aggregate_clusters, beta_quantile, clopper_pearson_interval,
+        regularized_incomplete_beta,
+    };
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const D2: &str = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -853,22 +954,26 @@ mod tests {
             detector_owner_identity: "detector-owner".into(),
             independent_verifier_identity: "verifier".into(),
             scope: BenchmarkScope::FullScientificCampaign,
-            family_requirements: ThreatFamily::ALL.into_iter().map(|family| ThreatFamilyRequirement {
-                family,
-                critical: true,
-                minimum_attack_scenarios: 2,
-                minimum_clean_controls: 1,
-                minimum_successful_exploits: 1,
-                minimum_attack_authors: 2,
-                minimum_generator_variants: 2,
-                minimum_clean_control_authors: 1,
-                minimum_correct_detection_percent: 100,
-                maximum_false_positive_percent: 0,
-                maximum_uncontained_exploit_percent: 0,
-            }).collect(),
-            resource_channels: vec![
-                RedTeamResourceChannel { channel_id: "wall-ms".into(), unit: "ms".into() },
-            ],
+            family_requirements: ThreatFamily::ALL
+                .into_iter()
+                .map(|family| ThreatFamilyRequirement {
+                    family,
+                    critical: true,
+                    minimum_attack_scenarios: 2,
+                    minimum_clean_controls: 1,
+                    minimum_successful_exploits: 1,
+                    minimum_attack_authors: 2,
+                    minimum_generator_variants: 2,
+                    minimum_clean_control_authors: 1,
+                    minimum_correct_detection_percent: 100,
+                    maximum_false_positive_percent: 0,
+                    maximum_uncontained_exploit_percent: 0,
+                })
+                .collect(),
+            resource_channels: vec![RedTeamResourceChannel {
+                channel_id: "wall-ms".into(),
+                unit: "ms".into(),
+            }],
         }
     }
 
@@ -1034,12 +1139,16 @@ mod tests {
         let intervals = (0..=20)
             .map(|successes| clopper_pearson_interval(successes, 20, 0.05).unwrap())
             .collect::<Vec<_>>();
-        assert!(intervals.windows(2).all(|pair|
-            pair[0].lower_bound_ppm <= pair[1].lower_bound_ppm
-        ));
-        assert!(intervals.windows(2).all(|pair|
-            pair[0].upper_bound_ppm <= pair[1].upper_bound_ppm
-        ));
+        assert!(
+            intervals
+                .windows(2)
+                .all(|pair| pair[0].lower_bound_ppm <= pair[1].lower_bound_ppm)
+        );
+        assert!(
+            intervals
+                .windows(2)
+                .all(|pair| pair[0].upper_bound_ppm <= pair[1].upper_bound_ppm)
+        );
     }
 
     #[test]
@@ -1048,7 +1157,9 @@ mod tests {
         let mut plan = confidence_plan();
         plan.minimum_successful_exploits_per_attack_cluster = 1;
         let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
-        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        let family = counts
+            .get(&ThreatFamily::SearchTimeMetadataLeakage)
+            .unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
         assert_eq!(family.clean_clusters, 1);
@@ -1060,7 +1171,8 @@ mod tests {
         let (mut scenarios, mut trials) = scenarios_and_trials();
         let mut repeated = scenarios[0].clone();
         repeated.scenario_id = "same-cluster-extra-scenario".into();
-        repeated.scenario_digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999".into();
+        repeated.scenario_digest =
+            "sha256:9999999999999999999999999999999999999999999999999999999999999999".into();
         scenarios.insert(2, repeated.clone());
         let mut extra = trials[0].clone();
         extra.trial_id = "same-cluster-extra-trial".into();
@@ -1071,7 +1183,9 @@ mod tests {
         let mut plan = confidence_plan();
         plan.minimum_successful_exploits_per_attack_cluster = 1;
         let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
-        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        let family = counts
+            .get(&ThreatFamily::SearchTimeMetadataLeakage)
+            .unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
     }
@@ -1080,14 +1194,19 @@ mod tests {
     fn no_success_attack_cluster_remains_visible_and_blocks_cluster_floor() {
         let (scenarios, mut trials) = scenarios_and_trials();
         let no_success_id = &scenarios[0].scenario_id;
-        let trial = trials.iter_mut().find(|trial| &trial.scenario_id == no_success_id).unwrap();
+        let trial = trials
+            .iter_mut()
+            .find(|trial| &trial.scenario_id == no_success_id)
+            .unwrap();
         trial.exploit_succeeded = false;
         trial.detector_alerted = false;
         trial.correctly_attributed_to_family = false;
         trial.contained_before_exposure = false;
         let plan = confidence_plan();
         let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
-        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        let family = counts
+            .get(&ThreatFamily::SearchTimeMetadataLeakage)
+            .unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.no_success_attack_clusters, 1);
         assert_eq!(family.eligible_attack_clusters, 1);
@@ -1112,7 +1231,9 @@ mod tests {
 
         let plan = confidence_plan();
         let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
-        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        let family = counts
+            .get(&ThreatFamily::SearchTimeMetadataLeakage)
+            .unwrap();
         assert_eq!(family.attack_clusters, 1);
         assert_eq!(family.eligible_attack_clusters, 1);
     }
@@ -1129,19 +1250,28 @@ mod tests {
         let (scenarios, trials) = scenarios_and_trials();
         let source_plan = source_plan();
         let source = source();
-        let source_receipt = evaluate_adversarial_redteam_campaign(
-            &source_plan, &source, &scenarios, &trials
-        ).unwrap();
+        let source_receipt =
+            evaluate_adversarial_redteam_campaign(&source_plan, &source, &scenarios, &trials)
+                .unwrap();
         assert!(source_receipt.campaign_integrity_passed);
         let plan = confidence_plan();
         let result = super::analyze_redteam_cluster_confidence(
-            &plan, &source_plan, &source, &source_receipt, &scenarios, &trials
-        ).unwrap();
+            &plan,
+            &source_plan,
+            &source,
+            &source_receipt,
+            &scenarios,
+            &trials,
+        )
+        .unwrap();
         assert_eq!(result.family_count, 12);
         assert_eq!(result.metric_count, 3);
         assert!(!result.simultaneous_confidence_gates_passed);
         assert_eq!(result.confidence_results[0].eligible_attack_clusters, 2);
-        assert_eq!(result.confidence_results[0].eligible_clean_control_clusters, 1);
+        assert_eq!(
+            result.confidence_results[0].eligible_clean_control_clusters,
+            1
+        );
         assert!(result.bonferroni_allocation_covers_full_family_metric_grid);
     }
 }
