@@ -309,7 +309,6 @@ pub fn evaluate_window(
         || !nonempty(&model.model_revision)
         || !nonempty(&model.receptor_id)
         || !nonempty(&model.threshold.unit_id)
-        || model.threshold.value_microunits == 0
         || model.supported_contexts.is_empty()
     {
         reasons.push(WindowReason::InvalidModel);
@@ -371,14 +370,16 @@ pub fn evaluate_window(
         }
     }
 
-    if case.policy != WindowPolicy::Fixed {
+    // Do not interpret measurements outside the declared model domain or
+    // after the case/model identity has already failed integrity checks.
+    if !unsupported && !inconsistent && case.policy != WindowPolicy::Fixed {
         let (bad, needs_review, threshold_blocked) = evaluate_monitoring(case, model, &mut reasons);
         inconsistent |= bad;
         unknown |= needs_review;
         blocked |= threshold_blocked;
     }
 
-    if case.policy == WindowPolicy::Proactive {
+    if !unsupported && !inconsistent && case.policy == WindowPolicy::Proactive {
         if case.planned_interval.start_tick < case.evaluation_tick
             || case.planned_interval.start_tick - case.evaluation_tick
                 < case.minimum_proactive_lead_ticks
@@ -392,12 +393,14 @@ pub fn evaluate_window(
         blocked |= threshold_blocked;
     }
 
-    let disposition = if inconsistent {
+    // A definitive hard gate or verified threshold crossing cannot be
+    // outweighed by uncertainty in another input.
+    let disposition = if blocked {
+        WindowDisposition::BlockedByHardConstraint
+    } else if inconsistent {
         WindowDisposition::EvidenceInconsistent
     } else if unsupported {
         WindowDisposition::Unsupported
-    } else if blocked {
-        WindowDisposition::BlockedByHardConstraint
     } else if unknown {
         WindowDisposition::UnknownReviewRequired
     } else {
@@ -767,6 +770,48 @@ mod tests {
         c.hard_gate = HardGate::Blocked {
             gate_id: "authority-prohibition".into(),
         };
+        assert_eq!(
+            evaluate_window(&c, &model()).disposition,
+            WindowDisposition::BlockedByHardConstraint
+        );
+    }
+
+    #[test]
+    fn zero_threshold_is_valid_and_blocks_zero_exposure() {
+        let mut m = model();
+        m.threshold.value_microunits = 0;
+        let mut c = case(WindowPolicy::Reactive);
+        let mut e = monitoring();
+        e.maximum_exposure.value_microunits = 0;
+        c.monitoring = Some(e);
+        assert_eq!(
+            evaluate_window(&c, &m).disposition,
+            WindowDisposition::BlockedByHardConstraint
+        );
+    }
+
+    #[test]
+    fn unsupported_context_does_not_use_out_of_domain_monitoring_values() {
+        let mut c = case(WindowPolicy::Reactive);
+        c.scope.context_id = "outside-profile".into();
+        let mut e = monitoring();
+        e.maximum_exposure.value_microunits = 150;
+        e.binding.scope.context_id = "outside-profile".into();
+        c.monitoring = Some(e);
+        let r = evaluate_window(&c, &model());
+        assert_eq!(r.disposition, WindowDisposition::Unsupported);
+        assert!(!r.reasons.contains(&WindowReason::ExposureThresholdExceeded));
+    }
+
+    #[test]
+    fn definitive_hard_block_dominates_inconsistent_monitoring() {
+        let mut c = case(WindowPolicy::Reactive);
+        c.hard_gate = HardGate::Blocked {
+            gate_id: "authority-prohibition".into(),
+        };
+        let mut e = monitoring();
+        e.binding.scope.site_revision = "stale".into();
+        c.monitoring = Some(e);
         assert_eq!(
             evaluate_window(&c, &model()).disposition,
             WindowDisposition::BlockedByHardConstraint
