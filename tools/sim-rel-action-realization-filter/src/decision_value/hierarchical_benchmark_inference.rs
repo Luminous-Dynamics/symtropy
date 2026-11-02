@@ -68,6 +68,7 @@ pub struct ExactHierarchicalEffect {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HierarchicalRecipeEffect {
     pub domain_id: String,
+    pub endpoint: ClusterInferenceEndpoint,
     pub mechanism_family_id: String,
     pub concept_digest: String,
     pub recipe_template_digest: String,
@@ -82,6 +83,7 @@ pub struct HierarchicalRecipeEffect {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HierarchicalConceptEffect {
     pub domain_id: String,
+    pub endpoint: ClusterInferenceEndpoint,
     pub mechanism_family_id: String,
     pub concept_digest: String,
     pub task_cluster_count: usize,
@@ -624,6 +626,13 @@ fn validate_plan(
             "hierarchical domain registry must equal the frozen adaptive benchmark domain set, retaining empty strata".into(),
         ));
     }
+    let cluster_families = cluster_plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    let adaptive_families = adaptive_plan.allowed_mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    if cluster_families != adaptive_families {
+        return Err(HierarchicalInferenceError::FamilyRegistry(
+            "task-cluster family registry must equal the frozen adaptive mechanism-family registry".into(),
+        ));
+    }
     if plan.source_task_cluster_analysis_id != cluster_plan.analysis_id
         || plan.source_reliability_analysis_id != reliability_plan.analysis_id
         || plan.pre_registration_receipt_digest != cluster_plan.pre_registration_receipt_digest
@@ -810,6 +819,7 @@ fn aggregate_for_endpoint(
         let invalid_task_cluster_count = task_cluster_count.saturating_sub(valid_task_cluster_count);
         let detail = HierarchicalRecipeEffect {
             domain_id: domain.clone(),
+            endpoint,
             mechanism_family_id: family.clone(),
             concept_digest: concept.clone(),
             recipe_template_digest: recipe,
@@ -842,6 +852,7 @@ fn aggregate_for_endpoint(
         let mean_recipe_effect = ExactHierarchicalEffect::checked_mean(&valid_recipe_effects)?;
         let detail = HierarchicalConceptEffect {
             domain_id: domain.clone(),
+            endpoint,
             mechanism_family_id: family.clone(),
             concept_digest: concept.clone(),
             task_cluster_count,
