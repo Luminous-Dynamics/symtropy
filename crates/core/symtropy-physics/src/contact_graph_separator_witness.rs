@@ -227,11 +227,7 @@ struct StarCandidate {
     leaf_disk_margins: [f64; 2],
 }
 
-fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
-    // Four translational bodies A/B/C/D, each with mass 2 I. The three
-    // contacts are (B,C), (A,B), and (C,D), so contact 0 is the separator
-    // and contacts 1/2 are leaves. Shared-body Jacobian support creates the
-    // two separator/leaf blocks; the leaf-to-leaf block is structurally zero.
+fn star_contact_jacobian() -> Jacobian9x12 {
     let mut jacobian = Jacobian9x12::zeros();
     for axis in 0..3 {
         // Separator contact 0: v_B - v_C.
@@ -244,7 +240,15 @@ fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
         jacobian[(axis + 6, axis + 6)] = 1.0;
         jacobian[(axis + 6, axis + 9)] = -1.0;
     }
+    jacobian
+}
 
+fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
+    // Four translational bodies A/B/C/D, each with mass 2 I. The three
+    // contacts are (B,C), (A,B), and (C,D), so contact 0 is the separator
+    // and contacts 1/2 are leaves. Shared-body Jacobian support creates the
+    // two separator/leaf blocks; the leaf-to-leaf block is structurally zero.
+    let jacobian = star_contact_jacobian();
     let inverse_mass = Matrix12::identity() * 0.5;
     let w = jacobian * inverse_mass * jacobian.transpose();
     let free_body_velocity = Vector12::from_row_slice(&[
@@ -612,11 +616,14 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
 fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
     // Four-body chain A-B-C-D, with v_A=(-1/2,-1/4,0),
     // v_B=(0,0,0), v_C=(0,-1,0), v_D=(-1,-1,0).
-    // Thus q=J v_free is frozen by the body-level contact differences.
-    let (w, _) = star_body_generated_fixture(-0.25);
-    let q = Vector9::from_row_slice(&[
-        0.0, 1.0, 0.0, -0.5, -0.25, 0.0, 1.0, 0.0, 0.0,
+    // Derive both W and q from the same body-level J/M/v_free construction.
+    let jacobian = star_contact_jacobian();
+    let inverse_mass = Matrix12::identity() * 0.5;
+    let w = jacobian * inverse_mass * jacobian.transpose();
+    let free_body_velocity = Vector12::from_row_slice(&[
+        -0.5, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, -1.0, 0.0,
     ]);
+    let q = jacobian * free_body_velocity;
 
     let block = |row_offset: usize, column_offset: usize| {
         Matrix3::from_fn(|row, column| w[(row + row_offset, column + column_offset)])
@@ -688,10 +695,13 @@ fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
 
     // Replay the complete original 9D contact equations and every local law.
     assert!(post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
-    assert!((post_velocity - q - w * impulse).norm() < 1.0e-12);
+    let body_impulse = jacobian.transpose() * impulse;
+    let post_body_velocity = free_body_velocity + inverse_mass * body_impulse;
+    let body_reconstructed_velocity = jacobian * post_body_velocity;
+    assert!((body_reconstructed_velocity - post_velocity).norm() < 1.0e-12);
     assert!(impulse[3] > 0.0);
     assert!(FRICTION * impulse[3] - impulse.fixed_rows::<2>(4).norm() > 0.15);
-    assert!(impulse.fixed_rows::<3>(6).norm() == 0.0);
+    assert!(impulse.fixed_rows::<3>(6).norm() < 1.0e-12);
     assert!(post_velocity[6] > 0.8);
     assert!(post_velocity[7].abs() < 1.0e-9);
     assert!(post_velocity[8].abs() < 1.0e-9);
