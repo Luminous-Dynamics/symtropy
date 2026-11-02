@@ -97,6 +97,37 @@ The UNESCO tentative-list dossier discusses drought and crop failures associated
 
 **Limit:** the existence of drought or climatic change does not by itself establish that it caused abandonment. Avoid single-cause collapse narratives and distinguish a source's interpretation from direct proxy measurement.
 
+### H-09 — Published settlement population estimates
+
+**Source:** Huffman & Woodborne (2021), *New AMS dates for the Middle Iron Age in the Mapungubwe landscape*, Table 2. DOI: https://doi.org/10.17159/sajs.2021/8980.
+
+Table 2 gives the authors' population estimates for the South African portion of the Shashe–Limpopo valley by facies. The table prints an explicit method: number of sites divided by 50 years, multiplied by 50 people. Its accompanying discussion says the authors assigned 50 people per homestead and a 50-year homestead duration, informed by Middle Iron Age burials at Kgaswe in Botswana, then added capital populations.
+
+| Phase | Interval (AD) | Homesteads | Reported general population | Capital population | Total |
+|---|---:|---:|---:|---:|---:|
+| Mapungubwe | 1270–1320 | 114 | 5,700 | 5,000 | 10,700 |
+| Transitional | 1150–1270 | 143 | 2,979 | 2,500 | 5,479 |
+| K2, later subperiod | within 1000–1150 | 153 | 2,550 | 1,500 | 4,050 |
+| K2, initial smaller-capital subperiod | first 25 years | same K2 row | 1,275 | 300 | 1,575 |
+| Leokwe | 1000–1200 | 63 | 787 | none | 787 |
+| Zhizo | 900–1000 | 22 | 550 | 300 | 850 |
+
+The two K2 estimates are separate subintervals: 125 years and an initial 25-year smaller-capital interval. Do not add or average them without retaining their different time supports.
+
+**Data artifact:** [HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.json](HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.json) preserves these rows and the method metadata.
+
+**Limit:** these are author-derived estimates, not a census, direct population measurements, or calibrated population trajectories. Their outputs depend on assumed people per homestead, homestead duration, site identification, period boundaries and capital population estimates. They should be used as a published estimate target or prior with sensitivity analysis over the assumptions, not imposed as exact ground truth.
+
+### H-10 — Baobab chronology and severe-drought sequence
+
+**Source:** Huffman & Woodborne (2021), Table 3, *Baobab climatic sequence and severe droughts recognised in the archaeological record*. DOI: https://doi.org/10.17159/sajs.2021/8980.
+
+Table 3 pairs an archaeological `Cal AD` column with a `Baobab cal AD` column. It reports groups VI through XIIIb. Examples include Group IX: archaeological column AD 1300 and baobab-calibrated AD 1310±5; Group X: AD 1350–1400 and baobab AD 1390±10; Group VIII: AD 1200–1250 and baobab values 1208, 1226 and 1256. Some entries are blank in one column.
+
+**Data artifact:** [HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.json](HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.json) preserves every row and the column distinction.
+
+**Limit:** this is an event/sequence summary, not the underlying continuous baobab isotope series, raw proxy measurements, or full calibration model. Blank table entries are not zero and do not imply absence of drought. The article argues that Group IX contributed to Mapungubwe's abandonment through rainfall-related agricultural and political effects. That is a published causal interpretation to test against alternatives, not a benchmark ground-truth label.
+
 ### H-08 — Khami-period chronology and post-Mapungubwe reoccupation
 
 **Source:** Huffman & Woodborne (2021), *Implications of new AMS dates for the Khami Period in the Mapungubwe Landscape*, South African Journal of Science, 117(7–8).  
@@ -116,6 +147,25 @@ https://pmc.ncbi.nlm.nih.gov/articles/PMC4215987/
 The study presents modelled radiocarbon dates for Mapela Hill and discusses chronology and material sequences that complicate simple origin and diffusion narratives.
 
 **Limit:** site-specific dates and assemblages must remain tied to their own stratigraphic contexts. Do not generalize one excavated sequence to an entire region without an explicit sampling model.
+
+## 3.1 Event ontology: separate chronology from political meaning
+
+A central modelling requirement is to avoid one generic "civilization started/ended" event. The source record contains several different event families that may overlap without being contradictory:
+
+- **Occupation interval:** evidence that a site or area was inhabited/used.
+- **Construction interval:** building or modification of a monument/architecture.
+- **Material-culture transition:** changes in ceramic, bead, or other assemblage patterns.
+- **Regional-centre emergence:** a settlement's growth or role as a centre.
+- **Network prominence:** changes in exchange connectivity, production specialization, or redistribution.
+- **Political-control/authority shift:** evidence or interpretation that a polity/leadership gained influence, control, or legitimacy.
+- **Abandonment/decline:** a change in site use or occupation intensity, distinguished from regional population disappearance.
+- **Reoccupation/transformation:** later settlement or cultural practices in the same region, including changed political/cultural identities.
+
+This distinction resolves an important apparent chronology tension. The Great Zimbabwe Bayesian chronology places the start of stone-wall construction around the end of the 12th or beginning of the 13th century and indicates overlap with Mapungubwe. The 2021 Mapungubwe landscape paper proposes that a drought around AD 1310 contributed to Mapungubwe's abandonment and that Great Zimbabwe subsequently became a new regional centre of power by gaining control of the gold belt. Those are not necessarily competing claims if they refer to different event types: construction/occupation may precede a later shift in regional power or network control. The model must not collapse them into a single "Great Zimbabwe founded" date.
+
+Likewise, Mapungubwe's abandonment does not imply that the Limpopo Valley became empty: the later Sotho/Icon and Kalanga/Khami reoccupation evidence belongs to subsequent regional transformation.
+
+The benchmark should explicitly test whether typed event representations reconcile multiple source chronologies better than a single linear succession variable, while retaining unresolved disputes and source-specific interpretations.
 
 ## 4. Competing explanatory models
 
