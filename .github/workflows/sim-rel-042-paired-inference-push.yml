@@ -1,0 +1,65 @@
+name: SIM-REL-042 Preregistered Paired Inference Branch Qualification
+
+on:
+  push:
+    branches:
+      - research/sim-rel-042-preregistered-paired-inference-2026-11-02
+    paths:
+      - "tools/sim-rel-action-realization-filter/src/decision_value.rs"
+      - "tools/sim-rel-action-realization-filter/src/decision_value/**"
+      - "tools/sim-rel-action-realization-filter/PREREGISTERED_PAIRED_INFERENCE_PROTOCOL.md"
+      - ".github/workflows/sim-rel-042-paired-inference-push.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sim-rel-042-inference-format-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    if: github.actor != 'github-actions[bot]'
+    name: pinned formatting, exact paired inference, full tests and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Isolate Cargo target directory
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-042-inference-target" >> "$GITHUB_ENV"
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Apply pinned formatting
+        run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml
+      - name: Commit formatter-only changes
+        env:
+          GH_REF_NAME: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/sim-rel-action-realization-filter/src/decision_value.rs tools/sim-rel-action-realization-filter/src/decision_value
+          if ! git diff --cached --quiet; then
+            git commit -m "style(research): format preregistered paired inference"
+            git push origin "HEAD:$GH_REF_NAME"
+          fi
+      - name: Capture formatted source identity
+        run: echo "EXPECTED_FORMATTED_HEAD=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml -- --check
+      - name: Focused preregistered analysis tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib decision_value::preregistered_analysis
+      - name: Full locked crate tests
+        run: cargo test --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-action-realization-filter/Cargo.toml --lib -- -D warnings
+      - name: Verify exact formatted checkout and clean tree
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_FORMATTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
