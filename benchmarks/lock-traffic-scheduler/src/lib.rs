@@ -308,6 +308,16 @@ fn add_service_wait(
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct FeasibleSlot {
+    index: usize,
+    reserved_start_tick: u64,
+    service_start_tick: u64,
+    finish_tick: u64,
+    waiting_ticks: u64,
+    direction_switch_ticks: u64,
+}
+
 /// Build a deterministic single-lock schedule using FCFS or priority with aging.
 ///
 /// All passage eligibility and authorized-window evidence is supplied by upstream
@@ -358,86 +368,108 @@ pub fn schedule_lock(
     let mut last_direction = None;
 
     while !pending.is_empty() {
-        let Some(index) = choose_candidate(&pending, requests, current_tick, policy) else {
-            if let Some(next_ready) = pending
-                .iter()
-                .map(|index| ready_tick(&requests[*index]))
-                .filter(|tick| *tick > current_tick)
-                .min()
-            {
-                current_tick = next_ready;
+        // Compute each request's next physically available slot before applying
+        // queue policy. This makes the queue decision at the first lock-reservation
+        // boundary, not at planning_tick when the lock may be unavailable.
+        let mut feasible_slots = Vec::new();
+        let mut rejected = Vec::new();
+
+        for index in pending.iter().copied() {
+            let request = &requests[index];
+            let switch_ticks = if last_direction.is_some_and(|direction| direction != request.direction) {
+                profile.direction_switch_ticks
+            } else {
+                0
+            };
+            let earliest = current_tick.max(ready_tick(request));
+            let occupied_duration = switch_ticks
+                .checked_add(request.service_duration_ticks)
+                .ok_or(SchedulerError::ArithmeticOverflow)?;
+            let Some(reserved_start) = find_slot(profile, earliest, occupied_duration)? else {
+                rejected.push((index, UnscheduledReason::NoAvailableLockSlot));
+                continue;
+            };
+            let service_start = reserved_start
+                .checked_add(switch_ticks)
+                .ok_or(SchedulerError::ArithmeticOverflow)?;
+            let finish = service_start
+                .checked_add(request.service_duration_ticks)
+                .ok_or(SchedulerError::ArithmeticOverflow)?;
+            let waiting = service_start.saturating_sub(request.arrival_tick);
+
+            if service_start > request.latest_start_tick {
+                rejected.push((index, UnscheduledReason::LatestStartExceeded));
                 continue;
             }
-            for index in pending.drain(..) {
-                unscheduled.push(UnscheduledPassage {
-                    request_id: requests[index].request_id.clone(),
-                    reason: UnscheduledReason::NoAvailableLockSlot,
-                });
+            if waiting > request.maximum_wait_ticks {
+                rejected.push((index, UnscheduledReason::MaximumWaitExceeded));
+                continue;
             }
+
+            feasible_slots.push(FeasibleSlot {
+                index,
+                reserved_start_tick: reserved_start,
+                service_start_tick: service_start,
+                finish_tick: finish,
+                waiting_ticks: waiting,
+                direction_switch_ticks: switch_ticks,
+            });
+        }
+
+        for (index, reason) in rejected {
+            pending.retain(|value| *value != index);
+            unscheduled.push(UnscheduledPassage {
+                request_id: requests[index].request_id.clone(),
+                reason,
+            });
+        }
+
+        if feasible_slots.is_empty() {
             break;
+        }
+
+        // Only requests whose next feasible reservation begins at this boundary
+        // compete for the next lockage. Later arrivals/slots remain pending.
+        let decision_tick = feasible_slots
+            .iter()
+            .map(|slot| slot.reserved_start_tick)
+            .min()
+            .ok_or(SchedulerError::EmptySchedule)?;
+        let candidate_indices = feasible_slots
+            .iter()
+            .filter(|slot| slot.reserved_start_tick == decision_tick)
+            .map(|slot| slot.index)
+            .collect::<Vec<_>>();
+        let Some(index) = choose_candidate(&candidate_indices, requests, decision_tick, policy) else {
+            return Err(SchedulerError::InvalidRequestWindow);
+        };
+        let Some(slot) = feasible_slots.iter().find(|slot| slot.index == index).copied() else {
+            return Err(SchedulerError::InvalidRequestWindow);
         };
 
         pending.retain(|value| *value != index);
         let request = &requests[index];
-        let switch_ticks = if last_direction.is_some_and(|direction| direction != request.direction) {
-            profile.direction_switch_ticks
-        } else {
-            0
-        };
-        let earliest = current_tick.max(ready_tick(request));
-        let occupied_duration = switch_ticks
-            .checked_add(request.service_duration_ticks)
-            .ok_or(SchedulerError::ArithmeticOverflow)?;
-        let Some(reserved_start) = find_slot(profile, earliest, occupied_duration)? else {
-            unscheduled.push(UnscheduledPassage {
-                request_id: request.request_id.clone(),
-                reason: UnscheduledReason::NoAvailableLockSlot,
-            });
-            continue;
-        };
-        let service_start = reserved_start
-            .checked_add(switch_ticks)
-            .ok_or(SchedulerError::ArithmeticOverflow)?;
-        let finish = service_start
-            .checked_add(request.service_duration_ticks)
-            .ok_or(SchedulerError::ArithmeticOverflow)?;
-        let waiting = service_start.saturating_sub(request.arrival_tick);
-
-        if service_start > request.latest_start_tick {
-            unscheduled.push(UnscheduledPassage {
-                request_id: request.request_id.clone(),
-                reason: UnscheduledReason::LatestStartExceeded,
-            });
-            continue;
-        }
-        if waiting > request.maximum_wait_ticks {
-            unscheduled.push(UnscheduledPassage {
-                request_id: request.request_id.clone(),
-                reason: UnscheduledReason::MaximumWaitExceeded,
-            });
-            continue;
-        }
 
         metrics.served_count = metrics.served_count
             .checked_add(1)
             .ok_or(SchedulerError::ArithmeticOverflow)?;
         metrics.total_wait_ticks = metrics.total_wait_ticks
-            .checked_add(u128::from(waiting))
+            .checked_add(u128::from(slot.waiting_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
-        metrics.maximum_wait_ticks = metrics.maximum_wait_ticks.max(waiting);
+        metrics.maximum_wait_ticks = metrics.maximum_wait_ticks.max(slot.waiting_ticks);
         metrics.total_lock_service_ticks = metrics.total_lock_service_ticks
             .checked_add(u128::from(request.service_duration_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
         metrics.total_direction_switch_ticks = metrics.total_direction_switch_ticks
-            .checked_add(u128::from(switch_ticks))
+            .checked_add(u128::from(slot.direction_switch_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
-        if switch_ticks > 0 {
+        if slot.direction_switch_ticks > 0 {
             metrics.direction_switch_count = metrics.direction_switch_count
                 .checked_add(1)
                 .ok_or(SchedulerError::ArithmeticOverflow)?;
         }
-        add_participant_wait(&mut metrics, &request.participant_id, waiting);
-        add_service_wait(&mut metrics, request.service_class, waiting);
+        add_participant_wait(&mut metrics, &request.participant_id, slot.waiting_ticks);
+        add_service_wait(&mut metrics, request.service_class, slot.waiting_ticks);
 
         scheduled.push(ScheduledPassage {
             request_id: request.request_id.clone(),
@@ -445,14 +477,14 @@ pub fn schedule_lock(
             vessel_id: request.vessel_id.clone(),
             direction: request.direction,
             service_class: request.service_class,
-            reserved_start_tick: reserved_start,
-            service_start_tick: service_start,
-            finish_tick: finish,
-            waiting_ticks: waiting,
-            direction_switch_ticks: switch_ticks,
+            reserved_start_tick: slot.reserved_start_tick,
+            service_start_tick: slot.service_start_tick,
+            finish_tick: slot.finish_tick,
+            waiting_ticks: slot.waiting_ticks,
+            direction_switch_ticks: slot.direction_switch_ticks,
         });
         last_direction = Some(request.direction);
-        current_tick = finish;
+        current_tick = slot.finish_tick;
     }
 
     metrics.unscheduled_count = u64::try_from(unscheduled.len())
@@ -503,6 +535,69 @@ mod tests {
 
     fn run(requests: &[PassageRequest], policy: SchedulingPolicy) -> ScheduleResult {
         schedule_lock(&profile(), requests, 0, policy).unwrap()
+    }
+
+    #[test]
+    fn priority_is_re_evaluated_when_lock_becomes_available() {
+        let mut lock = profile();
+        lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
+        let older_freight = request(
+            "older-freight",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let later_passenger = request(
+            "later-passenger",
+            "p2",
+            50,
+            Direction::Upstream,
+            ServiceClass::EssentialPassenger,
+        );
+
+        let result = schedule_lock(
+            &lock,
+            &[older_freight, later_passenger],
+            0,
+            SchedulingPolicy::PriorityWithAging { aging_threshold_ticks: 1_000 },
+        )
+        .unwrap();
+
+        assert_eq!(result.scheduled[0].request_id, "later-passenger");
+        assert_eq!(result.scheduled[0].reserved_start_tick, 100);
+        assert_eq!(result.scheduled[0].service_start_tick, 100);
+    }
+
+    #[test]
+    fn aging_is_evaluated_at_the_reservation_boundary() {
+        let mut lock = profile();
+        lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
+        let older_freight = request(
+            "older-freight",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let newer_emergency = request(
+            "newer-emergency",
+            "p2",
+            15,
+            Direction::Upstream,
+            ServiceClass::Emergency,
+        );
+
+        let result = schedule_lock(
+            &lock,
+            &[older_freight, newer_emergency],
+            20,
+            SchedulingPolicy::PriorityWithAging { aging_threshold_ticks: 50 },
+        )
+        .unwrap();
+
+        assert_eq!(result.scheduled[0].request_id, "older-freight");
+        assert_eq!(result.scheduled[0].reserved_start_tick, 100);
     }
 
     #[test]
