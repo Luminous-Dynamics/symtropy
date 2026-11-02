@@ -201,10 +201,12 @@ fn add_string(bytes: &mut Vec<u8>, value: &str) {
 }
 
 fn add_hash(bytes: &mut Vec<u8>, value: &str) -> Result<(), String> {
-    if !is_sha256(value) {
-        return Err("claim admission digest must be 64 hexadecimal characters".to_owned());
+    if !is_sha256(value) || value != value.to_ascii_lowercase() {
+        return Err(
+            "claim admission digest must be 64 lowercase hexadecimal characters".to_owned(),
+        );
     }
-    add_string(bytes, &value.to_ascii_lowercase());
+    add_string(bytes, value);
     Ok(())
 }
 
@@ -639,6 +641,8 @@ pub fn verify_claim_admission(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::process::Command;
 
     fn digest(character: char) -> String {
         std::iter::repeat_n(character, 64).collect()
@@ -853,6 +857,79 @@ mod tests {
         assert!(csv.contains(&decision.evidence_manifest_sha256));
         assert!(csv.contains(&decision.decision_sha256));
         assert!(csv.contains(ClaimDecisionStatus::AdmittedWithinDeclaredScope.as_str()));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn independent_python_oracle_replays_claim_policy_manifest_and_decision() {
+        let request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        let mut evidence = all_verified(&request);
+        evidence.push(ScopedEvidence {
+            kind: EvidenceKind::StatisticalSamplingAssessment,
+            scope_sha256: request.scope_sha256.clone(),
+            assertion: EvidenceAssertion::Unknown {
+                reason: "supplemental sampling evidence not required by this exploratory claim".to_owned(),
+            },
+        });
+        let decision = evaluate_claim_admission(&request, &evidence)
+            .expect("claim decision with supplemental unknown evidence");
+
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "aero-claim-admission-oracle-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("create oracle fixture directory");
+        let request_path = root.join("request.csv");
+        let evidence_path = root.join("evidence.csv");
+        let decision_path = root.join("decision.csv");
+        fs::write(&request_path, request_to_csv(&request)).expect("write request");
+        fs::write(
+            &evidence_path,
+            evidence_manifest_to_csv(&evidence).expect("serialize evidence manifest"),
+        )
+        .expect("write evidence manifest");
+        fs::write(&decision_path, report_to_csv(&decision)).expect("write decision");
+
+        let oracle_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/verify-aero-claim-admission-independent.py");
+        let output = Command::new("python3")
+            .arg(oracle_path)
+            .arg(&request_path)
+            .arg(&evidence_path)
+            .arg(&decision_path)
+            .output()
+            .expect("run independent claim-admission oracle");
+        assert!(
+            output.status.success(),
+            "independent oracle failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stdout)
+                .contains("independent_aero_claim_admission_oracle=pass")
+        );
+        fs::remove_dir_all(root).expect("remove oracle fixture directory");
+    }
+
+    #[test]
+    fn uppercase_scope_or_artifact_digests_are_rejected_as_noncanonical() {
+        let mut request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        request.scope_sha256 = request.scope_sha256.to_ascii_uppercase();
+        assert!(
+            evaluate_claim_admission(&request, &[])
+                .expect_err("uppercase scope digest rejected")
+                .contains("lowercase")
+        );
     }
 
     #[test]
