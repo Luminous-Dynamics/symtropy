@@ -141,6 +141,8 @@ pub struct ObservationFrame {
     pub tick: u64,
     /// Digest of the authoritative body snapshot from which body sensors were read.
     pub body_state_sha256: String,
+    /// Digest of the one authoritative physiology snapshot used by homeostatic inputs.
+    pub physiology_state_sha256: Option<String>,
     pub observations: Vec<SensorObservation>,
 }
 
@@ -197,6 +199,9 @@ pub enum ReasonCode {
     InvalidFrameModelId,
     FrameModelMismatch,
     MalformedBodyStateDigest,
+    MalformedFramePhysiologyDigest,
+    MissingFramePhysiologyDigest,
+    PhysiologySnapshotMismatch,
     UnknownObservationChannel,
     DuplicateObservation,
     ObservationUnitMismatch,
@@ -451,6 +456,11 @@ pub fn validate_observation_frame(
     if !valid_sha256_reference(&frame.body_state_sha256) {
         reasons.push(ReasonCode::MalformedBodyStateDigest);
     }
+    if let Some(digest) = &frame.physiology_state_sha256 {
+        if !valid_sha256_reference(digest) {
+            reasons.push(ReasonCode::MalformedFramePhysiologyDigest);
+        }
+    }
 
     for (index, observation) in frame.observations.iter().enumerate() {
         if frame.observations[..index]
@@ -534,6 +544,13 @@ pub fn validate_observation_frame(
             } => {
                 if !valid_sha256_reference(physiology_state_sha256) {
                     reasons.push(ReasonCode::MalformedPhysiologyDigest);
+                }
+                match &frame.physiology_state_sha256 {
+                    None => reasons.push(ReasonCode::MissingFramePhysiologyDigest),
+                    Some(frame_digest) if frame_digest != physiology_state_sha256 => {
+                        reasons.push(ReasonCode::PhysiologySnapshotMismatch);
+                    }
+                    Some(_) => {}
                 }
                 if *sample_tick > frame.tick {
                     reasons.push(ReasonCode::FuturePhysiologySample);
@@ -721,6 +738,7 @@ mod tests {
             model_id: "synthetic-worm-cpg".to_string(),
             tick: 10,
             body_state_sha256: digest('d'),
+            physiology_state_sha256: Some(digest('f')),
             observations: vec![
                 SensorObservation {
                     key: ChannelKey {
@@ -901,6 +919,24 @@ mod tests {
         let error = validate_observation_frame(&descriptor(), &input)
             .expect_err("mismatched body snapshot must reject");
         assert!(error.contains(ReasonCode::BodySnapshotMismatch));
+    }
+
+    #[test]
+    fn homeostatic_modulators_bind_to_one_physiology_snapshot() {
+        let mut input = frame();
+        input.physiology_state_sha256 = Some(digest('9'));
+        let error = validate_observation_frame(&descriptor(), &input)
+            .expect_err("mixed physiology snapshot must reject");
+        assert!(error.contains(ReasonCode::PhysiologySnapshotMismatch));
+    }
+
+    #[test]
+    fn homeostatic_modulator_requires_frame_snapshot_identity() {
+        let mut input = frame();
+        input.physiology_state_sha256 = None;
+        let error = validate_observation_frame(&descriptor(), &input)
+            .expect_err("unbound physiology inputs must reject");
+        assert!(error.contains(ReasonCode::MissingFramePhysiologyDigest));
     }
 
     #[test]
