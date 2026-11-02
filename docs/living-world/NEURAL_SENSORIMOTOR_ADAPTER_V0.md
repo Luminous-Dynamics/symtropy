@@ -342,6 +342,32 @@ Therefore benchmark central stimulation, proprioceptive feedback and substrate/c
 
 Target distributions should be stratified by speed, turning, terrain/material, contact, descending inputs, sensory feedback, body condition, individual and study. A high tripod score is not a universal objective; match the qualified species/task reference distribution.
 
+### Current FlyGym baseline: pin 2.1.1 and distrust stale throughput numbers
+
+The official FlyGym release page currently lists v2.1.1 (released 24 October 2026; release commit `a63dc91`). This is the baseline version for the comparative programme, not an unspecified "FlyGym 2.x".
+
+Release 2.1.1 contains several benchmark-critical changes:
+- GPU benchmark/tutorial timing boundaries were fixed because prior measurements could overstate throughput by up to 50%.
+- MuJoCo and MuJoCo Warp are v3.16.
+- GPU constraint solver default is `1e-5`; `1e-6` could trigger float32 convergence-check stalls in a small fraction of worlds. With 1,000 worlds, the slowest world can hold up the entire batch and produced about 25% slowdown.
+- Iteration-limit warnings are suppressed in GPU batch mode, but contact and constraint buffer-overflow warnings remain visible. Record these as explicit invalid-run signals; absence of an iteration warning does not imply no stall.
+- `GPUSimulation.reset()` does not recompute all derived kinematic quantities; call `forward()` before consuming those derived states.
+- Trajectory recording stores `qpos` and mocap poses at a declared video rate and allows post-hoc rendering, separating rendering cost from physics stepping.
+- Release 2.1.1 changes body API details and fixes GPU timing; don't compare older v2.0 timings as current throughput.
+
+Comparative protocol:
+1. Pin exact FlyGym release, dependency lock, Python/runtime, MuJoCo/Warp, GPU/driver and scenario assets.
+2. Keep warm-up/compilation outside the measured region.
+3. Synchronize GPU work before and after the timed region.
+4. Measure physics-only throughput with rendering disabled; use trajectory recording and post-hoc rendering for visual comparison.
+5. Pin world count, simulation timestep, solver tolerance and control cadence; measure CPU and GPU separately.
+6. Reproduce the official 2.1.1 `1e-5` tolerance as its primary GPU configuration, then perform a tolerance sensitivity/convergence run. Symtropy must declare and converge its own physics solver; tolerances across different solvers are not interchangeable.
+7. Preserve solver/contact/constraint overflow warnings, per-world failures and slowest-world stalls in receipts.
+
+The matched comparison protocol is tracked in [LOCO-BENCH-001 / #3357](https://github.com/Luminous-Dynamics/symtropy/issues/3357). It compares CPG-only, rule-based, hybrid, RL, phenomenological and connectome-constrained controllers on identical bodies, terrain, observations, compute and seeds.
+
+Source: https://github.com/NeLy-EPFL/flygym/releases/tag/v2.1.1
+
 ### Calibration and identifiability: do not fit behaviour alone
 
 Two 2026 preprints reinforce an important methodological constraint:
