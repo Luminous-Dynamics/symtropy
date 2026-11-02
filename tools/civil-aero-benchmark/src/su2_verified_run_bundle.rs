@@ -187,6 +187,21 @@ pub struct Su2VerifiedRunBundleInputs<'a> {
     pub lineage_binding: &'a Su2RunLineageBinding,
 }
 
+fn validate_bundle_convergence_mode(
+    protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
+) -> Result<(), String> {
+    match (protocol.time_domain, &protocol.window) {
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => Ok(()),
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => Ok(()),
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => Err(
+            "verified SU2 run bundle v0.3 does not admit unsteady endpoint mode without an enabled and independently screened time-window convergence protocol".to_owned(),
+        ),
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => Err(
+            "time-window convergence is incompatible with TIME_DOMAIN=NO".to_owned(),
+        ),
+    }
+}
+
 fn append_u64(bytes: &mut Vec<u8>, value: u64) {
     bytes.extend_from_slice(&value.to_le_bytes());
 }
@@ -354,6 +369,7 @@ pub fn create_su2_verified_run_bundle(
     inputs: &Su2VerifiedRunBundleInputs<'_>,
 ) -> Result<Su2VerifiedRunBundleReport, String> {
     let preflight = inputs.field_preflight;
+    validate_bundle_convergence_mode(&preflight.convergence_protocol)?;
     let boundary = inputs.boundary_audit;
     let history = inputs.history;
     let screen = inputs.convergence_screen;
@@ -524,7 +540,7 @@ pub fn create_su2_verified_run_bundle(
             .unwrap_or_default(),
         resource_evidence,
         resource_evidence_sha256,
-        status: "run_identity_preflight_boundary_history_and_declared_screen_replayed".to_owned(),
+        status: "run_identity_preflight_boundary_history_native_termination_and_required_inner_residual_screen_replayed".to_owned(),
         evidence_level: SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL.to_owned(),
         bundle_sha256: String::new(),
     };
@@ -582,6 +598,71 @@ fn measurement_csv(measurement: &ResourceMeasure) -> (String, String, String, St
             String::new(),
             reason.clone(),
         ),
+    }
+}
+
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+    use crate::su2_field_preflight::{Su2ConvergenceProtocol, Su2WindowConvergenceProtocol};
+
+    fn protocol(time_domain: bool, window: Su2WindowConvergenceProtocol) -> Su2ConvergenceProtocol {
+        Su2ConvergenceProtocol {
+            time_domain,
+            steady_fields: vec!["RMS_DENSITY".to_owned()],
+            steady_start_iteration: Some(10),
+            steady_residual_min_log10: Some("-8".to_owned()),
+            steady_cauchy_epsilon: None,
+            steady_cauchy_elements: None,
+            window,
+        }
+    }
+
+    #[test]
+    fn only_steady_or_explicit_windowed_time_domain_modes_are_admitted() {
+        assert!(validate_bundle_convergence_mode(&protocol(
+            false,
+            Su2WindowConvergenceProtocol::Disabled,
+        ))
+        .is_ok());
+
+        assert!(validate_bundle_convergence_mode(&protocol(
+            true,
+            Su2WindowConvergenceProtocol::Enabled {
+                fields: vec!["TAVG_DRAG".to_owned()],
+                window_start_iter: 500,
+                convergence_start_iter: 10,
+                cauchy_elements: 10,
+                cauchy_epsilon: "1E-4".to_owned(),
+                window_function: "SQUARE".to_owned(),
+            },
+        ))
+        .is_ok());
+
+        assert!(
+            validate_bundle_convergence_mode(&protocol(
+                true,
+                Su2WindowConvergenceProtocol::Disabled,
+            ))
+            .expect_err("unsteady endpoint protocol has no separate admission adapter")
+            .contains("does not admit unsteady endpoint mode")
+        );
+
+        assert!(
+            validate_bundle_convergence_mode(&protocol(
+                false,
+                Su2WindowConvergenceProtocol::Enabled {
+                    fields: vec!["TAVG_DRAG".to_owned()],
+                    window_start_iter: 500,
+                    convergence_start_iter: 10,
+                    cauchy_elements: 10,
+                    cauchy_epsilon: "1E-4".to_owned(),
+                    window_function: "SQUARE".to_owned(),
+                },
+            ))
+            .expect_err("steady runs cannot enable time-window convergence")
+            .contains("incompatible with TIME_DOMAIN=NO")
+        );
     }
 }
 
