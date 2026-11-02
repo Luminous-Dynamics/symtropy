@@ -15,8 +15,32 @@ use crate::external_solver::{
 use crate::integrity::sha256_hex;
 use crate::su2_mesh::inspect_su2_mesh;
 
-pub const SU2_FIELD_PREFLIGHT_SCHEMA: &str = "su2-field-preflight/0.1.0";
-pub const SU2_FIELD_PREFLIGHT_EVIDENCE_LEVEL: &str = "receipt_bound_su2_dry_run_field_discovery_and_config_presence_only_not_history_convergence_or_validation";
+pub const SU2_FIELD_PREFLIGHT_SCHEMA: &str = "su2-field-preflight/0.2.0";
+pub const SU2_FIELD_PREFLIGHT_EVIDENCE_LEVEL: &str = "receipt_bound_su2_dry_run_multi_field_steady_and_explicit_time_window_configuration_discovery_only_not_history_convergence_or_validation";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Su2WindowConvergenceProtocol {
+    Disabled,
+    Enabled {
+        fields: Vec<String>,
+        window_start_iter: u64,
+        convergence_start_iter: u64,
+        cauchy_elements: u64,
+        cauchy_epsilon: String,
+        window_function: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Su2ConvergenceProtocol {
+    pub time_domain: bool,
+    pub steady_fields: Vec<String>,
+    pub steady_start_iteration: Option<u64>,
+    pub steady_residual_min_log10: Option<String>,
+    pub steady_cauchy_epsilon: Option<String>,
+    pub steady_cauchy_elements: Option<u64>,
+    pub window: Su2WindowConvergenceProtocol,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2FieldPreflightReport {
@@ -32,7 +56,9 @@ pub struct Su2FieldPreflightReport {
     pub mesh_byte_length: u64,
     pub mesh_sha256: String,
     pub solver_family: String,
+    /// Backward-compatible first field; use convergence_protocol.steady_fields for the full set.
     pub configured_convergence_field: String,
+    pub convergence_protocol: Su2ConvergenceProtocol,
     pub history_output_selectors: Vec<String>,
     pub stdout_sha256: String,
     pub stderr_sha256: String,
@@ -45,8 +71,12 @@ pub struct Su2FieldPreflightReport {
 
 impl Su2FieldPreflightReport {
     pub fn to_csv(&self) -> String {
+        let window_enabled = matches!(
+            &self.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Enabled { .. }
+        );
         let mut output = String::from(
-            "schema,run_id,solver_id,runner_receipt_sha256,executable_sha256,configuration_path,configuration_byte_length,configuration_sha256,mesh_path,mesh_byte_length,mesh_sha256,solver_family,configured_convergence_field,history_output_selectors,stdout_sha256,stderr_sha256,available_history_fields,required_history_fields,status,preflight_sha256,evidence_level\n",
+            "schema,run_id,solver_id,runner_receipt_sha256,executable_sha256,configuration_path,configuration_byte_length,configuration_sha256,mesh_path,mesh_byte_length,mesh_sha256,solver_family,configured_convergence_field,steady_convergence_fields,steady_start_iteration,steady_residual_min_log10,steady_cauchy_epsilon,steady_cauchy_elements,time_domain,window_cauchy_enabled,window_convergence_fields,window_start_iter,window_convergence_start_iter,window_cauchy_elements,window_cauchy_epsilon,window_function,history_output_selectors,stdout_sha256,stderr_sha256,available_history_fields,required_history_fields,status,preflight_sha256,evidence_level\n",
         );
         let fields = [
             csv_escape(&self.schema),
@@ -62,6 +92,19 @@ impl Su2FieldPreflightReport {
             self.mesh_sha256.clone(),
             csv_escape(&self.solver_family),
             csv_escape(&self.configured_convergence_field),
+            csv_escape(&self.convergence_protocol.steady_fields.join(";")),
+            format_optional_u64(self.convergence_protocol.steady_start_iteration),
+            optional_string(&self.convergence_protocol.steady_residual_min_log10),
+            optional_string(&self.convergence_protocol.steady_cauchy_epsilon),
+            format_optional_u64(self.convergence_protocol.steady_cauchy_elements),
+            if self.convergence_protocol.time_domain { "YES".to_owned() } else { "NO".to_owned() },
+            if window_enabled { "YES".to_owned() } else { "NO".to_owned() },
+            csv_escape(&window_fields(&self.convergence_protocol.window)),
+            optional_window_u64(&self.convergence_protocol.window, 0),
+            optional_window_u64(&self.convergence_protocol.window, 1),
+            optional_window_u64(&self.convergence_protocol.window, 2),
+            csv_escape(&window_epsilon(&self.convergence_protocol.window)),
+            csv_escape(&window_function(&self.convergence_protocol.window)),
             csv_escape(&self.history_output_selectors.join(";")),
             self.stdout_sha256.clone(),
             self.stderr_sha256.clone(),
@@ -181,7 +224,7 @@ fn verify_dry_run_invocation(
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct ParsedConfiguration {
     solver_family: String,
-    convergence_field: String,
+    convergence_protocol: Su2ConvergenceProtocol,
     history_output_selectors: Vec<String>,
 }
 
@@ -213,7 +256,25 @@ fn insert_config_option(
         return Ok(());
     };
     let key = raw_key.trim();
-    if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT")
+    if matches!(
+        key,
+        "SOLVER"
+            | "CONV_FIELD"
+            | "CONV_RESIDUAL_MINVAL"
+            | "CONV_STARTITER"
+            | "CONV_CAUCHY_EPS"
+            | "CONV_CAUCHY_ELEMS"
+            | "HISTORY_OUTPUT"
+            | "WINDOW_CAUCHY_CRIT"
+            | "CONV_WINDOW_FIELD"
+            | "WINDOW_START_ITER"
+            | "CONV_WINDOW_STARTITER"
+            | "CONV_WINDOW_CAUCHY_EPS"
+            | "CONV_WINDOW_CAUCHY_ELEMS"
+            | "WINDOW_FUNCTION"
+            | "RESTART_ITER"
+            | "TIME_DOMAIN"
+    )
         && values
             .insert(key.to_owned(), raw_value.trim().to_owned())
             .is_some()
@@ -221,6 +282,69 @@ fn insert_config_option(
         return Err(format!("SU2 config line {line_number} duplicates {key}"));
     }
     Ok(())
+}
+
+fn parse_field_list(value: &str, label: &str) -> Result<Vec<String>, String> {
+    let fields = strip_list_syntax(value)
+        .split(',')
+        .map(|field| field.trim().trim_matches('"').trim().to_owned())
+        .collect::<Vec<_>>();
+    let mut unique = BTreeSet::new();
+    if fields.is_empty()
+        || fields.iter().any(String::is_empty)
+        || fields.iter().any(|field| !unique.insert(field.clone()))
+    {
+        return Err(format!("{label} must contain non-empty, unique field names"));
+    }
+    Ok(fields)
+}
+
+fn optional_u64(values: &BTreeMap<String, String>, key: &str) -> Result<Option<u64>, String> {
+    values
+        .get(key)
+        .map(|value| {
+            value.trim().parse::<u64>().map_err(|error| {
+                format!("SU2 config {key} must be an unsigned integer: {error}")
+            })
+        })
+        .transpose()
+}
+
+fn optional_positive_decimal(
+    values: &BTreeMap<String, String>,
+    key: &str,
+) -> Result<Option<String>, String> {
+    values
+        .get(key)
+        .map(|value| {
+            let raw = value.trim();
+            let parsed = raw
+                .parse::<f64>()
+                .map_err(|error| format!("SU2 config {key} must be numeric: {error}"))?;
+            if !parsed.is_finite() || parsed <= 0.0 {
+                return Err(format!("SU2 config {key} must be finite and > 0"));
+            }
+            Ok(raw.to_owned())
+        })
+        .transpose()
+}
+
+fn required_u64(values: &BTreeMap<String, String>, key: &str) -> Result<u64, String> {
+    optional_u64(values, key)?.ok_or_else(|| format!("SU2 config is missing required {key}"))
+}
+
+fn required_positive_decimal(values: &BTreeMap<String, String>, key: &str) -> Result<String, String> {
+    optional_positive_decimal(values, key)?
+        .ok_or_else(|| format!("SU2 config is missing required {key}"))
+}
+
+fn parse_config_boolean(values: &BTreeMap<String, String>, key: &str) -> Result<bool, String> {
+    let raw = parse_config_value(values, key)?;
+    match raw.trim().trim_matches('"').to_ascii_uppercase().as_str() {
+        "YES" | "TRUE" => Ok(true),
+        "NO" | "FALSE" => Ok(false),
+        _ => Err(format!("{key} must be explicitly YES or NO")),
+    }
 }
 
 fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
@@ -265,29 +389,94 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
             "SU2 config line {start_line}: unterminated line continuation"
         ));
     }
+
     let solver_family = parse_config_value(&values, "SOLVER")?.trim().to_owned();
     if solver_family.is_empty() {
         return Err("SU2 SOLVER value must not be empty".to_owned());
     }
-    let convergence_field = strip_list_syntax(parse_config_value(&values, "CONV_FIELD")?)
-        .trim()
-        .trim_matches('"')
-        .to_owned();
-    if convergence_field.is_empty() || convergence_field.contains(',') {
-        return Err("CONV_FIELD must declare exactly one non-empty field name".to_owned());
-    }
+    let time_domain = parse_config_boolean(&values, "TIME_DOMAIN")?;
+    let steady_fields = parse_field_list(
+        parse_config_value(&values, "CONV_FIELD")?,
+        "CONV_FIELD",
+    )?;
     let history_output_selectors =
-        strip_list_syntax(parse_config_value(&values, "HISTORY_OUTPUT")?)
-            .split(',')
-            .map(|value| value.trim().trim_matches('"').to_owned())
-            .filter(|value| !value.is_empty())
-            .collect::<Vec<_>>();
-    if history_output_selectors.is_empty() {
-        return Err("HISTORY_OUTPUT must declare at least one field or group selector".to_owned());
+        parse_field_list(parse_config_value(&values, "HISTORY_OUTPUT")?, "HISTORY_OUTPUT")?;
+
+    let steady_start_iteration = optional_u64(&values, "CONV_STARTITER")?;
+    let steady_residual_min_log10 = values
+        .get("CONV_RESIDUAL_MINVAL")
+        .map(|value| {
+            let raw = value.trim();
+            let parsed = raw.parse::<f64>().map_err(|error| {
+                format!("SU2 config CONV_RESIDUAL_MINVAL must be numeric: {error}")
+            })?;
+            if !parsed.is_finite() {
+                return Err("SU2 config CONV_RESIDUAL_MINVAL must be finite".to_owned());
+            }
+            Ok(raw.to_owned())
+        })
+        .transpose()?;
+    let steady_cauchy_epsilon = optional_positive_decimal(&values, "CONV_CAUCHY_EPS")?;
+    let steady_cauchy_elements = optional_u64(&values, "CONV_CAUCHY_ELEMS")?;
+    if steady_cauchy_elements == Some(0) {
+        return Err("SU2 config CONV_CAUCHY_ELEMS must be > 0".to_owned());
     }
+
+    let window_enabled = parse_config_boolean(&values, "WINDOW_CAUCHY_CRIT")?;
+    if window_enabled && !time_domain {
+        return Err("WINDOW_CAUCHY_CRIT=YES requires TIME_DOMAIN=YES".to_owned());
+    }
+    let window = if window_enabled {
+        let fields = parse_field_list(
+            parse_config_value(&values, "CONV_WINDOW_FIELD")?,
+            "CONV_WINDOW_FIELD",
+        )?;
+        let window_start_iter = required_u64(&values, "WINDOW_START_ITER")?;
+        let convergence_start_iter = required_u64(&values, "CONV_WINDOW_STARTITER")?;
+        let cauchy_elements = required_u64(&values, "CONV_WINDOW_CAUCHY_ELEMS")?;
+        if cauchy_elements == 0 {
+            return Err("SU2 config CONV_WINDOW_CAUCHY_ELEMS must be > 0".to_owned());
+        }
+        let cauchy_epsilon = required_positive_decimal(&values, "CONV_WINDOW_CAUCHY_EPS")?;
+        let window_function = parse_config_value(&values, "WINDOW_FUNCTION")?
+            .trim()
+            .trim_matches('"')
+            .to_ascii_uppercase();
+        if !matches!(
+            window_function.as_str(),
+            "SQUARE" | "HANN" | "HANN_SQUARE" | "BUMP"
+        ) {
+            return Err(format!("unsupported SU2 WINDOW_FUNCTION {window_function}"));
+        }
+        if let Some(restart_iter) = optional_u64(&values, "RESTART_ITER")?
+            && window_start_iter < restart_iter
+        {
+            return Err("WINDOW_START_ITER must not precede RESTART_ITER".to_owned());
+        }
+        Su2WindowConvergenceProtocol::Enabled {
+            fields,
+            window_start_iter,
+            convergence_start_iter,
+            cauchy_elements,
+            cauchy_epsilon,
+            window_function,
+        }
+    } else {
+        Su2WindowConvergenceProtocol::Disabled
+    };
+
+    let convergence_protocol = Su2ConvergenceProtocol {
+        time_domain,
+        steady_fields,
+        steady_start_iteration,
+        steady_residual_min_log10,
+        steady_cauchy_epsilon,
+        steady_cauchy_elements,
+        window,
+    };
     Ok(ParsedConfiguration {
         solver_family,
-        convergence_field,
+        convergence_protocol,
         history_output_selectors,
     })
 }
@@ -375,6 +564,37 @@ fn canonical_bytes(report: &Su2FieldPreflightReport) -> Vec<u8> {
     }
     append_u64(&mut bytes, report.configuration_byte_length);
     append_u64(&mut bytes, report.mesh_byte_length);
+    bytes.push(u8::from(report.convergence_protocol.time_domain));
+    append_u64(&mut bytes, report.convergence_protocol.steady_fields.len() as u64);
+    for field in &report.convergence_protocol.steady_fields {
+        append_string(&mut bytes, field);
+    }
+    append_optional_u64(&mut bytes, report.convergence_protocol.steady_start_iteration);
+    append_optional_string(&mut bytes, &report.convergence_protocol.steady_residual_min_log10);
+    append_optional_string(&mut bytes, &report.convergence_protocol.steady_cauchy_epsilon);
+    append_optional_u64(&mut bytes, report.convergence_protocol.steady_cauchy_elements);
+    match &report.convergence_protocol.window {
+        Su2WindowConvergenceProtocol::Disabled => bytes.push(0),
+        Su2WindowConvergenceProtocol::Enabled {
+            fields,
+            window_start_iter,
+            convergence_start_iter,
+            cauchy_elements,
+            cauchy_epsilon,
+            window_function,
+        } => {
+            bytes.push(1);
+            append_u64(&mut bytes, fields.len() as u64);
+            for field in fields {
+                append_string(&mut bytes, field);
+            }
+            append_u64(&mut bytes, *window_start_iter);
+            append_u64(&mut bytes, *convergence_start_iter);
+            append_u64(&mut bytes, *cauchy_elements);
+            append_string(&mut bytes, cauchy_epsilon);
+            append_string(&mut bytes, window_function);
+        }
+    }
     append_u64(&mut bytes, report.history_output_selectors.len() as u64);
     for selector in &report.history_output_selectors {
         append_string(&mut bytes, selector);
@@ -388,6 +608,72 @@ fn canonical_bytes(report: &Su2FieldPreflightReport) -> Vec<u8> {
         append_string(&mut bytes, field);
     }
     bytes
+}
+
+fn append_optional_u64(bytes: &mut Vec<u8>, value: Option<u64>) {
+    match value {
+        Some(value) => {
+            bytes.push(1);
+            append_u64(bytes, value);
+        }
+        None => bytes.push(0),
+    }
+}
+
+fn append_optional_string(bytes: &mut Vec<u8>, value: &Option<String>) {
+    match value {
+        Some(value) => {
+            bytes.push(1);
+            append_string(bytes, value);
+        }
+        None => bytes.push(0),
+    }
+}
+
+fn format_optional_u64(value: Option<u64>) -> String {
+    value.map(|number| number.to_string()).unwrap_or_default()
+}
+
+fn optional_string(value: &Option<String>) -> String {
+    value.clone().unwrap_or_default()
+}
+
+fn window_fields(window: &Su2WindowConvergenceProtocol) -> String {
+    match window {
+        Su2WindowConvergenceProtocol::Disabled => String::new(),
+        Su2WindowConvergenceProtocol::Enabled { fields, .. } => fields.join(";"),
+    }
+}
+
+fn optional_window_u64(window: &Su2WindowConvergenceProtocol, selector: u8) -> String {
+    match window {
+        Su2WindowConvergenceProtocol::Disabled => String::new(),
+        Su2WindowConvergenceProtocol::Enabled {
+            window_start_iter,
+            convergence_start_iter,
+            cauchy_elements,
+            ..
+        } => match selector {
+            0 => window_start_iter.to_string(),
+            1 => convergence_start_iter.to_string(),
+            2 => cauchy_elements.to_string(),
+            _ => String::new(),
+        },
+    }
+}
+
+fn window_epsilon(window: &Su2WindowConvergenceProtocol) -> String {
+    match window {
+        Su2WindowConvergenceProtocol::Disabled => String::new(),
+        Su2WindowConvergenceProtocol::Enabled { cauchy_epsilon, .. } => cauchy_epsilon.clone(),
+    }
+}
+
+fn window_function(window: &Su2WindowConvergenceProtocol) -> String {
+    match window {
+        Su2WindowConvergenceProtocol::Disabled => String::new(),
+        Su2WindowConvergenceProtocol::Enabled { window_function, .. } => window_function.clone(),
+    }
 }
 
 fn csv_escape(value: &str) -> String {
@@ -465,10 +751,21 @@ pub fn audit_su2_field_preflight(
         .iter()
         .cloned()
         .collect::<BTreeSet<_>>();
-    if !available.contains(&config.convergence_field) {
+    let mut convergence_fields = config.convergence_protocol.steady_fields.clone();
+    if let Su2WindowConvergenceProtocol::Enabled { fields, .. } =
+        &config.convergence_protocol.window
+    {
+        convergence_fields.extend(fields.iter().cloned());
+    }
+    let missing_convergence_fields = convergence_fields
+        .iter()
+        .filter(|field| !available.contains(field.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    if !missing_convergence_fields.is_empty() {
         return Err(format!(
-            "CONV_FIELD {} is not present in the exact solver/configuration dry-run field inventory; SU2 may ignore it and disable convergence checking",
-            config.convergence_field
+            "configured SU2 convergence fields are unavailable in the exact solver/configuration dry-run inventory; SU2 may ignore unknown fields: {}",
+            missing_convergence_fields.join(",")
         ));
     }
     let missing = required
@@ -496,13 +793,14 @@ pub fn audit_su2_field_preflight(
         mesh_byte_length: mesh_bytes.len() as u64,
         mesh_sha256: sha256_hex(&mesh_bytes)?,
         solver_family: config.solver_family,
-        configured_convergence_field: config.convergence_field,
+        configured_convergence_field: config.convergence_protocol.steady_fields[0].clone(),
+        convergence_protocol: config.convergence_protocol,
         history_output_selectors: config.history_output_selectors,
         stdout_sha256: receipt.stdout_sha256.clone(),
         stderr_sha256: receipt.stderr_sha256.clone(),
         available_history_fields,
         required_history_fields: required.into_iter().collect(),
-        status: "required_fields_available_and_conv_field_recognized".to_owned(),
+        status: "all_declared_steady_and_window_convergence_fields_recognized".to_owned(),
         preflight_sha256: String::new(),
         evidence_level: SU2_FIELD_PREFLIGHT_EVIDENCE_LEVEL.to_owned(),
     };
@@ -533,16 +831,22 @@ mod tests {
     }
 
     fn fixture_run(root: &Path, configured_field: &str, inventory: &str) -> PathBuf {
+        let configuration = format!(
+            r#"SOLVER= NAVIER_STOKES
+CONV_FIELD= {configured_field}
+HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+TIME_DOMAIN= NO
+WINDOW_CAUCHY_CRIT= NO
+"#
+        );
+        fixture_run_with_config(root, &configuration, inventory)
+    }
+
+    fn fixture_run_with_config(root: &Path, configuration: &str, inventory: &str) -> PathBuf {
         fs::create_dir_all(root).expect("create fixture root");
         let config = root.join("config.cfg");
         let mesh = root.join("mesh.su2");
-        fs::write(
-            &config,
-            format!(
-                "SOLVER= NAVIER_STOKES\nCONV_FIELD= {configured_field}\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\n"
-            ),
-        )
-        .expect("write config");
+        fs::write(&config, configuration).expect("write config");
         fs::write(
             &mesh,
             "NDIME= 2\nNELEM= 1\n5 0 1 2\nNPOIN= 3\n0 0\n1 0\n0 1\nNMARK= 0\n",
@@ -623,7 +927,11 @@ mod tests {
         .expect("field preflight passes");
         assert_eq!(
             report.status,
-            "required_fields_available_and_conv_field_recognized"
+            "all_declared_steady_and_window_convergence_fields_recognized"
+        );
+        assert_eq!(
+            report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Disabled
         );
         assert_eq!(report.available_history_fields.len(), 6);
         assert_eq!(report.required_history_fields.len(), 4);
@@ -633,7 +941,7 @@ mod tests {
     #[test]
     fn parses_su2_backslash_continued_history_output_lists() {
         let configuration = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\nTIME_DOMAIN= NO\nWINDOW_CAUCHY_CRIT= NO\n",
         )
         .expect("valid continued configuration");
         assert_eq!(
@@ -651,13 +959,147 @@ mod tests {
     }
 
     #[test]
+    fn dry_run_preflight_requires_every_steady_and_window_field_from_exact_inventory() {
+        let root = root();
+        let config = "SOLVER= NAVIER_STOKES\\nCONV_FIELD= (RMS_DENSITY, CD)\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\\nWINDOW_START_ITER= 500\\nCONV_WINDOW_STARTITER= 10\\nCONV_WINDOW_CAUCHY_ELEMS= 10\\nCONV_WINDOW_CAUCHY_EPS= 1E-4\\nWINDOW_FUNCTION= HANN_SQUARE\\n";
+        let inventory = "Available screen/history output fields for the current configuration:\\nITER\\nRMS_DENSITY\\nCD\\nTAVG_DRAG\\nTAVG_LIFT\\nAvailable volume output fields for the current configuration:\\nPRESSURE\\n";
+        let run = fixture_run_with_config(&root.join("complete"), config, inventory);
+        let report = audit_su2_field_preflight(
+            &run,
+            "config.cfg",
+            "mesh.su2",
+            &[
+                "RMS_DENSITY".to_owned(),
+                "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
+            ],
+        )
+        .expect("all configured convergence fields are discovered");
+        assert_eq!(
+            report.convergence_protocol.steady_fields,
+            vec!["RMS_DENSITY", "CD"]
+        );
+        assert!(matches!(
+            &report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Enabled { fields, .. }
+                if fields == &vec!["TAVG_DRAG".to_owned(), "TAVG_LIFT".to_owned()]
+        ));
+
+        let missing_run = fixture_run_with_config(&root.join("missing"), config, INVENTORY);
+        assert!(
+            audit_su2_field_preflight(
+                &missing_run,
+                "config.cfg",
+                "mesh.su2",
+                &[
+                    "RMS_DENSITY".to_owned(),
+                    "CD".to_owned(),
+                    "TAVG_DRAG".to_owned(),
+                    "TAVG_LIFT".to_owned(),
+                ],
+            )
+            .expect_err("a missing time-window field must reject preflight")
+            .contains("TAVG_DRAG,TAVG_LIFT")
+        );
+        fs::remove_dir_all(root).expect("remove window convergence fixtures");
+    }
+
+    #[test]
+    fn preserves_unsteady_endpoint_protocol_without_promoting_it_to_window_convergence() {
+        let root = root();
+        let config = "SOLVER= NAVIER_STOKES\\nTIME_DOMAIN= YES\\nCONV_FIELD= RMS_DENSITY\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n";
+        let run = fixture_run_with_config(&root.join("unsteady-endpoint"), config, INVENTORY);
+        let report = audit_su2_field_preflight(
+            &run,
+            "config.cfg",
+            "mesh.su2",
+            &["RMS_DENSITY".to_owned()],
+        )
+        .expect("unsteady endpoint preflight is recorded");
+        assert!(report.convergence_protocol.time_domain);
+        assert_eq!(
+            report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Disabled
+        );
+        assert!(report.to_csv().contains(",YES,NO,,"));
+        fs::remove_dir_all(root).expect("remove unsteady endpoint fixture");
+    }
+
+    #[test]
+    fn parses_multi_field_steady_and_time_window_convergence_protocols() {
+        let configuration = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nCONV_STARTITER= 25\nCONV_RESIDUAL_MINVAL= -8\nCONV_CAUCHY_EPS= 1E-10\nCONV_CAUCHY_ELEMS= 100\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= HANN_SQUARE\nRESTART_ITER= 100\n",
+        )
+        .expect("well-formed multi-field steady and time-window protocol");
+        assert_eq!(
+            configuration.convergence_protocol.steady_fields,
+            vec!["RMS_DENSITY", "CD"]
+        );
+        assert_eq!(
+            configuration.convergence_protocol.steady_start_iteration,
+            Some(25)
+        );
+        match configuration.convergence_protocol.window {
+            Su2WindowConvergenceProtocol::Enabled {
+                fields,
+                window_start_iter,
+                convergence_start_iter,
+                cauchy_elements,
+                cauchy_epsilon,
+                window_function,
+            } => {
+                assert_eq!(fields, vec!["TAVG_DRAG", "TAVG_LIFT"]);
+                assert_eq!(window_start_iter, 500);
+                assert_eq!(convergence_start_iter, 10);
+                assert_eq!(cauchy_elements, 10);
+                assert_eq!(cauchy_epsilon, "1E-4");
+                assert_eq!(window_function, "HANN_SQUARE");
+            }
+            Su2WindowConvergenceProtocol::Disabled => {
+                panic!("window criterion should be enabled")
+            }
+        }
+
+        let missing_window_fields = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\n",
+        );
+        assert!(
+            missing_window_fields
+                .expect_err("enabled time convergence requires declared fields")
+                .contains("CONV_WINDOW_FIELD")
+        );
+
+        let missing_window_inventory = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\n",
+        )
+        .expect("configuration parser preserves enabled window fields");
+        assert_eq!(
+            match missing_window_inventory.convergence_protocol.window {
+                Su2WindowConvergenceProtocol::Enabled { fields, .. } => fields,
+                Su2WindowConvergenceProtocol::Disabled => Vec::new(),
+            },
+            vec!["TAVG_DRAG", "TAVG_LIFT"]
+        );
+
+        let invalid_restart = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= TAVG_DRAG\nWINDOW_START_ITER= 5\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\nRESTART_ITER= 10\n",
+        );
+        assert!(
+            invalid_restart
+                .expect_err("window average cannot begin before restart")
+                .contains("must not precede RESTART_ITER")
+        );
+    }
+
+    #[test]
     fn rejects_unknown_convergence_field_and_missing_history_field() {
         let root = root();
         let unknown = fixture_run(&root.join("unknown"), "RMS_NOT_A_FIELD", INVENTORY);
         assert!(
             audit_su2_field_preflight(&unknown, "config.cfg", "mesh.su2", &["DRAG".to_owned()])
                 .expect_err("unknown CONV_FIELD rejected")
-                .contains("SU2 may ignore it")
+                .contains("SU2 may ignore unknown fields")
         );
 
         let missing = fixture_run(&root.join("missing"), "RMS_DENSITY", INVENTORY);
