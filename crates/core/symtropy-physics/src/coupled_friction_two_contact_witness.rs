@@ -2747,7 +2747,6 @@ mod double_sliding_direction_oracle {
     }
 
     fn asymmetric_dyadic_double_slide_inputs() -> ([[i128; 6]; 6], [i128; 6]) {
-        const SCALE: i128 = 1_048_576;
         let flattened_w = [
             380_770_i128,
             -33_295,
@@ -2976,12 +2975,8 @@ mod double_sliding_direction_oracle {
         const COMMON_DENOMINATOR: i128 = 1_048_576;
 
         let (w, q) = asymmetric_dyadic_double_slide_inputs();
-        let base = build_exact_double_slide_polynomials(
-            w,
-            q,
-            FRICTION_NUMERATORS,
-            COMMON_DENOMINATOR,
-        );
+        let base =
+            build_exact_double_slide_polynomials(w, q, FRICTION_NUMERATORS, COMMON_DENOMINATOR);
 
         // The exact direction equations are affine in all six free-velocity
         // numerators. Form each exact partial derivative as G(q+e_i)-G(q),
@@ -2999,8 +2994,12 @@ mod double_sliding_direction_oracle {
                     COMMON_DENOMINATOR,
                 );
                 [
-                    shifted.tangential_equation_1.sub(base.tangential_equation_1),
-                    shifted.tangential_equation_2.sub(base.tangential_equation_2),
+                    shifted
+                        .tangential_equation_1
+                        .sub(base.tangential_equation_1),
+                    shifted
+                        .tangential_equation_2
+                        .sub(base.tangential_equation_2),
                 ]
             });
 
@@ -3017,12 +3016,14 @@ mod double_sliding_direction_oracle {
             );
             assert_eq!(
                 twice.tangential_equation_1,
-                base.tangential_equation_1.add(direction_equations[coordinate][0].scale(2)),
+                base.tangential_equation_1
+                    .add(direction_equations[coordinate][0].scale(2)),
                 "G1 must be exactly affine in q[{coordinate}]"
             );
             assert_eq!(
                 twice.tangential_equation_2,
-                base.tangential_equation_2.add(direction_equations[coordinate][1].scale(2)),
+                base.tangential_equation_2
+                    .add(direction_equations[coordinate][1].scale(2)),
                 "G2 must be exactly affine in q[{coordinate}]"
             );
         }
@@ -3075,64 +3076,66 @@ mod double_sliding_direction_oracle {
 
         // One 2x6 matrix per root box. Every entry is an exact rational
         // interval obtained by the implicit equation dt/dq = -G_t^-1 G_q.
-        let branch_sensitivities: [[[RationalInterval; 2]; 6]; 2] =
-            std::array::from_fn(|branch| {
-                let certificate = certify_exact_double_slide_root_box(
-                    &base,
-                    centers[branch].clone(),
-                    radius.clone(),
-                    FRICTION_NUMERATORS,
-                    COMMON_DENOMINATOR,
-                )
-                .expect("each physical double-slide branch has a Krawczyk certificate");
-                let domain = &certificate.domain;
-                let equations = [
-                    &base.tangential_equation_1,
-                    &base.tangential_equation_2,
-                ];
-                let jacobian = [
-                    [
-                        equations[0].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[0].partial_t2().evaluate_interval(&domain[0], &domain[1]),
-                    ],
-                    [
-                        equations[1].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[1].partial_t2().evaluate_interval(&domain[0], &domain[1]),
-                    ],
-                ];
-                let determinant = jacobian[0][0]
-                    .mul(&jacobian[1][1])
-                    .sub(&jacobian[0][1].mul(&jacobian[1][0]));
-                assert!(
-                    determinant.excludes_zero(),
-                    "the branch Jacobian must remain nonsingular on its certified box"
-                );
+        let branch_sensitivities: [[[RationalInterval; 2]; 6]; 2] = std::array::from_fn(|branch| {
+            let certificate = certify_exact_double_slide_root_box(
+                &base,
+                centers[branch].clone(),
+                radius.clone(),
+                FRICTION_NUMERATORS,
+                COMMON_DENOMINATOR,
+            )
+            .expect("each physical double-slide branch has a Krawczyk certificate");
+            let domain = &certificate.domain;
+            let equations = [&base.tangential_equation_1, &base.tangential_equation_2];
+            let jacobian = [
+                [
+                    equations[0]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[0]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+                [
+                    equations[1]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[1]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+            ];
+            let determinant = jacobian[0][0]
+                .mul(&jacobian[1][1])
+                .sub(&jacobian[0][1].mul(&jacobian[1][0]));
+            assert!(
+                determinant.excludes_zero(),
+                "the branch Jacobian must remain nonsingular on its certified box"
+            );
 
-                std::array::from_fn(|coordinate| {
-                    let parameter_derivative = [
-                        direction_equations[coordinate][0]
-                            .evaluate_interval(&domain[0], &domain[1]),
-                        direction_equations[coordinate][1]
-                            .evaluate_interval(&domain[0], &domain[1]),
-                    ];
-                    let dt1_numerator = jacobian[1][1]
-                        .mul(&parameter_derivative[0])
-                        .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
-                        .neg();
-                    let dt2_numerator = jacobian[0][0]
-                        .mul(&parameter_derivative[1])
-                        .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
-                        .neg();
-                    [
-                        dt1_numerator
-                            .div(&determinant)
-                            .expect("nonsingular interval Jacobian gives dt1/dq enclosure"),
-                        dt2_numerator
-                            .div(&determinant)
-                            .expect("nonsingular interval Jacobian gives dt2/dq enclosure"),
-                    ]
-                })
-            });
+            std::array::from_fn(|coordinate| {
+                let parameter_derivative = [
+                    direction_equations[coordinate][0].evaluate_interval(&domain[0], &domain[1]),
+                    direction_equations[coordinate][1].evaluate_interval(&domain[0], &domain[1]),
+                ];
+                let dt1_numerator = jacobian[1][1]
+                    .mul(&parameter_derivative[0])
+                    .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
+                    .neg();
+                let dt2_numerator = jacobian[0][0]
+                    .mul(&parameter_derivative[1])
+                    .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
+                    .neg();
+                [
+                    dt1_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt1/dq enclosure"),
+                    dt2_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt2/dq enclosure"),
+                ]
+            })
+        });
 
         // Every free-velocity coordinate changes both direction parameters
         // strictly on both certified branches. The nearby roots have opposite
@@ -3189,12 +3192,8 @@ mod double_sliding_direction_oracle {
         ];
 
         let (w, q) = asymmetric_dyadic_double_slide_inputs();
-        let base = build_exact_double_slide_polynomials(
-            w,
-            q,
-            FRICTION_NUMERATORS,
-            COMMON_DENOMINATOR,
-        );
+        let base =
+            build_exact_double_slide_polynomials(w, q, FRICTION_NUMERATORS, COMMON_DENOMINATOR);
 
         // Build all six exact input partials. The double-slide equations are
         // affine in q, so unit numerator shifts recover the exact partials.
@@ -3211,8 +3210,12 @@ mod double_sliding_direction_oracle {
                     COMMON_DENOMINATOR,
                 );
                 [
-                    shifted.tangential_equation_1.sub(base.tangential_equation_1),
-                    shifted.tangential_equation_2.sub(base.tangential_equation_2),
+                    shifted
+                        .tangential_equation_1
+                        .sub(base.tangential_equation_1),
+                    shifted
+                        .tangential_equation_2
+                        .sub(base.tangential_equation_2),
                 ]
             });
 
@@ -3223,20 +3226,14 @@ mod double_sliding_direction_oracle {
                     BigInt::from(2_044_412_562_120_879_i128),
                     denominator.clone(),
                 ),
-                BigRational::new(
-                    BigInt::from(-233_602_787_384_141_i128),
-                    denominator.clone(),
-                ),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
             ],
             [
                 BigRational::new(
                     BigInt::from(2_054_286_197_054_429_i128),
                     denominator.clone(),
                 ),
-                BigRational::new(
-                    BigInt::from(-227_603_740_377_268_i128),
-                    denominator,
-                ),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator),
             ],
         ];
         let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
@@ -3253,18 +3250,23 @@ mod double_sliding_direction_oracle {
                 )
                 .expect("both double-slide roots have Krawczyk inclusion certificates");
                 let domain = &certificate.domain;
-                let equations = [
-                    &base.tangential_equation_1,
-                    &base.tangential_equation_2,
-                ];
+                let equations = [&base.tangential_equation_1, &base.tangential_equation_2];
                 let jacobian = [
                     [
-                        equations[0].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[0].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                        equations[0]
+                            .partial_t1()
+                            .evaluate_interval(&domain[0], &domain[1]),
+                        equations[0]
+                            .partial_t2()
+                            .evaluate_interval(&domain[0], &domain[1]),
                     ],
                     [
-                        equations[1].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[1].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                        equations[1]
+                            .partial_t1()
+                            .evaluate_interval(&domain[0], &domain[1]),
+                        equations[1]
+                            .partial_t2()
+                            .evaluate_interval(&domain[0], &domain[1]),
                     ],
                 ];
                 let determinant = jacobian[0][0]
@@ -3277,10 +3279,8 @@ mod double_sliding_direction_oracle {
 
                 std::array::from_fn(|coordinate| {
                     let parameter_derivative = [
-                        input_partials[coordinate][0]
-                            .evaluate_interval(&domain[0], &domain[1]),
-                        input_partials[coordinate][1]
-                            .evaluate_interval(&domain[0], &domain[1]),
+                        input_partials[coordinate][0].evaluate_interval(&domain[0], &domain[1]),
+                        input_partials[coordinate][1].evaluate_interval(&domain[0], &domain[1]),
                     ];
                     let dt1_numerator = jacobian[1][1]
                         .mul(&parameter_derivative[0])
@@ -3308,9 +3308,8 @@ mod double_sliding_direction_oracle {
                 for (coordinate, direction_coefficient) in direction.iter().enumerate() {
                     let direction_coefficient =
                         BigRational::from_integer(BigInt::from(*direction_coefficient));
-                    directional_derivative = directional_derivative.add(
-                        &branch_gradient[coordinate][objective].scale(&direction_coefficient),
-                    );
+                    directional_derivative = directional_derivative
+                        .add(&branch_gradient[coordinate][objective].scale(&direction_coefficient));
                 }
 
                 let required_upper = if objective == 0 {
