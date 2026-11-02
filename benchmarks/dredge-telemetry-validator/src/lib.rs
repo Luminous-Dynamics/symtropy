@@ -330,11 +330,11 @@ impl DredgeTelemetryValidator {
                 unknown = true;
             }
         }
-        if let Some(previous) = self.last_observed_tick {
-            if record.observed_at_tick <= previous {
-                reasons.push(TelemetryReason::SequenceNotIncreasing);
-                inconsistent = true;
-            }
+        if let Some(previous) = self.last_observed_tick
+            && record.observed_at_tick <= previous
+        {
+            reasons.push(TelemetryReason::SequenceNotIncreasing);
+            inconsistent = true;
         }
         if let Some(seen) = self.seen_events.get(&record.event_id) {
             reasons.push(if seen.digest == record.payload_digest {
