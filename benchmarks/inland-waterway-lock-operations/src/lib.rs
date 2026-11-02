@@ -268,12 +268,10 @@ pub fn evaluate_passage(
     unknown |= water_review;
     water_evidence_usable &= !water_bad && !water_review;
 
-    let required_length = u128::from(vessel.length_mm)
-        + u128::from(lock.required_end_clearance_mm);
-    let required_beam = u128::from(vessel.beam_mm)
-        + u128::from(lock.required_side_clearance_mm);
-    let required_depth = u128::from(vessel.draft_mm)
-        + u128::from(lock.required_under_keel_clearance_mm);
+    let required_length = u128::from(vessel.length_mm) + u128::from(lock.required_end_clearance_mm);
+    let required_beam = u128::from(vessel.beam_mm) + u128::from(lock.required_side_clearance_mm);
+    let required_depth =
+        u128::from(vessel.draft_mm) + u128::from(lock.required_under_keel_clearance_mm);
 
     if lock_profile_usable && vessel_evidence_usable {
         if required_length > u128::from(lock.usable_length_mm) {
@@ -285,7 +283,9 @@ pub fn evaluate_passage(
             blocked = true;
         }
     }
-    if lock_profile_usable && vessel_evidence_usable && water_evidence_usable
+    if lock_profile_usable
+        && vessel_evidence_usable
+        && water_evidence_usable
         && required_depth > u128::from(water.available_depth_mm)
     {
         reasons.push(PassageReason::UnderKeelClearanceExceeded);
@@ -501,8 +501,12 @@ pub fn evaluate_water_cycle(
     };
 
     if lock_profile_usable && record_evidence_usable {
-        if record.opening_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
-            || record.closing_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
+        if record
+            .opening_system_storage_ml
+            .is_some_and(|v| v > lock.total_storage_capacity_ml)
+            || record
+                .closing_system_storage_ml
+                .is_some_and(|v| v > lock.total_storage_capacity_ml)
         {
             reasons.push(WaterCycleReason::StorageCapacityExceeded);
             inconsistent = true;
@@ -514,7 +518,11 @@ pub fn evaluate_water_cycle(
             reasons.push(WaterCycleReason::PumpEnergyMissing);
             unknown = true;
         }
-        if record.pump_meter_id.as_deref().is_none_or(|id| !nonempty(id)) {
+        if record
+            .pump_meter_id
+            .as_deref()
+            .is_none_or(|id| !nonempty(id))
+        {
             reasons.push(WaterCycleReason::PumpMeterIdentityMissing);
             unknown = true;
         }
@@ -532,14 +540,21 @@ pub fn evaluate_water_cycle(
     }
 
     let residual = match values {
-        [Some(opening), Some(upper_in), Some(lower_in), Some(upper_out),
-         Some(lower_out), Some(losses), Some(closing)] => {
-            Some(
-                i128::from(upper_in) + i128::from(lower_in) + i128::from(opening)
-                    - i128::from(upper_out) - i128::from(lower_out)
-                    - i128::from(losses) - i128::from(closing)
-            )
-        }
+        [
+            Some(opening),
+            Some(upper_in),
+            Some(lower_in),
+            Some(upper_out),
+            Some(lower_out),
+            Some(losses),
+            Some(closing),
+        ] => Some(
+            i128::from(upper_in) + i128::from(lower_in) + i128::from(opening)
+                - i128::from(upper_out)
+                - i128::from(lower_out)
+                - i128::from(losses)
+                - i128::from(closing),
+        ),
         _ => None,
     };
 
@@ -562,7 +577,9 @@ pub fn evaluate_water_cycle(
 
     if disposition == WaterCycleDisposition::BalancedForSyntheticCycle {
         if let Some(value) = residual {
-            next_cursor.accepted.insert(record.cycle_id.clone(), (record.clone(), value));
+            next_cursor
+                .accepted
+                .insert(record.cycle_id.clone(), (record.clone(), value));
         }
     }
 
@@ -623,8 +640,13 @@ mod tests {
 
     fn passage() -> PassageEvaluation {
         evaluate_passage(
-            &lock(), &vessel(), &water(),
-            LockAssetStatus::Available, OperatorApproval::Approved, 100, 10
+            &lock(),
+            &vessel(),
+            &water(),
+            LockAssetStatus::Available,
+            OperatorApproval::Approved,
+            100,
+            10,
         )
     }
 
@@ -633,7 +655,10 @@ mod tests {
             cycle_id: "cycle-01".into(),
             lock_id: "lock-01".into(),
             lock_revision: "lock-r4".into(),
-            support: TimeInterval { start_tick: 100, end_tick: 110 },
+            support: TimeInterval {
+                start_tick: 100,
+                end_tick: 110,
+            },
             evidence_id: "cycle-evidence-01".into(),
             evidence_state: EvidenceState::Current,
             opening_system_storage_ml: Some(1_000_000),
@@ -656,7 +681,10 @@ mod tests {
 
     #[test]
     fn compatible_vessel_passage_is_eligible() {
-        assert_eq!(passage().disposition, PassageDisposition::EligibleForSyntheticPassage);
+        assert_eq!(
+            passage().disposition,
+            PassageDisposition::EligibleForSyntheticPassage
+        );
     }
 
     #[test]
@@ -666,8 +694,16 @@ mod tests {
         v.beam_mm = 11_500;
         v.draft_mm = 2_200;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EligibleForSyntheticPassage
         );
     }
@@ -677,8 +713,16 @@ mod tests {
         let mut v = vessel();
         v.length_mm = 119_000;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::BlockedByHardConstraint
         );
     }
@@ -688,8 +732,16 @@ mod tests {
         let mut v = vessel();
         v.beam_mm = 11_501;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::BlockedByHardConstraint
         );
     }
@@ -699,8 +751,16 @@ mod tests {
         let mut w = water();
         w.available_depth_mm = 2_299;
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &w, LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &w,
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::BlockedByHardConstraint
         );
     }
@@ -710,8 +770,16 @@ mod tests {
         let mut v = vessel();
         v.observed_at_tick = 80;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -721,8 +789,16 @@ mod tests {
         let mut w = water();
         w.observed_at_tick = 80;
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &w, LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &w,
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -732,8 +808,16 @@ mod tests {
         let mut w = water();
         w.datum_id = "different-datum".into();
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &w, LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &w,
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EvidenceInconsistent
         );
     }
@@ -743,8 +827,16 @@ mod tests {
         let mut w = water();
         w.lock_id = "lock-02".into();
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &w, LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &w,
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EvidenceInconsistent
         );
     }
@@ -754,8 +846,16 @@ mod tests {
         let mut v = vessel();
         v.calibration_valid_through_tick = None;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -765,8 +865,16 @@ mod tests {
         let mut w = water();
         w.evidence_state = EvidenceState::Revoked;
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &w, LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &w,
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EvidenceInconsistent
         );
     }
@@ -774,8 +882,16 @@ mod tests {
     #[test]
     fn pending_operator_approval_requires_review() {
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &water(), LockAssetStatus::Available,
-                OperatorApproval::Pending, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Pending,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -783,8 +899,16 @@ mod tests {
     #[test]
     fn declined_operator_approval_blocks_passage() {
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &water(), LockAssetStatus::Available,
-                OperatorApproval::Declined, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Declined,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::BlockedByHardConstraint
         );
     }
@@ -792,8 +916,16 @@ mod tests {
     #[test]
     fn lock_outage_blocks_passage() {
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &water(), LockAssetStatus::Outage,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &water(),
+                LockAssetStatus::Outage,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::BlockedByHardConstraint
         );
     }
@@ -801,8 +933,16 @@ mod tests {
     #[test]
     fn unknown_lock_status_requires_review() {
         assert_eq!(
-            evaluate_passage(&lock(), &vessel(), &water(), LockAssetStatus::Unknown,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &vessel(),
+                &water(),
+                LockAssetStatus::Unknown,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -812,8 +952,16 @@ mod tests {
         let mut v = vessel();
         v.observed_at_tick = 101;
         assert_eq!(
-            evaluate_passage(&lock(), &v, &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &lock(),
+                &v,
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EvidenceInconsistent
         );
     }
@@ -823,8 +971,16 @@ mod tests {
         let mut l = lock();
         l.valid_through_tick = Some(99);
         assert_eq!(
-            evaluate_passage(&l, &vessel(), &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &l,
+                &vessel(),
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::UnknownReviewRequired
         );
     }
@@ -838,11 +994,28 @@ mod tests {
         v.length_mm = 500_000;
         w.available_depth_mm = 0;
         let result = evaluate_passage(
-            &lock(), &v, &w, LockAssetStatus::Available, OperatorApproval::Approved, 100, 10
+            &lock(),
+            &v,
+            &w,
+            LockAssetStatus::Available,
+            OperatorApproval::Approved,
+            100,
+            10,
         );
-        assert_eq!(result.disposition, PassageDisposition::UnknownReviewRequired);
-        assert!(!result.reasons.contains(&PassageReason::LengthClearanceExceeded));
-        assert!(!result.reasons.contains(&PassageReason::UnderKeelClearanceExceeded));
+        assert_eq!(
+            result.disposition,
+            PassageDisposition::UnknownReviewRequired
+        );
+        assert!(
+            !result
+                .reasons
+                .contains(&PassageReason::LengthClearanceExceeded)
+        );
+        assert!(
+            !result
+                .reasons
+                .contains(&PassageReason::UnderKeelClearanceExceeded)
+        );
     }
 
     #[test]
@@ -852,16 +1025,32 @@ mod tests {
         let mut v = vessel();
         v.length_mm = 500_000;
         let result = evaluate_passage(
-            &l, &v, &water(), LockAssetStatus::Available, OperatorApproval::Approved, 100, 10
+            &l,
+            &v,
+            &water(),
+            LockAssetStatus::Available,
+            OperatorApproval::Approved,
+            100,
+            10,
         );
-        assert_eq!(result.disposition, PassageDisposition::UnknownReviewRequired);
-        assert!(!result.reasons.contains(&PassageReason::LengthClearanceExceeded));
+        assert_eq!(
+            result.disposition,
+            PassageDisposition::UnknownReviewRequired
+        );
+        assert!(
+            !result
+                .reasons
+                .contains(&PassageReason::LengthClearanceExceeded)
+        );
     }
 
     #[test]
     fn water_cycle_balances_chamber_and_basin_storage() {
         let r = cycle_eval(&cycle(), &WaterCycleCursor::default());
-        assert_eq!(r.disposition, WaterCycleDisposition::BalancedForSyntheticCycle);
+        assert_eq!(
+            r.disposition,
+            WaterCycleDisposition::BalancedForSyntheticCycle
+        );
         assert_eq!(r.residual_ml, Some(0));
     }
 
@@ -910,7 +1099,10 @@ mod tests {
         let mut record = cycle();
         record.inflow_from_upper_pound_ml = Some(500_050);
         let r = cycle_eval(&record, &WaterCycleCursor::default());
-        assert_eq!(r.disposition, WaterCycleDisposition::BalancedForSyntheticCycle);
+        assert_eq!(
+            r.disposition,
+            WaterCycleDisposition::BalancedForSyntheticCycle
+        );
         assert_eq!(r.residual_ml, Some(50));
     }
 
@@ -1026,7 +1218,8 @@ mod tests {
         let mut record = cycle();
         record.support.end_tick = 130;
         assert_eq!(
-            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20).disposition,
+            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20)
+                .disposition,
             WaterCycleDisposition::EvidenceInconsistent
         );
     }
@@ -1036,7 +1229,10 @@ mod tests {
         let record = cycle();
         let first = cycle_eval(&record, &WaterCycleCursor::default());
         let replay = cycle_eval(&record, &first.next_cursor);
-        assert_eq!(replay.disposition, WaterCycleDisposition::DuplicateExactReplay);
+        assert_eq!(
+            replay.disposition,
+            WaterCycleDisposition::DuplicateExactReplay
+        );
         assert_eq!(replay.residual_ml, first.residual_ml);
         assert_eq!(replay.next_cursor, first.next_cursor);
     }
@@ -1044,9 +1240,13 @@ mod tests {
     #[test]
     fn stale_cycle_evidence_requires_review() {
         let mut record = cycle();
-        record.support = TimeInterval { start_tick: 50, end_tick: 60 };
+        record.support = TimeInterval {
+            start_tick: 50,
+            end_tick: 60,
+        };
         assert_eq!(
-            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20).disposition,
+            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20)
+                .disposition,
             WaterCycleDisposition::UnknownReviewRequired
         );
     }
@@ -1100,8 +1300,16 @@ mod tests {
         let mut l = lock();
         l.lock_id.clear();
         assert_eq!(
-            evaluate_passage(&l, &vessel(), &water(), LockAssetStatus::Available,
-                OperatorApproval::Approved, 100, 10).disposition,
+            evaluate_passage(
+                &l,
+                &vessel(),
+                &water(),
+                LockAssetStatus::Available,
+                OperatorApproval::Approved,
+                100,
+                10
+            )
+            .disposition,
             PassageDisposition::EvidenceInconsistent
         );
     }
