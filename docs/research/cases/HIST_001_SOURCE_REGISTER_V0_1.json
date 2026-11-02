@@ -28,7 +28,10 @@
       "source_id": "HIST001-SRC-AMS-2021",
       "source_type": "peer_reviewed_research_letter",
       "citation": {
-        "authors": ["Thomas N. Huffman", "Stephan Woodborne"],
+        "authors": [
+          "Thomas N. Huffman",
+          "Stephan Woodborne"
+        ],
         "title": "New AMS dates for the Middle Iron Age in the Mapungubwe landscape",
         "journal": "South African Journal of Science",
         "volume": "117",
@@ -77,7 +80,10 @@
       "source_id": "HIST001-SRC-BEADS-2023",
       "source_type": "open_access_peer_reviewed_article",
       "citation": {
-        "authors": ["Michelle Mouton", "Alexander Antonites"],
+        "authors": [
+          "Michelle Mouton",
+          "Alexander Antonites"
+        ],
         "title": "Shell disc beads and the development of class-based society at the K2-Mapungubwe settlement complex (South Africa)",
         "journal": "Archaeological and Anthropological Sciences",
         "volume": "15",
@@ -136,13 +142,27 @@
         "id": "HIST001-FAMILY-K2-MAPUNGUBWE-BEADS",
         "independence": "unknown",
         "notes": "Excavation contexts cite earlier work by Eloff, Meyer, Jones and others. Preserve those source lineages before treating this analysis as independent evidence for the same contexts."
+      },
+      "data_access": {
+        "status": "underlying_dataset_not_publicly_downloadable_from_article_page",
+        "custodian": "Department of Anthropology and Archaeology, University of Pretoria",
+        "access_condition": "The article states that datasets generated and analysed are curated by the department and consent for publication is available from the corresponding author on reasonable request.",
+        "corresponding_author": "Alexander Antonites",
+        "contact_action": "request access and permitted-use terms before requesting or ingesting bead-level rows",
+        "access_source_uri": "https://link.springer.com/article/10.1007/s12520-023-01735-2",
+        "notes": "The article text is open access under CC BY 4.0, but the underlying dataset requires a separate access request. Do not assume article text licensing automatically licenses the raw dataset."
       }
     },
     {
       "source_id": "HIST001-SRC-GZ-BAYES-2013",
       "source_type": "peer_reviewed_chronological_analysis",
       "citation": {
-        "authors": ["Shadreck Chirikure", "Mark Pollard", "Munyaradzi Manyanga", "Foreman Bandama"],
+        "authors": [
+          "Shadreck Chirikure",
+          "Mark Pollard",
+          "Munyaradzi Manyanga",
+          "Foreman Bandama"
+        ],
         "title": "A Bayesian chronology for Great Zimbabwe: re-threading the sequence of a vandalised monument",
         "journal": "Antiquity",
         "volume": "87",
