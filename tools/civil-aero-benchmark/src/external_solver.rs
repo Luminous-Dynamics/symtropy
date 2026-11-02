@@ -642,6 +642,29 @@ pub fn execute_external_solver(
     {
         return Err("solver arguments must not contain NUL bytes".to_owned());
     }
+    if request.expected_outputs.is_empty() {
+        if request.solver_id != "SU2_CFD_DRY_RUN"
+            || request.arguments.len() != 2
+            || request.arguments[0] != "-d"
+        {
+            return Err(
+                "process-only receipts are restricted to SU2_CFD_DRY_RUN with exactly -d CONFIG_PATH"
+                    .to_owned(),
+            );
+        }
+        let config_path = validate_relative_path(&request.arguments[1])?;
+        if !request
+            .staged_inputs
+            .iter()
+            .any(|input| Path::new(&input.relative_path) == config_path)
+        {
+            return Err(
+                "SU2_CFD_DRY_RUN CONFIG_PATH must be one of the staged inputs".to_owned(),
+            );
+        }
+    } else if request.solver_id == "SU2_CFD_DRY_RUN" {
+        return Err("SU2_CFD_DRY_RUN must not declare expected physics outputs".to_owned());
+    }
     let mut used_paths = BTreeSet::new();
     for path in [
         INVOCATION_MANIFEST_FILE,
