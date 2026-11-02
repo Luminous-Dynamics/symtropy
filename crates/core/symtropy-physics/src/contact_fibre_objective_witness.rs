@@ -264,7 +264,8 @@ mod tests {
         let permuted_base = permute_impulse_blocks(&BASE_IMPULSE, order);
         let permuted_basis = NULL_BASIS.map(|direction| permute_impulse_blocks(&direction, order));
 
-        let vertical_body_observable: Objective = std::array::from_fn(|row| permuted_jacobian[row][2]);
+        let vertical_body_observable: Objective =
+            std::array::from_fn(|row| permuted_jacobian[row][2]);
         assert_eq!(
             objective_range_on_fibre(&vertical_body_observable, &permuted_base, &permuted_basis),
             [200, 200]
