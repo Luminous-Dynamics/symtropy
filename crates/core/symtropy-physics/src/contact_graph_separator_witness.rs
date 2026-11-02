@@ -760,8 +760,8 @@ fn separating_leaf_interval_messages_certify_only_boxes_with_a_strict_sign() {
     assert!(strict.post_velocity_bounds[0].lower <= 0.375);
     assert!(strict.post_velocity_bounds[0].upper >= 0.5);
     assert_eq!(strict.impulse, SVector::<f64, 3>::zeros());
-    assert!(strict.post_velocity_bounds[1].lower <= 0.125);
-    assert!(strict.post_velocity_bounds[1].upper >= 0.375);
+    assert!(strict.post_velocity_bounds[1].lower <= 0.0);
+    assert!(strict.post_velocity_bounds[1].upper >= 0.25);
     assert!(strict.post_velocity_bounds[2].lower <= -0.375);
     assert!(strict.post_velocity_bounds[2].upper >= -0.125);
 
