@@ -665,18 +665,37 @@ mod tests {
 
         assert!(report.passed(), "{:?}", report.failed_checks().collect::<Vec<_>>());
         assert_eq!(report.segment_count(), 2);
-        assert_eq!(report.check_count(), 24);
+        assert_eq!(report.check_count(), 23);
         assert_eq!(report.batch_ids(), &["BATCH-1", "BATCH-2"]);
         assert_eq!(report.flow_evidence_ids(), &["FLOW-SEG-1", "FLOW-SEG-2"]);
     }
 
     #[test]
-    fn detects_tolerance_that_is_too_strict_for_quantized_results() {
+    fn zero_tolerance_verifies_exact_deterministic_fixture() {
         let result = cycle();
         let strict =
             EnergyVerificationTolerance::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0).unwrap();
         let report = verify_batch_bound_duty_cycle(&result, strict).unwrap();
         assert!(report.passed());
+    }
+
+    #[test]
+    fn records_a_mismatch_as_a_failed_check() {
+        let mut checks = Vec::new();
+        push_check(
+            &mut checks,
+            Some("SEGMENT-1".to_string()),
+            "net electrical power",
+            100.0,
+            90.0,
+            1.0,
+        )
+        .unwrap();
+
+        assert_eq!(checks.len(), 1);
+        assert!(!checks[0].passed());
+        assert_eq!(checks[0].absolute_error(), 10.0);
+        assert_eq!(checks[0].allowed_error(), 1.0);
     }
 
     #[test]
