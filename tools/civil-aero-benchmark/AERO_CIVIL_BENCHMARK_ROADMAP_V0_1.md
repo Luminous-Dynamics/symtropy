@@ -259,3 +259,30 @@ Files added or extended:
 - scripts/verify-su2-run-lineage-independent.py
 
 The next gates are: exact-head format/tests/Clippy; successful CI run of the composed fake-solver lineage fixture and independent oracle; bridge a verified run bundle to a grid-study record without losing raw residual encoding; then add measured resource telemetry with explicit unknown states. A real, lawfully sourced and pinned SU2 run remains a separate next milestone; the synthetic CI fixture is not an SU2 simulation.
+
+
+## 13. Exact-solver field preflight and boundary-marker identity (2026-11-02)
+
+The SU2 path now has a separate dry-run receipt type and preflight gate. A process-only receipt is restricted in the library API to solver ID `SU2_CFD_DRY_RUN`, exactly `-d CONFIG_PATH`, and a staged config. It is not a generic “successful process with no outputs” escape hatch.
+
+The dry-run preflight replays that receipt, checks the exact invocation/config/mesh digests, parses `SOLVER`, `CONV_FIELD` and `HISTORY_OUTPUT`, and verifies that the pinned executable advertised the configured convergence field and every required later history field for that exact solver/configuration. This responds to SU2's troubleshooting guidance: fields depend on the solver, and an unrecognized `CONV_FIELD` can be ignored, leaving convergence checking disabled. The output ceiling is field-discovery/configuration compatibility only.
+
+A second audit now reconciles native SU2 mesh marker tags with config boundary assignments. Each marker must be assigned exactly once through an explicitly declared option schema; config references absent from the mesh, duplicate assignments, malformed parameter tuples and unclassified `MARKER_*` options are rejected. Non-boundary marker lists (monitoring/plotting/designing/analysis) are separately declared and checked against the mesh. Tuple widths and marker-name positions are caller-declared so option layouts are not guessed. A periodic tuple schema must be checked against the pinned SU2 solver/version before use.
+
+See `SU2_FIELD_PREFLIGHT_V0_1.md` and `SU2_BOUNDARY_MARKER_AUDIT_V0_1.md`. The synthetic CI fixture tests structural mapping and negative controls; it does not validate boundary-condition physics.
+
+## 14. Lineage-bound multi-grid GCI study composition (2026-11-02)
+
+The previously separate SU2 run-lineage and grid-convergence paths now compose through `su2_grid_family.rs`. A study requires at least three individual run lineages, unique run IDs and mesh digests, coarse-to-fine level/spacing order, one solver executable digest/version claim, one physics-configuration digest/path and one fixed geometry digest. Each member's process/history/convergence/lineage evidence is replayed before its quantity is derived from the same passing terminal monitor window.
+
+GCI is therefore no longer fed arbitrary caller-entered force coefficients in this path: the selected scalar is computed from the imported history monitor values. The study preserves every sliding coarse/medium/fine GCI triplet in a separate CSV; its member-level CSV binds each run lineage and the complete GCI-report digest.
+
+Limitations remain explicit:
+- characteristic spacing (h) is still caller supplied and only its definition/value are bound; derive it from mesh semantics next;
+- the protocol manifest digest is caller supplied, not source authenticated;
+- the convergence screen only evaluates explicitly declared equations and monitors;
+- passing a terminal monitor screen is not equivalent to all solver equations, conservation laws, or time-dependent behavior being converged;
+- GCI is not experimental validation or model-form validation.
+
+The end-to-end Rust fixture builds three distinct nested triangular meshes on the same unit-square geometry, with one executable/config/geometry identity and deterministic fake solver histories. It checks a known second-order GCI sequence, lineage replay, and coarse-to-fine rejection. It is a synthetic software integration test, not a CFD result. See `SU2_GRID_FAMILY_STUDY_V0_1.md`.
+
