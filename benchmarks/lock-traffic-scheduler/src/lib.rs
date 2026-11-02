@@ -1014,7 +1014,10 @@ mod tests {
     #[test]
     fn aging_is_evaluated_at_the_reservation_boundary() {
         let mut lock = profile();
-        lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
+        lock.availability = vec![TimeInterval {
+            start_tick: 100,
+            end_tick: 500,
+        }];
         let older_freight = request(
             "older-freight",
             "p1",
