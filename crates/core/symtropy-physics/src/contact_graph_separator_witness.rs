@@ -2335,6 +2335,7 @@ fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
     )
     .unwrap();
     assert_eq!(three.candidate_combinations, three_product);
+    assert!(three.empty_intersections > 0);
     assert_eq!(
         three.empty_intersections + three.cells.len(),
         three.candidate_combinations
@@ -2360,6 +2361,7 @@ fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
     )
     .unwrap();
     assert_eq!(six.candidate_combinations, six_product);
+    assert!(six.empty_intersections > 0);
     assert_eq!(
         six.empty_intersections + six.cells.len(),
         six.candidate_combinations
@@ -2435,6 +2437,16 @@ fn nary_separator_join_rejects_missing_duplicate_and_relabelled_tuple_cells() {
         .collect::<Vec<_>>();
     let joined = compose_nary_separator_partitions(&sources).unwrap();
     assert!(verify_nary_separator_composition(&sources, &joined));
+
+    let duplicate_identity = [
+        sources[0],
+        NarySeparatorPartitionSource {
+            source_id: sources[0].source_id,
+            message: sources[1].message,
+            partition: sources[1].partition,
+        },
+    ];
+    assert!(compose_nary_separator_partitions(&duplicate_identity).is_err());
 
     let mut missing = joined.clone();
     missing.cells.pop();
