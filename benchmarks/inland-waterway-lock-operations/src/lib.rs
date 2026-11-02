@@ -317,7 +317,7 @@ pub fn evaluate_passage(
 
     let disposition = if inconsistent {
         PassageDisposition::EvidenceInconsistent
-    }    } else if blocked {
+    } else if blocked {
         PassageDisposition::BlockedByHardConstraint
     } else if unknown {
         PassageDisposition::UnknownReviewRequired
