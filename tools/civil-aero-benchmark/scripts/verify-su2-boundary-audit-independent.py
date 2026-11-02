@@ -72,7 +72,8 @@ def parse_config(path: Path) -> dict[str, str]:
             key = key.strip()
             require(key not in result, f"duplicate config key {key} at line {index}")
             result[key] = value.strip()
-    require(pending is None, f"unterminated config continuation at line {pending[0]}")
+    if pending is not None:
+        raise ValueError(f"unterminated config continuation at line {pending[0]}")
     return result
 
 
