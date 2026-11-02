@@ -143,6 +143,7 @@ if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
     --input "$fixture/branches.csv" \
     --checkpoints "$fixture/checkpoints.csv" \
     --train-families "$fixture/train_families.txt" \
+    --artifact-root "$fixture/branch-artifacts-v0.1" \
     --dataset-receipt-sha256 "$dataset_receipt_sha256" \
     --model-manifest-sha256 "$model_manifest_sha256" \
     --source-commit "$STFR_SYMTROPY_SHA" \
@@ -157,6 +158,11 @@ if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
     and .registered_flight_count == 2
     and .registered_checkpoint_count == 6
     and .expected_branch_count == 96
+    and .branch_artifact_verification.status == "synthetic_fixture_content_verified_origin_unattested"
+    and .branch_artifact_verification.snapshot_artifacts_verified == 12
+    and .branch_artifact_verification.disturbance_tape_artifacts_verified == 48
+    and .branch_artifact_verification.branch_rows_bound == 96
+    and (.branch_artifact_verification.combined_artifact_manifest_sha256 | test("^[a-f0-9]{64}$"))
     and (.checkpoint_estimates | length) == 24
     and all(.checkpoint_estimates[]; .branch_replicates == 4 and .remaining_budget_s > 0 and .wilson_95_one_sided_lower >= 0 and .wilson_95_one_sided_lower <= 1)
     and (.budget_contract | contains("same registered terminal deadline"))
