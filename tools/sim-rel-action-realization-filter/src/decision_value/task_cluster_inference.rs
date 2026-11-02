@@ -91,6 +91,16 @@ pub struct FamilyEndpointInference {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FamilyAbstentionDescriptive {
+    pub mechanism_family_id: String,
+    pub valid_task_clusters: usize,
+    pub candidate_clusters_with_any_abstention: usize,
+    pub reference_clusters_with_any_abstention: usize,
+    pub candidate_abstention_runs: usize,
+    pub reference_abstention_runs: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TaskClusterInferenceReceipt {
     pub analysis_id: String,
     pub analysis_version: String,
@@ -111,6 +121,9 @@ pub struct TaskClusterInferenceReceipt {
     pub total_invalid_task_clusters_excluded: usize,
     pub inferential_unit: String,
     pub family_endpoint_results: Vec<FamilyEndpointInference>,
+    /// Abstentions are reported descriptively; no universal direction of
+    /// superiority is assigned because abstention can be appropriate.
+    pub family_abstention_descriptive: Vec<FamilyAbstentionDescriptive>,
     pub repeated_runs_not_counted_as_independent_samples: bool,
     pub cluster_level_pairing_preserved: bool,
     pub abstention_is_descriptive_only: bool,
@@ -530,6 +543,116 @@ fn exact_cluster_sign_test_p_value(
         .map_err(ClusterInferenceError::ArithmeticOverflow)
 }
 
+fn exact_run_rate(successes: usize, total: usize) -> Option<super::repeated_run_reliability::ExactRunRate> {
+    (total > 0).then_some(super::repeated_run_reliability::ExactRunRate {
+        numerator: successes,
+        denominator: total,
+    })
+}
+
+fn checked_count_add(
+    value: &mut usize,
+    amount: usize,
+    label: &str,
+) -> Result<(), ClusterInferenceError> {
+    *value = value.checked_add(amount).ok_or_else(|| {
+        ClusterInferenceError::ArithmeticOverflow(format!("{label} aggregate overflow"))
+    })?;
+    Ok(())
+}
+
+/// Recompute every descriptive family aggregate from the retained task-cluster
+/// details. The summary is not trusted merely because it came beside the detail
+/// in the same upstream receipt.
+fn validate_family_summary(
+    summary: &super::repeated_run_reliability::FamilyRepeatedRunSummary,
+    clusters: &[&TaskClusterReliability],
+    minimum_clusters: usize,
+    repetitions_per_task: usize,
+) -> Result<FamilyAbstentionDescriptive, ClusterInferenceError> {
+    let mut valid_clusters = 0usize;
+    let mut invalid_clusters = 0usize;
+    let mut candidate_pass_at_k = 0usize;
+    let mut reference_pass_at_k = 0usize;
+    let mut candidate_pass_every_k = 0usize;
+    let mut reference_pass_every_k = 0usize;
+    let mut candidate_safe_successes = 0usize;
+    let mut reference_safe_successes = 0usize;
+    let mut candidate_any_hazard = 0usize;
+    let mut reference_any_hazard = 0usize;
+    let mut candidate_any_abstention = 0usize;
+    let mut reference_any_abstention = 0usize;
+    let mut candidate_abstention_runs = 0usize;
+    let mut reference_abstention_runs = 0usize;
+
+    for cluster in clusters {
+        if cluster.invalid_task_cluster {
+            checked_count_add(&mut invalid_clusters, 1, "invalid task cluster")?;
+            continue;
+        }
+        checked_count_add(&mut valid_clusters, 1, "valid task cluster")?;
+        let candidate = cluster.candidate.as_ref().ok_or_else(|| {
+            ClusterInferenceError::InvalidCluster("valid task cluster lacks candidate metrics".into())
+        })?;
+        let reference = cluster.reference.as_ref().ok_or_else(|| {
+            ClusterInferenceError::InvalidCluster("valid task cluster lacks reference metrics".into())
+        })?;
+        checked_count_add(&mut candidate_pass_at_k, usize::from(candidate.pass_at_k), "candidate pass@k")?;
+        checked_count_add(&mut reference_pass_at_k, usize::from(reference.pass_at_k), "reference pass@k")?;
+        checked_count_add(&mut candidate_pass_every_k, usize::from(candidate.pass_every_k), "candidate pass^k")?;
+        checked_count_add(&mut reference_pass_every_k, usize::from(reference.pass_every_k), "reference pass^k")?;
+        checked_count_add(&mut candidate_safe_successes, candidate.safe_success_count, "candidate safe successes")?;
+        checked_count_add(&mut reference_safe_successes, reference.safe_success_count, "reference safe successes")?;
+        checked_count_add(&mut candidate_any_hazard, usize::from(candidate.any_hazard), "candidate any-hazard clusters")?;
+        checked_count_add(&mut reference_any_hazard, usize::from(reference.any_hazard), "reference any-hazard clusters")?;
+        checked_count_add(&mut candidate_any_abstention, usize::from(candidate.any_abstention), "candidate any-abstention clusters")?;
+        checked_count_add(&mut reference_any_abstention, usize::from(reference.any_abstention), "reference any-abstention clusters")?;
+        checked_count_add(&mut candidate_abstention_runs, candidate.abstention_count, "candidate abstention runs")?;
+        checked_count_add(&mut reference_abstention_runs, reference.abstention_count, "reference abstention runs")?;
+    }
+
+    let total_valid_run_pairs = valid_clusters.checked_mul(repetitions_per_task).ok_or_else(|| {
+        ClusterInferenceError::ArithmeticOverflow("valid run-pair aggregate overflow".into())
+    })?;
+    let meets_minimum = valid_clusters >= minimum_clusters;
+    if summary.valid_task_clusters != valid_clusters
+        || summary.invalid_task_clusters_excluded != invalid_clusters
+        || summary.required_valid_task_clusters != minimum_clusters
+        || summary.meets_minimum_valid_task_clusters != meets_minimum
+        || summary.candidate_pass_at_k_tasks != candidate_pass_at_k
+        || summary.reference_pass_at_k_tasks != reference_pass_at_k
+        || summary.candidate_pass_at_k_rate != exact_run_rate(candidate_pass_at_k, valid_clusters)
+        || summary.reference_pass_at_k_rate != exact_run_rate(reference_pass_at_k, valid_clusters)
+        || summary.candidate_pass_every_k_tasks != candidate_pass_every_k
+        || summary.reference_pass_every_k_tasks != reference_pass_every_k
+        || summary.candidate_pass_every_k_rate != exact_run_rate(candidate_pass_every_k, valid_clusters)
+        || summary.reference_pass_every_k_rate != exact_run_rate(reference_pass_every_k, valid_clusters)
+        || summary.candidate_run_safe_successes != candidate_safe_successes
+        || summary.reference_run_safe_successes != reference_safe_successes
+        || summary.total_valid_run_pairs != total_valid_run_pairs
+        || summary.candidate_run_safe_success_rate != exact_run_rate(candidate_safe_successes, total_valid_run_pairs)
+        || summary.reference_run_safe_success_rate != exact_run_rate(reference_safe_successes, total_valid_run_pairs)
+        || summary.candidate_any_hazard_tasks != candidate_any_hazard
+        || summary.reference_any_hazard_tasks != reference_any_hazard
+        || summary.candidate_any_abstention_tasks != candidate_any_abstention
+        || summary.reference_any_abstention_tasks != reference_any_abstention
+    {
+        return Err(ClusterInferenceError::ClusterReceipt(format!(
+            "family summary values do not reconstruct from task-cluster detail for {}",
+            summary.mechanism_family_id
+        )));
+    }
+
+    Ok(FamilyAbstentionDescriptive {
+        mechanism_family_id: summary.mechanism_family_id.clone(),
+        valid_task_clusters: valid_clusters,
+        candidate_clusters_with_any_abstention: candidate_any_abstention,
+        reference_clusters_with_any_abstention: reference_any_abstention,
+        candidate_abstention_runs,
+        reference_abstention_runs,
+    })
+}
+
 fn increment(value: &mut usize, label: &str) -> Result<(), ClusterInferenceError> {
     *value = value.checked_add(1).ok_or_else(|| {
         ClusterInferenceError::ArithmeticOverflow(format!("{label} count overflow"))
@@ -696,6 +819,7 @@ pub fn analyze_repeated_run_task_clusters(
             )
         })?;
     let mut family_endpoint_results = Vec::with_capacity(hypotheses);
+    let mut family_abstention_descriptive = Vec::with_capacity(plan.mechanism_families.len());
 
     for family_id in &plan.mechanism_families {
         let clusters = family_clusters.get(family_id).ok_or_else(|| {
@@ -713,14 +837,18 @@ pub fn analyze_repeated_run_task_clusters(
         })?;
         if summary.valid_task_clusters != valid_clusters
             || summary.invalid_task_clusters_excluded != invalid_clusters
-            || summary.required_valid_task_clusters != plan.minimum_valid_task_clusters_per_family
-            || summary.meets_minimum_valid_task_clusters
-                != (valid_clusters >= plan.minimum_valid_task_clusters_per_family)
         {
             return Err(ClusterInferenceError::ClusterReceipt(format!(
-                "family summary totals or preregistered minimum differ for {family_id}"
+                "family task-cluster totals differ from retained detail for {family_id}"
             )));
         }
+        let abstention_descriptive = validate_family_summary(
+            summary,
+            clusters,
+            plan.minimum_valid_task_clusters_per_family,
+            plan.repetitions_per_task,
+        )?;
+        family_abstention_descriptive.push(abstention_descriptive);
 
         for endpoint in &plan.endpoints {
             let mut counts = EndpointCounts {
@@ -837,6 +965,7 @@ pub fn analyze_repeated_run_task_clusters(
         total_invalid_task_clusters_excluded: total_invalid_task_clusters,
         inferential_unit: "one distinct mechanism_family × task_id cluster".into(),
         family_endpoint_results,
+        family_abstention_descriptive,
         repeated_runs_not_counted_as_independent_samples: true,
         cluster_level_pairing_preserved: true,
         abstention_is_descriptive_only: true,
