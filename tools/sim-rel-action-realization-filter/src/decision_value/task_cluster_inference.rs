@@ -949,10 +949,8 @@ pub fn analyze_repeated_run_task_clusters(
                     MAX_EXACT_CLUSTER_DISCORDANT_PAIRS
                 )));
             }
-            let p_value = exact_cluster_sign_test_p_value(
-                counts.candidate_wins,
-                counts.reference_wins,
-            )?;
+            let p_value =
+                exact_cluster_sign_test_p_value(counts.candidate_wins, counts.reference_wins)?;
 
             let per_cluster_scale = if *endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate
             {
@@ -1326,7 +1324,10 @@ mod tests {
 
     #[test]
     fn exact_cluster_sign_test_handles_zero_all_win_and_symmetric_fixtures() {
-        assert_eq!(exact_cluster_sign_test_p_value(0, 0).unwrap(), Rational::one());
+        assert_eq!(
+            exact_cluster_sign_test_p_value(0, 0).unwrap(),
+            Rational::one()
+        );
         assert_eq!(exact_cluster_sign_test_p_value(5, 0).unwrap(), q(1, 16));
         assert_eq!(
             exact_cluster_sign_test_p_value(0, 5).unwrap(),
