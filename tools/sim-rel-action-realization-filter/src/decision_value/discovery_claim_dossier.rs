@@ -31,7 +31,7 @@ pub enum PreregisteredClaimOutcome {
     Inconclusive,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum PriorArtAdjudicationOutcome {
     RelevantPriorArt,
     NoRelevantPriorArtWithinCorpus,
