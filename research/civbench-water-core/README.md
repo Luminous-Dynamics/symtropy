@@ -74,3 +74,26 @@ The crate has no external dependencies and does not require Bevy, a renderer, a 
 ## Claim ceiling
 
 Passing the frozen accounting tests establishes only that each declared discrete profile preserves its accounting invariants on the tested inputs. It does not validate actual Johannesburg Water hydraulics, drinking-water safety, ecological adequacy, the correctness of a real allocation policy, or policy impact.
+
+
+## Event-order sensitivity comparison
+
+Do not silently select one chronology when the physical boundary is uncertain. The kernel exposes:
+
+```rust
+let storage = WaterStorage::new(100, 80)?;
+let comparison = storage.compare_event_orders(
+    50,
+    WaterDemand::new(120, 0),
+    AllocationPriority::HouseholdFirst,
+)?;
+let delta_l = comparison.total_delivery_delta_l();
+```
+
+The helper evaluates both supported profiles from an identical copy of the starting state and leaves the original storage unchanged. It returns both full reports and signed deltas for household delivery, agricultural delivery, total delivery, spill and ending stock. Deltas are defined as demand-before-residual-storage minus storage-before-demand; signed values avoid hiding a future semantic regression behind saturating subtraction.
+
+This API is a **sensitivity diagnostic**, not a recommendation to use demand-before-storage. A difference means the chronology is decision-relevant for that input; it does not prove either chronology matches the actual network. If the boundary is known, use the qualified profile. If it is unknown, preserve both outcomes or return an indeterminate decision until throughput, treatment and conveyance constraints are represented.
+
+For the current two-profile semantics, demand-before-residual-storage has an allocatable pool at least as large as storage-before-demand. The added bounded property test checks that neither demand category receives less under the former profile across 64,152 positive-capacity small-state combinations. This is a property of these simplified accounting profiles only; it is not a hydraulic theorem and must not be generalized to models with explicit treatment or conveyance bottlenecks.
+
+The test suite also checks a concrete 20 L delivery delta in the existing overflow example and verifies that an overflow error leaves the original state unchanged.
