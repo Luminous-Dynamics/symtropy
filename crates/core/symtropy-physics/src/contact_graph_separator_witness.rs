@@ -813,6 +813,7 @@ impl SeparatingLeafMessage {
     ) -> bool {
         if left.root_box != right.root_box
             || composed.root_box != left.root_box
+            || !composed.coverage_preserved
             || !left.coverage_preserved
             || !right.coverage_preserved
             || !self.verify_box_cover(&left.root_box, &left.cells)
@@ -879,6 +880,10 @@ impl SeparatingLeafMessage {
             }
         }
         observed.len() == expected.len()
+            && composed.classification_complete
+                == composed.cells.iter().all(|cell| {
+                    cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
+                })
     }
 
     /// Intersect two coverage-preserving local regime partitions over one
@@ -943,19 +948,19 @@ impl SeparatingLeafMessage {
             cells,
             candidate_pairs,
             empty_intersections,
-            coverage_preserved: false,
+            // The independent verifier must confirm this claim before the
+            // composed partition is returned to a caller.
+            coverage_preserved: true,
             classification_complete: false,
         };
-        composed.coverage_preserved =
-            self.verify_composed_partition(left, right_message, right, &composed);
-        if !composed.coverage_preserved {
+        composed.classification_complete = composed.cells.iter().all(|cell| {
+            cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
+        });
+        if !self.verify_composed_partition(left, right_message, right, &composed) {
             return Err(
                 "composed separator partition failed its independent intersection-cover check",
             );
         }
-        composed.classification_complete = composed.cells.iter().all(|cell| {
-            cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
-        });
         Ok(composed)
     }
 
