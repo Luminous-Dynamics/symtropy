@@ -16,6 +16,7 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.to
 - Participant-authorized arrival window bounds are explicit; no implicit demand shifting is inferred.
 - FCFS baseline and priority-with-aging/fairness baseline.
 - Direction-switch setup time, discrete lock availability windows, outages, service duration, latest start and maximum wait.
+- Lock-profile currentness must cover the complete reserved service interval; a slot extending beyond profile validity is not scheduled.
 - Exact integer-tick schedule and deterministic tie-breaking.
 - Reports service wait, worst wait, lock busy ticks, direction switches, unscheduled reason by request.
 
