@@ -75,7 +75,16 @@ jobs:
                   f"{policy}: delivered {actual}, expected {expected}"
               )
 
-          print("CSS-001 output matches the manifest's declared synthetic reference totals.")
+          data_rows = [row for row in rows if row and row[0].isdigit()]
+          assert len(data_rows) == 24, f"expected 24 region/tick rows, got {len(data_rows)}"
+          for row in data_rows:
+              assert len(row) == 15, f"unexpected CSS-001 output column count: {len(row)}"
+              residuals = tuple(float(row[index]) for index in (12, 13, 14))
+              assert all(abs(value) <= 1e-9 for value in residuals), (
+                  f"{row[1]}/{row[2]} tick {row[0]} has unit-specific residuals {residuals}"
+              )
+
+          print("CSS-001 output matches policy totals, service-floor counts and per-unit conservation residuals.")
           PY
 
           {
