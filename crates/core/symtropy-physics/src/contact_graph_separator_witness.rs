@@ -309,8 +309,7 @@ impl StickingLeafMessage {
         root: &SeparatorImpulseBox,
         cells: &[StickingSeparatorBoxCell],
     ) -> bool {
-        let mut leaves =
-            std::collections::BTreeMap::<Vec<u8>, &StickingSeparatorBoxCell>::new();
+        let mut leaves = std::collections::BTreeMap::<Vec<u8>, &StickingSeparatorBoxCell>::new();
         for cell in cells {
             if cell.depth != cell.lineage.len()
                 || cell.lineage.iter().any(|branch| *branch > 1)
@@ -352,8 +351,12 @@ impl StickingLeafMessage {
             left_path.push(0);
             let mut right_path = path.clone();
             right_path.push(1);
-            let has_left = leaves.keys().any(|candidate| candidate.starts_with(&left_path));
-            let has_right = leaves.keys().any(|candidate| candidate.starts_with(&right_path));
+            let has_left = leaves
+                .keys()
+                .any(|candidate| candidate.starts_with(&left_path));
+            let has_right = leaves
+                .keys()
+                .any(|candidate| candidate.starts_with(&right_path));
             if !has_left || !has_right {
                 return false;
             }
@@ -447,12 +450,14 @@ impl StickingLeafMessage {
         cells.sort_by(|left, right| left.lineage.cmp(&right.lineage));
         let coverage_preserved = self.verify_box_cover(root, &cells);
         if !coverage_preserved {
-            return Err("sticking separator partition failed its independent lineage coverage check");
+            return Err(
+                "sticking separator partition failed its independent lineage coverage check",
+            );
         }
         let max_depth_reached = cells.iter().map(|cell| cell.depth).max().unwrap_or(0);
-        let classification_complete = cells.iter().all(|cell| {
-            cell.classification != StickingBoxClassification::BoundaryOrInconclusive
-        });
+        let classification_complete = cells
+            .iter()
+            .all(|cell| cell.classification != StickingBoxClassification::BoundaryOrInconclusive);
         Ok(StickingSeparatorBoxPartition {
             root_box: root.clone(),
             cells,
@@ -1047,17 +1052,12 @@ impl SeparatingLeafMessage {
             return false;
         }
 
-        let mut expected = std::collections::BTreeMap::<
-            (Vec<u8>, Vec<u8>),
-            ComposedSeparatorBoxCell,
-        >::new();
+        let mut expected =
+            std::collections::BTreeMap::<(Vec<u8>, Vec<u8>), ComposedSeparatorBoxCell>::new();
         let mut empty_intersections = 0_usize;
         for left_cell in &left.cells {
             for right_cell in &right.cells {
-                let key = (
-                    left_cell.lineage.clone(),
-                    right_cell.lineage.clone(),
-                );
+                let key = (left_cell.lineage.clone(), right_cell.lineage.clone());
                 if let Some(intersection) = left_cell
                     .separator_box
                     .intersection(&right_cell.separator_box)
@@ -1121,7 +1121,9 @@ impl SeparatingLeafMessage {
             || !self.verify_box_cover(&left.root_box, &left.cells)
             || !right_message.verify_box_cover(&right.root_box, &right.cells)
         {
-            return Err("local separator partition failed independent source coverage verification");
+            return Err(
+                "local separator partition failed independent source coverage verification",
+            );
         }
 
         let candidate_pairs = left
@@ -1170,7 +1172,9 @@ impl SeparatingLeafMessage {
         composed.coverage_preserved =
             self.verify_composed_partition(left, right_message, right, &composed);
         if !composed.coverage_preserved {
-            return Err("composed separator partition failed its independent intersection-cover check");
+            return Err(
+                "composed separator partition failed its independent intersection-cover check",
+            );
         }
         composed.classification_complete = composed.cells.iter().all(|cell| {
             cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
@@ -1795,7 +1799,9 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
     .unwrap();
 
     let left_partition = left_message.partition_separator_box(&root, 3, 128).unwrap();
-    let right_partition = right_message.partition_separator_box(&root, 3, 128).unwrap();
+    let right_partition = right_message
+        .partition_separator_box(&root, 3, 128)
+        .unwrap();
     let composed = left_message
         .compose_separator_partitions(&left_partition, &right_message, &right_partition)
         .unwrap();
@@ -1837,7 +1843,9 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
         SVector::<f64, 3>::new(4.0, 0.5, 0.5),
     )
     .unwrap();
-    let mismatched = right_message.partition_separator_box(&mismatched_root, 2, 64).unwrap();
+    let mismatched = right_message
+        .partition_separator_box(&mismatched_root, 2, 64)
+        .unwrap();
     assert!(
         left_message
             .compose_separator_partitions(&left_partition, &right_message, &mismatched)
@@ -1865,18 +1873,18 @@ fn separator_message_composition_retains_equal_geometry_with_distinct_branch_lin
     let same_geometry = composed
         .cells
         .iter()
-        .filter(|cell| cell.separator_box.lower == SVector::<f64, 3>::new(2.0, -0.5, -0.5)
-            && cell.separator_box.upper == SVector::<f64, 3>::new(2.0, 0.5, 0.5))
+        .filter(|cell| {
+            cell.separator_box.lower == SVector::<f64, 3>::new(2.0, -0.5, -0.5)
+                && cell.separator_box.upper == SVector::<f64, 3>::new(2.0, 0.5, 0.5)
+        })
         .collect::<Vec<_>>();
     assert_eq!(same_geometry.len(), 2);
     assert_ne!(same_geometry[0].left_lineage, same_geometry[1].left_lineage);
-    assert_ne!(same_geometry[0].right_lineage, same_geometry[1].right_lineage);
-    assert!(message.verify_composed_partition(
-        &partition,
-        &message,
-        &partition,
-        &composed
-    ));
+    assert_ne!(
+        same_geometry[0].right_lineage,
+        same_geometry[1].right_lineage
+    );
+    assert!(message.verify_composed_partition(&partition, &message, &partition, &composed));
 }
 
 #[test]
@@ -2478,11 +2486,7 @@ fn verify_nary_separator_composition(
             };
             let mut next_lineages = lineages.clone();
             next_lineages.push(source_cell.lineage.clone());
-            stack.push((
-                source_index + 1,
-                next_geometry,
-                next_lineages,
-            ));
+            stack.push((source_index + 1, next_geometry, next_lineages));
         }
     }
 
@@ -2753,7 +2757,6 @@ fn nary_separator_cartesian_count_uses_checked_multiplication() {
     assert_eq!(nary_cartesian_product_size(&[]), Some(1));
 }
 
-
 #[test]
 fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
     let root = SeparatorImpulseBox::new(
@@ -2765,8 +2768,12 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
         separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
         free_velocity: SVector::<f64, 3>::new(1.125, 0.0, 0.0),
     };
-    let coarse = transition_message.partition_separator_box(&root, 1, 32).unwrap();
-    let refined = transition_message.partition_separator_box(&root, 3, 128).unwrap();
+    let coarse = transition_message
+        .partition_separator_box(&root, 1, 32)
+        .unwrap();
+    let refined = transition_message
+        .partition_separator_box(&root, 3, 128)
+        .unwrap();
 
     // The coarse left parent spans [1,3] and is boundary/inconclusive.
     assert_eq!(
@@ -2784,7 +2791,9 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
         separator_coupling: Matrix3::zeros(),
         free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
     };
-    let constant = constant_message.partition_separator_box(&root, 1, 16).unwrap();
+    let constant = constant_message
+        .partition_separator_box(&root, 1, 16)
+        .unwrap();
 
     let sources = [
         NarySeparatorPartitionSource {
@@ -2811,10 +2820,7 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
     let strict = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0]
-                && cell.source_lineages[1] == vec![0, 0]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 0])
         .expect("strict parent/fine-cell intersection must be retained");
     assert!(strict.separator_box.upper[0] <= 2.0);
     assert_eq!(
@@ -2835,10 +2841,7 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
     let excluded = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0]
-                && cell.source_lineages[1] == vec![0, 1, 1]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 1])
         .expect("excluded parent/fine-cell intersection must be retained");
     assert!(excluded.separator_box.lower[0] >= 2.5);
     assert_eq!(
@@ -2858,10 +2861,7 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
     let boundary = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0]
-                && cell.source_lineages[1] == vec![0, 1, 0]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 0])
         .expect("transition-crossing intersection must be retained");
     assert!(boundary.separator_box.lower[0] < 2.25);
     assert!(boundary.separator_box.upper[0] > 2.25);
@@ -2877,7 +2877,6 @@ fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
     assert!(verify_nary_separator_composition(&sources, &composed));
 }
 
-
 #[test]
 fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
     let root = SeparatorImpulseBox::new(
@@ -2889,8 +2888,12 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
         separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
         free_velocity: SVector::<f64, 3>::new(1.125, 0.0, 0.0),
     };
-    let coarse = transition_message.partition_separator_box(&root, 1, 32).unwrap();
-    let refined = transition_message.partition_separator_box(&root, 3, 128).unwrap();
+    let coarse = transition_message
+        .partition_separator_box(&root, 1, 32)
+        .unwrap();
+    let refined = transition_message
+        .partition_separator_box(&root, 3, 128)
+        .unwrap();
 
     assert_eq!(
         coarse
@@ -2906,7 +2909,9 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
         separator_coupling: Matrix3::zeros(),
         free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
     };
-    let constant = constant_message.partition_separator_box(&root, 1, 16).unwrap();
+    let constant = constant_message
+        .partition_separator_box(&root, 1, 16)
+        .unwrap();
     let sources = [
         NarySeparatorPartitionSource {
             source_id: 10,
@@ -2929,9 +2934,7 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
     let strict = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 0]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 0])
         .expect("strict parent/fine-cell intersection must be retained");
     assert!(strict.separator_box.upper[0] <= 2.0);
     assert_eq!(
@@ -2950,9 +2953,7 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
     let excluded = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 1]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 1])
         .expect("excluded parent/fine-cell intersection must be retained");
     assert!(excluded.separator_box.lower[0] >= 2.5);
     assert_eq!(
@@ -2971,9 +2972,7 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
     let boundary = composed
         .cells
         .iter()
-        .find(|cell| {
-            cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 0]
-        })
+        .find(|cell| cell.source_lineages[0] == vec![0] && cell.source_lineages[1] == vec![0, 1, 0])
         .expect("transition-crossing intersection must be retained");
     assert!(boundary.separator_box.lower[0] < 2.25);
     assert!(boundary.separator_box.upper[0] > 2.25);
@@ -2988,7 +2987,6 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
 
     assert!(verify_nary_separator_composition(&sources, &composed));
 }
-
 
 #[test]
 fn sticking_separator_interval_partition_preserves_strict_boundary_and_excluded_cells() {
@@ -3056,15 +3054,20 @@ fn sticking_separator_interval_partition_preserves_strict_boundary_and_excluded_
         .unwrap();
     assert!(crossing.coverage_preserved);
     assert!(!crossing.classification_complete);
-    assert!(crossing.cells.iter().any(|cell| {
-        cell.classification == StickingBoxClassification::StrictlySticking
-    }));
+    assert!(
+        crossing
+            .cells
+            .iter()
+            .any(|cell| { cell.classification == StickingBoxClassification::StrictlySticking })
+    );
     assert!(crossing.cells.iter().any(|cell| {
         cell.classification == StickingBoxClassification::OutsideStrictStickingDomain
     }));
-    assert!(crossing.cells.iter().any(|cell| {
-        cell.classification == StickingBoxClassification::BoundaryOrInconclusive
-    }));
+    assert!(
+        crossing.cells.iter().any(|cell| {
+            cell.classification == StickingBoxClassification::BoundaryOrInconclusive
+        })
+    );
 }
 
 #[test]
