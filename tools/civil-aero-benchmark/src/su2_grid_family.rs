@@ -24,8 +24,6 @@ use crate::su2_run_binding::{
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
 pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str =
     "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
-const GCI_EVIDENCE_LEVEL: &str =
-    "caller_supplied_grid_convergence_estimate_not_independent_validation";
 
 #[derive(Debug, Clone)]
 pub struct Su2GridFamilyMember {
@@ -94,6 +92,7 @@ pub struct Su2GridFamilyReport {
     pub safety_factor: f64,
     pub members: Vec<Su2GridFamilyMemberAudit>,
     pub gci_report: GciReport,
+    pub gci_report_sha256: String,
     pub study_sha256: String,
     pub evidence_level: String,
 }
@@ -204,6 +203,7 @@ fn canonical_bytes(report: &Su2GridFamilyReport) -> Vec<u8> {
         append_f64(&mut bytes, member.quantity_value);
         append_u64(&mut bytes, member.terminal_rows_used as u64);
     }
+    append_string(&mut bytes, &report.gci_report_sha256);
     append_gci(&mut bytes, &report.gci_report);
     bytes
 }
@@ -428,6 +428,9 @@ pub fn evaluate_su2_grid_family_study(
         safety_factor: study.safety_factor,
         observations,
     })?;
+    let mut gci_canonical = Vec::new();
+    append_gci(&mut gci_canonical, &gci_report);
+    let gci_report_sha256 = sha256_hex(&gci_canonical)?;
     let mut report = Su2GridFamilyReport {
         schema: SU2_GRID_FAMILY_SCHEMA.to_owned(),
         study_id: study.study_id.clone(),
@@ -447,6 +450,7 @@ pub fn evaluate_su2_grid_family_study(
         safety_factor: study.safety_factor,
         members: member_audits,
         gci_report,
+        gci_report_sha256,
         study_sha256: String::new(),
         evidence_level: SU2_GRID_FAMILY_EVIDENCE_LEVEL.to_owned(),
     };
@@ -474,12 +478,16 @@ pub fn verify_su2_grid_family_report(
 }
 
 pub const SU2_GRID_FAMILY_CSV_HEADER: &str =
-    "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,observed_order,extrapolated_value,fine_gci_absolute,fine_gci_relative_percent,asymptotic_ratio,study_sha256,evidence_level";
+    "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
+
+/// Export every sliding GCI triplet; the member CSV intentionally contains only its digest.
+pub fn gci_report_to_csv(report: &Su2GridFamilyReport) -> String {
+    crate::grid_convergence::report_to_csv(&report.gci_report)
+}
 
 pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
     let mut output = format!("{SU2_GRID_FAMILY_CSV_HEADER}\n");
     for member in &report.members {
-        let last = report.gci_report.triplets.last();
         let fields = [
             csv_escape(&report.schema),
             csv_escape(&report.study_id),
@@ -508,13 +516,8 @@ pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
             member.history_import_sha256.clone(),
             member.convergence_screen_sha256.clone(),
             member.lineage_binding_sha256.clone(),
-            last.map(|row| row.observed_order.to_string()).unwrap_or_default(),
-            last.map(|row| row.extrapolated_value.to_string()).unwrap_or_default(),
-            last.map(|row| row.fine_gci_absolute.to_string()).unwrap_or_default(),
-            last.and_then(|row| row.fine_gci_relative_percent)
-                .map(|value| value.to_string())
-                .unwrap_or_default(),
-            last.map(|row| row.asymptotic_ratio.to_string()).unwrap_or_default(),
+            report.gci_report.triplets.len().to_string(),
+            report.gci_report_sha256.clone(),
             report.study_sha256.clone(),
             csv_escape(&report.evidence_level),
         ];
