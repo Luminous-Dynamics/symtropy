@@ -426,15 +426,18 @@ pub fn schedule_lock(
             });
         }
 
-        for (index, reason) in rejected {
-            pending.retain(|value| *value != index);
-            unscheduled.push(UnscheduledPassage {
-                request_id: requests[index].request_id.clone(),
-                reason,
-            });
-        }
-
         if feasible_slots.is_empty() {
+            // No remaining request can advance the schedule from this state.
+            // Only now are the provisional rejections final: serving another
+            // direction first can remove a setup penalty and make a request
+            // feasible in a later availability window.
+            for (index, reason) in rejected {
+                pending.retain(|value| *value != index);
+                unscheduled.push(UnscheduledPassage {
+                    request_id: requests[index].request_id.clone(),
+                    reason,
+                });
+            }
             break;
         }
 
@@ -815,6 +818,74 @@ mod tests {
 
         assert_eq!(exhaustive_max_served(&lock, &permuted, 0), expected);
         assert!(expected <= requests.len() as u64);
+    }
+
+    #[test]
+    fn defer_direction_switch_rejection_until_other_passage_changes_lock_direction() {
+        let mut lock = profile();
+        lock.availability = vec![
+            TimeInterval {
+                start_tick: 0,
+                end_tick: 10,
+            },
+            TimeInterval {
+                start_tick: 10,
+                end_tick: 20,
+            },
+        ];
+        lock.direction_switch_ticks = 5;
+
+        let prior_upstream = PassageRequest {
+            service_duration_ticks: 2,
+            latest_start_tick: 2,
+            maximum_wait_ticks: 2,
+            ..request(
+                "a-prior-upstream",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            )
+        };
+        let long_downstream = PassageRequest {
+            service_duration_ticks: 8,
+            latest_start_tick: 10,
+            maximum_wait_ticks: 10,
+            ..request(
+                "b-long-downstream",
+                "p2",
+                0,
+                Direction::Downstream,
+                ServiceClass::EssentialPassenger,
+            )
+        };
+        let short_downstream = PassageRequest {
+            service_duration_ticks: 3,
+            latest_start_tick: 7,
+            maximum_wait_ticks: 7,
+            ..request(
+                "c-short-downstream",
+                "p3",
+                0,
+                Direction::Downstream,
+                ServiceClass::TimeSensitiveFreight,
+            )
+        };
+
+        let result = schedule_lock(
+            &lock,
+            &[prior_upstream, long_downstream, short_downstream],
+            0,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
+
+        assert_eq!(result.metrics.served_count, 3);
+        assert_eq!(result.scheduled[1].request_id, "c-short-downstream");
+        assert_eq!(result.scheduled[1].service_start_tick, 7);
+        assert_eq!(result.scheduled[2].request_id, "b-long-downstream");
+        assert_eq!(result.scheduled[2].service_start_tick, 10);
+        assert!(result.unscheduled.is_empty());
     }
 
     #[test]
