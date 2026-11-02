@@ -108,6 +108,9 @@ pub struct SprayCone {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CoverageConfig {
     pub samples_per_triangle: u32,
+    /// Fractional absolute normal-incidence cosine threshold in [0, 1].
+    /// This is a geometric impact-angle descriptor, not a cleaning threshold.
+    pub min_incidence_cosine: f64,
     /// Distance below which rays are treated as numerically coincident.
     pub epsilon_m: f64,
 }
@@ -127,8 +130,15 @@ pub struct CoverageReport {
     pub estimated_covered_area_m2: f64,
     /// Area-weighted geometrical visibility fraction, not wetting or cleaning.
     pub geometrically_visible_area_fraction: f64,
+    /// Area-weighted absolute normal-incidence cosine for visible samples.
+    /// 1 is normal incidence; 0 is grazing. Zero if no samples are visible.
+    pub mean_visible_abs_incidence_cosine: f64,
+    /// Fraction of total target area both visible and above configured incidence.
+    pub favorable_incidence_area_fraction: f64,
+    pub favorable_incidence_threshold: f64,
     pub total_samples: u64,
     pub visible_samples: u64,
+    pub favorable_incidence_samples: u64,
     pub triangles: Vec<TriangleCoverage>,
 }
 
@@ -257,17 +267,32 @@ pub fn estimate_coverage(
     if !(config.epsilon_m.is_finite() && config.epsilon_m > 0.0) {
         return Err("epsilon_m must be finite and positive");
     }
+    if !(config.min_incidence_cosine.is_finite()
+        && (0.0..=1.0).contains(&config.min_incidence_cosine))
+    {
+        return Err("min_incidence_cosine must be finite and in [0, 1]");
+    }
 
     let cone_cosine = nozzle.half_angle_rad.cos();
     let mut total_surface_area_m2 = 0.0;
     let mut estimated_covered_area_m2 = 0.0;
     let mut total_samples = 0_u64;
     let mut visible_samples = 0_u64;
+    let mut favorable_incidence_samples = 0_u64;
+    let mut incidence_weighted_area_m2 = 0.0;
+    let mut favorable_incidence_area_m2 = 0.0;
     let mut triangle_results = Vec::with_capacity(mesh.triangles.len());
 
     for (triangle_index, triangle) in target_mesh.triangles.iter().enumerate() {
         let area_m2 = triangle.area_m2();
         total_surface_area_m2 += area_m2;
+        let triangle_normal = triangle
+            .b
+            .sub(triangle.a)
+            .cross(triangle.c.sub(triangle.a))
+            .normalized()
+            .ok_or("target triangle normal is undefined")?;
+        let sample_area_m2 = area_m2 / config.samples_per_triangle as f64;
         let mut covered_samples = 0_u32;
 
         for sample_index in 0..config.samples_per_triangle {
@@ -315,6 +340,8 @@ pub fn estimate_coverage(
 
     if !total_surface_area_m2.is_finite()
         || !estimated_covered_area_m2.is_finite()
+        || !incidence_weighted_area_m2.is_finite()
+        || !favorable_incidence_area_m2.is_finite()
         || total_surface_area_m2 <= 0.0
     {
         return Err("derived surface area is non-finite or non-positive");
@@ -325,8 +352,16 @@ pub fn estimate_coverage(
         estimated_covered_area_m2,
         geometrically_visible_area_fraction: estimated_covered_area_m2
             / total_surface_area_m2,
+        mean_visible_abs_incidence_cosine: if estimated_covered_area_m2 > 0.0 {
+            incidence_weighted_area_m2 / estimated_covered_area_m2
+        } else {
+            0.0
+        },
+        favorable_incidence_area_fraction: favorable_incidence_area_m2 / total_surface_area_m2,
+        favorable_incidence_threshold: config.min_incidence_cosine,
         total_samples,
         visible_samples,
+        favorable_incidence_samples,
         triangles: triangle_results,
     })
 }
@@ -346,6 +381,7 @@ mod tests {
     fn standard_config() -> CoverageConfig {
         CoverageConfig {
             samples_per_triangle: 256,
+            min_incidence_cosine: 0.5,
             epsilon_m: 1.0e-8,
         }
     }
@@ -412,6 +448,49 @@ mod tests {
     }
 
     #[test]
+    fn incidence_metrics_distinguish_normal_from_grazing_visibility() {
+        let mesh = TriangleMesh {
+            triangles: vec![triangle_at_z(1.0, 0.1)],
+        };
+        let normal = estimate_coverage(
+            &mesh,
+            &mesh,
+            standard_nozzle(),
+            standard_config(),
+        )
+        .unwrap();
+        assert!((normal.mean_visible_abs_incidence_cosine - 1.0).abs() < 1.0e-12);
+        assert_eq!(normal.favorable_incidence_area_fraction, 1.0);
+
+        let mut grazing_nozzle = standard_nozzle();
+        grazing_nozzle.origin_m = Vec3::new(-5.0, 0.0, 0.0);
+        grazing_nozzle.axis = Vec3::new(1.0, 0.0, 0.2);
+        grazing_nozzle.half_angle_rad = 0.5;
+        let grazing = estimate_coverage(
+            &mesh,
+            &mesh,
+            grazing_nozzle,
+            standard_config(),
+        )
+        .unwrap();
+        assert!(grazing.geometrically_visible_area_fraction > 0.0);
+        assert!(grazing.mean_visible_abs_incidence_cosine < 0.5);
+        assert_eq!(grazing.favorable_incidence_area_fraction, 0.0);
+    }
+
+    #[test]
+    fn rejects_invalid_incidence_threshold() {
+        let mesh = TriangleMesh {
+            triangles: vec![triangle_at_z(1.0, 0.1)],
+        };
+        let mut config = standard_config();
+        config.min_incidence_cosine = f64::NAN;
+        assert!(estimate_coverage(&mesh, &mesh, standard_nozzle(), config).is_err());
+        config.min_incidence_cosine = 1.1;
+        assert!(estimate_coverage(&mesh, &mesh, standard_nozzle(), config).is_err());
+    }
+
+    #[test]
     fn output_is_deterministic_for_identical_inputs() {
         let mesh = TriangleMesh {
             triangles: vec![triangle_at_z(1.0, 0.1), triangle_at_z(2.0, 0.15)],
@@ -437,6 +516,7 @@ mod tests {
         };
         let invalid_config = CoverageConfig {
             samples_per_triangle: 0,
+            min_incidence_cosine: 0.5,
             epsilon_m: 1.0e-8,
         };
         assert!(estimate_coverage(&valid, &valid, standard_nozzle(), invalid_config).is_err());
