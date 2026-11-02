@@ -289,6 +289,7 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
                 E::PropulsionValidation,
                 E::MissionModelVerification,
                 E::MissionUncertaintyBudget,
+                E::MultivariateValidation,
                 E::ModelUncertaintyAssessment,
                 E::ValidationUncertaintyBudget,
             ]);
