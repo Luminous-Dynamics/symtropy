@@ -51,7 +51,7 @@ The outcome vector retains separate fields for:
 
 Every metric carries both a value and an evidence status: observed, derived, modelled, not measured, unsupported, withheld or not applicable. The first three require a numeric value; the latter four require no value. An observed zero is different from an unsupported or missing metric. Worst-group service is checked against its 0..=1,000,000 ppm domain.
 
-The paired receipt calculates signed treatment-minus-control deltas only when both arms contain valid numeric values. If either arm is missing, unsupported, withheld or not applicable, that field's delta is None rather than zero. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
+The paired receipt calculates signed treatment-minus-control deltas only when both arms contain valid numeric values **with exactly the same evidence status**. A measured observation cannot be subtracted from a modelled value by default. Missing control, missing treatment, both missing and evidence-status mismatch are represented by distinct delta statuses; their numeric delta is None, never zero. Cross-status comparison requires a separately preregistered and versioned bridge. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
 
 ### 4. Fail-closed provenance
 
