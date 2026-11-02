@@ -322,7 +322,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 18_000);
-        assert_eq!(result.critical_interruption_seconds, 60);
+        assert_eq!(result.critical_unserved_interval_seconds, 60);
     }
 
     #[test]
@@ -422,6 +422,38 @@ mod tests {
     }
 
     #[test]
+    fn interval_energy_accounting_reconciles_exactly() {
+        let result = evaluate_campaign(
+            &[load(0, 60, 1_200, 800)],
+            &[supply(0, 60, 1_000)],
+            Some(battery(500, 30_000, 0, 1_000)),
+        )
+        .unwrap();
+        let interval = result.intervals[0];
+        assert_eq!(
+            interval.total_load_energy_ws,
+            interval.firm_supply_energy_ws
+                + interval.battery_delivered_energy_ws
+                + interval.critical_unserved_energy_ws
+                + interval.flexible_unserved_energy_ws
+        );
+    }
+
+    #[test]
+    fn unserved_interval_metric_is_conservative_for_partial_battery_depletion() {
+        let result = evaluate_campaign(
+            &[load(0, 3_600, 1_500, 0)],
+            &[supply(0, 3_600, 1_000)],
+            Some(battery(500, 1_000_000, 0, 1_000)),
+        )
+        .unwrap();
+        assert!(result.total_critical_unserved_energy_ws > 0);
+        // The baseline reports the full interval because it does not model the
+        // exact point in the interval at which stored energy is exhausted.
+        assert_eq!(result.critical_unserved_interval_seconds, 3_600);
+    }
+
+    #[test]
     fn grid_outage_is_visible_as_time_varying_firm_capacity() {
         let result = evaluate_campaign(
             &[load(0, 60, 1_000, 0), load(60, 60, 1_000, 0)],
@@ -430,7 +462,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 60_000);
-        assert_eq!(result.critical_interruption_seconds, 60);
+        assert_eq!(result.critical_unserved_interval_seconds, 60);
     }
 
     #[test]
