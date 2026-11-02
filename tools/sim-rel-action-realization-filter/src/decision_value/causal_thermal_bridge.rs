@@ -668,15 +668,17 @@ mod tests {
         let causal = make_causal(&challenge);
         let mut physical_binding = make_binding(&challenge);
         physical_binding.actuator_readback_unit = "watt".into();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &physical_binding,
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &physical_binding,
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 
     #[test]
