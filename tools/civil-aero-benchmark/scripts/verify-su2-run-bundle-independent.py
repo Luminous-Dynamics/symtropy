@@ -266,8 +266,6 @@ def unsteady_inner_screen_evidence(
     require(all(
         right == left + 1 for left, right in zip(time_iterations, time_iterations[1:])
     ), "unsteady raw history has a TIME_ITER gap")
-    require(all(value == len(raw_rows[0]) for value in [len(raw_rows[0])]),
-            "unreachable history width sentinel")
 
     canonical = bytearray()
     screen_status = "all_contiguous_saved_time_steps_passed_inner_residual_thresholds"
@@ -511,9 +509,10 @@ def main() -> int:
             "preflight configuration differs from production bundle")
     require(bundle["mesh_sha256"] == preflight["mesh_sha256"],
             "preflight mesh differs from production bundle")
+    raw_history_path = production_dir / roles["history"]["relative_path"]
     inner_digest = unsteady_inner_screen_evidence(
         production_dir,
-        raw_path,
+        raw_history_path,
         preflight,
         history_rows,
         unsteady_inner_rows,
