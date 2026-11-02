@@ -187,3 +187,6 @@ Every leaf stores its exact binary64 bounds, depth and binary lineage. The indep
 Depth, node-budget, and no-representable-midpoint limits produce retained unresolved frontier cells. These remain part of the cover; they are not silently dropped and do not become NO-SOLUTION claims. The partition reports coverage preservation separately from whether every cell received a strict regime classification.
 
 The frozen dyadic case (u_n=1-p_{S,n}/2), (p_{S,n}in[1,3]), crosses the transition at (p_{S,n}=2). A depth-3 partition retains two strict-separating cells, two strict Signorini-defeating cells for the separating hypothesis, and two boundary cells adjacent to the transition.
+
+
+The independent lineage verifier also recomputes each retained leaf's interval classification from the declared message and its recorded box. This prevents a geometrically complete cover from relabelling a boundary/inconclusive box as a strict regime. The cover is therefore checked both for complete geometric lineage and for per-cell sign-label consistency.
