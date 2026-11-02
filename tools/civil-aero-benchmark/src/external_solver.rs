@@ -658,9 +658,7 @@ pub fn execute_external_solver(
             .iter()
             .any(|input| Path::new(&input.relative_path) == config_path)
         {
-            return Err(
-                "SU2_CFD_DRY_RUN CONFIG_PATH must be one of the staged inputs".to_owned(),
-            );
+            return Err("SU2_CFD_DRY_RUN CONFIG_PATH must be one of the staged inputs".to_owned());
         }
     } else if request.solver_id == "SU2_CFD_DRY_RUN" {
         return Err("SU2_CFD_DRY_RUN must not declare expected physics outputs".to_owned());
