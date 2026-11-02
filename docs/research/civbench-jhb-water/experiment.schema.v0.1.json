@@ -420,7 +420,8 @@
         "numeric_value_absent_for",
         "missing_value_behavior",
         "paired_difference",
-        "worst_group_service_ppm_max"
+        "worst_group_service_ppm_max",
+        "cross_status_comparison"
       ],
       "properties": {
         "metric_evidence_statuses": {
@@ -456,6 +457,9 @@
         "worst_group_service_ppm_max": {
           "type": "integer",
           "const": 1000000
+        },
+        "cross_status_comparison": {
+          "type": "string"
         }
       },
       "additionalProperties": false
