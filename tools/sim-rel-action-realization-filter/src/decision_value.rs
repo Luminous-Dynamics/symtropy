@@ -5,6 +5,7 @@
 //! the complete mechanism/process/sensor/apparatus state.
 
 pub mod anytime_paired_evidence;
+pub mod adaptive_benchmark_lifecycle;
 pub mod approximate_blackwell;
 pub mod blackwell_transfer;
 pub mod causal_execution;
