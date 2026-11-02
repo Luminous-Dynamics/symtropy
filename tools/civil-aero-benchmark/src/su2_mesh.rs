@@ -619,7 +619,9 @@ pub fn derive_su2_characteristic_spacing_2d(
         areas.push(area);
     }
 
-    let count = areas.len() as f64;
+    let cell_count = u64::try_from(areas.len())
+        .map_err(|error| format!("mesh cell count does not fit u64: {error}"))?;
+    let count = cell_count as f64;
     let mut total = 0.0;
     let mut compensation = 0.0;
     for area in &areas {
@@ -651,10 +653,11 @@ pub fn derive_su2_characteristic_spacing_2d(
     }
     Ok(Su2MeshSpacing2d {
         schema: SU2_MESH_SPACING_2D_SCHEMA,
-        mesh_byte_length: bytes.len() as u64,
+        mesh_byte_length: u64::try_from(bytes.len())
+            .map_err(|error| format!("mesh byte length does not fit u64: {error}"))?,
         mesh_sha256: sha256_hex(bytes)?,
         coordinate_unit: coordinate_unit.to_owned(),
-        cell_count: areas.len() as u64,
+        cell_count,
         total_cell_area: total,
         mean_cell_area: mean,
         minimum_cell_area: areas.iter().copied().fold(f64::INFINITY, f64::min),
