@@ -243,6 +243,27 @@ fn classify_full_log(
         } else {
             "unsteady_no_window"
         };
+        let conflicting_terminal_markers = [
+            STEADY_SUCCESS,
+            WINDOW_SUCCESS,
+            STEADY_ITERATION_LIMIT,
+            TIME_LIMIT,
+            TIME_ITERATION_LIMIT,
+        ]
+        .iter()
+        .filter(|marker| exit_summary.contains(**marker))
+        .map(|marker| (*marker).to_owned())
+        .collect::<Vec<_>>();
+        if !conflicting_terminal_markers.is_empty() {
+            let mut messages = conflicting_terminal_markers;
+            messages.push(signal_message);
+            return Ok((
+                mode.to_owned(),
+                "contradictory_terminal_messages".to_owned(),
+                Vec::new(),
+                messages,
+            ));
+        }
         return Ok((
             mode.to_owned(),
             "interrupted".to_owned(),
@@ -654,6 +675,24 @@ mod tests {
                 .expect("classify scheduler signal");
         assert_eq!(classification, "interrupted");
         assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn scheduler_signal_before_success_banner_is_recorded_as_contradictory() {
+        let section = concat!(
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All convergence criteria satisfied.\\n",
+        );
+        let full_log = format!(
+            "{}15{}\\n{section}",
+            SIGNAL_INTERRUPT_PREFIX, SIGNAL_INTERRUPT_SUFFIX
+        );
+        let (_, classification, rows, messages) =
+            classify_full_log(&full_log, section, &steady_protocol())
+                .expect("classify signal preceding successful summary");
+        assert_eq!(classification, "contradictory_terminal_messages");
+        assert!(rows.is_empty());
+        assert_eq!(messages.len(), 2);
     }
 
     #[test]
