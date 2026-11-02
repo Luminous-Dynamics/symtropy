@@ -35,6 +35,7 @@ pub mod su2_history;
 pub mod su2_mesh;
 pub mod su2_run_binding;
 pub mod su2_verified_run_bundle;
+pub mod su2_termination;
 pub mod task_conformance;
 pub mod unsteady_spectrum;
 pub mod validation_uncertainty;
