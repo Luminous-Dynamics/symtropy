@@ -1,0 +1,518 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/HIST_001_AMS_TABLE1_TRANSCRIPTION/0.1",
+  "schema_version": "0.1.0",
+  "case_id": "HIST-001",
+  "artifact_id": "HIST001-DERIVED-AMS-TABLE1-2021",
+  "status": "transcribed_not_independently_reviewed",
+  "source": {
+    "source_id": "HIST001-SRC-AMS-2021",
+    "citation": "Huffman, T.N. & Woodborne, S. (2021). New AMS dates for the Middle Iron Age in the Mapungubwe landscape. South African Journal of Science, 117(3/4), Article 8980. https://doi.org/10.17159/sajs.2021/8980",
+    "pdf_uri": "https://scielo.org.za/pdf/sajs/v117n3-4/26.pdf",
+    "html_uri": "https://scielo.org.za/scielo.php?pid=S0038-23532021000200026&script=sci_arttext",
+    "locator": "Table 1, PDF page 3 of 5 (zero-indexed page 2)",
+    "retrieved_at": "2026-11-02",
+    "license": "CC BY 4.0 article; verify underlying-data permissions separately",
+    "source_pdf_sha256": null,
+    "table_image_uri": "https://scielo.org.za/img/revistas/sajs/v117n3-4/26t1.jpg",
+    "table_image_sha256": null
+  },
+  "method": {
+    "radiocarbon_calibration_software": "Calib 8.10",
+    "calibration_curve": "SHCal20",
+    "reported_interval": "1 sigma",
+    "authors_note": "The calibration curve fluctuates; one radiocarbon result may have multiple calendar ranges. The authors consider the midpoints of 1-sigma ranges along with stratigraphic sequence to choose between possibilities.",
+    "crossed_out_intervals": "Crossed-out intervals were eliminated by the authors for stratigraphic or other archaeological reasons.",
+    "means_column": "Mean calendar AD values printed in the original table. They are preserved as reported and are not recomputed."
+  },
+  "field_semantics": {
+    "bp_age": "Radiocarbon age before present as printed in the source table.",
+    "bp_sigma": "One-sigma radiocarbon measurement uncertainty in years.",
+    "delta_13c_permil": "Carbon isotope value in per mil as printed.",
+    "calibrated_ranges": "Each interval is a SHCal20 1-sigma calendar AD range. status=retained means not struck through in the source image; status=crossed_out means visibly struck through.",
+    "means_cal_ad": "Calendar AD means printed in the source's final column."
+  },
+  "record_count": 15,
+  "records": [
+    {
+      "record_id": "HIST001-AMS-T1-01",
+      "facies": "Mapungubwe",
+      "site_label_as_printed": "Weipe508 VII/C1/4",
+      "laboratory_identifier": "IT-C-785",
+      "material": "charcoal",
+      "delta_13c_permil": -24,
+      "radiocarbon_age_bp": 660,
+      "radiocarbon_sigma_years": 52,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1302,
+          "end_ad": 1362,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1380,
+          "end_ad": 1399,
+          "status": "crossed_out"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1332
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-02",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "VK2",
+      "laboratory_identifier": "IT-C-730",
+      "material": "post",
+      "delta_13c_permil": -23.5,
+      "radiocarbon_age_bp": 740,
+      "radiocarbon_sigma_years": 68,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1235,
+          "end_ad": 1242,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1270,
+          "end_ad": 1322,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1350,
+          "end_ad": 1388,
+          "status": "crossed_out"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1239
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-03",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "—",
+      "laboratory_identifier": "IT-C-1498",
+      "material": "post",
+      "delta_13c_permil": -23.5,
+      "radiocarbon_age_bp": 990,
+      "radiocarbon_sigma_years": 44,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1032,
+          "end_ad": 1053,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1060,
+          "end_ad": 1070,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1080,
+          "end_ad": 1150,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1135
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-04",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "Den Staat 14B",
+      "laboratory_identifier": "IT-C-2040",
+      "material": "charcoal",
+      "delta_13c_permil": -23,
+      "radiocarbon_age_bp": 1050,
+      "radiocarbon_sigma_years": 34,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 993,
+          "end_ad": 1009,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1014,
+          "end_ad": 1046,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1088,
+          "end_ad": 1105,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1123,
+          "end_ad": 1130,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1127
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-05",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "Den Staat 14C",
+      "laboratory_identifier": "IT-C-671",
+      "material": "wild seeds",
+      "delta_13c_permil": -21.5,
+      "radiocarbon_age_bp": 950,
+      "radiocarbon_sigma_years": 52,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1046,
+          "end_ad": 1087,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1106,
+          "end_ad": 1122,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1131,
+          "end_ad": 1186,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1196,
+          "end_ad": 1209,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1159,
+        1203
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-06",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "Liz 198 small kraal",
+      "laboratory_identifier": "IT-C-2037",
+      "material": "dung",
+      "delta_13c_permil": -13.8,
+      "radiocarbon_age_bp": 930,
+      "radiocarbon_sigma_years": 27,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1055,
+          "end_ad": 1058,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1072,
+          "end_ad": 1079,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1152,
+          "end_ad": 1189,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1192,
+          "end_ad": 1211,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1171,
+        1202
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-07",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "-IX/gb",
+      "laboratory_identifier": "IT-C-1500",
+      "material": "charcoal",
+      "delta_13c_permil": -26.4,
+      "radiocarbon_age_bp": 960,
+      "radiocarbon_sigma_years": 42.6,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1046,
+          "end_ad": 1088,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1105,
+          "end_ad": 1123,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1130,
+          "end_ad": 1181,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1155
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-08",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "-IV/midden",
+      "laboratory_identifier": "IT-C-2034",
+      "material": "sorghum",
+      "delta_13c_permil": -10,
+      "radiocarbon_age_bp": 970,
+      "radiocarbon_sigma_years": 30,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1045,
+          "end_ad": 1089,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1104,
+          "end_ad": 1124,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1129,
+          "end_ad": 1157,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1143
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-09",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "-IX/S/3",
+      "laboratory_identifier": "IT-C-2033",
+      "material": "charcoal",
+      "delta_13c_permil": -24.9,
+      "radiocarbon_age_bp": 1010,
+      "radiocarbon_sigma_years": 28,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1027,
+          "end_ad": 1048,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1085,
+          "end_ad": 1138,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1112
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-10",
+      "facies": "Transitional K2",
+      "site_label_as_printed": "Little Muck 138",
+      "laboratory_identifier": "IT-C-2039",
+      "material": "post",
+      "delta_13c_permil": -23.7,
+      "radiocarbon_age_bp": 960,
+      "radiocarbon_sigma_years": 27,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1047,
+          "end_ad": 1086,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1109,
+          "end_ad": 1120,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1134,
+          "end_ad": 1161,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1168,
+          "end_ad": 1180,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1148,
+        1174
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-11",
+      "facies": "K2",
+      "site_label_as_printed": "Liz 197",
+      "laboratory_identifier": "IT-C-2042",
+      "material": "dung",
+      "delta_13c_permil": -12.7,
+      "radiocarbon_age_bp": 1020,
+      "radiocarbon_sigma_years": 27,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1024,
+          "end_ad": 1028,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1085,
+          "end_ad": 1112,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1117,
+          "end_ad": 1137,
+          "status": "crossed_out"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1036,
+        1099
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-12",
+      "facies": "K2",
+      "site_label_as_printed": "VAD13/157",
+      "laboratory_identifier": "IT-C-2047",
+      "material": "dung",
+      "delta_13c_permil": -13.3,
+      "radiocarbon_age_bp": 1090,
+      "radiocarbon_sigma_years": 27,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 991,
+          "end_ad": 1021,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1016
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-13",
+      "facies": "K2",
+      "site_label_as_printed": "Schroda CP",
+      "laboratory_identifier": "IT-C-2041",
+      "material": "dung",
+      "delta_13c_permil": -11.3,
+      "radiocarbon_age_bp": 940,
+      "radiocarbon_sigma_years": 27,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1051,
+          "end_ad": 1063,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1067,
+          "end_ad": 1082,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1148,
+          "end_ad": 1186,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1198,
+          "end_ad": 1208,
+          "status": "crossed_out"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1057,
+        1075
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-14",
+      "facies": "Leokwe",
+      "site_label_as_printed": "LMRC II/M/4-5",
+      "laboratory_identifier": "IT-C-733",
+      "material": "charcoal",
+      "delta_13c_permil": -26.7,
+      "radiocarbon_age_bp": 960,
+      "radiocarbon_sigma_years": 50,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 1045,
+          "end_ad": 1089,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1097,
+          "end_ad": 1100,
+          "status": "retained"
+        },
+        {
+          "start_ad": 1102,
+          "end_ad": 1124,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1129,
+          "end_ad": 1182,
+          "status": "crossed_out"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1067,
+        1099
+      ]
+    },
+    {
+      "record_id": "HIST001-AMS-T1-15",
+      "facies": "Leokwe",
+      "site_label_as_printed": "KK II/H/3",
+      "laboratory_identifier": "IT-C-2038",
+      "material": "charcoal",
+      "delta_13c_permil": -24.4,
+      "radiocarbon_age_bp": 1130,
+      "radiocarbon_sigma_years": 28,
+      "calibrated_ranges_shcal20_1sigma": [
+        {
+          "start_ad": 900,
+          "end_ad": 925,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 967,
+          "end_ad": 993,
+          "status": "crossed_out"
+        },
+        {
+          "start_ad": 1008,
+          "end_ad": 1014,
+          "status": "retained"
+        }
+      ],
+      "reported_means_cal_ad": [
+        1011
+      ]
+    }
+  ],
+  "limitations": [
+    "This is a human transcription of published Table 1, not raw laboratory output or a full calibrated probability distribution.",
+    "The source article states that calibration can yield multiple possible calendar ranges and that stratigraphic/archaeological reasoning was used to eliminate crossed-out ranges.",
+    "Retained interval status records the table's visual strike-through annotation; it does not create probability weights or prove that all retained intervals have equal likelihood.",
+    "Site labels are preserved as printed, including dash-prefixed or blank/unknown labels. No missing site identity has been inferred.",
+    "No sample-level stratigraphic records, lab certificates, or calibration software output have been independently reproduced.",
+    "A second independent transcription review is required before use in scored chronology reconstruction."
+  ],
+  "next_steps": [
+    "Second-person transcription review against the publisher PDF image.",
+    "Check every lab identifier and material label against the paper and underlying laboratory record where obtainable.",
+    "Acquire the source PDF bytes and compute a SHA-256 digest before marking the source snapshot ingested.",
+    "Keep all alternative calibrated ranges and strike-through decisions explicit in the downstream interval model.",
+    "Do not treat the printed means as a substitute for calibration probability distributions."
+  ]
+}
