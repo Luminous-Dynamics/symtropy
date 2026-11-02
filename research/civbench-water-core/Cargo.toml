@@ -1,0 +1,12 @@
+[package]
+name = "civbench-water-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Small, dependency-free water stock-flow kernel for CivBench experiments"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
