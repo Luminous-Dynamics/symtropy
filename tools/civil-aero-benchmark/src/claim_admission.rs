@@ -1,0 +1,642 @@
+//! Claim-specific admission policies for aerospace engineering evidence.
+//!
+//! This module does not verify CFD, certify artifacts, or authorize flight. It evaluates whether
+//! caller-supplied, verifier-referenced evidence assertions satisfy a declared claim policy and
+//! exact scope. Cryptographic trust in verifier identities is an external trust-store concern.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+pub const CLAIM_ADMISSION_SCHEMA: &str = "aero-claim-admission/0.1.0";
+pub const CLAIM_ADMISSION_EVIDENCE_LEVEL: &str =
+    "claim_specific_policy_evaluation_of_verifier_referenced_evidence_assertions_not_artifact_verification_not_regulatory_approval_or_flight_authorization";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ClaimClass {
+    ExploratoryDesignRanking,
+    AerodynamicPrediction,
+    UnsteadyAerodynamicPrediction,
+    StructuralLoadPrediction,
+    AeroelasticStabilityPrediction,
+    MissionPerformancePrediction,
+    FlightRelease,
+}
+
+impl ClaimClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ExploratoryDesignRanking => "exploratory_design_ranking",
+            Self::AerodynamicPrediction => "aerodynamic_prediction",
+            Self::UnsteadyAerodynamicPrediction => "unsteady_aerodynamic_prediction",
+            Self::StructuralLoadPrediction => "structural_load_prediction",
+            Self::AeroelasticStabilityPrediction => "aeroelastic_stability_prediction",
+            Self::MissionPerformancePrediction => "mission_performance_prediction",
+            Self::FlightRelease => "flight_release",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DecisionConsequence {
+    Exploratory,
+    Engineering,
+    High,
+    SafetyCritical,
+}
+
+impl DecisionConsequence {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Exploratory => "exploratory",
+            Self::Engineering => "engineering",
+            Self::High => "high",
+            Self::SafetyCritical => "safety_critical",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceKind {
+    GeometryIdentity,
+    AnalysisInputsIdentity,
+    SolverExecutableIdentity,
+    ProcessReceipt,
+    ConvergenceScreen,
+    ComparisonProtocol,
+    GridConvergence,
+    TemporalConvergence,
+    TimeStepSensitivity,
+    ConservationAudit,
+    StatisticalSamplingAssessment,
+    ModelUncertaintyAssessment,
+    ExperimentalValidation,
+    ValidationUncertaintyBudget,
+    StructuralVerification,
+    StructuralValidation,
+    AeroelasticCouplingConvergence,
+    FlutterValidation,
+    PropulsionValidation,
+    MissionModelVerification,
+    MissionUncertaintyBudget,
+    OperationalEnvelopeValidation,
+    CalibrationEvidence,
+    IndependentReview,
+    CertificationAuthorityDecision,
+    QualitySystemEvidence,
+}
+
+impl EvidenceKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::GeometryIdentity => "geometry_identity",
+            Self::AnalysisInputsIdentity => "analysis_inputs_identity",
+            Self::SolverExecutableIdentity => "solver_executable_identity",
+            Self::ProcessReceipt => "process_receipt",
+            Self::ConvergenceScreen => "convergence_screen",
+            Self::ComparisonProtocol => "comparison_protocol",
+            Self::GridConvergence => "grid_convergence",
+            Self::TemporalConvergence => "temporal_convergence",
+            Self::TimeStepSensitivity => "time_step_sensitivity",
+            Self::ConservationAudit => "conservation_audit",
+            Self::StatisticalSamplingAssessment => "statistical_sampling_assessment",
+            Self::ModelUncertaintyAssessment => "model_uncertainty_assessment",
+            Self::ExperimentalValidation => "experimental_validation",
+            Self::ValidationUncertaintyBudget => "validation_uncertainty_budget",
+            Self::StructuralVerification => "structural_verification",
+            Self::StructuralValidation => "structural_validation",
+            Self::AeroelasticCouplingConvergence => "aeroelastic_coupling_convergence",
+            Self::FlutterValidation => "flutter_validation",
+            Self::PropulsionValidation => "propulsion_validation",
+            Self::MissionModelVerification => "mission_model_verification",
+            Self::MissionUncertaintyBudget => "mission_uncertainty_budget",
+            Self::OperationalEnvelopeValidation => "operational_envelope_validation",
+            Self::CalibrationEvidence => "calibration_evidence",
+            Self::IndependentReview => "independent_review",
+            Self::CertificationAuthorityDecision => "certification_authority_decision",
+            Self::QualitySystemEvidence => "quality_system_evidence",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EvidenceAssertion {
+    Verified {
+        artifact_sha256: String,
+        verifier_id: String,
+        verifier_sha256: String,
+        verifier_receipt_sha256: String,
+    },
+    Unknown {
+        reason: String,
+    },
+    Failed {
+        reason: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScopedEvidence {
+    pub kind: EvidenceKind,
+    /// Hash of the exact claim scope: geometry, configuration, operating point, model family,
+    /// or a formally declared envelope. Evidence from another scope is not silently reusable.
+    pub scope_sha256: String,
+    pub assertion: EvidenceAssertion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimRequest {
+    pub claim_id: String,
+    pub claim_class: ClaimClass,
+    pub consequence: DecisionConsequence,
+    pub scope_sha256: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClaimDecisionStatus {
+    AdmittedWithinDeclaredScope,
+    AbstainInsufficientOrUnknownEvidence,
+    RejectedFailedOrMismatchedEvidence,
+    RequiresHumanAuthorityDecision,
+}
+
+impl ClaimDecisionStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AdmittedWithinDeclaredScope => "admitted_within_declared_scope",
+            Self::AbstainInsufficientOrUnknownEvidence => "abstain_insufficient_or_unknown_evidence",
+            Self::RejectedFailedOrMismatchedEvidence => "rejected_failed_or_mismatched_evidence",
+            Self::RequiresHumanAuthorityDecision => "requires_human_authority_decision",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimDecision {
+    pub schema: String,
+    pub claim_id: String,
+    pub claim_class: ClaimClass,
+    pub consequence: DecisionConsequence,
+    pub scope_sha256: String,
+    pub policy_sha256: String,
+    pub required_evidence: Vec<EvidenceKind>,
+    pub verified_evidence: Vec<EvidenceKind>,
+    pub unknown_evidence: Vec<EvidenceKind>,
+    pub missing_evidence: Vec<EvidenceKind>,
+    pub failed_evidence: Vec<EvidenceKind>,
+    pub status: ClaimDecisionStatus,
+    pub evidence_level: String,
+    pub decision_sha256: String,
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn add_string(bytes: &mut Vec<u8>, value: &str) {
+    bytes.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+}
+
+fn add_hash(bytes: &mut Vec<u8>, value: &str) -> Result<(), String> {
+    if !is_sha256(value) {
+        return Err("claim admission digest must be 64 hexadecimal characters".to_owned());
+    }
+    add_string(bytes, &value.to_ascii_lowercase());
+    Ok(())
+}
+
+fn add_kinds(bytes: &mut Vec<u8>, kinds: &[EvidenceKind]) {
+    bytes.extend_from_slice(&(kinds.len() as u64).to_le_bytes());
+    for kind in kinds {
+        add_string(bytes, kind.as_str());
+    }
+}
+
+fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
+    use EvidenceKind as E;
+    let mut required = BTreeSet::from([
+        E::GeometryIdentity,
+        E::AnalysisInputsIdentity,
+        E::SolverExecutableIdentity,
+        E::ProcessReceipt,
+        E::ConvergenceScreen,
+    ]);
+    match request.claim_class {
+        ClaimClass::ExploratoryDesignRanking => {
+            required.insert(E::ComparisonProtocol);
+        }
+        ClaimClass::AerodynamicPrediction => {
+            required.extend([
+                E::GridConvergence,
+                E::ConservationAudit,
+                E::ModelUncertaintyAssessment,
+                E::ExperimentalValidation,
+                E::ValidationUncertaintyBudget,
+            ]);
+        }
+        ClaimClass::UnsteadyAerodynamicPrediction => {
+            required.extend([
+                E::GridConvergence,
+                E::TemporalConvergence,
+                E::TimeStepSensitivity,
+                E::ConservationAudit,
+                E::StatisticalSamplingAssessment,
+                E::ModelUncertaintyAssessment,
+                E::ExperimentalValidation,
+                E::ValidationUncertaintyBudget,
+            ]);
+        }
+        ClaimClass::StructuralLoadPrediction => {
+            required.extend([
+                E::GridConvergence,
+                E::ConservationAudit,
+                E::StructuralVerification,
+                E::StructuralValidation,
+                E::ModelUncertaintyAssessment,
+                E::ValidationUncertaintyBudget,
+            ]);
+        }
+        ClaimClass::AeroelasticStabilityPrediction => {
+            required.extend([
+                E::GridConvergence,
+                E::TemporalConvergence,
+                E::TimeStepSensitivity,
+                E::ConservationAudit,
+                E::StructuralVerification,
+                E::StructuralValidation,
+                E::AeroelasticCouplingConvergence,
+                E::FlutterValidation,
+                E::ModelUncertaintyAssessment,
+                E::ValidationUncertaintyBudget,
+            ]);
+        }
+        ClaimClass::MissionPerformancePrediction => {
+            required.extend([
+                E::GridConvergence,
+                E::ConservationAudit,
+                E::ExperimentalValidation,
+                E::StructuralVerification,
+                E::StructuralValidation,
+                E::PropulsionValidation,
+                E::MissionModelVerification,
+                E::MissionUncertaintyBudget,
+                E::ModelUncertaintyAssessment,
+                E::ValidationUncertaintyBudget,
+            ]);
+        }
+        ClaimClass::FlightRelease => {
+            required.extend([
+                E::GridConvergence,
+                E::TemporalConvergence,
+                E::TimeStepSensitivity,
+                E::ConservationAudit,
+                E::StatisticalSamplingAssessment,
+                E::ExperimentalValidation,
+                E::ValidationUncertaintyBudget,
+                E::StructuralVerification,
+                E::StructuralValidation,
+                E::AeroelasticCouplingConvergence,
+                E::FlutterValidation,
+                E::PropulsionValidation,
+                E::MissionModelVerification,
+                E::MissionUncertaintyBudget,
+                E::OperationalEnvelopeValidation,
+                E::CalibrationEvidence,
+                E::IndependentReview,
+                E::CertificationAuthorityDecision,
+                E::QualitySystemEvidence,
+                E::ModelUncertaintyAssessment,
+            ]);
+        }
+    }
+    if matches!(
+        request.consequence,
+        DecisionConsequence::High | DecisionConsequence::SafetyCritical
+    ) {
+        required.insert(E::IndependentReview);
+        required.insert(E::CalibrationEvidence);
+        required.insert(E::ModelUncertaintyAssessment);
+    }
+    if request.consequence == DecisionConsequence::SafetyCritical {
+        required.insert(E::CertificationAuthorityDecision);
+    }
+    required
+}
+
+fn policy_bytes(request: &ClaimRequest, required: &BTreeSet<EvidenceKind>) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    add_string(&mut bytes, CLAIM_ADMISSION_SCHEMA);
+    add_string(&mut bytes, request.claim_class.as_str());
+    add_string(&mut bytes, request.consequence.as_str());
+    add_kinds(&mut bytes, &required.iter().copied().collect::<Vec<_>>());
+    bytes
+}
+
+fn decision_bytes(decision: &ClaimDecision) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    add_string(&mut bytes, &decision.schema);
+    add_string(&mut bytes, &decision.claim_id);
+    add_string(&mut bytes, decision.claim_class.as_str());
+    add_string(&mut bytes, decision.consequence.as_str());
+    add_string(&mut bytes, &decision.scope_sha256);
+    add_string(&mut bytes, &decision.policy_sha256);
+    add_kinds(&mut bytes, &decision.required_evidence);
+    add_kinds(&mut bytes, &decision.verified_evidence);
+    add_kinds(&mut bytes, &decision.unknown_evidence);
+    add_kinds(&mut bytes, &decision.missing_evidence);
+    add_kinds(&mut bytes, &decision.failed_evidence);
+    add_string(&mut bytes, decision.status.as_str());
+    add_string(&mut bytes, &decision.evidence_level);
+    bytes
+}
+
+/// Evaluate evidence assertions against a claim-specific, exact-scope evidence policy.
+///
+/// A Verified assertion must carry artifact, verifier and verifier-receipt digests. This
+/// function validates the assertion's structure and scope; it does not authenticate the
+/// verifier against an external trust store or re-run the underlying artifact verifier.
+pub fn evaluate_claim_admission(
+    request: &ClaimRequest,
+    evidence: &[ScopedEvidence],
+) -> Result<ClaimDecision, String> {
+    if request.claim_id.trim().is_empty() {
+        return Err("claim_id must not be empty".to_owned());
+    }
+    add_hash(&mut Vec::new(), &request.scope_sha256)?;
+
+    let required = required_for(request);
+    let mut supplied = BTreeMap::new();
+    let mut failed = BTreeSet::new();
+    for item in evidence {
+        add_hash(&mut Vec::new(), &item.scope_sha256)?;
+        if supplied.insert(item.kind, item).is_some() {
+            return Err(format!(
+                "duplicate evidence assertion for {}",
+                item.kind.as_str()
+            ));
+        }
+        if item.scope_sha256 != request.scope_sha256 {
+            failed.insert(item.kind);
+            continue;
+        }
+        match &item.assertion {
+            EvidenceAssertion::Verified {
+                artifact_sha256,
+                verifier_id,
+                verifier_sha256,
+                verifier_receipt_sha256,
+            } => {
+                add_hash(&mut Vec::new(), artifact_sha256)?;
+                add_hash(&mut Vec::new(), verifier_sha256)?;
+                add_hash(&mut Vec::new(), verifier_receipt_sha256)?;
+                if verifier_id.trim().is_empty() {
+                    return Err(format!(
+                        "verified evidence {} has an empty verifier identity",
+                        item.kind.as_str()
+                    ));
+                }
+            }
+            EvidenceAssertion::Unknown { reason } | EvidenceAssertion::Failed { reason } => {
+                if reason.trim().is_empty() {
+                    return Err(format!(
+                        "non-verified evidence {} requires a reason",
+                        item.kind.as_str()
+                    ));
+                }
+            }
+        }
+    }
+
+    let mut verified = BTreeSet::new();
+    let mut unknown = BTreeSet::new();
+    let mut missing = BTreeSet::new();
+    for kind in &required {
+        if failed.contains(kind) {
+            continue;
+        }
+        match supplied.get(kind) {
+            None => {
+                missing.insert(*kind);
+            }
+            Some(ScopedEvidence {
+                assertion: EvidenceAssertion::Verified { .. },
+                ..
+            }) => {
+                verified.insert(*kind);
+            }
+            Some(ScopedEvidence {
+                assertion: EvidenceAssertion::Unknown { .. },
+                ..
+            }) => {
+                unknown.insert(*kind);
+            }
+            Some(ScopedEvidence {
+                assertion: EvidenceAssertion::Failed { .. },
+                ..
+            }) => {
+                failed.insert(*kind);
+            }
+        }
+    }
+
+    let status = if !failed.is_empty() {
+        ClaimDecisionStatus::RejectedFailedOrMismatchedEvidence
+    } else if !missing.is_empty() || !unknown.is_empty() {
+        ClaimDecisionStatus::AbstainInsufficientOrUnknownEvidence
+    } else if request.claim_class == ClaimClass::FlightRelease
+        || request.consequence == DecisionConsequence::SafetyCritical
+    {
+        ClaimDecisionStatus::RequiresHumanAuthorityDecision
+    } else {
+        ClaimDecisionStatus::AdmittedWithinDeclaredScope
+    };
+
+    let policy_sha256 = {
+        let bytes = policy_bytes(request, &required);
+        crate::integrity::sha256_hex(&bytes)?
+    };
+    let mut decision = ClaimDecision {
+        schema: CLAIM_ADMISSION_SCHEMA.to_owned(),
+        claim_id: request.claim_id.clone(),
+        claim_class: request.claim_class,
+        consequence: request.consequence,
+        scope_sha256: request.scope_sha256.clone(),
+        policy_sha256,
+        required_evidence: required.iter().copied().collect(),
+        verified_evidence: verified.into_iter().collect(),
+        unknown_evidence: unknown.into_iter().collect(),
+        missing_evidence: missing.into_iter().collect(),
+        failed_evidence: failed.into_iter().collect(),
+        status,
+        evidence_level: CLAIM_ADMISSION_EVIDENCE_LEVEL.to_owned(),
+        decision_sha256: String::new(),
+    };
+    decision.decision_sha256 = crate::integrity::sha256_hex(&decision_bytes(&decision))?;
+    Ok(decision)
+}
+
+/// Replay a claim decision from its original request and source assertions.
+pub fn verify_claim_admission(
+    request: &ClaimRequest,
+    evidence: &[ScopedEvidence],
+    supplied: &ClaimDecision,
+) -> Result<(), String> {
+    if supplied.schema != CLAIM_ADMISSION_SCHEMA
+        || supplied.evidence_level != CLAIM_ADMISSION_EVIDENCE_LEVEL
+    {
+        return Err("unsupported claim-admission schema or evidence ceiling".to_owned());
+    }
+    let recomputed = evaluate_claim_admission(request, evidence)?;
+    if recomputed != *supplied {
+        return Err("replayed claim-admission decision differs from supplied report".to_owned());
+    }
+    if crate::integrity::sha256_hex(&decision_bytes(supplied))? != supplied.decision_sha256 {
+        return Err("claim-admission canonical digest mismatch".to_owned());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn digest(character: char) -> String {
+        std::iter::repeat_n(character, 64).collect()
+    }
+
+    fn request(class: ClaimClass, consequence: DecisionConsequence) -> ClaimRequest {
+        ClaimRequest {
+            claim_id: "case-study-at-operating-point-a".to_owned(),
+            claim_class: class,
+            consequence,
+            scope_sha256: digest('a'),
+        }
+    }
+
+    fn verified(kind: EvidenceKind, scope_sha256: &str) -> ScopedEvidence {
+        ScopedEvidence {
+            kind,
+            scope_sha256: scope_sha256.to_owned(),
+            assertion: EvidenceAssertion::Verified {
+                artifact_sha256: digest('b'),
+                verifier_id: "pinned-independent-verifier-v1".to_owned(),
+                verifier_sha256: digest('c'),
+                verifier_receipt_sha256: digest('d'),
+            },
+        }
+    }
+
+    fn all_verified(request: &ClaimRequest) -> Vec<ScopedEvidence> {
+        required_for(request)
+            .into_iter()
+            .map(|kind| verified(kind, &request.scope_sha256))
+            .collect()
+    }
+
+    #[test]
+    fn exploratory_claim_can_only_be_admitted_within_exact_declared_scope() {
+        let request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        let evidence = all_verified(&request);
+        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertions");
+        assert_eq!(
+            decision.status,
+            ClaimDecisionStatus::AdmittedWithinDeclaredScope
+        );
+        verify_claim_admission(&request, &evidence, &decision).expect("independent replay");
+    }
+
+    #[test]
+    fn higher_credibility_claim_abstains_when_validation_is_unknown_or_missing() {
+        let request = request(
+            ClaimClass::AerodynamicPrediction,
+            DecisionConsequence::Engineering,
+        );
+        let mut evidence = all_verified(&request);
+        evidence.retain(|item| item.kind != EvidenceKind::ExperimentalValidation);
+        evidence.push(ScopedEvidence {
+            kind: EvidenceKind::ExperimentalValidation,
+            scope_sha256: request.scope_sha256.clone(),
+            assertion: EvidenceAssertion::Unknown {
+                reason: "no matched experimental observations admitted yet".to_owned(),
+            },
+        });
+        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertions");
+        assert_eq!(
+            decision.status,
+            ClaimDecisionStatus::AbstainInsufficientOrUnknownEvidence
+        );
+        assert!(decision.unknown_evidence.contains(&EvidenceKind::ExperimentalValidation));
+    }
+
+    #[test]
+    fn evidence_from_another_geometry_or_operating_scope_is_rejected() {
+        let request = request(
+            ClaimClass::AerodynamicPrediction,
+            DecisionConsequence::Engineering,
+        );
+        let mut evidence = all_verified(&request);
+        let validation = evidence
+            .iter_mut()
+            .find(|item| item.kind == EvidenceKind::ExperimentalValidation)
+            .expect("validation evidence");
+        validation.scope_sha256 = digest('e');
+        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertions");
+        assert_eq!(
+            decision.status,
+            ClaimDecisionStatus::RejectedFailedOrMismatchedEvidence
+        );
+        assert!(decision.failed_evidence.contains(&EvidenceKind::ExperimentalValidation));
+    }
+
+    #[test]
+    fn safety_critical_and_flight_release_claims_never_become_automatic_authorizations() {
+        let request = request(
+            ClaimClass::AerodynamicPrediction,
+            DecisionConsequence::SafetyCritical,
+        );
+        let evidence = all_verified(&request);
+        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertions");
+        assert_eq!(
+            decision.status,
+            ClaimDecisionStatus::RequiresHumanAuthorityDecision
+        );
+
+        let flight = request(
+            ClaimClass::FlightRelease,
+            DecisionConsequence::SafetyCritical,
+        );
+        let flight_evidence = all_verified(&flight);
+        let flight_decision =
+            evaluate_claim_admission(&flight, &flight_evidence).expect("valid assertions");
+        assert_eq!(
+            flight_decision.status,
+            ClaimDecisionStatus::RequiresHumanAuthorityDecision
+        );
+    }
+
+    #[test]
+    fn duplicate_malformed_or_reasonless_evidence_is_rejected() {
+        let request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        let mut evidence = all_verified(&request);
+        evidence.push(evidence[0].clone());
+        assert!(
+            evaluate_claim_admission(&request, &evidence)
+                .expect_err("duplicate assertion rejected")
+                .contains("duplicate evidence assertion")
+        );
+
+        let malformed = vec![ScopedEvidence {
+            kind: EvidenceKind::GeometryIdentity,
+            scope_sha256: request.scope_sha256.clone(),
+            assertion: EvidenceAssertion::Unknown {
+                reason: " ".to_owned(),
+            },
+        }];
+        assert!(evaluate_claim_admission(&request, &malformed).is_err());
+    }
+}
