@@ -3298,6 +3298,13 @@ mod sliding_leaf_candidate_message_tests {
             response.non_sliding_candidate_count + expected_sliding,
             direct.candidates.len()
         );
+        let candidate_ordinals = response
+            .sliding_candidates
+            .iter()
+            .map(|branch| branch.candidate_ordinal)
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(candidate_ordinals.len(), response.sliding_candidates.len());
+        assert!(candidate_ordinals.iter().all(|ordinal| *ordinal < direct.candidates.len()));
         assert_eq!(response.sliding_quartic, direct.sliding_quartic);
         assert_eq!(response.sliding_angles, direct.sliding_angles);
 
