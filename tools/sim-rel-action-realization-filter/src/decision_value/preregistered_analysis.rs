@@ -13,7 +13,7 @@
 
 use super::counterexample_ledger::EvidenceSplit;
 use super::matched_benchmark::{
-    BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest, MatchedBenchmarkTrial,
+    BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest, PairedBenchmarkTrial,
     validate_and_summarize_matched_campaign,
 };
 use crate::Rational;
@@ -439,7 +439,7 @@ fn apply_holm(
 pub fn analyze_sealed_matched_campaign(
     plan: &PreregisteredPairedAnalysisPlan,
     manifest: &MatchedBenchmarkManifest,
-    trials: &[MatchedBenchmarkTrial],
+    trials: &[PairedBenchmarkTrial],
 ) -> Result<PreregisteredPairedInferenceReceipt, PairedInferenceError> {
     validate_plan(plan)?;
     validate_manifest_binding(plan, manifest)?;
@@ -743,9 +743,10 @@ mod tests {
         }
     }
 
-    fn run(trials: &[PairedBenchmarkTrial]) -> super::PreregisteredPairedInferenceReceipt {
+    fn run(
+        trials: &[PairedBenchmarkTrial],
+    ) -> Result<super::PreregisteredPairedInferenceReceipt, super::PairedInferenceError> {
         analyze_sealed_matched_campaign(&plan(), &manifest(EvidenceSplit::SealedHoldout), trials)
-            .unwrap()
     }
 
     #[test]
@@ -807,7 +808,7 @@ mod tests {
         trials.push(trial("omitted-physics", 0, 10, 8));
         trials.push(trial("omitted-physics", 1, 10, 8));
         trials.push(trial("actuator-fault", 0, 10, 10));
-        let result = run(&trials);
+        let result = run(&trials).unwrap();
         assert_eq!(result.total_valid_pairs, 11);
         assert_eq!(result.family_count, 3);
         assert!(result.all_preregistered_families_retained);
