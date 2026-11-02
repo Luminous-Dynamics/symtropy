@@ -131,9 +131,13 @@ mod tests {
     }
 
     fn fuel_batch() -> FuelBatch {
+        fuel_batch_with_lhv_uncertainty(Some(100_000.0))
+    }
+
+    fn fuel_batch_with_lhv_uncertainty(uncertainty: Option<f64>) -> FuelBatch {
         let lhv = FuelProperty::new(
             LowerHeatingValueJPerKg::new(43_000_000.0).unwrap(),
-            Some(100_000.0),
+            uncertainty,
             evidence("LAB-LHV-001"),
         )
         .unwrap();
@@ -222,16 +226,18 @@ mod tests {
     }
 
     #[test]
-    fn output_uncertainty_is_not_claimed_from_input_uncertainty_alone() {
-        let batch = fuel_batch();
+    fn missing_lhv_uncertainty_is_not_treated_as_zero() {
+        let batch = fuel_batch_with_lhv_uncertainty(None);
         let (engine, generator) = models();
         let evaluation = evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator)
             .unwrap();
 
-        // This API only returns the chemical-input uncertainty. Engine and
-        // generator map uncertainties must be represented before output
-        // uncertainty can be reported.
-        assert!(evaluation.chemical_input_power_standard_uncertainty().is_ok());
+        assert_eq!(
+            evaluation
+                .chemical_input_power_standard_uncertainty()
+                .unwrap(),
+            None
+        );
     }
 
     #[test]
