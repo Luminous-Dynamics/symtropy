@@ -794,9 +794,7 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
 }
 
 fn optional(value: Option<f64>) -> String {
-    value
-        .map(|number| number.to_string())
-        .unwrap_or_default()
+    value.map(|number| number.to_string()).unwrap_or_default()
 }
 
 fn csv_escape(value: &str) -> String {
