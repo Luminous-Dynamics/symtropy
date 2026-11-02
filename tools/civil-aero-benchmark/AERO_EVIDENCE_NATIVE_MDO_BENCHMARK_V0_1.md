@@ -35,6 +35,13 @@ Reference: https://www.digital-hangar.de/collaboration/mdo-benchmark/
 
 ### C. CFD / aerodynamic validation: AIAA DPW-8 and AePW-4
 
+Treat SU2 as a strong solver baseline and interoperability target, not as a solver to replace prematurely. SU2 v8.6.0 was released on 30 October 2026; its release notes include a fix for the misleading "All convergence criteria satisfied." message on interrupted runs (#2881) and OpenMP support in force calculation (#2870). Pin executable/source/build hashes, compiler, linked libraries, OpenMP settings, thread count and CPU affinity. Keep the historical SU2 v8.0.1 participant reproduction lane separate from the current v8.6.0 lane.
+
+References:
+- https://github.com/su2code/SU2/releases/tag/v8.6.0
+- https://github.com/su2code/SU2/pull/2881
+- https://github.com/su2code/SU2/pull/2870
+
 Use public, protocol-compliant cases such as ONERA OAT15A and NASA Common Research Model when the exact geometry, grid, boundary conditions, solver version, reference data and uncertainty are available.
 
 The 2026 workshop combines drag prediction with aeroelastic prediction and includes working groups on static deformation, buffet, high-angle, high-speed, large-deflection, scatter and test environments.
@@ -101,7 +108,7 @@ NASA's CFD verification assessment identifies programming/code checks, iterative
 
 For validation:
 - Use ASME V&V 20 pointwise comparisons at specified validation variables and operating points, with simulation and experimental uncertainty.
-- Where multiple correlated outputs/locations/times matter, consider ASME VVUQ 20.1's multivariate validation metric rather than selecting only the best-looking scalar.
+- Where multiple correlated outputs/locations/times matter, consider ASME VVUQ 20.1-2024's multivariate validation metric rather than selecting only the best-looking scalar. The current claim policy requires a multivariate evidence item for unsteady aerodynamic, aeroelastic-stability and safety-critical claims; the software binds the verifier receipt but does not implement or certify the ASME metric itself.
 - Preserve experiment calibration, repeatability, reproducibility, facility corrections, sensor uncertainty and data-processing lineage.
 - Keep model-form discrepancy and validation-domain limits visible.
 
@@ -123,6 +130,7 @@ These are proposed research targets, not achieved results. Freeze them before th
 | Feasibility integrity | Zero false-feasible admissions in the locked adversarial and blind constraint suite |
 | Generalization | At least three held-out geometry families and three distinct operating-condition families |
 | Calibration | Nominal 90%/95% interval coverage evaluated on blind families; report width and subgroup coverage |
+| Multivariate validation | For correlated variables/locations/times, report the VVUQ 20.1-2024 global metric, covariance/uncertainty assumptions and local pointwise failures alongside V&V 20 results |
 | Optimization efficiency | At least 20% fewer high-fidelity-equivalent evaluations at non-inferior validated feasible hypervolume; 30% stretch |
 | Robustness | No degradation in worst-decile feasibility or robust regret versus strongest baseline |
 | Experimental evidence | Independent calibrated physical measurements at declared validation points, with expanded uncertainty and repeatability |
