@@ -68,6 +68,7 @@ The utility's newest annual report in this evidence pack adds a more recent oper
 - It states Johannesburg demand needs to be reduced to 1,550 ML/day under Rand Water apportionment licensing and that Phase II of the Lesotho Highlands Water Scheme, originally due in 2018, is expected in 2029. Treat 1,550 ML/day as a reported operating requirement, not achieved demand; treat 2029 as a project schedule expectation, not additional supply already available.
 - The report lists 14.7 km of water-main and 20.5 km of sewer-main replacement under the relevant replacement panel, and gives FY2024/25 upgrading/renewal capex of R171.733m against a R239.965m budget.
 - It reports 90.29% of actual water-meter readings submitted for billing; this is a billing-reading submission indicator, not physical meter coverage.
+- Derived financial execution ratios: upgrading/renewal capex 71.57% of approved budget; water-demand-management capex 103.63%; repairs/maintenance spend 105.09%. These are arithmetic budget/actual ratios, not verified completion or service outcomes.
 
 These observations add a meaningful mechanism picture: metering and leak-sensor deployment, pressure management, maintenance spend, asset renewal and procurement execution all matter. However, installed equipment, budgets, expenditure and estimated savings are not interchangeable with verified repair, hydraulic loss reduction or household continuity outcomes.
 
