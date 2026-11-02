@@ -528,7 +528,7 @@ fn verify_branch_artifacts(
     for (digest, expected_identity) in &expected_tapes {
         let path = tape_dir.join(format!("{digest}.json"));
         let bytes = fs::read(&path).map_err(|error| format!("cannot read disturbance tape artifact {}: {error}", path.display()))?;
-        if sha256(&bytes).as_str() != digest {
+        if sha256(&bytes) != digest.clone() {
             return Err(format!("disturbance tape artifact SHA-256 does not match its filename: {}", path.display()));
         }
         let artifact: DisturbanceTapeArtifact = serde_json::from_slice(&bytes)
