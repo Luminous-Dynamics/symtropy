@@ -104,7 +104,9 @@ pub enum BenchError {
     PredictionSchemaMismatch { sample_id: String },
     InvalidPrediction { sample_id: String },
     InvalidBootstrapSamples,
+    TooFewIndividualClusters,
     DuplicateInterventionId(String),
+    NoFeasibleIntervention,
     InvalidInterventionCost { intervention_id: String },
     InvalidMonteCarloSamples,
     TooFewModelFamilies,
@@ -134,6 +136,9 @@ impl fmt::Display for BenchError {
             Self::PredictionSchemaMismatch { sample_id } => write!(f, "metric/unit mismatch for sample {sample_id}"),
             Self::InvalidPrediction { sample_id } => write!(f, "invalid prediction mean or standard deviation for sample {sample_id}"),
             Self::InvalidBootstrapSamples => write!(f, "cluster bootstrap requires at least 100 resamples"),
+            Self::TooFewIndividualClusters => write!(f, "paired cluster bootstrap requires at least two independent individuals"),
+            Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
+            Self::NoFeasibleIntervention => write!(f, "no feasible intervention candidates were supplied"),
             Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
             Self::InvalidInterventionCost { intervention_id } => write!(f, "invalid positive finite intervention cost: {intervention_id}"),
             Self::InvalidMonteCarloSamples => write!(f, "expected-information-gain estimation requires at least 100 samples per model"),
@@ -386,6 +391,8 @@ pub fn validate_evidence_claim(
 pub struct TrialPrediction {
     pub model_family_id: String,
     pub sample_id: String,
+    pub metric_id: String,
+    pub unit_id: String,
     pub mean: f64,
     pub standard_deviation: f64,
 }
@@ -425,6 +432,8 @@ fn validate_prediction_join<'a>(
             });
         }
         non_empty(&prediction.sample_id, "prediction.sample_id")?;
+        non_empty(&prediction.metric_id, "prediction.metric_id")?;
+        non_empty(&prediction.unit_id, "prediction.unit_id")?;
         if !known_samples.contains(prediction.sample_id.as_str()) {
             return Err(BenchError::UnexpectedPrediction {
                 model_id: model_family_id.to_string(),
@@ -457,10 +466,13 @@ fn validate_prediction_join<'a>(
                 sample_id: observation.sample_id.clone(),
             }
         })?;
-        // In v0 there is one scalar endpoint per run. Metric and unit are
-        // therefore inherited from the observed trial schema and must not be
-        // silently mixed across separate runs.
-        let _ = prediction;
+        if prediction.metric_id != observation.metric_id
+            || prediction.unit_id != observation.unit_id
+        {
+            return Err(BenchError::PredictionSchemaMismatch {
+                sample_id: observation.sample_id.clone(),
+            });
+        }
     }
     Ok(by_sample)
 }
@@ -591,6 +603,9 @@ pub fn paired_cluster_bootstrap_log_score(
 
     let cluster_values: Vec<&Vec<f64>> = clusters.values().collect();
     let cluster_count = cluster_values.len();
+    if cluster_count < 2 {
+        return Err(BenchError::TooFewIndividualClusters);
+    }
     let trial_count = observations.len();
     let mean_delta = total_delta / trial_count as f64;
     let mut rng = SplitMix64(seed);
@@ -829,6 +844,9 @@ pub fn rank_interventions(
         });
     }
 
+    if rankings.is_empty() {
+        return Err(BenchError::NoFeasibleIntervention);
+    }
     rankings.sort_by(|a, b| {
         b.information_gain_per_cost
             .total_cmp(&a.information_gain_per_cost)
@@ -892,6 +910,8 @@ mod tests {
             .map(|row| TrialPrediction {
                 model_family_id: model.to_string(),
                 sample_id: row.sample_id.clone(),
+                metric_id: row.metric_id.clone(),
+                unit_id: row.unit_id.clone(),
                 mean: row.observed_value + offset,
                 standard_deviation: sigma,
             })
@@ -1041,6 +1061,12 @@ mod tests {
         assert!(matches!(
             score_model_family("model-a", &missing, &rows),
             Err(BenchError::MissingPrediction { .. })
+        ));
+        let mut wrong_schema = predictions("model-a", &rows, 0.0, 0.5);
+        wrong_schema[0].unit_id = "radians".to_string();
+        assert!(matches!(
+            score_model_family("model-a", &wrong_schema, &rows),
+            Err(BenchError::PredictionSchemaMismatch { .. })
         ));
         let mut duplicate = predictions("model-a", &rows, 0.0, 0.5);
         duplicate.push(duplicate[0].clone());
