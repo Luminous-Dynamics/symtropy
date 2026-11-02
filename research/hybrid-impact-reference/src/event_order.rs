@@ -466,7 +466,7 @@ fn has_cycle(event_ids: &[String], edges: &[EventOrderEdge]) -> bool {
         visited += 1;
         if let Some(neighbours) = outgoing.get(id) {
             for neighbour in neighbours {
-                let Some(degree) = indegree.get_mut(neighbour) else {
+                let Some(degree) = indegree.get_mut(*neighbour) else {
                     return true;
                 };
                 *degree -= 1;
