@@ -298,7 +298,11 @@ pub fn evaluate_dimension(
             reasons.push(ComponentReason::UnsupportedReportFormatIdentifier);
             unsupported = true;
         }
-        if !measurement.report_reference.format_version.trim().is_empty()
+        if !measurement
+            .report_reference
+            .format_version
+            .trim()
+            .is_empty()
             && measurement.report_reference.format_version != "3.0"
         {
             reasons.push(ComponentReason::UnsupportedReportFormatVersion);
