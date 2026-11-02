@@ -1270,13 +1270,8 @@ mod tests {
             start_tick: 10,
             end_tick: 1_000,
         }];
-        let result = schedule_lock(
-            &lock,
-            &[req],
-            0,
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .unwrap();
+        let result =
+            schedule_lock(&lock, &[req], 0, SchedulingPolicy::FirstComeFirstServed).unwrap();
         assert_eq!(
             result.unscheduled[0].reason,
             UnscheduledReason::LatestStartExceeded
