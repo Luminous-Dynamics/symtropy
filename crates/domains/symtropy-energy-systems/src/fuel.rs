@@ -35,6 +35,7 @@ pub enum FuelFamily {
 pub enum EvidenceClass {
     LaboratoryMeasurement,
     SupplierCertificate,
+    GovernmentDataset,
     PublishedLiterature,
     StandardOrRegulation,
     AnalystScenario,
