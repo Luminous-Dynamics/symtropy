@@ -133,6 +133,46 @@
       "source_class": "commercial_water_distribution_engineering_software_reference",
       "content_digest_status": "not_snapshotted",
       "notes": "Bentley lists steady-state and extended-period hydraulic simulation, water quality, pressure, flow, pump performance, transient/water-hammer analysis, GIS/CAD/SCADA integration and asset/pipe-renewal planning capabilities. Product feature claims are vendor-published and are a commercial industry comparator, not independent evidence of performance."
+    },
+    {
+      "source_id": "RANGANATHAN_NET3_LEAK_BENCH_2026",
+      "publisher": "Journal of Water Process Engineering / Elsevier",
+      "title": "Benchmarking Diverse Learning Architectures for Leak Detection and Localization in Water Distribution Systems",
+      "published_at": "2026-05",
+      "url": "https://www.sciencedirect.com/science/article/pii/S2214714426006720",
+      "source_class": "peer_reviewed_synthetic_hydraulic_ml_benchmark",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Abstract reports 47,000+ EPANET/WNTR Net3 scenarios, >95% binary detection, and ensemble ML Top-1 localization around 75–77%, with robustness checks across leak size, sensor density and noise. This is a Net3 synthetic task; do not treat as field-transfer evidence or compare its Top-1 directly with distance-threshold localization on another benchmark."
+    },
+    {
+      "source_id": "TARAWNEH_LEAK_DL_REVIEW_BENCH_2026",
+      "publisher": "Water Practice & Technology / IWA Publishing",
+      "title": "Deep learning for leakage detection in water distribution networks: a systematic review and benchmark",
+      "published_at": "2026-10-30",
+      "url": "https://iwaponline.com/wpt/article-abstract/doi/10.2166/wpt.2026.485/113667/Deep-learning-for-leakage-detection-in-water?redirectedFrom=fulltext",
+      "source_class": "peer_reviewed_systematic_review_and_benchmark",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Abstract reports review of 244 records / 71 pure-DL studies and an experimental benchmark. Reported abstract metrics include time-transformer detection accuracy 96.1% (AUC 0.94), GGNN localization success 88.5% within 300m, and 1D-CNN autoencoder accuracy 92.6% with 3.5ms inference. The tasks, topology, measurement assumptions and hardware must be checked in the full paper before any like-for-like comparison. The review reports major data/code and inference-time reporting gaps."
+    },
+    {
+      "source_id": "WATER_RESEARCH_TRANSIENT_FIELD_TRANSFER_2026",
+      "publisher": "Water Research / Elsevier",
+      "title": "Explainable simulation-to-field transfer learning for transient-based leak detection in water distribution networks",
+      "published_at": "2026-10-15",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0043135426011395",
+      "source_class": "peer_reviewed_experimental_simulation_to_field_transfer_study",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Abstract reports an expanded 40-scenario experimental test under a different PRV set pressure: transfer learning improved best classification from 30.00% direct-test to 62.50% after transfer, and reduced leak-location MAE from 18.44m to 6.57m. This is a transient sensing modality and a distinct experiment, not directly comparable to Net3 pipe/node classification."
+    },
+    {
+      "source_id": "WATER_LEAK_BENCHMARK_PROTOCOL_REVIEW_2026",
+      "publisher": "Water / MDPI",
+      "title": "Standardization and Benchmarking of Datasets and Evaluation Protocols for Machine Learning-Based Water Leak Detection: A Systematic Review",
+      "published_at": "2026-10",
+      "url": "https://www.mdpi.com/2073-4441/18/18/2267",
+      "source_class": "peer_reviewed_systematic_benchmark_protocol_review",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Review of 90 studies highlights inconsistent dataset generation, splits, metrics and scenario definitions as barriers to fair comparison. It recommends standardized dataset documentation, evaluation protocols, uncertainty quantification, interpretability and expanded shared benchmarks."
     }
   ],
   "observations": [
@@ -806,6 +846,7 @@
     "newibnet": "Map utility KPIs to NewIBNET indicators including continuity, 24/7 supply, NRW percent, NRW per connection per hour, metering, water quality and complaints resolved.",
     "civbench_extension": "Add typed multi-layer evidence, physical stock-flow, service continuity, quality, equity, maintenance, recovery, institutional dependency, and long-run feedback without collapsing outcomes into one score.",
     "epanet": "EPA EPANET 2.2 is the hydraulic/water-quality reference solver for pressurized distribution cases; compose through Sol-Atlas #139, not a parallel hydraulic engine.",
-    "openflows": "Bentley OpenFlows Water is a commercial engineering-product comparator for hydraulic, water-quality, transient, GIS/SCADA and renewal-planning workflows; do not claim equivalent functionality without an apples-to-apples evaluation."
+    "openflows": "Bentley OpenFlows Water is a commercial engineering-product comparator for hydraulic, water-quality, transient, GIS/SCADA and renewal-planning workflows; do not claim equivalent functionality without an apples-to-apples evaluation.",
+    "leak_detection_sota": "Keep binary detection, pipe/node localization, distance-threshold localization, held-out topology, operating/data shift, simulation-to-field transfer and value-of-information as separate benchmark lanes. 2026 papers report incompatible metrics and datasets; use their results as protocol-specific reference points, never one blended SOTA number. See Ranganathan Net3, Tarawneh review, Water Research transient field-transfer study, and the 2026 standardization review in sources."
   }
 }
