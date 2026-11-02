@@ -38,7 +38,7 @@ ClaimClass defines the type of conclusion. DecisionConsequence independently def
 | Unsteady aerodynamic prediction | Above plus time-step and temporal convergence, statistical sampling assessment and multivariate validation |
 | Structural load prediction | Structural verification and validation plus numerical/model uncertainty |
 | Aeroelastic stability prediction | Structural evidence, coupled convergence, time-step evidence, flutter validation and multivariate validation |
-| Mission performance prediction | Aerodynamic/structural evidence, propulsion validation, mission model verification and mission uncertainty |
+| Mission performance prediction | Aerodynamic/structural evidence, propulsion validation, mission model verification, mission uncertainty and multivariate validation |
 | Flight release | Broad technical evidence, operational envelope, calibrated measurements, certification-basis evidence, independent review and quality-system evidence |
 
 High-consequence claims add independent review, calibration and model-uncertainty evidence. Flight-release claims additionally require a certification-basis evidence package and quality-system evidence.
@@ -59,7 +59,7 @@ Every supplied ScopedEvidence has one of three states:
 
 Missing and unknown required evidence lead to abstention. Failed or out-of-scope required evidence leads to rejection. Scope mismatch is rejected even for a supplemental assertion: the system does not mix evidence from another geometry, operating point or declared envelope into this claim.
 
-The evidence-kind taxonomy distinguishes **pointwise experimental validation** from **multivariate validation**. Multivariate evidence is required by default for unsteady aerodynamic, aeroelastic-stability and flight-release claims, and for every safety-critical consequence. This is intended for cases where several correlated outputs, locations or times jointly support the conclusion. A pointwise validation record must not be represented as a multivariate result.
+The evidence-kind taxonomy distinguishes **pointwise experimental validation** from **multivariate validation**. Multivariate evidence is required by default for unsteady aerodynamic, aeroelastic-stability, mission-performance and flight-release claims, and for every safety-critical consequence. This is intended for cases where several correlated outputs, locations or times jointly support the conclusion. A pointwise validation record must not be represented as a multivariate result.
 
 This policy is informed by ASME VVUQ 20.1-2024, which extends the V&V 20 pointwise framework with a multivariate metric for global discrepancies across multiple validation variables, spatial locations and time instants, including independent or shared experimental, numerical and input-parameter uncertainties. The software currently requires a verifier-referenced multivariate evidence item; it does not implement the standard's metric or independently judge its adequacy.
 
