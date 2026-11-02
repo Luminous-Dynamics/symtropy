@@ -1,0 +1,13 @@
+{
+  "schema_version": "symtropy-nanodrone-exogenous-tape-v0.1",
+  "evidence_class": "synthetic_fixture",
+  "family_id": "family-b",
+  "flight_id": "flight-b",
+  "rollout_start_id": "start-1",
+  "regime": "shifted",
+  "checkpoint_time_s": 2,
+  "training_seed": 102,
+  "branch_seed": 12,
+  "synthetic_disturbance_payload": "SYNTHETIC_TAPE_ONLY|family-b|flight-b|start-1|shifted|2.0|102|12",
+  "claim_ceiling": "fixture_byte_integrity_only_no_simulator_origin_or_rng_state_attestation"
+}
