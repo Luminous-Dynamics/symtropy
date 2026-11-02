@@ -3811,6 +3811,10 @@ mod sliding_affine_coefficient_range_tests {
         interval.lower <= value && value <= interval.upper
     }
 
+    fn width(interval: OutwardInterval) -> f64 {
+        interval.upper - interval.lower
+    }
+
     fn direct_coefficients(
         message: &SlidingLeafMessage,
         separator_impulse: &SVector<f64, 3>,
@@ -3859,9 +3863,9 @@ mod sliding_affine_coefficient_range_tests {
         assert!(natural.coefficients[4].lower < -1.0);
         assert!(natural.coefficients[4].upper > 1.0);
         assert!(contains(affine[4], 0.0));
-        assert!(affine[4].width() < 1.0e-12);
+        assert!(width(affine[4]) < 1.0e-12);
         assert!(
-            affine[4].width() < natural.coefficients[4].width() * 1.0e-9,
+            width(affine[4]) < width(natural.coefficients[4]) * 1.0e-9,
             "affine pushforward must materially reduce dependency inflation"
         );
     }
@@ -3905,7 +3909,7 @@ mod sliding_affine_coefficient_range_tests {
 
         for index in 0..5 {
             assert!(
-                affine[index].width() <= natural.coefficients[index].width() + 1.0e-12,
+                width(affine[index]) <= width(natural.coefficients[index]) + 1.0e-12,
                 "affine range must not be wider at coefficient {index}"
             );
         }
