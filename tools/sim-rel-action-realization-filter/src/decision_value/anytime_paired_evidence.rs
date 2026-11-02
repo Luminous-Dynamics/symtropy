@@ -171,13 +171,22 @@ fn validate_plan(plan: &PreregisteredAnytimeAnalysisPlan) -> Result<(), AnytimeP
         (&plan.group_id, "sealed group ID"),
         (&plan.agent_panel_id, "agent panel ID"),
         (&plan.task_manifest_digest, "task manifest digest"),
-        (&plan.model_configuration_digest, "model configuration digest"),
-        (&plan.prompt_configuration_digest, "prompt configuration digest"),
+        (
+            &plan.model_configuration_digest,
+            "model configuration digest",
+        ),
+        (
+            &plan.prompt_configuration_digest,
+            "prompt configuration digest",
+        ),
         (&plan.harness_digest, "harness digest"),
         (&plan.toolset_digest, "toolset digest"),
         (&plan.reference_arm_id, "reference arm ID"),
         (&plan.candidate_arm_id, "candidate arm ID"),
-        (&plan.pre_registration_receipt_digest, "pre-registration receipt digest"),
+        (
+            &plan.pre_registration_receipt_digest,
+            "pre-registration receipt digest",
+        ),
     ] {
         if !valid_id(value) {
             return Err(AnytimePairedError::InvalidPlan(format!(
@@ -200,9 +209,7 @@ fn validate_plan(plan: &PreregisteredAnytimeAnalysisPlan) -> Result<(), AnytimeP
             "maximum terminal-loss range must be positive".into(),
         ));
     }
-    if !(1..=MAX_ANYTIME_DISCORDANT_PAIRS)
-        .contains(&plan.minimum_discordant_pairs_before_claim)
-    {
+    if !(1..=MAX_ANYTIME_DISCORDANT_PAIRS).contains(&plan.minimum_discordant_pairs_before_claim) {
         return Err(AnytimePairedError::InvalidPlan(format!(
             "minimum discordant pairs must be in 1..={MAX_ANYTIME_DISCORDANT_PAIRS}"
         )));
@@ -281,10 +288,7 @@ fn gcd(mut left: u128, mut right: u128) -> u128 {
     left.max(1)
 }
 
-fn subtract_nonnegative(
-    left: Rational,
-    right: Rational,
-) -> Result<Rational, AnytimePairedError> {
+fn subtract_nonnegative(left: Rational, right: Rational) -> Result<Rational, AnytimePairedError> {
     if left < right {
         return Err(AnytimePairedError::ArithmeticOverflow(
             "exact e-value alternating sum became negative".into(),
@@ -293,24 +297,15 @@ fn subtract_nonnegative(
     let common = gcd(left.denominator(), right.denominator());
     let left_scale = right.denominator() / common;
     let right_scale = left.denominator() / common;
-    let left_numerator = left
-        .numerator()
-        .checked_mul(left_scale)
-        .ok_or_else(|| {
-            AnytimePairedError::ArithmeticOverflow("e-value subtraction overflow".into())
-        })?;
-    let right_numerator = right
-        .numerator()
-        .checked_mul(right_scale)
-        .ok_or_else(|| {
-            AnytimePairedError::ArithmeticOverflow("e-value subtraction overflow".into())
-        })?;
-    let denominator = left
-        .denominator()
-        .checked_mul(left_scale)
-        .ok_or_else(|| {
-            AnytimePairedError::ArithmeticOverflow("e-value denominator overflow".into())
-        })?;
+    let left_numerator = left.numerator().checked_mul(left_scale).ok_or_else(|| {
+        AnytimePairedError::ArithmeticOverflow("e-value subtraction overflow".into())
+    })?;
+    let right_numerator = right.numerator().checked_mul(right_scale).ok_or_else(|| {
+        AnytimePairedError::ArithmeticOverflow("e-value subtraction overflow".into())
+    })?;
+    let denominator = left.denominator().checked_mul(left_scale).ok_or_else(|| {
+        AnytimePairedError::ArithmeticOverflow("e-value denominator overflow".into())
+    })?;
     Rational::new(left_numerator - right_numerator, denominator)
         .map_err(AnytimePairedError::ArithmeticOverflow)
 }
@@ -329,11 +324,9 @@ pub fn exact_paired_sign_mixture_e_value(
     candidate_wins: usize,
     reference_wins: usize,
 ) -> Result<Rational, AnytimePairedError> {
-    let discordant = candidate_wins
-        .checked_add(reference_wins)
-        .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(
-            "discordant pair count overflow".into(),
-        ))?;
+    let discordant = candidate_wins.checked_add(reference_wins).ok_or_else(|| {
+        AnytimePairedError::ArithmeticOverflow("discordant pair count overflow".into())
+    })?;
     if discordant > MAX_ANYTIME_DISCORDANT_PAIRS {
         return Err(AnytimePairedError::UnsupportedExactSampleSize(format!(
             "{discordant} discordant pairs exceeds the exact mixture cap of {MAX_ANYTIME_DISCORDANT_PAIRS}"
@@ -368,9 +361,9 @@ pub fn exact_paired_sign_mixture_e_value(
 }
 
 fn increment(value: &mut usize, label: &str) -> Result<(), AnytimePairedError> {
-    *value = value.checked_add(1).ok_or_else(|| {
-        AnytimePairedError::ArithmeticOverflow(format!("{label} count overflow"))
-    })?;
+    *value = value
+        .checked_add(1)
+        .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(format!("{label} count overflow")))?;
     Ok(())
 }
 
@@ -408,9 +401,8 @@ pub fn replay_anytime_paired_evidence(
         .collect::<BTreeMap<_, _>>();
     let mut event_ids = BTreeSet::new();
     let mut event_replay = Vec::with_capacity(events.len());
-    let family_count = u64::try_from(plan.mechanism_families.len()).map_err(|_| {
-        AnytimePairedError::ArithmeticOverflow("family count exceeds u64".into())
-    })?;
+    let family_count = u64::try_from(plan.mechanism_families.len())
+        .map_err(|_| AnytimePairedError::ArithmeticOverflow("family count exceeds u64".into()))?;
     let allocated_alpha = plan
         .family_wise_alpha
         .checked_div(Rational::from_u64(family_count))
@@ -419,16 +411,18 @@ pub fn replay_anytime_paired_evidence(
         .checked_div(allocated_alpha)
         .map_err(AnytimePairedError::ArithmeticOverflow)?;
 
-    let trials = events.iter().map(|event| event.trial.clone()).collect::<Vec<_>>();
+    let trials = events
+        .iter()
+        .map(|event| event.trial.clone())
+        .collect::<Vec<_>>();
     if !events.is_empty() {
         validate_and_summarize_matched_campaign(manifest, &trials)
             .map_err(|error| AnytimePairedError::InvalidMatchedCampaign(error.to_string()))?;
     }
 
     for (index, event) in events.iter().enumerate() {
-        let expected_sequence = u64::try_from(index).map_err(|_| {
-            AnytimePairedError::EventSequence("event index exceeds u64".into())
-        })?;
+        let expected_sequence = u64::try_from(index)
+            .map_err(|_| AnytimePairedError::EventSequence("event index exceeds u64".into()))?;
         if event.sequence != expected_sequence {
             return Err(AnytimePairedError::EventSequence(format!(
                 "expected event sequence {expected_sequence}, found {}",
@@ -448,19 +442,19 @@ pub fn replay_anytime_paired_evidence(
             )));
         }
 
-        let family = counts
-            .get_mut(&trial.mechanism_family_id)
-            .ok_or_else(|| AnytimePairedError::UnregisteredFamily(
+        let family = counts.get_mut(&trial.mechanism_family_id).ok_or_else(|| {
+            AnytimePairedError::UnregisteredFamily(
                 "registered family disappeared during replay".into(),
-            ))?;
+            )
+        })?;
         if trial.task_validity == BenchmarkTaskValidity::Invalid {
             increment(&mut family.invalid_tasks_excluded, "invalid task")?;
             let discordant_pairs = family
                 .candidate_wins
                 .checked_add(family.reference_wins)
-                .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(
-                    "discordant count overflow".into(),
-                ))?;
+                .ok_or_else(|| {
+                    AnytimePairedError::ArithmeticOverflow("discordant count overflow".into())
+                })?;
             let current_e_value =
                 exact_paired_sign_mixture_e_value(family.candidate_wins, family.reference_wins)?;
             event_replay.push(AnytimeEventReplayReceipt {
@@ -511,19 +505,17 @@ pub fn replay_anytime_paired_evidence(
         let discordant = family
             .candidate_wins
             .checked_add(family.reference_wins)
-            .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(
-                "discordant pair count overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                AnytimePairedError::ArithmeticOverflow("discordant pair count overflow".into())
+            })?;
         if discordant > MAX_ANYTIME_DISCORDANT_PAIRS {
             return Err(AnytimePairedError::UnsupportedExactSampleSize(format!(
                 "family {} exceeds the exact discordant-pair cap of {}",
                 trial.mechanism_family_id, MAX_ANYTIME_DISCORDANT_PAIRS
             )));
         }
-        let e_value = exact_paired_sign_mixture_e_value(
-            family.candidate_wins,
-            family.reference_wins,
-        )?;
+        let e_value =
+            exact_paired_sign_mixture_e_value(family.candidate_wins, family.reference_wins)?;
         if family.first_crossing_sequence.is_none()
             && discordant >= plan.minimum_discordant_pairs_before_claim
             && e_value >= critical_e_value
@@ -551,9 +543,9 @@ pub fn replay_anytime_paired_evidence(
         let discordant_pairs = family
             .candidate_wins
             .checked_add(family.reference_wins)
-            .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(
-                "discordant count overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                AnytimePairedError::ArithmeticOverflow("discordant count overflow".into())
+            })?;
         let current_e_value =
             exact_paired_sign_mixture_e_value(family.candidate_wins, family.reference_wins)?;
         family_results.push(FamilyAnytimeEvidence {
@@ -600,15 +592,15 @@ pub fn replay_anytime_paired_evidence(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        MAX_ANYTIME_DISCORDANT_PAIRS, PreregisteredAnytimeAnalysisPlan,
-        SequencedPairedBenchmarkEvent, exact_paired_sign_mixture_e_value,
-        replay_anytime_paired_evidence,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::{
         ArmOutcome, BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest,
         PairedBenchmarkTrial, ResourceBudget, ResourceUsage,
+    };
+    use super::{
+        MAX_ANYTIME_DISCORDANT_PAIRS, PreregisteredAnytimeAnalysisPlan,
+        SequencedPairedBenchmarkEvent, exact_paired_sign_mixture_e_value,
+        replay_anytime_paired_evidence,
     };
     use crate::Rational;
 
@@ -646,7 +638,11 @@ mod tests {
         }
     }
 
-    fn plan(families: Vec<&str>, alpha: Rational, minimum_discordant: usize) -> PreregisteredAnytimeAnalysisPlan {
+    fn plan(
+        families: Vec<&str>,
+        alpha: Rational,
+        minimum_discordant: usize,
+    ) -> PreregisteredAnytimeAnalysisPlan {
         PreregisteredAnytimeAnalysisPlan {
             analysis_id: "anytime-analysis".into(),
             analysis_version: "v1".into(),
@@ -772,7 +768,10 @@ mod tests {
 
     #[test]
     fn mixture_e_values_match_exact_fixtures_and_independent_polynomial_expansion() {
-        assert_eq!(exact_paired_sign_mixture_e_value(0, 0).unwrap(), Rational::one());
+        assert_eq!(
+            exact_paired_sign_mixture_e_value(0, 0).unwrap(),
+            Rational::one()
+        );
         assert_eq!(exact_paired_sign_mixture_e_value(1, 0).unwrap(), q(3, 2));
         assert_eq!(exact_paired_sign_mixture_e_value(0, 1).unwrap(), q(1, 2));
         assert_eq!(exact_paired_sign_mixture_e_value(1, 1).unwrap(), q(2, 3));
@@ -827,8 +826,14 @@ mod tests {
         assert!(family.crossed_anytime_threshold);
         assert_eq!(family.first_crossing_sequence, Some(2));
         assert!(family.current_e_value < family.critical_e_value);
-        assert_eq!(result.event_replay[2].first_crossing_sequence_after_event, Some(2));
-        assert_eq!(result.event_replay[4].first_crossing_sequence_after_event, Some(2));
+        assert_eq!(
+            result.event_replay[2].first_crossing_sequence_after_event,
+            Some(2)
+        );
+        assert_eq!(
+            result.event_replay[4].first_crossing_sequence_after_event,
+            Some(2)
+        );
         assert_eq!(result.event_replay.len(), events.len());
     }
 
@@ -924,31 +929,37 @@ mod tests {
         for split in [EvidenceSplit::Development, EvidenceSplit::Calibration] {
             let mut changed_manifest = manifest();
             changed_manifest.split = split;
-            assert!(replay_anytime_paired_evidence(
-                &plan(vec!["sensor-drift"], q(1, 2), 1),
-                &changed_manifest,
-                &events,
-            )
-            .is_err());
+            assert!(
+                replay_anytime_paired_evidence(
+                    &plan(vec!["sensor-drift"], q(1, 2), 1),
+                    &changed_manifest,
+                    &events,
+                )
+                .is_err()
+            );
         }
 
         let extra = vec![event(0, "pair-0", "task-0", "not-preregistered", 10, 8)];
-        assert!(replay_anytime_paired_evidence(
-            &plan(vec!["sensor-drift"], q(1, 2), 1),
-            &manifest(),
-            &extra,
-        )
-        .is_err());
+        assert!(
+            replay_anytime_paired_evidence(
+                &plan(vec!["sensor-drift"], q(1, 2), 1),
+                &manifest(),
+                &extra,
+            )
+            .is_err()
+        );
 
         let reordered = vec![
             event(1, "pair-1", "task-1", "sensor-drift", 10, 8),
             event(0, "pair-0", "task-0", "sensor-drift", 10, 8),
         ];
-        assert!(replay_anytime_paired_evidence(
-            &plan(vec!["sensor-drift"], q(1, 2), 1),
-            &manifest(),
-            &reordered,
-        )
-        .is_err());
+        assert!(
+            replay_anytime_paired_evidence(
+                &plan(vec!["sensor-drift"], q(1, 2), 1),
+                &manifest(),
+                &reordered,
+            )
+            .is_err()
+        );
     }
 }
