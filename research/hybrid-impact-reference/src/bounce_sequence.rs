@@ -95,14 +95,10 @@ pub fn impact_sequence_summary(
     } else if is_unit_restitution(restitution) {
         (ImpactSequenceRegime::NonAccumulating, None)
     } else {
-        let flight_scale = finite_or_overflow(
-            (initial_speed / parameters.gravity_m_s2) * 2.0,
-        )?;
-        let remaining_flight_sum =
-            finite_or_overflow(restitution / (1.0 - restitution))?;
+        let flight_scale = finite_or_overflow((initial_speed / parameters.gravity_m_s2) * 2.0)?;
+        let remaining_flight_sum = finite_or_overflow(restitution / (1.0 - restitution))?;
         let tail = finite_or_overflow(flight_scale * remaining_flight_sum)?;
-        let zeno_time =
-            finite_or_overflow(first.impact_time_s + tail)?;
+        let zeno_time = finite_or_overflow(first.impact_time_s + tail)?;
         if zeno_time <= first.impact_time_s {
             return Err(ImpactError::TimeResolutionExhausted);
         }
@@ -137,41 +133,32 @@ pub fn bounce_impact_state(
     }
 
     let initial_speed = -first.pre_impact_velocity_m_s;
-    let flight_scale = finite_or_overflow(
-        (initial_speed / parameters.gravity_m_s2) * 2.0,
-    )?;
+    let flight_scale = finite_or_overflow((initial_speed / parameters.gravity_m_s2) * 2.0)?;
     let terms = impact_number - 1;
-    let elapsed_flight = finite_or_overflow(
-        flight_scale * geometric_sum_from_one(restitution, terms),
-    )?;
+    let elapsed_flight =
+        finite_or_overflow(flight_scale * geometric_sum_from_one(restitution, terms))?;
     let impact_time = finite_or_overflow(first.impact_time_s + elapsed_flight)?;
 
     if impact_number > 1 {
-        let previous_elapsed = finite_or_overflow(
-            flight_scale * geometric_sum_from_one(restitution, terms - 1),
-        )?;
-        let previous_time =
-            finite_or_overflow(first.impact_time_s + previous_elapsed)?;
+        let previous_elapsed =
+            finite_or_overflow(flight_scale * geometric_sum_from_one(restitution, terms - 1))?;
+        let previous_time = finite_or_overflow(first.impact_time_s + previous_elapsed)?;
         if impact_time <= previous_time {
             return Err(ImpactError::TimeResolutionExhausted);
         }
     }
 
-    let incoming_speed = finite_or_overflow(
-        initial_speed * pow_u64(restitution, impact_number - 1),
-    )?;
+    let incoming_speed =
+        finite_or_overflow(initial_speed * pow_u64(restitution, impact_number - 1))?;
     let outgoing_speed = finite_or_overflow(incoming_speed * restitution)?;
     let incoming_speed_squared = finite_or_overflow(incoming_speed * incoming_speed)?;
     let outgoing_speed_squared = finite_or_overflow(outgoing_speed * outgoing_speed)?;
 
-    let pre_impact_kinetic_energy_j = finite_or_overflow(
-        0.5 * parameters.mass_kg * incoming_speed_squared,
-    )?;
-    let post_impact_kinetic_energy_j = finite_or_overflow(
-        0.5 * parameters.mass_kg * outgoing_speed_squared,
-    )?;
-    let one_minus_e_squared =
-        finite_or_overflow(1.0 - restitution * restitution)?;
+    let pre_impact_kinetic_energy_j =
+        finite_or_overflow(0.5 * parameters.mass_kg * incoming_speed_squared)?;
+    let post_impact_kinetic_energy_j =
+        finite_or_overflow(0.5 * parameters.mass_kg * outgoing_speed_squared)?;
+    let one_minus_e_squared = finite_or_overflow(1.0 - restitution * restitution)?;
     let impact_dissipation_j = finite_or_overflow(
         0.5 * parameters.mass_kg * one_minus_e_squared * incoming_speed_squared,
     )?;
@@ -184,9 +171,8 @@ pub fn bounce_impact_state(
         let exponent = 2.0 * (impact_number as f64) * restitution.ln();
         -exponent.exp_m1()
     };
-    let cumulative_impact_dissipation_j = finite_or_overflow(
-        first.pre_impact_kinetic_energy_j * cumulative_fraction,
-    )?;
+    let cumulative_impact_dissipation_j =
+        finite_or_overflow(first.pre_impact_kinetic_energy_j * cumulative_fraction)?;
     let cumulative_energy_balance_residual_j = finite_or_overflow(
         first.initial_mechanical_energy_j
             - post_impact_kinetic_energy_j
@@ -232,7 +218,11 @@ mod tests {
         let summary = impact_sequence_summary(fixture(0.5)).expect("valid fixture");
         assert_eq!(summary.regime, ImpactSequenceRegime::FiniteTimeZeno);
         close(summary.first_impact_time_s, 1.0, 1.0e-14);
-        close(summary.zeno_accumulation_time_s.expect("Zeno time"), 3.0, 1.0e-14);
+        close(
+            summary.zeno_accumulation_time_s.expect("Zeno time"),
+            3.0,
+            1.0e-14,
+        );
     }
 
     #[test]
