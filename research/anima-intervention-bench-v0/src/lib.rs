@@ -8,6 +8,8 @@ use std::fmt;
 
 const NORMAL_90: f64 = 1.644_853_626_951_472_2;
 const LOG_SQRT_2PI: f64 = 0.918_938_533_204_672_7;
+const MAX_MONTE_CARLO_SAMPLES_PER_MODEL: usize = 1_000_000;
+const MAX_BOOTSTRAP_RESAMPLES: usize = 1_000_000;
 const SPLITMIX_GAMMA: u64 = 0x9e37_79b9_7f4a_7c15;
 
 /// Origin class of an observation or reference outcome.
@@ -127,12 +129,12 @@ impl fmt::Display for BenchError {
             Self::PredictionModelMismatch { expected, actual } => write!(f, "prediction model mismatch: expected {expected}, got {actual}"),
             Self::PredictionSchemaMismatch { sample_id } => write!(f, "metric/unit mismatch for sample {sample_id}"),
             Self::InvalidPrediction { sample_id } => write!(f, "invalid prediction mean or standard deviation for sample {sample_id}"),
-            Self::InvalidBootstrapSamples => write!(f, "cluster bootstrap requires at least 100 resamples"),
+            Self::InvalidBootstrapSamples => write!(f, "cluster bootstrap requires 100 to 1,000,000 resamples"),
             Self::TooFewIndividualClusters => write!(f, "paired cluster bootstrap requires at least two independent individuals"),
             Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
             Self::NoFeasibleIntervention => write!(f, "no feasible intervention candidates were supplied"),
             Self::InvalidInterventionCost { intervention_id } => write!(f, "invalid positive finite intervention cost: {intervention_id}"),
-            Self::InvalidMonteCarloSamples => write!(f, "expected-information-gain estimation requires at least 100 samples per model"),
+            Self::InvalidMonteCarloSamples => write!(f, "expected-information-gain estimation requires 100 to 1,000,000 samples per model"),
             Self::TooFewModelFamilies => write!(f, "at least two competing model families are required"),
             Self::ModelFamilySetMismatch { intervention_id } => write!(f, "model-family set differs across intervention candidates: {intervention_id}"),
             Self::InvalidModelDistribution { intervention_id, model_id } => write!(f, "invalid Gaussian prediction for model {model_id} under intervention {intervention_id}"),
@@ -571,7 +573,7 @@ pub fn paired_cluster_bootstrap_log_score(
     bootstrap_resamples: usize,
     seed: u64,
 ) -> Result<PairedClusterComparison, BenchError> {
-    if bootstrap_resamples < 100 {
+    if !(100..=MAX_BOOTSTRAP_RESAMPLES).contains(&bootstrap_resamples) {
         return Err(BenchError::InvalidBootstrapSamples);
     }
     let candidate = validate_prediction_join(
@@ -706,7 +708,7 @@ pub fn estimate_expected_information_gain(
     samples_per_model: usize,
     seed: u64,
 ) -> Result<f64, BenchError> {
-    if samples_per_model < 100 {
+    if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
         return Err(BenchError::InvalidMonteCarloSamples);
     }
     if predictions.len() < 2 {
@@ -733,12 +735,17 @@ pub fn estimate_expected_information_gain(
         }
     }
 
-    let model_count = predictions.len();
+    // Canonical model ordering makes a fixed seed invariant to caller input
+    // order, which is essential for stable experiment rankings and receipts.
+    let mut ordered_predictions = predictions.to_vec();
+    ordered_predictions.sort_by(|a, b| a.model_family_id.cmp(&b.model_family_id));
+
+    let model_count = ordered_predictions.len();
     let log_prior = -(model_count as f64).ln();
     let mut rng = SplitMix64(seed);
     let mut information = 0.0;
 
-    for (origin_index, origin) in predictions.iter().enumerate() {
+    for (origin_index, origin) in ordered_predictions.iter().enumerate() {
         for _ in 0..samples_per_model {
             let outcome = origin.mean + origin.standard_deviation * rng.standard_normal();
             if !outcome.is_finite() {
@@ -747,7 +754,7 @@ pub fn estimate_expected_information_gain(
                     model_id: origin.model_family_id.clone(),
                 });
             }
-            let log_likelihoods: Vec<f64> = predictions
+            let log_likelihoods: Vec<f64> = ordered_predictions
                 .iter()
                 .map(|distribution| gaussian_log_density_scalar(outcome, distribution))
                 .collect::<Option<Vec<_>>>()
@@ -1179,6 +1186,19 @@ mod tests {
         assert!(high > low + 0.5);
         assert!(high <= 3.0_f64.ln());
         assert!(low >= 0.0);
+    }
+
+    #[test]
+    fn expected_information_gain_is_invariant_to_model_input_order() {
+        let ordered = vec![
+            distribution("model-a", 0.0, 0.5),
+            distribution("model-b", 3.0, 0.5),
+            distribution("model-c", 6.0, 0.5),
+        ];
+        let reversed = ordered.iter().cloned().rev().collect::<Vec<_>>();
+        let left = estimate_expected_information_gain(&ordered, 1000, 123).unwrap();
+        let right = estimate_expected_information_gain(&reversed, 1000, 123).unwrap();
+        assert_eq!(left, right);
     }
 
     #[test]
