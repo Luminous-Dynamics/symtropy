@@ -210,9 +210,11 @@ fn is_occluded(
 
 /// Estimate geometric surface visibility through an idealized nozzle cone.
 ///
-/// Each triangle is sampled independently and its estimated covered area is
-/// weighted by its true triangle area. Sampling is deterministic for a fixed
-/// input mesh and configuration. The result is a geometry-only screening metric.
+/// Each target triangle is sampled independently and its estimated covered
+/// area is weighted by its true area. The occlusion mesh should contain all
+/// opaque geometry, including target surfaces and any racks/walls that can
+/// block line of sight. Hits at the target endpoint are not considered occlusion.
+/// Sampling is deterministic for fixed meshes and configuration.
 pub fn estimate_coverage(
     target_mesh: &TriangleMesh,
     occlusion_mesh: &TriangleMesh,
@@ -405,7 +407,7 @@ mod tests {
         };
         let mut nozzle = standard_nozzle();
         nozzle.max_range_m = 0.5;
-        let report = estimate_coverage(&mesh, nozzle, standard_config()).unwrap();
+        let report = estimate_coverage(&mesh, &mesh, nozzle, standard_config()).unwrap();
         assert_eq!(report.geometrically_visible_area_fraction, 0.0);
     }
 
@@ -414,8 +416,8 @@ mod tests {
         let mesh = TriangleMesh {
             triangles: vec![triangle_at_z(1.0, 0.1), triangle_at_z(2.0, 0.15)],
         };
-        let first = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
-        let second = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
+        let first = estimate_coverage(&mesh, &mesh, standard_nozzle(), standard_config()).unwrap();
+        let second = estimate_coverage(&mesh, &mesh, standard_nozzle(), standard_config()).unwrap();
         assert_eq!(first, second);
     }
 
