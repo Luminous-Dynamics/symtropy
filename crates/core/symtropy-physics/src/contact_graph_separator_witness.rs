@@ -3695,7 +3695,6 @@ mod sliding_quartic_coefficient_family_tests {
     }
 }
 
-
 impl SlidingLeafMessage {
     /// Enclose each quartic coefficient as an affine function of the original
     /// separator variables, preserving correlation lost by first boxing q_eff.
