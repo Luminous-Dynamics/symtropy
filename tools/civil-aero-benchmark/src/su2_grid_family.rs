@@ -781,16 +781,17 @@ printf 'synthetic solver stdout\n'
             mesh_path: "mesh.su2".to_owned(),
         };
 
-        let spacings = [4.0_f64, 2.0, 1.0];
         let mut members = Vec::new();
-        for (index, spacing) in spacings.into_iter().enumerate() {
+        for index in 0..3 {
             let level = u32::try_from(index + 1).expect("three levels fit u32");
             let mesh = shared.join(format!("mesh-{level}.su2"));
             let divisions = [1_usize, 2, 4][index];
+            let divisions_f64 = f64::from(u32::try_from(divisions).expect("fixture divisions fit u32"));
+            let expected_spacing = (1.0 / (2.0 * divisions_f64.powi(2))).sqrt();
             let mesh_text = unit_square_triangular_mesh(divisions);
             fs::write(&mesh, mesh_text).expect("write grid mesh");
             let run_directory = root.join(format!("run-{level}"));
-            let drag = 0.02 + 0.008 * spacing.powi(2);
+            let drag = 0.02 + 0.008 * expected_spacing.powi(2);
             let request = ExternalSolverRequest {
                 run_id: format!("su2-grid-run-{level}"),
                 solver_id: "SU2_CFD".to_owned(),
@@ -831,7 +832,6 @@ printf 'synthetic solver stdout\n'
             members.push(Su2GridFamilyMember {
                 grid_id: format!("grid-{level}"),
                 grid_level: level,
-                characteristic_spacing: spacing,
                 run_directory,
                 history,
                 convergence_screen: screen,
@@ -850,7 +850,8 @@ printf 'synthetic solver stdout\n'
             quantity_field: "CD".to_owned(),
             quantity_unit: "dimensionless".to_owned(),
             source_reference: "synthetic fake-solver known answer".to_owned(),
-            spacing_definition: "explicit synthetic characteristic spacing".to_owned(),
+            spacing_definition: SU2_GRID_SPACING_DEFINITION_2D.to_owned(),
+            mesh_coordinate_unit: "m".to_owned(),
             grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
             safety_factor: 3.0,
             members,
@@ -864,9 +865,15 @@ printf 'synthetic solver stdout\n'
         let report = evaluate_su2_grid_family_study(&study).expect("lineage-bound GCI study");
         assert_eq!(report.members.len(), 3);
         assert_eq!(report.gci_report.triplets.len(), 1);
-        assert!((report.members[0].quantity_value - 0.148).abs() < 1.0e-11);
-        assert!((report.members[1].quantity_value - 0.052).abs() < 1.0e-11);
-        assert!((report.members[2].quantity_value - 0.028).abs() < 1.0e-11);
+        assert!((report.members[0].quantity_value - 0.024).abs() < 1.0e-11);
+        assert!((report.members[1].quantity_value - 0.021).abs() < 1.0e-11);
+        assert!((report.members[2].quantity_value - 0.02025).abs() < 1.0e-11);
+        assert!((report.members[0].characteristic_spacing - 0.5_f64.sqrt()).abs() < 1.0e-12);
+        assert!((report.members[1].characteristic_spacing - 0.125_f64.sqrt()).abs() < 1.0e-12);
+        assert!((report.members[2].characteristic_spacing - 0.03125_f64.sqrt()).abs() < 1.0e-12);
+        assert_eq!(report.members[0].mesh_cell_count, 2);
+        assert_eq!(report.members[1].mesh_cell_count, 8);
+        assert_eq!(report.members[2].mesh_cell_count, 32);
         assert!((report.gci_report.triplets[0].observed_order - 2.0).abs() < 1.0e-10);
         assert!((report.gci_report.triplets[0].extrapolated_value - 0.02).abs() < 1.0e-10);
         assert_eq!(report_to_csv(&report).lines().count(), 4);
@@ -893,7 +900,8 @@ printf 'synthetic solver stdout\n'
             quantity_field: "CD".to_owned(),
             quantity_unit: "dimensionless".to_owned(),
             source_reference: "synthetic fixture".to_owned(),
-            spacing_definition: "synthetic volume-based characteristic spacing".to_owned(),
+            spacing_definition: SU2_GRID_SPACING_DEFINITION_2D.to_owned(),
+            mesh_coordinate_unit: "m".to_owned(),
             grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
             safety_factor: 3.0,
             members: Vec::new(),
