@@ -423,7 +423,7 @@ For every fuel/configuration pair, freeze:
 - durability / inspection interval and maintenance burden;
 - safety case, fuel supply availability and certification scope.
 
-Use the machine-readable [FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json](data/FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json) to record exact configuration/fuel qualification status. A `qualified_within_scope` status requires a completed physical test, independent review and no unresolved gaps.
+Use the machine-readable [FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json](data/FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json) to record exact configuration/fuel qualification status. A `qualified_within_scope` status requires a completed physical test and emissions test, independently reviewed physical evidence, an approved or confirmed-not-required safety/approval record, and no unresolved gaps.
 
 Report a **flexibility vector**, never one opaque scalar:
 1. **Validated Fuel Envelope Coverage:** fraction of a preregistered, rights-cleared fuel-batch distribution inside a physically tested and independently reviewed operating envelope. Report by fuel, batch property and supply region. Uncharacterized batches do not count as supported.
