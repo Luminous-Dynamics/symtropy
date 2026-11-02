@@ -52,6 +52,7 @@ struct Args {
     input: PathBuf,
     checkpoints: PathBuf,
     train_families: PathBuf,
+    artifact_root: PathBuf,
     dataset_receipt_sha256: String,
     model_manifest_sha256: String,
     source_commit: String,
@@ -125,6 +126,7 @@ struct Report {
     dataset_receipt_sha256: String,
     model_manifest_sha256: String,
     input_csv_sha256: String,
+    branch_artifact_verification: BranchArtifactVerification,
     checkpoints_manifest_sha256: String,
     train_families_manifest_sha256: String,
     training_seeds: Vec<u64>,
@@ -146,6 +148,70 @@ struct Report {
     intervention_summaries: Vec<InterventionSummary>,
 }
 
+
+#[derive(Clone, Debug, Serialize)]
+struct BranchArtifactVerification {
+    status: String,
+    evidence_class: String,
+    snapshot_artifacts_verified: usize,
+    disturbance_tape_artifacts_verified: usize,
+    branch_rows_bound: usize,
+    snapshot_manifest_sha256: String,
+    disturbance_tape_manifest_sha256: String,
+    combined_artifact_manifest_sha256: String,
+    claim_ceiling: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct StateSnapshotArtifact {
+    schema_version: String,
+    evidence_class: String,
+    family_id: String,
+    flight_id: String,
+    rollout_start_id: String,
+    regime: String,
+    checkpoint_time_s: f64,
+    training_seed: u64,
+    synthetic_state_payload: String,
+    claim_ceiling: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct DisturbanceTapeArtifact {
+    schema_version: String,
+    evidence_class: String,
+    family_id: String,
+    flight_id: String,
+    rollout_start_id: String,
+    regime: String,
+    checkpoint_time_s: f64,
+    training_seed: u64,
+    branch_seed: u64,
+    synthetic_disturbance_payload: String,
+    claim_ceiling: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct SnapshotArtifactIdentity {
+    family_id: String,
+    flight_id: String,
+    rollout_start_id: String,
+    regime: String,
+    checkpoint_time_bits: u64,
+    training_seed: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct TapeArtifactIdentity {
+    family_id: String,
+    flight_id: String,
+    rollout_start_id: String,
+    regime: String,
+    checkpoint_time_bits: u64,
+    training_seed: u64,
+    branch_seed: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct CheckpointKey(String, String, String, u64);
 
@@ -162,7 +228,7 @@ struct TapeKey(String, String, String, u64, u64, u64);
 struct BranchKey(String, String, String, u64, u64, String, u64);
 
 fn usage() -> &'static str {
-    "Usage: nanodrone_recoverability_frontier --input branches.csv --checkpoints checkpoints.csv --train-families train.txt --dataset-receipt-sha256 HEX64 --model-manifest-sha256 HEX64 --source-commit HEX40 --training-seeds 101,102 --branch-seeds 1,2,3,4 --interventions continue,robust_fallback --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 [--bootstrap 2000] [--seed 17] [--evidence-class synthetic|simulation|real-flight] [--output report.json]"
+    "Usage: nanodrone_recoverability_frontier --input branches.csv --checkpoints checkpoints.csv --train-families train.txt --artifact-root branch-artifacts-v0.1 --dataset-receipt-sha256 HEX64 --model-manifest-sha256 HEX64 --source-commit HEX40 --training-seeds 101,102 --branch-seeds 1,2,3,4 --interventions continue,robust_fallback --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 [--bootstrap 2000] [--seed 17] [--evidence-class synthetic|simulation|real-flight] [--output report.json]"
 }
 
 fn parse_csv_list<T: std::str::FromStr>(raw: &str, name: &str) -> Result<Vec<T>, String> {
@@ -195,6 +261,7 @@ fn parse_args() -> Result<Args, String> {
     let input = PathBuf::from(take("--input")?);
     let checkpoints = PathBuf::from(take("--checkpoints")?);
     let train_families = PathBuf::from(take("--train-families")?);
+    let artifact_root = PathBuf::from(take("--artifact-root")?);
     let dataset_receipt_sha256 = take("--dataset-receipt-sha256")?;
     let model_manifest_sha256 = take("--model-manifest-sha256")?;
     let source_commit = take("--source-commit")?;
@@ -217,7 +284,7 @@ fn parse_args() -> Result<Args, String> {
         return Err(format!("unknown arguments: {:?}", values.keys().collect::<Vec<_>>()));
     }
     let args = Args {
-        input, checkpoints, train_families, dataset_receipt_sha256, model_manifest_sha256,
+        input, checkpoints, train_families, artifact_root, dataset_receipt_sha256, model_manifest_sha256,
         source_commit, training_seeds, branch_seeds, interventions, max_tracking_rmse_m,
         recoverability_threshold, bootstrap_replicates, bootstrap_seed, evidence_class, output,
     };
@@ -276,6 +343,228 @@ fn sha256(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!("{:x}", hasher.finalize())
+}
+
+
+fn require_real_directory(path: &Path, label: &str) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("cannot inspect {label} {}: {error}", path.display()))?;
+    if metadata.file_type().is_symlink() || !metadata.file_type().is_dir() {
+        return Err(format!("{label} must be a real non-symlink directory: {}", path.display()));
+    }
+    Ok(())
+}
+
+fn expected_artifact_names(digests: &BTreeSet<String>) -> BTreeSet<String> {
+    digests.iter().map(|digest| format!("{digest}.json")).collect()
+}
+
+fn verify_exact_artifact_inventory(
+    directory: &Path,
+    label: &str,
+    expected_names: &BTreeSet<String>,
+) -> Result<(), String> {
+    require_real_directory(directory, label)?;
+    let mut actual = BTreeSet::new();
+    for entry in fs::read_dir(directory)
+        .map_err(|error| format!("cannot read {label} {}: {error}", directory.display()))?
+    {
+        let entry = entry.map_err(|error| format!("cannot read {label} directory entry: {error}"))?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| format!("cannot inspect {}: {error}", path.display()))?;
+        if metadata.file_type().is_symlink() || !metadata.file_type().is_file() {
+            return Err(format!("{label} may contain only regular non-symlink files: {}", path.display()));
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !actual.insert(name.clone()) {
+            return Err(format!("duplicate {label} filename {name:?}"));
+        }
+    }
+    let missing = expected_names.difference(&actual).cloned().collect::<Vec<_>>();
+    let extra = actual.difference(expected_names).cloned().collect::<Vec<_>>();
+    if !missing.is_empty() || !extra.is_empty() {
+        return Err(format!(
+            "{label} inventory mismatch: missing={missing:?}, unreferenced={extra:?}"
+        ));
+    }
+    Ok(())
+}
+
+fn snapshot_identity(row: &BranchRow) -> SnapshotArtifactIdentity {
+    SnapshotArtifactIdentity {
+        family_id: row.family_id.clone(),
+        flight_id: row.flight_id.clone(),
+        rollout_start_id: row.rollout_start_id.clone(),
+        regime: row.regime.clone(),
+        checkpoint_time_bits: row.checkpoint_time_s.to_bits(),
+        training_seed: row.training_seed,
+    }
+}
+
+fn tape_identity(row: &BranchRow) -> TapeArtifactIdentity {
+    TapeArtifactIdentity {
+        family_id: row.family_id.clone(),
+        flight_id: row.flight_id.clone(),
+        rollout_start_id: row.rollout_start_id.clone(),
+        regime: row.regime.clone(),
+        checkpoint_time_bits: row.checkpoint_time_s.to_bits(),
+        training_seed: row.training_seed,
+        branch_seed: row.branch_seed,
+    }
+}
+
+fn verify_branch_artifacts(
+    root: &Path,
+    branches: &[BranchRow],
+    requested_evidence_class: &str,
+) -> Result<BranchArtifactVerification, String> {
+    if branches.is_empty() {
+        return Err("cannot verify branch artifacts for an empty branch set".into());
+    }
+    let artifact_evidence_class = match requested_evidence_class {
+        "synthetic" => "synthetic_fixture",
+        "simulation" => "simulation",
+        "real-flight" => "real-flight",
+        other => return Err(format!("unsupported artifact evidence class {other:?}")),
+    };
+
+    require_real_directory(root, "branch artifact root")?;
+    let snapshot_dir = root.join("snapshots");
+    let tape_dir = root.join("disturbance-tapes");
+    require_real_directory(&snapshot_dir, "snapshot artifact directory")?;
+    require_real_directory(&tape_dir, "disturbance tape artifact directory")?;
+
+    // The root is an explicitly versioned bundle: exactly two artifact
+    // directories and one human-readable README. No symlinks or extra roots.
+    let root_entries = fs::read_dir(root)
+        .map_err(|error| format!("cannot read branch artifact root: {error}"))?
+        .map(|entry| entry.map(|value| value.file_name().to_string_lossy().into_owned()))
+        .collect::<Result<BTreeSet<_>, _>>()
+        .map_err(|error| format!("cannot read branch artifact root entry: {error}"))?;
+    let expected_root_entries = BTreeSet::from([
+        "README.md".to_string(),
+        "snapshots".to_string(),
+        "disturbance-tapes".to_string(),
+    ]);
+    if root_entries != expected_root_entries {
+        return Err(format!(
+            "branch artifact root inventory mismatch: found={root_entries:?}, expected={expected_root_entries:?}"
+        ));
+    }
+    let readme_path = root.join("README.md");
+    let readme_metadata = fs::symlink_metadata(&readme_path)
+        .map_err(|error| format!("cannot inspect branch artifact README: {error}"))?;
+    if readme_metadata.file_type().is_symlink() || !readme_metadata.file_type().is_file() {
+        return Err("branch artifact README must be a regular non-symlink file".into());
+    }
+
+    let mut expected_snapshots = BTreeMap::<String, SnapshotArtifactIdentity>::new();
+    let mut expected_tapes = BTreeMap::<String, TapeArtifactIdentity>::new();
+    for row in branches {
+        if !valid_hex(&row.state_snapshot_sha256, 64) || !valid_hex(&row.exogenous_tape_sha256, 64) {
+            return Err("branch rows must reference lowercase or uppercase 64-character SHA-256 digests".into());
+        }
+        let snapshot_digest = row.state_snapshot_sha256.to_ascii_lowercase();
+        let snapshot_key = snapshot_identity(row);
+        if let Some(previous) = expected_snapshots.insert(snapshot_digest.clone(), snapshot_key.clone()) {
+            if previous != snapshot_key {
+                return Err(format!("one snapshot digest is claimed by multiple snapshot identities: {snapshot_digest}"));
+            }
+        }
+        let tape_digest = row.exogenous_tape_sha256.to_ascii_lowercase();
+        let tape_key = tape_identity(row);
+        if let Some(previous) = expected_tapes.insert(tape_digest.clone(), tape_key.clone()) {
+            if previous != tape_key {
+                return Err(format!("one disturbance-tape digest is claimed by multiple tape identities: {tape_digest}"));
+            }
+        }
+    }
+
+    let snapshot_digests = expected_snapshots.keys().cloned().collect::<BTreeSet<_>>();
+    let tape_digests = expected_tapes.keys().cloned().collect::<BTreeSet<_>>();
+    verify_exact_artifact_inventory(
+        &snapshot_dir,
+        "snapshot artifact directory",
+        &expected_artifact_names(&snapshot_digests),
+    )?;
+    verify_exact_artifact_inventory(
+        &tape_dir,
+        "disturbance tape artifact directory",
+        &expected_artifact_names(&tape_digests),
+    )?;
+
+    for (digest, expected_identity) in &expected_snapshots {
+        let path = snapshot_dir.join(format!("{digest}.json"));
+        let bytes = fs::read(&path).map_err(|error| format!("cannot read snapshot artifact {}: {error}", path.display()))?;
+        if sha256(&bytes) != *digest {
+            return Err(format!("snapshot artifact SHA-256 does not match its filename: {}", path.display()));
+        }
+        let artifact: StateSnapshotArtifact = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("snapshot artifact {} is invalid JSON/schema: {error}", path.display()))?;
+        let observed_identity = SnapshotArtifactIdentity {
+            family_id: artifact.family_id,
+            flight_id: artifact.flight_id,
+            rollout_start_id: artifact.rollout_start_id,
+            regime: artifact.regime,
+            checkpoint_time_bits: artifact.checkpoint_time_s.to_bits(),
+            training_seed: artifact.training_seed,
+        };
+        if artifact.schema_version != "symtropy-nanodrone-state-snapshot-v0.1"
+            || artifact.evidence_class != artifact_evidence_class
+            || artifact.synthetic_state_payload.trim().is_empty()
+            || artifact.claim_ceiling.trim().is_empty()
+            || observed_identity != *expected_identity
+        {
+            return Err(format!("snapshot artifact metadata/identity mismatch: {}", path.display()));
+        }
+    }
+
+    for (digest, expected_identity) in &expected_tapes {
+        let path = tape_dir.join(format!("{digest}.json"));
+        let bytes = fs::read(&path).map_err(|error| format!("cannot read disturbance tape artifact {}: {error}", path.display()))?;
+        if sha256(&bytes) != *digest {
+            return Err(format!("disturbance tape artifact SHA-256 does not match its filename: {}", path.display()));
+        }
+        let artifact: DisturbanceTapeArtifact = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("disturbance tape artifact {} is invalid JSON/schema: {error}", path.display()))?;
+        let observed_identity = TapeArtifactIdentity {
+            family_id: artifact.family_id,
+            flight_id: artifact.flight_id,
+            rollout_start_id: artifact.rollout_start_id,
+            regime: artifact.regime,
+            checkpoint_time_bits: artifact.checkpoint_time_s.to_bits(),
+            training_seed: artifact.training_seed,
+            branch_seed: artifact.branch_seed,
+        };
+        if artifact.schema_version != "symtropy-nanodrone-exogenous-tape-v0.1"
+            || artifact.evidence_class != artifact_evidence_class
+            || artifact.synthetic_disturbance_payload.trim().is_empty()
+            || artifact.claim_ceiling.trim().is_empty()
+            || observed_identity != *expected_identity
+        {
+            return Err(format!("disturbance tape artifact metadata/identity mismatch: {}", path.display()));
+        }
+    }
+
+    let snapshot_manifest = snapshot_digests.iter().cloned().collect::<Vec<_>>().join("\n");
+    let tape_manifest = tape_digests.iter().cloned().collect::<Vec<_>>().join("\n");
+    let combined_manifest = format!("snapshots\n{snapshot_manifest}\ntapes\n{tape_manifest}\n");
+    Ok(BranchArtifactVerification {
+        status: if artifact_evidence_class == "synthetic_fixture" {
+            "synthetic_fixture_content_verified_origin_unattested".into()
+        } else {
+            "content_verified_origin_unattested".into()
+        },
+        evidence_class: artifact_evidence_class.into(),
+        snapshot_artifacts_verified: expected_snapshots.len(),
+        disturbance_tape_artifacts_verified: expected_tapes.len(),
+        branch_rows_bound: branches.len(),
+        snapshot_manifest_sha256: sha256(snapshot_manifest.as_bytes()),
+        disturbance_tape_manifest_sha256: sha256(tape_manifest.as_bytes()),
+        combined_artifact_manifest_sha256: sha256(combined_manifest.as_bytes()),
+        claim_ceiling: "sha256_content_integrity_and_identity_only; no independent simulator state capture, restore fidelity, RNG source, or hardware origin attestation".into(),
+    })
 }
 
 fn read_csv<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<(Vec<T>, Vec<u8>), String> {
@@ -594,7 +883,11 @@ fn crossed_bootstrap_delta(
     }
 }
 
-fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
+fn evaluate(
+    args: &Args,
+    validated: Validated,
+    branch_artifact_verification: BranchArtifactVerification,
+) -> Result<Report, String> {
     let mut grouped = BTreeMap::<(CheckpointKey, u64, String), Vec<&BranchRow>>::new();
     for branch in &validated.branches {
         grouped.entry((checkpoint_key(&CheckpointRow {
@@ -714,6 +1007,7 @@ fn evaluate(args: &Args, validated: Validated) -> Result<Report, String> {
         dataset_receipt_sha256: args.dataset_receipt_sha256.clone(),
         model_manifest_sha256: args.model_manifest_sha256.clone(),
         input_csv_sha256: validated.input_sha256,
+        branch_artifact_verification,
         checkpoints_manifest_sha256: validated.checkpoint_manifest_sha256,
         train_families_manifest_sha256: validated.train_manifest_sha256,
         training_seeds: validated.training_seeds.clone(),
@@ -741,9 +1035,11 @@ fn run() -> Result<(), String> {
     let (checkpoints, checkpoint_bytes) = read_csv::<CheckpointRow>(&args.checkpoints)?;
     let (branches, input_bytes) = read_csv::<BranchRow>(&args.input)?;
     let (train_families, train_bytes) = read_train_families(&args.train_families)?;
+    let branch_artifact_verification =
+        verify_branch_artifacts(&args.artifact_root, &branches, &args.evidence_class)?;
     let validated = validate_inputs(&args, checkpoints, branches, train_families,
         sha256(&checkpoint_bytes), sha256(&train_bytes), sha256(&input_bytes))?;
-    let report = evaluate(&args, validated)?;
+    let report = evaluate(&args, validated, branch_artifact_verification)?;
     let output = serde_json::to_string_pretty(&report).map_err(|e| format!("cannot serialize report: {e}"))?;
     if let Some(path) = args.output {
         fs::write(&path, format!("{output}\n")).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
@@ -767,6 +1063,7 @@ mod tests {
     fn test_args() -> Args {
         Args {
             input: PathBuf::new(), checkpoints: PathBuf::new(), train_families: PathBuf::new(),
+            artifact_root: PathBuf::new(),
             dataset_receipt_sha256: "a".repeat(64), model_manifest_sha256: "b".repeat(64),
             source_commit: "c".repeat(40), training_seeds: vec![101, 102], branch_seeds: vec![11, 12],
             interventions: vec!["continue".into(), "robust_fallback".into()],
