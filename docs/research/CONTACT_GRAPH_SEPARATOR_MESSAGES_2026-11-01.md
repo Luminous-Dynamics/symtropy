@@ -290,3 +290,24 @@ The result carries two independent chart classifications:
 The only current claim is CoefficientFamilyOnly. An interval coefficient enclosure is not a parameter-family Sturm proof; it cannot report the number of real roots or certify branch completeness. Boxes where the leading coefficient may vanish must retain the lower-degree/projective chart, and boxes whose normal guard may vanish must retain the singular normal-response stratum.
 
 The tests cover point boxes against the existing quartic reference, nonzero separator coupling across box corners and interior samples, a leading-coefficient zero crossing, and a zero normal-coupling guard. This is the sound input layer for subsequent root-family certification, not a substitute for it.
+
+
+
+## Dependency-preserving affine quartic ranges — 2026-11-02
+
+[Issue #3350](https://github.com/Luminous-Dynamics/symtropy/issues/3350) adds a second coefficient-range evaluator that preserves the shared separator variables.
+
+For fixed A and mu, each sliding quartic coefficient is affine in q_eff. Since q_eff = q_L + B^T p_S, write
+
+\[
+c_k(p_S)=\alpha_k^Tq_L+(B\alpha_k)^Tp_S.
+\]
+
+The implementation encloses alpha_k and B alpha_k with outward interval arithmetic, then takes the range of the affine form directly over the axis-aligned separator box. This avoids first boxing q_eff components independently and then recombining them, which loses correlations when the same separator coordinate contributes to multiple local velocity components.
+
+The natural interval evaluator from #3346 remains unchanged and is kept as a differential reference. The affine pushforward tests:
+- a correlated fixture where q_n and q_2 share one separator coordinate and c_4 is identically zero; the natural interval range is wide, while the direct affine range is near point-width;
+- a nonzero mixed-sign coupling fixture where all corners and deterministic interior points are enclosed by both evaluators;
+- a true leading-coefficient crossing remains visible in the affine range.
+
+**Claim boundary:** this tightens coefficient-family ranges only. It is not a root-count certificate and cannot promote a sliding branch. Any narrower range must still be outward-sound and contain all admissible point evaluations.
