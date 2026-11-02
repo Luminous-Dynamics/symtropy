@@ -361,3 +361,34 @@ This avoids counting the same crew, vehicle, part or water reserve as available 
 - A service trajectory can recover briefly and fail again because the maintenance backlog or energy constraint persists.
 
 The benchmark therefore reports performance curves and threshold-crossing times alongside physical, asset, financial and institutional measures. The WARATA capabilities are explanatory dimensions, not one new weighted resilience score.
+
+
+## 15. Hierarchical hydroinformatics: match model complexity to sensing scale
+
+A 2026 Journal of Hydroinformatics review of 86 studies argues that operational readiness is limited less by algorithmic sophistication than by isolated models that ignore physical and operational constraints. It proposes sensor-aware, context-dependent hierarchy: network-level risk assessment and budget prioritization where instrumentation is sparse; DMA-level early warning from existing SCADA under stochastic demand; and in-situ confirmation / last-mile localization where high-resolution sensing is justified by excavation or repair costs. It also emphasizes operational false-alarm rates, detection time, computational feasibility, SCADA/GIS integration and leakage-safe temporal partitioning. Reference: [AI-based leak detection in water distribution networks: a decadal review across sensing and monitoring scales, Journal of Hydroinformatics (2026), DOI 10.2166/hydro.2026.069](https://doi.org/10.2166/hydro.2026.069).
+
+This suggests a stronger architecture comparison than “one larger model beats one smaller model”:
+
+| Tier | Sensing and context | Correct task | Output contract |
+|---|---|---|---|
+| Network-level | Sparse/heterogeneous observations, asset map and broad network context | Risk ranking, sensor/inspection budget allocation, uncertainty and data-gap identification | Ranked areas/assets with confidence, rationale, abstention and value-of-information estimate; not a pipe fault declaration |
+| DMA-level | Existing SCADA / district flow-pressure telemetry and demand context | Robust anomaly/early warning and event triage | Calibrated alert with onset, affected DMA, false-alarm budget, evidence freshness and escalation/abstention |
+| In-situ | Acoustic/transient/pressure measurements collected for a selected event | Confirmation and last-mile pipe/node localization | Candidate pipe/node, graph/metric uncertainty, confidence, evidence provenance and whether excavation threshold is met |
+
+Compare at least:
+1. monolithic model attempting all tiers;
+2. conventional per-tier baselines;
+3. hierarchical cascade that escalates only when uncertainty / operational value warrants;
+4. hierarchical cascade with a calibrated abstention and explicit human confirmation step.
+
+The tiers have distinct labels, costs, time resolutions and error consequences. Do not score a network-level risk ranking as a pipe localization. The hierarchy must be evaluated end-to-end as well as per tier: missed events, false escalation, dispatch volume, time-to-confirmation, unnecessary field visits, excavation avoidance, crew queues, energy/bandwidth, and independently verified service outcomes.
+
+### Falsifiable architectural hypotheses
+
+- A hierarchical system reduces high-resolution sensor and compute demand without materially worsening missed-event rate or time-to-restoration.
+- A DMA-level detector can lower false dispatch compared with applying an in-situ localizer to every network alert.
+- The cascade does not improve outcome when data hand-off is stale, GIS identity is wrong, or human/operator response capacity is unavailable.
+- A monolithic high-accuracy model may be inferior in lifecycle cost and operational utility to a calibrated tiered system.
+- The architecture fails closed when the event cannot be mapped to a current network asset identity or the downstream tier lacks sufficient measurement evidence.
+
+Primary claim: improve **end-to-end operational utility** at matched total lifecycle cost and safety/service constraints, while reporting per-tier statistical performance separately. Do not claim an autonomous replacement for SCADA, GIS, hydraulic engineers or operator authorization.
