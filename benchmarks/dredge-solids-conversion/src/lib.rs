@@ -161,6 +161,10 @@ pub enum ConversionReason {
     FractionEvidenceExpired,
     VolumeMeasurementFromFuture,
     DensityMeasurementFromFuture,
+    FractionSampleFromFuture,
+    VolumeMeasurementStale,
+    DensityMeasurementStale,
+    FractionSampleStale,
     VolumeMeasurementOutsideSupport,
     DensityMeasurementOutsideSupport,
     FractionSampleOutsideSupport,
@@ -457,6 +461,28 @@ pub fn evaluate_conversion(
         reasons.push(ConversionReason::DensityEvidenceUnknown);
         unknown = true;
     }
+    if request.wet_volume.observed_at_tick > evaluation_tick {
+        reasons.push(ConversionReason::VolumeMeasurementFromFuture);
+        inconsistent = true;
+    } else if evaluation_tick - request.wet_volume.observed_at_tick > maximum_measurement_age_ticks {
+        reasons.push(ConversionReason::VolumeMeasurementStale);
+        unknown = true;
+    }
+    if request.wet_density.observed_at_tick > evaluation_tick {
+        reasons.push(ConversionReason::DensityMeasurementFromFuture);
+        inconsistent = true;
+    } else if evaluation_tick - request.wet_density.observed_at_tick > maximum_measurement_age_ticks {
+        reasons.push(ConversionReason::DensityMeasurementStale);
+        unknown = true;
+    }
+    if request.solids_fraction.sampled_at_tick > evaluation_tick {
+        reasons.push(ConversionReason::FractionSampleFromFuture);
+        inconsistent = true;
+    } else if evaluation_tick - request.solids_fraction.sampled_at_tick > maximum_measurement_age_ticks {
+        reasons.push(ConversionReason::FractionSampleStale);
+        unknown = true;
+    }
+
     if !request.solids_fraction.representative_for_declared_support {
         reasons.push(ConversionReason::FractionNotDeclaredRepresentative);
         unknown = true;
@@ -786,6 +812,56 @@ mod tests {
         req.solids_fraction.valid_through_tick = Some(159);
         assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
             ConversionDisposition::UnknownReviewRequired);
+    }
+
+    #[test]
+    fn stale_volume_measurement_requires_review() {
+        let mut req = request();
+        req.wet_volume.observed_at_tick = 120;
+        assert_eq!(
+            evaluate_conversion(&req, &ConversionCursor::default(), 160, 10).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn stale_density_measurement_requires_review() {
+        let mut req = request();
+        req.wet_density.observed_at_tick = 120;
+        assert_eq!(
+            evaluate_conversion(&req, &ConversionCursor::default(), 160, 10).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn stale_fraction_sample_requires_review() {
+        let mut req = request();
+        req.solids_fraction.sampled_at_tick = 120;
+        assert_eq!(
+            evaluate_conversion(&req, &ConversionCursor::default(), 160, 10).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn future_density_measurement_is_inconsistent() {
+        let mut req = request();
+        req.wet_density.observed_at_tick = 161;
+        assert_eq!(
+            evaluate(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn future_fraction_sample_is_inconsistent() {
+        let mut req = request();
+        req.solids_fraction.sampled_at_tick = 161;
+        assert_eq!(
+            evaluate(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
