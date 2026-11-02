@@ -909,7 +909,7 @@ mod tests {
     #[test]
     fn rejects_tolerance_that_can_hide_a_complete_service_failure() {
         let reference = cycle([0.01, 0.005], 0.45);
-        let candidate = cycle([0.0, 0.0], 0.50);
+        let candidate = cycle([0.00032, 0.0001], 0.50);
         let demand = profile([10_800_000.0, 2_735_400.0]);
 
         let tolerance = ServiceTolerance::new(20_000_000.0, 0.0).unwrap();
