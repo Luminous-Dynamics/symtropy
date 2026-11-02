@@ -961,8 +961,27 @@ WINDOW_CAUCHY_CRIT= NO
     #[test]
     fn dry_run_preflight_requires_every_steady_and_window_field_from_exact_inventory() {
         let root = root();
-        let config = "SOLVER= NAVIER_STOKES\\nCONV_FIELD= (RMS_DENSITY, CD)\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\\nWINDOW_START_ITER= 500\\nCONV_WINDOW_STARTITER= 10\\nCONV_WINDOW_CAUCHY_ELEMS= 10\\nCONV_WINDOW_CAUCHY_EPS= 1E-4\\nWINDOW_FUNCTION= HANN_SQUARE\\n";
-        let inventory = "Available screen/history output fields for the current configuration:\\nITER\\nRMS_DENSITY\\nCD\\nTAVG_DRAG\\nTAVG_LIFT\\nAvailable volume output fields for the current configuration:\\nPRESSURE\\n";
+        let config = r#"SOLVER= NAVIER_STOKES
+CONV_FIELD= (RMS_DENSITY, CD)
+HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+TIME_DOMAIN= YES
+WINDOW_CAUCHY_CRIT= YES
+CONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)
+WINDOW_START_ITER= 500
+CONV_WINDOW_STARTITER= 10
+CONV_WINDOW_CAUCHY_ELEMS= 10
+CONV_WINDOW_CAUCHY_EPS= 1E-4
+WINDOW_FUNCTION= HANN_SQUARE
+"#;
+        let inventory = r#"Available screen/history output fields for the current configuration:
+ITER
+RMS_DENSITY
+CD
+TAVG_DRAG
+TAVG_LIFT
+Available volume output fields for the current configuration:
+PRESSURE
+"#;
         let run = fixture_run_with_config(&root.join("complete"), config, inventory);
         let report = audit_su2_field_preflight(
             &run,
@@ -1008,7 +1027,12 @@ WINDOW_CAUCHY_CRIT= NO
     #[test]
     fn preserves_unsteady_endpoint_protocol_without_promoting_it_to_window_convergence() {
         let root = root();
-        let config = "SOLVER= NAVIER_STOKES\\nTIME_DOMAIN= YES\\nCONV_FIELD= RMS_DENSITY\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n";
+        let config = r#"SOLVER= NAVIER_STOKES
+TIME_DOMAIN= YES
+CONV_FIELD= RMS_DENSITY
+HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+WINDOW_CAUCHY_CRIT= NO
+"#;
         let run = fixture_run_with_config(&root.join("unsteady-endpoint"), config, INVENTORY);
         let report = audit_su2_field_preflight(
             &run,
