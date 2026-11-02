@@ -121,13 +121,11 @@
           "enum": [
             "manufacturer_product_specification",
             "manufacturer_authored_report_under_government_sponsored_project",
-            "third_party_emissions_source_test",
             "government_prototype_pilot_announcement",
             "commercial_agreement_press_release",
             "manufacturer_regulatory_filing_and_product_literature",
             "manufacturer_product_information",
             "government_programme_summary",
-            "manufacturer_product_specification",
             "manufacturer_announced_type_approval_and_factory_acceptance",
             "peer_reviewed_lifecycle_study"
           ]
