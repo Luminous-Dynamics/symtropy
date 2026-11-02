@@ -88,6 +88,56 @@ The correct comparison boundary is:
 
 Only compare like-for-like quantities with compatible units, topology, time step, boundary conditions, demand patterns, pump/valve controls and parameter profiles. Missing pipe roughness, elevation, pump curves, valve control, pressure-dependent demand or water-quality inputs must result in an explicit blocker/indeterminate state, not invented defaults.
 
+## 2026 leak-localisation research benchmarks — separate tasks, no blended SOTA
+
+Current publications illustrate why a single detection-accuracy leaderboard is inadequate.
+
+### Synthetic EPANET / Net3 benchmark
+
+Ranganathan et al. (Journal of Water Process Engineering, May 2026, DOI 10.1016/j.jwpe.2026.110114) report 47,000+ EPANET/WNTR Net3 scenarios, binary detection above 95%, and ensemble-ML Top-1 pipe/node localisation around 75–77%. They also report sensitivity to leak size, sensor density and noise.
+
+Reference: https://www.sciencedirect.com/science/article/pii/S2214714426006720
+
+### Multi-study review and benchmark
+
+Tarawneh (Water Practice & Technology, 30 October 2026, DOI 10.2166/wpt.2026.485) reviews 244 records / 71 pure-DL studies and reports an experimental benchmark. The abstract reports 96.1% time-transformer detection accuracy (AUC 0.94), 88.5% GGNN localisation success within 300m, and a 1D-CNN autoencoder with 92.6% accuracy and 3.5ms inference. It also reports substantial data/code-sharing and computational-reporting gaps.
+
+Reference: https://iwaponline.com/wpt/article-abstract/doi/10.2166/wpt.2026.485/113667/Deep-learning-for-leakage-detection-in-water?redirectedFrom=fulltext
+
+The 88.5% result is a distance-threshold localization task, not the same metric as pipe/node Top-1. The 3.5ms inference figure is hardware/input/runtime-specific until the full experimental context is reconstructed.
+
+### Simulation-to-experiment transfer
+
+A Water Research paper (15 October 2026, DOI 10.1016/j.watres.2026.126464) evaluates transient-based leak detection in an expanded 40-scenario experimental set collected under a different PRV set pressure. Its abstract reports best classification increasing from 30.00% direct simulation-to-experiment testing to 62.50% after transfer learning, and location MAE reducing from 18.44m to 6.57m.
+
+Reference: https://www.sciencedirect.com/science/article/pii/S0043135426011395
+
+This is a distinct transient sensing modality and experimental setup; it is valuable evidence of simulation-to-field gap, not a direct Net3 comparison.
+
+### Protocol standardisation
+
+A 2026 systematic review of 90 studies finds substantial variation in dataset generation, splits, metrics, validation and leak-scenario definitions. It recommends standardized documentation, protocols, uncertainty quantification and interpretability.
+
+Reference: https://www.mdpi.com/2073-4441/18/18/2267
+
+### Recommended independent benchmark lanes
+
+1. **Binary detection:** precision-recall AUC, ROC-AUC, sensitivity at a declared false-alarm burden, calibration, detection delay and abstention. Accuracy is secondary where classes are imbalanced.
+2. **Pipe/node localization:** exact pipe/node Top-1 and Top-3, pipe exactness, graph distance, metric distance, p50/p90 error, and abstention.
+3. **Distance-threshold localization:** e.g. within 300m, only when the spatial/network geometry and task definition support it. Do not compare this with node Top-1.
+4. **Held-out topology:** hold out an entire network/topology before feature generation or model fitting. Randomly splitting correlated scenarios from one network is not topology generalisation.
+5. **Operating/data shift:** unseen leak sizes/locations, demand regimes, sensor density, bias, drift, noise, missing/reordered/outlier observations and asset-map errors.
+6. **Simulation-to-field transfer:** freeze experimental/utility holdouts, separate calibration from evaluation, and report direct-transfer and adapted results. Do not let field holdouts influence model selection.
+7. **Value of information / sensor placement:** compare fixed heuristic, spatial coverage, seeded random and information/decision-value placement with identical sensor budgets, scenario universe and measurement costs.
+
+### Competitive target discipline
+
+The 2026 reported numbers are protocol-specific reference points, not universal SOTA values. First reproduce or bracket a published result on its documented split, topology, labels, sensors, noise and metric. Then pre-register an improvement threshold (for example, +5 percentage points on exactly the same held-out Top-1 split) while requiring no degradation in p90 graph/metric distance, false-dispatch burden or worst stratum. If exact comparable artifacts are unavailable, call the exercise a protocol-matched study, not a reproduction.
+
+For field-transfer and held-out topology lanes, first establish baseline and uncertainty. The goal is a reliable improvement in localization, calibration, abstention and operational false-dispatch cost—not an arbitrary headline accuracy.
+
+Report inference p50/p95, model size, data size, compute/energy where measurable, and cost per independently verified localization. The reported 3.5ms 1D-CNN inference is a reference observation only until hardware, input shape, batch size and runtime are matched.
+
 ## Proposed CivBench extension
 
 | Layer | Existing industry baseline | Additional CivBench contribution |
