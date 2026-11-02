@@ -141,3 +141,36 @@ The tests use dyadic boxes whose exact normal-velocity ranges are known:
 - the zero-radius box at 2 lies exactly on the transition and remains boundary/inconclusive.
 
 This is a conservative pointwise-box certificate for binary64 inputs interpreted as exact represented values. It is not a correlated uncertainty model for geometry, mass or friction parameters, and it is not a global contact-island completeness proof.
+
+
+## Outward-enclosed sticking response boxes — 2026-11-02
+
+The follow-on [#3290](https://github.com/Luminous-Dynamics/symtropy/pull/3290) adds an interval affine response for strict-sticking leaves. Unlike a pointwise Cholesky response, it encloses the exact solution of the represented binary64 3x3 self-block and right-hand sides using interval Gaussian elimination.
+
+For
+[
+A p_L = -(q_L+B^Tp_S),
+]
+the implementation:
+- requires exact symmetry of the represented A matrix;
+- checks every unpivoted interval pivot is strictly positive (the no-pivot path is valid for SPD A);
+- computes interval enclosures for (a=-A^{-1}q_L) and (K=-A^{-1}B^T);
+- propagates these coefficients over a separator impulse box;
+- replays the original local velocity equation as an interval and requires every component enclosure to contain zero;
+- bounds the complete Coulomb margin (mu p_{n,L}-|p_{t,L}|).
+
+It returns strict sticking only when the whole normal-load and disk-margin enclosures are strictly positive. A box wholly outside the normal/disk domain is reported as outside this *local regime hypothesis*; this is not a global no-solution result. Boxes touching a boundary or unresolved pivots remain boundary/inconclusive or errors.
+
+The frozen nonidentity message uses (A=operatorname{diag}(2,1,1)), (B=operatorname{diag}(-1/2,1/4,1/4)), (q_L=(-3/2,1/8,0)), (mu=1/2), with exact affine centre (a=(3/4,-1/8,0)), (K=operatorname{diag}(1/4,-1/4,-1/4)). The tests include a strict nonzero-width box, an exact zero-radius Coulomb boundary, an outside-disk box, a normal-load crossing box, and malformed/non-SPD/singular-pivot controls.
+
+This closes an important architectural gap in the interval separator messages: both strict sticking and strict separation now have a route to whole-box regime certification, while sliding still needs direction-root/branch enclosures. It does not yet compose messages into a globally complete tree-decomposition proof or propagate correlated geometry/mass/friction uncertainty.
+
+
+### Dyadic oracle details for the sticking-box lane
+
+The strict interior separator box now uses dyadic endpoints:
+- normal separator impulse ([7/8,9/8]), giving exact normal-load image ([31/32,33/32]);
+- first tangent separator impulse ([-1/2,-3/8]);
+- second tangent separator impulse ([-1/8,1/8]).
+
+The exact affine impulse centre/map is (a=(3/4,-1/8,0)), (K=operatorname{diag}(1/4,-1/4,-1/4)). The tangent components lie in ([-1/32,0]) and ([-1/32,1/32]); the exact normal load stays strictly positive and the entire Coulomb disk margin has a strict positive lower bound. Boundary and outside-disk controls use dyadic separator coordinates 3/2 and 13/8 respectively. This keeps the frozen local oracle rational without decimal-to-rational reconstruction ambiguity.
