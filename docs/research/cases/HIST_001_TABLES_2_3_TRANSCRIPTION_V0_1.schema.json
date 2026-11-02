@@ -149,7 +149,9 @@
                     "duration_years",
                     "general_population",
                     "capital_population",
-                    "total_population"
+                    "total_population",
+                    "capital_population_status",
+                    "capital_population_as_printed"
                   ],
                   "properties": {
                     "subinterval": {
@@ -173,6 +175,15 @@
                     "total_population": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "capital_population_status": {
+                      "enum": [
+                        "explicit_none_in_source",
+                        "numeric_value_in_source"
+                      ]
+                    },
+                    "capital_population_as_printed": {
+                      "type": "string"
                     }
                   },
                   "additionalProperties": false
@@ -221,7 +232,9 @@
               "record_id",
               "group",
               "cal_ad",
-              "baobab_cal_ad"
+              "baobab_cal_ad",
+              "cal_ad_status",
+              "baobab_cal_ad_status"
             ],
             "properties": {
               "record_id": {
@@ -279,6 +292,19 @@
                     }
                   ]
                 }
+              },
+              "cal_ad_status": {
+                "enum": [
+                  "blank_in_source",
+                  "single_year_in_source",
+                  "interval_in_source"
+                ]
+              },
+              "baobab_cal_ad_status": {
+                "enum": [
+                  "blank_in_source",
+                  "values_present_in_source"
+                ]
               }
             },
             "additionalProperties": false
