@@ -109,7 +109,7 @@ fn staged_input<'a>(
 }
 
 fn decode_hex(value: &str, field: &str) -> Result<String, String> {
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return Err(format!("invocation manifest {field} has odd-length hex"));
     }
     let bytes = (0..value.len())
@@ -213,13 +213,12 @@ fn insert_config_option(
         return Ok(());
     };
     let key = raw_key.trim();
-    if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT") {
-        if values
+    if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT")
+        && values
             .insert(key.to_owned(), raw_value.trim().to_owned())
             .is_some()
-        {
-            return Err(format!("SU2 config line {line_number} duplicates {key}"));
-        }
+    {
+        return Err(format!("SU2 config line {line_number} duplicates {key}"));
     }
     Ok(())
 }
