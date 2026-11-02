@@ -283,6 +283,15 @@ No candidate is called "better than SOTA" without a matched rating, duty cycle, 
 - Wärtsilä methanol engines: https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines
 - Everllence ammonia engine Type Approval / FAT milestones: https://www.everllence.com/marine/products/two-stroke-engines/ammonia-engine
 - PNNL / Nature Energy heavy-duty lifecycle comparison: https://www.pnnl.gov/publications/cradle-grave-lifecycle-analysis-us-medium-and-heavy-duty-vehicle-fuel-pathways
+- Mainspring linear generator product page: https://www.mainspringenergy.com/product/
+- Mainspring 2.5 MW / 10 × 250 kW datasheet R40322: https://linear-power.files.svdcdn.com/production/Mainspring-Linear-Generator-2.5MW-Datasheet-R40322.pdf
+- California Energy Commission / Mainspring, CEC-500-2024-037 report page: https://www.energy.ca.gov/publications/2024/high-efficiency-and-ultra-low-emissions-linear-generator-demonstration-project
+- California Energy Commission / Mainspring, CEC-500-2024-037 PDF: https://www.energy.ca.gov/sites/default/files/2024-05/CEC-500-2024-037.pdf
+- U.S. Department of the Air Force / AFMC, 250 kW Mainspring multi-fuel pilot (4 March 2026): https://www.afmc.af.mil/News/Article-Display/Article/4421866/air-force-pilots-fuel-flexible-generator-for-travis-air-force-base/
+- Mainspring announcement of its U.S. Air Force pilot (4 March 2026): https://www.mainspringenergy.com/news/mainspring-energy-awarded-u-s-air-force-pilot-project-for-multi-fuel-resilient-power-generation-at-travis-air-force-base
+- Mainspring / AEP up-to-1.6 GW agreement (13 October 2026): https://www.mainspringenergy.com/news/mainspring-energy-signs-landmark-1-6-gw-agreement-with-aep-for-reliable-affordable-power-capacity
+- ASME Performance Test Codes catalogue (PTC 50 listed for Fuel Cell Power Systems Performance): https://www.asme.org/codes-standards/publications-information/performance-test-codes
+- Capstone C200S 200 kW microturbine: https://www.capstoneenergyplus.com/products/capstone-microturbines/c200s
 - South African National Environmental Management: Air Quality Act, 2004: https://www.gov.za/documents/national-environment-management-air-quality-act
 - South African listed-activities notice and amendments: https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-listed-activities-and
 - Consolidated listed-activities text (screening reference; verify operative Gazette): https://www.saflii.org/za/legis/consol_reg/loawriaewhomhasdeoteihscececoch2046.pdf
