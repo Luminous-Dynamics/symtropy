@@ -40,7 +40,9 @@
             "duration_years": 50,
             "general_population": 5700,
             "capital_population": 5000,
-            "total_population": 10700
+            "total_population": 10700,
+            "capital_population_status": "numeric_value_in_source",
+            "capital_population_as_printed": "5000"
           }
         ]
       },
@@ -58,7 +60,9 @@
             "duration_years": 120,
             "general_population": 2979,
             "capital_population": 2500,
-            "total_population": 5479
+            "total_population": 5479,
+            "capital_population_status": "numeric_value_in_source",
+            "capital_population_as_printed": "2500"
           }
         ]
       },
@@ -76,14 +80,18 @@
             "duration_years": 125,
             "general_population": 2550,
             "capital_population": 1500,
-            "total_population": 4050
+            "total_population": 4050,
+            "capital_population_status": "numeric_value_in_source",
+            "capital_population_as_printed": "1500"
           },
           {
             "subinterval": "initial 25-year small-capital period",
             "duration_years": 25,
             "general_population": 1275,
             "capital_population": 300,
-            "total_population": 1575
+            "total_population": 1575,
+            "capital_population_status": "numeric_value_in_source",
+            "capital_population_as_printed": "300"
           }
         ]
       },
@@ -101,7 +109,9 @@
             "duration_years": 200,
             "general_population": 787,
             "capital_population": null,
-            "total_population": 787
+            "total_population": 787,
+            "capital_population_status": "explicit_none_in_source",
+            "capital_population_as_printed": "none"
           }
         ]
       },
@@ -119,7 +129,9 @@
             "duration_years": 100,
             "general_population": 550,
             "capital_population": 300,
-            "total_population": 850
+            "total_population": 850,
+            "capital_population_status": "numeric_value_in_source",
+            "capital_population_as_printed": "300"
           }
         ]
       }
@@ -149,7 +161,9 @@
             "mean": 1660,
             "sigma": 5
           }
-        ]
+        ],
+        "cal_ad_status": "blank_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-XIIIA",
@@ -163,7 +177,9 @@
             "mean": 1635,
             "sigma": 5
           }
-        ]
+        ],
+        "cal_ad_status": "single_year_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-XII",
@@ -177,7 +193,9 @@
             "mean": 1530,
             "sigma": 10
           }
-        ]
+        ],
+        "cal_ad_status": "single_year_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-XI",
@@ -191,7 +209,9 @@
             "mean": 1465,
             "sigma": 5
           }
-        ]
+        ],
+        "cal_ad_status": "interval_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-X",
@@ -205,7 +225,9 @@
             "mean": 1390,
             "sigma": 10
           }
-        ]
+        ],
+        "cal_ad_status": "interval_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-IX",
@@ -219,7 +241,9 @@
             "mean": 1310,
             "sigma": 5
           }
-        ]
+        ],
+        "cal_ad_status": "single_year_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-VIIIB",
@@ -230,7 +254,9 @@
             "mean": 1285,
             "sigma": 5
           }
-        ]
+        ],
+        "cal_ad_status": "blank_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-VIII",
@@ -249,7 +275,9 @@
           {
             "value": 1256
           }
-        ]
+        ],
+        "cal_ad_status": "interval_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-VIIIA",
@@ -260,7 +288,9 @@
             "mean": 1185,
             "sigma": 10
           }
-        ]
+        ],
+        "cal_ad_status": "blank_in_source",
+        "baobab_cal_ad_status": "values_present_in_source"
       },
       {
         "record_id": "HIST001-T3-VII",
@@ -269,7 +299,9 @@
           1020,
           1070
         ],
-        "baobab_cal_ad": []
+        "baobab_cal_ad": [],
+        "cal_ad_status": "interval_in_source",
+        "baobab_cal_ad_status": "blank_in_source"
       },
       {
         "record_id": "HIST001-T3-VI",
@@ -279,7 +311,9 @@
           1000
         ],
         "cal_ad_note": "two episodes",
-        "baobab_cal_ad": []
+        "baobab_cal_ad": [],
+        "cal_ad_status": "interval_in_source",
+        "baobab_cal_ad_status": "blank_in_source"
       }
     ],
     "interpretation_claims": [
