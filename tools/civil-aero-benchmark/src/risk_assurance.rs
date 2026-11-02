@@ -5,7 +5,7 @@
 //! certify regulatory compliance, or calibrate probabilities. All required gates are hard
 //! constraints: value-of-information and optimizer utility cannot override a missing or failed gate.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::integrity::sha256_hex;
 
@@ -492,6 +492,9 @@ pub fn report_to_csv(report: &AssuranceReport) -> String {
         "evidence_level",
         "assessment_sha256",
     ];
+    let required_gates = report.required_gates.join(";");
+    let passed_gates = report.passed_gates.join(";");
+    let blockers = report.blockers.join(";");
     let values = [
         report.schema.as_str(),
         report.claim_id.as_str(),
@@ -500,9 +503,9 @@ pub fn report_to_csv(report: &AssuranceReport) -> String {
         report.domain_exposure.as_str(),
         report.analysis_regime.as_str(),
         report.assurance_tier.as_str(),
-        &report.required_gates.join(";"),
-        &report.passed_gates.join(";"),
-        &report.blockers.join(";"),
+        required_gates.as_str(),
+        passed_gates.as_str(),
+        blockers.as_str(),
         report.admission_status.as_str(),
         report.evidence_level.as_str(),
         report.assessment_sha256.as_str(),
