@@ -205,7 +205,27 @@ pub fn verify_batch_bound_duty_cycle(
         let evaluation = segment.evaluation();
         let fuel_batch = evaluation.fuel_batch();
         let flow = evaluation.fuel_mass_flow();
+        let flow_observation = segment.fuel_flow_observation();
         let flow_evidence = flow.evidence();
+
+        if flow_observation.fuel_batch_id() != fuel_batch.batch_id() {
+            return Err(EnergyVerificationError::FlowBindingMismatch {
+                segment_id: segment_id.clone(),
+                reason: "flow observation batch ID differs from retained fuel batch",
+            });
+        }
+        if flow_observation.time_window() != segment.time_window() {
+            return Err(EnergyVerificationError::FlowBindingMismatch {
+                segment_id: segment_id.clone(),
+                reason: "flow observation time window differs from segment window",
+            });
+        }
+        if flow_observation.mass_flow() != flow {
+            return Err(EnergyVerificationError::FlowBindingMismatch {
+                segment_id: segment_id.clone(),
+                reason: "flow observation property differs from evaluated mass-flow property",
+            });
+        }
 
         if fuel_batch.batch_id().trim().is_empty()
             || flow_evidence.source_id().trim().is_empty()
@@ -487,6 +507,10 @@ pub enum EnergyVerificationError {
     MissingEvidenceIdentity {
         segment_id: String,
     },
+    FlowBindingMismatch {
+        segment_id: String,
+        reason: &'static str,
+    },
     InvalidRecomputedValue {
         segment_id: String,
         quantity: &'static str,
@@ -524,6 +548,9 @@ impl fmt::Display for EnergyVerificationError {
             ),
             Self::MissingEvidenceIdentity { segment_id } => {
                 write!(f, "segment {segment_id} has incomplete batch/flow evidence identity")
+            }
+            Self::FlowBindingMismatch { segment_id, reason } => {
+                write!(f, "segment {segment_id} flow binding mismatch: {reason}")
             }
             Self::InvalidRecomputedValue {
                 segment_id,
