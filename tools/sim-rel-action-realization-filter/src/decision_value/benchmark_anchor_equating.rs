@@ -1559,6 +1559,61 @@ mod tests {
     }
 
     #[test]
+    fn requires_complete_anchor_agent_repetition_grid_and_fixed_agent_identity() {
+        let old = form("old", "same");
+        let new = form("new", "same");
+
+        let mut missing = responses("new");
+        missing.pop();
+        assert!(link_benchmark_forms(
+            &plan(), &old, &new, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &missing,
+            &scores("old", 0), &scores("new", 1),
+        ).is_err());
+
+        let mut wrong_agent_configuration = responses("new");
+        wrong_agent_configuration[0].agent_configuration_digest = D5.into();
+        assert!(link_benchmark_forms(
+            &plan(), &old, &new, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &wrong_agent_configuration,
+            &scores("old", 0), &scores("new", 1),
+        ).is_err());
+    }
+
+    #[test]
+    fn validity_disagreement_is_counted_as_anchor_drift_not_dropped() {
+        let old = form("old", "same");
+        let new = form("new", "same");
+        let mut changed = responses("new");
+        changed[0].valid = false;
+        let receipt = link_benchmark_forms(
+            &plan(), &old, &new, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &changed,
+            &scores("old", 0), &scores("new", 1),
+        ).unwrap();
+        assert_eq!(receipt.status, super::AnchorEquatingStatus::NotComparable);
+        let item = receipt.anchor_item_drifts.first().unwrap();
+        assert_eq!(item.paired_response_count, 4);
+        assert_eq!(item.drift_comparison_count, 4);
+        assert_eq!(item.valid_paired_response_count, 3);
+        assert_eq!(item.invalid_paired_response_count, 1);
+        assert_eq!(item.validity_disagreement_count, 1);
+        assert_eq!(item.any_outcome_disagreement_count, 1);
+        assert_eq!(item.any_outcome_disagreement_rate, Some(ExactLinkRatio::new(1, 4).unwrap()));
+    }
+
+    #[test]
+    fn integer_square_root_covers_full_u128_range() {
+        assert_eq!(super::integer_sqrt_floor(u128::MAX).unwrap(), u64::MAX as u128);
+        assert_eq!(super::integer_sqrt_ceil(u128::MAX).unwrap(), (u64::MAX as u128) + 1);
+        assert_eq!(super::integer_sqrt_ceil(81).unwrap(), 9);
+        assert_eq!(super::integer_sqrt_ceil(82).unwrap(), 10);
+    }
+
+    #[test]
     fn mismatched_reference_panel_or_score_semantics_disallows_equating() {
         let old = form("old", "same");
         let mut new = form("new", "same");
