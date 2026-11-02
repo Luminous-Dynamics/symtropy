@@ -40,6 +40,29 @@ pub enum MeasurementEvidenceState {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetrologyReportFormat {
+    QifIso23952_2020,
+    OtherDeclared,
+}
+
+/// Exact identity of the source metrology report and selected result.
+/// This binds a QIF document without parsing or authenticating its source bytes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetrologyReportReference {
+    pub format: MetrologyReportFormat,
+    /// QIF 3.0 for ISO 23952:2020; source-declared version for other formats.
+    pub format_version: String,
+    /// Digest of the exact schema package used to interpret the report.
+    pub schema_sha256: String,
+    /// Opaque source-native document reference.
+    pub document_reference: String,
+    /// Digest of the complete source-native report bytes.
+    pub document_sha256: String,
+    /// Stable source-native result/characteristic identifier within the report.
+    pub native_result_id: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DimensionalMeasurement {
     pub measurement_id: String,
@@ -56,8 +79,8 @@ pub struct DimensionalMeasurement {
     pub measured_micro_units: i64,
     pub expanded_uncertainty_micro_units: u64,
     pub evidence_state: MeasurementEvidenceState,
-    /// External inspection report reference; not authenticated here.
-    pub report_reference: String,
+    /// Exact source report and result identity; payload parsing remains external.
+    pub report_reference: MetrologyReportReference,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +116,9 @@ pub enum ComponentReason {
     MeasurementEvidenceRevoked,
     MeasurementEvidenceUnknown,
     MissingReportReference,
+    ReportSchemaDigestInvalid,
+    ReportDocumentDigestInvalid,
+    UnsupportedReportFormatVersion,
     EntireIntervalBelowLowerLimit,
     EntireIntervalAboveUpperLimit,
     MeasurementIntervalOverlapsLimit,
@@ -106,6 +132,13 @@ pub struct ComponentQualificationResult {
     pub permitted_interval_upper: i128,
     pub measured_interval_lower: i128,
     pub measured_interval_upper: i128,
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 /// Evaluate one scalar dimensional requirement.
@@ -210,9 +243,26 @@ pub fn evaluate_dimension(
         reasons.push(ComponentReason::DatumMismatch);
         inconsistent = true;
     }
-    if measurement.report_reference.trim().is_empty() {
+    if measurement.report_reference.format_version.trim().is_empty()
+        || measurement.report_reference.document_reference.trim().is_empty()
+        || measurement.report_reference.native_result_id.trim().is_empty()
+    {
         reasons.push(ComponentReason::MissingReportReference);
         unknown = true;
+    }
+    if !valid_sha256(&measurement.report_reference.schema_sha256) {
+        reasons.push(ComponentReason::ReportSchemaDigestInvalid);
+        inconsistent = true;
+    }
+    if !valid_sha256(&measurement.report_reference.document_sha256) {
+        reasons.push(ComponentReason::ReportDocumentDigestInvalid);
+        inconsistent = true;
+    }
+    if measurement.report_reference.format == MetrologyReportFormat::QifIso23952_2020
+        && measurement.report_reference.format_version != "3.0"
+    {
+        reasons.push(ComponentReason::UnsupportedReportFormatVersion);
+        unsupported = true;
     }
 
     match measurement.calibration_valid_through_tick {
@@ -481,7 +531,14 @@ mod tests {
             measured_micro_units: 600_000,
             expanded_uncertainty_micro_units: 500,
             evidence_state: MeasurementEvidenceState::Current,
-            report_reference: "inspection-report-500".into(),
+            report_reference: MetrologyReportReference {
+                format: MetrologyReportFormat::QifIso23952_2020,
+                format_version: "3.0".into(),
+                schema_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                document_reference: "qif://inspection-report-500".into(),
+                document_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                native_result_id: "qif-result-500-thickness".into(),
+            },
         }
     }
 
@@ -750,10 +807,50 @@ mod tests {
     #[test]
     fn missing_inspection_report_is_unknown() {
         let mut m = measurement();
-        m.report_reference.clear();
+        m.report_reference.document_reference.clear();
         assert_eq!(
             evaluate(&component(), &requirement(), &m).disposition,
             ComponentDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn metrology_report_requires_exact_schema_document_and_native_result_identity() {
+        let c = component();
+        let r = requirement();
+
+        let mut missing_result = measurement();
+        missing_result.report_reference.native_result_id.clear();
+        assert_eq!(
+            evaluate(&c, &r, &missing_result).disposition,
+            ComponentDisposition::UnknownReviewRequired
+        );
+
+        let mut invalid_document_digest = measurement();
+        invalid_document_digest.report_reference.document_sha256 = "not-a-digest".into();
+        assert_eq!(
+            evaluate(&c, &r, &invalid_document_digest).disposition,
+            ComponentDisposition::EvidenceInconsistent
+        );
+
+        let mut invalid_schema_digest = measurement();
+        invalid_schema_digest.report_reference.schema_sha256 = "not-a-digest".into();
+        assert_eq!(
+            evaluate(&c, &r, &invalid_schema_digest).disposition,
+            ComponentDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn qif_report_requires_the_declared_iso_23952_version() {
+        let c = component();
+        let r = requirement();
+        let mut m = measurement();
+        m.report_reference.format_version = "2.1".into();
+
+        assert_eq!(
+            evaluate(&c, &r, &m).disposition,
+            ComponentDisposition::UnsupportedRequirementOrMethod
         );
     }
 
