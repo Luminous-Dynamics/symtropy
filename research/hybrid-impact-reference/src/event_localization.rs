@@ -117,27 +117,23 @@ pub fn bisect_first_impact(
     let mut lower = lower_time_s;
     let mut upper = upper_time_s;
     let mut iterations = 0;
-    let mut status = LocalizationStatus::IterationLimit;
 
-    loop {
+    let status = loop {
         let width = upper - lower;
         let midpoint = lower + 0.5 * width;
         let midpoint_position = free_flight_position(parameters, midpoint)?;
         let residual = midpoint_position.abs();
 
         if width <= time_tolerance_s && residual <= position_tolerance_m {
-            status = LocalizationStatus::Converged;
-            break;
+            break LocalizationStatus::Converged;
         }
 
         if iterations >= max_iterations {
-            status = LocalizationStatus::IterationLimit;
-            break;
+            break LocalizationStatus::IterationLimit;
         }
 
         if midpoint <= lower || midpoint >= upper {
-            status = LocalizationStatus::TimeResolutionExhausted;
-            break;
+            break LocalizationStatus::TimeResolutionExhausted;
         }
 
         if midpoint_position > 0.0 {
@@ -146,7 +142,7 @@ pub fn bisect_first_impact(
             upper = midpoint;
         }
         iterations += 1;
-    }
+    };
 
     let bracket_width_s = upper - lower;
     let estimated_event_time_s = lower + 0.5 * bracket_width_s;
