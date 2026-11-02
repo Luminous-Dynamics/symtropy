@@ -11,12 +11,13 @@ The bundle is deliberately a composition layer. It does not replace SU2, infer m
 Each production run must have:
 
 1. One successful `SU2_CFD_DRY_RUN` receipt created by invoking the same executable bytes with exactly `-d CONFIG_PATH`.
-2. A field-preflight report replayed from that dry-run directory.
+2. A field-preflight report replayed from that dry-run directory. The v0.2 preflight records every `CONV_FIELD`, the explicit `WINDOW_CAUCHY_CRIT` mode, and (when enabled) all `CONV_WINDOW_FIELD` values and their window settings. See [`SU2_CONVERGENCE_PROTOCOL_V0_2.md`](./SU2_CONVERGENCE_PROTOCOL_V0_2.md).
 3. A boundary-marker audit replayed from that same dry-run directory.
 4. One successful `SU2_CFD` production receipt.
 5. One raw-history import bound to the production receipt and exact history output bytes.
 6. One declared residual/monitor screen bound to the same run, receipt and history digest.
-7. One production lineage binding for configuration, geometry, mesh, history and declared additional outputs.
+7. For unsteady time-window runs, one per-time-step inner residual screen bound to the same preflight and production history. This v0.1 subset supports residual-based `CONV_FIELD` values and requires contiguous `TIME_ITER`, `INNER_ITER`, explicit `CONV_RESIDUAL_MINVAL`, and complete configured window coverage. See [`SU2_UNSTEADY_INNER_SCREEN_V0_1.md`](./SU2_UNSTEADY_INNER_SCREEN_V0_1.md).
+8. One production lineage binding for configuration, geometry, mesh, history and declared additional outputs.
 
 The field preflight and boundary audit intentionally share one dry-run receipt. Running `SU2_CFD -d` twice for the same unchanged inputs would add cost without adding independent identity evidence. If a workflow uses separate dry runs, this v0.1 API does not silently merge them: a later schema can support multiple dry-run receipts explicitly.
 
@@ -33,6 +34,9 @@ The bundle builder replays the reports from the original run directories. It rej
 - Every history column consumed by the importer was both required and discovered by the preflight.
 - The production history, convergence screen and lineage all reference the exact production receipt and history bytes.
 - Every declared convergence criterion passes. An empty, failed or insufficient criterion set cannot be promoted.
+- Every active `CONV_FIELD` and `CONV_WINDOW_FIELD` is both imported from production history and covered by a passing independent post-run screen.
+- Every time-window field has a terminal monitor-stability screen; a residual-only pass cannot stand in for a `TAVG_*` field.
+- Every contiguous saved unsteady time step meets the explicit inner residual threshold; sparse `TIME_ITER` histories are rejected.
 - The lineage binding identifies a valid production geometry digest.
 
 The geometry is production-bound because the dry-run field and boundary checks need the configuration and mesh, but do not themselves authenticate the geometry file. Its identity is taken from the production run's staged-input receipt.
@@ -77,13 +81,14 @@ The synthetic fixture checks rejection of:
 - An omitted field from the preflight inventory.
 - A changed mesh/domain or marker set through existing mesh-family invariants.
 - A modified production history, convergence screen or output through existing lineage replay.
+- An unsteady history with a missing time step or one inner residual above its configured threshold.
 - Any resource field represented as a measured value without a valid unit, method and source digest.
 
 The fake executable, histories, meshes and GCI values are synthetic known-answer fixtures. They prove software contracts only; they are not SU2 CFD results.
 
 ## Evidence ceiling
 
-`replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated`
+`replayed_dry_run_multi_field_protocol_native_solver_termination_and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated`
 
 This bundle proves that the declared evidence objects refer to one consistent run and can be replayed. It does not prove that every relevant equation/monitor was selected, that the selected thresholds are scientifically adequate, that a steady-state assumption is valid, that the grid is independent, that the turbulence/model-form assumptions are appropriate, or that predictions agree with experiment.
 
