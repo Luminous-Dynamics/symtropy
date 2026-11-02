@@ -3,9 +3,14 @@
 use serde::Serialize;
 
 mod fuel;
+mod duty_cycle;
 
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
+};
+pub use duty_cycle::{
+    DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, DurationSeconds, EnergyJoules,
+    FuelMassKg,
 };
 
 //! Deterministic 0D energy-conversion bookkeeping primitives.
@@ -160,6 +165,14 @@ pub struct FuelInput {
 }
 
 impl FuelInput {
+    pub const fn mass_flow(self) -> MassFlowKgPerSecond {
+        self.mass_flow
+    }
+
+    pub const fn lower_heating_value(self) -> LowerHeatingValueJPerKg {
+        self.lower_heating_value
+    }
+
     pub const fn new(
         mass_flow: MassFlowKgPerSecond,
         lower_heating_value: LowerHeatingValueJPerKg,
