@@ -13,17 +13,14 @@ use crate::grid_convergence::{
     GciReport, GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
 };
 use crate::integrity::sha256_hex;
-use crate::su2_convergence_screen::{
-    ConvergenceScreen, verify_convergence_screen,
-};
+use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
 
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
-pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str =
-    "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
+pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
 pub struct Su2GridFamilyMember {
@@ -296,7 +293,9 @@ fn validate_study_identity(study: &Su2GridFamilyStudy) -> Result<(), String> {
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit())
     {
-        return Err("protocol_manifest_sha256 must be a 64-character hexadecimal digest".to_owned());
+        return Err(
+            "protocol_manifest_sha256 must be a 64-character hexadecimal digest".to_owned(),
+        );
     }
     if study.members.len() < 3 {
         return Err("at least three lineage-bound grids are required for a GCI study".to_owned());
@@ -333,7 +332,9 @@ pub fn evaluate_su2_grid_family_study(
             || member.characteristic_spacing <= 0.0
             || !grid_ids.insert(member.grid_id.clone())
         {
-            return Err(format!("grid member {index} has an invalid or duplicate grid identity"));
+            return Err(format!(
+                "grid member {index} has an invalid or duplicate grid identity"
+            ));
         }
         if !run_ids.insert(member.lineage_binding.run_id.clone()) {
             return Err(format!(
@@ -418,8 +419,13 @@ pub fn evaluate_su2_grid_family_study(
         });
     }
 
-    let (solver_executable_sha256, solver_version_claim, physics_configuration_sha256, geometry_sha256, _) =
-        shared_identity.ok_or_else(|| "grid family has no members".to_owned())?;
+    let (
+        solver_executable_sha256,
+        solver_version_claim,
+        physics_configuration_sha256,
+        geometry_sha256,
+        _,
+    ) = shared_identity.ok_or_else(|| "grid family has no members".to_owned())?;
     let gci_report = evaluate_grid_convergence(&GciStudy {
         quantity: study.quantity.clone(),
         source_reference: study.source_reference.clone(),
@@ -477,8 +483,7 @@ pub fn verify_su2_grid_family_report(
     Ok(())
 }
 
-pub const SU2_GRID_FAMILY_CSV_HEADER: &str =
-    "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
+pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
 
 /// Export every sliding GCI triplet; the member CSV intentionally contains only its digest.
 pub fn gci_report_to_csv(report: &Su2GridFamilyReport) -> String {
@@ -543,12 +548,11 @@ mod tests {
     use crate::su2_history::{
         Su2HistoryField, Su2HistorySchema, import_su2_history,
     };
-    use crate::su2_run_binding::{
-        Su2RunInputBindings, bind_su2_run_lineage,
-    };
+    use crate::su2_run_binding::bind_su2_run_lineage;
     use std::collections::BTreeMap;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
+    use std::path::Path;
     use std::time::Duration;
 
     fn temporary_root() -> PathBuf {
@@ -779,27 +783,6 @@ printf 'synthetic solver stdout\n'
 
     #[test]
     fn rejects_incomplete_or_inconsistent_family_identity() {
-        let study = Su2GridFamilyStudy {
-            study_id: "study".to_owned(),
-            case_id: "case".to_owned(),
-            protocol_manifest_sha256: "0".repeat(64),
-            quantity: "drag".to_owned(),
-            quantity_field: "CD".to_owned(),
-            quantity_unit: "dimensionless".to_owned(),
-            source_reference: "synthetic fixture".to_owned(),
-            spacing_definition: "synthetic volume-based characteristic spacing".to_owned(),
-            grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
-            safety_factor: 3.0,
-            members: Vec::new(),
-        };
-        assert!(
-            evaluate_su2_grid_family_study(&study)
-                .expect_err("empty family rejected")
-                .contains("at least three")
-        );
-    }
-}
-
         let study = Su2GridFamilyStudy {
             study_id: "study".to_owned(),
             case_id: "case".to_owned(),
