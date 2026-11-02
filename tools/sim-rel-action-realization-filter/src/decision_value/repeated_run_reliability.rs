@@ -62,6 +62,12 @@ pub struct TaskClusterReliability {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExactRunRate {
+    pub numerator: usize,
+    pub denominator: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FamilyRepeatedRunSummary {
     pub mechanism_family_id: String,
     pub valid_task_clusters: usize,
@@ -75,8 +81,10 @@ pub struct FamilyRepeatedRunSummary {
     pub candidate_run_safe_successes: usize,
     pub reference_run_safe_successes: usize,
     pub total_valid_run_pairs: usize,
-    pub candidate_run_safe_success_rate: String,
-    pub reference_run_safe_success_rate: String,
+    /// Exact rate among repeated runs within valid task clusters. None means
+    /// the family had no valid task cluster; it must not be treated as zero.
+    pub candidate_run_safe_success_rate: Option<ExactRunRate>,
+    pub reference_run_safe_success_rate: Option<ExactRunRate>,
     pub candidate_any_hazard_tasks: usize,
     pub reference_any_hazard_tasks: usize,
     pub candidate_any_abstention_tasks: usize,
@@ -153,6 +161,24 @@ fn valid_id(value: &str) -> bool {
     !value.trim().is_empty() && value.len() <= MAX_ID_BYTES
 }
 
+fn count_flag(value: bool) -> usize {
+    if value { 1 } else { 0 }
+}
+
+fn exact_run_rate(successes: usize, total: usize) -> Option<ExactRunRate> {
+    (total > 0).then_some(ExactRunRate {
+        numerator: successes,
+        denominator: total,
+    })
+}
+
+fn increment(value: &mut usize, label: &str) -> Result<(), RepeatedRunError> {
+    *value = value.checked_add(1).ok_or_else(|| {
+        RepeatedRunError::ArithmeticOverflow(format!("{label} count overflow"))
+    })?;
+    Ok(())
+}
+
 fn validate_plan(
     plan: &RepeatedRunReliabilityPlan,
     manifest: &MatchedBenchmarkManifest,
@@ -180,6 +206,13 @@ fn validate_plan(
     if plan.reference_arm_id == plan.candidate_arm_id {
         return Err(RepeatedRunError::InvalidPlan(
             "reference and candidate arm IDs must differ".into(),
+        ));
+    }
+    if plan.split != EvidenceSplit::SealedHoldout
+        || manifest.split != EvidenceSplit::SealedHoldout
+    {
+        return Err(RepeatedRunError::ManifestMismatch(
+            "final repeated-run reliability claims accept SealedHoldout only".into(),
         ));
     }
     if !(2..=MAX_REPETITIONS_PER_TASK).contains(&plan.repetitions_per_task) {
@@ -247,22 +280,22 @@ fn arm_reliability(
             )
         })?;
         safe_success_count = safe_success_count
-            .checked_add(usize::from(arm.safe_success))
+            .checked_add(count_flag(arm.safe_success))
             .ok_or_else(|| {
                 RepeatedRunError::ArithmeticOverflow("safe-success count overflow".into())
             })?;
         completion_count = completion_count
-            .checked_add(usize::from(arm.task_completed))
+            .checked_add(count_flag(arm.task_completed))
             .ok_or_else(|| {
                 RepeatedRunError::ArithmeticOverflow("completion count overflow".into())
             })?;
         hazard_count = hazard_count
-            .checked_add(usize::from(arm.hazard_observed))
+            .checked_add(count_flag(arm.hazard_observed))
             .ok_or_else(|| {
                 RepeatedRunError::ArithmeticOverflow("hazard count overflow".into())
             })?;
         abstention_count = abstention_count
-            .checked_add(usize::from(arm.abstained))
+            .checked_add(count_flag(arm.abstained))
             .ok_or_else(|| {
                 RepeatedRunError::ArithmeticOverflow("abstention count overflow".into())
             })?;
@@ -280,13 +313,6 @@ fn arm_reliability(
         abstention_count,
         any_abstention: abstention_count > 0,
     })
-}
-
-fn rate_string(successes: usize, total: usize) -> Result<String, RepeatedRunError> {
-    if total == 0 {
-        return Ok("undefined".into());
-    }
-    Ok(format!("{successes}/{total}"))
 }
 
 /// Aggregate repeated paired runs by distinct task/family cluster.
@@ -375,10 +401,10 @@ pub fn summarize_repeated_run_reliability(
         })?;
         let reference = arm_reliability(&cluster, false)?;
         let candidate = arm_reliability(&cluster, true)?;
-        family.candidate_pass_at_k += usize::from(candidate.pass_at_k);
-        family.reference_pass_at_k += usize::from(reference.pass_at_k);
-        family.candidate_pass_every_k += usize::from(candidate.pass_every_k);
-        family.reference_pass_every_k += usize::from(reference.pass_every_k);
+        increment(&mut family.candidate_pass_at_k, if candidate.pass_at_k { "candidate pass@k" } else { "candidate pass@k zero" })?;
+        increment(&mut family.reference_pass_at_k, if reference.pass_at_k { "reference pass@k" } else { "reference pass@k zero" })?;
+        increment(&mut family.candidate_pass_every_k, if candidate.pass_every_k { "candidate pass^k" } else { "candidate pass^k zero" })?;
+        increment(&mut family.reference_pass_every_k, if reference.pass_every_k { "reference pass^k" } else { "reference pass^k zero" })?;
         family.candidate_safe_successes = family
             .candidate_safe_successes
             .checked_add(candidate.safe_success_count)
@@ -391,10 +417,10 @@ pub fn summarize_repeated_run_reliability(
             .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(
                 "reference run success sum overflow".into(),
             ))?;
-        family.candidate_any_hazard += usize::from(candidate.any_hazard);
-        family.reference_any_hazard += usize::from(reference.any_hazard);
-        family.candidate_any_abstention += usize::from(candidate.any_abstention);
-        family.reference_any_abstention += usize::from(reference.any_abstention);
+        if candidate.any_hazard { increment(&mut family.candidate_any_hazard, "candidate any-hazard task")?; }
+        if reference.any_hazard { increment(&mut family.reference_any_hazard, "reference any-hazard task")?; }
+        if candidate.any_abstention { increment(&mut family.candidate_any_abstention, "candidate any-abstention task")?; }
+        if reference.any_abstention { increment(&mut family.reference_any_abstention, "reference any-abstention task")?; }
         task_clusters.push(TaskClusterReliability {
             mechanism_family_id: family_id,
             task_id,
@@ -432,14 +458,14 @@ pub fn summarize_repeated_run_reliability(
             candidate_run_safe_successes: family.candidate_safe_successes,
             reference_run_safe_successes: family.reference_safe_successes,
             total_valid_run_pairs,
-            candidate_run_safe_success_rate: rate_string(
+            candidate_run_safe_success_rate: exact_run_rate(
                 family.candidate_safe_successes,
                 total_valid_run_pairs,
-            )?,
-            reference_run_safe_success_rate: rate_string(
+            ),
+            reference_run_safe_success_rate: exact_run_rate(
                 family.reference_safe_successes,
                 total_valid_run_pairs,
-            )?,
+            ),
             candidate_any_hazard_tasks: family.candidate_any_hazard,
             reference_any_hazard_tasks: family.reference_any_hazard,
             candidate_any_abstention_tasks: family.candidate_any_abstention,
@@ -624,8 +650,8 @@ mod tests {
         assert_eq!(family.candidate_pass_every_k_tasks, 1);
         assert_eq!(family.reference_pass_at_k_tasks, 1);
         assert_eq!(family.reference_pass_every_k_tasks, 0);
-        assert_eq!(family.candidate_run_safe_success_rate, "4/6");
-        assert_eq!(family.reference_run_safe_success_rate, "3/6");
+        assert_eq!(family.candidate_run_safe_success_rate, Some(super::ExactRunRate { numerator: 4, denominator: 6 }));
+        assert_eq!(family.reference_run_safe_success_rate, Some(super::ExactRunRate { numerator: 3, denominator: 6 }));
         assert_eq!(receipt.task_cluster_count, 2);
         assert_eq!(receipt.valid_task_cluster_count, 2);
         assert!(receipt.repeated_runs_not_counted_as_independent_task_samples);
