@@ -521,7 +521,7 @@ fn kinds_csv(kinds: &[EvidenceKind]) -> String {
 }
 
 fn csv_escape(value: &str) -> String {
-    format!("\\\"{}\\\"", value.replace('"', "\\\"\\\""))
+    format!("\"{}\"", value.replace('"', "\"\""))
 }
 
 pub const CLAIM_ADMISSION_CSV_HEADER: &str =
@@ -546,7 +546,7 @@ pub fn report_to_csv(decision: &ClaimDecision) -> String {
         decision.decision_sha256.clone(),
     ];
     format!(
-        "{}\\n{}\\n",
+        "{}\n{}\n",
         CLAIM_ADMISSION_CSV_HEADER,
         fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
     )
