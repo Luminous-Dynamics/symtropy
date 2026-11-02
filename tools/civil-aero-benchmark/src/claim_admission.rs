@@ -6,9 +6,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CLAIM_ADMISSION_SCHEMA: &str = "aero-claim-admission/0.1.0";
+pub const CLAIM_ADMISSION_SCHEMA: &str = "aero-claim-admission/0.2.0";
 pub const CLAIM_ADMISSION_EVIDENCE_LEVEL: &str =
-    "claim_specific_policy_evaluation_of_verifier_referenced_evidence_assertions_not_artifact_verification_not_regulatory_approval_or_flight_authorization";
+    "claim_specific_policy_evaluation_with_exact_scope_and_full_evidence_manifest_digest_binding_not_artifact_verification_not_regulatory_approval_or_flight_authorization";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ClaimClass {
@@ -177,6 +177,8 @@ pub struct ClaimDecision {
     pub consequence: DecisionConsequence,
     pub scope_sha256: String,
     pub policy_sha256: String,
+    /// Canonical digest over every supplied assertion, including verifier/artifact receipts and reasons.
+    pub evidence_manifest_sha256: String,
     pub required_evidence: Vec<EvidenceKind>,
     pub verified_evidence: Vec<EvidenceKind>,
     pub unknown_evidence: Vec<EvidenceKind>,
@@ -331,6 +333,41 @@ fn policy_bytes(request: &ClaimRequest, required: &BTreeSet<EvidenceKind>) -> Ve
     bytes
 }
 
+fn evidence_manifest_bytes(
+    supplied: &BTreeMap<EvidenceKind, &ScopedEvidence>,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
+    add_string(&mut bytes, "aero-claim-evidence-manifest/0.1.0");
+    bytes.extend_from_slice(&(supplied.len() as u64).to_le_bytes());
+    for (kind, item) in supplied {
+        add_string(&mut bytes, kind.as_str());
+        add_hash(&mut bytes, &item.scope_sha256)?;
+        match &item.assertion {
+            EvidenceAssertion::Verified {
+                artifact_sha256,
+                verifier_id,
+                verifier_sha256,
+                verifier_receipt_sha256,
+            } => {
+                bytes.push(1);
+                add_hash(&mut bytes, artifact_sha256)?;
+                add_string(&mut bytes, verifier_id);
+                add_hash(&mut bytes, verifier_sha256)?;
+                add_hash(&mut bytes, verifier_receipt_sha256)?;
+            }
+            EvidenceAssertion::Unknown { reason } => {
+                bytes.push(2);
+                add_string(&mut bytes, reason);
+            }
+            EvidenceAssertion::Failed { reason } => {
+                bytes.push(3);
+                add_string(&mut bytes, reason);
+            }
+        }
+    }
+    Ok(bytes)
+}
+
 fn decision_bytes(decision: &ClaimDecision) -> Vec<u8> {
     let mut bytes = Vec::new();
     add_string(&mut bytes, &decision.schema);
@@ -339,6 +376,7 @@ fn decision_bytes(decision: &ClaimDecision) -> Vec<u8> {
     add_string(&mut bytes, decision.consequence.as_str());
     add_string(&mut bytes, &decision.scope_sha256);
     add_string(&mut bytes, &decision.policy_sha256);
+    add_string(&mut bytes, &decision.evidence_manifest_sha256);
     add_kinds(&mut bytes, &decision.required_evidence);
     add_kinds(&mut bytes, &decision.verified_evidence);
     add_kinds(&mut bytes, &decision.unknown_evidence);
@@ -438,6 +476,9 @@ pub fn evaluate_claim_admission(
         }
     }
 
+    let evidence_manifest_sha256 =
+        crate::integrity::sha256_hex(&evidence_manifest_bytes(&supplied)?)?;
+
     let status = if !failed.is_empty() {
         ClaimDecisionStatus::RejectedFailedOrMismatchedEvidence
     } else if !missing.is_empty() || !unknown.is_empty() {
@@ -461,6 +502,7 @@ pub fn evaluate_claim_admission(
         consequence: request.consequence,
         scope_sha256: request.scope_sha256.clone(),
         policy_sha256,
+        evidence_manifest_sha256,
         required_evidence: required.iter().copied().collect(),
         verified_evidence: verified.into_iter().collect(),
         unknown_evidence: unknown.into_iter().collect(),
@@ -614,6 +656,80 @@ mod tests {
             flight_decision.status,
             ClaimDecisionStatus::RequiresHumanAuthorityDecision
         );
+    }
+
+    #[test]
+    fn decision_digest_binds_exact_artifact_and_verifier_receipts() {
+        let request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        let evidence = all_verified(&request);
+        let first = evaluate_claim_admission(&request, &evidence)
+            .expect("first evidence manifest");
+        let mut changed = evidence.clone();
+        let artifact = changed
+            .iter_mut()
+            .find_map(|item| match &mut item.assertion {
+                EvidenceAssertion::Verified { artifact_sha256, .. }
+                    if item.kind == EvidenceKind::GeometryIdentity =>
+                {
+                    Some(artifact_sha256)
+                }
+                _ => None,
+            })
+            .expect("geometry artifact digest");
+        *artifact = digest('e');
+        let second = evaluate_claim_admission(&request, &changed)
+            .expect("second evidence manifest");
+        assert_eq!(first.status, second.status);
+        assert_ne!(
+            first.evidence_manifest_sha256,
+            second.evidence_manifest_sha256
+        );
+        assert_ne!(first.decision_sha256, second.decision_sha256);
+        verify_claim_admission(&request, &evidence, &first)
+            .expect("first evidence manifest replays");
+        assert!(
+            verify_claim_admission(&request, &changed, &first)
+                .expect_err("swapped evidence cannot replay prior decision")
+                .contains("differs")
+        );
+    }
+
+    #[test]
+    fn evidence_manifest_is_order_independent_but_unknown_reason_sensitive() {
+        let request = request(
+            ClaimClass::AerodynamicPrediction,
+            DecisionConsequence::Engineering,
+        );
+        let mut evidence = all_verified(&request);
+        evidence.push(ScopedEvidence {
+            kind: EvidenceKind::StatisticalSamplingAssessment,
+            scope_sha256: request.scope_sha256.clone(),
+            assertion: EvidenceAssertion::Unknown {
+                reason: "not required for steady aerodynamic claim".to_owned(),
+            },
+        });
+        let first = evaluate_claim_admission(&request, &evidence)
+            .expect("supplemental evidence accepted and bound");
+        let mut reordered = evidence.clone();
+        reordered.reverse();
+        let second = evaluate_claim_admission(&request, &reordered)
+            .expect("reordered evidence");
+        assert_eq!(first.evidence_manifest_sha256, second.evidence_manifest_sha256);
+        let mut changed_reason = evidence;
+        let supplemental = changed_reason
+            .iter_mut()
+            .find(|item| item.kind == EvidenceKind::StatisticalSamplingAssessment)
+            .expect("supplemental assertion");
+        supplemental.assertion = EvidenceAssertion::Unknown {
+            reason: "sampling report unavailable".to_owned(),
+        };
+        let third = evaluate_claim_admission(&request, &changed_reason)
+            .expect("changed supplemental reason");
+        assert_ne!(first.evidence_manifest_sha256, third.evidence_manifest_sha256);
+        assert_eq!(first.status, third.status);
     }
 
     #[test]
