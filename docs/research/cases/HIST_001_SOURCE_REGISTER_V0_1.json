@@ -295,6 +295,63 @@
         "independence": "unknown",
         "notes": "Underlying archaeometallurgical publications, excavations, object contexts, and material-provenance analyses must be located and linked before quantitative exchange-network modelling."
       }
+    },
+    {
+      "source_id": "HIST001-SRC-KHAMI-AMS-2021",
+      "source_type": "peer_reviewed_research_letter",
+      "citation": {
+        "authors": [
+          "Thomas N. Huffman",
+          "Stephan Woodborne"
+        ],
+        "title": "Implications of new AMS dates for the Khami Period in the Mapungubwe Landscape",
+        "journal": "South African Journal of Science",
+        "volume": "117",
+        "issue": "7-8",
+        "publication_year": 2021,
+        "doi": "10.17159/sajs.2021/9438"
+      },
+      "source_uri": "https://doi.org/10.17159/sajs.2021/9438",
+      "publisher_uri": "https://scielo.org.za/scielo.php?pid=S0038-23532021000400022&script=sci_arttext",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "not_yet_verified_for_data_reuse",
+        "notes": "Verify article license and access rights for any extracted tables or underlying dating records."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Publisher abstract and article metadata reviewed; dated contexts, measurements, and calibration output have not been ingested."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-KHAMI-001",
+          "statement": "The article describes post-Mapungubwe reoccupation of the Limpopo Valley first by Sotho communities associated with Icon pottery, followed by Kalanga speakers associated with Khami pottery.",
+          "evidence_class": "published_archaeological_chronological_interpretation",
+          "source_locator": "abstract",
+          "measurement_data_ingested": false,
+          "claim_ceiling": "A published regional sequence interpretation; not a complete demographic history or proof that every site followed the same sequence."
+        },
+        {
+          "claim_id": "HIST001-CLAIM-KHAMI-002",
+          "statement": "The authors describe Sotho and Kalanga occupations as occurring in pulses during higher-rainfall periods, and place the senior Kalanga chief at Machemma about 60 km south while petty chiefs administered parts of the valley.",
+          "evidence_class": "published_historical_and_environmental_interpretation",
+          "source_locator": "abstract",
+          "measurement_data_ingested": false,
+          "alternative_explanations_to_preserve": [
+            "rainfall variability as one factor among several",
+            "site-specific occupation and preservation differences",
+            "political organization inferred from settlement and pottery patterns",
+            "chronological uncertainty in the AMS and ceramic sequence"
+          ],
+          "claim_ceiling": "The article's interpretation of a regional sequence; not a measured continuous population curve or a fully resolved political map."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-MIDDLE-IRON-AGE-CHRONOLOGY",
+        "independence": "unknown",
+        "notes": "Same authors and overlapping regional chronology research as HIST001-SRC-AMS-2021. Treat as related evidence until sample-level overlap and source lineage have been checked."
+      }
     }
   ],
   "next_ingestion_steps": [
