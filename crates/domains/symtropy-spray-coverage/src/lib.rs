@@ -167,20 +167,23 @@ fn ray_triangle_distance(
     let p = direction_unit.cross(edge2);
     let determinant = edge1.dot(p);
 
-    if determinant.abs() <= epsilon {
+    // Scale-aware parallelism test (determinant has units of area).
+    let determinant_tolerance = f64::EPSILON * edge1.norm() * edge2.norm() * 16.0;
+    if determinant.abs() <= determinant_tolerance {
         return None;
     }
 
     let inverse_determinant = 1.0 / determinant;
     let offset = origin.sub(triangle.a);
     let u = offset.dot(p) * inverse_determinant;
-    if u < -epsilon || u > 1.0 + epsilon {
+    let barycentric_epsilon = 1.0e-12;
+    if u < -barycentric_epsilon || u > 1.0 + barycentric_epsilon {
         return None;
     }
 
     let q = offset.cross(edge1);
     let v = direction_unit.dot(q) * inverse_determinant;
-    if v < -epsilon || u + v > 1.0 + epsilon {
+    if v < -barycentric_epsilon || u + v > 1.0 + barycentric_epsilon {
         return None;
     }
 
@@ -396,6 +399,16 @@ mod tests {
         nozzle.max_range_m = 0.5;
         let report = estimate_coverage(&mesh, nozzle, standard_config()).unwrap();
         assert_eq!(report.geometrically_visible_area_fraction, 0.0);
+    }
+
+    #[test]
+    fn output_is_deterministic_for_identical_inputs() {
+        let mesh = TriangleMesh {
+            triangles: vec![triangle_at_z(1.0, 0.1), triangle_at_z(2.0, 0.15)],
+        };
+        let first = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
+        let second = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
+        assert_eq!(first, second);
     }
 
     #[test]
