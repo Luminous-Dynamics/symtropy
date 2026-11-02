@@ -109,7 +109,9 @@ impl ResourceVector {
         )
     }
 
-    fn max_abs(self) -> f64 {
+    /// Largest absolute component, useful for reporting the native-unit
+    /// conservation residual without collapsing resource quantities together.
+    pub fn max_abs(self) -> f64 {
         self.water_m3
             .abs()
             .max(self.energy_kwh.abs())
