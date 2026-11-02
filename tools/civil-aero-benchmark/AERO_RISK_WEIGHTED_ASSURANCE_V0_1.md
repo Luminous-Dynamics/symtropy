@@ -19,7 +19,7 @@ A risk context contains four explicit dimensions:
 1. **Model influence**: how much the simulation or model output can change the decision.
 2. **Decision consequence**: the consequence of a wrong or misleading decision, including an explicit safety-critical class.
 3. **Domain exposure**: whether the claim is in-domain, near the validated boundary, or outside the current evidence envelope.
-4. **Analysis regime**: steady, dual-time unsteady, time-accurate unsteady, or coupled transient.
+4. **Analysis regime**: steady, dual-time unsteady, periodic/statistical unsteady, transient endpoint, or coupled transient.
 
 The policy deliberately avoids collapsing these into a caller-selected weighted score. The AssuranceTier is a deterministic, monotone mapping from categorical inputs. Raising model influence, consequence or domain exposure cannot lower the required tier.
 
@@ -52,7 +52,8 @@ Analysis-regime requirements are additive:
 |---|---|
 | Steady | No temporal gate implied |
 | Unsteady dual-time | Temporal resolution, per-time-step inner convergence, statistical-window convergence |
-| Unsteady time-accurate | Temporal resolution and statistical-window convergence |
+| Periodic/statistical unsteady | Temporal resolution and statistical-window convergence |
+| Transient endpoint | Temporal resolution; no statistical-window gate is implied |
 | Coupled transient | Temporal resolution and coupled-discipline consistency |
 
 A gate not required by the declared regime is not silently marked as passed. For example, a steady case does not manufacture a temporal-convergence receipt. A dual-time unsteady run cannot substitute a window-mean pass for per-time-step inner convergence.
