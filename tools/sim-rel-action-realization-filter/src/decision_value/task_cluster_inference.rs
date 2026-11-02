@@ -1043,8 +1043,8 @@ mod tests {
         BenchmarkScope, MatchedBenchmarkManifest, ResourceBudget,
     };
     use super::super::repeated_run_reliability::{
-        ArmTaskReliability, FamilyRepeatedRunSummary, RepeatedRunReliabilityPlan,
-        RepeatedRunReliabilityReceipt, TaskClusterReliability,
+        ArmTaskReliability, ExactRunRate, FamilyRepeatedRunSummary,
+        RepeatedRunReliabilityPlan, RepeatedRunReliabilityReceipt, TaskClusterReliability,
     };
     use super::{
         ClusterInferenceEndpoint, TaskClusterInferencePlan, analyze_repeated_run_task_clusters,
@@ -1197,34 +1197,87 @@ mod tests {
         ]
     }
 
-    fn summary(family: &str, valid: usize, invalid: usize) -> FamilyRepeatedRunSummary {
+    fn summary(
+        family: &str,
+        clusters: &[TaskClusterReliability],
+    ) -> FamilyRepeatedRunSummary {
+        let valid = clusters
+            .iter()
+            .filter(|cluster| !cluster.invalid_task_cluster)
+            .collect::<Vec<_>>();
+        let invalid = clusters.len() - valid.len();
+        let k = 3usize;
+        let candidate_pass_at_k = valid.iter().filter(|cluster| {
+            cluster.candidate.as_ref().unwrap().pass_at_k
+        }).count();
+        let reference_pass_at_k = valid.iter().filter(|cluster| {
+            cluster.reference.as_ref().unwrap().pass_at_k
+        }).count();
+        let candidate_pass_every_k = valid.iter().filter(|cluster| {
+            cluster.candidate.as_ref().unwrap().pass_every_k
+        }).count();
+        let reference_pass_every_k = valid.iter().filter(|cluster| {
+            cluster.reference.as_ref().unwrap().pass_every_k
+        }).count();
+        let candidate_successes = valid.iter().map(|cluster| {
+            cluster.candidate.as_ref().unwrap().safe_success_count
+        }).sum::<usize>();
+        let reference_successes = valid.iter().map(|cluster| {
+            cluster.reference.as_ref().unwrap().safe_success_count
+        }).sum::<usize>();
+        let candidate_any_hazard = valid.iter().filter(|cluster| {
+            cluster.candidate.as_ref().unwrap().any_hazard
+        }).count();
+        let reference_any_hazard = valid.iter().filter(|cluster| {
+            cluster.reference.as_ref().unwrap().any_hazard
+        }).count();
+        let candidate_any_abstention = valid.iter().filter(|cluster| {
+            cluster.candidate.as_ref().unwrap().any_abstention
+        }).count();
+        let reference_any_abstention = valid.iter().filter(|cluster| {
+            cluster.reference.as_ref().unwrap().any_abstention
+        }).count();
+        let total_runs = valid.len() * k;
+        let exact_rate = |numerator: usize, denominator: usize| {
+            (denominator > 0).then_some(ExactRunRate { numerator, denominator })
+        };
         FamilyRepeatedRunSummary {
             mechanism_family_id: family.into(),
-            valid_task_clusters: valid,
+            valid_task_clusters: valid.len(),
             invalid_task_clusters_excluded: invalid,
             required_valid_task_clusters: 2,
-            meets_minimum_valid_task_clusters: valid >= 2,
-            candidate_pass_at_k_tasks: 0,
-            reference_pass_at_k_tasks: 0,
-            candidate_pass_at_k_rate: None,
-            reference_pass_at_k_rate: None,
-            candidate_pass_every_k_tasks: 0,
-            reference_pass_every_k_tasks: 0,
-            candidate_pass_every_k_rate: None,
-            reference_pass_every_k_rate: None,
-            candidate_run_safe_successes: 0,
-            reference_run_safe_successes: 0,
-            total_valid_run_pairs: valid * 3,
-            candidate_run_safe_success_rate: None,
-            reference_run_safe_success_rate: None,
-            candidate_any_hazard_tasks: 0,
-            reference_any_hazard_tasks: 0,
-            candidate_any_abstention_tasks: 0,
-            reference_any_abstention_tasks: 0,
+            meets_minimum_valid_task_clusters: valid.len() >= 2,
+            candidate_pass_at_k_tasks: candidate_pass_at_k,
+            reference_pass_at_k_tasks: reference_pass_at_k,
+            candidate_pass_at_k_rate: exact_rate(candidate_pass_at_k, valid.len()),
+            reference_pass_at_k_rate: exact_rate(reference_pass_at_k, valid.len()),
+            candidate_pass_every_k_tasks: candidate_pass_every_k,
+            reference_pass_every_k_tasks: reference_pass_every_k,
+            candidate_pass_every_k_rate: exact_rate(candidate_pass_every_k, valid.len()),
+            reference_pass_every_k_rate: exact_rate(reference_pass_every_k, valid.len()),
+            candidate_run_safe_successes: candidate_successes,
+            reference_run_safe_successes: reference_successes,
+            total_valid_run_pairs: total_runs,
+            candidate_run_safe_success_rate: exact_rate(candidate_successes, total_runs),
+            reference_run_safe_success_rate: exact_rate(reference_successes, total_runs),
+            candidate_any_hazard_tasks: candidate_any_hazard,
+            reference_any_hazard_tasks: reference_any_hazard,
+            candidate_any_abstention_tasks: candidate_any_abstention,
+            reference_any_abstention_tasks: reference_any_abstention,
         }
     }
 
     fn receipt(clusters: Vec<TaskClusterReliability>) -> RepeatedRunReliabilityReceipt {
+        let sensor_clusters = clusters
+            .iter()
+            .filter(|cluster| cluster.mechanism_family_id == "sensor-drift")
+            .cloned()
+            .collect::<Vec<_>>();
+        let actuator_clusters = clusters
+            .iter()
+            .filter(|cluster| cluster.mechanism_family_id == "actuator-fault")
+            .cloned()
+            .collect::<Vec<_>>();
         let valid = clusters.iter().filter(|c| !c.invalid_task_cluster).count();
         let invalid = clusters.len() - valid;
         RepeatedRunReliabilityReceipt {
@@ -1242,8 +1295,8 @@ mod tests {
             valid_task_cluster_count: valid,
             invalid_task_cluster_count: invalid,
             family_summaries: vec![
-                summary("sensor-drift", 4, 0),
-                summary("actuator-fault", 1, 1),
+                summary("sensor-drift", &sensor_clusters),
+                summary("actuator-fault", &actuator_clusters),
             ],
             task_clusters: clusters,
             pass_at_k_is_not_pass_every_k: true,
