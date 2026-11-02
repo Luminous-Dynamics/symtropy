@@ -485,20 +485,19 @@ fn ceil_div_u128(numerator: u128, denominator: u128) -> u128 {
 }
 
 fn integer_sqrt_floor(value: u128) -> Result<u128, AnchorEquatingError> {
+    // Binary search using division rather than squaring so the full u128
+    // domain is supported without an arbitrary cap or intermediate overflow.
     let mut low = 0u128;
-    let mut high = 2_000_001u128;
+    let mut high = value.min(u64::MAX as u128).saturating_add(1);
     while low < high {
-        let middle = low + (high - low) / 2;
-        let square = middle.checked_mul(middle).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("integer square overflow".into())
-        })?;
-        if square <= value {
-            low = middle + 1;
+        let middle = low + (high - low) / 2 + 1;
+        if middle <= value / middle {
+            low = middle;
         } else {
-            high = middle;
+            high = middle - 1;
         }
     }
-    Ok(low.saturating_sub(1))
+    Ok(low)
 }
 
 fn integer_sqrt_ceil(value: u128) -> Result<u128, AnchorEquatingError> {
@@ -1218,12 +1217,14 @@ pub fn link_benchmark_forms(
     if !same_construct_family || !same_score_semantics || !same_harness_and_tools || !same_resource_budget || !common_reference_panel {
         status = AnchorEquatingStatus::NotComparable;
         reason = "construct_score_harness_tool_or_budget_mismatch";
+    } else if !drift_gate_passed {
+        // Drift invalidates even a link-only relation. It is not safe to
+        // report comparable forms when the supposedly stable anchors changed.
+        status = AnchorEquatingStatus::NotComparable;
+        reason = "anchor_response_drift_exceeds_preregistered_limit";
     } else if !same_construct_blueprint {
         status = AnchorEquatingStatus::LinkedOnly;
         reason = "blueprint_changed_link_not_equating";
-    } else if !drift_gate_passed {
-        status = AnchorEquatingStatus::NotComparable;
-        reason = "anchor_response_drift_exceeds_preregistered_limit";
     }
 
     let transform = (status != AnchorEquatingStatus::NotComparable).then_some(
