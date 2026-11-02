@@ -158,16 +158,10 @@ impl DutyCycle {
             chemical_input: EnergyJoules::new(chemical_input_j, "chemical input energy")?,
             brake_work: EnergyJoules::new(brake_work_j, "brake work")?,
             engine_rejected: EnergyJoules::new(engine_rejected_j, "engine rejected energy")?,
-            gross_electrical: EnergyJoules::new(
-                gross_electrical_j,
-                "gross electrical energy",
-            )?,
+            gross_electrical: EnergyJoules::new(gross_electrical_j, "gross electrical energy")?,
             generator_loss: EnergyJoules::new(generator_loss_j, "generator loss energy")?,
             auxiliary_energy: EnergyJoules::new(auxiliary_energy_j, "auxiliary energy")?,
-            net_electrical: EnergyJoules::new(
-                net_electrical_j,
-                "net electrical energy",
-            )?,
+            net_electrical: EnergyJoules::new(net_electrical_j, "net electrical energy")?,
         })
     }
 }
@@ -274,14 +268,8 @@ impl DutyCycleResult {
 pub enum DutyCycleError {
     EmptyDutyCycle,
     InvalidDuration { value: f64 },
-    InvalidIntegratedValue {
-        quantity: &'static str,
-        value: f64,
-    },
-    InvalidTolerance {
-        absolute: f64,
-        relative: f64,
-    },
+    InvalidIntegratedValue { quantity: &'static str, value: f64 },
+    InvalidTolerance { absolute: f64, relative: f64 },
     Model(ModelError),
 }
 
@@ -296,10 +284,16 @@ impl fmt::Display for DutyCycleError {
         match self {
             Self::EmptyDutyCycle => write!(f, "duty cycle must contain at least one segment"),
             Self::InvalidDuration { value } => {
-                write!(f, "segment duration must be finite and positive; got {value}")
+                write!(
+                    f,
+                    "segment duration must be finite and positive; got {value}"
+                )
             }
             Self::InvalidIntegratedValue { quantity, value } => {
-                write!(f, "integrated {quantity} must be finite and non-negative; got {value}")
+                write!(
+                    f,
+                    "integrated {quantity} must be finite and non-negative; got {value}"
+                )
             }
             Self::InvalidTolerance { absolute, relative } => {
                 write!(
@@ -402,14 +396,7 @@ mod tests {
 
     #[test]
     fn rejects_cycle_that_overflows_integrated_energy() {
-        let cycle = DutyCycle::new(vec![segment(
-            f64::MAX,
-            1.0,
-            0.45,
-            0.96,
-            0.0,
-        )])
-        .unwrap();
+        let cycle = DutyCycle::new(vec![segment(f64::MAX, 1.0, 0.45, 0.96, 0.0)]).unwrap();
 
         assert!(matches!(
             cycle.evaluate(),
@@ -419,14 +406,7 @@ mod tests {
 
     #[test]
     fn rejects_negative_or_non_finite_balance_tolerances() {
-        let cycle = DutyCycle::new(vec![segment(
-            60.0,
-            0.01,
-            0.45,
-            0.96,
-            5_760.0,
-        )])
-        .unwrap();
+        let cycle = DutyCycle::new(vec![segment(60.0, 0.01, 0.45, 0.96, 5_760.0)]).unwrap();
         let result = cycle.evaluate().unwrap();
 
         assert!(result.energy_balance_is_closed(-1.0, 0.0).is_err());
