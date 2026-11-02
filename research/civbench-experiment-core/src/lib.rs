@@ -1030,9 +1030,9 @@ impl DecisionServiceChain {
             ));
         }
 
-        for index in 1..events.len() {
-            let previous = &events[index - 1];
-            let current = &events[index];
+        for pair in events.windows(2) {
+            let previous = &pair[0];
+            let current = &pair[1];
             if current.occurred_at_unix_ms < previous.occurred_at_unix_ms {
                 return Err(DecisionChainError::TimestampRegression {
                     previous_ms: previous.occurred_at_unix_ms,
@@ -1349,16 +1349,18 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(index, stage)| {
+                let sequence = u64::try_from(index).unwrap() + 1;
+                let digest_byte = u8::try_from(index).unwrap() + 1;
                 EvidenceEvent::new(
                     ids[index],
                     *stage,
-                    (index as u64 + 1) * 1000,
+                    sequence * 1000,
                     if index == 0 {
                         None
                     } else {
                         Some(ids[index - 1].to_owned())
                     },
-                    digest(index as u8 + 1),
+                    digest(digest_byte),
                     if *stage == EvidenceStage::HumanDecision {
                         Some(HumanDecisionDisposition::Authorized)
                     } else {
