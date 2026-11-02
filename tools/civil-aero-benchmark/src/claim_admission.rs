@@ -80,6 +80,7 @@ pub enum EvidenceKind {
     OperationalEnvelopeValidation,
     CalibrationEvidence,
     IndependentReview,
+    CertificationBasisEvidence,
     CertificationAuthorityDecision,
     QualitySystemEvidence,
 }
@@ -111,7 +112,8 @@ impl EvidenceKind {
             Self::OperationalEnvelopeValidation => "operational_envelope_validation",
             Self::CalibrationEvidence => "calibration_evidence",
             Self::IndependentReview => "independent_review",
-            Self::CertificationAuthorityDecision => "certification_authority_decision",
+            Self::CertificationBasisEvidence => "certification_basis_evidence",
+            Self::CertificationAuthorityDecision => "certification_authority_decision_record",
             Self::QualitySystemEvidence => "quality_system_evidence",
         }
     }
@@ -304,7 +306,7 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
                 E::OperationalEnvelopeValidation,
                 E::CalibrationEvidence,
                 E::IndependentReview,
-                E::CertificationAuthorityDecision,
+                E::CertificationBasisEvidence,
                 E::QualitySystemEvidence,
                 E::ModelUncertaintyAssessment,
             ]);
@@ -317,9 +319,6 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
         required.insert(E::IndependentReview);
         required.insert(E::CalibrationEvidence);
         required.insert(E::ModelUncertaintyAssessment);
-    }
-    if request.consequence == DecisionConsequence::SafetyCritical {
-        required.insert(E::CertificationAuthorityDecision);
     }
     required
 }
@@ -649,7 +648,15 @@ mod tests {
             ClaimClass::FlightRelease,
             DecisionConsequence::SafetyCritical,
         );
-        let flight_evidence = all_verified(&flight);
+        assert!(required_for(&flight).contains(&EvidenceKind::CertificationBasisEvidence));
+        assert!(!required_for(&flight).contains(&EvidenceKind::CertificationAuthorityDecision));
+        let mut flight_evidence = all_verified(&flight);
+        // Even an archived authority-decision record cannot turn this tool into an
+        // automatic release authority; the human/authority gate remains external.
+        flight_evidence.push(verified(
+            EvidenceKind::CertificationAuthorityDecision,
+            &flight.scope_sha256,
+        ));
         let flight_decision =
             evaluate_claim_admission(&flight, &flight_evidence).expect("valid assertions");
         assert_eq!(
