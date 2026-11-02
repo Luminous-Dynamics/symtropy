@@ -1,0 +1,101 @@
+name: NanoDrone content-addressed branch artifact verifier
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/nanodrone-branch-artifact-verifier.yml"
+      - "integration/symthaea-physics-loop/**"
+      - "scripts/test-real-symthaea-in-symtropy.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  branch-artifact-contract:
+    name: Verify snapshot and disturbance artifact contract
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_BUILD_JOBS: "2"
+    steps:
+      - name: Check out Symtropy PR head
+        uses: actions/checkout@v4
+        with:
+          path: symtropy
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Check out pinned Symthaea dependency source
+        uses: actions/checkout@v4
+        with:
+          repository: Luminous-Dynamics/symthaea
+          path: symthaea
+          ref: 6193513f9ac8bead66cf4eb7bea9d4df9d690962
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        working-directory: symtropy
+        run: cargo fmt --manifest-path integration/symthaea-physics-loop/Cargo.toml -- --check
+
+      - name: Run recoverability evaluator unit tests
+        working-directory: symtropy
+        run: cargo test --manifest-path integration/symthaea-physics-loop/Cargo.toml --example nanodrone_recoverability_frontier
+
+      - name: Check recoverability evaluator build
+        working-directory: symtropy
+        run: cargo check --manifest-path integration/symthaea-physics-loop/Cargo.toml --example nanodrone_recoverability_frontier
+
+      - name: Run content-addressed fixture smoke
+        working-directory: symtropy
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="integration/symthaea-physics-loop/fixtures/nanodrone-recoverability"
+          output="${{ runner.temp }}/nanodrone-recoverability-frontier-v0.2.json"
+          dataset_receipt_sha256="$(sha256sum "$fixture/dataset_receipt.txt" | awk '{print $1}')"
+          model_manifest_sha256="$(sha256sum "$fixture/model_manifest.txt" | awk '{print $1}')"
+          source_commit="$(git rev-parse HEAD)"
+          cargo run --manifest-path integration/symthaea-physics-loop/Cargo.toml --example nanodrone_recoverability_frontier -- \
+            --input "$fixture/branches.csv" \
+            --checkpoints "$fixture/checkpoints.csv" \
+            --train-families "$fixture/train_families.txt" \
+            --artifact-root "$fixture/branch-artifacts-v0.1" \
+            --dataset-receipt-sha256 "$dataset_receipt_sha256" \
+            --model-manifest-sha256 "$model_manifest_sha256" \
+            --source-commit "$source_commit" \
+            --training-seeds 101,102 --branch-seeds 11,12,13,14 \
+            --interventions continue,robust_fallback \
+            --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 \
+            --bootstrap 50 --seed 17 --evidence-class synthetic --output "$output"
+          jq -e '
+            .schema_version == "symtropy-nanodrone-recoverability-frontier-v0.2"
+            and .evidence_class == "synthetic"
+            and .registered_family_count == 2
+            and .registered_flight_count == 2
+            and .registered_checkpoint_count == 6
+            and .expected_branch_count == 96
+            and .branch_artifact_verification.status == "synthetic_fixture_content_verified_origin_unattested"
+            and .branch_artifact_verification.snapshot_artifacts_verified == 12
+            and .branch_artifact_verification.disturbance_tape_artifacts_verified == 48
+            and .branch_artifact_verification.branch_rows_bound == 96
+            and (.branch_artifact_verification.combined_artifact_manifest_sha256 | test("^[a-f0-9]{64}$"))
+            and (.checkpoint_estimates | length) == 24
+            and all(.checkpoint_estimates[]; .branch_replicates == 4 and .remaining_budget_s > 0 and .wilson_95_one_sided_lower >= 0 and .wilson_95_one_sided_lower <= 1)
+            and (.budget_contract | contains("same registered terminal deadline"))
+            and ([.intervention_summaries[] | select(.intervention_id == "continue")][0].mean_paired_horizon_delta_vs_continue_s == 0)
+            and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].mean_paired_horizon_delta_vs_continue_s > 0)
+            and ([.intervention_summaries[] | select(.intervention_id == "robust_fallback")][0].paired_crossed_bootstrap_delta_ci95_s.valid_replicates == 50)
+            and (.claim_ceiling | contains("restore fidelity"))
+          ' "$output" >/dev/null
+
+      - name: Retain exact synthetic verifier receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: nanodrone-branch-artifact-verification-v0.2
+          path: ${{ runner.temp }}/nanodrone-recoverability-frontier-v0.2.json
+          if-no-files-found: error
+          retention-days: 30
