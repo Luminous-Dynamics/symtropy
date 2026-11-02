@@ -2027,10 +2027,7 @@ fn nary_cartesian_product_size(sizes: &[usize]) -> Option<usize> {
 fn nary_composed_classification(
     classifications: &[SeparatingBoxClassification],
 ) -> ComposedSeparatorClassification {
-    if classifications
-        .iter()
-        .any(|classification| *classification == SeparatingBoxClassification::SignoriniViolation)
-    {
+    if classifications.contains(&SeparatingBoxClassification::SignoriniViolation) {
         ComposedSeparatorClassification::LocalHypothesisExcluded
     } else if classifications
         .iter()
@@ -2209,7 +2206,7 @@ fn verify_nary_separator_composition(
         Vec::<Vec<u8>>::with_capacity(canonical.len()),
     )];
 
-    while let Some((source_index, geometry, mut classifications, mut lineages)) = stack.pop() {
+    while let Some((source_index, geometry, classifications, lineages)) = stack.pop() {
         if source_index == canonical.len() {
             if let Some(separator_box) = geometry {
                 let key = lineages.clone();
