@@ -19,6 +19,7 @@ cargo test --locked --manifest-path benchmarks/coastal-sediment-ledger/Cargo.tom
 - Every transfer is sequential, lot-bound and atomic. A store cannot transfer
   more mass than it holds; transfer IDs are unique.
 - Boundary inflows/outflows and internal stock are accounted separately.
+- An independent event-stream replay reconstructs those totals from an empty state and checks reconciliation against materialized inventory.
 - The conservation oracle is `external inflow = external outflow + internal stock`.
 - Placement eligibility is a narrow synthetic rule check; it is not a permit,
   environmental approval, retention forecast or real material-suitability
