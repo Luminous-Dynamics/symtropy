@@ -116,23 +116,83 @@
       "then": {
         "properties": {
           "test_coverage": {
-            "properties": {
-              "physical_test_completed": {
-                "const": true
-              },
-              "independent_review_completed": {
-                "const": true
-              }
+            "physical_test_completed": {
+              "const": true
             },
-            "required": [
-              "physical_test_completed",
-              "independent_review_completed"
-            ]
+            "independent_review_completed": {
+              "const": true
+            },
+            "emissions_test_complete": {
+              "const": true
+            }
           },
           "unresolved_gaps": {
             "maxItems": 0
+          },
+          "evidence_records": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "evidence_class",
+                "review_status"
+              ],
+              "properties": {
+                "evidence_class": {
+                  "enum": [
+                    "physical_measurement",
+                    "third_party_test"
+                  ]
+                },
+                "review_status": {
+                  "const": "independent_reviewed"
+                }
+              }
+            },
+            "minContains": 1
+          },
+          "emissions_evidence": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "evidence_status"
+              ],
+              "properties": {
+                "evidence_status": {
+                  "enum": [
+                    "measured",
+                    "third_party_source_test"
+                  ]
+                }
+              }
+            },
+            "minContains": 1
+          },
+          "safety_approvals": {
+            "minItems": 1,
+            "contains": {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "approved",
+                    "not_required_confirmed"
+                  ]
+                }
+              }
+            },
+            "minContains": 1
           }
-        }
+        },
+        "required": [
+          "test_coverage",
+          "safety_approvals",
+          "emissions_evidence"
+        ]
       }
     }
   ],
