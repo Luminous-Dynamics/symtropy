@@ -686,13 +686,15 @@ pub fn compare_delivered_service(
                     candidate_basis: candidate_input.basis().clone(),
                 }
             } else {
+                let ratio = reference_input.energy_j() / candidate_input.energy_j();
+                if !ratio.is_finite() || ratio <= 0.0 {
+                    return Err(ServiceContractError::InvalidInputEnergyRatio { value: ratio });
+                }
                 InputEnergyComparison::Comparable {
                     basis: reference_input.basis().clone(),
                     reference_input_energy_j: reference_input.energy_j(),
                     candidate_input_energy_j: candidate_input.energy_j(),
-                    candidate_service_per_input_ratio: (common_service_energy_j
-                        / candidate_input.energy_j())
-                        / (common_service_energy_j / reference_input.energy_j()),
+                    candidate_service_per_input_ratio: ratio,
                     reference_evidence_id: reference_input.evidence_id().map(str::to_string),
                     candidate_evidence_id: candidate_input.evidence_id().map(str::to_string),
                 }
@@ -775,6 +777,9 @@ pub enum ServiceContractError {
         deficit_energy_j: f64,
         allowed_shortfall_j: f64,
     },
+    InvalidInputEnergyRatio {
+        value: f64,
+    },
     ZeroCommonService,
 }
 
@@ -852,6 +857,9 @@ impl fmt::Display for ServiceContractError {
                 f,
                 "{system} under-delivers segment {index}: required={required_energy_j} J, delivered={delivered_energy_j} J, deficit={deficit_energy_j} J, allowed={allowed_shortfall_j} J"
             ),
+            Self::InvalidInputEnergyRatio { value } => {
+                write!(f, "candidate/reference input-energy ratio invalid: {value}")
+            }
             Self::ZeroCommonService => write!(f, "common delivered service must be positive"),
         }
     }
@@ -1083,6 +1091,44 @@ mod tests {
         assert_eq!(comparison.common_service_energy_j(), 12e6);
         assert_eq!(comparison.reference_surplus_energy_j(), 1e6);
         assert_eq!(comparison.candidate_surplus_energy_j(), 0.0);
+    }
+
+    #[test]
+    fn rejects_overflowing_input_energy_ratio() {
+        let b = boundary(ServiceInterface::NetAc, "site-ac-pcc");
+        let demand = contract(b.clone());
+        let reference = trace(
+            "reference",
+            "engine-gen",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [6e6, 6e6],
+            Some(
+                InputEnergyRecord::new(InputEnergyBasis::FuelChemicalLhv, 1.0e308, None)
+                    .unwrap(),
+            ),
+        );
+        let candidate = trace(
+            "candidate",
+            "engine-gen",
+            "DATA-CENTER-DUTY",
+            b,
+            [6e6, 6e6],
+            Some(
+                InputEnergyRecord::new(InputEnergyBasis::FuelChemicalLhv, 1.0e-308, None)
+                    .unwrap(),
+            ),
+        );
+
+        assert!(matches!(
+            compare_delivered_service(
+                &demand,
+                &reference,
+                &candidate,
+                ServiceDeliveryTolerance::new(0.0, 0.0).unwrap()
+            ),
+            Err(ServiceContractError::InvalidInputEnergyRatio { .. })
+        ));
     }
 
     #[test]
