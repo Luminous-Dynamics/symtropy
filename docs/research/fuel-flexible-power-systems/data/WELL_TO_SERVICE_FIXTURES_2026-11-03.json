@@ -586,5 +586,6 @@
         "interpretation": "Both alternatives are represented at the same net-AC service output, but fuel LHV and stored electrical energy are different input-energy bases and must not be converted into one efficiency ratio."
       }
     }
-  ]
+  ],
+  "intended_use": "Synthetic oracle fixtures for checking typed energy pathway graphs, emissions-factor application, energy basis matching and anti-double-counting. Not physical lifecycle results."
 }
