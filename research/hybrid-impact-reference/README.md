@@ -93,11 +93,13 @@ The locator does not use the closed-form impact time internally. It reports:
 - final time bracket and midpoint estimate;
 - absolute guard residual at the midpoint;
 - bracket width and iteration count;
-- CONVERGED, ITERATION_LIMIT, or TIME_RESOLUTION_EXHAUSTED status.
+- CONVERGED, EVENT_AT_LOWER_BOUNDARY, ITERATION_LIMIT, or
+  TIME_RESOLUTION_EXHAUSTED status.
 
 The numerical lane is compared to the closed-form first-impact solution in
 tests and in the event-localization benchmark. It includes an exact step-end
-event, just-before and just-after step-boundary controls, an initially
+event at either bracket boundary, just-before and just-after step-boundary
+controls, an initially
 downward trajectory, explicit iteration exhaustion and invalid-bracket
 rejection. A later event-capturing or adaptive integrator should use the same
 metric separation, not treat a robust bisection reference as an engine-wide
