@@ -2014,8 +2014,18 @@ struct NaryComposedSeparatorBoxPartition {
 #[derive(Clone)]
 struct NaryPartialSeparatorCell {
     separator_box: SeparatorImpulseBox,
-    source_classifications: Vec<SeparatingBoxClassification>,
     source_lineages: Vec<Vec<u8>>,
+}
+
+fn nary_reclassify_source(
+    source: &NarySeparatorPartitionSource<'_>,
+    separator_box: &SeparatorImpulseBox,
+) -> SeparatingBoxClassification {
+    source
+        .message
+        .response_over_box(separator_box)
+        .map(|response| response.classification)
+        .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive)
 }
 
 fn nary_cartesian_product_size(sizes: &[usize]) -> Option<usize> {
@@ -2093,7 +2103,6 @@ fn compose_nary_separator_partitions(
 
     let mut partials = vec![NaryPartialSeparatorCell {
         separator_box: root_box.clone(),
-        source_classifications: Vec::with_capacity(ordered.len()),
         source_lineages: Vec::with_capacity(ordered.len()),
     }];
 
@@ -2107,13 +2116,10 @@ fn compose_nary_separator_partitions(
                 else {
                     continue;
                 };
-                let mut source_classifications = partial.source_classifications.clone();
-                source_classifications.push(source_cell.classification);
                 let mut source_lineages = partial.source_lineages.clone();
                 source_lineages.push(source_cell.lineage.clone());
                 next.push(NaryPartialSeparatorCell {
                     separator_box: intersection,
-                    source_classifications,
                     source_lineages,
                 });
             }
@@ -2126,11 +2132,17 @@ fn compose_nary_separator_partitions(
 
     let mut cells = partials
         .into_iter()
-        .map(|partial| NaryComposedSeparatorBoxCell {
-            classification: nary_composed_classification(&partial.source_classifications),
-            separator_box: partial.separator_box,
-            source_classifications: partial.source_classifications,
-            source_lineages: partial.source_lineages,
+        .map(|partial| {
+            let source_classifications = ordered
+                .iter()
+                .map(|source| nary_reclassify_source(source, &partial.separator_box))
+                .collect::<Vec<_>>();
+            NaryComposedSeparatorBoxCell {
+                classification: nary_composed_classification(&source_classifications),
+                separator_box: partial.separator_box,
+                source_classifications,
+                source_lineages: partial.source_lineages,
+            }
         })
         .collect::<Vec<_>>();
     cells.sort_by(|left, right| left.source_lineages.cmp(&right.source_lineages));
@@ -2202,18 +2214,21 @@ fn verify_nary_separator_composition(
     let mut stack = vec![(
         0_usize,
         Some(root_box.clone()),
-        Vec::<SeparatingBoxClassification>::with_capacity(canonical.len()),
         Vec::<Vec<u8>>::with_capacity(canonical.len()),
     )];
 
-    while let Some((source_index, geometry, classifications, lineages)) = stack.pop() {
+    while let Some((source_index, geometry, lineages)) = stack.pop() {
         if source_index == canonical.len() {
             if let Some(separator_box) = geometry {
                 let key = lineages.clone();
+                let source_classifications = canonical
+                    .iter()
+                    .map(|source| nary_reclassify_source(source, &separator_box))
+                    .collect::<Vec<_>>();
                 let cell = NaryComposedSeparatorBoxCell {
                     separator_box,
-                    classification: nary_composed_classification(&classifications),
-                    source_classifications: classifications,
+                    classification: nary_composed_classification(&source_classifications),
+                    source_classifications,
                     source_lineages: lineages,
                 };
                 if expected.insert(key, cell).is_some() {
@@ -2233,14 +2248,11 @@ fn verify_nary_separator_composition(
                 Some(current) => current.intersection(&source_cell.separator_box),
                 None => None,
             };
-            let mut next_classifications = classifications.clone();
-            next_classifications.push(source_cell.classification);
             let mut next_lineages = lineages.clone();
             next_lineages.push(source_cell.lineage.clone());
             stack.push((
                 source_index + 1,
                 next_geometry,
-                next_classifications,
                 next_lineages,
             ));
         }
