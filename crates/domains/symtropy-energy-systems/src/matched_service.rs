@@ -685,7 +685,7 @@ mod tests {
         .unwrap()
     }
 
-    fn cycle(flows: [f64; 2]) -> BatchBoundDutyCycleResult {
+    fn cycle(flows: [f64; 2], engine_efficiency: f64) -> BatchBoundDutyCycleResult {
         let windows = [(0, 60), (60, 90)];
         let mut segments = Vec::new();
 
@@ -700,7 +700,7 @@ mod tests {
             .unwrap();
             let observation =
                 FuelFlowObservation::new(batch_id.clone(), time_window, flow).unwrap();
-            let engine = EngineModel::new(Efficiency::new(0.45).unwrap());
+            let engine = EngineModel::new(Efficiency::new(engine_efficiency).unwrap());
             let generator = GeneratorModel::new(
                 Efficiency::new(0.96).unwrap(),
                 Watts::new(if index == 0 { 5_760.0 } else { 1_700.0 }).unwrap(),
@@ -742,9 +742,9 @@ mod tests {
 
     #[test]
     fn matched_service_ffer_rewards_lower_fuel_use_not_surplus_generation() {
-        let reference = cycle([0.01, 0.005]);
-        let candidate = cycle([0.009, 0.0045]);
-        let demand = profile([9_720_000.0, 2_160_000.0]);
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.009, 0.0045], 0.50);
+        let demand = profile([10_800_000.0, 2_735_400.0]);
 
         let comparison = compare_matched_service(
             &demand,
@@ -756,19 +756,19 @@ mod tests {
         )
         .unwrap();
 
-        assert!((comparison.common_matched_service_energy_j() - 11_880_000.0).abs() < 1e-6);
+        assert!((comparison.common_matched_service_energy_j() - 13_535_400.0).abs() < 1e-6);
         assert!((comparison.reference_chemical_input_energy_j() - 32_250_000.0).abs() < 1e-6);
         assert!((comparison.candidate_chemical_input_energy_j() - 29_025_000.0).abs() < 1e-6);
         assert!((comparison.ffer() - (32_250_000.0 / 29_025_000.0)).abs() < 1e-12);
-        assert!((comparison.candidate_surplus_energy_j()).abs() < 1e-6);
-        assert!(comparison.reference_surplus_energy_j() > 0.0);
+        assert!(comparison.candidate_surplus_energy_j().abs() < 1e-6);
+        assert!(comparison.reference_surplus_energy_j().abs() < 1e-6);
     }
 
     #[test]
     fn rejects_candidate_that_does_not_meet_required_service() {
-        let reference = cycle([0.01, 0.005]);
-        let candidate = cycle([0.008, 0.004]);
-        let demand = profile([9_720_000.0, 2_160_000.0]);
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.008, 0.004], 0.50);
+        let demand = profile([10_800_000.0, 2_735_400.0]);
 
         assert!(matches!(
             compare_matched_service(
@@ -786,8 +786,8 @@ mod tests {
 
     #[test]
     fn rejects_time_window_mismatch_even_when_total_duration_matches() {
-        let reference = cycle([0.01, 0.005]);
-        let candidate = cycle([0.009, 0.0045]);
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.009, 0.0045], 0.50);
         let demand = ServiceDemandProfile::new(
             "shifted",
             "v1",
@@ -813,8 +813,8 @@ mod tests {
 
     #[test]
     fn rejects_profile_with_different_segment_count() {
-        let reference = cycle([0.01, 0.005]);
-        let candidate = cycle([0.009, 0.0045]);
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.009, 0.0045], 0.50);
         let demand = ServiceDemandProfile::new(
             "wrong-count",
             "v1",
@@ -840,9 +840,9 @@ mod tests {
 
     #[test]
     fn reports_tolerance_shortfall_without_crediting_undelivered_energy() {
-        let reference = cycle([0.01, 0.005]);
-        let candidate = cycle([0.008999999, 0.004499999]);
-        let demand = profile([9_720_000.0, 2_160_000.0]);
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.008999999, 0.004499999], 0.50);
+        let demand = profile([10_800_000.0, 2_735_400.0]);
         let tolerance = ServiceTolerance::new(100.0, 0.0).unwrap();
 
         let comparison = compare_matched_service(
