@@ -4,7 +4,6 @@
 
 use super::counterexample_ledger::EvidenceSplit;
 use super::matched_benchmark::{BenchmarkScope, MatchedBenchmarkManifest, ResourceBudget};
-use super::preregistered_analysis::exact_two_sided_sign_test_p_value;
 use super::repeated_run_reliability::{
     RepeatedRunReliabilityPlan, RepeatedRunReliabilityReceipt, TaskClusterReliability,
 };
@@ -474,6 +473,59 @@ fn hoeffding_interval(
         confidence_level_percent: 95,
         method: "pointwise conservative Hoeffding over independent task clusters; bounded paired difference [-1,1]; outward micro-unit rounding".into(),
     })
+}
+
+fn binomial_coefficient(n: usize, k: usize) -> Result<u128, ClusterInferenceError> {
+    let k = k.min(n.saturating_sub(k));
+    let mut value = 1u128;
+    for index in 1..=k {
+        let factor = u128::try_from(n - index + 1).map_err(|_| {
+            ClusterInferenceError::ArithmeticOverflow("binomial factor exceeds u128".into())
+        })?;
+        value = value.checked_mul(factor).ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow("binomial coefficient overflow".into())
+        })? / u128::try_from(index).map_err(|_| {
+            ClusterInferenceError::ArithmeticOverflow("binomial divisor exceeds u128".into())
+        })?;
+    }
+    Ok(value)
+}
+
+/// Exact two-sided paired sign test, conditional on discordant task clusters.
+/// Ties are excluded from the sign denominator but retained in the effect
+/// summary. The bounded u128 implementation fails closed above 120 signs.
+fn exact_cluster_sign_test_p_value(
+    candidate_wins: usize,
+    reference_wins: usize,
+) -> Result<Rational, ClusterInferenceError> {
+    let discordant = candidate_wins.checked_add(reference_wins).ok_or_else(|| {
+        ClusterInferenceError::ArithmeticOverflow("discordant task-cluster count overflow".into())
+    })?;
+    if discordant > MAX_EXACT_CLUSTER_DISCORDANT_PAIRS {
+        return Err(ClusterInferenceError::UnsupportedExactSampleSize(format!(
+            "{discordant} discordant clusters exceeds exact cap {MAX_EXACT_CLUSTER_DISCORDANT_PAIRS}"
+        )));
+    }
+    if discordant == 0 {
+        return Ok(Rational::one());
+    }
+    let tail_count = candidate_wins.min(reference_wins);
+    let mut tail_sum = 0u128;
+    for index in 0..=tail_count {
+        tail_sum = tail_sum.checked_add(binomial_coefficient(discordant, index)?).ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow("exact sign-test tail overflow".into())
+        })?;
+    }
+    let denominator = 1u128.checked_shl(discordant as u32).ok_or_else(|| {
+        ClusterInferenceError::UnsupportedExactSampleSize(
+            "exact sign-test denominator exceeds u128".into(),
+        )
+    })?;
+    let doubled_tail = tail_sum.checked_mul(2).ok_or_else(|| {
+        ClusterInferenceError::ArithmeticOverflow("exact sign-test tail doubling overflow".into())
+    })?;
+    Rational::new(doubled_tail.min(denominator), denominator)
+        .map_err(ClusterInferenceError::ArithmeticOverflow)
 }
 
 fn increment(value: &mut usize, label: &str) -> Result<(), ClusterInferenceError> {
