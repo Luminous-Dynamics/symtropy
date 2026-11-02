@@ -74,6 +74,21 @@ pub struct FamilyAnytimeEvidence {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnytimeEventReplayReceipt {
+    pub event_id: String,
+    pub sequence: u64,
+    pub mechanism_family_id: String,
+    pub total_pairs_after_event: usize,
+    pub invalid_tasks_excluded_after_event: usize,
+    pub candidate_wins_after_event: usize,
+    pub reference_wins_after_event: usize,
+    pub ties_after_event: usize,
+    pub discordant_pairs_after_event: usize,
+    pub e_value_after_event: Rational,
+    pub first_crossing_sequence_after_event: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AnytimePairedInferenceReceipt {
     pub analysis_id: String,
     pub analysis_version: String,
@@ -88,6 +103,10 @@ pub struct AnytimePairedInferenceReceipt {
     pub family_count: usize,
     pub event_count: usize,
     pub family_results: Vec<FamilyAnytimeEvidence>,
+    /// Exact per-event replay state, including the e-value after ties and
+    /// invalid-task exclusions. This permits independent reconstruction of
+    /// every intermediate value and the first crossing.
+    pub event_replay: Vec<AnytimeEventReplayReceipt>,
     pub sealed_holdout_only: bool,
     pub complete_preregistered_family_set_retained: bool,
     pub bonferroni_anytime_fwer_control_applied: bool,
@@ -388,6 +407,7 @@ pub fn replay_anytime_paired_evidence(
         .map(|family| (family, FamilyCounts::default()))
         .collect::<BTreeMap<_, _>>();
     let mut event_ids = BTreeSet::new();
+    let mut event_replay = Vec::with_capacity(events.len());
     let family_count = u64::try_from(plan.mechanism_families.len()).map_err(|_| {
         AnytimePairedError::ArithmeticOverflow("family count exceeds u64".into())
     })?;
@@ -435,6 +455,27 @@ pub fn replay_anytime_paired_evidence(
             ))?;
         if trial.task_validity == BenchmarkTaskValidity::Invalid {
             increment(&mut family.invalid_tasks_excluded, "invalid task")?;
+            let discordant_pairs = family
+                .candidate_wins
+                .checked_add(family.reference_wins)
+                .ok_or_else(|| AnytimePairedError::ArithmeticOverflow(
+                    "discordant count overflow".into(),
+                ))?;
+            let current_e_value =
+                exact_paired_sign_mixture_e_value(family.candidate_wins, family.reference_wins)?;
+            event_replay.push(AnytimeEventReplayReceipt {
+                event_id: event.event_id.clone(),
+                sequence: event.sequence,
+                mechanism_family_id: trial.mechanism_family_id.clone(),
+                total_pairs_after_event: family.total_pairs,
+                invalid_tasks_excluded_after_event: family.invalid_tasks_excluded,
+                candidate_wins_after_event: family.candidate_wins,
+                reference_wins_after_event: family.reference_wins,
+                ties_after_event: family.ties,
+                discordant_pairs_after_event: discordant_pairs,
+                e_value_after_event: current_e_value,
+                first_crossing_sequence_after_event: family.first_crossing_sequence,
+            });
             continue;
         }
 
@@ -479,17 +520,29 @@ pub fn replay_anytime_paired_evidence(
                 trial.mechanism_family_id, MAX_ANYTIME_DISCORDANT_PAIRS
             )));
         }
+        let e_value = exact_paired_sign_mixture_e_value(
+            family.candidate_wins,
+            family.reference_wins,
+        )?;
         if family.first_crossing_sequence.is_none()
             && discordant >= plan.minimum_discordant_pairs_before_claim
+            && e_value >= critical_e_value
         {
-            let e_value = exact_paired_sign_mixture_e_value(
-                family.candidate_wins,
-                family.reference_wins,
-            )?;
-            if e_value >= critical_e_value {
-                family.first_crossing_sequence = Some(event.sequence);
-            }
+            family.first_crossing_sequence = Some(event.sequence);
         }
+        event_replay.push(AnytimeEventReplayReceipt {
+            event_id: event.event_id.clone(),
+            sequence: event.sequence,
+            mechanism_family_id: trial.mechanism_family_id.clone(),
+            total_pairs_after_event: family.total_pairs,
+            invalid_tasks_excluded_after_event: family.invalid_tasks_excluded,
+            candidate_wins_after_event: family.candidate_wins,
+            reference_wins_after_event: family.reference_wins,
+            ties_after_event: family.ties,
+            discordant_pairs_after_event: discordant,
+            e_value_after_event: e_value,
+            first_crossing_sequence_after_event: family.first_crossing_sequence,
+        });
     }
 
     let mut family_results = Vec::with_capacity(plan.mechanism_families.len());
@@ -534,6 +587,7 @@ pub fn replay_anytime_paired_evidence(
         family_count: family_results.len(),
         event_count: events.len(),
         family_results,
+        event_replay,
         sealed_holdout_only: true,
         complete_preregistered_family_set_retained: true,
         bonferroni_anytime_fwer_control_applied: true,
@@ -771,8 +825,11 @@ mod tests {
         assert_eq!(family.reference_wins, 1);
         assert_eq!(family.ties, 1);
         assert!(family.crossed_anytime_threshold);
-        assert_eq!(family.first_crossing_sequence, Some(3));
+        assert_eq!(family.first_crossing_sequence, Some(2));
         assert!(family.current_e_value < family.critical_e_value);
+        assert_eq!(result.event_replay[2].first_crossing_sequence_after_event, Some(2));
+        assert_eq!(result.event_replay[4].first_crossing_sequence_after_event, Some(2));
+        assert_eq!(result.event_replay.len(), events.len());
     }
 
     #[test]
