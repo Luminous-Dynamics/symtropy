@@ -3696,7 +3696,6 @@ mod sliding_quartic_coefficient_family_tests {
 }
 
 
-
 impl SlidingLeafMessage {
     /// Enclose each quartic coefficient as an affine function of the original
     /// separator variables, preserving correlation lost by first boxing q_eff.
@@ -3717,11 +3716,10 @@ impl SlidingLeafMessage {
         let point = OutwardInterval::point;
         let add = |left: OutwardInterval, right: OutwardInterval| left.outward_add(right);
         let sub = |left: OutwardInterval, right: OutwardInterval| left.outward_sub(right);
-        let scale = |coefficient: f64,
-                     value: OutwardInterval|
-         -> Result<OutwardInterval, &'static str> {
-            point(coefficient)?.outward_mul(value)
-        };
+        let scale =
+            |coefficient: f64, value: OutwardInterval| -> Result<OutwardInterval, &'static str> {
+                point(coefficient)?.outward_mul(value)
+            };
 
         let a = point(self.self_operator[(0, 0)])?;
         let d1 = point(self.self_operator[(0, 1)])?;
@@ -3741,31 +3739,19 @@ impl SlidingLeafMessage {
         let mu_a22 = scale(mu, a22)?;
 
         let alpha = [
-            [
-                sub(mu_a12, d2)?,
-                zero,
-                sub(a, mu_d1)?,
-            ],
+            [sub(mu_a12, d2)?, zero, sub(a, mu_d1)?],
             [
                 add(scale(2.0, d1)?, scale(2.0, sub(mu_a22, mu_a11)?)?)?,
                 scale(2.0, sub(mu_d1, a)?)?,
                 scale(-2.0, mu_d2)?,
             ],
-            [
-                scale(-6.0, mu_a12)?,
-                scale(4.0, mu_d2)?,
-                scale(2.0, mu_d1)?,
-            ],
+            [scale(-6.0, mu_a12)?, scale(4.0, mu_d2)?, scale(2.0, mu_d1)?],
             [
                 add(scale(2.0, d1)?, scale(2.0, sub(mu_a11, mu_a22)?)?)?,
                 scale(-2.0, add(a, mu_d1)?)?,
                 scale(2.0, mu_d2)?,
             ],
-            [
-                add(mu_a12, d2)?,
-                zero,
-                scale(-1.0, add(a, mu_d1)?)?,
-            ],
+            [add(mu_a12, d2)?, zero, scale(-1.0, add(a, mu_d1)?)?],
         ];
 
         let mut ranges = [point(0.0)?; 5];
@@ -3786,11 +3772,9 @@ impl SlidingLeafMessage {
             {
                 let mut gradient = point(0.0)?;
                 for (component, alpha_component) in alpha_row.iter().enumerate() {
-                    gradient = gradient.outward_add(
-                        alpha_component.outward_mul(point(
-                            self.separator_coupling[(separator_axis, component)],
-                        )?)?,
-                    )?;
+                    gradient = gradient.outward_add(alpha_component.outward_mul(point(
+                        self.separator_coupling[(separator_axis, component)],
+                    )?)?)?;
                 }
                 let coordinate = OutwardInterval::from_bounds(*lower, *upper)?;
                 range = range.outward_add(gradient.outward_mul(coordinate)?)?;
@@ -3817,8 +3801,8 @@ mod sliding_affine_coefficient_range_tests {
         message: &SlidingLeafMessage,
         separator_impulse: &SVector<f64, 3>,
     ) -> [f64; 5] {
-        let effective = message.free_velocity
-            + message.separator_coupling.transpose() * separator_impulse;
+        let effective =
+            message.free_velocity + message.separator_coupling.transpose() * separator_impulse;
         solve_coupled_signorini_coulomb(
             &message.self_operator,
             &effective,
@@ -3836,16 +3820,8 @@ mod sliding_affine_coefficient_range_tests {
         // Natural interval evaluation first boxes q_n and q_2 independently
         // and therefore loses that dependency.
         let message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                1.0, 0.0, 1.0,
-                0.0, 1.0, 0.0,
-                1.0, 0.0, 2.0,
-            ),
-            separator_coupling: Matrix3::new(
-                1.0, 0.0, 1.0,
-                0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0,
-            ),
+            self_operator: Matrix3::new(1.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0),
+            separator_coupling: Matrix3::new(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             free_velocity: SVector::<f64, 3>::zeros(),
             friction_coefficient: 0.5,
         };
@@ -3871,15 +3847,9 @@ mod sliding_affine_coefficient_range_tests {
     #[test]
     fn affine_ranges_contain_every_corner_and_interior_quartic() {
         let message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                2.0, 0.2, -0.1,
-                0.2, 1.5, 0.15,
-                -0.1, 0.15, 1.2,
-            ),
+            self_operator: Matrix3::new(2.0, 0.2, -0.1, 0.2, 1.5, 0.15, -0.1, 0.15, 1.2),
             separator_coupling: Matrix3::new(
-                0.1, 0.02, -0.03,
-                -0.04, 0.08, 0.01,
-                0.02, -0.01, 0.06,
+                0.1, 0.02, -0.03, -0.04, 0.08, 0.01, 0.02, -0.01, 0.06,
             ),
             free_velocity: SVector::<f64, 3>::new(-1.0, 0.7, -0.4),
             friction_coefficient: 0.6,
@@ -3909,10 +3879,8 @@ mod sliding_affine_coefficient_range_tests {
             }
         }
 
-        for (index, (affine_range, natural_range)) in affine
-            .iter()
-            .zip(natural.coefficients.iter())
-            .enumerate()
+        for (index, (affine_range, natural_range)) in
+            affine.iter().zip(natural.coefficients.iter()).enumerate()
         {
             assert!(
                 width(*affine_range) <= width(*natural_range) + 1.0e-12,
@@ -3925,11 +3893,7 @@ mod sliding_affine_coefficient_range_tests {
     fn affine_pushforward_retains_true_degree_loss() {
         let message = SlidingLeafMessage {
             self_operator: Matrix3::identity(),
-            separator_coupling: Matrix3::new(
-                0.0, 0.0, 1.0,
-                0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0,
-            ),
+            separator_coupling: Matrix3::new(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
             friction_coefficient: 0.5,
         };
