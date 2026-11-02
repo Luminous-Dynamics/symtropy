@@ -238,10 +238,21 @@ impl DredgeTelemetryValidator {
         }
         if !rules_valid(&self.profile.required_sensors)
             || !rules_valid(&self.profile.optional_sensors)
-            || self.profile.required_sensors.iter().any(|rule| !rule.required_by_profile)
-            || self.profile.optional_sensors.iter().any(|rule| rule.required_by_profile)
+            || self
+                .profile
+                .required_sensors
+                .iter()
+                .any(|rule| !rule.required_by_profile)
+            || self
+                .profile
+                .optional_sensors
+                .iter()
+                .any(|rule| rule.required_by_profile)
             || self.profile.required_sensors.iter().any(|required| {
-                self.profile.optional_sensors.iter().any(|optional| optional.kind == required.kind)
+                self.profile
+                    .optional_sensors
+                    .iter()
+                    .any(|optional| optional.kind == required.kind)
             })
         {
             reasons.push(TelemetryReason::InvalidSensorRule);
@@ -254,8 +265,10 @@ impl DredgeTelemetryValidator {
             inconsistent = true;
         }
 
-        if !nonempty(&record.event_id) || !nonempty(&record.payload_digest)
-            || !nonempty(&record.plant_id) || !nonempty(&record.profile_revision)
+        if !nonempty(&record.event_id)
+            || !nonempty(&record.payload_digest)
+            || !nonempty(&record.plant_id)
+            || !nonempty(&record.profile_revision)
             || !nonempty(&record.configuration_revision)
         {
             reasons.push(TelemetryReason::InvalidRecordIdentity);
@@ -348,8 +361,7 @@ impl DredgeTelemetryValidator {
                     reasons.push(TelemetryReason::PositionOutsideRange);
                     inconsistent = true;
                 }
-                if position.horizontal_uncertainty_mm
-                    > self.profile.maximum_position_uncertainty_mm
+                if position.horizontal_uncertainty_mm > self.profile.maximum_position_uncertainty_mm
                 {
                     reasons.push(TelemetryReason::PositionUncertaintyExceeded);
                     unknown = true;
@@ -378,7 +390,9 @@ impl DredgeTelemetryValidator {
             inconsistent = true;
         }
 
-        let known_rules: BTreeMap<SensorKind, &SensorRule> = self.profile.required_sensors
+        let known_rules: BTreeMap<SensorKind, &SensorRule> = self
+            .profile
+            .required_sensors
             .iter()
             .chain(self.profile.optional_sensors.iter())
             .map(|rule| (rule.kind, rule))
@@ -390,7 +404,12 @@ impl DredgeTelemetryValidator {
             }
         }
 
-        for rule in self.profile.required_sensors.iter().chain(self.profile.optional_sensors.iter()) {
+        for rule in self
+            .profile
+            .required_sensors
+            .iter()
+            .chain(self.profile.optional_sensors.iter())
+        {
             let Some(reading) = readings.get(&rule.kind) else {
                 if rule.required_by_profile {
                     reasons.push(TelemetryReason::MissingRequiredSensor);
@@ -474,7 +493,9 @@ impl DredgeTelemetryValidator {
             self.last_observed_tick = Some(record.observed_at_tick);
             self.seen_events.insert(
                 record.event_id.clone(),
-                SeenEvent { digest: record.payload_digest.clone() },
+                SeenEvent {
+                    digest: record.payload_digest.clone(),
+                },
             );
         }
 
@@ -492,9 +513,9 @@ fn nonempty(value: &str) -> bool {
 }
 
 fn rules_valid(rules: &[SensorRule]) -> bool {
-    rules.iter().all(|rule| {
-        nonempty(&rule.unit_id) && rule.minimum_value <= rule.maximum_value
-    })
+    rules
+        .iter()
+        .all(|rule| nonempty(&rule.unit_id) && rule.minimum_value <= rule.maximum_value)
 }
 
 fn has_duplicate_rules(rules: &[SensorRule]) -> bool {
@@ -527,9 +548,7 @@ mod tests {
                 vec![],
             ),
             ProfileKind::PipelineSmallBusiness => (
-                vec![
-                    rule(SensorKind::OperationalState, "state-code", true),
-                ],
+                vec![rule(SensorKind::OperationalState, "state-code", true)],
                 vec![
                     rule(SensorKind::SlurryDensity, "kg-m3", false),
                     rule(SensorKind::SlurryVelocity, "m-s", false),
@@ -552,15 +571,11 @@ mod tests {
                 vec![],
             ),
             ProfileKind::Hopper => (
-                vec![
-                    rule(SensorKind::OperationalState, "state-code", true),
-                ],
+                vec![rule(SensorKind::OperationalState, "state-code", true)],
                 vec![],
             ),
             ProfileKind::Mechanical => (
-                vec![
-                    rule(SensorKind::OperationalState, "state-code", true),
-                ],
+                vec![rule(SensorKind::OperationalState, "state-code", true)],
                 vec![],
             ),
         };
@@ -637,7 +652,10 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let r = v.validate(&record(ProfileKind::PipelineStandard));
-        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            r.disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
     }
 
     #[test]
@@ -645,9 +663,18 @@ mod tests {
         let p = profile(ProfileKind::PipelineSmallBusiness);
         let mut v = DredgeTelemetryValidator::new(p);
         let r = v.validate(&record(ProfileKind::PipelineSmallBusiness));
-        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedWithMissingOptionalFields);
-        assert!(r.missing_optional_sensors.contains(&SensorKind::SlurryDensity));
-        assert!(r.missing_optional_sensors.contains(&SensorKind::SlurryVelocity));
+        assert_eq!(
+            r.disposition,
+            TelemetryDisposition::TelemetryAcceptedWithMissingOptionalFields
+        );
+        assert!(
+            r.missing_optional_sensors
+                .contains(&SensorKind::SlurryDensity)
+        );
+        assert!(
+            r.missing_optional_sensors
+                .contains(&SensorKind::SlurryVelocity)
+        );
     }
 
     #[test]
@@ -655,17 +682,24 @@ mod tests {
         let p = profile(ProfileKind::PipelineSmallBusiness);
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineSmallBusiness);
-        rec.sensor_readings.push(reading(SensorKind::SlurryDensity, "kg-m3", 1_025));
-        rec.sensor_readings.push(reading(SensorKind::SlurryVelocity, "m-s", 2_500));
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        rec.sensor_readings
+            .push(reading(SensorKind::SlurryDensity, "kg-m3", 1_025));
+        rec.sensor_readings
+            .push(reading(SensorKind::SlurryVelocity, "m-s", 2_500));
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
     }
 
     #[test]
     fn scow_monitoring_requires_draft_and_displacement_without_ullage() {
         let p = profile(ProfileKind::ScowMonitoring);
         let mut v = DredgeTelemetryValidator::new(p);
-        assert_eq!(v.validate(&record(ProfileKind::ScowMonitoring)).disposition,
-            TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            v.validate(&record(ProfileKind::ScowMonitoring)).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
     }
 
     #[test]
@@ -673,7 +707,10 @@ mod tests {
         let p = profile(ProfileKind::ScowUllage);
         let mut v = DredgeTelemetryValidator::new(p);
         let r = v.validate(&record(ProfileKind::ScowUllage));
-        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            r.disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
         assert!(r.scow_volume_interpretation_supported);
     }
 
@@ -684,8 +721,14 @@ mod tests {
         let mut rec = record(ProfileKind::ScowUllage);
         rec.scow_load_geometry = Some(ScowLoadGeometry::Mounded);
         let r = v.validate(&rec);
-        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
-        assert!(r.reasons.contains(&TelemetryReason::ScowVolumeEstimateUnreliable));
+        assert_eq!(
+            r.disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
+        assert!(
+            r.reasons
+                .contains(&TelemetryReason::ScowVolumeEstimateUnreliable)
+        );
         assert!(!r.scow_volume_interpretation_supported);
     }
 
@@ -694,8 +737,10 @@ mod tests {
         let mut p = profile(ProfileKind::ScowMonitoring);
         p.plant_type = PlantType::Pipeline;
         let mut v = DredgeTelemetryValidator::new(p);
-        assert_eq!(v.validate(&record(ProfileKind::ScowMonitoring)).disposition,
-            TelemetryDisposition::UnsupportedPlantProfile);
+        assert_eq!(
+            v.validate(&record(ProfileKind::ScowMonitoring)).disposition,
+            TelemetryDisposition::UnsupportedPlantProfile
+        );
     }
 
     #[test]
@@ -704,7 +749,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.profile_revision = "profile-r1".into();
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -713,7 +761,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.configuration_revision = "asbuilt-r7".into();
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -721,8 +772,11 @@ mod tests {
         let mut p = profile(ProfileKind::PipelineStandard);
         p.certification.as_mut().unwrap().valid_through_tick = 99;
         let mut v = DredgeTelemetryValidator::new(p);
-        assert_eq!(v.validate(&record(ProfileKind::PipelineStandard)).disposition,
-            TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&record(ProfileKind::PipelineStandard))
+                .disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -730,8 +784,11 @@ mod tests {
         let mut p = profile(ProfileKind::PipelineStandard);
         p.certification.as_mut().unwrap().configuration_revision = "asbuilt-r7".into();
         let mut v = DredgeTelemetryValidator::new(p);
-        assert_eq!(v.validate(&record(ProfileKind::PipelineStandard)).disposition,
-            TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&record(ProfileKind::PipelineStandard))
+                .disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -739,8 +796,12 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
-        rec.sensor_readings.retain(|s| s.kind != SensorKind::SlurryDensity);
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        rec.sensor_readings
+            .retain(|s| s.kind != SensorKind::SlurryDensity);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -749,7 +810,8 @@ mod tests {
         p.required_sensors[0].required_by_profile = false;
         let mut v = DredgeTelemetryValidator::new(p);
         assert_eq!(
-            v.validate(&record(ProfileKind::PipelineStandard)).disposition,
+            v.validate(&record(ProfileKind::PipelineStandard))
+                .disposition,
             TelemetryDisposition::EvidenceInconsistent
         );
     }
@@ -759,8 +821,12 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
-        rec.sensor_readings.push(reading(SensorKind::CutterPower, "kw", 10));
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnsupportedPlantProfile);
+        rec.sensor_readings
+            .push(reading(SensorKind::CutterPower, "kw", 10));
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnsupportedPlantProfile
+        );
     }
 
     #[test]
@@ -769,7 +835,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.sensor_readings[0].unit_id = "lb-ft".into();
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -778,7 +847,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.sensor_readings[0].value = 10_001;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -787,7 +859,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.sensor_readings[0].calibrated = false;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -796,7 +871,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.sensor_readings[0].calibration_valid_through_tick = 99;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -805,7 +883,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.position = None;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -814,7 +895,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.position.as_mut().unwrap().datum_id = "other-datum".into();
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -823,7 +907,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.position.as_mut().unwrap().horizontal_uncertainty_mm = 5_001;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -833,7 +920,10 @@ mod tests {
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.observed_at_tick = 102;
         rec.received_at_tick = 101;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -841,8 +931,14 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let rec = record(ProfileKind::PipelineStandard);
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -850,10 +946,16 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let rec = record(ProfileKind::PipelineStandard);
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
         let mut changed = rec;
         changed.payload_digest = "sha256:tampered".into();
-        assert_eq!(v.validate(&changed).disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(
+            v.validate(&changed).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -861,21 +963,30 @@ mod tests {
         let p = profile(ProfileKind::PipelineStandard);
         let mut v = DredgeTelemetryValidator::new(p);
         let rec = record(ProfileKind::PipelineStandard);
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
         let mut gap = record(ProfileKind::PipelineStandard);
         gap.event_id = "event-3".into();
         gap.payload_digest = "sha256:def456".into();
         gap.sequence_number = 3;
         gap.observed_at_tick = 102;
         gap.received_at_tick = 103;
-        assert_eq!(v.validate(&gap).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&gap).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
         let mut next = gap;
         next.event_id = "event-2".into();
         next.payload_digest = "sha256:abc222".into();
         next.sequence_number = 2;
         next.observed_at_tick = 101;
         next.received_at_tick = 102;
-        assert_eq!(v.validate(&next).disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert_eq!(
+            v.validate(&next).disposition,
+            TelemetryDisposition::TelemetryAcceptedAsObservation
+        );
     }
 
     #[test]
@@ -884,7 +995,10 @@ mod tests {
         let mut v = DredgeTelemetryValidator::new(p);
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.position.as_mut().unwrap().measured_at_tick = 90;
-        assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            v.validate(&rec).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -892,8 +1006,14 @@ mod tests {
         let p = profile(ProfileKind::PipelineSmallBusiness);
         let mut v = DredgeTelemetryValidator::new(p);
         let r = v.validate(&record(ProfileKind::PipelineSmallBusiness));
-        assert!(r.missing_optional_sensors.contains(&SensorKind::SlurryDensity));
-        assert!(r.missing_optional_sensors.contains(&SensorKind::SlurryVelocity));
+        assert!(
+            r.missing_optional_sensors
+                .contains(&SensorKind::SlurryDensity)
+        );
+        assert!(
+            r.missing_optional_sensors
+                .contains(&SensorKind::SlurryVelocity)
+        );
     }
 
     #[test]
