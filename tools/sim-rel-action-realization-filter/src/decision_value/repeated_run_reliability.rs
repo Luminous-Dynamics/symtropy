@@ -173,17 +173,13 @@ fn exact_run_rate(successes: usize, total: usize) -> Option<ExactRunRate> {
 }
 
 fn increment(value: &mut usize, label: &str) -> Result<(), RepeatedRunError> {
-    *value = value.checked_add(1).ok_or_else(|| {
-        RepeatedRunError::ArithmeticOverflow(format!("{label} count overflow"))
-    })?;
+    *value = value
+        .checked_add(1)
+        .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(format!("{label} count overflow")))?;
     Ok(())
 }
 
-fn increment_if(
-    value: &mut usize,
-    condition: bool,
-    label: &str,
-) -> Result<(), RepeatedRunError> {
+fn increment_if(value: &mut usize, condition: bool, label: &str) -> Result<(), RepeatedRunError> {
     if condition {
         increment(value, label)?;
     }
@@ -201,8 +197,14 @@ fn validate_plan(
         (&plan.group_id, "evidence group ID"),
         (&plan.agent_panel_id, "agent panel ID"),
         (&plan.task_manifest_digest, "task manifest digest"),
-        (&plan.model_configuration_digest, "model configuration digest"),
-        (&plan.prompt_configuration_digest, "prompt configuration digest"),
+        (
+            &plan.model_configuration_digest,
+            "model configuration digest",
+        ),
+        (
+            &plan.prompt_configuration_digest,
+            "prompt configuration digest",
+        ),
         (&plan.harness_digest, "harness digest"),
         (&plan.toolset_digest, "toolset digest"),
         (&plan.reference_arm_id, "reference arm ID"),
@@ -219,8 +221,7 @@ fn validate_plan(
             "reference and candidate arm IDs must differ".into(),
         ));
     }
-    if plan.split != EvidenceSplit::SealedHoldout
-        || manifest.split != EvidenceSplit::SealedHoldout
+    if plan.split != EvidenceSplit::SealedHoldout || manifest.split != EvidenceSplit::SealedHoldout
     {
         return Err(RepeatedRunError::ManifestMismatch(
             "final repeated-run reliability claims accept SealedHoldout only".into(),
@@ -302,9 +303,7 @@ fn arm_reliability(
             })?;
         hazard_count = hazard_count
             .checked_add(count_flag(arm.hazard_observed))
-            .ok_or_else(|| {
-                RepeatedRunError::ArithmeticOverflow("hazard count overflow".into())
-            })?;
+            .ok_or_else(|| RepeatedRunError::ArithmeticOverflow("hazard count overflow".into()))?;
         abstention_count = abstention_count
             .checked_add(count_flag(arm.abstained))
             .ok_or_else(|| {
@@ -412,26 +411,58 @@ pub fn summarize_repeated_run_reliability(
         })?;
         let reference = arm_reliability(&cluster, false)?;
         let candidate = arm_reliability(&cluster, true)?;
-        increment_if(&mut family.candidate_pass_at_k, candidate.pass_at_k, "candidate pass@k")?;
-        increment_if(&mut family.reference_pass_at_k, reference.pass_at_k, "reference pass@k")?;
-        increment_if(&mut family.candidate_pass_every_k, candidate.pass_every_k, "candidate pass^k")?;
-        increment_if(&mut family.reference_pass_every_k, reference.pass_every_k, "reference pass^k")?;
+        increment_if(
+            &mut family.candidate_pass_at_k,
+            candidate.pass_at_k,
+            "candidate pass@k",
+        )?;
+        increment_if(
+            &mut family.reference_pass_at_k,
+            reference.pass_at_k,
+            "reference pass@k",
+        )?;
+        increment_if(
+            &mut family.candidate_pass_every_k,
+            candidate.pass_every_k,
+            "candidate pass^k",
+        )?;
+        increment_if(
+            &mut family.reference_pass_every_k,
+            reference.pass_every_k,
+            "reference pass^k",
+        )?;
         family.candidate_safe_successes = family
             .candidate_safe_successes
             .checked_add(candidate.safe_success_count)
-            .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(
-                "candidate run success sum overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                RepeatedRunError::ArithmeticOverflow("candidate run success sum overflow".into())
+            })?;
         family.reference_safe_successes = family
             .reference_safe_successes
             .checked_add(reference.safe_success_count)
-            .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(
-                "reference run success sum overflow".into(),
-            ))?;
-        increment_if(&mut family.candidate_any_hazard, candidate.any_hazard, "candidate any-hazard task")?;
-        increment_if(&mut family.reference_any_hazard, reference.any_hazard, "reference any-hazard task")?;
-        increment_if(&mut family.candidate_any_abstention, candidate.any_abstention, "candidate any-abstention task")?;
-        increment_if(&mut family.reference_any_abstention, reference.any_abstention, "reference any-abstention task")?;
+            .ok_or_else(|| {
+                RepeatedRunError::ArithmeticOverflow("reference run success sum overflow".into())
+            })?;
+        increment_if(
+            &mut family.candidate_any_hazard,
+            candidate.any_hazard,
+            "candidate any-hazard task",
+        )?;
+        increment_if(
+            &mut family.reference_any_hazard,
+            reference.any_hazard,
+            "reference any-hazard task",
+        )?;
+        increment_if(
+            &mut family.candidate_any_abstention,
+            candidate.any_abstention,
+            "candidate any-abstention task",
+        )?;
+        increment_if(
+            &mut family.reference_any_abstention,
+            reference.any_abstention,
+            "reference any-abstention task",
+        )?;
         task_clusters.push(TaskClusterReliability {
             mechanism_family_id: family_id,
             task_id,
@@ -452,9 +483,9 @@ pub fn summarize_repeated_run_reliability(
         let total_valid_run_pairs = family
             .valid_clusters
             .checked_mul(plan.repetitions_per_task)
-            .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(
-                "valid run pair count overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                RepeatedRunError::ArithmeticOverflow("valid run pair count overflow".into())
+            })?;
         family_summaries.push(FamilyRepeatedRunSummary {
             mechanism_family_id: family_id.clone(),
             valid_task_clusters: family.valid_clusters,
@@ -515,14 +546,12 @@ pub fn summarize_repeated_run_reliability(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        RepeatedRunReliabilityPlan, summarize_repeated_run_reliability,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::{
         ArmOutcome, BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest,
         PairedBenchmarkTrial, ResourceBudget, ResourceUsage,
     };
+    use super::{RepeatedRunReliabilityPlan, summarize_repeated_run_reliability};
 
     fn budget() -> ResourceBudget {
         ResourceBudget {
@@ -661,8 +690,20 @@ mod tests {
         assert_eq!(family.candidate_pass_every_k_tasks, 1);
         assert_eq!(family.reference_pass_at_k_tasks, 1);
         assert_eq!(family.reference_pass_every_k_tasks, 0);
-        assert_eq!(family.candidate_run_safe_success_rate, Some(super::ExactRunRate { numerator: 4, denominator: 6 }));
-        assert_eq!(family.reference_run_safe_success_rate, Some(super::ExactRunRate { numerator: 3, denominator: 6 }));
+        assert_eq!(
+            family.candidate_run_safe_success_rate,
+            Some(super::ExactRunRate {
+                numerator: 4,
+                denominator: 6
+            })
+        );
+        assert_eq!(
+            family.reference_run_safe_success_rate,
+            Some(super::ExactRunRate {
+                numerator: 3,
+                denominator: 6
+            })
+        );
         assert_eq!(receipt.task_cluster_count, 2);
         assert_eq!(receipt.valid_task_cluster_count, 2);
         assert!(receipt.repeated_runs_not_counted_as_independent_task_samples);
@@ -699,12 +740,14 @@ mod tests {
             trial("sensor-drift", "task-a", 0, true, true),
             trial("sensor-drift", "task-a", 1, true, true),
         ];
-        assert!(summarize_repeated_run_reliability(
-            &plan(EvidenceSplit::SealedHoldout),
-            &manifest(EvidenceSplit::SealedHoldout),
-            &incomplete,
-        )
-        .is_err());
+        assert!(
+            summarize_repeated_run_reliability(
+                &plan(EvidenceSplit::SealedHoldout),
+                &manifest(EvidenceSplit::SealedHoldout),
+                &incomplete,
+            )
+            .is_err()
+        );
 
         let mut mixed = vec![
             trial("sensor-drift", "task-a", 0, true, true),
@@ -714,12 +757,14 @@ mod tests {
         mixed[2].task_validity = BenchmarkTaskValidity::Invalid;
         mixed[2].reference = None;
         mixed[2].candidate = None;
-        assert!(summarize_repeated_run_reliability(
-            &plan(EvidenceSplit::SealedHoldout),
-            &manifest(EvidenceSplit::SealedHoldout),
-            &mixed,
-        )
-        .is_err());
+        assert!(
+            summarize_repeated_run_reliability(
+                &plan(EvidenceSplit::SealedHoldout),
+                &manifest(EvidenceSplit::SealedHoldout),
+                &mixed,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -753,12 +798,14 @@ mod tests {
             trial("other-family", "task-a", 1, true, true),
             trial("other-family", "task-a", 2, true, true),
         ];
-        assert!(summarize_repeated_run_reliability(
-            &plan(EvidenceSplit::SealedHoldout),
-            &manifest(EvidenceSplit::SealedHoldout),
-            &trials,
-        )
-        .is_err());
+        assert!(
+            summarize_repeated_run_reliability(
+                &plan(EvidenceSplit::SealedHoldout),
+                &manifest(EvidenceSplit::SealedHoldout),
+                &trials,
+            )
+            .is_err()
+        );
 
         let mut changed = manifest(EvidenceSplit::SealedHoldout);
         changed.harness_digest = "other-harness".into();
@@ -767,11 +814,13 @@ mod tests {
             trial("sensor-drift", "task-a", 1, true, true),
             trial("sensor-drift", "task-a", 2, true, true),
         ];
-        assert!(summarize_repeated_run_reliability(
-            &plan(EvidenceSplit::SealedHoldout),
-            &changed,
-            &trials,
-        )
-        .is_err());
+        assert!(
+            summarize_repeated_run_reliability(
+                &plan(EvidenceSplit::SealedHoldout),
+                &changed,
+                &trials,
+            )
+            .is_err()
+        );
     }
 }
