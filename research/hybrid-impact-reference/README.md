@@ -78,3 +78,34 @@ This analytic Zeno classification does not choose a physically appropriate
 post-Zeno continuation. Real systems may require compliance, deformation,
 surface roughness, velocity-dependent restitution or another richer model;
 that continuation is a separate modeling decision.
+
+
+## Branch-local point-impact saltation reference
+
+The optional saltation module makes the event-time correction explicit. For
+state x=(y,v), guard y=0, incoming velocity v_minus < 0, gravity magnitude g,
+and Newton restitution e:
+
+    delta_t_event = -delta_y / v_minus
+
+For a transversal event and a free-flight post-impact mode (0 < e <= 1),
+
+    R(y,v) = (0, -e*v)
+    S = [[-e, 0], [-(1+e)*g/v_minus, -e]]
+
+The module also handles e=0 as a separate persistent-contact post-event mode.
+It does not substitute a free-flight vector field after a perfectly inelastic
+impact. A caller-supplied minimum incoming normal speed defines the admitted
+transversality margin; grazing and near-grazing inputs return a typed error
+instead of a clamped or misleading finite matrix.
+
+The tests compare the analytic saltation matrix, propagated to a common
+post-impact time, against independently evaluated perturbed trajectories.
+They cover an intermediate-restitution impact, an elastic impact, the distinct
+perfectly inelastic contact mode, one-sided height perturbations, central
+velocity perturbations and a declared grazing threshold.
+
+This is a single-branch analytical point-impact reference. It does not certify
+multiple contact branches, simultaneous impact ordering, branch completeness,
+or a parameter-family interval enclosure. Those remain the scope of
+PHYS-HYBRID-SALTATION-001.
