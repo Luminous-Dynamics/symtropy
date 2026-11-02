@@ -3302,22 +3302,25 @@ mod double_sliding_direction_oracle {
             });
 
         let zero = BigRational::from_integer(BigInt::from(0_u8));
-        for branch_index in 0..2 {
-            for objective in 0..2 {
+        for (branch_index, branch_gradient) in branch_gradients.iter().enumerate() {
+            for (objective, direction) in OBJECTIVE_DIRECTIONS.iter().enumerate() {
                 let mut directional_derivative = RationalInterval::point(zero.clone());
-                for coordinate in 0..6 {
-                    let direction_coefficient = BigRational::from_integer(BigInt::from(
-                        OBJECTIVE_DIRECTIONS[objective][coordinate],
-                    ));
+                for (coordinate, direction_coefficient) in direction.iter().enumerate() {
+                    let direction_coefficient =
+                        BigRational::from_integer(BigInt::from(*direction_coefficient));
                     directional_derivative = directional_derivative.add(
-                        &branch_gradients[branch_index][coordinate][objective]
-                            .scale(&direction_coefficient),
+                        &branch_gradient[coordinate][objective].scale(&direction_coefficient),
                     );
                 }
 
+                let required_upper = if objective == 0 {
+                    BigRational::from_integer(BigInt::from(-10_i8))
+                } else {
+                    BigRational::new(BigInt::from(-29_i8), BigInt::from(10_u8))
+                };
                 assert!(
-                    directional_derivative.upper < zero,
-                    "objective {objective} must have a strictly negative interval derivative on branch {branch_index}: {directional_derivative:?}"
+                    directional_derivative.upper < required_upper,
+                    "objective {objective} must have a certified descent margin on branch {branch_index}: {directional_derivative:?}"
                 );
             }
         }
