@@ -2,11 +2,12 @@
 //!
 //! Every member's solver receipt, staged config/geometry/mesh, mesh parser summary, imported
 //! history, convergence screen, and additional outputs are independently re-verified before the
-//! quantity value is derived from the same passing terminal monitor window. The characteristic
-//! spacing remains caller-supplied and disclosed. This is a lineage-bound GCI study, not complete
-//! CFD admission, experimental validation, or airworthiness evidence.
+//! quantity value is derived from the same passing terminal monitor window. Characteristic
+//! spacing is derived from exact 2D linear triangle/quadrilateral cell areas. This is not full CFD
+//! admission, experimental validation, or airworthiness evidence.
 
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::PathBuf;
 
 use crate::grid_convergence::{
@@ -18,8 +19,11 @@ use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
+use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d};
 
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
+pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
+    "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
 pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
@@ -27,8 +31,6 @@ pub struct Su2GridFamilyMember {
     pub grid_id: String,
     /// Positive, unique, coarse-to-fine level identifier.
     pub grid_level: u32,
-    /// Caller-supplied characteristic spacing; its derivation is disclosed by the study.
-    pub characteristic_spacing: f64,
     pub run_directory: PathBuf,
     pub history: Su2HistoryReport,
     pub convergence_screen: ConvergenceScreen,
@@ -48,6 +50,7 @@ pub struct Su2GridFamilyStudy {
     pub quantity_unit: String,
     pub source_reference: String,
     pub spacing_definition: String,
+    pub mesh_coordinate_unit: String,
     pub grid_family_kind: GridFamilyKind,
     pub safety_factor: f64,
     /// Ordered coarse-to-fine. Each member is independently replayed before its quantity is used.
@@ -60,6 +63,12 @@ pub struct Su2GridFamilyMemberAudit {
     pub grid_level: u32,
     pub run_id: String,
     pub characteristic_spacing: f64,
+    pub mesh_cell_count: u64,
+    pub mesh_total_cell_area: f64,
+    pub mesh_mean_cell_area: f64,
+    pub mesh_minimum_cell_area: f64,
+    pub mesh_maximum_cell_area: f64,
+    pub mesh_cell_area_coefficient_of_variation: f64,
     pub quantity_value: f64,
     pub terminal_rows_used: usize,
     pub mesh_sha256: String,
@@ -80,6 +89,7 @@ pub struct Su2GridFamilyReport {
     pub quantity_unit: String,
     pub source_reference: String,
     pub spacing_definition: String,
+    pub mesh_coordinate_unit: String,
     pub solver_id: String,
     pub solver_version_claim: String,
     pub solver_executable_sha256: String,
@@ -171,6 +181,7 @@ fn canonical_bytes(report: &Su2GridFamilyReport) -> Vec<u8> {
         report.quantity_unit.as_str(),
         report.source_reference.as_str(),
         report.spacing_definition.as_str(),
+        report.mesh_coordinate_unit.as_str(),
         report.solver_id.as_str(),
         report.solver_version_claim.as_str(),
         report.solver_executable_sha256.as_str(),
@@ -197,6 +208,12 @@ fn canonical_bytes(report: &Su2GridFamilyReport) -> Vec<u8> {
         }
         append_u64(&mut bytes, u64::from(member.grid_level));
         append_f64(&mut bytes, member.characteristic_spacing);
+        append_u64(&mut bytes, member.mesh_cell_count);
+        append_f64(&mut bytes, member.mesh_total_cell_area);
+        append_f64(&mut bytes, member.mesh_mean_cell_area);
+        append_f64(&mut bytes, member.mesh_minimum_cell_area);
+        append_f64(&mut bytes, member.mesh_maximum_cell_area);
+        append_f64(&mut bytes, member.mesh_cell_area_coefficient_of_variation);
         append_f64(&mut bytes, member.quantity_value);
         append_u64(&mut bytes, member.terminal_rows_used as u64);
     }
@@ -282,6 +299,7 @@ fn validate_study_identity(study: &Su2GridFamilyStudy) -> Result<(), String> {
         ("quantity_unit", study.quantity_unit.as_str()),
         ("source_reference", study.source_reference.as_str()),
         ("spacing_definition", study.spacing_definition.as_str()),
+        ("mesh_coordinate_unit", study.mesh_coordinate_unit.as_str()),
     ] {
         if value.trim().is_empty() {
             return Err(format!("{name} must not be empty"));
@@ -296,6 +314,11 @@ fn validate_study_identity(study: &Su2GridFamilyStudy) -> Result<(), String> {
         return Err(
             "protocol_manifest_sha256 must be a 64-character hexadecimal digest".to_owned(),
         );
+    }
+    if study.spacing_definition != SU2_GRID_SPACING_DEFINITION_2D {
+        return Err(format!(
+            "spacing_definition must be the mesh-derived 2D definition {SU2_GRID_SPACING_DEFINITION_2D}"
+        ));
     }
     if study.members.len() < 3 {
         return Err("at least three lineage-bound grids are required for a GCI study".to_owned());
@@ -323,13 +346,12 @@ pub fn evaluate_su2_grid_family_study(
     let mut mesh_hashes = BTreeSet::new();
     let mut member_audits = Vec::with_capacity(study.members.len());
     let mut observations = Vec::with_capacity(study.members.len());
+    let mut spacing_metrics = Vec::<Su2MeshSpacing2d>::with_capacity(study.members.len());
     let mut shared_identity: Option<(String, String, String, String, String)> = None;
 
     for (index, member) in study.members.iter().enumerate() {
         if member.grid_id.trim().is_empty()
             || member.grid_level == 0
-            || !member.characteristic_spacing.is_finite()
-            || member.characteristic_spacing <= 0.0
             || !grid_ids.insert(member.grid_id.clone())
         {
             return Err(format!(
@@ -344,11 +366,9 @@ pub fn evaluate_su2_grid_family_study(
         }
         if index > 0 {
             let previous = &study.members[index - 1];
-            if previous.grid_level >= member.grid_level
-                || previous.characteristic_spacing <= member.characteristic_spacing
-            {
+            if previous.grid_level >= member.grid_level {
                 return Err(format!(
-                    "grid family must be strictly ordered coarse-to-fine at member {}",
+                    "grid family levels must be strictly increasing at member {}",
                     member.grid_id
                 ));
             }
@@ -375,6 +395,29 @@ pub fn evaluate_su2_grid_family_study(
                 member.grid_id
             ));
         }
+        let mesh_bytes = fs::read(member.run_directory.join(&member.input_bindings.mesh_path))
+            .map_err(|error| format!("cannot read staged mesh for {}: {error}", member.grid_id))?;
+        let mesh_spacing = derive_su2_characteristic_spacing_2d(
+            &mesh_bytes,
+            &study.mesh_coordinate_unit,
+        )?;
+        if mesh_spacing.mesh_byte_length != binding.mesh.byte_length
+            || mesh_spacing.mesh_sha256 != binding.mesh.sha256
+        {
+            return Err(format!(
+                "grid member {} mesh spacing input differs from verified lineage artifact",
+                member.grid_id
+            ));
+        }
+        if let Some(previous) = spacing_metrics.last() {
+            if previous.characteristic_spacing <= mesh_spacing.characteristic_spacing {
+                return Err(format!(
+                    "mesh-derived spacing must refine coarse-to-fine at member {}",
+                    member.grid_id
+                ));
+            }
+        }
+        spacing_metrics.push(mesh_spacing);
         let identity = (
             binding.executable_sha256.clone(),
             binding.solver_version_claim.clone(),
@@ -399,16 +442,25 @@ pub fn evaluate_su2_grid_family_study(
             &study.quantity_field,
             &study.quantity_unit,
         )?;
+        let mesh_spacing = spacing_metrics
+            .last()
+            .expect("mesh spacing was just derived for this member");
         observations.push(GridObservation {
             grid_id: member.grid_id.clone(),
-            characteristic_spacing: member.characteristic_spacing,
+            characteristic_spacing: mesh_spacing.characteristic_spacing,
             value: quantity_value,
         });
         member_audits.push(Su2GridFamilyMemberAudit {
             grid_id: member.grid_id.clone(),
             grid_level: member.grid_level,
             run_id: binding.run_id.clone(),
-            characteristic_spacing: member.characteristic_spacing,
+            characteristic_spacing: mesh_spacing.characteristic_spacing,
+            mesh_cell_count: mesh_spacing.cell_count,
+            mesh_total_cell_area: mesh_spacing.total_cell_area,
+            mesh_mean_cell_area: mesh_spacing.mean_cell_area,
+            mesh_minimum_cell_area: mesh_spacing.minimum_cell_area,
+            mesh_maximum_cell_area: mesh_spacing.maximum_cell_area,
+            mesh_cell_area_coefficient_of_variation: mesh_spacing.cell_area_coefficient_of_variation,
             quantity_value,
             terminal_rows_used: terminal_rows,
             mesh_sha256: binding.mesh.sha256.clone(),
@@ -447,6 +499,7 @@ pub fn evaluate_su2_grid_family_study(
         quantity_unit: study.quantity_unit.clone(),
         source_reference: study.source_reference.clone(),
         spacing_definition: study.spacing_definition.clone(),
+        mesh_coordinate_unit: study.mesh_coordinate_unit.clone(),
         solver_id: "SU2_CFD".to_owned(),
         solver_version_claim,
         solver_executable_sha256,
@@ -483,7 +536,7 @@ pub fn verify_su2_grid_family_report(
     Ok(())
 }
 
-pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
+pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,mesh_coordinate_unit,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,mesh_cell_count,mesh_total_cell_area,mesh_mean_cell_area,mesh_minimum_cell_area,mesh_maximum_cell_area,mesh_cell_area_coefficient_of_variation,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
 
 /// Export every sliding GCI triplet; the member CSV intentionally contains only its digest.
 pub fn gci_report_to_csv(report: &Su2GridFamilyReport) -> String {
@@ -503,6 +556,7 @@ pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
             csv_escape(&report.quantity_unit),
             csv_escape(&report.source_reference),
             csv_escape(&report.spacing_definition),
+            csv_escape(&report.mesh_coordinate_unit),
             csv_escape(&report.solver_id),
             csv_escape(&report.solver_version_claim),
             report.solver_executable_sha256.clone(),
@@ -514,6 +568,12 @@ pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
             member.grid_level.to_string(),
             csv_escape(&member.run_id),
             member.characteristic_spacing.to_string(),
+            member.mesh_cell_count.to_string(),
+            member.mesh_total_cell_area.to_string(),
+            member.mesh_mean_cell_area.to_string(),
+            member.mesh_minimum_cell_area.to_string(),
+            member.mesh_maximum_cell_area.to_string(),
+            member.mesh_cell_area_coefficient_of_variation.to_string(),
             member.quantity_value.to_string(),
             member.terminal_rows_used.to_string(),
             member.mesh_sha256.clone(),
