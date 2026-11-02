@@ -379,7 +379,10 @@ pub fn build_event_order_graph(
     }
 
     let mut graph = EventOrderGraph {
-        event_ids: ordered.iter().map(|record| record.event_id.clone()).collect(),
+        event_ids: ordered
+            .iter()
+            .map(|record| record.event_id.clone())
+            .collect(),
         proven_before_edges: Vec::new(),
         estimated_before_edges: Vec::new(),
         unresolved_pairs: Vec::new(),
@@ -389,8 +392,7 @@ pub fn build_event_order_graph(
         for j in (i + 1)..ordered.len() {
             let a = &ordered[i];
             let b = &ordered[j];
-            let relation =
-                compare_event_order(a, b).map_err(EventOrderGraphError::InvalidPair)?;
+            let relation = compare_event_order(a, b).map_err(EventOrderGraphError::InvalidPair)?;
             match relation {
                 EventOrderRelation::ProvenBefore => {
                     graph.proven_before_edges.push(EventOrderEdge {
@@ -416,8 +418,7 @@ pub fn build_event_order_graph(
                         after_event_id: a.event_id.clone(),
                     });
                 }
-                EventOrderRelation::UnresolvedOverlap
-                | EventOrderRelation::EstimatedOverlap => {
+                EventOrderRelation::UnresolvedOverlap | EventOrderRelation::EstimatedOverlap => {
                     graph.unresolved_pairs.push(UnresolvedEventPair {
                         event_a_id: a.event_id.clone(),
                         event_b_id: b.event_id.clone(),
@@ -438,10 +439,11 @@ pub fn build_event_order_graph(
 fn has_cycle(event_ids: &[String], edges: &[EventOrderEdge]) -> bool {
     use std::collections::{BTreeMap, VecDeque};
 
-    let mut indegree: BTreeMap<&str, usize> =
-        event_ids.iter().map(|id| (id.as_str(), 0)).collect();
-    let mut outgoing: BTreeMap<&str, Vec<&str>> =
-        event_ids.iter().map(|id| (id.as_str(), Vec::new())).collect();
+    let mut indegree: BTreeMap<&str, usize> = event_ids.iter().map(|id| (id.as_str(), 0)).collect();
+    let mut outgoing: BTreeMap<&str, Vec<&str>> = event_ids
+        .iter()
+        .map(|id| (id.as_str(), Vec::new()))
+        .collect();
 
     for edge in edges {
         let Some(value) = indegree.get_mut(edge.after_event_id.as_str()) else {
