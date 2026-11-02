@@ -260,6 +260,30 @@ The BANC resource is a dense reconstruction spanning the adult female brain and 
 
 The authors' code is https://github.com/smpuglie/Pugliese_2026. The paper cites Zenodo record 22260923 for simulation outputs, while the repository README (still describing the earlier preprint) points to 22260924. Resolve the exact record/version and checksums before treating either artifact as the canonical reproduction source. Symthaea owns the exact scientific reproduction in [DROSOPHILA-WALKING-001 / #9934](https://github.com/Luminous-Dynamics/symthaea/issues/9934); Symtropy owns the body/contact qualification in [ANIMA-NEURO-002 / #3345](https://github.com/Luminous-Dynamics/symtropy/issues/3345).
 
+### Critical limitation: motor rhythm is not coordinated walking
+
+The Pugliese et al. Nature paper (2026-10-28) reports that its DNg100-driven rate-model simulations generate rhythmic leg motor-neuron activity but **do not generate the tripod inter-leg coordination pattern** characteristic of walking flies. The authors explicitly point to proprioceptive feedback, biomechanical coupling and/or other neural pathways as likely missing mechanisms. This is a direct warning against treating an oscillating connectome circuit as a completed gait controller.
+
+The Symtropy benchmark must report three separate outcomes:
+
+1. **Neural rhythm:** per-leg/per-module rhythmic motor output and perturbation response.
+2. **Coordination:** correct inter-leg phase relationships, including tripod pattern where the reference species/task requires it.
+3. **Embodied locomotion:** stable body translation, foot contact, stance/swing, slip resistance and recovery.
+
+The controller must not receive a tripod-phase target as hidden world truth. Coordination should emerge from qualified circuitry, actual proprioceptive input, and/or mechanical coupling. Include the CPG-only case without proprioception/contact feedback as a negative control, then compare:
+- CPG only;
+- CPG + proprioceptive/mechanosensory feedback;
+- CPG + articulated-body/contact coupling;
+- CPG + both feedback and biomechanical coupling;
+- published NeuroMechFly/FlyGym controller modes (exact version);
+- a conventional hand-designed tripod oscillator / rule controller.
+
+Report per-leg phase error, tripod phase error, duty factor, support/contact sequence, slip, body velocity and stability. A reference oscillator that matches average frequency but not phase coordination must fail the coordination task.
+
+Do not force one universal three-neuron core across every dataset. The published full text describes MANC pruning convergence to E1/E2/I1; FANC often identifies a four-interneuron circuit that includes E1/E2 plus a different inhibitory and an additional excitatory cell; full CNS datasets include E1/E2 with either I1 or I2. The shared recurring motif is more robust than an assertion that all per-dataset minimal circuits are identical. Exact per-dataset node identities and retained edge sets must be pinned.
+
+The reproduction should also retain the paper's separate evidence classes: DNg100 model screening and intensity prediction, DNg100 stimulation experiments in headless flies, and DNb08 optogenetic confirmation are different observations and must not be pooled.
+
 ### Calibration and identifiability: do not fit behaviour alone
 
 Two 2026 preprints reinforce an important methodological constraint:
