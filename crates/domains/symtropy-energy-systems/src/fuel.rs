@@ -126,10 +126,10 @@ impl<T> FuelProperty<T> {
         standard_uncertainty: Option<f64>,
         evidence: EvidenceReference,
     ) -> Result<Self, FuelRecordError> {
-        if let Some(uncertainty) = standard_uncertainty {
-            if !uncertainty.is_finite() || uncertainty < 0.0 {
-                return Err(FuelRecordError::InvalidUncertainty { value: uncertainty });
-            }
+        if let Some(uncertainty) = standard_uncertainty
+            && (!uncertainty.is_finite() || uncertainty < 0.0)
+        {
+            return Err(FuelRecordError::InvalidUncertainty { value: uncertainty });
         }
 
         Ok(Self {
