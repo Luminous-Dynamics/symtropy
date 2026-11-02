@@ -305,3 +305,22 @@ A queued run is not a pass. A simulation is not an experiment. A vendor claim is
 ---
 
 **Decision:** Proceed with the evidence baseline, typed data contracts and transparent 0D energy-balance model. Do not claim a fuel-agnostic engine exists until a defined configuration has passed an instrumented, independently reviewed test programme.
+
+
+## 14. Screening-only reference fuel properties
+
+A dated, machine-readable screening catalogue is available at:
+
+[AFDC_REFERENCE_FUEL_PROPERTIES_2026-11-02.json](data/AFDC_REFERENCE_FUEL_PROPERTIES_2026-11-02.json)
+
+It preserves the U.S. DOE AFDC raw values and units alongside normalized SI values for diesel, renewable diesel, B100, B20, CNG, LNG, ethanol, methanol, hydrogen and propane/LPG. It separately records the IPCC 2006 default mass-basis NCV and 95% bounds for gas/diesel oil.
+
+**Use restrictions:**
+- These are published reference values, not batch measurements, supplier certificates or engine calibration maps.
+- The AFDC source explicitly notes that actual fuel energy content and properties vary with geography, fuel mix and feedstock.
+- Volumetric values remain MJ/L. They must not be converted to MJ/kg without a compatible density at a declared reference temperature.
+- The AFDC renewable-diesel category is not proof that an individual product is HVO.
+- No uncertainty is invented where the source does not provide one; unknown remains unknown.
+- A production calculation requires the actual batch's accepted LHV evidence and a flow measurement linked to that batch and time interval.
+
+The dataset is intended to exercise typed data contracts and establish rough screening bounds. It is not admitted as physical performance evidence.
