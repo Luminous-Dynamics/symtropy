@@ -327,8 +327,6 @@ pub fn evaluate_safety_envelope(
         let mut modalities = BTreeSet::new();
         let mut independent_groups = BTreeSet::new();
         let mut usable_sensor_ids = BTreeSet::new();
-        let mut confidence_below_minimum = false;
-        let mut confidence_needs_mitigation = false;
 
         for sensor in &observation.sensors {
             if !nonempty(&sensor.sensor_id)
@@ -378,13 +376,11 @@ pub fn evaluate_safety_envelope(
             }
             if sensor.confidence_ppm < policy.minimum_sensor_confidence_ppm {
                 reasons.push(SafetyReason::SensorConfidenceBelowMinimum);
-                confidence_below_minimum = true;
                 hold = true;
                 continue;
             }
             if sensor.confidence_ppm < policy.mitigation_sensor_confidence_ppm {
                 reasons.push(SafetyReason::SensorConfidenceNeedsMitigation);
-                confidence_needs_mitigation = true;
                 mitigate = true;
             }
             usable_sensor_ids.insert(sensor.sensor_id.as_str());
@@ -419,35 +415,29 @@ pub fn evaluate_safety_envelope(
                     reasons.push(SafetyReason::HumanSensorMissing);
                     hold = true;
                 }
-                let (Some(distance), Some(uncertainty)) = (
-                    observation.human_proximity.distance_mm,
-                    observation.human_proximity.distance_uncertainty_mm,
-                ) else {
-                    if observation.human_proximity.distance_mm.is_none() {
-                        reasons.push(SafetyReason::HumanDistanceMissing);
-                    }
-                    if observation.human_proximity.distance_uncertainty_mm.is_none() {
-                        reasons.push(SafetyReason::HumanDistanceUncertaintyMissing);
-                    }
-                    hold = true;
-                    // No inferred safe distance when either term is absent.
-                    let _ = (confidence_below_minimum, confidence_needs_mitigation);
-                    continue_evaluation();
-                    // This helper is intentionally a no-op; the disposition is held below.
-                    fn continue_evaluation() {}
-                    // Continue is replaced by no control effect; remaining checks still execute.
-                };
-                if let (Some(distance), Some(uncertainty)) = (
+                match (
                     observation.human_proximity.distance_mm,
                     observation.human_proximity.distance_uncertainty_mm,
                 ) {
-                    let lower_bound = distance.saturating_sub(uncertainty);
-                    if lower_bound <= policy.minimum_separation_mm {
-                        reasons.push(SafetyReason::HumanSeparationHardLimit);
-                        stop = true;
-                    } else if lower_bound <= policy.mitigation_separation_mm {
-                        reasons.push(SafetyReason::HumanSeparationNeedsMitigation);
-                        mitigate = true;
+                    (Some(distance), Some(uncertainty)) => {
+                        let lower_bound = distance.saturating_sub(uncertainty);
+                        if lower_bound <= policy.minimum_separation_mm {
+                            reasons.push(SafetyReason::HumanSeparationHardLimit);
+                            stop = true;
+                        } else if lower_bound <= policy.mitigation_separation_mm {
+                            reasons.push(SafetyReason::HumanSeparationNeedsMitigation);
+                            mitigate = true;
+                        }
+                    }
+                    (distance, uncertainty) => {
+                        if distance.is_none() {
+                            reasons.push(SafetyReason::HumanDistanceMissing);
+                        }
+                        if uncertainty.is_none() {
+                            reasons.push(SafetyReason::HumanDistanceUncertaintyMissing);
+                        }
+                        // Missing distance or uncertainty is never interpreted as safe.
+                        hold = true;
                     }
                 }
             }
