@@ -59,8 +59,15 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
-    # Repo-invariant guards. These scripts existed in nothing, so both of them
-    # silently failed against the tree for weeks. These are now enforced.
+    # Repo-invariant guards. These scripts existed since at least June but were
+    # wired into nothing, so both of them silently failed against the tree for
+    # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
+    # been on 0.19.0 since the dual-bevy cleanup) plus a hardcoded 14-crate
+    # member list against 60 real members, and check-licenses.sh was finding 13
+    # crates with no `license` field and a real SPDX mismatch. Both are now
+    # repaired and enforced. Linux only -- they are filesystem/manifest checks
+    # with no platform-specific behaviour, and rg/python3 are not guaranteed on
+    # the Windows and macOS runners.
     - name: Workspace Invariants (members, single Bevy, portable paths, no placeholders)
       if: runner.os == 'Linux'
       run: bash scripts/check-workspace.sh
