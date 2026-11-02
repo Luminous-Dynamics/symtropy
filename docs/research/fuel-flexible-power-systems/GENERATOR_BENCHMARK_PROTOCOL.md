@@ -179,6 +179,43 @@ Use ISO 8528-5 / ISO 8528-6 controlled requirements to select and perform the ap
 
 The current 0D model cannot predict these transients. It can only store and compare later measured traces through a separate time-series/evidence interface.
 
+### 5.4 Grid-forming, microgrid and black-start tests
+
+Generator efficiency alone does not establish resilient-power capability. Where a configuration claims grid-forming or islandable operation, add the following tests to the relevant product scope. They are a benchmark matrix, not a replacement for the applicable IEEE/utility/mission acceptance criteria.
+
+**Published research test template:** NREL/PR-5D00-91714 (22 October 2024) covers stand-alone steady-state loading at power factors 1.0, 0.8 lagging and 0.8 leading across 5/10/25/50/75/100% loading; load steps 0→50%, 50→100% and 0→100%; 150% overload testing; black start by energizing a similarly rated transformer; loss of the other generator; sourcing/sinking P/Q; impedance scans; voltage and phase jumps; 1 Hz/s ROCOF; synchronization and islanding. Its example inverter passed black start but failed the reported ROCOF test. This is evidence that capability must be tested dimension-by-dimension, not attributed from a product label.
+
+Required test groups:
+1. **Modes:** grid-following, grid-forming, grid-parallel, island transition, stable island, black start, staged restoration, synchronization/reconnection and safe shutdown. Mark unsupported modes explicitly.
+2. **Steady state:** P/Q sourcing and sinking, power factor, load range, voltage/frequency regulation, THD, DC ripple, auxiliary consumption and thermal derating.
+3. **Transient:** load rejection, 0→50/50→100/0→100 load steps, motor/transformer inrush, cold-load pickup, source loss, current limiting, overload trip boundary, voltage/phase/frequency disturbance and ROCOF.
+4. **Black start:** start from the declared dead-bus state without external grid supply; energize all required auxiliaries, fuel train, cooling, controls and protection; record start energy, time-to-critical-load and the staged load-restoration sequence.
+5. **Islanding/reconnection:** planned/unplanned islanding, unserved energy, voltage/frequency excursions, sync time and reclose transients.
+6. **Multi-asset:** synchronous generator + grid-forming inverter, grid-forming + grid-following mix, multiple grid-forming devices, battery + fuel generator, and DC bus + bidirectional AC/DC converter. Measure oscillation, circulating current, impedance/harmonic interaction and protection behavior.
+7. **Protection/cyber:** grid-connected/islanded relay coordination, low-fault-current limitations, ground/DC arc faults where applicable, loss of communication, stale/replayed commands, sensor loss and autonomous local safe fallback.
+
+Publish a resilience vector rather than a single score:
+- black-start success fraction, attempts, startup energy and time-to-critical-load;
+- island-transition success, interruption duration and unserved kWh;
+- load-pickup fraction and restoration timeline;
+- voltage/frequency nadir, peak deviation, ROCOF, settling and recovery;
+- active/reactive tracking and power-sharing error;
+- THD / ripple and protection false-trip / missed-trip observations;
+- source-loss survivability, reserve duration and restart capability;
+- cyber-safe degraded-mode behavior.
+
+**Acceptance:** thresholds come from the applicable published standard, utility interconnection agreement and mission-specific requirements; do not invent universal limits. A grid-forming claim requires a completed declared disturbance matrix. A black-start claim requires a physical dead-bus test including auxiliaries. A multi-vendor claim requires a multi-vendor HIL or physical interaction test. A component model or successful energy balance is not a qualification.
+
+Standards/version register:
+- IEEE 2030.7-2017 (published controller specification) and P2030.7 (active revision project approved 27 March 2025): https://standards.ieee.org/ieee/2030.7/12022/
+- IEEE 2030.8-2018 (published controller test standard) and P2030.8 (active revision project approved 26 March 2026): https://standards.ieee.org/ieee/2030.8/12543/
+- IEEE 2030.12-2025 microgrid protection guide: https://standards.ieee.org/ieee/2030.12/7398/
+- IEEE P3710.1, DC distribution 300–1500 V for data centres (active project): https://standards.ieee.org/ieee/3710.1/12521/
+- OCP Power Distribution / LVDC workstream and white-paper editions: https://www.opencompute.org/projects/data-center-facility/power-distribution/
+- IEA, The State of Energy Innovation 2026, grid-forming inverter and grid-resilience discussion: https://www.iea.org/reports/the-state-of-energy-innovation-2026
+- NREL, Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments (NREL/PR-5D00-91714): https://www.nrel.gov/docs/fy25osti/91714.pdf
+- NREL, Black Start research: https://www.nrel.gov/grid/black-start
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
