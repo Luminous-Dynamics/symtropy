@@ -18,6 +18,7 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.to
 - A reusable test-only exact oracle enumerates every request order on tiny instances and independently searches lock availability windows to maximize feasible served count.
 - A two-request counterexample records the FCFS deadline-loss gap, while a permutation control verifies oracle invariance; this is not a field-performance claim.
 - Direction-switch setup time, discrete lock availability windows, outages, service duration, latest start and maximum wait.
+- A temporarily infeasible request remains pending while another feasible passage can change the direction-switch state; provisional deadline/slot failures become final only when no further passage can advance the schedule.
 - Lock-profile currentness must cover the complete reserved service interval; a slot extending beyond profile validity is not scheduled.
 - Exact integer-tick schedule and deterministic tie-breaking.
 - Reports service wait, worst wait, lock busy ticks, direction switches, unscheduled reason by request.
