@@ -204,6 +204,26 @@ fn strip_list_syntax(value: &str) -> &str {
         .trim()
 }
 
+fn insert_config_option(
+    values: &mut BTreeMap<String, String>,
+    line: &str,
+    line_number: usize,
+) -> Result<(), String> {
+    let Some((raw_key, raw_value)) = line.split_once('=') else {
+        return Ok(());
+    };
+    let key = raw_key.trim();
+    if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT") {
+        if values
+            .insert(key.to_owned(), raw_value.trim().to_owned())
+            .is_some()
+        {
+            return Err(format!("SU2 config line {line_number} duplicates {key}"));
+        }
+    }
+    Ok(())
+}
+
 fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
     let text = std::str::from_utf8(bytes)
         .map_err(|error| format!("SU2 physics config is not UTF-8/ASCII text: {error}"))?;
@@ -211,23 +231,36 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         return Err("SU2 physics config must be ASCII".to_owned());
     }
     let mut values = BTreeMap::new();
+    let mut logical: Option<(usize, String)> = None;
     for (index, raw_line) in text.lines().enumerate() {
         let content = raw_line.split('%').next().unwrap_or("").trim();
         if content.is_empty() {
             continue;
         }
-        let Some((raw_key, raw_value)) = content.split_once('=') else {
-            continue;
-        };
-        let key = raw_key.trim();
-        if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT") {
-            if values
-                .insert(key.to_owned(), raw_value.trim().to_owned())
-                .is_some()
-            {
-                return Err(format!("SU2 config line {} duplicates {key}", index + 1));
+        let line_number = index + 1;
+        if let Some((start_line, accumulated)) = logical.as_mut() {
+            let continuation = content.strip_suffix('\\');
+            let fragment = continuation.unwrap_or(content).trim();
+            if !fragment.is_empty() {
+                accumulated.push(' ');
+                accumulated.push_str(fragment);
             }
+            if continuation.is_none() {
+                let complete = logical.take().expect("logical config line exists").1;
+                insert_config_option(&mut values, &complete, *start_line)?;
+            }
+            continue;
         }
+        if content.ends_with('\\') {
+            logical = Some((line_number, content.trim_end_matches('\\').trim().to_owned()));
+            continue;
+        }
+        insert_config_option(&mut values, content, line_number)?;
+    }
+    if let Some((start_line, accumulated)) = logical {
+        return Err(format!(
+            "SU2 config line {start_line}: unterminated line continuation"
+        ));
     }
     let solver_family = parse_config_value(&values, "SOLVER")?.trim().to_owned();
     if solver_family.is_empty() {
@@ -268,7 +301,6 @@ fn extract_available_history_fields(output: &str) -> Result<Vec<String>, String>
             "SU2 dry-run output is missing the available screen/history fields section".to_owned()
         })?;
     let mut tokens = BTreeSet::new();
-    let mut observed_any = false;
     for line in lines.iter().skip(start + 1) {
         let normalized = line.trim();
         let lower = normalized.to_ascii_lowercase();
@@ -295,7 +327,6 @@ fn extract_available_history_fields(output: &str) -> Result<Vec<String>, String>
             } else if !token.is_empty() {
                 if token != "Field" && token != "Name" && token != "FIELD" && token != "NAME" {
                     tokens.insert(token.clone());
-                    observed_any = true;
                 }
                 token.clear();
             }
