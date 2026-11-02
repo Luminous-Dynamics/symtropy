@@ -10,20 +10,22 @@ import sys
 from pathlib import Path
 
 
-SCHEMA = "su2-verified-run-bundle/0.2.0"
+SCHEMA = "su2-verified-run-bundle/0.3.0"
 EVIDENCE = (
-    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_every_saved_"
-    "unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_"
-    "unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated"
+    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_scheduler_signal_guard_"
+    "and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_"
+    "and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated"
 )
-TERMINATION_SCHEMA = "su2-native-termination-evidence/0.1.0"
+TERMINATION_SCHEMA = "su2-native-termination-evidence/0.2.0"
 TERMINATION_EVIDENCE = (
-    "receipt_bound_su2_solver_exit_reason_and_native_criterion_summary_from_exact_"
+    "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_"
     "stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation"
 )
 STEADY_SUCCESS = "All convergence criteria satisfied."
 WINDOW_SUCCESS = "All windowed time-averaged convergence criteria are fullfilled."
 INTERRUPTED = "Interrupt signal received, exiting before the convergence criteria were satisfied."
+SIGNAL_INTERRUPT_PREFIX = "Interrupt signal ("
+SIGNAL_INTERRUPT_SUFFIX = ") received, saving files and exiting."
 STEADY_ITERATION_LIMIT = "Maximum number of iterations reached"
 TIME_LIMIT = "Maximum time reached"
 TIME_ITERATION_LIMIT = "Maximum number of time iterations reached"
@@ -82,6 +84,20 @@ def add_u64(buffer: bytearray, value: int) -> None:
     buffer.extend(struct.pack("<Q", value))
 
 
+def scheduler_signal_message(full_log: str) -> str | None:
+    for raw_line in full_log.splitlines():
+        line = raw_line.strip()
+        if line.startswith(SIGNAL_INTERRUPT_PREFIX):
+            remainder = line[len(SIGNAL_INTERRUPT_PREFIX):]
+            require(SIGNAL_INTERRUPT_SUFFIX in remainder,
+                    "unrecognized SU2 signal-handler termination message")
+            signal_number, trailing = remainder.split(SIGNAL_INTERRUPT_SUFFIX, 1)
+            require(signal_number.isdigit() and not trailing.strip(),
+                    "invalid SU2 signal number or trailing signal-handler text")
+            return line
+    return None
+
+
 def termination_evidence(
     production_dir: Path,
     preflight: dict[str, str],
@@ -104,7 +120,12 @@ def termination_evidence(
     require(time_window == time_domain,
             "verified run bundle only supports steady or explicit windowed time-domain protocols")
     native_rows: list[tuple[str, str, str, str]] = []
-    if time_window:
+    signal_message = scheduler_signal_message(combined)
+    if signal_message is not None:
+        mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
+        classification = "interrupted"
+        terminal_messages = [signal_message]
+    elif time_window:
         mode = "time_window"
         window_fields = preflight["window_convergence_fields"].split(";")
         if INTERRUPTED in section:
