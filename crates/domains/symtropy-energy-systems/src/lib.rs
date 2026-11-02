@@ -14,6 +14,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod matched_service;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -23,6 +24,10 @@ pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
+};
+pub use matched_service::{
+    MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
+    ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
 };
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
