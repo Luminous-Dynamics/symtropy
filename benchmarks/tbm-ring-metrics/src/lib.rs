@@ -25,6 +25,7 @@ pub enum MetricError {
     AcceptedVolumeExceedsExcavated,
     ZeroInspectionIntervalVolume,
     InspectionIdentityInvalid,
+    CutterIdentityChanged,
     RadiusIncreased,
     ArithmeticOverflow,
 }
