@@ -1043,8 +1043,8 @@ mod tests {
         BenchmarkScope, MatchedBenchmarkManifest, ResourceBudget,
     };
     use super::super::repeated_run_reliability::{
-        ArmTaskReliability, ExactRunRate, FamilyRepeatedRunSummary,
-        RepeatedRunReliabilityPlan, RepeatedRunReliabilityReceipt, TaskClusterReliability,
+        ArmTaskReliability, ExactRunRate, FamilyRepeatedRunSummary, RepeatedRunReliabilityPlan,
+        RepeatedRunReliabilityReceipt, TaskClusterReliability,
     };
     use super::{
         ClusterInferenceEndpoint, TaskClusterInferencePlan, analyze_repeated_run_task_clusters,
@@ -1197,49 +1197,59 @@ mod tests {
         ]
     }
 
-    fn summary(
-        family: &str,
-        clusters: &[TaskClusterReliability],
-    ) -> FamilyRepeatedRunSummary {
+    fn summary(family: &str, clusters: &[TaskClusterReliability]) -> FamilyRepeatedRunSummary {
         let valid = clusters
             .iter()
             .filter(|cluster| !cluster.invalid_task_cluster)
             .collect::<Vec<_>>();
         let invalid = clusters.len() - valid.len();
         let k = 3usize;
-        let candidate_pass_at_k = valid.iter().filter(|cluster| {
-            cluster.candidate.as_ref().unwrap().pass_at_k
-        }).count();
-        let reference_pass_at_k = valid.iter().filter(|cluster| {
-            cluster.reference.as_ref().unwrap().pass_at_k
-        }).count();
-        let candidate_pass_every_k = valid.iter().filter(|cluster| {
-            cluster.candidate.as_ref().unwrap().pass_every_k
-        }).count();
-        let reference_pass_every_k = valid.iter().filter(|cluster| {
-            cluster.reference.as_ref().unwrap().pass_every_k
-        }).count();
-        let candidate_successes = valid.iter().map(|cluster| {
-            cluster.candidate.as_ref().unwrap().safe_success_count
-        }).sum::<usize>();
-        let reference_successes = valid.iter().map(|cluster| {
-            cluster.reference.as_ref().unwrap().safe_success_count
-        }).sum::<usize>();
-        let candidate_any_hazard = valid.iter().filter(|cluster| {
-            cluster.candidate.as_ref().unwrap().any_hazard
-        }).count();
-        let reference_any_hazard = valid.iter().filter(|cluster| {
-            cluster.reference.as_ref().unwrap().any_hazard
-        }).count();
-        let candidate_any_abstention = valid.iter().filter(|cluster| {
-            cluster.candidate.as_ref().unwrap().any_abstention
-        }).count();
-        let reference_any_abstention = valid.iter().filter(|cluster| {
-            cluster.reference.as_ref().unwrap().any_abstention
-        }).count();
+        let candidate_pass_at_k = valid
+            .iter()
+            .filter(|cluster| cluster.candidate.as_ref().unwrap().pass_at_k)
+            .count();
+        let reference_pass_at_k = valid
+            .iter()
+            .filter(|cluster| cluster.reference.as_ref().unwrap().pass_at_k)
+            .count();
+        let candidate_pass_every_k = valid
+            .iter()
+            .filter(|cluster| cluster.candidate.as_ref().unwrap().pass_every_k)
+            .count();
+        let reference_pass_every_k = valid
+            .iter()
+            .filter(|cluster| cluster.reference.as_ref().unwrap().pass_every_k)
+            .count();
+        let candidate_successes = valid
+            .iter()
+            .map(|cluster| cluster.candidate.as_ref().unwrap().safe_success_count)
+            .sum::<usize>();
+        let reference_successes = valid
+            .iter()
+            .map(|cluster| cluster.reference.as_ref().unwrap().safe_success_count)
+            .sum::<usize>();
+        let candidate_any_hazard = valid
+            .iter()
+            .filter(|cluster| cluster.candidate.as_ref().unwrap().any_hazard)
+            .count();
+        let reference_any_hazard = valid
+            .iter()
+            .filter(|cluster| cluster.reference.as_ref().unwrap().any_hazard)
+            .count();
+        let candidate_any_abstention = valid
+            .iter()
+            .filter(|cluster| cluster.candidate.as_ref().unwrap().any_abstention)
+            .count();
+        let reference_any_abstention = valid
+            .iter()
+            .filter(|cluster| cluster.reference.as_ref().unwrap().any_abstention)
+            .count();
         let total_runs = valid.len() * k;
         let exact_rate = |numerator: usize, denominator: usize| {
-            (denominator > 0).then_some(ExactRunRate { numerator, denominator })
+            (denominator > 0).then_some(ExactRunRate {
+                numerator,
+                denominator,
+            })
         };
         FamilyRepeatedRunSummary {
             mechanism_family_id: family.into(),
