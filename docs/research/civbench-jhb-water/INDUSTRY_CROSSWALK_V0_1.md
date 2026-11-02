@@ -60,6 +60,34 @@ The 2021/22 No Drop scorecard gives Johannesburg 72%, but that score is an insti
 
 These are different measures and reporting periods. The source register preserves them separately.
 
+### Hydraulic reference engines: EPA EPANET and Bentley OpenFlows
+
+**EPA EPANET 2.2** is the public-domain hydraulic and water-quality reference engine for supported pressurised distribution-network cases. Its documented boundary includes pipes, nodes, pumps, valves, tanks and reservoirs; extended-period flow, pressure, tank-level, water-age, source-tracing and selected water-quality simulation; pressure-dependent demand; friction/head-loss formulas; and pump energy/control behavior.
+
+Reference: https://www.epa.gov/water-research/epanet
+Source: https://github.com/USEPA/EPANET2.2
+
+**Bentley OpenFlows Water** is a commercial engineering comparator. Bentley advertises steady-state and extended-period simulation, transients/water hammer, pressure and pump analysis, water quality, GIS/CAD/SCADA integration, large-network scenario analysis and pipe-renewal planning. These are vendor-published feature claims; any performance comparison must use a declared product/version, matched network, inputs and measured workload.
+
+Reference: https://www.bentley.com/products/openflows-water/
+
+CivBench must not attempt to replace these hydraulic solvers with its discrete stock-flow oracle. Reuse the existing Sol-Atlas EPANET interop work:
+- Sol-Atlas #139 — validate water-service resilience against EPANET reference models.
+- Sol-Atlas #144 — couple water-service trajectories to pump-terminal power availability.
+- Sol-Atlas #147 — joint water–power failure sweeps with protected service floors.
+- Sol-Atlas #174 — held-out topology, leak-localisation and simulation-to-field generalisation.
+- Sol-Atlas #326 — compose water, power, soil and crop evidence into a matched decision benchmark.
+
+The correct comparison boundary is:
+- EPANET/OpenFlows: hydraulic and water-quality behavior under an aligned network model.
+- Symtropy water core: small, independently checkable stock-flow and allocation semantics; not a hydraulic engine.
+- Sol-Atlas: source-aware physical/network/service composition and reference-solver adapter.
+- Symtropy: operational workflow and maintenance/resource experiment mechanics where assigned.
+- Mycelix: policy, authority, contestability, rights and institutional feedback.
+- Symthaea: candidate hypothesis/recommendation and uncertainty analysis, without operational authority.
+
+Only compare like-for-like quantities with compatible units, topology, time step, boundary conditions, demand patterns, pump/valve controls and parameter profiles. Missing pipe roughness, elevation, pump curves, valve control, pressure-dependent demand or water-quality inputs must result in an explicit blocker/indeterminate state, not invented defaults.
+
 ## Proposed CivBench extension
 
 | Layer | Existing industry baseline | Additional CivBench contribution |
