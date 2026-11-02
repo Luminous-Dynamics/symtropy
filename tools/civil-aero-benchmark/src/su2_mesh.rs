@@ -82,7 +82,9 @@ fn csv_escape(value: &str) -> String {
 }
 
 fn optional(value: Option<f64>) -> String {
-    value.map(|number| format!("{number:.17}")).unwrap_or_default()
+    value
+        .map(|number| format!("{number:.17}"))
+        .unwrap_or_default()
 }
 
 fn next_nonempty<'a>(
@@ -170,9 +172,9 @@ fn parse_element_type(
         node_indices.push(index);
     }
     if fields.len() == expected_nodes + 2 {
-        fields[expected_nodes + 1]
-            .parse::<u64>()
-            .map_err(|error| format!("line {line_number}: invalid optional legacy element index: {error}"))?;
+        fields[expected_nodes + 1].parse::<u64>().map_err(|error| {
+            format!("line {line_number}: invalid optional legacy element index: {error}")
+        })?;
     }
     Ok((kind, node_indices))
 }
@@ -239,9 +241,9 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                     ));
                 }
                 for axis in 0..usize::from(dimension) {
-                    let coordinate = fields[axis]
-                        .parse::<f64>()
-                        .map_err(|error| format!("line {point_line}: invalid coordinate: {error}"))?;
+                    let coordinate = fields[axis].parse::<f64>().map_err(|error| {
+                        format!("line {point_line}: invalid coordinate: {error}")
+                    })?;
                     if !coordinate.is_finite() {
                         return Err(format!("line {point_line}: coordinate must be finite"));
                     }
@@ -249,9 +251,9 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                     max[axis] = max[axis].max(coordinate);
                 }
                 if fields.len() == usize::from(dimension) + 1 {
-                    fields[usize::from(dimension)]
-                        .parse::<u64>()
-                        .map_err(|error| format!("line {point_line}: invalid optional point index: {error}"))?;
+                    fields[usize::from(dimension)].parse::<u64>().map_err(|error| {
+                        format!("line {point_line}: invalid optional point index: {error}")
+                    })?;
                 }
             }
             point_count = Some(count);
@@ -271,11 +273,7 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                     false,
                     point_count,
                 )?;
-                node_references.extend(
-                    node_indices
-                        .into_iter()
-                        .map(|index| (element_line, index)),
-                );
+                node_references.extend(node_indices.into_iter().map(|index| (element_line, index)));
                 *volume_element_type_counts.entry(kind).or_default() += 1;
             }
             volume_element_count = Some(count);
@@ -285,8 +283,7 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
             }
             let count = parse_key_count(line_number, line, "NMARK=", true)?;
             for _ in 0..count {
-                let (tag_line, tag_record) =
-                    next_nonempty(&lines, &mut cursor, "MARKER_TAG")?;
+                let (tag_line, tag_record) = next_nonempty(&lines, &mut cursor, "MARKER_TAG")?;
                 let tag = tag_record
                     .strip_prefix("MARKER_TAG=")
                     .ok_or_else(|| format!("line {tag_line}: expected MARKER_TAG="))?
@@ -298,7 +295,8 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                 }
                 let (count_line, count_record) =
                     next_nonempty(&lines, &mut cursor, "MARKER_ELEMS")?;
-                let element_count = parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
+                let element_count =
+                    parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
                 for _ in 0..element_count {
                     let (element_line, element_record) =
                         next_nonempty(&lines, &mut cursor, "marker element connectivity")?;
@@ -309,11 +307,8 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                         true,
                         point_count,
                     )?;
-                    node_references.extend(
-                        node_indices
-                            .into_iter()
-                            .map(|index| (element_line, index)),
-                    );
+                    node_references
+                        .extend(node_indices.into_iter().map(|index| (element_line, index)));
                 }
                 total_boundary_elements = total_boundary_elements
                     .checked_add(element_count)
@@ -411,20 +406,38 @@ mod tests {
         assert_eq!(summary.point_count, 4);
         assert_eq!(summary.volume_element_type_counts.get(&10), Some(&1));
         assert_eq!(summary.boundary_element_count, 1);
-        assert_eq!(summary.minimum_coordinates, [Some(0.0), Some(0.0), Some(0.0)]);
-        assert_eq!(summary.maximum_coordinates, [Some(1.0), Some(1.0), Some(1.0)]);
+        assert_eq!(
+            summary.minimum_coordinates,
+            [Some(0.0), Some(0.0), Some(0.0)]
+        );
+        assert_eq!(
+            summary.maximum_coordinates,
+            [Some(1.0), Some(1.0), Some(1.0)]
+        );
     }
 
     #[test]
     fn rejects_bad_dimension_duplicate_sections_unknown_records_and_empty_bytes() {
         assert!(inspect_su2_mesh(b"").is_err());
-        assert!(inspect_su2_mesh(b"NDIME= 4\nNPOIN= 1\n0 0 0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\n").is_err());
-        assert!(inspect_su2_mesh(b"NDIME= 2\nNPOIN= 1\n0 0\nNPOIN= 1\n0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\n").is_err());
-        assert!(inspect_su2_mesh(b"NDIME= 2\nNPOIN= 1\n0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\nNZONE=2\n").is_err());
+        assert!(
+            inspect_su2_mesh(b"NDIME= 4\nNPOIN= 1\n0 0 0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\n")
+                .is_err()
+        );
+        assert!(
+            inspect_su2_mesh(
+                b"NDIME= 2\nNPOIN= 1\n0 0\nNPOIN= 1\n0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\n"
+            )
+            .is_err()
+        );
+        assert!(
+            inspect_su2_mesh(b"NDIME= 2\nNPOIN= 1\n0 0\nNELEM= 1\n5 0 0 0\nNMARK= 0\nNZONE=2\n")
+                .is_err()
+        );
     }
 
     #[test]
-    fn rejects_out_of_range_nodes_unknown_element_types_nonfinite_coordinates_and_duplicate_markers() {
+    fn rejects_out_of_range_nodes_unknown_element_types_nonfinite_coordinates_and_duplicate_markers()
+    {
         let out_of_range = "NDIME= 2\nNELEM= 1\n5 0 1 4\nNPOIN= 3\n0 0\n1 0\n0 1\nNMARK= 0\n";
         assert!(inspect_su2_mesh(out_of_range.as_bytes()).is_err());
         let unknown_type = "NDIME= 2\nNPOIN= 3\n0 0\n1 0\n0 1\nNELEM= 1\n77 0 1 2\nNMARK= 0\n";
