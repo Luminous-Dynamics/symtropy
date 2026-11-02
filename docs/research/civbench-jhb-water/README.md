@@ -70,6 +70,10 @@ This work should map to, not replace:
 - DWS's IWA water-balance and No Drop methods as the South African regulatory and domain-specific baseline.
 - AWWA M36 Water Audits and Loss Control Programs and the AWWA Water Audit Software. AWWA's public page states that version 6.1, released in 2025, adds carbon calculations and a carbon balance.
 - World Bank / IWA NewIBNET utility indicators, including drinking-water coverage, continuity, 24/7 supply, NRW percentage, NRW per connection per hour, metering, water quality, complaint resolution and operating-cost coverage.
+- EPA EPANET 2.2 as the hydraulic and water-quality reference for supported pressurised network cases. The discrete Symtropy water core is not a hydraulic solver; reuse Sol-Atlas #139 for EPANET adapter and differential validation.
+- Bentley OpenFlows Water as a commercial engineering-product comparator for extended-period hydraulics, water quality, transients and asset-planning features. Vendor-published capabilities must not be represented as independently measured performance.
+
+The existing Sol-Atlas work already covers EPANET reference validation (#139), water–power pump coupling (#144), joint water–power stress sweeps (#147), held-out topology and simulation-to-field leak localisation (#174), and water–food–energy composition (#326). CivBench should compose those workstreams rather than build a competing hydraulic engine.
 
 CivBench's additional research question is whether utility and physical-resource metrics can be connected to institutional mechanisms: maintenance capacity, procurement and repair workflows, provider dependency, access equity, appeals, capture, recovery and long-run feedback. These dimensions must remain disaggregated rather than being collapsed into a single utility, welfare or liberation score.
 
