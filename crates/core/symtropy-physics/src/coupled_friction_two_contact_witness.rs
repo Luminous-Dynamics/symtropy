@@ -2888,7 +2888,6 @@ mod double_sliding_direction_oracle {
         let d_g_d_q_tangent_1 = [
             polynomials
                 .determinant
-                .clone()
                 .mul(BivariateIntegerPolynomial::in_t1([0, 1, 0]).scale(-2)),
             BivariateIntegerPolynomial::zero(),
         ];
