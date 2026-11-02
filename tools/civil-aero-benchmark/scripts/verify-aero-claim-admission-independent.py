@@ -29,6 +29,7 @@ KINDS = [
     "statistical_sampling_assessment",
     "model_uncertainty_assessment",
     "experimental_validation",
+    "multivariate_validation",
     "validation_uncertainty_budget",
     "structural_verification",
     "structural_validation",
@@ -114,6 +115,7 @@ def required_for(claim_class, consequence):
             "statistical_sampling_assessment",
             "model_uncertainty_assessment",
             "experimental_validation",
+            "multivariate_validation",
             "validation_uncertainty_budget",
         })
     elif claim_class == "structural_load_prediction":
@@ -135,6 +137,7 @@ def required_for(claim_class, consequence):
             "structural_validation",
             "aeroelastic_coupling_convergence",
             "flutter_validation",
+            "multivariate_validation",
             "model_uncertainty_assessment",
             "validation_uncertainty_budget",
         })
@@ -159,6 +162,7 @@ def required_for(claim_class, consequence):
             "conservation_audit",
             "statistical_sampling_assessment",
             "experimental_validation",
+            "multivariate_validation",
             "validation_uncertainty_budget",
             "structural_verification",
             "structural_validation",
@@ -183,6 +187,8 @@ def required_for(claim_class, consequence):
             "calibration_evidence",
             "model_uncertainty_assessment",
         })
+    if consequence == "safety_critical":
+        e.add("multivariate_validation")
     if consequence not in {"exploratory", "engineering", "high", "safety_critical"}:
         raise ValueError(f"unsupported decision consequence {consequence!r}")
     return sorted(e, key=KIND_ORDER.__getitem__)
