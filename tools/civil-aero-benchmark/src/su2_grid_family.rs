@@ -1089,8 +1089,45 @@ printf '%s\\n' '----------------------------- Solver Exit ----------------------
                 && cauchy_epsilon == "1E-3"
                 && window_function == "SQUARE"
         ));
+        let inner_screen = crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+            &member.field_preflight,
+            &member.history,
+        )
+        .expect("all saved time steps satisfy the inner residual threshold");
+        assert_eq!(inner_screen.contiguous_time_step_count, 8);
+        assert_eq!(inner_screen.fields[0].field, "RMS_DENSITY");
+        assert_eq!(inner_screen.fields[0].failed_time_step_count, 0);
+        let mut failing_inner_history = member.history.clone();
+        let residual_index = failing_inner_history
+            .numeric_fields
+            .iter()
+            .position(|field| field.column == "RMS_DENSITY")
+            .expect("RMS_DENSITY imported");
+        failing_inner_history.points[0].values[residual_index] = -7.0;
+        assert!(
+            crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+                &member.field_preflight,
+                &failing_inner_history,
+            )
+            .expect_err("a failed inner step must not be averaged away")
+            .contains("exceeded threshold")
+        );
+        let mut gapped_inner_history = member.history.clone();
+        gapped_inner_history.points[1].iteration += 1;
+        assert!(
+            crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+                &member.field_preflight,
+                &gapped_inner_history,
+            )
+            .expect_err("a missing time step must reject")
+            .contains("TIME_ITER gap")
+        );
         let bundle = create_su2_verified_run_bundle(&bundle_inputs)
-            .expect("compose steady and time-window dry-run and production run evidence");
+            .expect("compose dry-run, per-time-step inner, window and production run evidence");
+        assert_eq!(
+            bundle.unsteady_inner_screen_sha256,
+            inner_screen.screen_sha256
+        );
         crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(
             &bundle_inputs,
             &bundle,
@@ -1114,6 +1151,7 @@ printf '%s\\n' '----------------------------- Solver Exit ----------------------
             let history_csv = oracle_directory.join("history-import.csv");
             let screen_csv = oracle_directory.join("screen.csv");
             let lineage_csv = oracle_directory.join("lineage.csv");
+            let inner_screen_csv = oracle_directory.join("unsteady-inner-screen.csv");
             fs::write(
                 &bundle_csv,
                 crate::su2_verified_run_bundle::report_to_csv(&bundle),
@@ -1134,6 +1172,11 @@ printf '%s\\n' '----------------------------- Solver Exit ----------------------
                 crate::su2_run_binding::binding_to_csv(&member.lineage_binding),
             )
             .expect("write production lineage");
+            fs::write(
+                &inner_screen_csv,
+                crate::su2_unsteady_inner_screen::report_to_csv(&inner_screen),
+            )
+            .expect("write unsteady inner-step screen");
             let preflight_oracle = std::process::Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
@@ -1166,6 +1209,7 @@ printf '%s\\n' '----------------------------- Solver Exit ----------------------
                 .arg(&history_csv)
                 .arg(&screen_csv)
                 .arg(&lineage_csv)
+                .arg(&inner_screen_csv)
                 .output()
                 .expect("execute independent SU2 run-bundle oracle");
             assert!(
