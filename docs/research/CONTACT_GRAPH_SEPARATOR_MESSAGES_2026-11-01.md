@@ -222,3 +222,5 @@ The independent verifier uses a separate explicit-stack traversal of the complet
 The first bounded tests exercise three- and six-source joins, empty/full tuple accounting, source-order permutation, strict/excluded/boundary combinations, duplicate geometric split faces with distinct lineage tuples, and negative controls for deletion, duplication, relabelling, and geometry mutation. The checked-product helper also has an explicit usize overflow control.
 
 **Claim boundary:** this composes already-certified separating-leaf partitions. It is not yet a full tree-decomposition solver; it does not compose sticking and sliding response types into a common trait, solve sliding-leaf direction resultants, or propagate correlated body-parameter uncertainty. The raw Cartesian product remains an explicit scaling cost.
+
+The n-ary composition branch was refreshed against the current binary composition base head `8820eeae0d6e02ad1504504cf2bfbc60eec615d8` on 2026-11-02. Its workflow must validate the merged tree, not only the n-ary head file in isolation.
