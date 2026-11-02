@@ -183,6 +183,13 @@ pub enum DiscoveryClaimDisposition {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReplicationOutcomeRecord {
+    pub replication_id: String,
+    pub level: ReplicationLevel,
+    pub outcome: ReplicationOutcome,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DiscoveryClaimVerificationReceipt {
     pub claim_id: String,
     pub canonical_proposition_digest: String,
@@ -197,6 +204,7 @@ pub struct DiscoveryClaimVerificationReceipt {
     pub prior_art_search_transcript_digest: String,
     pub source_claim_result_digest: String,
     pub replication_receipt_ids: Vec<String>,
+    pub replication_outcomes: Vec<ReplicationOutcomeRecord>,
     pub absolute_novelty_claim_made: bool,
     pub replication_level_not_overstated: bool,
     pub all_adverse_replication_outcomes_retained: bool,
@@ -519,6 +527,7 @@ pub fn verify_discovery_claim_dossier(
     let mut external_replication_failures = 0usize;
     let mut inconclusive_replications = 0usize;
     let mut replication_receipt_ids = Vec::with_capacity(dossier.replications.len());
+    let mut replication_outcomes = Vec::with_capacity(dossier.replications.len());
 
     for replication in &dossier.replications {
         if !replication_ids.insert(replication.replication_id.clone()) {
@@ -528,6 +537,11 @@ pub fn verify_discovery_claim_dossier(
         }
         validate_replication(replication, &dossier.source_context)?;
         replication_receipt_ids.push(replication.replication_id.clone());
+        replication_outcomes.push(ReplicationOutcomeRecord {
+            replication_id: replication.replication_id.clone(),
+            level: replication.level,
+            outcome: replication.outcome,
+        });
         match replication.outcome {
             ReplicationOutcome::Replicated => {
                 let level = match replication.level {
@@ -560,6 +574,9 @@ pub fn verify_discovery_claim_dossier(
         }
     }
     replication_receipt_ids.sort();
+    replication_outcomes.sort_by(|left, right| {
+        left.replication_id.cmp(&right.replication_id)
+    });
 
     let disposition = match dossier.source_evidence.preregistered_outcome {
         PreregisteredClaimOutcome::Contradicted => DiscoveryClaimDisposition::Contradicted,
@@ -597,6 +614,7 @@ pub fn verify_discovery_claim_dossier(
         prior_art_search_transcript_digest: dossier.prior_art.search.search_transcript_digest.clone(),
         source_claim_result_digest: dossier.source_evidence.claim_result_digest.clone(),
         replication_receipt_ids,
+        replication_outcomes,
         absolute_novelty_claim_made: false,
         replication_level_not_overstated: true,
         all_adverse_replication_outcomes_retained: true,
