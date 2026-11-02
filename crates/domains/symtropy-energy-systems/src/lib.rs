@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod independent_verify;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -30,6 +31,10 @@ pub use duty_cycle::{
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use independent_verify::{
+    EnergyVerificationCheck, EnergyVerificationError, EnergyVerificationReport,
+    EnergyVerificationTolerance, verify_batch_bound_duty_cycle,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
