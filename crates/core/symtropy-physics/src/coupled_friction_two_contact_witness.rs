@@ -2950,8 +2950,11 @@ mod double_sliding_direction_oracle {
         // integer numerator q[1]. The physical q_t1 derivative is obtained by
         // multiplying by COMMON_DENOMINATOR. The close physical roots move in
         // opposite directions: averaging their gradients would be misleading.
-        assert!(sensitivities[0].0.is_strictly_positive());
-        assert!(sensitivities[1].0.is_strictly_positive());
+        // The normal-response determinant is negative on both certified
+        // branch boxes for this frozen sign convention. It must remain
+        // bounded away from zero; positivity would be the wrong invariant.
+        assert!(sensitivities[0].0.is_strictly_negative());
+        assert!(sensitivities[1].0.is_strictly_negative());
         assert!(sensitivities[0].1.is_strictly_positive());
         assert!(sensitivities[0].2.is_strictly_positive());
         assert!(sensitivities[1].1.is_strictly_negative());
