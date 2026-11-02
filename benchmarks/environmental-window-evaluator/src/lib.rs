@@ -338,7 +338,9 @@ pub fn evaluate_window(
         reasons.push(WindowReason::InvalidAllowedInterval);
         inconsistent = true;
     }
-    if !case.allowed_intervals.is_empty()
+    if case.planned_interval.is_valid()
+        && !case.allowed_intervals.is_empty()
+        && case.allowed_intervals.iter().all(|interval| interval.is_valid())
         && !case
             .allowed_intervals
             .iter()
