@@ -21,6 +21,7 @@ pub mod policy_aggregate;
 pub mod policy_benchmark;
 pub mod reference_data;
 pub mod risk_credibility;
+pub mod risk_assurance;
 pub mod robust_voi;
 pub mod robustness;
 pub mod run_artifacts;
