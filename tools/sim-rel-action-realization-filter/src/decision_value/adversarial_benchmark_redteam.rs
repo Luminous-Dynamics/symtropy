@@ -262,6 +262,11 @@ pub struct AdversarialRedTeamReceipt {
     pub all_critical_families_passed: bool,
     pub all_family_gates_passed: bool,
     pub campaign_integrity_passed: bool,
+    /// The first version reports exact counts and empirical rates only.
+    pub empirical_rates_only: bool,
+    pub confidence_intervals_computed: bool,
+    /// Always false: a finite declared threat model cannot prove unhackability.
+    pub universal_security_claim: bool,
     pub claim_boundary: String,
 }
 
@@ -407,6 +412,11 @@ fn validate_plan(plan: &AdversarialRedTeamPlan) -> Result<(), RedTeamError> {
             "threat family registry is incomplete or contains an unknown family".into(),
         ));
     }
+    if !plan.family_requirements.iter().any(|requirement| requirement.critical) {
+        return Err(RedTeamError::ThreatRegistry(
+            "at least one threat family must be declared critical".into(),
+        ));
+    }
     if plan.resource_channels.is_empty() || plan.resource_channels.len() > MAX_RESOURCE_CHANNELS {
         return Err(RedTeamError::InvalidPlan(
             "bounded non-empty resource channel registry is required".into(),
@@ -487,7 +497,7 @@ fn validate_scenarios(
                 scenario.scenario_id
             )));
         }
-        if !result.insert(scenario.scenario_id.clone(), scenario).is_none() {
+        if result.insert(scenario.scenario_id.clone(), scenario).is_some() {
             return Err(RedTeamError::ScenarioCatalog(format!(
                 "duplicate scenario ID {}",
                 scenario.scenario_id
@@ -761,7 +771,9 @@ pub fn evaluate_adversarial_redteam_campaign(
                 scenario_count,
                 total_amount,
                 mean_amount_per_scenario_numerator: total_amount,
-                mean_amount_per_scenario_denominator: u128::try_from(scenario_count).unwrap_or(0),
+                mean_amount_per_scenario_denominator: u128::try_from(scenario_count).map_err(|_| {
+                    RedTeamError::ArithmeticOverflow("resource scenario count exceeds u128".into())
+                })?,
             });
         }
         family_results.push(ThreatFamilyRedTeamResult {
@@ -858,7 +870,10 @@ pub fn evaluate_adversarial_redteam_campaign(
         all_critical_families_passed,
         all_family_gates_passed,
         campaign_integrity_passed,
-        claim_boundary: "Passed only for the declared threat model, catalog, detector, environment, sealed release and resource budget. This is not a proof of unhackability or absence of unknown attacks.".into(),
+        empirical_rates_only: true,
+        confidence_intervals_computed: false,
+        universal_security_claim: false,
+        claim_boundary: "Passed only for the declared threat model, catalog, detector, environment, sealed release and resource budget. Rates are empirical point estimates without confidence intervals. This is not a proof of unhackability or absence of unknown attacks.".into(),
     })
 }
 
@@ -1011,6 +1026,9 @@ mod tests {
         let (scenarios, trials) = campaign();
         let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(receipt.campaign_integrity_passed);
+        assert!(receipt.empirical_rates_only);
+        assert!(!receipt.confidence_intervals_computed);
+        assert!(!receipt.universal_security_claim);
         assert_eq!(receipt.threat_family_count, 12);
         assert_eq!(receipt.attack_scenario_count, 24);
         assert_eq!(receipt.clean_control_count, 12);
