@@ -369,3 +369,15 @@ It preserves the U.S. DOE AFDC raw values and units alongside normalized SI valu
 - A production calculation requires the actual batch's accepted LHV evidence and a flow measurement linked to that batch and time interval.
 
 The dataset is intended to exercise typed data contracts and establish rough screening bounds. It is not admitted as physical performance evidence.
+
+
+## 15. Machine-readable competitor evidence catalogue
+
+The dated industry baseline is also maintained as structured evidence:
+
+- [COMPETITOR_BENCHMARKS_2026-11-02.json](data/COMPETITOR_BENCHMARKS_2026-11-02.json)
+- [COMPETITOR_BENCHMARK_SCHEMA_2026-11-02.json](data/COMPETITOR_BENCHMARK_SCHEMA_2026-11-02.json)
+
+The catalogue separates Mainspring's product specification, CEC-sponsored beta demonstration, third-party emissions source test, Air Force pilot plan and AEP commercial agreement. It also records Capstone, Cummins, DOE SuperTruck 2, Wärtsilä, Everllence and a battery-electric HDV lifecycle comparator.
+
+The catalogue deliberately distinguishes measured outputs, manufacturer claims, government pilot announcements, peer-reviewed lifecycle studies and future commercial delivery plans. Null values mean unavailable, not zero. The dataset is an auditable benchmark register, not a calibrated engine map or a ranking.
