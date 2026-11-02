@@ -250,6 +250,23 @@ mod tests {
     }
 
     #[test]
+    fn event_just_before_a_step_boundary_is_found_in_the_previous_interval() {
+        let mut parameters = fixture();
+        parameters.initial_height_m = 0.999_999_9;
+        let analytic = first_impact(parameters).expect("analytic reference");
+        let result =
+            bisect_first_impact(parameters, 0.0, 1.0, 1.0e-10, 1.0e-10, 128)
+                .expect("crossing is in the previous step");
+
+        assert_eq!(result.status, LocalizationStatus::Converged);
+        assert!(result.estimated_event_time_s < 1.0);
+        assert!(
+            (result.estimated_event_time_s - analytic.impact_time_s).abs()
+                <= result.bracket_width_s
+        );
+    }
+
+    #[test]
     fn event_just_before_boundary_is_not_claimed_by_later_interval() {
         let mut parameters = fixture();
         parameters.initial_height_m = 0.999_999_9;
