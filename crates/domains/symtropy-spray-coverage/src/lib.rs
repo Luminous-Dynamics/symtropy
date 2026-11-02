@@ -196,21 +196,16 @@ fn ray_triangle_distance(
 }
 
 fn is_occluded(
-    mesh: &TriangleMesh,
-    target_triangle_index: usize,
+    occlusion_mesh: &TriangleMesh,
     origin: Vec3,
     direction_unit: Vec3,
     target_distance: f64,
     epsilon: f64,
 ) -> bool {
-    mesh.triangles
-        .iter()
-        .enumerate()
-        .any(|(index, triangle)| {
-            index != target_triangle_index
-                && ray_triangle_distance(origin, direction_unit, *triangle, epsilon)
-                    .is_some_and(|hit_distance| hit_distance < target_distance - epsilon)
-        })
+    occlusion_mesh.triangles.iter().any(|triangle| {
+        ray_triangle_distance(origin, direction_unit, *triangle, epsilon)
+            .is_some_and(|hit_distance| hit_distance < target_distance - epsilon)
+    })
 }
 
 /// Estimate geometric surface visibility through an idealized nozzle cone.
@@ -219,20 +214,25 @@ fn is_occluded(
 /// weighted by its true triangle area. Sampling is deterministic for a fixed
 /// input mesh and configuration. The result is a geometry-only screening metric.
 pub fn estimate_coverage(
-    mesh: &TriangleMesh,
+    target_mesh: &TriangleMesh,
+    occlusion_mesh: &TriangleMesh,
     nozzle: SprayCone,
     config: CoverageConfig,
 ) -> Result<CoverageReport, &'static str> {
-    if mesh.triangles.is_empty() {
+    if target_mesh.triangles.is_empty() {
         return Err("target mesh must contain at least one triangle");
     }
-    if mesh.triangles.iter().any(|triangle| !triangle.is_finite()) {
-        return Err("mesh vertices must be finite");
+    if target_mesh.triangles.iter().any(|triangle| !triangle.is_finite())
+        || occlusion_mesh.triangles.iter().any(|triangle| !triangle.is_finite())
+    {
+        return Err("target and occlusion mesh vertices must be finite");
     }
-    if mesh.triangles.iter().any(|triangle| {
+    if target_mesh.triangles.iter().any(|triangle| {
+        !triangle.area_m2().is_finite() || triangle.area_m2() <= 0.0
+    }) || occlusion_mesh.triangles.iter().any(|triangle| {
         !triangle.area_m2().is_finite() || triangle.area_m2() <= 0.0
     }) {
-        return Err("target mesh cannot contain degenerate triangles");
+        return Err("target and occlusion meshes cannot contain degenerate triangles");
     }
     if !nozzle.origin_m.is_finite() || !nozzle.axis.is_finite() {
         return Err("nozzle origin and axis must be finite");
@@ -263,7 +263,7 @@ pub fn estimate_coverage(
     let mut visible_samples = 0_u64;
     let mut triangle_results = Vec::with_capacity(mesh.triangles.len());
 
-    for (triangle_index, triangle) in mesh.triangles.iter().enumerate() {
+    for (triangle_index, triangle) in target_mesh.triangles.iter().enumerate() {
         let area_m2 = triangle.area_m2();
         total_surface_area_m2 += area_m2;
         let mut covered_samples = 0_u32;
@@ -287,8 +287,7 @@ pub fn estimate_coverage(
             }
 
             if !is_occluded(
-                mesh,
-                triangle_index,
+                occlusion_mesh,
                 nozzle.origin_m,
                 direction,
                 distance,
@@ -363,7 +362,7 @@ mod tests {
         let mesh = TriangleMesh {
             triangles: vec![triangle_at_z(1.0, 0.1)],
         };
-        let report = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
+        let report = estimate_coverage(&mesh, &mesh, standard_nozzle(), standard_config()).unwrap();
         assert!((report.geometrically_visible_area_fraction - 1.0).abs() < 1.0e-12);
         assert_eq!(report.visible_samples, 256);
     }
@@ -376,18 +375,27 @@ mod tests {
         let mut nozzle = standard_nozzle();
         nozzle.axis = Vec3::new(1.0, 0.0, 0.0);
         nozzle.half_angle_rad = 0.1;
-        let report = estimate_coverage(&mesh, nozzle, standard_config()).unwrap();
+        let report = estimate_coverage(&mesh, &mesh, nozzle, standard_config()).unwrap();
         assert_eq!(report.geometrically_visible_area_fraction, 0.0);
     }
 
     #[test]
     fn near_surface_occludes_far_surface() {
-        let mesh = TriangleMesh {
+        let occlusion_mesh = TriangleMesh {
             triangles: vec![triangle_at_z(1.0, 0.2), triangle_at_z(2.0, 0.2)],
         };
-        let report = estimate_coverage(&mesh, standard_nozzle(), standard_config()).unwrap();
-        assert_eq!(report.triangles[0].covered_samples, 256);
-        assert_eq!(report.triangles[1].covered_samples, 0);
+        let target_mesh = TriangleMesh {
+            triangles: vec![triangle_at_z(2.0, 0.2)],
+        };
+        let report = estimate_coverage(
+            &target_mesh,
+            &occlusion_mesh,
+            standard_nozzle(),
+            standard_config(),
+        )
+        .unwrap();
+        assert_eq!(report.triangles.len(), 1);
+        assert_eq!(report.triangles[0].covered_samples, 0);
     }
 
     #[test]
@@ -420,7 +428,7 @@ mod tests {
                 c: Vec3::new(0.0, 0.0, 1.0),
             }],
         };
-        assert!(estimate_coverage(&degenerate, standard_nozzle(), standard_config()).is_err());
+        assert!(estimate_coverage(&degenerate, &degenerate, standard_nozzle(), standard_config()).is_err());
 
         let valid = TriangleMesh {
             triangles: vec![triangle_at_z(1.0, 0.1)],
@@ -429,6 +437,6 @@ mod tests {
             samples_per_triangle: 0,
             epsilon_m: 1.0e-8,
         };
-        assert!(estimate_coverage(&valid, standard_nozzle(), invalid_config).is_err());
+        assert!(estimate_coverage(&valid, &valid, standard_nozzle(), invalid_config).is_err());
     }
 }
