@@ -821,16 +821,17 @@ mod tests {
     }
 
     fn fixture_run(root: &Path, configured_field: &str, inventory: &str) -> PathBuf {
+        let configuration = format!(
+            "SOLVER= NAVIER_STOKES\\nCONV_FIELD= {configured_field}\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n"
+        );
+        fixture_run_with_config(root, &configuration, inventory)
+    }
+
+    fn fixture_run_with_config(root: &Path, configuration: &str, inventory: &str) -> PathBuf {
         fs::create_dir_all(root).expect("create fixture root");
         let config = root.join("config.cfg");
         let mesh = root.join("mesh.su2");
-        fs::write(
-            &config,
-            format!(
-                "SOLVER= NAVIER_STOKES\nCONV_FIELD= {configured_field}\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= NO\n"
-            ),
-        )
-        .expect("write config");
+        fs::write(&config, configuration).expect("write config");
         fs::write(
             &mesh,
             "NDIME= 2\nNELEM= 1\n5 0 1 2\nNPOIN= 3\n0 0\n1 0\n0 1\nNMARK= 0\n",
@@ -940,6 +941,53 @@ mod tests {
                 .expect_err("unterminated continuation rejected")
                 .contains("unterminated")
         );
+    }
+
+    #[test]
+    fn dry_run_preflight_requires_every_steady_and_window_field_from_exact_inventory() {
+        let root = root();
+        let config = "SOLVER= NAVIER_STOKES\\nCONV_FIELD= (RMS_DENSITY, CD)\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= YES\\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\\nWINDOW_START_ITER= 500\\nCONV_WINDOW_STARTITER= 10\\nCONV_WINDOW_CAUCHY_ELEMS= 10\\nCONV_WINDOW_CAUCHY_EPS= 1E-4\\nWINDOW_FUNCTION= HANN_SQUARE\\n";
+        let inventory = "Available screen/history output fields for the current configuration:\\nITER\\nRMS_DENSITY\\nCD\\nTAVG_DRAG\\nTAVG_LIFT\\nAvailable volume output fields for the current configuration:\\nPRESSURE\\n";
+        let run = fixture_run_with_config(&root.join("complete"), config, inventory);
+        let report = audit_su2_field_preflight(
+            &run,
+            "config.cfg",
+            "mesh.su2",
+            &[
+                "RMS_DENSITY".to_owned(),
+                "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
+            ],
+        )
+        .expect("all configured convergence fields are discovered");
+        assert_eq!(
+            report.convergence_protocol.steady_fields,
+            vec!["RMS_DENSITY", "CD"]
+        );
+        assert!(matches!(
+            &report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Enabled { fields, .. }
+                if fields == &vec!["TAVG_DRAG".to_owned(), "TAVG_LIFT".to_owned()]
+        ));
+
+        let missing_run = fixture_run_with_config(&root.join("missing"), config, INVENTORY);
+        assert!(
+            audit_su2_field_preflight(
+                &missing_run,
+                "config.cfg",
+                "mesh.su2",
+                &[
+                    "RMS_DENSITY".to_owned(),
+                    "CD".to_owned(),
+                    "TAVG_DRAG".to_owned(),
+                    "TAVG_LIFT".to_owned(),
+                ],
+            )
+            .expect_err("a missing time-window field must reject preflight")
+            .contains("TAVG_DRAG,TAVG_LIFT")
+        );
+        fs::remove_dir_all(root).expect("remove window convergence fixtures");
     }
 
     #[test]
