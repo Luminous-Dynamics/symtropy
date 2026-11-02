@@ -690,8 +690,10 @@ fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
     assert!(FRICTION * impulse[3] - impulse.fixed_rows::<2>(4).norm() > 0.15);
     assert!(impulse.fixed_rows::<3>(6).norm() < 1.0e-12);
     assert!(post_velocity[6] > 0.8);
-    assert!(post_velocity[7].abs() < 1.0e-9);
+    assert!((post_velocity[7] - (1.0 / 12.0)).abs() < 1.0e-9);
     assert!(post_velocity[8].abs() < 1.0e-9);
+    assert!(impulse[7].abs() < 1.0e-12);
+    assert!(impulse[8].abs() < 1.0e-12);
 
     let separator_tau = separator.disk_multiplier;
     assert!(separator_tau > 0.0);
