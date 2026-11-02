@@ -673,7 +673,7 @@ impl QualifiedMetric {
                     status: self.status,
                 },
             },
-            (Some(control_value), Some(treatment_value)) if control.status != self.status => {
+            (Some(_), Some(_)) if control.status != self.status => {
                 MetricDelta {
                     value: None,
                     status: MetricDeltaStatus::EvidenceStatusMismatch {
@@ -1598,6 +1598,43 @@ mod tests {
             MetricDeltaStatus::EvidenceStatusMismatch {
                 control: MetricEvidenceStatus::Observed,
                 treatment: MetricEvidenceStatus::Modelled
+            }
+        );
+    }
+
+    #[test]
+    fn outcome_receipt_distinguishes_missing_control_from_missing_treatment() {
+        let control_missing = OutcomeVector {
+            physical_loss_l: QualifiedMetric::not_measured(),
+            ..OutcomeVector::default()
+        };
+        let treatment_observed = OutcomeVector {
+            physical_loss_l: QualifiedMetric::observed(10),
+            ..OutcomeVector::default()
+        };
+        let receipt = PairedOutcomeReceipt::new(control_missing, treatment_observed).unwrap();
+        assert_eq!(receipt.delta.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.delta.physical_loss_l.status,
+            MetricDeltaStatus::MissingControl {
+                status: MetricEvidenceStatus::NotMeasured
+            }
+        );
+
+        let control_observed = OutcomeVector {
+            physical_loss_l: QualifiedMetric::observed(10),
+            ..OutcomeVector::default()
+        };
+        let treatment_missing = OutcomeVector {
+            physical_loss_l: QualifiedMetric::withheld(),
+            ..OutcomeVector::default()
+        };
+        let receipt = PairedOutcomeReceipt::new(control_observed, treatment_missing).unwrap();
+        assert_eq!(receipt.delta.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.delta.physical_loss_l.status,
+            MetricDeltaStatus::MissingTreatment {
+                status: MetricEvidenceStatus::Withheld
             }
         );
     }
