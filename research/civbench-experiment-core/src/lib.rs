@@ -82,6 +82,18 @@ impl Digest {
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
+
+    /// Whether this digest is all zero bytes, a common unset placeholder.
+    pub const fn is_zero(&self) -> bool {
+        let mut index = 0;
+        while index < self.0.len() {
+            if self.0[index] != 0 {
+                return false;
+            }
+            index += 1;
+        }
+        true
+    }
 }
 
 fn decode_hex(value: u8) -> Option<u8> {
@@ -269,6 +281,12 @@ pub enum PairError {
     SameFactorLevel,
     /// A resource differs without being declared as an intended treatment change.
     UndeclaredResourceDifference(ResourceKind),
+    /// A required scenario digest is the all-zero unset sentinel.
+    ZeroScenarioDigest,
+    /// The evaluator-only truth digest is the all-zero unset sentinel.
+    ZeroEvaluatorTruthDigest,
+    /// The evaluation horizon must contain at least one tick.
+    ZeroHorizon,
 }
 
 impl fmt::Display for PairError {
@@ -288,6 +306,9 @@ impl fmt::Display for PairError {
             Self::UndeclaredResourceDifference(kind) => {
                 write!(f, "resource {kind:?} differs without a declared treatment exception")
             }
+            Self::ZeroScenarioDigest => write!(f, "required scenario digest is an all-zero unset sentinel"),
+            Self::ZeroEvaluatorTruthDigest => write!(f, "evaluator-only truth digest is an all-zero unset sentinel"),
+            Self::ZeroHorizon => write!(f, "scenario evaluation horizon must be greater than zero"),
         }
     }
 }
@@ -332,6 +353,27 @@ impl PairedScenarioBlock {
             || treatment.assignment.level.trim().is_empty()
         {
             return Err(PairError::EmptyFactorLevel);
+        }
+        if control.horizon_ticks == 0 || treatment.horizon_ticks == 0 {
+            return Err(PairError::ZeroHorizon);
+        }
+        let scenario_digests = [
+            control.exogenous_digest,
+            control.initial_state_digest,
+            control.topology_digest,
+            control.model_family_digest,
+            control.time_grid_digest,
+            treatment.exogenous_digest,
+            treatment.initial_state_digest,
+            treatment.topology_digest,
+            treatment.model_family_digest,
+            treatment.time_grid_digest,
+        ];
+        if scenario_digests.iter().any(Digest::is_zero) {
+            return Err(PairError::ZeroScenarioDigest);
+        }
+        if evaluator_truth_digest.is_zero() {
+            return Err(PairError::ZeroEvaluatorTruthDigest);
         }
         if control.block_id != treatment.block_id {
             return Err(PairError::BlockIdMismatch);
@@ -474,7 +516,8 @@ impl ResourceLedger {
         request: ResourceEnvelope,
     ) -> Result<(), LedgerError> {
         let id = commitment_id.into();
-        if id.trim().is_empty() {
+        let id = id.trim().to_owned();
+        if id.is_empty() {
             return Err(LedgerError::EmptyCommitmentId);
         }
         if self.commitment_ids.contains(&id) {
@@ -570,6 +613,38 @@ pub struct OutcomeDelta {
     pub false_dispatches: i128,
 }
 
+/// Error returned when an outcome vector violates a declared value domain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutcomeError {
+    /// Worst-group service performance must be between zero and one million ppm.
+    WorstGroupServiceOutOfRange { value: u64 },
+}
+
+impl fmt::Display for OutcomeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::WorstGroupServiceOutOfRange { value } => write!(
+                f,
+                "worst-group service value {value} ppm exceeds the 0..=1000000 domain"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for OutcomeError {}
+
+impl OutcomeVector {
+    /// Validate the bounded fields in the outcome vector.
+    pub fn validate(&self) -> Result<(), OutcomeError> {
+        if self.worst_group_service_ppm > 1_000_000 {
+            return Err(OutcomeError::WorstGroupServiceOutOfRange {
+                value: self.worst_group_service_ppm,
+            });
+        }
+        Ok(())
+    }
+}
+
 impl OutcomeDelta {
     /// Compute treatment minus control for every outcome, preserving sign.
     pub fn between(control: OutcomeVector, treatment: OutcomeVector) -> Self {
@@ -622,12 +697,17 @@ pub struct PairedOutcomeReceipt {
 
 impl PairedOutcomeReceipt {
     /// Construct a receipt with its signed difference calculated internally.
-    pub fn new(control: OutcomeVector, treatment: OutcomeVector) -> Self {
-        Self {
+    pub fn new(
+        control: OutcomeVector,
+        treatment: OutcomeVector,
+    ) -> Result<Self, OutcomeError> {
+        control.validate()?;
+        treatment.validate()?;
+        Ok(Self {
             control,
             treatment,
             delta: OutcomeDelta::between(control, treatment),
-        }
+        })
     }
 }
 
@@ -669,6 +749,15 @@ pub struct ExecutionIdentity {
     pub runtime_environment: Digest,
 }
 
+/// Whether source bytes have been frozen and content-hash verified.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceSnapshotStatus {
+    /// Source bytes were captured and their digest recorded.
+    Frozen,
+    /// One or more required source bytes have not been snapshotted.
+    NotSnapshotted,
+}
+
 /// A fail-closed provenance receipt.
 ///
 /// Digest is a fixed-size type, so a missing or malformed digest cannot be
@@ -691,6 +780,10 @@ pub enum ReceiptError {
     InvalidCodeCommit,
     /// The solver/runtime version is empty.
     EmptySolverVersion,
+    /// A required digest is an all-zero unset sentinel.
+    ZeroDigest,
+    /// Confirmatory receipts require frozen source bytes.
+    SourceSnapshotNotFrozen,
 }
 
 impl fmt::Display for ReceiptError {
@@ -699,6 +792,8 @@ impl fmt::Display for ReceiptError {
             Self::EmptyCodeCommit => write!(f, "exact code commit identifier is required"),
             Self::InvalidCodeCommit => write!(f, "code commit must be a 40- or 64-character hexadecimal object ID"),
             Self::EmptySolverVersion => write!(f, "solver/runtime version is required"),
+            Self::ZeroDigest => write!(f, "required provenance digest is an all-zero unset sentinel"),
+            Self::SourceSnapshotNotFrozen => write!(f, "source bytes must be snapshotted before a confirmatory receipt can be created"),
         }
     }
 }
@@ -710,7 +805,28 @@ impl ProvenanceReceipt {
     pub fn new(
         digests: ProvenanceDigests,
         execution: ExecutionIdentity,
+        source_snapshot_status: SourceSnapshotStatus,
     ) -> Result<Self, ReceiptError> {
+        if source_snapshot_status != SourceSnapshotStatus::Frozen {
+            return Err(ReceiptError::SourceSnapshotNotFrozen);
+        }
+        let required_digests = [
+            digests.protocol,
+            digests.schema,
+            digests.source_inventory,
+            digests.source_snapshots,
+            digests.model,
+            digests.topology,
+            digests.scenario_generator,
+            digests.scenario,
+            digests.policy,
+            digests.evaluator,
+            digests.output,
+            execution.runtime_environment,
+        ];
+        if required_digests.iter().any(Digest::is_zero) {
+            return Err(ReceiptError::ZeroDigest);
+        }
         if execution.code_commit.trim().is_empty() {
             return Err(ReceiptError::EmptyCodeCommit);
         }
@@ -790,6 +906,36 @@ mod tests {
         assert_eq!(view.control.resources.get(ResourceKind::CrewMinutes), 600);
         assert_eq!(view.treatment.resources.get(ResourceKind::CrewMinutes), 480);
         assert_eq!(block.evaluator_truth_digest(), digest(99));
+    }
+
+    #[test]
+    fn paired_block_rejects_zero_truth_and_zero_horizon() {
+        let resources = envelope([1000, 100, 100, 600, 30, 300, 500, 2]);
+        let control = arm("reactive_only", resources);
+        let treatment = arm("risk_prioritised", resources);
+        assert_eq!(
+            PairedScenarioBlock::new(control.clone(), treatment.clone(), &[], digest(99)),
+            Err(PairError::ZeroScenarioDigest)
+        );
+
+        let mut valid_control = control.clone();
+        valid_control.exogenous_digest = digest(1);
+        let mut valid_treatment = treatment.clone();
+        valid_treatment.exogenous_digest = digest(1);
+        assert_eq!(
+            PairedScenarioBlock::new(
+                valid_control.clone(),
+                valid_treatment.clone(),
+                &[],
+                digest(0)
+            ),
+            Err(PairError::ZeroEvaluatorTruthDigest)
+        );
+        valid_treatment.horizon_ticks = 0;
+        assert_eq!(
+            PairedScenarioBlock::new(valid_control, valid_treatment, &[], digest(99)),
+            Err(PairError::ZeroHorizon)
+        );
     }
 
     #[test]
@@ -893,11 +1039,23 @@ mod tests {
             false_dispatches: 14,
             ..OutcomeVector::default()
         };
-        let receipt = PairedOutcomeReceipt::new(control, treatment);
+        let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
 
         assert_eq!(receipt.delta.essential_shortfall_l, -300);
         assert_eq!(receipt.delta.worst_group_service_ppm, 50_000);
         assert_eq!(receipt.delta.false_dispatches, 4);
+    }
+
+    #[test]
+    fn outcome_receipt_rejects_out_of_range_service_value() {
+        let invalid = OutcomeVector {
+            worst_group_service_ppm: 1_000_001,
+            ..OutcomeVector::default()
+        };
+        assert_eq!(
+            PairedOutcomeReceipt::new(OutcomeVector::default(), invalid),
+            Err(OutcomeError::WorstGroupServiceOutOfRange { value: 1_000_001 })
+        );
     }
 
     #[test]
@@ -920,7 +1078,11 @@ mod tests {
             solver_version: "civbench-experiment-core/0.1.0".to_owned(),
             runtime_environment: digest(12),
         };
-        assert!(ProvenanceReceipt::new(digests, identity).is_ok());
+        assert!(ProvenanceReceipt::new(
+            digests,
+            identity,
+            SourceSnapshotStatus::Frozen
+        ).is_ok());
 
         let missing_commit = ExecutionIdentity {
             code_commit: String::new(),
@@ -928,7 +1090,7 @@ mod tests {
             runtime_environment: digest(12),
         };
         assert_eq!(
-            ProvenanceReceipt::new(digests, missing_commit),
+            ProvenanceReceipt::new(digests, missing_commit, SourceSnapshotStatus::Frozen),
             Err(ReceiptError::EmptyCodeCommit)
         );
 
@@ -938,8 +1100,27 @@ mod tests {
             runtime_environment: digest(12),
         };
         assert_eq!(
-            ProvenanceReceipt::new(digests, invalid_commit),
+            ProvenanceReceipt::new(digests, invalid_commit, SourceSnapshotStatus::Frozen),
             Err(ReceiptError::InvalidCodeCommit)
+        );
+
+        let identity = ExecutionIdentity {
+            code_commit: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+            solver_version: "civbench-experiment-core/0.1.0".to_owned(),
+            runtime_environment: digest(12),
+        };
+        assert_eq!(
+            ProvenanceReceipt::new(digests, identity.clone(), SourceSnapshotStatus::NotSnapshotted),
+            Err(ReceiptError::SourceSnapshotNotFrozen)
+        );
+
+        let zero_digest_set = ProvenanceDigests {
+            source_snapshots: digest(0),
+            ..digests
+        };
+        assert_eq!(
+            ProvenanceReceipt::new(zero_digest_set, identity, SourceSnapshotStatus::Frozen),
+            Err(ReceiptError::ZeroDigest)
         );
     }
 }
