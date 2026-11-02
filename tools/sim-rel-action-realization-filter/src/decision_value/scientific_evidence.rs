@@ -287,6 +287,7 @@ fn validate_statement_structure(
     }
     if !valid_git_commit(&statement.source_commit_sha)
         || !valid_git_commit(&statement.workflow_head_sha)
+        || statement.workflow_head_sha != statement.source_commit_sha
         || !valid_sha256_digest(&statement.source_tree_digest)
         || !valid_sha256_digest(&statement.dependency_lock_digest)
     {
