@@ -116,12 +116,12 @@
       "lhv_mwh_per_tonne": null,
       "tank_included_gravimetric_energy_density_mwh_per_tonne": 0.17,
       "tank_included_volumetric_energy_density_mwh_per_cubic_meter": 0.3,
-      "relative_tank_included_volume_per_delivered_energy_vs_mgo": 33.666666666666664,
+      "relative_tank_included_volume_per_delivered_energy_vs_mgo": null,
       "storage_conditions_as_modelled": "Battery energy-storage system value in RSC study; not a chemical fuel",
       "source_id": "RSC-2026-CONTAINER-SHIPPING-H2-FUELS",
       "evidence_class": "peer_reviewed_literature",
       "uncertainty": null,
-      "interpretation": "Storage-system energy-density reference only. Round-trip losses, usable state-of-charge window, degradation and upstream charging energy must be modeled separately."
+      "interpretation": "Storage-system energy-density reference only. Do not calculate a direct fuel-tank volume ratio against MGO: battery capacity is constrained by usable state-of-charge window, discharge power, round-trip efficiency, degradation and charging-source energy, rather than a combustible-fuel LHV tank. Model battery system mass/volume and delivered service separately."
     }
   ],
   "cross_source_checks": [
