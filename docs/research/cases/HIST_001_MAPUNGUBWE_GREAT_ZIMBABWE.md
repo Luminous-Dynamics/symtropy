@@ -118,6 +118,8 @@ The two K2 estimates are separate subintervals: 125 years and an initial 25-year
 
 **Limit:** these are author-derived estimates, not a census, direct population measurements, or calibrated population trajectories. Their outputs depend on assumed people per homestead, homestead duration, site identification, period boundaries and capital population estimates. They should be used as a published estimate target or prior with sensitivity analysis over the assumptions, not imposed as exact ground truth.
 
+**Sensitivity experiment:** a standalone Rust calculator in [Symtropy PR #3356](https://github.com/Luminous-Dynamics/symtropy/pull/3356) reproduces the published general-population estimates at 50 people per homestead and 50-year homestead use, then sweeps alternative assumptions. It keeps the capital estimates separate. The tests are authored but unexecuted; no improved historical estimate is claimed.
+
 ### H-10 — Baobab chronology and severe-drought sequence
 
 **Source:** Huffman & Woodborne (2021), Table 3, *Baobab climatic sequence and severe droughts recognised in the archaeological record*. DOI: https://doi.org/10.17159/sajs.2021/8980.
