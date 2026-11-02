@@ -1,0 +1,14 @@
+[workspace]
+
+[package]
+name = "civbench-experiment-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic paired-experiment and resource-ledger qualification primitives for CivBench"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
