@@ -31,7 +31,7 @@ The report requires:
 1. At least two saved time steps.
 2. Strictly contiguous `TIME_ITER` values. A missing saved time step is rejected.
 3. The first recorded time step is no later than `WINDOW_START_ITER`.
-4. The last recorded time step reaches at least `WINDOW_START_ITER + CONV_WINDOW_STARTITER + CONV_WINDOW_CAUCHY_ELEMS`. The delay before monitoring and the complete Cauchy-element window are sequential requirements, so their coverage offsets are added rather than collapsed with a maximum.
+4. The last recorded time step reaches at least `WINDOW_START_ITER + max(CONV_WINDOW_STARTITER, CONV_WINDOW_CAUCHY_ELEMS)`. SU2 defines `CONV_WINDOW_STARTITER` as the delay before monitoring after `WINDOW_START_ITER`; `CONV_WINDOW_CAUCHY_ELEMS` is the Cauchy history-window size that accumulates during that delay. They are overlapping minimum coverage requirements, not sequential waits.
 5. Every imported `INNER_ITER` is a positive integer.
 6. Every configured residual is finite and at or below `CONV_RESIDUAL_MINVAL` at every saved time step.
 
