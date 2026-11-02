@@ -19,7 +19,7 @@ pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
     BatchDutyCycleSegment, BatchDutyCycleSegmentResult, FuelFlowObservation, TimeWindow,
 };
-pub use batch_evaluation::{evaluate_fuel_batch, FuelBatchEvaluation};
+pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
