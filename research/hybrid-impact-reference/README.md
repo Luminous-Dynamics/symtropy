@@ -127,3 +127,10 @@ joint impact law and its admissible solution set.
 This avoids epsilon-based timestamp merging, callback-order assumptions and
 false simultaneity from rounded f64 values. The comparison rejects empty event
 IDs, incompatible time bases, invalid intervals and non-finite endpoints.
+
+
+The comparator requires a non-empty external evidence reference on every event
+record. It does not authenticate that receipt itself: callers must verify the
+receipt and only set CertifiedEnclosure after that independent verification.
+A numerical bracket from the bisection locator remains NumericalEstimate until
+a separate sound interval method establishes a certified enclosure.
