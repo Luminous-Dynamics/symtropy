@@ -2976,12 +2976,8 @@ mod double_sliding_direction_oracle {
         const COMMON_DENOMINATOR: i128 = 1_048_576;
 
         let (w, q) = asymmetric_dyadic_double_slide_inputs();
-        let base = build_exact_double_slide_polynomials(
-            w,
-            q,
-            FRICTION_NUMERATORS,
-            COMMON_DENOMINATOR,
-        );
+        let base =
+            build_exact_double_slide_polynomials(w, q, FRICTION_NUMERATORS, COMMON_DENOMINATOR);
 
         // The exact direction equations are affine in all six free-velocity
         // numerators. Form each exact partial derivative as G(q+e_i)-G(q),
@@ -2999,8 +2995,12 @@ mod double_sliding_direction_oracle {
                     COMMON_DENOMINATOR,
                 );
                 [
-                    shifted.tangential_equation_1.sub(base.tangential_equation_1),
-                    shifted.tangential_equation_2.sub(base.tangential_equation_2),
+                    shifted
+                        .tangential_equation_1
+                        .sub(base.tangential_equation_1),
+                    shifted
+                        .tangential_equation_2
+                        .sub(base.tangential_equation_2),
                 ]
             });
 
@@ -3017,12 +3017,14 @@ mod double_sliding_direction_oracle {
             );
             assert_eq!(
                 twice.tangential_equation_1,
-                base.tangential_equation_1.add(direction_equations[coordinate][0].scale(2)),
+                base.tangential_equation_1
+                    .add(direction_equations[coordinate][0].scale(2)),
                 "G1 must be exactly affine in q[{coordinate}]"
             );
             assert_eq!(
                 twice.tangential_equation_2,
-                base.tangential_equation_2.add(direction_equations[coordinate][1].scale(2)),
+                base.tangential_equation_2
+                    .add(direction_equations[coordinate][1].scale(2)),
                 "G2 must be exactly affine in q[{coordinate}]"
             );
         }
