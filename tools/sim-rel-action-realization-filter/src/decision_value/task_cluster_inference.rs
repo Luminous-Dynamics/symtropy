@@ -1417,7 +1417,9 @@ mod tests {
         let result = analyze(&plan, &source, &receipt(clusters())).unwrap();
         assert!(result.abstention_is_descriptive_only);
         assert_eq!(result.endpoint_count, 4);
-        let abstention = result.family_abstention_descriptive.iter()
+        let abstention = result
+            .family_abstention_descriptive
+            .iter()
             .find(|family| family.mechanism_family_id == "sensor-drift")
             .unwrap();
         assert_eq!(abstention.candidate_clusters_with_any_abstention, 1);
