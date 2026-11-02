@@ -228,3 +228,62 @@ The intended assurance composition is therefore:
 5. **Open-world adequacy evaluation:** use sealed physical/mechanism-family holdouts and explicit limits; no finite test family proves universal model adequacy.
 
 A result qualifies only for the layers that actually ran and passed on the exact source, lockfile, input manifest and workflow checkout identity.
+
+
+## 9. 2026 scientific-agent benchmark comparison and lessons (2 November 2026)
+
+| Benchmark | Scale / protocol | Published signal | What Symtropy should learn |
+|---|---|---|---|
+| FIRE-Bench | 30 rediscovery tasks from 2024–2025 ICLR/ICML/NeurIPS papers; three independent trials; atomic claim-level P/R/F1 | Best listed F1 46.7; high run variance; 73.6% of classified errors attributed to flawed planning | Separate planning, implementation, execution and evidence reasoning; measure every run and preserve claim-level evidence |
+| Autonomous Science Bench 0.1 | Six real-lab pilot tasks across biology, chemistry and materials; three trials per task; final discovery and unmeasured-design learning gates | GPT-6 Astra/Codex 72.2%, Opus 5.5/Claude Code 66.7%; authors caution the small gaps are not meaningful at this pilot size | Score design quality and learning on unmeasured designs, cost and decision improvement—not success alone |
+| EmbodiedLab | 30 simulated quantitative experiments, five disciplines, 14 apparatus platforms; instance parameters resampled; instrument readings and apparatus state are part of grading | Strongest native-control configuration below 50% in the paper abstract; apparatus interaction is a major failure source | Require actual readbacks, state transitions and restoration; do not grade only final numerical answers |
+| AgentIdeaBench | 33 matched models, 40 subfields, five disciplines; active retrieval compared with static literature | Active exploration improves feasibility/clarity/specificity; measured originality remains flat | Keep originality and grounding separate; freeze corpus date and verify prior art independently |
+| SciAgentArena | Approximately 200 interactive scientific tasks with stepwise verification | Good performance on well-specified analysis; weak genuine novelty and sustained autonomous exploration | Use long-horizon, agent-agnostic tasks and independent stepwise oracles |
+| OpenScience benchmark | Public scientific-agent benchmark claims | Its 1 Oct 2026 update acknowledges evaluation problems and imperfect cross-agent comparisons, with engineering reruns pending | Do not inherit public leaderboard claims without auditing the harness and rerunning matched tasks |
+
+Primary sources:
+- FIRE-Bench, PMLR 306 (2026): https://proceedings.mlr.press/v306/wang26d.html and https://firebench.github.io/
+- Autonomous Science Bench 0.1 (1 Oct 2026): https://www.autonomous-science-bench.ai/
+- EmbodiedLab (26 Oct 2026): https://arxiv.org/abs/2610.35385
+- AgentIdeaBench (7 Sep 2026): https://arxiv.org/abs/2609.07611
+- SciAgentArena (10 Jun 2026): https://arxiv.org/abs/2606.12736
+- OpenScience benchmark update (1 Oct 2026): https://www.openscience.sh/benchmark
+
+These results use different task pools, harnesses, domains, budgets, trial counts and endpoints. They are not a common leaderboard and their headline percentages must not be directly ranked against each other.
+
+### 9.1 Paradigm shift: discovery claims need a three-axis proof
+
+A scientific agent should not receive one "discovery score" for producing a plausible answer. We should assess three independent properties:
+
+1. **Truth / effect:** did the claimed relationship or outcome survive a preregistered experiment, independent measurement and appropriate statistical analysis?
+2. **Novelty:** was the claim absent from a dated and versioned prior-art corpus under a disclosed search protocol, with expert adjudication of the closest prior work?
+3. **Reproducibility / transfer:** did a different run, operator, apparatus, dataset or laboratory reproduce the effect under a declared independence profile?
+
+A claim can be true but already known; novel-sounding but false; reproduced but non-generalizing; or useful despite being non-novel. These outcomes must remain distinct. "No prior art found" is not a proof of novelty, and a signature/transparency receipt is not proof of scientific truth.
+
+### 9.2 Internal campaign targets
+
+For a serious multi-domain comparison:
+- At least 100 distinct task clusters across five scientific domains (minimum 20 per domain).
+- Five independent repetitions per task cluster by default; ten for high-variance tasks or where a declared reliability bound requires more.
+- Same task instances, seeds, agent panel, model/prompt versions, harness, tools and resource budgets for competing arms.
+- Sealed task-family holdouts excluded from development, prompt tuning, adaptive recipe generation and critic calibration.
+- Report pass@5, pass^5, run-level safe-success rate, any-hazard, any-abstention, completion, evidence quality and cost separately.
+- Compute uncertainty by resampling independent task clusters, never the repetitions within one cluster.
+- Include random, expert/lab workflow and strongest accessible agent baselines under the same interface and budgets.
+- Publish all adverse strata, invalid exclusions, task-level outcomes and reproducible evidence artifacts.
+
+Ambitious internal target (not a current result): at least +10 percentage points against the strongest matched baseline on the preregistered primary cluster-level endpoint, with a positive paired cluster-level 95% interval, no increased cost, and zero false safety certifications in the negative-control suite. A high pass@5 without strong pass^5 is not operational reliability.
+
+## 10. Live research increments (2 November 2026)
+
+| Increment | Research contribution | Latest recorded evidence | Status |
+|---|---|---|---|
+| SIM-REL-041 / PR #3276 | Matched benchmark admission, shared tasks/configs/harness/tools/resource budgets, family-level paired deltas | Exact head `f23bac7a07e375ab462fab08d1725a823a914dd1`; 6 focused / 166 full tests; Clippy, Rust 1.96 fmt, exact-head and clean-tree passed | Qualified branch; draft PR |
+| SIM-REL-042 / PR #3291 | Fixed-sample exact paired sign test, bounded mean-loss interval and Holm family-wise correction | Exact head `9b6ee78884fb8503e3f1c8c71e22745ba07dad0f`; 7 focused / 173 full tests; all qualification gates passed | Qualified branch; draft PR |
+| SIM-REL-043 / PR #3292 | Scientific evidence envelope, content-addressed artifact graph and pluggable COSE/SCITT verification providers | Exact head `c58582fb84cb7386598b677b673fbff8262841a0`; 5 focused / 171 full tests; all qualification gates passed | Qualified structural verifier; draft PR; production cryptography/SCITT wire encoding pending |
+| SIM-REL-044 / PR #3295 | Exact thermal challenge + causal command/actuator/transition/sensor/decision consistency bridge | Exact head `0653344db8c4fa0ec5d0413b3e94560aeed6ce65`; 8 focused / 185 full tests; all qualification gates passed | Qualified finite-model bridge; draft PR; hardware/metrology validation pending |
+| SIM-REL-045 / PR #3299 | Exact-rational anytime-valid paired sign e-process; historical threshold crossings; fixed Bonferroni family allocation | Exact head `57233e3020fd4ef637f64c6d71f858df89aa4f7e`; 7 focused / 192 full tests; all qualification gates passed | Qualified sign-process implementation; draft PR; conditional sign-symmetry assumptions apply |
+| SIM-REL-046 / issue #3300 | Task-clustered repeated-run reliability, pass@k vs pass^k, run success, hazards and abstention | Prior head `9fa331b2f4ee047512239849db435751f4870ea2`: 5 focused / 197 full tests passed. Latest abstention-control edit exposed one stale test expectation; correction is pending requalification. | Active; do not claim latest head qualified |
+
+All PRs remain drafts and no merge is implied. Qualification applies only to the exact SHA and assurance layer listed. The counts above are branch-workflow evidence, not claims of superiority on the external benchmarks.
