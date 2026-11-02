@@ -338,6 +338,46 @@ fn validate_study_identity(study: &Su2GridFamilyStudy) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_mesh_family_invariants(
+    reference_area: Option<f64>,
+    reference_markers: Option<&[String]>,
+    current_area: f64,
+    current_markers: &[String],
+    grid_id: &str,
+) -> Result<(), String> {
+    if !current_area.is_finite() || current_area <= 0.0 {
+        return Err(format!("grid member {grid_id} has invalid total mesh area"));
+    }
+    let current_set = current_markers.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    if current_set.len() != current_markers.len() {
+        return Err(format!("grid member {grid_id} has duplicate mesh marker tags"));
+    }
+    if let Some(reference) = reference_markers {
+        let reference_set = reference.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        if reference_set != current_set {
+            return Err(format!(
+                "grid member {grid_id} changes the mesh marker-tag set"
+            ));
+        }
+    }
+    if let Some(reference_area) = reference_area {
+        if !reference_area.is_finite() || reference_area <= 0.0 {
+            return Err("reference grid has invalid total mesh area".to_owned());
+        }
+        let relative_difference = (current_area - reference_area).abs() / reference_area;
+        if !relative_difference.is_finite()
+            || relative_difference > SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
+        {
+            return Err(format!(
+                "grid member {grid_id} changes total 2D mesh domain area by {:.6e} relative; limit is {:.6e}",
+                relative_difference,
+                SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Replays every member's evidence chain, derives the scalar from the passed monitor window,
 /// and computes GCI only after task/build/config/geometry identity is reconciled.
 pub fn evaluate_su2_grid_family_study(
@@ -413,37 +453,21 @@ pub fn evaluate_su2_grid_family_study(
             ));
         }
         let mesh_summary = inspect_su2_mesh(&mesh_bytes)?;
-        let marker_tags = mesh_summary
+        let mut marker_tags = mesh_summary
             .markers
             .iter()
             .map(|marker| marker.tag.clone())
             .collect::<Vec<_>>();
-        if let Some(reference) = &shared_marker_tags {
-            if reference != &marker_tags {
-                return Err(format!(
-                    "grid member {} changes the mesh marker-tag set",
-                    member.grid_id
-                ));
-            }
-        } else {
-            shared_marker_tags = Some(marker_tags);
-        }
-        if let Some(reference_area) = shared_domain_area {
-            let relative_difference =
-                (mesh_spacing.total_cell_area - reference_area).abs() / reference_area;
-            if !relative_difference.is_finite()
-                || relative_difference > SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
-            {
-                return Err(format!(
-                    "grid member {} changes total 2D mesh domain area by {:.6e} relative; limit is {:.6e}",
-                    member.grid_id,
-                    relative_difference,
-                    SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
-                ));
-            }
-        } else {
-            shared_domain_area = Some(mesh_spacing.total_cell_area);
-        }
+        marker_tags.sort();
+        validate_mesh_family_invariants(
+            shared_domain_area,
+            shared_marker_tags.as_deref(),
+            mesh_spacing.total_cell_area,
+            &marker_tags,
+            &member.grid_id,
+        )?;
+        shared_marker_tags.get_or_insert(marker_tags);
+        shared_domain_area.get_or_insert(mesh_spacing.total_cell_area);
         if let Some(previous) = spacing_metrics.last() {
             if previous.characteristic_spacing <= mesh_spacing.characteristic_spacing {
                 return Err(format!(
@@ -925,6 +949,42 @@ printf 'synthetic solver stdout\n'
                 .contains("coarse-to-fine")
         );
         fs::remove_dir_all(root).expect("remove synthetic study artifacts");
+    }
+
+    #[test]
+    fn mesh_family_invariants_reject_domain_changes_and_marker_set_changes() {
+        let reference_markers = vec!["farfield".to_owned(), "wall".to_owned()];
+        validate_mesh_family_invariants(
+            Some(1.0),
+            Some(&reference_markers),
+            1.0 + 1.0e-12,
+            &["wall".to_owned(), "farfield".to_owned()],
+            "grid-2",
+        )
+        .expect("same domain and marker set accepted");
+
+        assert!(
+            validate_mesh_family_invariants(
+                Some(1.0),
+                Some(&reference_markers),
+                1.01,
+                &reference_markers,
+                "grid-2",
+            )
+            .expect_err("changed domain area rejected")
+            .contains("changes total 2D mesh domain area")
+        );
+        assert!(
+            validate_mesh_family_invariants(
+                Some(1.0),
+                Some(&reference_markers),
+                1.0,
+                &["farfield".to_owned(), "symmetry".to_owned()],
+                "grid-2",
+            )
+            .expect_err("changed marker set rejected")
+            .contains("changes the mesh marker-tag set")
+        );
     }
 
     #[test]
