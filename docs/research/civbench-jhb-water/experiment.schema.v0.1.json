@@ -20,7 +20,8 @@
     "benchmark_targets",
     "provenance_receipt",
     "promotion_gates",
-    "limitations"
+    "limitations",
+    "outcome_contract"
   ],
   "properties": {
     "$schema": {
@@ -410,6 +411,54 @@
       "items": {
         "type": "string"
       }
+    },
+    "outcome_contract": {
+      "type": "object",
+      "required": [
+        "metric_evidence_statuses",
+        "numeric_value_required_for",
+        "numeric_value_absent_for",
+        "missing_value_behavior",
+        "paired_difference",
+        "worst_group_service_ppm_max"
+      ],
+      "properties": {
+        "metric_evidence_statuses": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "numeric_value_required_for": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "numeric_value_absent_for": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_value_behavior": {
+          "const": "no_zero_fill"
+        },
+        "paired_difference": {
+          "type": "string"
+        },
+        "worst_group_service_ppm_max": {
+          "type": "integer",
+          "const": 1000000
+        }
+      },
+      "additionalProperties": false
     }
   },
   "$defs": {
