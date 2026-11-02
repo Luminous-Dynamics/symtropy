@@ -840,16 +840,28 @@ impl SeparatingLeafMessage {
                     .separator_box
                     .intersection(&right_cell.separator_box)
                 {
+                    // Reclassify both local messages on the *intersection*.
+                    // A parent cell may be boundary/inconclusive over its full
+                    // extent while this pairwise intersection lies wholly on a
+                    // strict side of the local regime boundary.
+                    let left_classification = self
+                        .response_over_box(&intersection)
+                        .map(|response| response.classification)
+                        .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
+                    let right_classification = right_message
+                        .response_over_box(&intersection)
+                        .map(|response| response.classification)
+                        .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
                     let classification = Self::composed_classification(
-                        left_cell.classification,
-                        right_cell.classification,
+                        left_classification,
+                        right_classification,
                     );
                     expected.insert(
                         key.clone(),
                         ComposedSeparatorBoxCell {
                             separator_box: intersection,
-                            left_classification: left_cell.classification,
-                            right_classification: right_cell.classification,
+                            left_classification,
+                            right_classification,
                             left_lineage: key.0,
                             right_lineage: key.1,
                             classification,
@@ -924,15 +936,23 @@ impl SeparatingLeafMessage {
                     empty_intersections += 1;
                     continue;
                 };
+                let left_classification = self
+                    .response_over_box(&separator_box)
+                    .map(|response| response.classification)
+                    .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
+                let right_classification = right_message
+                    .response_over_box(&separator_box)
+                    .map(|response| response.classification)
+                    .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
                 cells.push(ComposedSeparatorBoxCell {
                     separator_box,
-                    left_classification: left_cell.classification,
-                    right_classification: right_cell.classification,
+                    left_classification,
+                    right_classification,
                     left_lineage: left_cell.lineage.clone(),
                     right_lineage: right_cell.lineage.clone(),
                     classification: Self::composed_classification(
-                        left_cell.classification,
-                        right_cell.classification,
+                        left_classification,
+                        right_classification,
                     ),
                 });
             }
@@ -1654,6 +1674,57 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
             .compose_separator_partitions(&left_partition, &right_message, &mismatched)
             .is_err()
     );
+}
+
+#[test]
+fn separator_message_composition_reclassifies_strict_subregions_of_boundary_parents() {
+    // The same affine message is partitioned at two different depth budgets.
+    // Its coarse left cell [1,3] straddles u_n=0 at p_n=2.25. The refined
+    // right branch [2.5,3] lies wholly on the negative side. Composition must
+    // tighten the left label on that intersection instead of inheriting the
+    // parent's BoundaryOrInconclusive label.
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.125, 0.0, 0.0),
+    };
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(5.0, 0.5, 0.5),
+    )
+    .unwrap();
+    let coarse = message.partition_separator_box(&root, 1, 32).unwrap();
+    let refined = message.partition_separator_box(&root, 3, 128).unwrap();
+
+    assert_eq!(
+        coarse.cells.iter().find(|cell| cell.lineage == vec![0]).unwrap().classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+    let composed = message
+        .compose_separator_partitions(&coarse, &message, &refined)
+        .unwrap();
+    let tightened = composed
+        .cells
+        .iter()
+        .find(|cell| cell.left_lineage == vec![0] && cell.right_lineage == vec![0, 1, 1])
+        .expect("the coarse/refined source-cell intersection must be retained");
+    assert_eq!(
+        tightened.separator_box.lower[0],
+        2.5
+    );
+    assert_eq!(tightened.separator_box.upper[0], 3.0);
+    assert_eq!(
+        tightened.left_classification,
+        SeparatingBoxClassification::SignoriniViolation
+    );
+    assert_eq!(
+        tightened.right_classification,
+        SeparatingBoxClassification::SignoriniViolation
+    );
+    assert_eq!(
+        tightened.classification,
+        ComposedSeparatorClassification::LocalHypothesisExcluded
+    );
+    assert!(message.verify_composed_partition(&coarse, &message, &refined, &composed));
 }
 
 #[test]
