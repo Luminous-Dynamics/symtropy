@@ -783,7 +783,9 @@ mod tests {
         assert_eq!(candidate.completion_count, 2);
         assert!(candidate.completed_at_least_once);
         assert!(!candidate.completed_every_run);
-        assert_eq!(candidate.safe_success_count, 2);
+        assert_eq!(candidate.safe_success_count, 1);
+        assert!(candidate.pass_at_k);
+        assert!(!candidate.pass_every_k);
         assert!(candidate.any_hazard);
         assert_eq!(candidate.hazard_count, 1);
         assert!(candidate.any_abstention);
