@@ -246,7 +246,7 @@ For each pathway record LHV/HHV basis, GWP time horizon/source, allocation metho
 
 ### 8.1 Marine fuel storage, payload and range
 
-A marine propulsion comparison must include the fuel containment system, not only the fuel's neat LHV or engine efficiency. Use [MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json) for source-attributed screening values.
+A marine propulsion comparison must include the fuel containment system, not only the fuel's neat LHV or engine efficiency. Use [MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json) with [MARINE_FUEL_STORAGE_SCHEMA_2026-11-02.json](data/MARINE_FUEL_STORAGE_SCHEMA_2026-11-02.json) for source-attributed screening values.
 
 The referenced 2026 study reports tank-included volumetric energy density: MGO 10.1 MWh/m³; methanol 4.4; LNG/bio-LNG 3.1; liquid ammonia 2.9; liquid hydrogen 1.3. For equal stored LHV energy these correspond to approximately 2.30×, 3.26×, 3.48× and 7.77× the MGO tank-system volume, respectively. Its tank-included gravimetric values are also retained in the dataset.
 
