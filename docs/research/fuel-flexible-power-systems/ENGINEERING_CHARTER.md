@@ -434,3 +434,26 @@ Report a **flexibility vector**, never one opaque scalar:
 6. **Compliance Envelope:** configuration- and jurisdiction-specific emissions/safety/approval receipts. Planned fuel testing remains planned, not qualified.
 
 A candidate advances only if it expands validated coverage or reduces flexibility overhead without degrading useful service, emissions, safety, durability or lifecycle performance.
+
+## 18. Grid-forming, black-start and resilience are product capabilities
+
+An energy-conversion platform should be assessed as a potential **microgrid resource**, not only as a source of net kWh. The capability to form voltage/frequency, island, black-start, restore staged loads and reconnect safely may be as commercially valuable as a small efficiency gain.
+
+The 2026 IEA energy-innovation review describes grid-forming inverters as deployed in pilots and early utility systems, while standards, protection practices, low-inertia models and multi-vendor interoperability remain active development areas. NREL's hardware test protocol shows how a unit can pass black start yet fail a reported ROCOF test: capability claims must be test-specific, not bundled into a generic "grid-forming" label.
+
+Use the separate [POWER-SYSTEM-RESILIENCE-001 #3418](https://github.com/Luminous-Dynamics/symtropy/issues/3418) workstream for:
+- grid-following / grid-forming mode contracts by topology;
+- black-start from a declared dead-bus state with auxiliaries included;
+- planned / unplanned islanding and reconnection;
+- source loss, load pickup, inrush and overload tests;
+- active/reactive power control, voltage/frequency response, ROCOF and harmonics;
+- fault protection in grid-connected and islanded modes;
+- multi-vendor interaction, communications failure and cyber-safe degraded modes.
+
+The current standards snapshot must distinguish published standards from revision projects:
+- IEEE 2030.7-2017 and IEEE 2030.8-2018 are the published microgrid-controller specification/testing editions; P2030.7 (approved 27 March 2025) and P2030.8 (approved 26 March 2026) are active revision projects, not published replacement standards.
+- IEEE 2030.12-2025 is an active microgrid-protection guide, published 23 October 2025.
+- IEEE P3710.1 is an active project (approved 26 March 2026) for 300–1500 V DC distribution design in data centres.
+- OCP Power Distribution published LVDC white-paper version 1.1.0 in September 2026; it is an open ecosystem reference, not a statutory code.
+
+Use exact source editions and site utility/mission requirements for acceptance. The system model may support architecture comparison, but no bookkeeping PASS establishes black-start capability, grid-forming performance, protection coordination, cybersecurity, interconnection approval or operational permission.
