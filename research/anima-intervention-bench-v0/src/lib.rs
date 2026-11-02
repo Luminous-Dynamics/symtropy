@@ -399,9 +399,17 @@ pub struct PredictionScore {
     pub coverage_90: f64,
 }
 
-fn gaussian_log_density(value: f64, mean: f64, standard_deviation: f64) -> f64 {
+fn gaussian_log_density(value: f64, mean: f64, standard_deviation: f64) -> Option<f64> {
+    if !value.is_finite()
+        || !mean.is_finite()
+        || !standard_deviation.is_finite()
+        || standard_deviation <= 0.0
+    {
+        return None;
+    }
     let z = (value - mean) / standard_deviation;
-    -LOG_SQRT_2PI - standard_deviation.ln() - 0.5 * z * z
+    let log_density = -LOG_SQRT_2PI - standard_deviation.ln() - 0.5 * z * z;
+    log_density.is_finite().then_some(log_density)
 }
 
 fn validate_prediction_join<'a>(
@@ -488,7 +496,10 @@ pub fn score_model_family(
             observation.observed_value,
             prediction.mean,
             prediction.standard_deviation,
-        );
+        )
+        .ok_or_else(|| BenchError::InvalidPrediction {
+            sample_id: observation.sample_id.clone(),
+        })?;
         let lower = prediction.mean - NORMAL_90 * prediction.standard_deviation;
         let upper = prediction.mean + NORMAL_90 * prediction.standard_deviation;
         if (lower..=upper).contains(&observation.observed_value) {
@@ -578,13 +589,24 @@ pub fn paired_cluster_bootstrap_log_score(
             observation.observed_value,
             candidate[observation.sample_id.as_str()].mean,
             candidate[observation.sample_id.as_str()].standard_deviation,
-        );
+        )
+        .ok_or_else(|| BenchError::InvalidPrediction {
+            sample_id: observation.sample_id.clone(),
+        })?;
         let baseline_score = gaussian_log_density(
             observation.observed_value,
             baseline[observation.sample_id.as_str()].mean,
             baseline[observation.sample_id.as_str()].standard_deviation,
-        );
+        )
+        .ok_or_else(|| BenchError::InvalidPrediction {
+            sample_id: observation.sample_id.clone(),
+        })?;
         let delta = candidate_score - baseline_score;
+        if !delta.is_finite() {
+            return Err(BenchError::InvalidPrediction {
+                sample_id: observation.sample_id.clone(),
+            });
+        }
         total_delta += delta;
         clusters
             .entry(observation.individual_id.as_str())
@@ -668,7 +690,10 @@ fn log_sum_exp(values: &[f64]) -> f64 {
     maximum + values.iter().map(|value| (value - maximum).exp()).sum::<f64>().ln()
 }
 
-fn gaussian_log_density_scalar(value: f64, distribution: &ModelOutcomeDistribution) -> f64 {
+fn gaussian_log_density_scalar(
+    value: f64,
+    distribution: &ModelOutcomeDistribution,
+) -> Option<f64> {
     gaussian_log_density(value, distribution.mean, distribution.standard_deviation)
 }
 
@@ -715,14 +740,30 @@ pub fn estimate_expected_information_gain(
 
     for (origin_index, origin) in predictions.iter().enumerate() {
         for _ in 0..samples_per_model {
-            let outcome =
-                origin.mean + origin.standard_deviation * rng.standard_normal();
+            let outcome = origin.mean + origin.standard_deviation * rng.standard_normal();
+            if !outcome.is_finite() {
+                return Err(BenchError::InvalidModelDistribution {
+                    intervention_id: "<direct-estimate>".to_string(),
+                    model_id: origin.model_family_id.clone(),
+                });
+            }
             let log_likelihoods: Vec<f64> = predictions
                 .iter()
                 .map(|distribution| gaussian_log_density_scalar(outcome, distribution))
-                .collect();
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| BenchError::InvalidModelDistribution {
+                    intervention_id: "<direct-estimate>".to_string(),
+                    model_id: origin.model_family_id.clone(),
+                })?;
             let log_marginal = log_sum_exp(&log_likelihoods) + log_prior;
-            information += log_likelihoods[origin_index] - log_marginal;
+            let contribution = log_likelihoods[origin_index] - log_marginal;
+            if !contribution.is_finite() {
+                return Err(BenchError::InvalidModelDistribution {
+                    intervention_id: "<direct-estimate>".to_string(),
+                    model_id: origin.model_family_id.clone(),
+                });
+            }
+            information += contribution;
         }
     }
 
@@ -1068,6 +1109,18 @@ mod tests {
     }
 
     #[test]
+    fn extreme_gaussian_tail_is_rejected_instead_of_scored_as_infinity() {
+        let mut rows = observations();
+        rows[0].observed_value = f64::MAX;
+        let mut preds = predictions("model-a", &rows, 0.0, 0.5);
+        preds[0].mean = -f64::MAX;
+        assert!(matches!(
+            score_model_family("model-a", &preds, &rows),
+            Err(BenchError::InvalidPrediction { .. })
+        ));
+    }
+
+    #[test]
     fn invalid_prediction_scale_is_rejected() {
         let rows = observations();
         let mut preds = predictions("model-a", &rows, 0.0, 0.5);
@@ -1160,6 +1213,24 @@ mod tests {
         assert_eq!(ranked.len(), 2);
         assert_eq!(ranked[0].intervention_id, "local-inhibitory-ablation");
         assert!(ranked[0].information_gain_per_cost > ranked[1].information_gain_per_cost);
+    }
+
+    #[test]
+    fn intervention_ranking_rejects_all_infeasible_candidates() {
+        let mut candidate = InterventionCandidate {
+            intervention_id: "infeasible-a".to_string(),
+            cost_units: 1.0,
+            feasible: false,
+            predictions: vec![
+                distribution("model-a", 0.0, 1.0),
+                distribution("model-b", 1.0, 1.0),
+            ],
+        };
+        candidate.intervention_id = "infeasible-b".to_string();
+        assert!(matches!(
+            rank_interventions(&[candidate], 1000, 12),
+            Err(BenchError::NoFeasibleIntervention)
+        ));
     }
 
     #[test]
