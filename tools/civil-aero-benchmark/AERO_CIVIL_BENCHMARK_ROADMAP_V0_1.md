@@ -278,8 +278,9 @@ The previously separate SU2 run-lineage and grid-convergence paths now compose t
 GCI is therefore no longer fed arbitrary caller-entered force coefficients in this path: the selected scalar is computed from the imported history monitor values. The study preserves every sliding coarse/medium/fine GCI triplet in a separate CSV; its member-level CSV binds each run lineage and the complete GCI-report digest.
 
 Limitations remain explicit:
-- characteristic spacing (h) is still caller supplied and only its definition/value are bound; derive it from mesh semantics next;
-- the protocol manifest digest is caller supplied, not source authenticated;
+- the 2D lane now derives characteristic spacing as (h=\sqrt{A_{total}/N_{cells}}) from exact mesh bytes, restricted to linear triangles/quadrilaterals; total domain area and mesh marker-tag set must remain invariant across the family within a declared relative area tolerance;
+- 3D volume-based spacing, systematic/topological nesting, anisotropy, skewness, orthogonality, wall-distance/y+ and boundary-layer-resolution checks remain future work;
+- coordinate units and the protocol-manifest digest remain caller declarations, not independently source-authenticated;
 - the convergence screen only evaluates explicitly declared equations and monitors;
 - passing a terminal monitor screen is not equivalent to all solver equations, conservation laws, or time-dependent behavior being converged;
 - GCI is not experimental validation or model-form validation.
