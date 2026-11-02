@@ -69,3 +69,39 @@ The branch workflow must run pinned Rust 1.96 formatting, focused tests, full lo
 The adapter output describes outcomes under a declared repeated-run harness. It does not authenticate the agent stochastic seed generator, establish independence between task instances, correct for task-selection bias, or prove real-world reliability.
 
 The distinction between task instance and run repetition is enforced structurally; the scientific sampling frame and independence assumptions still need to be justified by benchmark design.
+
+## 8. External benchmark context (2 November 2026)
+
+The repeated-run layer is motivated by observed limitations in current scientific-agent evaluations:
+
+- **FIRE-Bench** uses 30 tasks derived from ICLR/ICML/NeurIPS papers, three independent trials and claim-level precision/recall/F1. Its published leaderboard's top reported F1 is 46.7, and the authors report high run-to-run variance and 73.6% of errors attributed to flawed planning. This is a rediscovery benchmark, not an open-novelty or live-lab replication benchmark. See https://proceedings.mlr.press/v306/wang26d.html and https://firebench.github.io/.
+- **Autonomous Science Bench 0.1** has six real laboratory workflow pilots (two each in biology, chemistry and materials) and three trials per task. Its page reports GPT-6 Astra/Codex at 72.2% and Opus 5.5/Claude Code at 66.7%, with respective total costs of $190 and $173; the authors explicitly caution that small gaps are not meaningful with only three trials per task. Its two final gates separate discovery from learning/ranking on designs not measured. See https://www.autonomous-science-bench.ai/.
+- **EmbodiedLab** uses 30 simulated experiments across five disciplines and 14 apparatus platforms, with per-instance parameters resampled and knowledge claims grounded in instrument readings and required apparatus state. The paper reports that the strongest native-control configuration succeeds less than half the time; failures are commonly in apparatus interaction. See https://arxiv.org/abs/2610.35385.
+- **AgentIdeaBench** evaluates 33 matched models over 40 subfields and five disciplines with static versus active literature exploration. Active retrieval improves feasibility, clarity and specificity, while measured originality remains unchanged. Therefore retrieval grounding must not be used as a proxy for novelty. See https://arxiv.org/abs/2609.07611.
+- **SciAgentArena** reports approximately 200 interactive tasks with stepwise verification and finds that agents still struggle with genuinely novel insights and sustained self-directed exploration. See https://arxiv.org/abs/2606.12736.
+- **OpenScience's 1 October 2026 update** acknowledges issues in its evaluation setup and imperfect comparisons on some benchmarks, with weaker engineering-task results pending a harness correction and rerun. Treat uncorrected public leaderboard leads cautiously. See https://www.openscience.sh/benchmark.
+
+These scores are not directly comparable: they differ in task pool, harness, domain, number of trials, budgets and final-gate semantics. SIM-REL-046 does not normalize them into a synthetic cross-benchmark ranking.
+
+## 9. Recommended benchmark design and targets
+
+Use four distinct tracks and publish a vector, not one opaque composite:
+
+1. **Rediscovery:** blinded high-level questions, independently executable experiments, atomic claim-level precision/recall, and full research-cycle attribution (FIRE-Bench style).
+2. **Active novelty:** active literature search against a time-frozen prior-art corpus, originality scored separately from feasibility and specificity, then later independent experimental verification (AgentIdeaBench lesson).
+3. **Act-to-know:** agent-chosen procedure, apparatus interaction, valid instrument readings, exact physical outcome, and apparatus restoration (EmbodiedLab lesson).
+4. **Closed-loop discovery and learning:** optimize measured designs and predict/rank unmeasured designs under the same budget (Autonomous Science Bench lesson).
+
+Internal minimum design target for a serious comparative campaign:
+- at least 100 distinct task clusters across at least five scientific domains, with at least 20 clusters per domain;
+- five independent repetitions per task cluster as the normal setting; ten for high-variance tasks or where a reliability bound requires them;
+- identical task instances, repetition seeds, agent panel, model/prompt configuration, harness, toolset and resource budgets for both arms;
+- family-stratified SealedHoldout clusters not used for development, prompt tuning, recipe refinement or prior-art critic calibration;
+- publish every cluster, all repetitions, invalid exclusions, cost, hazards, abstentions and run-level evidence artifacts;
+- compute uncertainty by resampling distinct task clusters, never by treating repetitions from the same cluster as independent;
+- include random, expert/lab workflow and strong public-agent baselines under the same API and budget;
+- report success-quality, reliability, cost and safety as separate axes.
+
+Ambitious internal target (not a current result): exceed the strongest matched baseline by at least 10 percentage points on the primary cluster-level endpoint, with a positive cluster-level 95% interval for the paired improvement, while matching or lowering cost and maintaining zero false safety certifications in the declared negative-control suite. For repeatability, target both high pass@5 and high pass^5; a high pass@5 with weak pass^5 is not dependable autonomy.
+
+Do not call a model/agent "SOTA" because it leads on six tasks, because one lucky run solved a task, or because an LLM judge prefers its report. A superiority claim requires the common task pool, matched resources, frozen versions, task-cluster statistical unit, repeated-run reliability, adverse-stratum reporting and independently verified outcome artifacts.
