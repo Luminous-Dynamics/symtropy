@@ -33,9 +33,11 @@ DOI: https://doi.org/10.17159/sajs.2021/8980
 
 The paper reports more than 500 Middle Iron Age sites dated broadly to AD 900–1320 and 15 new accelerator-mass-spectrometry dates from 11 archaeological sites. These dates help establish boundaries between ceramic facies and inform research on land use, population dynamics, social differentiation and rainfall fluctuations.
 
-**Data requirements:** individual sample identifier, material, site, stratigraphic context, measured radiocarbon age, uncertainty, calibration curve/version, calibrated probability distribution, laboratory metadata, publication/table/figure reference, and any alternative calibration interpretation.
+**Current transcription fixture:** [HIST_001_AMS_TABLE1_TRANSCRIPTION_V0_1.json](HIST_001_AMS_TABLE1_TRANSCRIPTION_V0_1.json) records the 15 Table 1 rows, including all listed SHCal20 1σ intervals and the source's struck-through/retained status. It is marked `transcribed_not_independently_reviewed`; it is a table transcription, not raw laboratory data or a calibrated probability distribution. Source-PDF and table-image digests remain null because the exact bytes have not yet been snapshotted.
 
-**Limit:** do not collapse a calibrated, potentially multimodal date distribution into one exact calendar year. Do not infer population size directly from site counts without a sampling/detection model.
+**Source-internal discrepancy:** Table 1 reports IT-C-785 as 660 ± 52 BP, while a later paragraph in the same article refers to the same lab identifier as 650 ± 52 BP. Both statements are preserved in the transcription artifact's `source_internal_discrepancies`; the table value remains the Table 1 transcription, not a resolution of the source conflict. Do not average or silently select either number.
+
+**Limit:** do not collapse a calibrated, potentially multimodal date distribution into one exact calendar year. Do not infer population size directly from site counts without a sampling/detection model. The published Table 1's crossed-out intervals are author-eliminated options, not calibrated posterior weights.
 
 7. What happened in the Limpopo Valley after Mapungubwe's abandonment, and how should later Sotho/Icon and Kalanga/Khami occupation patterns be represented without treating the region as empty?
 
