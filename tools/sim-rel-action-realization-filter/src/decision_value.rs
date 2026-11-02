@@ -21,6 +21,7 @@ pub mod robust_finite_horizon;
 pub mod scientific_challenge;
 pub mod scientific_evidence;
 pub mod sequential_conformal;
+pub mod task_cluster_inference;
 
 use super::{
     ActionRealizationKernel, BeliefMass, FilterError, ObservationField, PosteriorMass,
