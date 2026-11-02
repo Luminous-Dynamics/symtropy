@@ -1548,9 +1548,12 @@ fn separating_leaf_box_partition_retains_unresolved_budget_and_unsplittable_fron
         SeparatingBoxClassification::BoundaryOrInconclusive
     );
 
+    // The exact transition for u_n = 1 - p_n/2 is p_n=2.
+    // Adjacent representable values at the transition have no interior
+    // midpoint and their outward normal-velocity enclosure contains zero.
     let adjacent = SeparatorImpulseBox::new(
-        SVector::<f64, 3>::new(1.0, 0.0, 0.0),
-        SVector::<f64, 3>::new(f64::from_bits(1.0_f64.to_bits() + 1), 0.0, 0.0),
+        SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+        SVector::<f64, 3>::new(f64::from_bits(2.0_f64.to_bits() + 1), 0.0, 0.0),
     )
     .unwrap();
     let no_midpoint = message.partition_separator_box(&adjacent, 8, 16).unwrap();
