@@ -322,12 +322,16 @@ pub fn estimate_coverage(
             ) {
                 covered_samples += 1;
                 visible_samples += 1;
+                let incidence_cosine = triangle_normal.dot(direction).abs().clamp(0.0, 1.0);
+                incidence_weighted_area_m2 += sample_area_m2 * incidence_cosine;
+                if incidence_cosine >= config.min_incidence_cosine {
+                    favorable_incidence_samples += 1;
+                    favorable_incidence_area_m2 += sample_area_m2;
+                }
             }
         }
 
-        let covered_area = area_m2
-            * covered_samples as f64
-            / config.samples_per_triangle as f64;
+        let covered_area = sample_area_m2 * covered_samples as f64;
         estimated_covered_area_m2 += covered_area;
         triangle_results.push(TriangleCoverage {
             triangle_index,
