@@ -832,7 +832,12 @@ mod tests {
 
     fn fixture_run(root: &Path, configured_field: &str, inventory: &str) -> PathBuf {
         let configuration = format!(
-            "SOLVER= NAVIER_STOKES\\nCONV_FIELD= {configured_field}\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nTIME_DOMAIN= NO\nWINDOW_CAUCHY_CRIT= NO\\n"
+            r#"SOLVER= NAVIER_STOKES
+CONV_FIELD= {configured_field}
+HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+TIME_DOMAIN= NO
+WINDOW_CAUCHY_CRIT= NO
+"#
         );
         fixture_run_with_config(root, &configuration, inventory)
     }
