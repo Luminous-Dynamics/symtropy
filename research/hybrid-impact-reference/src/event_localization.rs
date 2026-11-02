@@ -5,7 +5,7 @@
 //! closed-form solution is used only as an external reference in tests and
 //! benchmark analysis.
 
-use super::{ImpactError, ImpactParameters, first_impact};
+use super::{ImpactError, ImpactParameters, validate_impact_parameters};
 
 /// Input or model error when establishing an impact bracket.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,7 +93,7 @@ pub fn bisect_first_impact(
     position_tolerance_m: f64,
     max_iterations: u32,
 ) -> Result<ImpactLocalization, LocalizationError> {
-    first_impact(parameters).map_err(LocalizationError::InvalidModel)?;
+    validate_impact_parameters(parameters).map_err(LocalizationError::InvalidModel)?;
 
     if !lower_time_s.is_finite() || !upper_time_s.is_finite() {
         return Err(LocalizationError::NonFiniteTimeBound);
