@@ -514,5 +514,23 @@
     "Acquire the source PDF bytes and compute a SHA-256 digest before marking the source snapshot ingested.",
     "Keep all alternative calibrated ranges and strike-through decisions explicit in the downstream interval model.",
     "Do not treat the printed means as a substitute for calibration probability distributions."
+  ],
+  "source_internal_discrepancies": [
+    {
+      "discrepancy_id": "HIST001-AMS-IT-C-785-BP-001",
+      "record_id": "HIST001-AMS-T1-01",
+      "laboratory_identifier": "IT-C-785",
+      "field": "radiocarbon_age_bp",
+      "table_value": 660,
+      "table_value_sigma": 52,
+      "table_locator": "Table 1, PDF page 3, table row for Weipe508 VII/C1/4, immediately before SHCal20 ranges",
+      "narrative_value": 650,
+      "narrative_value_sigma": 52,
+      "narrative_locator": "PDF page 4, paragraph beginning 'Dates from Weipe508 (IT-C-785, BP 650±52; and Pta-9549...)'",
+      "handling": "Preserve both values as conflicting source statements. The transcribed row remains 660±52 because this artifact is a transcription of Table 1. Do not silently choose, average, or fit either value as the definitive laboratory result until the authors/laboratory record resolve the discrepancy.",
+      "evidence_class": "source_internal_conflict",
+      "resolution_status": "unresolved",
+      "follow_up": "Check laboratory certificate / author clarification and preserve any correction as a versioned superseding source claim."
+    }
   ]
 }
