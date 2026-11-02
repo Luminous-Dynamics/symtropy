@@ -561,7 +561,7 @@ pub fn request_to_csv(request: &ClaimRequest) -> String {
         request.scope_sha256.clone(),
     ];
     format!(
-        "{header}\\n{}\\n",
+        "{header}\n{}\n",
         fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
     )
 }
@@ -574,7 +574,7 @@ pub fn evidence_manifest_to_csv(evidence: &[ScopedEvidence]) -> Result<String, S
         }
     }
     let header = "kind,scope_sha256,assertion_status,artifact_sha256,verifier_id,verifier_sha256,verifier_receipt_sha256,reason";
-    let mut output = format!("{header}\\n");
+    let mut output = format!("{header}\n");
     for (kind, item) in ordered {
         let (status, artifact, verifier_id, verifier, receipt, reason) =
             match &item.assertion {
@@ -611,7 +611,7 @@ pub fn evidence_manifest_to_csv(evidence: &[ScopedEvidence]) -> Result<String, S
         output.push_str(
             &fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(","),
         );
-        output.push('\\n');
+        output.push('\n');
     }
     Ok(output)
 }
