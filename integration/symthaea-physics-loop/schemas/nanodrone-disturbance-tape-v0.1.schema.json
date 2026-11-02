@@ -54,7 +54,7 @@
     },
     "synthetic_disturbance_payload": {
       "type": "string",
-      "pattern": "^SYNTHETIC_TAPE_ONLY\\\\|.+"
+      "pattern": "^SYNTHETIC_TAPE_ONLY\\|.+"
     },
     "claim_ceiling": {
       "const": "fixture_byte_integrity_only_no_simulator_origin_or_rng_state_attestation"
