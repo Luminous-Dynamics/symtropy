@@ -786,7 +786,7 @@ pub fn rank_interventions(
     samples_per_model: usize,
     seed: u64,
 ) -> Result<Vec<InterventionRanking>, BenchError> {
-    if samples_per_model < 100 {
+    if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
         return Err(BenchError::InvalidMonteCarloSamples);
     }
     if candidates.is_empty() {
