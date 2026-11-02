@@ -330,16 +330,22 @@ impl ExactLinkRatio {
         let common = gcd_u128(self.denominator, other.denominator);
         let left_factor = other.denominator / common;
         let right_factor = self.denominator / common;
-        let left = self.numerator.checked_mul(i128::try_from(left_factor).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("ratio factor exceeds i128".into())
-        })?).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("ratio numerator overflow".into())
-        })?;
-        let right = other.numerator.checked_mul(i128::try_from(right_factor).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("ratio factor exceeds i128".into())
-        })?).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("ratio numerator overflow".into())
-        })?;
+        let left = self
+            .numerator
+            .checked_mul(i128::try_from(left_factor).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow("ratio factor exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio numerator overflow".into())
+            })?;
+        let right = other
+            .numerator
+            .checked_mul(i128::try_from(right_factor).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow("ratio factor exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio numerator overflow".into())
+            })?;
         let numerator = left.checked_add(right).ok_or_else(|| {
             AnchorEquatingError::ArithmeticOverflow("ratio addition overflow".into())
         })?;
@@ -360,9 +366,12 @@ impl ExactLinkRatio {
         let numerator = self.numerator.checked_mul(other.numerator).ok_or_else(|| {
             AnchorEquatingError::ArithmeticOverflow("ratio multiplication overflow".into())
         })?;
-        let denominator = self.denominator.checked_mul(other.denominator).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("ratio denominator overflow".into())
-        })?;
+        let denominator = self
+            .denominator
+            .checked_mul(other.denominator)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio denominator overflow".into())
+            })?;
         Self::new(numerator, denominator)
     }
 
@@ -373,15 +382,21 @@ impl ExactLinkRatio {
             ));
         }
         let sign = if other.numerator < 0 { -1i128 } else { 1i128 };
-        let numerator = self.numerator
+        let numerator = self
+            .numerator
             .checked_mul(i128::try_from(other.denominator).map_err(|_| {
                 AnchorEquatingError::ArithmeticOverflow("ratio denominator exceeds i128".into())
             })?)
             .and_then(|value| value.checked_mul(sign))
-            .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow("ratio division overflow".into()))?;
-        let denominator = self.denominator
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio division overflow".into())
+            })?;
+        let denominator = self
+            .denominator
             .checked_mul(other.numerator.unsigned_abs())
-            .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow("ratio denominator overflow".into()))?;
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio denominator overflow".into())
+            })?;
         Self::new(numerator, denominator)
     }
 
@@ -409,7 +424,8 @@ impl ExactLinkRatio {
 
     fn variance(values: &[Self]) -> Result<Self, AnchorEquatingError> {
         let mean = Self::mean(values)?;
-        let squares = values.iter()
+        let squares = values
+            .iter()
             .map(Self::checked_square)
             .collect::<Result<Vec<_>, _>>()?;
         let mean_square = Self::mean(&squares)?;
@@ -422,16 +438,26 @@ impl ExactLinkRatio {
                 "ratio denominator must be positive".into(),
             ));
         }
-        let left = self.numerator.checked_mul(i128::try_from(other.denominator).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("ratio comparison denominator exceeds i128".into())
-        })?).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("ratio comparison overflow".into())
-        })?;
-        let right = other.numerator.checked_mul(i128::try_from(self.denominator).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("ratio comparison denominator exceeds i128".into())
-        })?).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("ratio comparison overflow".into())
-        })?;
+        let left = self
+            .numerator
+            .checked_mul(i128::try_from(other.denominator).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow(
+                    "ratio comparison denominator exceeds i128".into(),
+                )
+            })?)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio comparison overflow".into())
+            })?;
+        let right = other
+            .numerator
+            .checked_mul(i128::try_from(self.denominator).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow(
+                    "ratio comparison denominator exceeds i128".into(),
+                )
+            })?)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("ratio comparison overflow".into())
+            })?;
         Ok(left.cmp(&right))
     }
 }
@@ -448,9 +474,8 @@ fn exact_mean_interval(
     })?;
     let centre_lower = floor_div_signed(scaled, denominator);
     let centre_upper = ceil_div_signed(scaled, denominator);
-    let n = u128::try_from(sample_count).map_err(|_| {
-        AnchorEquatingError::ArithmeticOverflow("sample count exceeds u128".into())
-    })?;
+    let n = u128::try_from(sample_count)
+        .map_err(|_| AnchorEquatingError::ArithmeticOverflow("sample count exceeds u128".into()))?;
     if n == 0 {
         return Err(AnchorEquatingError::InvalidRatio(
             "mean interval requires a non-empty sample".into(),
@@ -459,7 +484,9 @@ fn exact_mean_interval(
     let radius_square = ceil_div_u128(SQRT_RADIUS_NUMERATOR, n);
     let radius = integer_sqrt_ceil(radius_square)?
         .checked_mul(2)
-        .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow("interval radius overflow".into()))?;
+        .ok_or_else(|| {
+            AnchorEquatingError::ArithmeticOverflow("interval radius overflow".into())
+        })?;
     let radius = i128::try_from(radius).map_err(|_| {
         AnchorEquatingError::ArithmeticOverflow("interval radius exceeds i128".into())
     })?;
@@ -478,7 +505,11 @@ fn exact_mean_interval(
 fn floor_div_signed(numerator: i128, denominator: i128) -> i128 {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
-    if remainder < 0 { quotient - 1 } else { quotient }
+    if remainder < 0 {
+        quotient - 1
+    } else {
+        quotient
+    }
 }
 
 fn ceil_div_signed(numerator: i128, denominator: i128) -> i128 {
@@ -507,9 +538,9 @@ fn integer_sqrt_floor(value: u128) -> Result<u128, AnchorEquatingError> {
 
 fn integer_sqrt_ceil(value: u128) -> Result<u128, AnchorEquatingError> {
     let floor = integer_sqrt_floor(value)?;
-    let square = floor.checked_mul(floor).ok_or_else(|| {
-        AnchorEquatingError::ArithmeticOverflow("integer square overflow".into())
-    })?;
+    let square = floor
+        .checked_mul(floor)
+        .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow("integer square overflow".into()))?;
     if square == value {
         Ok(floor)
     } else {
@@ -519,10 +550,7 @@ fn integer_sqrt_ceil(value: u128) -> Result<u128, AnchorEquatingError> {
     }
 }
 
-fn validate_form(
-    form: &BenchmarkFormIdentity,
-    label: &str,
-) -> Result<(), AnchorEquatingError> {
+fn validate_form(form: &BenchmarkFormIdentity, label: &str) -> Result<(), AnchorEquatingError> {
     for (value, field) in [
         (&form.form_id, "form ID"),
         (&form.benchmark_id, "benchmark ID"),
@@ -580,7 +608,9 @@ fn validate_plan(plan: &AnchorLinkingPlan) -> Result<(), AnchorEquatingError> {
     }
     if plan.maximum_per_anchor_response_disagreement.denominator == 0
         || plan.maximum_per_anchor_response_disagreement.numerator < 0
-        || plan.maximum_per_anchor_response_disagreement.compare(&ExactLinkRatio::new(1, 1)?)?
+        || plan
+            .maximum_per_anchor_response_disagreement
+            .compare(&ExactLinkRatio::new(1, 1)?)?
             == std::cmp::Ordering::Greater
     {
         return Err(AnchorEquatingError::InvalidPlan(
@@ -599,9 +629,15 @@ fn validate_plan(plan: &AnchorLinkingPlan) -> Result<(), AnchorEquatingError> {
     let mut strata = BTreeSet::new();
     for requirement in &plan.required_anchor_strata {
         require_id(&requirement.domain_id, "anchor domain stratum")?;
-        require_id(&requirement.mechanism_family_id, "anchor mechanism-family stratum")?;
+        require_id(
+            &requirement.mechanism_family_id,
+            "anchor mechanism-family stratum",
+        )?;
         if requirement.minimum_anchor_count == 0
-            || !strata.insert((requirement.domain_id.clone(), requirement.mechanism_family_id.clone()))
+            || !strata.insert((
+                requirement.domain_id.clone(),
+                requirement.mechanism_family_id.clone(),
+            ))
         {
             return Err(AnchorEquatingError::InvalidPlan(
                 "anchor strata must be unique and require a positive anchor count".into(),
@@ -611,7 +647,9 @@ fn validate_plan(plan: &AnchorLinkingPlan) -> Result<(), AnchorEquatingError> {
     let mut agent_strata = BTreeSet::new();
     for requirement in &plan.required_agent_strata {
         require_id(&requirement.agent_stratum_id, "reference agent stratum")?;
-        if requirement.minimum_agent_count == 0 || !agent_strata.insert(requirement.agent_stratum_id.clone()) {
+        if requirement.minimum_agent_count == 0
+            || !agent_strata.insert(requirement.agent_stratum_id.clone())
+        {
             return Err(AnchorEquatingError::InvalidPlan(
                 "reference-agent strata must be unique and require a positive agent count".into(),
             ));
@@ -649,7 +687,10 @@ fn validate_anchor_identity(
     for (value, field) in [
         (&anchor.task_public_digest, "public task"),
         (&anchor.sealed_oracle_commitment_digest, "oracle commitment"),
-        (&anchor.oracle_verification_receipt_digest, "oracle verification receipt"),
+        (
+            &anchor.oracle_verification_receipt_digest,
+            "oracle verification receipt",
+        ),
         (&anchor.environment_digest, "anchor environment"),
         (&anchor.concept_digest, "concept"),
         (&anchor.recipe_template_digest, "recipe template"),
@@ -659,9 +700,7 @@ fn validate_anchor_identity(
     Ok(())
 }
 
-fn response_key(
-    response: &AnchorResponseObservation,
-) -> (String, String, String, usize) {
+fn response_key(response: &AnchorResponseObservation) -> (String, String, String, usize) {
     (
         response.anchor_id.clone(),
         response.agent_id.clone(),
@@ -680,7 +719,10 @@ fn score_map(
     for score in scores {
         require_id(&score.agent_id, "reference agent ID")?;
         require_id(&score.agent_stratum_id, "reference agent stratum")?;
-        require_digest(&score.agent_configuration_digest, "reference agent configuration")?;
+        require_digest(
+            &score.agent_configuration_digest,
+            "reference agent configuration",
+        )?;
         require_digest(&score.reference_panel_digest, "reference panel digest")?;
         require_digest(&score.score_evidence_digest, "reference score evidence")?;
         if score.form_id != form.form_id
@@ -697,14 +739,18 @@ fn score_map(
             score.agent_id.clone(),
             ExactLinkRatio::new(
                 i128::try_from(score.safe_success_count).map_err(|_| {
-                    AnchorEquatingError::ArithmeticOverflow("safe-success count exceeds i128".into())
+                    AnchorEquatingError::ArithmeticOverflow(
+                        "safe-success count exceeds i128".into(),
+                    )
                 })?,
                 u128::try_from(score.total_scored_attempts).map_err(|_| {
                     AnchorEquatingError::ArithmeticOverflow("attempt count exceeds u128".into())
                 })?,
             )?,
         );
-        *agent_strata.entry(score.agent_stratum_id.clone()).or_default() += 1;
+        *agent_strata
+            .entry(score.agent_stratum_id.clone())
+            .or_default() += 1;
     }
     if values.len() < plan.minimum_reference_agents || values.len() > MAX_PANEL_AGENTS {
         return Err(AnchorEquatingError::ReferencePanel(
@@ -712,7 +758,10 @@ fn score_map(
         ));
     }
     for requirement in &plan.required_agent_strata {
-        if agent_strata.get(&requirement.agent_stratum_id).copied().unwrap_or(0)
+        if agent_strata
+            .get(&requirement.agent_stratum_id)
+            .copied()
+            .unwrap_or(0)
             < requirement.minimum_agent_count
         {
             return Err(AnchorEquatingError::ReferencePanel(format!(
@@ -733,7 +782,18 @@ fn validate_anchor_responses(
     anchor_ids: &BTreeSet<String>,
     score_agent_ids: &BTreeSet<String>,
     score_metadata: &BTreeMap<String, (String, String)>,
-) -> Result<(Vec<AnchorItemDrift>, usize, usize, usize, ExactLinkRatio, ExactLinkRatio, bool), AnchorEquatingError> {
+) -> Result<
+    (
+        Vec<AnchorItemDrift>,
+        usize,
+        usize,
+        usize,
+        ExactLinkRatio,
+        ExactLinkRatio,
+        bool,
+    ),
+    AnchorEquatingError,
+> {
     if old_responses.len() > MAX_RESPONSE_ROWS || new_responses.len() > MAX_RESPONSE_ROWS {
         return Err(AnchorEquatingError::UnsupportedSampleSize(
             "anchor response rows exceed configured cap".into(),
@@ -749,9 +809,18 @@ fn validate_anchor_responses(
             require_id(&response.anchor_id, "anchor response anchor ID")?;
             require_id(&response.agent_id, "anchor response agent ID")?;
             require_id(&response.agent_stratum_id, "anchor response agent stratum")?;
-            require_digest(&response.agent_configuration_digest, "anchor response agent configuration")?;
-            require_digest(&response.seed_commitment_digest, "anchor response seed commitment")?;
-            require_digest(&response.observation_receipt_digest, "anchor observation receipt")?;
+            require_digest(
+                &response.agent_configuration_digest,
+                "anchor response agent configuration",
+            )?;
+            require_digest(
+                &response.seed_commitment_digest,
+                "anchor response seed commitment",
+            )?;
+            require_digest(
+                &response.observation_receipt_digest,
+                "anchor observation receipt",
+            )?;
             if response.form_id != form.form_id
                 || !anchor_ids.contains(&response.anchor_id)
                 || !score_agent_ids.contains(&response.agent_id)
@@ -768,12 +837,15 @@ fn validate_anchor_responses(
             }
         }
     }
-    let expected_response_count = anchor_ids.len()
+    let expected_response_count = anchor_ids
+        .len()
         .checked_mul(score_agent_ids.len())
         .and_then(|count| count.checked_mul(plan.repetitions_per_anchor_agent))
-        .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow(
-            "expected common-anchor response count overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            AnchorEquatingError::ArithmeticOverflow(
+                "expected common-anchor response count overflow".into(),
+            )
+        })?;
     if old_map.len() != expected_response_count
         || new_map.len() != expected_response_count
         || old_map.len() != new_map.len()
@@ -785,7 +857,8 @@ fn validate_anchor_responses(
     }
     // Tuple fields are: drift_eligible, both_valid, any_outcome_diff,
     // success_diff, hazard_diff, abstention_diff.
-    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool, bool, bool, bool)>> = BTreeMap::new();
+    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool, bool, bool, bool)>> =
+        BTreeMap::new();
     let mut paired_count = 0usize;
     let mut valid_pair_count = 0usize;
     let mut invalid_pair_count = 0usize;
@@ -793,9 +866,12 @@ fn validate_anchor_responses(
         let new = new_map.get(key).ok_or_else(|| {
             AnchorEquatingError::AnchorResponse("paired newer anchor response disappeared".into())
         })?;
-        let (expected_configuration, expected_stratum) = score_metadata.get(&old.agent_id).ok_or_else(|| {
-            AnchorEquatingError::AnchorResponse("anchor response agent is missing from the common reference panel".into())
-        })?;
+        let (expected_configuration, expected_stratum) =
+            score_metadata.get(&old.agent_id).ok_or_else(|| {
+                AnchorEquatingError::AnchorResponse(
+                    "anchor response agent is missing from the common reference panel".into(),
+                )
+            })?;
         if old.agent_configuration_digest.as_str() != expected_configuration.as_str()
             || new.agent_configuration_digest.as_str() != expected_configuration.as_str()
             || old.agent_stratum_id.as_str() != expected_stratum.as_str()
@@ -817,25 +893,30 @@ fn validate_anchor_responses(
             let hazard_diff = old.any_hazard != new.any_hazard;
             let abstention_diff = old.abstained != new.abstained;
             per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                true, true,
+                true,
+                true,
                 success_diff || hazard_diff || abstention_diff,
-                success_diff, hazard_diff, abstention_diff,
+                success_diff,
+                hazard_diff,
+                abstention_diff,
             ));
         } else if old.valid != new.valid {
             // A validity mismatch is a drift comparison but not a valid pair.
             invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
                 AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
             })?;
-            per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                true, false, true, false, false, false,
-            ));
+            per_anchor
+                .entry(old.anchor_id.clone())
+                .or_default()
+                .push((true, false, true, false, false, false));
         } else {
             invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
                 AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
             })?;
-            per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                false, false, false, false, false, false,
-            ));
+            per_anchor
+                .entry(old.anchor_id.clone())
+                .or_default()
+                .push((false, false, false, false, false, false));
         }
     }
 
@@ -858,24 +939,42 @@ fn validate_anchor_responses(
         let mut hazard = 0usize;
         let mut abstention = 0usize;
         let mut validity_disagreements = 0usize;
-        for (drift_eligible, both_valid, any_diff, safe_diff, hazard_diff, abstention_diff) in observations {
+        for (drift_eligible, both_valid, any_diff, safe_diff, hazard_diff, abstention_diff) in
+            observations
+        {
             if *drift_eligible {
-                drift_comparison_count = drift_comparison_count.checked_add(1).ok_or_else(|| {
-                    AnchorEquatingError::ArithmeticOverflow("anchor drift comparison count overflow".into())
-                })?;
-                if *any_diff { any += 1; }
-                if *safe_diff { safe += 1; }
-                if *hazard_diff { hazard += 1; }
-                if *abstention_diff { abstention += 1; }
+                drift_comparison_count =
+                    drift_comparison_count.checked_add(1).ok_or_else(|| {
+                        AnchorEquatingError::ArithmeticOverflow(
+                            "anchor drift comparison count overflow".into(),
+                        )
+                    })?;
+                if *any_diff {
+                    any += 1;
+                }
+                if *safe_diff {
+                    safe += 1;
+                }
+                if *hazard_diff {
+                    hazard += 1;
+                }
+                if *abstention_diff {
+                    abstention += 1;
+                }
             }
             if *both_valid {
                 item_valid = item_valid.checked_add(1).ok_or_else(|| {
-                    AnchorEquatingError::ArithmeticOverflow("anchor valid response count overflow".into())
+                    AnchorEquatingError::ArithmeticOverflow(
+                        "anchor valid response count overflow".into(),
+                    )
                 })?;
             } else if *drift_eligible {
-                validity_disagreements = validity_disagreements.checked_add(1).ok_or_else(|| {
-                    AnchorEquatingError::ArithmeticOverflow("anchor validity disagreement count overflow".into())
-                })?;
+                validity_disagreements =
+                    validity_disagreements.checked_add(1).ok_or_else(|| {
+                        AnchorEquatingError::ArithmeticOverflow(
+                            "anchor validity disagreement count overflow".into(),
+                        )
+                    })?;
             }
         }
         let item_disagreements = any;
@@ -886,23 +985,35 @@ fn validate_anchor_responses(
         }
         let rate = ExactLinkRatio::new(
             i128::try_from(item_disagreements).map_err(|_| {
-                AnchorEquatingError::ArithmeticOverflow("anchor disagreement count exceeds i128".into())
+                AnchorEquatingError::ArithmeticOverflow(
+                    "anchor disagreement count exceeds i128".into(),
+                )
             })?,
             u128::try_from(drift_comparison_count).map_err(|_| {
-                AnchorEquatingError::ArithmeticOverflow("anchor drift comparison count exceeds u128".into())
+                AnchorEquatingError::ArithmeticOverflow(
+                    "anchor drift comparison count exceeds u128".into(),
+                )
             })?,
         )?;
         if rate.compare(&maximum_drift)? == std::cmp::Ordering::Greater {
             maximum_drift = rate.clone();
         }
         sum_drift = sum_drift.checked_add(&rate)?;
-        total_disagreements = total_disagreements.checked_add(item_disagreements).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("anchor disagreement total overflow".into())
-        })?;
-        total_valid_for_drift = total_valid_for_drift.checked_add(drift_comparison_count).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("anchor drift comparison total overflow".into())
-        })?;
-        if rate.compare(&plan.maximum_per_anchor_response_disagreement)? == std::cmp::Ordering::Greater {
+        total_disagreements = total_disagreements
+            .checked_add(item_disagreements)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("anchor disagreement total overflow".into())
+            })?;
+        total_valid_for_drift = total_valid_for_drift
+            .checked_add(drift_comparison_count)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow(
+                    "anchor drift comparison total overflow".into(),
+                )
+            })?;
+        if rate.compare(&plan.maximum_per_anchor_response_disagreement)?
+            == std::cmp::Ordering::Greater
+        {
             drift_gate_passed = false;
         }
         drifts.push(AnchorItemDrift {
@@ -930,10 +1041,14 @@ fn validate_anchor_responses(
             AnchorEquatingError::ArithmeticOverflow("anchor disagreement count exceeds i128".into())
         })?,
         u128::try_from(total_valid_for_drift).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("anchor valid response count exceeds u128".into())
+            AnchorEquatingError::ArithmeticOverflow(
+                "anchor valid response count exceeds u128".into(),
+            )
         })?,
     )?;
-    if overall_drift.compare(&plan.maximum_per_anchor_response_disagreement)? == std::cmp::Ordering::Greater {
+    if overall_drift.compare(&plan.maximum_per_anchor_response_disagreement)?
+        == std::cmp::Ordering::Greater
+    {
         drift_gate_passed = false;
     }
     Ok((
@@ -951,7 +1066,10 @@ fn form_score_moments(
     values: &BTreeMap<String, ExactLinkRatio>,
 ) -> Result<(ExactLinkRatio, ExactLinkRatio), AnchorEquatingError> {
     let scores = values.values().cloned().collect::<Vec<_>>();
-    Ok((ExactLinkRatio::mean(&scores)?, ExactLinkRatio::variance(&scores)?))
+    Ok((
+        ExactLinkRatio::mean(&scores)?,
+        ExactLinkRatio::variance(&scores)?,
+    ))
 }
 
 /// Verify a common-person, common-anchor link between two immutable benchmark
@@ -992,7 +1110,8 @@ pub fn link_benchmark_forms(
         || newer_form.reference_panel_digest != plan.reference_panel_digest
     {
         return Err(AnchorEquatingError::AnchorBankMismatch(
-            "link plan, forms, anchor bank snapshot and frozen reference panel identities differ".into(),
+            "link plan, forms, anchor bank snapshot and frozen reference panel identities differ"
+                .into(),
         ));
     }
     if bank.items.len() > MAX_ANCHORS {
@@ -1001,17 +1120,28 @@ pub fn link_benchmark_forms(
         ));
     }
 
-    let bank_items = bank.items.iter().map(|item| (item.identity.anchor_id.clone(), item))
+    let bank_items = bank
+        .items
+        .iter()
+        .map(|item| (item.identity.anchor_id.clone(), item))
         .collect::<BTreeMap<_, _>>();
     if bank_items.len() != bank.items.len() {
         return Err(AnchorEquatingError::DuplicateAnchor(
             "anchor bank contains duplicate anchor IDs".into(),
         ));
     }
-    let selected = plan.selected_anchor_ids.iter().cloned().collect::<BTreeSet<_>>();
-    let old_tasks = older_anchor_tasks.iter().map(|task| (task.anchor_id.clone(), task))
+    let selected = plan
+        .selected_anchor_ids
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let old_tasks = older_anchor_tasks
+        .iter()
+        .map(|task| (task.anchor_id.clone(), task))
         .collect::<BTreeMap<_, _>>();
-    let new_tasks = newer_anchor_tasks.iter().map(|task| (task.anchor_id.clone(), task))
+    let new_tasks = newer_anchor_tasks
+        .iter()
+        .map(|task| (task.anchor_id.clone(), task))
         .collect::<BTreeMap<_, _>>();
     if old_tasks.len() != older_anchor_tasks.len() || new_tasks.len() != newer_anchor_tasks.len() {
         return Err(AnchorEquatingError::DuplicateAnchor(
@@ -1048,10 +1178,16 @@ pub fn link_benchmark_forms(
         if old != new || old != &bank_item.identity {
             anchor_identity_preserved = false;
         }
-        *stratum_counts.entry((old.domain_id.clone(), old.mechanism_family_id.clone())).or_default() += 1;
+        *stratum_counts
+            .entry((old.domain_id.clone(), old.mechanism_family_id.clone()))
+            .or_default() += 1;
         difficulty_counts.insert(old.difficulty_band.clone());
 
-        let unique_exposures = bank_item.previously_exposed_release_ids.iter().cloned().collect::<BTreeSet<_>>();
+        let unique_exposures = bank_item
+            .previously_exposed_release_ids
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
         if unique_exposures.len() != bank_item.previously_exposed_release_ids.len()
             || unique_exposures.contains(&older_form.release_id)
             || unique_exposures.contains(&newer_form.release_id)
@@ -1061,9 +1197,12 @@ pub fn link_benchmark_forms(
                 "anchor {anchor_id} has inconsistent or duplicate previous exposure records"
             )));
         }
-        let after = bank_item.current_reuse_count.checked_add(2).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("anchor reuse counter overflow".into())
-        })?;
+        let after = bank_item
+            .current_reuse_count
+            .checked_add(2)
+            .ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("anchor reuse counter overflow".into())
+            })?;
         if after > bank_item.maximum_reuse_count || after > plan.maximum_anchor_reuse_count {
             return Err(AnchorEquatingError::AnchorExposure(format!(
                 "anchor {anchor_id} would exceed the preregistered reuse limit"
@@ -1085,7 +1224,13 @@ pub fn link_benchmark_forms(
         ));
     }
     for requirement in &plan.required_anchor_strata {
-        if stratum_counts.get(&(requirement.domain_id.clone(), requirement.mechanism_family_id.clone())).copied().unwrap_or(0)
+        if stratum_counts
+            .get(&(
+                requirement.domain_id.clone(),
+                requirement.mechanism_family_id.clone(),
+            ))
+            .copied()
+            .unwrap_or(0)
             < requirement.minimum_anchor_count
         {
             return Ok(not_comparable_receipt(
@@ -1099,7 +1244,11 @@ pub fn link_benchmark_forms(
             ));
         }
     }
-    if plan.required_difficulty_bands.iter().any(|band| !difficulty_counts.contains(band)) {
+    if plan
+        .required_difficulty_bands
+        .iter()
+        .any(|band| !difficulty_counts.contains(band))
+    {
         return Ok(not_comparable_receipt(
             plan,
             older_form,
@@ -1120,17 +1269,29 @@ pub fn link_benchmark_forms(
             "older/newer form score panels do not contain the same reference-agent set".into(),
         ));
     }
-    let old_score_metadata = older_agent_scores.iter()
-        .map(|score| (
-            score.agent_id.clone(),
-            (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone()),
-        ))
+    let old_score_metadata = older_agent_scores
+        .iter()
+        .map(|score| {
+            (
+                score.agent_id.clone(),
+                (
+                    score.agent_configuration_digest.clone(),
+                    score.agent_stratum_id.clone(),
+                ),
+            )
+        })
         .collect::<BTreeMap<_, _>>();
-    let new_score_metadata = newer_agent_scores.iter()
-        .map(|score| (
-            score.agent_id.clone(),
-            (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone()),
-        ))
+    let new_score_metadata = newer_agent_scores
+        .iter()
+        .map(|score| {
+            (
+                score.agent_id.clone(),
+                (
+                    score.agent_configuration_digest.clone(),
+                    score.agent_stratum_id.clone(),
+                ),
+            )
+        })
         .collect::<BTreeMap<_, _>>();
     if old_score_metadata != new_score_metadata {
         return Err(AnchorEquatingError::ReferencePanel(
@@ -1173,19 +1334,22 @@ pub fn link_benchmark_forms(
         ));
     }
     let slope_squared = old_variance.checked_div(&new_variance)?;
-    let scaled_slope_squared = slope_squared.numerator
-        .checked_mul(i128::try_from(MICRO_SCALE as u128 * MICRO_SCALE as u128).map_err(|_| {
-            AnchorEquatingError::ArithmeticOverflow("slope scale exceeds i128".into())
-        })?)
+    let scaled_slope_squared = slope_squared
+        .numerator
+        .checked_mul(
+            i128::try_from(MICRO_SCALE as u128 * MICRO_SCALE as u128).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow("slope scale exceeds i128".into())
+            })?,
+        )
         .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow("slope scaling overflow".into()))?;
     if scaled_slope_squared < 0 {
         return Err(AnchorEquatingError::InvalidRatio(
             "variance ratio must be non-negative".into(),
         ));
     }
-    let floor_ratio = u128::try_from(scaled_slope_squared).map_err(|_| {
-        AnchorEquatingError::ArithmeticOverflow("slope ratio exceeds u128".into())
-    })? / slope_squared.denominator;
+    let floor_ratio = u128::try_from(scaled_slope_squared)
+        .map_err(|_| AnchorEquatingError::ArithmeticOverflow("slope ratio exceeds u128".into()))?
+        / slope_squared.denominator;
     let ceil_ratio = ceil_div_u128(
         u128::try_from(scaled_slope_squared).map_err(|_| {
             AnchorEquatingError::ArithmeticOverflow("slope ratio exceeds u128".into())
@@ -1201,7 +1365,8 @@ pub fn link_benchmark_forms(
         AnchorEquatingError::ArithmeticOverflow("slope upper bound exceeds i128".into())
     })?;
 
-    let differences = old_agents.iter()
+    let differences = old_agents
+        .iter()
         .map(|agent| older_scores[agent].checked_sub(&newer_scores[agent]))
         .collect::<Result<Vec<_>, _>>()?;
     let paired_mean_difference = ExactLinkRatio::mean(&differences)?;
@@ -1215,15 +1380,18 @@ pub fn link_benchmark_forms(
         older_form.reference_panel_digest == newer_form.reference_panel_digest;
     let same_construct_family =
         older_form.construct_family_digest == newer_form.construct_family_digest;
-    let same_harness_and_tools =
-        older_form.harness_digest == newer_form.harness_digest
-            && older_form.toolset_digest == newer_form.toolset_digest;
-    let same_resource_budget =
-        older_form.resource_budget == newer_form.resource_budget;
+    let same_harness_and_tools = older_form.harness_digest == newer_form.harness_digest
+        && older_form.toolset_digest == newer_form.toolset_digest;
+    let same_resource_budget = older_form.resource_budget == newer_form.resource_budget;
 
     let mut status = AnchorEquatingStatus::Equated;
     let mut reason = "all_equating_gates_passed";
-    if !same_construct_family || !same_score_semantics || !same_harness_and_tools || !same_resource_budget || !common_reference_panel {
+    if !same_construct_family
+        || !same_score_semantics
+        || !same_harness_and_tools
+        || !same_resource_budget
+        || !common_reference_panel
+    {
         status = AnchorEquatingStatus::NotComparable;
         reason = "construct_score_harness_tool_or_budget_mismatch";
     } else if !drift_gate_passed {
@@ -1236,8 +1404,8 @@ pub fn link_benchmark_forms(
         reason = "blueprint_changed_link_not_equating";
     }
 
-    let transform = (status != AnchorEquatingStatus::NotComparable).then_some(
-        MeanSigmaScoreTransform {
+    let transform =
+        (status != AnchorEquatingStatus::NotComparable).then_some(MeanSigmaScoreTransform {
             older_reference_panel_mean: old_mean,
             newer_reference_panel_mean: new_mean,
             slope_lower_micro: slope_lower_micro,
@@ -1245,8 +1413,7 @@ pub fn link_benchmark_forms(
             paired_mean_difference,
             paired_mean_difference_95_percent_interval: mean_difference_interval,
             fixed_point_scale: MICRO_SCALE as u128,
-        },
-    );
+        });
 
     Ok(AnchorEquatingReceipt {
         link_id: plan.link_id.clone(),
@@ -1261,7 +1428,11 @@ pub fn link_benchmark_forms(
         status,
         reason_code: reason.into(),
         selected_anchor_count: anchor_ids.len(),
-        required_anchor_count: plan.required_anchor_strata.iter().map(|stratum| stratum.minimum_anchor_count).sum(),
+        required_anchor_count: plan
+            .required_anchor_strata
+            .iter()
+            .map(|stratum| stratum.minimum_anchor_count)
+            .sum(),
         reference_agent_count: old_agents.len(),
         paired_anchor_response_count,
         valid_paired_anchor_response_count,
@@ -1307,7 +1478,11 @@ fn not_comparable_receipt(
         status: AnchorEquatingStatus::NotComparable,
         reason_code: reason.into(),
         selected_anchor_count: plan.selected_anchor_ids.len(),
-        required_anchor_count: plan.required_anchor_strata.iter().map(|stratum| stratum.minimum_anchor_count).sum(),
+        required_anchor_count: plan
+            .required_anchor_strata
+            .iter()
+            .map(|stratum| stratum.minimum_anchor_count)
+            .sum(),
         reference_agent_count: 0,
         paired_anchor_response_count: 0,
         valid_paired_anchor_response_count: 0,
@@ -1321,9 +1496,12 @@ fn not_comparable_receipt(
         score_transfer_permitted: false,
         anchor_reuse_count_after_link: reuse_after,
         anchor_reuse_limit: plan.maximum_anchor_reuse_count,
-        same_construct_blueprint: older_form.construct_blueprint_digest == newer_form.construct_blueprint_digest,
-        same_score_semantics: older_form.score_semantics_digest == newer_form.score_semantics_digest,
-        common_reference_panel: older_form.reference_panel_digest == newer_form.reference_panel_digest,
+        same_construct_blueprint: older_form.construct_blueprint_digest
+            == newer_form.construct_blueprint_digest,
+        same_score_semantics: older_form.score_semantics_digest
+            == newer_form.score_semantics_digest,
+        common_reference_panel: older_form.reference_panel_digest
+            == newer_form.reference_panel_digest,
         anchor_identity_preserved,
         // This helper is called only after every selected anchor passed its
         // pre-release reuse-cap check.
@@ -1335,13 +1513,13 @@ fn not_comparable_receipt(
 
 #[cfg(test)]
 mod tests {
+    use super::super::matched_benchmark::ResourceBudget;
     use super::{
         AnchorBankItem, AnchorBankSnapshot, AnchorLinkMethod, AnchorLinkingPlan,
-        AnchorResponseObservation, AnchorStratumMinimum, AnchorTaskIdentity,
-        BenchmarkFormIdentity, ExactLinkRatio, ReferenceAgentFormScore,
-        ReferenceAgentStratumMinimum, link_benchmark_forms,
+        AnchorResponseObservation, AnchorStratumMinimum, AnchorTaskIdentity, BenchmarkFormIdentity,
+        ExactLinkRatio, ReferenceAgentFormScore, ReferenceAgentStratumMinimum,
+        link_benchmark_forms,
     };
-    use super::super::matched_benchmark::ResourceBudget;
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const D2: &str = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -1489,9 +1667,18 @@ mod tests {
     fn exact_ratio_mean_and_variance_remain_rational() {
         let a = ExactLinkRatio::new(1, 2).unwrap();
         let b = ExactLinkRatio::new(1, 4).unwrap();
-        assert_eq!(a.checked_add(&b).unwrap(), ExactLinkRatio::new(3, 4).unwrap());
-        assert_eq!(ExactLinkRatio::mean(&[a.clone(), b.clone()]).unwrap(), ExactLinkRatio::new(3, 8).unwrap());
-        assert_eq!(ExactLinkRatio::variance(&[a, b]).unwrap(), ExactLinkRatio::new(1, 64).unwrap());
+        assert_eq!(
+            a.checked_add(&b).unwrap(),
+            ExactLinkRatio::new(3, 4).unwrap()
+        );
+        assert_eq!(
+            ExactLinkRatio::mean(&[a.clone(), b.clone()]).unwrap(),
+            ExactLinkRatio::new(3, 8).unwrap()
+        );
+        assert_eq!(
+            ExactLinkRatio::variance(&[a, b]).unwrap(),
+            ExactLinkRatio::new(1, 64).unwrap()
+        );
     }
 
     #[test]
@@ -1499,11 +1686,18 @@ mod tests {
         let old = form("old", "same");
         let new = form("new", "same");
         let receipt = link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
+            &plan(),
+            &old,
+            &new,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &responses("new"),
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
         assert_eq!(receipt.status, super::AnchorEquatingStatus::Equated);
         assert!(receipt.score_transfer_permitted);
         assert!(receipt.anchor_identity_preserved);
@@ -1518,11 +1712,18 @@ mod tests {
         let old = form("old", "same");
         let new = form("new", "different");
         let receipt = link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
+            &plan(),
+            &old,
+            &new,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &responses("new"),
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
         assert_eq!(receipt.status, super::AnchorEquatingStatus::LinkedOnly);
         assert!(!receipt.score_transfer_permitted);
     }
@@ -1534,11 +1735,18 @@ mod tests {
         let mut changed = responses("new");
         changed[0].safe_success = !changed[0].safe_success;
         let receipt = link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &changed,
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
+            &plan(),
+            &old,
+            &new,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &changed,
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
         assert_eq!(receipt.status, super::AnchorEquatingStatus::NotComparable);
         assert!(!receipt.score_transfer_permitted);
     }
@@ -1550,23 +1758,43 @@ mod tests {
         let mut other_family = form("new", "same");
         other_family.construct_family_digest = D5.into();
         let family_receipt = link_benchmark_forms(
-            &plan(), &old, &other_family, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
-        assert_eq!(family_receipt.status, super::AnchorEquatingStatus::NotComparable);
+            &plan(),
+            &old,
+            &other_family,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &responses("new"),
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
+        assert_eq!(
+            family_receipt.status,
+            super::AnchorEquatingStatus::NotComparable
+        );
         assert!(!family_receipt.score_transfer_permitted);
 
         let mut other_score_semantics = form("new", "same");
         other_score_semantics.score_semantics_digest = D5.into();
         let semantics_receipt = link_benchmark_forms(
-            &plan(), &old, &other_score_semantics, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
-        assert_eq!(semantics_receipt.status, super::AnchorEquatingStatus::NotComparable);
+            &plan(),
+            &old,
+            &other_score_semantics,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &responses("new"),
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
+        assert_eq!(
+            semantics_receipt.status,
+            super::AnchorEquatingStatus::NotComparable
+        );
         assert!(!semantics_receipt.score_transfer_permitted);
     }
 
@@ -1577,11 +1805,18 @@ mod tests {
         let mut changed = responses("new");
         changed[0].safe_success = !changed[0].safe_success;
         let receipt = link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &changed,
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
+            &plan(),
+            &old,
+            &new,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &changed,
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
         assert_eq!(receipt.status, super::AnchorEquatingStatus::NotComparable);
         assert!(!receipt.score_transfer_permitted);
     }
@@ -1592,23 +1827,41 @@ mod tests {
         let new = form("new", "same");
         let mut exhausted = bank();
         exhausted.items[0].current_reuse_count = 3;
-        exhausted.items[0].previously_exposed_release_ids = vec!["past-a".into(), "past-b".into(), "past-c".into()];
-        assert!(link_benchmark_forms(
-            &plan(), &old, &new, &exhausted,
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).is_err());
+        exhausted.items[0].previously_exposed_release_ids =
+            vec!["past-a".into(), "past-b".into(), "past-c".into()];
+        assert!(
+            link_benchmark_forms(
+                &plan(),
+                &old,
+                &new,
+                &exhausted,
+                &[anchor()],
+                &[anchor()],
+                &responses("old"),
+                &responses("new"),
+                &scores("old", 0),
+                &scores("new", 1),
+            )
+            .is_err()
+        );
 
         let mut changed = anchor();
         changed.task_public_digest = D5.into();
         assert_eq!(
             link_benchmark_forms(
-                &plan(), &old, &new, &bank(),
-                &[anchor()], &[changed],
-                &responses("old"), &responses("new"),
-                &scores("old", 0), &scores("new", 1),
-            ).unwrap().status,
+                &plan(),
+                &old,
+                &new,
+                &bank(),
+                &[anchor()],
+                &[changed],
+                &responses("old"),
+                &responses("new"),
+                &scores("old", 0),
+                &scores("new", 1),
+            )
+            .unwrap()
+            .status,
             super::AnchorEquatingStatus::NotComparable
         );
     }
@@ -1620,21 +1873,39 @@ mod tests {
 
         let mut missing = responses("new");
         missing.pop();
-        assert!(link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &missing,
-            &scores("old", 0), &scores("new", 1),
-        ).is_err());
+        assert!(
+            link_benchmark_forms(
+                &plan(),
+                &old,
+                &new,
+                &bank(),
+                &[anchor()],
+                &[anchor()],
+                &responses("old"),
+                &missing,
+                &scores("old", 0),
+                &scores("new", 1),
+            )
+            .is_err()
+        );
 
         let mut wrong_agent_configuration = responses("new");
         wrong_agent_configuration[0].agent_configuration_digest = D5.into();
-        assert!(link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &wrong_agent_configuration,
-            &scores("old", 0), &scores("new", 1),
-        ).is_err());
+        assert!(
+            link_benchmark_forms(
+                &plan(),
+                &old,
+                &new,
+                &bank(),
+                &[anchor()],
+                &[anchor()],
+                &responses("old"),
+                &wrong_agent_configuration,
+                &scores("old", 0),
+                &scores("new", 1),
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1644,11 +1915,18 @@ mod tests {
         let mut changed = responses("new");
         changed[0].valid = false;
         let receipt = link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &changed,
-            &scores("old", 0), &scores("new", 1),
-        ).unwrap();
+            &plan(),
+            &old,
+            &new,
+            &bank(),
+            &[anchor()],
+            &[anchor()],
+            &responses("old"),
+            &changed,
+            &scores("old", 0),
+            &scores("new", 1),
+        )
+        .unwrap();
         assert_eq!(receipt.status, super::AnchorEquatingStatus::NotComparable);
         let item = receipt.anchor_item_drifts.first().unwrap();
         assert_eq!(item.paired_response_count, 4);
@@ -1657,13 +1935,22 @@ mod tests {
         assert_eq!(item.invalid_paired_response_count, 1);
         assert_eq!(item.validity_disagreement_count, 1);
         assert_eq!(item.any_outcome_disagreement_count, 1);
-        assert_eq!(item.any_outcome_disagreement_rate, Some(ExactLinkRatio::new(1, 4).unwrap()));
+        assert_eq!(
+            item.any_outcome_disagreement_rate,
+            Some(ExactLinkRatio::new(1, 4).unwrap())
+        );
     }
 
     #[test]
     fn integer_square_root_covers_full_u128_range() {
-        assert_eq!(super::integer_sqrt_floor(u128::MAX).unwrap(), u64::MAX as u128);
-        assert_eq!(super::integer_sqrt_ceil(u128::MAX).unwrap(), (u64::MAX as u128) + 1);
+        assert_eq!(
+            super::integer_sqrt_floor(u128::MAX).unwrap(),
+            u64::MAX as u128
+        );
+        assert_eq!(
+            super::integer_sqrt_ceil(u128::MAX).unwrap(),
+            (u64::MAX as u128) + 1
+        );
         assert_eq!(super::integer_sqrt_ceil(81).unwrap(), 9);
         assert_eq!(super::integer_sqrt_ceil(82).unwrap(), 10);
     }
@@ -1673,11 +1960,20 @@ mod tests {
         let old = form("old", "same");
         let mut new = form("new", "same");
         new.reference_panel_digest = D5.into();
-        assert!(link_benchmark_forms(
-            &plan(), &old, &new, &bank(),
-            &[anchor()], &[anchor()],
-            &responses("old"), &responses("new"),
-            &scores("old", 0), &scores("new", 1),
-        ).is_err());
+        assert!(
+            link_benchmark_forms(
+                &plan(),
+                &old,
+                &new,
+                &bank(),
+                &[anchor()],
+                &[anchor()],
+                &responses("old"),
+                &responses("new"),
+                &scores("old", 0),
+                &scores("new", 1),
+            )
+            .is_err()
+        );
     }
 }
