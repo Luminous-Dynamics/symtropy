@@ -728,7 +728,7 @@ fn validate_anchor_responses(
     new_responses: &[AnchorResponseObservation],
     anchor_ids: &BTreeSet<String>,
     score_agent_ids: &BTreeSet<String>,
-    score_metadata: &BTreeMap<String, (&str, &str)>,
+    score_metadata: &BTreeMap<String, (String, String)>,
 ) -> Result<(Vec<AnchorItemDrift>, usize, usize, usize, ExactLinkRatio, ExactLinkRatio, bool), AnchorEquatingError> {
     if old_responses.len() > MAX_RESPONSE_ROWS || new_responses.len() > MAX_RESPONSE_ROWS {
         return Err(AnchorEquatingError::UnsupportedSampleSize(
@@ -1115,8 +1115,8 @@ pub fn link_benchmark_forms(
     }
     let old_score_metadata = older_agent_scores.iter()
         .map(|score| (
-            score.agent_id.as_str(),
-            (score.agent_configuration_digest.as_str(), score.agent_stratum_id.as_str()),
+            (score.agent_id.clone(),
+             (score.agent_configuration_digest.clone(), score.agent_stratum_id.clone())),
         ))
         .collect::<BTreeMap<_, _>>();
     let new_score_metadata = newer_agent_scores.iter()
