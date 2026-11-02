@@ -166,6 +166,52 @@ Method references:
 - *Insights into the accuracy of social scientists' forecasts of societal change* (2023): https://doi.org/10.1038/s41562-022-01517-1
 - 2025 review on validation of generative-agent social simulations: https://pubmed.ncbi.nlm.nih.gov/41268053/
 
+### 6.1 Pattern-oriented validation, not one-curve fitting
+
+A civilization model must explain a preregistered vector of patterns selected for its intended question. Depending on the case, these may include:
+- aggregate trajectories and distributions, not only means;
+- spatial settlement and network structure;
+- resource/energy stock-flow relationships;
+- demographic composition and migration;
+- inequality, institutional participation, or access distributions;
+- temporal ordering, transition intervals, and recovery times.
+
+Use **pattern-oriented modelling**: prefer mechanisms that jointly reproduce several independent, empirically grounded patterns, while testing whether alternative mechanisms can reproduce the same patterns. A model that fits one aggregate series while missing spatial, distributional, or temporal structure is not validated for a broader civilizational claim.
+
+The pattern vector and acceptable discrepancy measures must be selected before fitting. Avoid treating multiple measurements derived from the same source as independent validation targets. When evidence does not support a pattern, mark it unavailable rather than inventing a proxy.
+
+For agent-based models, publish an ODD-style description (Overview, Design concepts, Details) with explicit model rationale, process ordering, state variables, scheduling, initialization, submodels, parameterization, and evaluation. ODD is a reproducibility aid, not proof of validity.
+
+### 6.2 Forecast competition and probabilistic reliability
+
+Every forecasting task must include at least:
+- historical mean/base-rate forecast;
+- persistence or random-walk forecast;
+- linear trend;
+- a suitable statistical time-series baseline (for example ARIMA/ETS/state-space, when the data support it);
+- a parsimonious system-dynamics or fixed-rule agent baseline where relevant.
+
+A complex cognitive/generative agent is admitted as a serious contender only after the simple baselines are run on the identical data, forecast origins, holdouts, and compute accounting. It must improve the preregistered task score and demonstrate mechanism-aligned validity; realistic dialogue, attractive narratives, or high agent counts earn no score.
+
+For probabilistic outputs, report proper scoring rules (Brier/log score for categorical events; CRPS or a suitable multivariate score for continuous/distributional outputs) alongside calibration, sharpness, interval coverage, and resolution. Never reward narrow intervals that are systematically miscalibrated.
+
+**Add tail calibration to crisis benchmarks.** For high-impact low-frequency outcomes, assess exceedance probabilities and conditional tail reliability at preregistered thresholds (for example, 90th/95th percentile loss, service interruption duration, or mortality/welfare-impact threshold, when defensible). Report false-alarm and missed-event trade-offs, sample-size limitations, and uncertainty. Ordinary average calibration does not establish reliable extreme-event probabilities.
+
+### 6.3 Complexity earns its place
+
+Maintain an explicit complexity ladder: persistence/statistical model → system dynamics → fixed-rule ABM → bounded learning agent → cognitive/generative agent. Add each level only when an ablation identifies which mechanism contributes, the contribution transfers to a held-out context, and the performance gain survives matched-budget comparison.
+
+LLM agents should remain optional experimental components. Their stochasticity, opacity, and potential cultural bias require repeated trials, external behavioural grounding, source/context holdouts, and independent evaluation. An LLM must not be its own sole evaluator.
+
+Methodological references:
+- Pattern-oriented modelling, Grimm et al. (2005): https://doi.org/10.1126/science.1116681
+- ODD protocol update, Grimm et al. (2020): https://doi.org/10.18564/jasss.4259
+- Proper scoring rules, Gneiting & Raftery (2007): https://doi.org/10.1111/j.1467-9868.2007.00587.x
+- Tail calibration of probabilistic forecasts (2025): https://doi.org/10.1080/01621459.2025.2506194
+- Forecasting Collaborative (2023): https://doi.org/10.1038/s41562-022-01517-1
+- Critical review of validation in generative agent-based social simulation (2025): https://doi.org/10.1007/s10462-025-11412-6
+
+
 ## 7. First executable reference model
 
 Start with a deliberately small model before adding high-level cognitive agents.
