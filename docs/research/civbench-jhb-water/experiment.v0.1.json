@@ -368,5 +368,30 @@
     "No fixed sample count or minimum detectable effect is asserted until pilot variance and a confirmatory power analysis are available.",
     "No synthetic success is evidence of municipal field impact.",
     "Public FY2024/25 annual report source-byte snapshot and page-render verification remain incomplete."
-  ]
+  ],
+  "outcome_contract": {
+    "metric_evidence_statuses": [
+      "observed",
+      "derived",
+      "modelled",
+      "not_measured",
+      "unsupported",
+      "withheld",
+      "not_applicable"
+    ],
+    "numeric_value_required_for": [
+      "observed",
+      "derived",
+      "modelled"
+    ],
+    "numeric_value_absent_for": [
+      "not_measured",
+      "unsupported",
+      "withheld",
+      "not_applicable"
+    ],
+    "missing_value_behavior": "no_zero_fill",
+    "paired_difference": "only_defined_when_both_arms_have_valid_numeric_values_otherwise_indeterminate",
+    "worst_group_service_ppm_max": 1000000
+  }
 }
