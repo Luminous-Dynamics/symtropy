@@ -96,6 +96,22 @@ Mainspring also reports >1.5 million core run hours and an AEP agreement for up 
 - Distinguish vendor specifications, manufacturer-authored demonstration reports, third-party measurement, independent validation, regulatory certification and field-operation data.
 - A linear generator does not have a conventional crankshaft / alternator chain; a fuel cell has a DC stack and inverter chain. Model each topology explicitly rather than forcing all outputs through an engine-brake-power field.
 
+### 4.3 Primary same-scale published reference: Mainspring MSE3 linear generator
+
+Do not describe this programme as the first 250 kW multi-fuel generator.
+
+Mainspring's current product materials publish a 250 kW linear-generator module and a standard 2.5 MW package built from ten 250 kW units, 46% net-AC LHV efficiency on natural gas and biogas, <1.5 ppm NOx, 0–100% output range, and product fuels including biogas, natural gas, hydrogen and propane. The 2.5 MW datasheet states that 46% was measured under ASME PTC 50 at 15°C / 1 atm and includes a 1% assumed inverter/line-loss allowance. It lists "unit weight 22 tons"; clarify the unit/package meaning before using this in a kg/kW comparison.
+
+The 2024 California Energy Commission-sponsored project report gives an earlier 230 kW beta-unit result: 41.5% net-AC efficiency, above 40% over its reported 130–370 kW building-load range, with a nine-month grocery-site demonstration. Its third-party source test reported 1.6 ppm NOx, 0.8 ppm CO and 8.4 ppm VOC. The report was prepared by Mainspring under a CEC-sponsored project and contains a disclaimer that it does not necessarily represent CEC views and is not a CEC approval of accuracy. The report describes third-party testing specifically for source-test emissions; do not call the efficiency result an independent comparative certification.
+
+The Department of the Air Force announced a 250 kW pilot in March 2026 to gather fuel efficiency, power, consumption and emissions data across natural gas, biomethane, syngas, ammonia, propane and hydrogen. These are planned pilot tests, not public proof that every listed fuel has passed qualification.
+
+Mainspring's manufacturer page reports >1.5 million core run hours, and its October 2026 press release announces an agreement with AEP for up to 1.6 GW through 2034, with an initial 190 MW tranche scheduled to start delivery in 2027. Keep core run hours distinct from single-unit hours, MTBF and availability; keep a procurement agreement distinct from installed, independently measured capacity.
+
+**Test-method clarification required:** Mainspring states that the 46% result was measured according to ASME PTC 50. The ASME public PTC catalogue identifies PTC 50 as Fuel Cell Power Systems Performance. Obtain the detailed test report and a documented applicability explanation before treating the result as directly comparable with ISO 8528 generator-set test results. Do not silently infer that one code supersedes the other.
+
+Sources: Mainspring product page and 2.5 MW datasheet; CEC-500-2024-037 final report; Air Force / AFMC pilot announcement dated 4 March 2026; Mainspring / AEP announcement dated 13 October 2026; ASME Performance Test Codes catalogue (URLs listed in Section 12).
+
 A reference engine map must be measured or sourced with traceable evidence. If no valid map or topology-specific performance dataset exists, the model must mark the operating point unknown and refuse quantitative ranking.
 
 ## 5. Test matrix
