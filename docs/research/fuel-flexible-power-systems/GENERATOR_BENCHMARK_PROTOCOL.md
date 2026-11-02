@@ -357,6 +357,19 @@ The screening register [MARINE_POWERTRAIN_LITERATURE_BASELINES_2026-11-03.json](
 
 The studies are not directly rankable against one another: one uses a deep-sea container-ship profile and multi-criteria retrofit analysis; the other uses a specific 6,177-GT general cargo vessel and GREET/OpenLCA/EF 3.0 lifecycle/cost methods. Preserve their functional units and vessel boundaries. These are peer-reviewed literature benchmarks, not supplier quotations or physical measurements from Luminous hardware.
 
+### 8.3 Well-to-Service primary-energy and lifecycle accounting
+
+Continue from [WELL-TO-SERVICE-001 #3421](https://github.com/Luminous-Dynamics/symtropy/issues/3421). A matched net-AC/DC/propulsion-work result is only the service layer; it is not automatically an upstream primary-energy or lifecycle result.
+
+Use the pathway graph schema [WELL_TO_SERVICE_SCHEMA_2026-11-03.json](data/WELL_TO_SERVICE_SCHEMA_2026-11-03.json) and synthetic hostile fixtures [WELL_TO_SERVICE_FIXTURES_2026-11-03.json](data/WELL_TO_SERVICE_FIXTURES_2026-11-03.json). The initial controls verify:
+- DFFE South Africa NGGEF is applied once to metered grid electricity for the declared Scope 2 boundary;
+- a repeated application of the same factor to stored energy is detected as double-counting;
+- fuel chemical LHV and stored battery electricity remain different input-energy bases, even where the delivered net-AC service matches.
+
+The battery fixture uses 100 kWh metered grid input, NGGEF 0.960 kgCO2e/kWh, 90 kWh delivered DC and 96 kgCO2e at the input Scope 2 boundary. It yields 1.0667 kgCO2e/kWh delivered DC for this synthetic case. It excludes battery manufacturing/end-of-life and is not a physical LCA result.
+
+For marine pathways, maintain IMO MEPC.391(81) WtT/TtW/WtW conventions and Fuel Lifecycle Label evidence separately from general transport-chain reporting under ISO 14083:2023. Argonne R&D GREET 2025 Rev.1 is an independent reference model, not a mandatory runtime dependency or a substitute for the selected jurisdiction's official factors.
+
 ## 9. Measurement quality and statistical design
 
 - Use a competent testing/calibration laboratory and record the accreditation scope where required.
