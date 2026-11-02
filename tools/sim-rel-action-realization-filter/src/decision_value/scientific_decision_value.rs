@@ -18,6 +18,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_ID_BYTES: usize = 256;
 const MAX_RESOURCE_CHANNELS: usize = 64;
+const MAX_DOMAINS: usize = 64;
+const MAX_MECHANISM_FAMILIES: usize = 128;
+const MAX_HYPOTHESES: usize = 8_192;
 const MAX_CONCEPT_EVIDENCE: usize = 100_000;
 const MAX_EXACT_DISCORDANT_CONCEPTS: usize = 120;
 const MICRO_SCALE: i128 = 1_000_000;
@@ -267,6 +270,11 @@ impl ExactValue {
     }
 
     fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, DecisionValueError> {
+        if self.denominator == 0 || other.denominator == 0 {
+            return Err(DecisionValueError::InvalidValue(
+                "exact value denominator must be positive".into(),
+            ));
+        }
         let left = self.numerator.checked_mul(i128::try_from(other.denominator).map_err(|_| {
             DecisionValueError::ArithmeticOverflow("comparison denominator exceeds i128".into())
         })?).ok_or_else(|| DecisionValueError::ArithmeticOverflow("value comparison overflow".into()))?;
@@ -546,9 +554,18 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     ] {
         require_digest(value, label)?;
     }
+    let hypothesis_count = plan.domains.len()
+        .checked_mul(plan.mechanism_families.len())
+        .and_then(|value| value.checked_mul(if plan.outcome_measure.is_some() { 2 } else { 1 }))
+        .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
+            "decision-value hypothesis grid overflow".into(),
+        ))?;
     if plan.reference_arm_id == plan.candidate_arm_id
         || plan.domains.is_empty()
+        || plan.domains.len() > MAX_DOMAINS
         || plan.mechanism_families.is_empty()
+        || plan.mechanism_families.len() > MAX_MECHANISM_FAMILIES
+        || hypothesis_count > MAX_HYPOTHESES
         || plan.minimum_valid_concepts_per_stratum == 0
         || plan.family_wise_alpha.is_zero()
         || !plan.family_wise_alpha.is_probability()
@@ -587,7 +604,10 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
         require_id(&measure.measure_id, "outcome measure ID")?;
         require_id(&measure.unit, "outcome measure unit")?;
         require_digest(&measure.verifier_profile_digest, "outcome verifier profile")?;
-        if measure.lower_bound.compare(&measure.upper_bound)? != std::cmp::Ordering::Less {
+        if measure.lower_bound.denominator == 0
+            || measure.upper_bound.denominator == 0
+            || measure.lower_bound.compare(&measure.upper_bound)? != std::cmp::Ordering::Less
+        {
             return Err(DecisionValueError::InvalidPlan(
                 "outcome measure lower bound must be below upper bound".into(),
             ));
@@ -692,7 +712,7 @@ fn validate_resource_use(
                 "resource observation contains a channel not preregistered in the plan".into(),
             ));
         }
-        if !measurement.amount.is_non_negative() {
+        if measurement.amount.denominator == 0 || !measurement.amount.is_non_negative() {
             return Err(DecisionValueError::ResourceAccounting(
                 "resource consumption cannot be negative".into(),
             ));
