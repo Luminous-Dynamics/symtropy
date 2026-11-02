@@ -76,7 +76,7 @@ Minimum comparison set:
 2. Same-set HVO/renewable-diesel compatibility configuration where the manufacturer and fuel specification permit it.
 3. A separate natural-gas/biomethane dual-fuel engine-generator only after its gas train, pilot-fuel fraction, ventilation, leak detection, shutdown and safety case are established.
 4. **Mainspring linear generator** as the closest same-scale multi-fuel comparator. Its product materials report 250 kW modules, 46% net-AC LHV electrical efficiency on natural gas/biogas, <1.5 ppm NOx, 0–100% output range and a standard 2.5 MW block made from ten 250 kW units. Preserve the vendor's measurement footnotes and uncertainty; do not treat them as independent head-to-head results.
-5. **Capstone Energy+ C200 / C250 microturbines** as same-scale comparators. Its FY2026 SEC filing confirms the C200 200 kW platform and describes natural gas, renewable biogas, landfill gas, wastewater methane, sour/low-BTU gas and up to 30% hydrogen blends in product literature. The C250 250 kW platform has completed test runs but is still advancing through commercialization. The filing reports approximately 33% simple-cycle efficiency, but the cited passage does not specify net/gross boundary, LHV/HHV basis or correction conditions; do not admit it as a matched net-AC ranking number without the controlled datasheet/test report.
+5. **Capstone Energy+ C200 / C250 microturbines** as same-scale comparators. Its FY2026 SEC filing confirms the C200 200 kW platform and describes natural gas, renewable biogas, landfill gas, wastewater methane, sour/low-BTU gas and up to 30% hydrogen blends in product literature. The C250 250 kW platform has completed test runs but is still advancing through commercialization. The filing reports approximately 33% simple-cycle efficiency, but the cited passage does not specify net/gross boundary, LHV/HHV basis or correction conditions; do not admit it as a matched net-AC ranking number without the controlled datasheet/test report. The same filing describes an 800 VDC-native product platform and an up-to-5% improvement claim versus legacy distribution; this is a manufacturer claim, not a verified microturbine net-efficiency improvement.
 6. Fuel-cell generator where fuel supply, storage, reformer/stack/inverter parasitics, load response, lifetime, replacement and cost data are credible.
 7. Battery-electric storage/inverter supply for the same load trace where a credible grid/charging source is available.
 
@@ -102,6 +102,17 @@ Mainspring also reports >1.5 million core run hours and an AEP agreement for up 
 - Include mass, volume, skid footprint, foundation, ventilation, fuel conditioning, noise, heat rejection, cooling-water use and site requirements.
 - Distinguish vendor specifications, manufacturer-authored demonstration reports, third-party measurement, independent validation, regulatory certification and field-operation data.
 - A linear generator does not have a conventional crankshaft / alternator chain; a fuel cell has a DC stack and inverter chain. Model each topology explicitly rather than forcing all outputs through an engine-brake-power field.
+
+#### Direct-DC delivery cases
+
+For data-centre, EV-charging and other DC-native loads, add a separate delivered-DC-bus test case:
+- define the customer DC-bus voltage range, ripple, transient load profile, protection and isolation requirements;
+- meter net DC energy at the customer interface and separately meter fuel input, auxiliary loads, conversion stages and thermal rejection;
+- compare an AC-output system plus rectifier / distribution against a DC-native source at the **same delivered DC load**, including cable, transformer, rectifier, DC/DC, inverter and UPS losses that are inside the declared boundary;
+- do not add an imaginary inverter loss to a DC-native architecture, and do not omit real power-conditioning stages from the AC or DC alternative;
+- report DC-bus energy efficiency and AC-terminal efficiency as separate metrics; do not relabel one as the other.
+
+Capstone's FY2026 filing describes an 800 VDC platform and claims up to 5% improvement versus legacy distribution. Record the claim as manufacturer-reported and require matched load, voltage, conversion boundary and independent measurement before ranking. This is a valuable topology hypothesis, not an assumed 5% system gain.
 
 ### 4.3 Primary same-scale published reference: Mainspring MSE3 linear generator
 
