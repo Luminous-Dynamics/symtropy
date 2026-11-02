@@ -71,7 +71,7 @@ pub struct Su2FieldPreflightReport {
 impl Su2FieldPreflightReport {
     pub fn to_csv(&self) -> String {
         let window_enabled = matches!(
-            self.convergence_protocol.window,
+            &self.convergence_protocol.window,
             Su2WindowConvergenceProtocol::Enabled { .. }
         );
         let mut output = String::from(
@@ -92,10 +92,10 @@ impl Su2FieldPreflightReport {
             csv_escape(&self.solver_family),
             csv_escape(&self.configured_convergence_field),
             csv_escape(&self.convergence_protocol.steady_fields.join(";")),
-            optional_u64(self.convergence_protocol.steady_start_iteration),
+            format_optional_u64(self.convergence_protocol.steady_start_iteration),
             optional_string(&self.convergence_protocol.steady_residual_min_log10),
             optional_string(&self.convergence_protocol.steady_cauchy_epsilon),
-            optional_u64(self.convergence_protocol.steady_cauchy_elements),
+            format_optional_u64(self.convergence_protocol.steady_cauchy_elements),
             if window_enabled { "YES".to_owned() } else { "NO".to_owned() },
             csv_escape(&window_fields(&self.convergence_protocol.window)),
             optional_window_u64(&self.convergence_protocol.window, 0),
@@ -620,7 +620,7 @@ fn append_optional_string(bytes: &mut Vec<u8>, value: &Option<String>) {
     }
 }
 
-fn optional_u64(value: Option<u64>) -> String {
+fn format_optional_u64(value: Option<u64>) -> String {
     value.map(|number| number.to_string()).unwrap_or_default()
 }
 
@@ -827,7 +827,7 @@ mod tests {
         fs::write(
             &config,
             format!(
-                "SOLVER= NAVIER_STOKES\nCONV_FIELD= {configured_field}\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\n"
+                "SOLVER= NAVIER_STOKES\nCONV_FIELD= {configured_field}\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= NO\n"
             ),
         )
         .expect("write config");
@@ -911,7 +911,11 @@ mod tests {
         .expect("field preflight passes");
         assert_eq!(
             report.status,
-            "required_fields_available_and_conv_field_recognized"
+            "all_declared_steady_and_window_convergence_fields_recognized"
+        );
+        assert_eq!(
+            report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Disabled
         );
         assert_eq!(report.available_history_fields.len(), 6);
         assert_eq!(report.required_history_fields.len(), 4);
@@ -921,7 +925,7 @@ mod tests {
     #[test]
     fn parses_su2_backslash_continued_history_output_lists() {
         let configuration = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\nWINDOW_CAUCHY_CRIT= NO\n",
         )
         .expect("valid continued configuration");
         assert_eq!(
@@ -945,7 +949,7 @@ mod tests {
         assert!(
             audit_su2_field_preflight(&unknown, "config.cfg", "mesh.su2", &["DRAG".to_owned()])
                 .expect_err("unknown CONV_FIELD rejected")
-                .contains("SU2 may ignore it")
+                .contains("SU2 may ignore unknown fields")
         );
 
         let missing = fixture_run(&root.join("missing"), "RMS_DENSITY", INVENTORY);
