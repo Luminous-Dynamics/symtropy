@@ -74,6 +74,22 @@
         "id": "HIST001-FAMILY-MIDDLE-IRON-AGE-CHRONOLOGY",
         "independence": "unknown",
         "notes": "Underlying site dates may overlap with other published chronologies; establish sample/context and citation lineage before treating as independent."
+      },
+      "derived_artifacts": [
+        {
+          "artifact_id": "HIST001-DERIVED-AMS-TABLE1",
+          "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/research/civbench-v0-2026-11/docs/research/cases/HIST_001_AMS_TABLE1_TRANSCRIPTION_V0_1.json",
+          "artifact_type": "transcription_fixture",
+          "status": "transcribed_not_independently_reviewed",
+          "source_internal_conflict_count": 1,
+          "source_pdf_sha256": null,
+          "table_image_sha256": null
+        }
+      ],
+      "data_access": {
+        "status": "article_table_published_open_access_under_cc_by_4_0_underlying_records_not_independently_supplied",
+        "access_condition": "Article-level Table 1 is publicly accessible under the article's CC BY 4.0 license; underlying laboratory records/data are on request from the authors.",
+        "license_note": "The article license does not automatically establish redistribution rights for underlying laboratory records or third-party source data."
       }
     },
     {
