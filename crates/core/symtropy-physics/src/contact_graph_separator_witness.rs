@@ -3769,13 +3769,11 @@ impl SlidingLeafMessage {
         ];
 
         let mut ranges = [point(0.0)?; 5];
-        for coefficient_index in 0..5 {
-            let alpha_row = &alpha[coefficient_index];
+        for (coefficient_index, alpha_row) in alpha.iter().enumerate() {
             let mut constant = point(0.0)?;
-            for component in 0..3 {
+            for (component, alpha_component) in alpha_row.iter().enumerate() {
                 constant = constant.outward_add(
-                    alpha_row[component]
-                        .outward_mul(point(self.free_velocity[component])?)?,
+                    alpha_component.outward_mul(point(self.free_velocity[component])?)?,
                 )?;
             }
 
@@ -3787,9 +3785,9 @@ impl SlidingLeafMessage {
                 .enumerate()
             {
                 let mut gradient = point(0.0)?;
-                for component in 0..3 {
+                for (component, alpha_component) in alpha_row.iter().enumerate() {
                     gradient = gradient.outward_add(
-                        alpha_row[component].outward_mul(point(
+                        alpha_component.outward_mul(point(
                             self.separator_coupling[(separator_axis, component)],
                         )?)?,
                     )?;
@@ -3899,17 +3897,25 @@ mod sliding_affine_coefficient_range_tests {
                 for z in [-0.75, 0.75, 0.0] {
                     let point = SVector::<f64, 3>::new(x, y, z);
                     let direct = direct_coefficients(&message, &point);
-                    for index in 0..5 {
-                        assert!(contains(affine[index], direct[index]));
-                        assert!(contains(natural.coefficients[index], direct[index]));
+                    for ((affine_range, natural_range), direct_value) in affine
+                        .iter()
+                        .zip(natural.coefficients.iter())
+                        .zip(direct.iter())
+                    {
+                        assert!(contains(*affine_range, *direct_value));
+                        assert!(contains(*natural_range, *direct_value));
                     }
                 }
             }
         }
 
-        for index in 0..5 {
+        for (index, (affine_range, natural_range)) in affine
+            .iter()
+            .zip(natural.coefficients.iter())
+            .enumerate()
+        {
             assert!(
-                width(affine[index]) <= width(natural.coefficients[index]) + 1.0e-12,
+                width(*affine_range) <= width(*natural_range) + 1.0e-12,
                 "affine range must not be wider at coefficient {index}"
             );
         }
