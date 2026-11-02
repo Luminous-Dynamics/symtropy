@@ -1,6 +1,6 @@
 # SIM-REL-048 — paired inference over repeated-run task clusters
 
-Status: first exact task-cluster inferential implementation on a research branch. Exact-head qualification pending. This module consumes SIM-REL-046 task-cluster receipts; it never consumes repeated raw run rows as independent inferential observations.
+Status: exact task-cluster inferential implementation qualified on formatted head `ad4e7e781de402c8d49429823fad793b081c1b40`. Branch workflow [#41406003581](https://github.com/Luminous-Dynamics/symtropy/actions/runs/41406003581) passed 9/9 focused tests, 206/206 full locked crate tests, strict Clippy, pinned Rust 1.96 formatting, exact-head and clean-tree checks. This module consumes SIM-REL-046 task-cluster receipts; it never consumes repeated raw run rows as independent inferential observations.
 
 ## 1. Motivation
 
