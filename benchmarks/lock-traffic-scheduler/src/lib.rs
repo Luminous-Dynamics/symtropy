@@ -249,7 +249,9 @@ fn choose_candidate(
                 request.request_id.as_str(),
             )
         }),
-        SchedulingPolicy::PriorityWithAging { aging_threshold_ticks } => {
+        SchedulingPolicy::PriorityWithAging {
+            aging_threshold_ticks,
+        } => {
             let aged = ready
                 .iter()
                 .copied()
@@ -296,11 +298,7 @@ fn add_participant_wait(metrics: &mut SchedulingMetrics, participant: &str, wait
     }
 }
 
-fn add_service_wait(
-    metrics: &mut SchedulingMetrics,
-    service_class: ServiceClass,
-    wait: u64,
-) {
+fn add_service_wait(metrics: &mut SchedulingMetrics, service_class: ServiceClass, wait: u64) {
     if let Some((_, total)) = metrics
         .service_class_wait_totals
         .iter_mut()
@@ -353,9 +351,7 @@ pub fn schedule_lock(
                 request_id: request.request_id.clone(),
                 reason: UnscheduledReason::PassageQualificationUnknown,
             }),
-            PassageEligibility::Qualified
-                if request.qualification_reference.trim().is_empty() =>
-            {
+            PassageEligibility::Qualified if request.qualification_reference.trim().is_empty() => {
                 unscheduled.push(UnscheduledPassage {
                     request_id: request.request_id.clone(),
                     reason: UnscheduledReason::PassageQualificationUnknown,
@@ -385,13 +381,12 @@ pub fn schedule_lock(
 
         for index in pending.iter().copied() {
             let request = &requests[index];
-            let switch_ticks = if last_direction
-                .is_some_and(|direction| direction != request.direction)
-            {
-                profile.direction_switch_ticks
-            } else {
-                0
-            };
+            let switch_ticks =
+                if last_direction.is_some_and(|direction| direction != request.direction) {
+                    profile.direction_switch_ticks
+                } else {
+                    0
+                };
             let earliest = current_tick.max(ready_tick(request));
             let occupied_duration = switch_ticks
                 .checked_add(request.service_duration_ticks)
@@ -461,33 +456,41 @@ pub fn schedule_lock(
             .filter(|slot| slot.reserved_start_tick == decision_tick)
             .map(|slot| slot.index)
             .collect::<Vec<_>>();
-        let Some(index) =
-            choose_candidate(&candidate_indices, requests, decision_tick, policy)
+        let Some(index) = choose_candidate(&candidate_indices, requests, decision_tick, policy)
         else {
             return Err(SchedulerError::InvalidRequestWindow);
         };
-        let Some(slot) = feasible_slots.iter().find(|slot| slot.index == index).copied() else {
+        let Some(slot) = feasible_slots
+            .iter()
+            .find(|slot| slot.index == index)
+            .copied()
+        else {
             return Err(SchedulerError::InvalidRequestWindow);
         };
 
         pending.retain(|value| *value != index);
         let request = &requests[index];
 
-        metrics.served_count = metrics.served_count
+        metrics.served_count = metrics
+            .served_count
             .checked_add(1)
             .ok_or(SchedulerError::ArithmeticOverflow)?;
-        metrics.total_wait_ticks = metrics.total_wait_ticks
+        metrics.total_wait_ticks = metrics
+            .total_wait_ticks
             .checked_add(u128::from(slot.waiting_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
         metrics.maximum_wait_ticks = metrics.maximum_wait_ticks.max(slot.waiting_ticks);
-        metrics.total_lock_service_ticks = metrics.total_lock_service_ticks
+        metrics.total_lock_service_ticks = metrics
+            .total_lock_service_ticks
             .checked_add(u128::from(request.service_duration_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
-        metrics.total_direction_switch_ticks = metrics.total_direction_switch_ticks
+        metrics.total_direction_switch_ticks = metrics
+            .total_direction_switch_ticks
             .checked_add(u128::from(slot.direction_switch_ticks))
             .ok_or(SchedulerError::ArithmeticOverflow)?;
         if slot.direction_switch_ticks > 0 {
-            metrics.direction_switch_count = metrics.direction_switch_count
+            metrics.direction_switch_count = metrics
+                .direction_switch_count
                 .checked_add(1)
                 .ok_or(SchedulerError::ArithmeticOverflow)?;
         }
@@ -512,12 +515,11 @@ pub fn schedule_lock(
         current_tick = slot.finish_tick;
     }
 
-    metrics.unscheduled_count = u64::try_from(unscheduled.len())
-        .map_err(|_| SchedulerError::ArithmeticOverflow)?;
+    metrics.unscheduled_count =
+        u64::try_from(unscheduled.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?;
     scheduled.sort_by_key(|slot| (slot.service_start_tick, slot.request_id.as_str()));
 
-    let served = u128::try_from(scheduled.len())
-        .map_err(|_| SchedulerError::ArithmeticOverflow)?;
+    let served = u128::try_from(scheduled.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?;
     metrics.arrival_order_pair_count = served
         .checked_mul(served.saturating_sub(1))
         .and_then(|pairs| pairs.checked_div(2))
@@ -556,7 +558,12 @@ pub fn schedule_lock(
 
     unscheduled.sort_by(|left, right| left.request_id.cmp(&right.request_id));
 
-    Ok(ScheduleResult { policy, scheduled, unscheduled, metrics })
+    Ok(ScheduleResult {
+        policy,
+        scheduled,
+        unscheduled,
+        metrics,
+    })
 }
 
 #[cfg(test)]
@@ -568,7 +575,10 @@ mod tests {
             lock_id: "lock-01".into(),
             revision: "lock-r4".into(),
             valid_through_tick: Some(1_000),
-            availability: vec![TimeInterval { start_tick: 0, end_tick: 1_000 }],
+            availability: vec![TimeInterval {
+                start_tick: 0,
+                end_tick: 1_000,
+            }],
             direction_switch_ticks: 5,
         }
     }
@@ -690,8 +700,7 @@ mod tests {
                         visit(profile, requests, next_remaining, state, best);
                         continue;
                     };
-                    let Some(finish) =
-                        service_start.checked_add(request.service_duration_ticks)
+                    let Some(finish) = service_start.checked_add(request.service_duration_ticks)
                     else {
                         visit(profile, requests, next_remaining, state, best);
                         continue;
@@ -800,13 +809,8 @@ mod tests {
         };
         let requests = [long_older, short_deadline];
 
-        let fcfs = schedule_lock(
-            &lock,
-            &requests,
-            0,
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .unwrap();
+        let fcfs =
+            schedule_lock(&lock, &requests, 0, SchedulingPolicy::FirstComeFirstServed).unwrap();
         let oracle_best_served = exhaustive_max_served(&lock, &requests, 0);
 
         assert_eq!(fcfs.metrics.served_count, 1);
@@ -973,7 +977,10 @@ mod tests {
     #[test]
     fn priority_is_re_evaluated_when_lock_becomes_available() {
         let mut lock = profile();
-        lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
+        lock.availability = vec![TimeInterval {
+            start_tick: 100,
+            end_tick: 500,
+        }];
         let older_freight = request(
             "older-freight",
             "p1",
@@ -993,7 +1000,9 @@ mod tests {
             &lock,
             &[older_freight, later_passenger],
             0,
-            SchedulingPolicy::PriorityWithAging { aging_threshold_ticks: 1_000 },
+            SchedulingPolicy::PriorityWithAging {
+                aging_threshold_ticks: 1_000,
+            },
         )
         .unwrap();
 
@@ -1025,7 +1034,9 @@ mod tests {
             &lock,
             &[older_freight, newer_emergency],
             20,
-            SchedulingPolicy::PriorityWithAging { aging_threshold_ticks: 50 },
+            SchedulingPolicy::PriorityWithAging {
+                aging_threshold_ticks: 50,
+            },
         )
         .unwrap();
 
@@ -1036,12 +1047,34 @@ mod tests {
     #[test]
     fn fcfs_orders_by_arrival_then_id() {
         let requests = vec![
-            request("b", "p2", 5, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("a", "p1", 5, Direction::Downstream, ServiceClass::OrdinaryFreight),
-            request("c", "p3", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
+            request(
+                "b",
+                "p2",
+                5,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "a",
+                "p1",
+                5,
+                Direction::Downstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "c",
+                "p3",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
         ];
         let result = run(&requests, SchedulingPolicy::FirstComeFirstServed);
-        let ids = result.scheduled.iter().map(|slot| slot.request_id.as_str()).collect::<Vec<_>>();
+        let ids = result
+            .scheduled
+            .iter()
+            .map(|slot| slot.request_id.as_str())
+            .collect::<Vec<_>>();
         assert_eq!(ids, vec!["c", "a", "b"]);
         assert_eq!(result.metrics.arrival_order_pair_count, 3);
         assert_eq!(result.metrics.arrival_order_inversion_count, 0);
@@ -1051,8 +1084,20 @@ mod tests {
     #[test]
     fn metrics_separate_service_wait_and_direction_switches() {
         let requests = vec![
-            request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("b", "p2", 0, Direction::Downstream, ServiceClass::OrdinaryFreight),
+            request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "b",
+                "p2",
+                0,
+                Direction::Downstream,
+                ServiceClass::OrdinaryFreight,
+            ),
         ];
         let result = run(&requests, SchedulingPolicy::FirstComeFirstServed);
         assert_eq!(result.metrics.served_count, 2);
@@ -1066,8 +1111,20 @@ mod tests {
     #[test]
     fn priority_policy_prefers_essential_passenger_when_ready() {
         let requests = vec![
-            request("freight", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("ferry", "p2", 0, Direction::Upstream, ServiceClass::EssentialPassenger),
+            request(
+                "freight",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "ferry",
+                "p2",
+                0,
+                Direction::Upstream,
+                ServiceClass::EssentialPassenger,
+            ),
         ];
         let result = run(
             &requests,
@@ -1081,13 +1138,30 @@ mod tests {
     #[test]
     fn aging_policy_protects_oldest_request_from_priority_starvation() {
         let requests = vec![
-            request("old-freight", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("new-ferry", "p2", 50, Direction::Downstream, ServiceClass::EssentialPassenger),
+            request(
+                "old-freight",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "new-ferry",
+                "p2",
+                50,
+                Direction::Downstream,
+                ServiceClass::EssentialPassenger,
+            ),
         ];
         let result = schedule_lock(
-            &profile(), &requests, 60,
-            SchedulingPolicy::PriorityWithAging { aging_threshold_ticks: 40 },
-        ).unwrap();
+            &profile(),
+            &requests,
+            60,
+            SchedulingPolicy::PriorityWithAging {
+                aging_threshold_ticks: 40,
+            },
+        )
+        .unwrap();
         assert_eq!(result.scheduled[0].request_id, "old-freight");
     }
 
@@ -1103,15 +1177,27 @@ mod tests {
         req.eligibility = PassageEligibility::Blocked;
         let result = run(&[req], SchedulingPolicy::FirstComeFirstServed);
         assert!(result.scheduled.is_empty());
-        assert_eq!(result.unscheduled[0].reason, UnscheduledReason::PassageBlockedByQualification);
+        assert_eq!(
+            result.unscheduled[0].reason,
+            UnscheduledReason::PassageBlockedByQualification
+        );
     }
 
     #[test]
     fn unknown_qualification_never_scheduled() {
-        let mut req = request("unknown", "p1", 0, Direction::Upstream, ServiceClass::Emergency);
+        let mut req = request(
+            "unknown",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::Emergency,
+        );
         req.eligibility = PassageEligibility::Unknown;
         let result = run(&[req], SchedulingPolicy::FirstComeFirstServed);
-        assert_eq!(result.unscheduled[0].reason, UnscheduledReason::PassageQualificationUnknown);
+        assert_eq!(
+            result.unscheduled[0].reason,
+            UnscheduledReason::PassageQualificationUnknown
+        );
     }
 
     #[test]
@@ -1164,7 +1250,13 @@ mod tests {
 
     #[test]
     fn latest_start_is_a_hard_bound() {
-        let mut req = request("late", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight);
+        let mut req = request(
+            "late",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
         req.latest_start_tick = 5;
         assert_eq!(
             run(&[req], SchedulingPolicy::FirstComeFirstServed).unscheduled[0].reason,
@@ -1199,8 +1291,20 @@ mod tests {
     #[test]
     fn direction_switch_consumes_declared_setup_time() {
         let requests = vec![
-            request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("b", "p2", 0, Direction::Downstream, ServiceClass::OrdinaryFreight),
+            request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "b",
+                "p2",
+                0,
+                Direction::Downstream,
+                ServiceClass::OrdinaryFreight,
+            ),
         ];
         let result = run(&requests, SchedulingPolicy::FirstComeFirstServed);
         assert_eq!(result.scheduled[1].reserved_start_tick, 10);
@@ -1212,20 +1316,33 @@ mod tests {
     fn outage_windows_are_respected() {
         let mut p = profile();
         p.availability = vec![
-            TimeInterval { start_tick: 0, end_tick: 15 },
-            TimeInterval { start_tick: 30, end_tick: 100 },
+            TimeInterval {
+                start_tick: 0,
+                end_tick: 15,
+            },
+            TimeInterval {
+                start_tick: 30,
+                end_tick: 100,
+            },
         ];
         let requests = vec![
-            request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("b", "p2", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
+            request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "b",
+                "p2",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
         ];
-        let result = schedule_lock(
-            &p,
-            &requests,
-            0,
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .unwrap();
+        let result =
+            schedule_lock(&p, &requests, 0, SchedulingPolicy::FirstComeFirstServed).unwrap();
         assert_eq!(result.scheduled[0].service_start_tick, 0);
         assert_eq!(result.scheduled[1].service_start_tick, 30);
     }
@@ -1233,40 +1350,75 @@ mod tests {
     #[test]
     fn too_short_availability_leaves_request_unscheduled() {
         let mut p = profile();
-        p.availability = vec![TimeInterval { start_tick: 0, end_tick: 5 }];
+        p.availability = vec![TimeInterval {
+            start_tick: 0,
+            end_tick: 5,
+        }];
         let result = schedule_lock(
             &p,
-            &[request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight)],
+            &[request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            )],
             0,
             SchedulingPolicy::FirstComeFirstServed,
-        ).unwrap();
-        assert_eq!(result.unscheduled[0].reason, UnscheduledReason::NoAvailableLockSlot);
+        )
+        .unwrap();
+        assert_eq!(
+            result.unscheduled[0].reason,
+            UnscheduledReason::NoAvailableLockSlot
+        );
     }
 
     #[test]
     fn direction_setup_must_fit_inside_availability() {
         let mut p = profile();
-        p.availability = vec![TimeInterval { start_tick: 0, end_tick: 20 }];
+        p.availability = vec![TimeInterval {
+            start_tick: 0,
+            end_tick: 20,
+        }];
         let requests = vec![
-            request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("b", "p2", 0, Direction::Downstream, ServiceClass::OrdinaryFreight),
+            request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "b",
+                "p2",
+                0,
+                Direction::Downstream,
+                ServiceClass::OrdinaryFreight,
+            ),
         ];
-        let result = schedule_lock(
-            &p,
-            &requests,
-            0,
-            SchedulingPolicy::FirstComeFirstServed,
-        )
-        .unwrap();
+        let result =
+            schedule_lock(&p, &requests, 0, SchedulingPolicy::FirstComeFirstServed).unwrap();
         assert_eq!(result.scheduled.len(), 1);
         assert_eq!(result.unscheduled[0].request_id, "b");
     }
 
     #[test]
     fn input_order_does_not_change_priority_schedule() {
-        let a = request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight);
+        let a = request(
+            "a",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
         let b = request("b", "p2", 0, Direction::Downstream, ServiceClass::Emergency);
-        let c = request("c", "p3", 2, Direction::Upstream, ServiceClass::EssentialPassenger);
+        let c = request(
+            "c",
+            "p3",
+            2,
+            Direction::Upstream,
+            ServiceClass::EssentialPassenger,
+        );
         let one = run(
             &[a.clone(), b.clone(), c.clone()],
             SchedulingPolicy::PriorityWithAging {
@@ -1285,28 +1437,50 @@ mod tests {
     #[test]
     fn participant_and_service_waits_are_separately_reported() {
         let requests = vec![
-            request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
-            request("b", "p2", 0, Direction::Downstream, ServiceClass::EssentialPassenger),
+            request(
+                "a",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            ),
+            request(
+                "b",
+                "p2",
+                0,
+                Direction::Downstream,
+                ServiceClass::EssentialPassenger,
+            ),
         ];
         let result = run(&requests, SchedulingPolicy::FirstComeFirstServed);
-        assert!(result
-            .metrics
-            .participant_wait_totals
-            .iter()
-            .any(|(id, wait)| id == "p2" && *wait == 15));
-        assert!(result
-            .metrics
-            .service_class_wait_totals
-            .iter()
-            .any(|(class, wait)| *class == ServiceClass::EssentialPassenger && *wait == 15));
+        assert!(
+            result
+                .metrics
+                .participant_wait_totals
+                .iter()
+                .any(|(id, wait)| id == "p2" && *wait == 15)
+        );
+        assert!(
+            result
+                .metrics
+                .service_class_wait_totals
+                .iter()
+                .any(|(class, wait)| *class == ServiceClass::EssentialPassenger && *wait == 15)
+        );
     }
 
     #[test]
     fn overlapping_availability_windows_are_rejected() {
         let mut p = profile();
         p.availability = vec![
-            TimeInterval { start_tick: 0, end_tick: 20 },
-            TimeInterval { start_tick: 15, end_tick: 30 },
+            TimeInterval {
+                start_tick: 0,
+                end_tick: 20,
+            },
+            TimeInterval {
+                start_tick: 15,
+                end_tick: 30,
+            },
         ];
         assert_eq!(
             schedule_lock(
@@ -1328,7 +1502,10 @@ mod tests {
     #[test]
     fn zero_length_availability_window_is_rejected() {
         let mut p = profile();
-        p.availability = vec![TimeInterval { start_tick: 5, end_tick: 5 }];
+        p.availability = vec![TimeInterval {
+            start_tick: 5,
+            end_tick: 5,
+        }];
         assert_eq!(
             schedule_lock(
                 &p,
@@ -1348,20 +1525,48 @@ mod tests {
 
     #[test]
     fn duplicate_request_id_is_rejected() {
-        let a = request("same", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight);
-        let b = request("same", "p2", 1, Direction::Downstream, ServiceClass::OrdinaryFreight);
+        let a = request(
+            "same",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let b = request(
+            "same",
+            "p2",
+            1,
+            Direction::Downstream,
+            ServiceClass::OrdinaryFreight,
+        );
         assert_eq!(
-            schedule_lock(&profile(), &[a, b], 0, SchedulingPolicy::FirstComeFirstServed),
+            schedule_lock(
+                &profile(),
+                &[a, b],
+                0,
+                SchedulingPolicy::FirstComeFirstServed
+            ),
             Err(SchedulerError::DuplicateRequestId)
         );
     }
 
     #[test]
     fn zero_service_duration_is_rejected() {
-        let mut req = request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight);
+        let mut req = request(
+            "a",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
         req.service_duration_ticks = 0;
         assert_eq!(
-            schedule_lock(&profile(), &[req], 0, SchedulingPolicy::FirstComeFirstServed),
+            schedule_lock(
+                &profile(),
+                &[req],
+                0,
+                SchedulingPolicy::FirstComeFirstServed
+            ),
             Err(SchedulerError::ZeroServiceDuration)
         );
     }
