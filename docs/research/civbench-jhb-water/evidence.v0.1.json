@@ -1010,6 +1010,51 @@
       "denominator": "utility_defined_current_and_prior_customer_billing_collection_basis",
       "definition_status": "collection_rate_not_coverage_or_payment_eligibility",
       "comparability_group": "johannesburg_water_financial_sustainability"
+    },
+    {
+      "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+      "geography": "City of Johannesburg",
+      "system_boundary": "Johannesburg_Water_service_area",
+      "publication_date": "2026-05",
+      "observation_period": "FY2024/25",
+      "observation_id": "OBS_JWB_RENEWAL_CAPEX_EXECUTION_2024_25",
+      "metric_code": "upgrading_and_renewal_capex_budget_execution",
+      "value": 71.57,
+      "unit": "percent_of_approved_budget",
+      "evidence_status": "derived_arithmetic_from_official_utility_annual_report_budget_and_actual",
+      "denominator": "OBS_JWB_UPGRADING_RENEWAL_CAPEX_BUDGET_2024_25",
+      "definition_status": "171.733m_actual_divided_by_239.965m_approved_budget_rounded_to_2dp; does not prove work commissioned",
+      "comparability_group": "johannesburg_water_asset_management"
+    },
+    {
+      "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+      "geography": "City of Johannesburg",
+      "system_boundary": "Johannesburg_Water_service_area",
+      "publication_date": "2026-05",
+      "observation_period": "FY2024/25",
+      "observation_id": "OBS_JWB_WDM_CAPEX_EXECUTION_2024_25",
+      "metric_code": "water_demand_management_capex_budget_execution",
+      "value": 103.63,
+      "unit": "percent_of_approved_budget",
+      "evidence_status": "derived_arithmetic_from_official_utility_annual_report_budget_and_actual",
+      "denominator": "OBS_JWB_WDM_CAPEX_BUDGET_2024_25",
+      "definition_status": "161.656m_actual_divided_by_156m_approved_budget_rounded_to_2dp; does not prove work commissioned",
+      "comparability_group": "johannesburg_water_demand_management"
+    },
+    {
+      "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+      "geography": "City of Johannesburg",
+      "system_boundary": "Johannesburg_Water_service_area",
+      "publication_date": "2026-05",
+      "observation_period": "FY2024/25",
+      "observation_id": "OBS_JWB_REPAIR_MAINTENANCE_BUDGET_EXECUTION_2024_25",
+      "metric_code": "repair_and_maintenance_budget_execution",
+      "value": 105.09,
+      "unit": "percent_of_approved_budget",
+      "evidence_status": "derived_arithmetic_from_official_utility_annual_report_budget_and_actual",
+      "denominator": "reported_R1.612bn_approved_budget",
+      "definition_status": "1.694bn_actual_divided_by_1.612bn_budget_rounded_to_2dp; maintenance spend not renewal capital",
+      "comparability_group": "johannesburg_water_maintenance_finance"
     }
   ],
   "relationships": [
@@ -1090,6 +1135,24 @@
       "subject_observation_id": "OBS_JWB_LEAK_DETECTION_SENSORS_INSTALLED_2024_25",
       "object_observation_id": "OBS_JWB_NRW_2024_25_REPORTED",
       "interpretation": "installed sensors are an intervention input/output count, not proof of improved leak localization or causal NRW reduction."
+    },
+    {
+      "relationship": "derived_ratio",
+      "subject_observation_id": "OBS_JWB_UPGRADING_RENEWAL_CAPEX_ACTUAL_2024_25",
+      "object_observation_id": "OBS_JWB_RENEWAL_CAPEX_EXECUTION_2024_25",
+      "interpretation": "budget execution ratio derived using the reported R171.733m actual and R239.965m approved budget; ratio is not verified physical completion"
+    },
+    {
+      "relationship": "derived_ratio",
+      "subject_observation_id": "OBS_JWB_WDM_CAPEX_ACTUAL_2024_25",
+      "object_observation_id": "OBS_JWB_WDM_CAPEX_EXECUTION_2024_25",
+      "interpretation": "budget execution ratio derived using the reported R161.656m actual and R156m approved budget; ratio is not verified physical completion"
+    },
+    {
+      "relationship": "derived_ratio",
+      "subject_observation_id": "OBS_JWB_REPAIR_MAINTENANCE_SPEND_2024_25",
+      "object_observation_id": "OBS_JWB_REPAIR_MAINTENANCE_BUDGET_EXECUTION_2024_25",
+      "interpretation": "budget execution ratio derived using R1.694bn actual and R1.612bn budget cited in narrative; repair/maintenance expense is not renewal capex"
     }
   ],
   "targets": [
@@ -1224,7 +1287,8 @@
     "The report states 125 leak-detection sensors were installed for a project cost of R5.6m, and 51 smart pressure controllers installed to date; installed count is not proof of leak-detection accuracy, repair success or realised water savings.",
     "FY2024/25 upgrading-and-renewal capex actual of R171.733m versus budget R239.965m and water-demand-management capex actual R161.656m versus budget R156m are category-specific financial execution values; they do not alone establish physical completion or service impact.",
     "The FY2024/25 annual report cites a 1,550 ML/day Johannesburg demand level under Rand Water apportionment licensing. Treat as a reported operating constraint/required demand level, not an achieved daily demand value or a measured present-day allocation.",
-    "The report attributes current bulk-supply constraints partly to delayed Phase II of the Lesotho Highlands Water Scheme, whose expected completion is stated as 2029; this is a schedule statement, not additional water already available."
+    "The report attributes current bulk-supply constraints partly to delayed Phase II of the Lesotho Highlands Water Scheme, whose expected completion is stated as 2029; this is a schedule statement, not additional water already available.",
+    "Budget execution ratios are derived arithmetic from reported annual-report budget and actual values. They indicate financial execution only, not procurement completion, installation, commissioning, repair verification, or realized service outcomes."
   ],
   "benchmark_alignment": {
     "awwa": "Use AWWA M36 / Water Audit Software concepts as the water-audit and loss-control baseline; do not claim to replace AWWA.",
