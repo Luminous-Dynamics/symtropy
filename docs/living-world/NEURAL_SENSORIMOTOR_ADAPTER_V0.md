@@ -312,22 +312,35 @@ Therefore, "CPG plus proprioception" is not the differentiator by itself. Symtro
 
 FlyGym 2.0 was rewritten in March/April 2026 and reports roughly 10× CPU and 250–300× GPU simulation speedups depending on the official page/release. Pin the exact v2 API/release; it is not backward compatible with v1. Treat its throughput as a measured reference, not a promise Symtropy will exceed it.
 
-### Gait coordination metrics are speed- and task-conditioned
+### Gait coordination metrics are species-, speed- and task-conditioned
 
-A single tripod score is not a universal gait-quality objective. Walking flies exhibit speed-dependent coordination patterns and individual variation. At lower speeds, non-tripod patterns can be biologically appropriate; a controller should match a validated species/task reference distribution rather than maximize one named gait.
+Do not collapse gait quality into one scalar or force a single gait pattern across taxa.
 
-For Drosophila, report separately:
-- neural/motor rhythm per leg;
+For Drosophila specifically, one published eLife study reports tripod-like coordination across its tested speeds. Keep speed strata because step timing, variability and coordination strength still matter, but do not assume low-speed non-tripod gait in this species without a matching measured reference. Other insects can show wave, tetrapod or tripod-like coordination depending on species, speed and terrain.
+
+For each Drosophila trial, report separately:
+- per-leg neural/motor rhythm frequency and variability;
 - realized step frequency, stance/swing duration and duty factor;
-- pairwise phase differences and phase-locking value (PLV);
-- tripod coordination strength (TCS) for both tripod groups (L1-R2-L3 and R1-L2-R3);
+- pairwise phase differences and PLV with the exact phase-extraction pipeline recorded;
+- TCS for both tripod groups (L1-R2-L3 and R1-L2-R3);
 - speed, turning, substrate/contact, slip, body stability and individual repeatability.
 
-The Sapkal et al. 2026 preprint defines per-trial TCS using overlapping swing duration for the three legs of each tripod, its stated onset-span denominator, per-trial medians, and zero for steps not part of a tripod event. Pin the exact formula, event segmentation and edge-case handling from that version before implementing a reproduction. PLV is reported on a 0–1 scale per inter-leg pair. These scores are not interchangeable.
+**TCS definitions are study-versioned and must not be conflated:**
+- `TCS_SAPKAL_2026_V2`: Sapkal et al. bioRxiv v2 defines instantaneous TCS as overlapping swing duration divided by (onset of last swing minus onset of first swing), reports the per-trial median and assigns zero to steps not in a tripod event.
+- `TCS_NATVAR_2024`: the 2024 *Natural variability and individuality of walking behavior in Drosophila* paper defines TCS as duration when all three tripod legs are simultaneously in swing divided by the interval from earliest swing onset to latest swing termination.
 
-Stratify by speed, terrain, load/body condition, turning, contact/substrate and sensory-feedback condition. Keep the per-leg distributions and both tripod groups; a high average can conceal one failed leg pair or individual.
+The denominators differ. These metrics are not interchangeable. Reproduce each paper under its own metric ID, event segmentation, sampling interval and edge-case rules; recompute from the same raw events before cross-paper comparisons.
 
-Sources: https://doi.org/10.64898/2026.04.29.721658 (preprint v2); https://pmc.ncbi.nlm.nih.gov/articles/PMC11607691/ (published Drosophila walking variability and individuality reference).
+Sapkal et al.'s methods describe PLV using AEP–PEP joint-angle signals band-pass filtered at 4–15 Hz with a fifth-order Butterworth filter, instantaneous phase from a Hilbert transform, then pairwise inter-leg phase coupling. The text describes mean absolute phase offset; do not substitute a different conventional PLV formula without a different metric ID and an explicit method audit.
+
+The Sapkal preprint's results are also condition-dependent:
+- DNg100 alone showed tripod-like coordination in its tested conditions, with its highest reported TCS in air.
+- Under selected descending-neuron co-stimulation conditions, different leg frequencies in air could reduce coordination; with substrate contact, mechanical and proprioceptive/load feedback could align stepping frequencies and improve coordination.
+- Other co-stimulation conditions changed stepping frequency and coordination in different directions.
+
+Therefore benchmark central stimulation, proprioceptive feedback and substrate/contact as separate factors. Do not claim that adding contact always increases TCS.
+
+Target distributions should be stratified by speed, turning, terrain/material, contact, descending inputs, sensory feedback, body condition, individual and study. A high tripod score is not a universal objective; match the qualified species/task reference distribution.
 
 ### Calibration and identifiability: do not fit behaviour alone
 
