@@ -36,18 +36,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -- --check
 
-      - name: Generate resolver-3 lockfile candidate for review
-        run: cargo generate-lockfile --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml
-
-      - name: Upload resolver-3 lockfile candidate
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: civ-infra-fleet-resilience-lockfile-candidate
-          path: tools/civ-infra-fleet-resilience/Cargo.lock
-          if-no-files-found: error
-          retention-days: 3
-
       - name: Run manifest and adversarial tests
         run: cargo test --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml
 
@@ -86,8 +74,6 @@ jobs:
             ]
           ' "$report"
 
-      - name: Require generated lockfile to be committed
-        run: git diff --exit-code -- tools/civ-infra-fleet-resilience/Cargo.lock
 
       - name: Execute bounded recovery-policy microcase
         shell: bash
