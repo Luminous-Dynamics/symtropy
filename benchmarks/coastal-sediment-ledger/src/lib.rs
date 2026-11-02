@@ -356,7 +356,7 @@ mod tests {
         let contaminated_evidence = SuitabilityEvidence { lot_id: "contaminated".into(),
             evidence_id: "lab-contaminated".into(), state: SuitabilityState::Compatible };
         assert_eq!(l.assess_placement("contaminated", &rule, &contaminated_evidence),
-            PlacementDecision::Rejected(PlacementReason::GrainClassNotPermitted));
+            PlacementDecision::Rejected(PlacementReason::CharacterizationNotCompatible));
     }
 
     #[test]
