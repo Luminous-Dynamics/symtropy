@@ -37,6 +37,8 @@ The paper reports more than 500 Middle Iron Age sites dated broadly to AD 900–
 
 **Limit:** do not collapse a calibrated, potentially multimodal date distribution into one exact calendar year. Do not infer population size directly from site counts without a sampling/detection model.
 
+7. What happened in the Limpopo Valley after Mapungubwe's abandonment, and how should later Sotho/Icon and Kalanga/Khami occupation patterns be represented without treating the region as empty?
+
 ### H-02 — K2 and Mapungubwe settlement sequence and shell-bead variation
 
 **Source:** 2023 article, *Shell disc beads and the development of class-based society at the K2-Mapungubwe settlement complex (South Africa)*, Archaeological and Anthropological Sciences.  
@@ -92,6 +94,17 @@ The UNESCO tentative-list dossier discusses drought and crop failures associated
 **Data requirements:** independently reconstructed rainfall/hydroclimate series, proxy type, location, dating uncertainty, calibration, spatial representativeness, and linkage assumptions to agricultural production.
 
 **Limit:** the existence of drought or climatic change does not by itself establish that it caused abandonment. Avoid single-cause collapse narratives and distinguish a source's interpretation from direct proxy measurement.
+
+### H-08 — Khami-period chronology and post-Mapungubwe reoccupation
+
+**Source:** Huffman & Woodborne (2021), *Implications of new AMS dates for the Khami Period in the Mapungubwe Landscape*, South African Journal of Science, 117(7–8).  
+DOI: https://doi.org/10.17159/sajs.2021/9438
+
+The article describes post-Mapungubwe reoccupation of the Limpopo Valley first by Sotho communities associated with Icon pottery and then by Kalanga speakers associated with Khami pottery. It places a senior Kalanga chief at Machemma, approximately 60 km south, while petty chiefs administered parts of the valley. The authors describe Sotho and Kalanga occupation as occurring in pulses during higher-rainfall periods.
+
+**Data requirements:** individual AMS sample/context records, laboratory measurements and uncertainties, calibration curve/version, calibrated probability distributions, pottery/ceramic assemblage contexts, site occupation intervals, survey coverage, and the hydroclimate proxy records used to support rainfall interpretations.
+
+**Limit:** this is a published regional interpretation, not a continuous population curve or complete political map. The reported sequence does not prove that every settlement followed the same order, that local populations disappeared between phases, or that rainfall alone determined occupation. The authors overlap with the 2021 Middle Iron Age chronology work; treat both as related evidence until sample-level independence is resolved.
 
 ### H-07 — Earlier regional cultural sequences
 
@@ -156,6 +169,16 @@ Predict likely connectivity or provenance classes for held-out assemblages using
 ### HIST-001D — Polycentric chronology
 
 Test whether a model that permits overlapping centres reproduces the documented Mapungubwe/Great Zimbabwe timing better than a forced linear-successor model. This is a model-comparison task, not a claim that one chronology explains all regional political relations.
+
+### HIST-001F — Post-abandonment reoccupation and regional continuity
+
+Test whether models can represent reoccupation pulses, multiple communities, and political authority distributed across sites after the Mapungubwe sequence. Compare:
+- a naive empty-region/collapse model;
+- a continuous local-occupation model with changing archaeological visibility;
+- a multi-community model with Sotho/Icon and Kalanga/Khami phases and uncertain site-level chronologies;
+- a rainfall-constrained model with explicit alternative political, trade and land-use mechanisms.
+
+The evaluation must preserve source uncertainty and not convert an article's regional interpretation into a mandatory world-state transition. Use held-out site/phase contexts and report whether the model can distinguish demographic change from changing archaeological visibility.
 
 ### HIST-001E — Climate causation stress test
 
