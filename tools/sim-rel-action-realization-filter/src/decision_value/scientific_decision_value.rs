@@ -1054,6 +1054,28 @@ pub fn analyze_scientific_decision_value(
             ));
         }
         let (valid, _missing) = validate_concept_evidence(plan, item)?;
+        // Safety signals are retained for every concept, including those whose
+        // efficacy/outcome evidence is inconclusive or invalidated.
+        if item.baseline_hazard {
+            baseline_hazard_count = baseline_hazard_count.checked_add(1).ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("baseline hazard concept count overflow".into())
+            })?;
+        }
+        if item.candidate_hazard {
+            candidate_hazard_count = candidate_hazard_count.checked_add(1).ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("candidate hazard concept count overflow".into())
+            })?;
+        }
+        if item.candidate_forbidden_transition {
+            forbidden_transition_count = forbidden_transition_count.checked_add(1).ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("forbidden transition count overflow".into())
+            })?;
+        }
+        false_safety_certification_count = false_safety_certification_count
+            .checked_add(item.candidate_false_safety_certifications)
+            .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
+                "false safety certification count overflow".into()
+            ))?;
         match item.evidence_status {
             ConceptEvidenceStatus::Verified => {
                 verified_count = verified_count.checked_add(1).ok_or_else(|| {
@@ -1061,24 +1083,6 @@ pub fn analyze_scientific_decision_value(
                 })?;
                 let effect = decision_loss_effect(item)?;
                 loss_effects.insert(key.clone(), effect);
-                if item.baseline_hazard {
-                    baseline_hazard_count = baseline_hazard_count.checked_add(1).ok_or_else(|| {
-                        DecisionValueError::ArithmeticOverflow("baseline hazard concept count overflow".into())
-                    })?;
-                }
-                if item.candidate_hazard {
-                    candidate_hazard_count = candidate_hazard_count.checked_add(1).ok_or_else(|| {
-                        DecisionValueError::ArithmeticOverflow("candidate hazard concept count overflow".into())
-                    })?;
-                }
-                if item.candidate_forbidden_transition {
-                    forbidden_transition_count += 1;
-                }
-                false_safety_certification_count = false_safety_certification_count
-                    .checked_add(item.candidate_false_safety_certifications)
-                    .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
-                        "false safety certification count overflow".into()
-                    ))?;
             }
             ConceptEvidenceStatus::Inconclusive => inconclusive_count += 1,
             ConceptEvidenceStatus::Invalidated => invalidated_count += 1,
@@ -1356,8 +1360,8 @@ mod tests {
             normalized_loss: q(value, 10),
             decision_loss_evidence_digest: D1.into(),
             oracle_loss_table_digest: D2.into(),
-            selected_decision_digest: D3.into(),
-            oracle_optimal_decision_digest: format!("sha256:{}", suffix.repeat(64/ suffix.len())),
+            selected_decision_digest: format!("sha256:{}", suffix.repeat(64 / suffix.len())),
+            oracle_optimal_decision_digest: D4.into(),
         }
     }
 
