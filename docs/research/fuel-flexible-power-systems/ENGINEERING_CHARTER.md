@@ -199,7 +199,7 @@ The team must verify the currently applicable local certification rules before s
 | Cummins HELM / X10 / X15 | Cummins identifies fuel-agnostic engine platforms; MY2027 production ramp is scheduled through 2027 | Shared architecture across fuel-specific variants is already commercial strategy |
 | DOE SuperTruck 2 | DOE reports >52% engine brake thermal efficiency demonstrated by all teams, with three pathways to 55% | A 52–55% peak-BTE frontier is a serious heavy-duty benchmark; specify whether waste-heat recovery is included |
 | Wärtsilä 32 Methanol | Commercial marine methanol engine, 3.4–5.2 MW; 46F Methanol can use conventional fuels and methanol | Methanol dual-fuel marine technology is already commercial |
-| Everllence / MAN B&W ammonia | 2026 factory-acceptance milestone for dual-fuel 6G60ME-LGIA | Ammonia two-stroke is advancing beyond lab-only status |
+| Everllence / MAN B&W ammonia | Manufacturer reports Type Approval Test in June 2026 and first-unit Factory Acceptance Test on 20 April 2026 for dual-fuel 6G60ME-LGIA | Ammonia two-stroke is entering shipboard deployment; vendor-stated lifecycle GHG reduction claims still require independent fuel-pathway verification |
 | Battery-electric / fuel-cell HDVs | Recent lifecycle analysis reports significant GHG reductions for BEVs and FCEVs, depending on vehicle class, duty cycle and energy source | Combustion is not the default climate winner; compare full transport work and regional energy pathways |
 
 **No "better than SOTA" claim** until a like-for-like dataset is available. The proposed competitive wedge is lower flexibility penalty, fuel-quality robustness, verified lifecycle outcomes, maintainability and whole-system cost—not a claim that Symtropy already simulates combustion better than specialist tools.
@@ -289,7 +289,7 @@ A queued run is not a pass. A simulation is not an experiment. A vendor claim is
 - U.S. DOE, SuperTruck results and SuperTruck 3 goals (10 June 2024): https://www.energy.gov/cmei/vehicles/articles/fotw-1346-june-10-2024-us-doe-supertruck-3-initiative-seeks-reduce
 - Cummins, MY2027 X10/X15 HELM production transition (2026): https://investor.cummins.com/news/detail/700/cummins-announces-phased-model-year-2027-product-launch-plan
 - Wärtsilä, marine methanol engines: https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines
-- Everllence, ammonia engine factory acceptance test (20 April 2026): https://www.everllence.com/company/press-releases/details/2026/04/20/ammonia-engine-passes--huge-milestone--en-route-to-commercial-debut
+- Everllence, ammonia engine Factory Acceptance Test (20 April 2026) and Type Approval Test (June 2026): https://www.everllence.com/marine/products/two-stroke-engines/ammonia-engine
 - U.S. DOE Alternative Fuels Data Center, fuel properties comparison: https://afdc.energy.gov/fuels/properties
 - ISO 8528-1:2018 and revision status: https://www.iso.org/standard/68539.html
 - ISO 8528-5:2025 generator sets: https://www.iso.org/standard/85960.html
