@@ -555,7 +555,8 @@ pub fn schedule_lock(
             .arrival_order_inversion_count
             .checked_mul(1_000_000)
             .ok_or(SchedulerError::ArithmeticOverflow)?
-            / metrics.arrival_order_pair_count;
+            .checked_div(metrics.arrival_order_pair_count)
+            .ok_or(SchedulerError::ArithmeticOverflow)?;
         metrics.arrival_order_inversion_rate_ppm =
             u32::try_from(scaled).map_err(|_| SchedulerError::ArithmeticOverflow)?;
     }
