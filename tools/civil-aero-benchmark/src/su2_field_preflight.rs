@@ -839,7 +839,7 @@ mod tests {
 
     fn fixture_run(root: &Path, configured_field: &str, inventory: &str) -> PathBuf {
         let configuration = format!(
-            "SOLVER= NAVIER_STOKES\\nCONV_FIELD= {configured_field}\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n"
+            "SOLVER= NAVIER_STOKES\\nCONV_FIELD= {configured_field}\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nTIME_DOMAIN= NO\nWINDOW_CAUCHY_CRIT= NO\\n"
         );
         fixture_run_with_config(root, &configuration, inventory)
     }
@@ -943,7 +943,7 @@ mod tests {
     #[test]
     fn parses_su2_backslash_continued_history_output_lists() {
         let configuration = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\nWINDOW_CAUCHY_CRIT= NO\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\nTIME_DOMAIN= NO\nWINDOW_CAUCHY_CRIT= NO\n",
         )
         .expect("valid continued configuration");
         assert_eq!(
@@ -963,7 +963,7 @@ mod tests {
     #[test]
     fn dry_run_preflight_requires_every_steady_and_window_field_from_exact_inventory() {
         let root = root();
-        let config = "SOLVER= NAVIER_STOKES\\nCONV_FIELD= (RMS_DENSITY, CD)\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= YES\\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\\nWINDOW_START_ITER= 500\\nCONV_WINDOW_STARTITER= 10\\nCONV_WINDOW_CAUCHY_ELEMS= 10\\nCONV_WINDOW_CAUCHY_EPS= 1E-4\\nWINDOW_FUNCTION= HANN_SQUARE\\n";
+        let config = "SOLVER= NAVIER_STOKES\\nCONV_FIELD= (RMS_DENSITY, CD)\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\\nWINDOW_START_ITER= 500\\nCONV_WINDOW_STARTITER= 10\\nCONV_WINDOW_CAUCHY_ELEMS= 10\\nCONV_WINDOW_CAUCHY_EPS= 1E-4\\nWINDOW_FUNCTION= HANN_SQUARE\\n";
         let inventory = "Available screen/history output fields for the current configuration:\\nITER\\nRMS_DENSITY\\nCD\\nTAVG_DRAG\\nTAVG_LIFT\\nAvailable volume output fields for the current configuration:\\nPRESSURE\\n";
         let run = fixture_run_with_config(&root.join("complete"), config, inventory);
         let report = audit_su2_field_preflight(
@@ -1010,7 +1010,7 @@ mod tests {
     #[test]
     fn parses_multi_field_steady_and_time_window_convergence_protocols() {
         let configuration = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nCONV_STARTITER= 25\nCONV_RESIDUAL_MINVAL= -8\nCONV_CAUCHY_EPS= 1E-10\nCONV_CAUCHY_ELEMS= 100\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= HANN_SQUARE\nRESTART_ITER= 100\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nCONV_STARTITER= 25\nCONV_RESIDUAL_MINVAL= -8\nCONV_CAUCHY_EPS= 1E-10\nCONV_CAUCHY_ELEMS= 100\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= HANN_SQUARE\nRESTART_ITER= 100\n",
         )
         .expect("well-formed multi-field steady and time-window protocol");
         assert_eq!(
@@ -1043,7 +1043,7 @@ mod tests {
         }
 
         let missing_window_fields = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\n",
         );
         assert!(
             missing_window_fields
@@ -1052,7 +1052,7 @@ mod tests {
         );
 
         let missing_window_inventory = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\n",
         )
         .expect("configuration parser preserves enabled window fields");
         assert_eq!(
@@ -1064,7 +1064,7 @@ mod tests {
         );
 
         let invalid_restart = parse_configuration(
-            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= TAVG_DRAG\nWINDOW_START_ITER= 5\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\nRESTART_ITER= 10\n",
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= DRAG\nHISTORY_OUTPUT= (ITER, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= TAVG_DRAG\nWINDOW_START_ITER= 5\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= SQUARE\nRESTART_ITER= 10\n",
         );
         assert!(
             invalid_restart
