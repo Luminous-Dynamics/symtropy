@@ -434,3 +434,22 @@ A newly indexed 2026 Journal of Hydrology article proposes probabilistic sensor 
 Add this method as a reconstruction target in the sensor-placement lane. Before any numeric comparison, recover the exact network, topology, labels, train/test split, sensor assumptions, input variables, cost model, hardware and false-positive definition. If those details or artifacts are unavailable, compare at the method-family level and label the result protocol-matched rather than reproduced.
 
 The baseline set therefore includes: current/reference placement; seeded random; topology-only/shortest-path; hydraulic-sensitivity/observability; topology-plus-sensitivity hybrid; probabilistic Dynamic Residual Masking / pseudo-Jacobian method; cascading-aware placement; and decision-aware placement tied to telemetry, dispatch/repair capacity and service outcomes.
+
+
+## 18. Outcome missingness is part of the result
+
+Every metric in an outcome vector must carry both a numeric value and an evidence status:
+
+- `observed`: measured directly from a declared source;
+- `derived`: reproducible arithmetic from source-qualified inputs;
+- `modelled`: produced by a declared model or simulation;
+- `not_measured`: no measurement exists for this scenario;
+- `unsupported`: the evaluator/model cannot qualify the metric;
+- `withheld`: a value exists but is unavailable under a data-governance constraint;
+- `not_applicable`: the metric does not apply to the scenario.
+
+The first three statuses require a numeric value; the latter four require a missing value. A valid observed zero is not interchangeable with not-measured, unsupported, withheld or not-applicable. No missing value is imputed as zero.
+
+A paired treatment-minus-control difference is defined only when both arms have valid numeric values. If either side is missing, the paired delta is indeterminate for that metric; retain each arm's value/status and report missingness by scenario, metric, stratum and policy. Do not fill, drop or average away missing results without a separately pre-registered missing-data analysis.
+
+This contract is necessary for service and water-balance comparisons: "no measured interruption" is not the same claim as "interruption not measured"; "zero physical loss" is not the same claim as "physical loss model unsupported"; and a withheld group outcome must not silently improve the reported worst-group result.
