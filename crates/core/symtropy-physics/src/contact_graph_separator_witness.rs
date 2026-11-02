@@ -3459,11 +3459,10 @@ impl SlidingLeafMessage {
         let point = OutwardInterval::point;
         let add = |left: OutwardInterval, right: OutwardInterval| left.outward_add(right);
         let sub = |left: OutwardInterval, right: OutwardInterval| left.outward_sub(right);
-        let scale = |coefficient: f64,
-                     value: OutwardInterval|
-         -> Result<OutwardInterval, &'static str> {
-            point(coefficient)?.outward_mul(value)
-        };
+        let scale =
+            |coefficient: f64, value: OutwardInterval| -> Result<OutwardInterval, &'static str> {
+                point(coefficient)?.outward_mul(value)
+            };
 
         let a = self.self_operator[(0, 0)];
         let d1 = self.self_operator[(0, 1)];
@@ -3484,18 +3483,12 @@ impl SlidingLeafMessage {
         // evaluated with outward interval operations over the full q-family.
         let c0 = add(
             add(scale(a12, mu_qn)?, scale(a, q2)?)?,
-            sub(
-                scale(-d2, qn)?,
-                scale(d1, mu_q2)?,
-            )?,
+            sub(scale(-d2, qn)?, scale(d1, mu_q2)?)?,
         )?;
         let c1 = add(
             add(
                 add(
-                    add(
-                        scale(-2.0 * a11, mu_qn)?,
-                        scale(2.0 * a22, mu_qn)?,
-                    )?,
+                    add(scale(-2.0 * a11, mu_qn)?, scale(2.0 * a22, mu_qn)?)?,
                     scale(-2.0 * a, q1)?,
                 )?,
                 add(scale(2.0 * d1, qn)?, scale(2.0 * d1, mu_q1)?)?,
@@ -3503,19 +3496,13 @@ impl SlidingLeafMessage {
             scale(-2.0 * d2, mu_q2)?,
         )?;
         let c2 = add(
-            add(
-                scale(-6.0 * a12, mu_qn)?,
-                scale(2.0 * d1, mu_q2)?,
-            )?,
+            add(scale(-6.0 * a12, mu_qn)?, scale(2.0 * d1, mu_q2)?)?,
             scale(4.0 * d2, mu_q1)?,
         )?;
         let c3 = add(
             add(
                 add(
-                    add(
-                        scale(2.0 * a11, mu_qn)?,
-                        scale(-2.0 * a22, mu_qn)?,
-                    )?,
+                    add(scale(2.0 * a11, mu_qn)?, scale(-2.0 * a22, mu_qn)?)?,
                     scale(-2.0 * a, q1)?,
                 )?,
                 add(scale(2.0 * d1, qn)?, scale(-2.0 * d1, mu_q1)?)?,
@@ -3523,10 +3510,7 @@ impl SlidingLeafMessage {
             scale(2.0 * d2, mu_q2)?,
         )?;
         let c4 = add(
-            add(
-                scale(a12, mu_qn)?,
-                scale(-a, q2)?,
-            )?,
+            add(scale(a12, mu_qn)?, scale(-a, q2)?)?,
             sub(scale(d2, qn)?, scale(d1, mu_q2)?)?,
         )?;
 
@@ -3535,17 +3519,13 @@ impl SlidingLeafMessage {
         let tangent_coupling_norm = d1_squared
             .outward_add(d2_squared)?
             .outward_sqrt_nonnegative()?;
-        let normal_coupling_guard = sub(
-            point(a)?,
-            scale(mu, tangent_coupling_norm)?,
-        )?;
+        let normal_coupling_guard = sub(point(a)?, scale(mu, tangent_coupling_norm)?)?;
 
-        let degree_classification =
-            if c4.lower > 0.0 || c4.upper < 0.0 {
-                SlidingQuarticDegreeClassification::UniformQuartic
-            } else {
-                SlidingQuarticDegreeClassification::MayDropDegree
-            };
+        let degree_classification = if c4.lower > 0.0 || c4.upper < 0.0 {
+            SlidingQuarticDegreeClassification::UniformQuartic
+        } else {
+            SlidingQuarticDegreeClassification::MayDropDegree
+        };
         let normal_classification = if normal_coupling_guard.lower > 0.0 {
             SlidingNormalResponseClassification::UniformlyRegular
         } else {
@@ -3593,16 +3573,8 @@ mod sliding_quartic_coefficient_family_tests {
     #[test]
     fn point_separator_box_encloses_the_direct_quartic_coefficients() {
         let message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                3.0, 0.4, -0.2,
-                0.4, 2.0, 0.5,
-                -0.2, 0.5, 1.5,
-            ),
-            separator_coupling: Matrix3::new(
-                0.1, -0.05, 0.0,
-                0.0, 0.08, 0.02,
-                -0.03, 0.0, 0.04,
-            ),
+            self_operator: Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5),
+            separator_coupling: Matrix3::new(0.1, -0.05, 0.0, 0.0, 0.08, 0.02, -0.03, 0.0, 0.04),
             free_velocity: SVector::<f64, 3>::new(-0.8, -2.5, 0.9),
             friction_coefficient: 0.37,
         };
@@ -3623,21 +3595,18 @@ mod sliding_quartic_coefficient_family_tests {
             family.normal_classification,
             SlidingNormalResponseClassification::UniformlyRegular
         );
-        assert_eq!(family.claim, SlidingQuarticFamilyClaim::CoefficientFamilyOnly);
+        assert_eq!(
+            family.claim,
+            SlidingQuarticFamilyClaim::CoefficientFamilyOnly
+        );
     }
 
     #[test]
     fn coupled_separator_box_encloses_corners_and_interior_quartics() {
         let message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                2.0, 0.2, -0.1,
-                0.2, 1.5, 0.15,
-                -0.1, 0.15, 1.2,
-            ),
+            self_operator: Matrix3::new(2.0, 0.2, -0.1, 0.2, 1.5, 0.15, -0.1, 0.15, 1.2),
             separator_coupling: Matrix3::new(
-                0.1, 0.02, -0.03,
-                -0.04, 0.08, 0.01,
-                0.02, -0.01, 0.06,
+                0.1, 0.02, -0.03, -0.04, 0.08, 0.01, 0.02, -0.01, 0.06,
             ),
             free_velocity: SVector::<f64, 3>::new(-1.0, 0.7, -0.4),
             friction_coefficient: 0.6,
@@ -3654,11 +3623,7 @@ mod sliding_quartic_coefficient_family_tests {
                 for z in [-0.75, 0.75, 0.0] {
                     let point = SVector::<f64, 3>::new(x, y, z);
                     let q = message.free_velocity + message.separator_coupling.transpose() * point;
-                    for (interval, value) in family
-                        .effective_free_velocity
-                        .iter()
-                        .zip(q.iter())
-                    {
+                    for (interval, value) in family.effective_free_velocity.iter().zip(q.iter()) {
                         assert!(contains(*interval, *value));
                     }
                     let direct = direct_quartic(&message, &point);
@@ -3674,11 +3639,7 @@ mod sliding_quartic_coefficient_family_tests {
     fn leading_coefficient_crossing_zero_is_marked_as_degree_loss() {
         let message = SlidingLeafMessage {
             self_operator: Matrix3::identity(),
-            separator_coupling: Matrix3::new(
-                0.0, 0.0, 1.0,
-                0.0, 0.0, 0.0,
-                0.0, 0.0, 0.0,
-            ),
+            separator_coupling: Matrix3::new(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
             friction_coefficient: 0.5,
         };
@@ -3693,17 +3654,16 @@ mod sliding_quartic_coefficient_family_tests {
             family.degree_classification,
             SlidingQuarticDegreeClassification::MayDropDegree
         );
-        assert_eq!(family.claim, SlidingQuarticFamilyClaim::CoefficientFamilyOnly);
+        assert_eq!(
+            family.claim,
+            SlidingQuarticFamilyClaim::CoefficientFamilyOnly
+        );
     }
 
     #[test]
     fn normal_coupling_guard_crossing_zero_is_never_declared_regular() {
         let message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                1.0, 0.8, 0.0,
-                0.8, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-            ),
+            self_operator: Matrix3::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0),
             separator_coupling: Matrix3::zeros(),
             free_velocity: SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
             friction_coefficient: 1.25,
@@ -3721,11 +3681,7 @@ mod sliding_quartic_coefficient_family_tests {
     #[test]
     fn coefficient_family_rejects_non_spd_and_invalid_friction() {
         let mut message = SlidingLeafMessage {
-            self_operator: Matrix3::new(
-                1.0, 2.0, 0.0,
-                2.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-            ),
+            self_operator: Matrix3::new(1.0, 2.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1.0),
             separator_coupling: Matrix3::zeros(),
             free_velocity: SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
             friction_coefficient: 0.5,
