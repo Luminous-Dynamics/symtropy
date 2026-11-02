@@ -274,6 +274,19 @@ These are programme targets, not claims about achievable engine performance. A c
 
 The reproducible arithmetic pack is [MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json](data/MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json), validated against [MATCHED_SERVICE_FFER_SCHEMA_2026-11-03.json](data/MATCHED_SERVICE_FFER_SCHEMA_2026-11-03.json). It includes two matched-service passes, a surplus-exclusion control, a material under-delivery rejection and an excessive-tolerance rejection. Its fuel-input, net-AC output, common-service and FFER equations have been independently recomputed from the synthetic inputs. This is software-oracle evidence, not physical performance validation.
 
+### 7.2 Cross-topology delivered-service comparison
+
+A common customer service boundary is useful, but the physical energy-conversion path must remain topology-specific. The typed contract supports:
+- **NetAc:** delivered net AC energy at a named AC terminal;
+- **RegulatedDc:** delivered DC energy at a named regulated bus;
+- **PropulsionWork:** shaft, wheel or propulsor work at a declared mission point.
+
+Each candidate trace binds topology ID, configuration digest, profile ID/version, exact service boundary, segment windows, delivered-energy observations and optional source evidence. The input-energy basis must also be explicit (fuel chemical LHV/HHV, purchased electricity or stored electrical energy).
+
+A service comparison may proceed when both systems satisfy the **same typed delivered-service contract**. An input-energy efficiency ratio is emitted only when the two input-energy bases are identical. For example, an engine-generator and a linear generator may compare fuel-LHV-to-net-AC performance on the same AC terminal. A microturbine and battery can compare delivered regulated-DC service on the same DC bus, but fuel chemical LHV and initially stored battery energy are not the same input-energy basis; do not invent one efficiency ratio. A well-to-service primary-energy/LCA boundary is required for that comparison.
+
+Use [TYPED_SERVICE_CONTRACT_FIXTURES_2026-11-03.json](data/TYPED_SERVICE_CONTRACT_FIXTURES_2026-11-03.json) and its [schema](data/TYPED_SERVICE_CONTRACT_SCHEMA_2026-11-03.json). Five synthetic cases cover AC, DC and propulsion-work matching plus boundary and service rejection. The fixture values are arithmetic controls, not physical performance results.
+
 ### 7.1 Fuel-flexibility qualification matrix
 
 For each exact hardware configuration and fuel batch, record a qualification matrix. Do not collapse the matrix to a fuel count.
