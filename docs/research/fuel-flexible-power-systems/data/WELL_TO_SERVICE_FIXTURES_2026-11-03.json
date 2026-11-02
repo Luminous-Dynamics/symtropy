@@ -1,0 +1,498 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.well-to-service.synthetic-fixtures.2026-11-03",
+  "status": "synthetic_accounting_and_boundary_oracles",
+  "accessed_at": "2026-11-03",
+  "claim_ceiling": "These fixtures validate graph structure, energy-path identity, factor de-duplication and basis matching only. They are not physical LCA results, official lifecycle factors or commercial comparisons.",
+  "fixtures": [
+    {
+      "record_id": "WTS-PASS-001",
+      "status": "synthetic_fixture",
+      "functional_unit": {
+        "quantity": 90,
+        "unit": "kWh_regulated_dc",
+        "mission_or_profile_id": "DC-BUS-TEST-v1",
+        "profile_version": "v1"
+      },
+      "service_boundary": {
+        "interface": "RegulatedDc",
+        "boundary_id": "facility-800vdc-bus",
+        "specification_id": "DC-load-v1",
+        "voltage_or_mechanical_point": "800 VDC",
+        "included_auxiliaries": [
+          "battery thermal management",
+          "DC/DC converter"
+        ],
+        "excluded_auxiliaries": [
+          "battery manufacturing",
+          "end-of-life"
+        ]
+      },
+      "pathway_nodes": [
+        {
+          "node_id": "grid-meter",
+          "carrier_type": "electricity",
+          "energy_quantity": 100,
+          "energy_unit": "kWh",
+          "basis": "metered_electricity",
+          "geography": "South Africa national grid",
+          "period": "2024 annual-average",
+          "gwp_basis": "IPCC SAR",
+          "source_evidence_ids": [
+            "DFFE-SA-NGGEF-2024"
+          ]
+        },
+        {
+          "node_id": "battery-stored",
+          "carrier_type": "stored_electricity",
+          "energy_quantity": 92,
+          "energy_unit": "kWh",
+          "basis": "stored_energy",
+          "geography": "facility",
+          "period": "synthetic charge cycle",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-BATTERY-CYCLE"
+          ]
+        },
+        {
+          "node_id": "dc-service",
+          "carrier_type": "regulated_dc",
+          "energy_quantity": 90,
+          "energy_unit": "kWh",
+          "basis": "useful_service",
+          "geography": "facility-800vdc-bus",
+          "period": "synthetic discharge window",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-DC-METER"
+          ]
+        }
+      ],
+      "transformations": [
+        {
+          "transformation_id": "grid-charge",
+          "technology": "grid charger",
+          "input_node_ids": [
+            "grid-meter"
+          ],
+          "output_node_ids": [
+            "battery-stored"
+          ],
+          "energy_loss_quantity": 8,
+          "energy_loss_unit": "kWh",
+          "process_emissions_kgco2e": 96,
+          "emissions_factor_ids": [
+            "DFFE-NGGEF-2024"
+          ],
+          "method_id": "location-based-Scope2",
+          "geography": "South Africa",
+          "period": "2024 annual-average",
+          "evidence_ids": [
+            "DFFE-SA-NGGEF-2024",
+            "SYNTHETIC-BATTERY-CYCLE"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {
+            "note": "DFFE NGGEF is applied once to metered electricity. Its boundary is end-user consumption, not an upstream primary-energy factor."
+          }
+        },
+        {
+          "transformation_id": "battery-discharge",
+          "technology": "battery plus DC/DC delivery",
+          "input_node_ids": [
+            "battery-stored"
+          ],
+          "output_node_ids": [
+            "dc-service"
+          ],
+          "energy_loss_quantity": 2,
+          "energy_loss_unit": "kWh",
+          "process_emissions_kgco2e": 0,
+          "emissions_factor_ids": [],
+          "method_id": "stored-energy-to-regulated-DC",
+          "geography": "facility",
+          "period": "synthetic discharge window",
+          "evidence_ids": [
+            "SYNTHETIC-DC-METER"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {
+            "note": "Battery equipment lifecycle is excluded; no additional grid factor is applied to stored energy."
+          }
+        }
+      ],
+      "accounting_boundaries": {
+        "well_to_tank_included": false,
+        "tank_to_wake_included": false,
+        "well_to_wake_included": false,
+        "equipment_lifecycle_included": false,
+        "grid_loss_treatment": "excluded",
+        "double_count_protection_id": "DFFE-NGGEF-2024 applied exactly once to grid-meter node"
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "DFFE-SA-NGGEF-2024",
+          "evidence_class": "official_government_factor",
+          "source_uri": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+          "publisher": "DFFE South Africa",
+          "published_at": "2026-09-11",
+          "retrieved_at": "2026-11-03",
+          "geography": "South Africa",
+          "period": "2024",
+          "valid_from": "2024-01-01",
+          "valid_until": "2024-12-31",
+          "gwp_basis": "IPCC SAR",
+          "claim_scope": "Location-based end-user electricity consumption factor NGGEF 0.960 tCO2e/MWh."
+        },
+        {
+          "evidence_id": "SYNTHETIC-BATTERY-CYCLE",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/synthetic-battery-cycle",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "100 kWh grid input, 92 kWh stored, 90 kWh delivered."
+        },
+        {
+          "evidence_id": "SYNTHETIC-DC-METER",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/synthetic-dc-meter",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "90 kWh delivered regulated DC service."
+        }
+      ],
+      "result_vector": {
+        "converter_input_energy": 100,
+        "primary_energy": null,
+        "well_to_tank_ghg": null,
+        "tank_to_wake_ghg": 0,
+        "well_to_wake_ghg": null,
+        "service_energy": 90,
+        "well_to_service_energy_intensity": 1.1111111111111112,
+        "well_to_service_ghg_intensity": 1.0666666666666667,
+        "lifecycle_cost": null,
+        "uncertainty_status": "partial"
+      },
+      "expected_result": "pass",
+      "oracle": {
+        "grid_emissions_kgco2e": 96,
+        "delivered_service_kwh": 90,
+        "ghg_intensity_kgco2e_per_kwh_dc": 1.0666666666666667,
+        "grid_factor_applications": 1
+      }
+    },
+    {
+      "record_id": "WTS-REJECT-DOUBLE-COUNT-001",
+      "status": "synthetic_fixture",
+      "functional_unit": {
+        "quantity": 90,
+        "unit": "kWh_regulated_dc",
+        "mission_or_profile_id": "DC-BUS-TEST-v1",
+        "profile_version": "v1"
+      },
+      "service_boundary": {
+        "interface": "RegulatedDc",
+        "boundary_id": "facility-800vdc-bus",
+        "specification_id": "DC-load-v1",
+        "voltage_or_mechanical_point": "800 VDC",
+        "included_auxiliaries": [
+          "battery thermal management",
+          "DC/DC converter"
+        ],
+        "excluded_auxiliaries": [
+          "battery manufacturing",
+          "end-of-life"
+        ]
+      },
+      "pathway_nodes": [
+        {
+          "node_id": "grid-meter",
+          "carrier_type": "electricity",
+          "energy_quantity": 100,
+          "energy_unit": "kWh",
+          "basis": "metered_electricity",
+          "geography": "South Africa national grid",
+          "period": "2024 annual-average",
+          "gwp_basis": "IPCC SAR",
+          "source_evidence_ids": [
+            "DFFE-SA-NGGEF-2024"
+          ]
+        },
+        {
+          "node_id": "battery-stored",
+          "carrier_type": "stored_electricity",
+          "energy_quantity": 92,
+          "energy_unit": "kWh",
+          "basis": "stored_energy",
+          "geography": "facility",
+          "period": "synthetic charge cycle",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-BATTERY-CYCLE"
+          ]
+        },
+        {
+          "node_id": "dc-service",
+          "carrier_type": "regulated_dc",
+          "energy_quantity": 90,
+          "energy_unit": "kWh",
+          "basis": "useful_service",
+          "geography": "facility-800vdc-bus",
+          "period": "synthetic discharge window",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-DC-METER"
+          ]
+        }
+      ],
+      "transformations": [
+        {
+          "transformation_id": "grid-charge",
+          "technology": "grid charger",
+          "input_node_ids": [
+            "grid-meter"
+          ],
+          "output_node_ids": [
+            "battery-stored"
+          ],
+          "energy_loss_quantity": 8,
+          "energy_loss_unit": "kWh",
+          "process_emissions_kgco2e": 96,
+          "emissions_factor_ids": [
+            "DFFE-NGGEF-2024"
+          ],
+          "method_id": "location-based-Scope2",
+          "geography": "South Africa",
+          "period": "2024 annual-average",
+          "evidence_ids": [
+            "DFFE-SA-NGGEF-2024",
+            "SYNTHETIC-BATTERY-CYCLE"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {}
+        },
+        {
+          "transformation_id": "battery-discharge-wrong",
+          "technology": "battery discharge with duplicate grid factor",
+          "input_node_ids": [
+            "battery-stored"
+          ],
+          "output_node_ids": [
+            "dc-service"
+          ],
+          "energy_loss_quantity": 2,
+          "energy_loss_unit": "kWh",
+          "process_emissions_kgco2e": 88.32,
+          "emissions_factor_ids": [
+            "DFFE-NGGEF-2024"
+          ],
+          "method_id": "incorrect-duplicate-Scope2",
+          "geography": "South Africa",
+          "period": "2024 annual-average",
+          "evidence_ids": [
+            "DFFE-SA-NGGEF-2024",
+            "SYNTHETIC-DC-METER"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {
+            "note": "Deliberately wrong: NGGEF applied again to stored electricity although the grid emissions were already attributed to the metered charging input."
+          }
+        }
+      ],
+      "accounting_boundaries": {
+        "well_to_tank_included": false,
+        "tank_to_wake_included": false,
+        "well_to_wake_included": false,
+        "equipment_lifecycle_included": false,
+        "grid_loss_treatment": "excluded",
+        "double_count_protection_id": "DFFE-NGGEF-2024 appears twice on same electricity lineage"
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "DFFE-SA-NGGEF-2024",
+          "evidence_class": "official_government_factor",
+          "source_uri": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+          "publisher": "DFFE South Africa",
+          "published_at": "2026-09-11",
+          "retrieved_at": "2026-11-03",
+          "geography": "South Africa",
+          "period": "2024",
+          "valid_from": "2024-01-01",
+          "valid_until": "2024-12-31",
+          "gwp_basis": "IPCC SAR",
+          "claim_scope": "Location-based end-user electricity consumption factor NGGEF 0.960 tCO2e/MWh."
+        }
+      ],
+      "result_vector": {
+        "converter_input_energy": 100,
+        "primary_energy": null,
+        "well_to_tank_ghg": null,
+        "tank_to_wake_ghg": 0,
+        "well_to_wake_ghg": null,
+        "service_energy": 90,
+        "well_to_service_energy_intensity": null,
+        "well_to_service_ghg_intensity": null,
+        "lifecycle_cost": null,
+        "uncertainty_status": "unknown"
+      },
+      "expected_result": "reject",
+      "oracle": {
+        "expected_error": "DuplicateEmissionFactorOnSameEnergyLineage",
+        "factor_id": "DFFE-NGGEF-2024",
+        "factor_applications": 2
+      }
+    },
+    {
+      "record_id": "WTS-REJECT-BASIS-001",
+      "status": "synthetic_fixture",
+      "functional_unit": {
+        "quantity": 1,
+        "unit": "kWh_net_ac",
+        "mission_or_profile_id": "BASIS-CONTROL-v1",
+        "profile_version": "v1"
+      },
+      "service_boundary": {
+        "interface": "NetAc",
+        "boundary_id": "site-ac-pcc",
+        "specification_id": "AC-load-v1",
+        "voltage_or_mechanical_point": "400 VAC",
+        "included_auxiliaries": [
+          "generator auxiliaries"
+        ],
+        "excluded_auxiliaries": []
+      },
+      "pathway_nodes": [
+        {
+          "node_id": "fuel",
+          "carrier_type": "fuel",
+          "energy_quantity": 100,
+          "energy_unit": "MJ",
+          "basis": "LHV",
+          "geography": "synthetic",
+          "period": "synthetic",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-FUEL"
+          ]
+        },
+        {
+          "node_id": "battery",
+          "carrier_type": "stored_electricity",
+          "energy_quantity": 100,
+          "energy_unit": "MJ",
+          "basis": "stored_energy",
+          "geography": "synthetic",
+          "period": "synthetic",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-SOC"
+          ]
+        }
+      ],
+      "transformations": [
+        {
+          "transformation_id": "fuel-conversion",
+          "technology": "synthetic-engine-generator",
+          "input_node_ids": [
+            "fuel"
+          ],
+          "output_node_ids": [
+            "service"
+          ],
+          "energy_loss_quantity": 99,
+          "energy_loss_unit": "MJ",
+          "process_emissions_kgco2e": null,
+          "emissions_factor_ids": [],
+          "method_id": "synthetic",
+          "geography": "synthetic",
+          "period": "synthetic",
+          "evidence_ids": [
+            "SYNTHETIC-FUEL"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {}
+        }
+      ],
+      "accounting_boundaries": {
+        "well_to_tank_included": false,
+        "tank_to_wake_included": false,
+        "well_to_wake_included": false,
+        "equipment_lifecycle_included": false,
+        "grid_loss_treatment": "unknown",
+        "double_count_protection_id": "basis-mismatch-control"
+      },
+      "evidence_register": [
+        {
+          "evidence_id": "SYNTHETIC-FUEL",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/fuel",
+          "publisher": "Synthetic",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "100 MJ LHV fuel input."
+        },
+        {
+          "evidence_id": "SYNTHETIC-SOC",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/soc",
+          "publisher": "Synthetic",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "100 MJ initial stored battery energy."
+        }
+      ],
+      "result_vector": {
+        "converter_input_energy": null,
+        "primary_energy": null,
+        "well_to_tank_ghg": null,
+        "tank_to_wake_ghg": null,
+        "well_to_wake_ghg": null,
+        "service_energy": 1,
+        "well_to_service_energy_intensity": null,
+        "well_to_service_ghg_intensity": null,
+        "lifecycle_cost": null,
+        "uncertainty_status": "unknown"
+      },
+      "expected_result": "reject",
+      "oracle": {
+        "expected_error": "IncomparableInputEnergyBases",
+        "reference_basis": "LHV",
+        "candidate_basis": "stored_energy",
+        "interpretation": "Fuel LHV and stored electrical energy cannot be treated as the same primary-energy basis."
+      }
+    }
+  ]
+}
