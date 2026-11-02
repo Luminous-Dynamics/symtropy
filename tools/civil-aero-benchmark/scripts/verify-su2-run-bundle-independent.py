@@ -548,6 +548,11 @@ def main() -> int:
 
     require(bundle["schema"] == SCHEMA, "run-bundle schema mismatch")
     require(bundle["evidence_level"] == EVIDENCE, "run-bundle evidence ceiling mismatch")
+    require(
+        bundle["status"]
+        == "run_identity_preflight_boundary_history_native_termination_and_required_inner_residual_screen_replayed",
+        "run-bundle status does not represent all required protocol evidence",
+    )
     dry_receipt = receipt(dry_dir)
     production_receipt = receipt(production_dir)
     require(dry_receipt["solver_id"] == "SU2_CFD_DRY_RUN", "wrong dry-run solver identity")
