@@ -186,13 +186,22 @@ fn validate_plan(
     for (value, label) in [
         (&plan.analysis_id, "analysis ID"),
         (&plan.analysis_version, "analysis version"),
-        (&plan.source_reliability_analysis_id, "source reliability analysis ID"),
+        (
+            &plan.source_reliability_analysis_id,
+            "source reliability analysis ID",
+        ),
         (&plan.campaign_id, "campaign ID"),
         (&plan.group_id, "sealed evidence group"),
         (&plan.agent_panel_id, "agent panel ID"),
         (&plan.task_manifest_digest, "task manifest digest"),
-        (&plan.model_configuration_digest, "model configuration digest"),
-        (&plan.prompt_configuration_digest, "prompt configuration digest"),
+        (
+            &plan.model_configuration_digest,
+            "model configuration digest",
+        ),
+        (
+            &plan.prompt_configuration_digest,
+            "prompt configuration digest",
+        ),
         (&plan.harness_digest, "harness digest"),
         (&plan.toolset_digest, "toolset digest"),
         (&plan.reference_arm_id, "reference arm ID"),
@@ -265,7 +274,8 @@ fn validate_plan(
         || plan.mechanism_families != source_plan.mechanism_families
     {
         return Err(ClusterInferenceError::ManifestMismatch(
-            "cluster inference plan does not match the preregistered repeated-run reliability plan".into(),
+            "cluster inference plan does not match the preregistered repeated-run reliability plan"
+                .into(),
         ));
     }
     if plan.campaign_id != manifest.campaign_id
@@ -306,7 +316,8 @@ fn validate_plan(
         || source_receipt.exact_manifest_and_resource_matching == false
     {
         return Err(ClusterInferenceError::ClusterReceipt(
-            "source repeated-run receipt does not match its registered plan or assurance flags".into(),
+            "source repeated-run receipt does not match its registered plan or assurance flags"
+                .into(),
         ));
     }
     Ok(())
@@ -340,10 +351,14 @@ fn cluster_effect(
     cluster: &TaskClusterReliability,
 ) -> Result<i128, ClusterInferenceError> {
     let reference = cluster.reference.as_ref().ok_or_else(|| {
-        ClusterInferenceError::InvalidCluster("valid task cluster is missing reference reliability".into())
+        ClusterInferenceError::InvalidCluster(
+            "valid task cluster is missing reference reliability".into(),
+        )
     })?;
     let candidate = cluster.candidate.as_ref().ok_or_else(|| {
-        ClusterInferenceError::InvalidCluster("valid task cluster is missing candidate reliability".into())
+        ClusterInferenceError::InvalidCluster(
+            "valid task cluster is missing candidate reliability".into(),
+        )
     })?;
     let bool_value = |value: bool| if value { 1i128 } else { 0i128 };
     Ok(match endpoint {
@@ -355,9 +370,13 @@ fn cluster_effect(
         }
         ClusterInferenceEndpoint::MeanRunSafeSuccessRate => {
             i128::try_from(candidate.safe_success_count).map_err(|_| {
-                ClusterInferenceError::ArithmeticOverflow("candidate cluster success count exceeds i128".into())
+                ClusterInferenceError::ArithmeticOverflow(
+                    "candidate cluster success count exceeds i128".into(),
+                )
             })? - i128::try_from(reference.safe_success_count).map_err(|_| {
-                ClusterInferenceError::ArithmeticOverflow("reference cluster success count exceeds i128".into())
+                ClusterInferenceError::ArithmeticOverflow(
+                    "reference cluster success count exceeds i128".into(),
+                )
             })?
         }
         ClusterInferenceEndpoint::AnyHazard => {
@@ -371,7 +390,11 @@ fn cluster_effect(
 fn floor_div_signed(numerator: i128, denominator: i128) -> i128 {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
-    if remainder < 0 { quotient - 1 } else { quotient }
+    if remainder < 0 {
+        quotient - 1
+    } else {
+        quotient
+    }
 }
 
 fn ceil_div_signed(numerator: i128, denominator: i128) -> i128 {
@@ -418,9 +441,13 @@ fn hoeffding_interval(
             "mean interval requires at least one valid task cluster".into(),
         ));
     }
-    let scaled_sum = sum_normalized_numerator.checked_mul(MICRO_SCALE).ok_or_else(|| {
-        ClusterInferenceError::ArithmeticOverflow("mean-effect micro-unit scaling overflow".into())
-    })?;
+    let scaled_sum = sum_normalized_numerator
+        .checked_mul(MICRO_SCALE)
+        .ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow(
+                "mean-effect micro-unit scaling overflow".into(),
+            )
+        })?;
     let centre_lower = floor_div_signed(scaled_sum, denominator);
     let centre_upper = ceil_div_signed(scaled_sum, denominator);
     let n = u128::try_from(valid_task_clusters).map_err(|_| {
@@ -433,9 +460,9 @@ fn hoeffding_interval(
     let radius = i128::try_from(radius_ppm)
         .ok()
         .and_then(|value| value.checked_mul(2))
-        .ok_or_else(|| ClusterInferenceError::ArithmeticOverflow(
-            "Hoeffding interval radius overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow("Hoeffding interval radius overflow".into())
+        })?;
     Ok(HoeffdingClusterMeanInterval {
         lower_micro_units: centre_lower.checked_sub(radius).ok_or_else(|| {
             ClusterInferenceError::ArithmeticOverflow("Hoeffding lower bound overflow".into())
@@ -477,17 +504,18 @@ fn apply_holm(
     })?;
     let mut still_rejecting = true;
     for (index, result_index) in order.into_iter().enumerate() {
-        let remaining = total - u64::try_from(index).map_err(|_| {
-            ClusterInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
-        })?;
+        let remaining = total
+            - u64::try_from(index).map_err(|_| {
+                ClusterInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
+            })?;
         let threshold = alpha
             .checked_div(Rational::from_u64(remaining))
             .map_err(ClusterInferenceError::ArithmeticOverflow)?;
         let result = &mut results[result_index];
         result.holm_rank = index + 1;
         result.holm_threshold = threshold;
-        let passes = result.meets_minimum_cluster_count
-            && result.exact_two_sided_sign_p_value <= threshold;
+        let passes =
+            result.meets_minimum_cluster_count && result.exact_two_sided_sign_p_value <= threshold;
         result.rejected_after_holm = still_rejecting && passes;
         if !passes {
             still_rejecting = false;
@@ -511,7 +539,11 @@ pub fn analyze_repeated_run_task_clusters(
 ) -> Result<TaskClusterInferenceReceipt, ClusterInferenceError> {
     validate_plan(plan, source_plan, manifest, source_receipt)?;
 
-    let family_set = plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    let family_set = plan
+        .mechanism_families
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let mut family_clusters = plan
         .mechanism_families
         .iter()
@@ -537,13 +569,19 @@ pub fn analyze_repeated_run_task_clusters(
         if cluster.repetition_count != plan.repetitions_per_task {
             return Err(ClusterInferenceError::InvalidCluster(format!(
                 "cluster {} in family {} contains {} repetitions; expected {}",
-                cluster.task_id, cluster.mechanism_family_id,
-                cluster.repetition_count, plan.repetitions_per_task
+                cluster.task_id,
+                cluster.mechanism_family_id,
+                cluster.repetition_count,
+                plan.repetitions_per_task
             )));
         }
-        let family = family_clusters.get_mut(&cluster.mechanism_family_id).ok_or_else(|| {
-            ClusterInferenceError::FamilyRegistry("registered family disappeared during analysis".into())
-        })?;
+        let family = family_clusters
+            .get_mut(&cluster.mechanism_family_id)
+            .ok_or_else(|| {
+                ClusterInferenceError::FamilyRegistry(
+                    "registered family disappeared during analysis".into(),
+                )
+            })?;
         if cluster.invalid_task_cluster {
             if cluster.reference.is_some() || cluster.candidate.is_some() {
                 return Err(ClusterInferenceError::InvalidCluster(
@@ -553,10 +591,14 @@ pub fn analyze_repeated_run_task_clusters(
             increment(&mut total_invalid_task_clusters, "invalid task cluster")?;
         } else {
             let reference = cluster.reference.as_ref().ok_or_else(|| {
-                ClusterInferenceError::InvalidCluster("valid task cluster lacks reference metrics".into())
+                ClusterInferenceError::InvalidCluster(
+                    "valid task cluster lacks reference metrics".into(),
+                )
             })?;
             let candidate = cluster.candidate.as_ref().ok_or_else(|| {
-                ClusterInferenceError::InvalidCluster("valid task cluster lacks candidate metrics".into())
+                ClusterInferenceError::InvalidCluster(
+                    "valid task cluster lacks candidate metrics".into(),
+                )
             })?;
             validate_arm_cluster(reference, plan.repetitions_per_task)?;
             validate_arm_cluster(candidate, plan.repetitions_per_task)?;
@@ -580,26 +622,35 @@ pub fn analyze_repeated_run_task_clusters(
         .map(|summary| (summary.mechanism_family_id.clone(), summary))
         .collect::<BTreeMap<_, _>>();
     if summaries.len() != plan.mechanism_families.len()
-        || plan.mechanism_families.iter().any(|family| !summaries.contains_key(family))
+        || plan
+            .mechanism_families
+            .iter()
+            .any(|family| !summaries.contains_key(family))
     {
         return Err(ClusterInferenceError::FamilyRegistry(
             "source family summary set differs from the preregistered family set".into(),
         ));
     }
 
-    let hypotheses = plan.mechanism_families
+    let hypotheses = plan
+        .mechanism_families
         .len()
         .checked_mul(plan.endpoints.len())
-        .ok_or_else(|| ClusterInferenceError::ArithmeticOverflow(
-            "family × endpoint hypothesis count overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow(
+                "family × endpoint hypothesis count overflow".into(),
+            )
+        })?;
     let mut family_endpoint_results = Vec::with_capacity(hypotheses);
 
     for family_id in &plan.mechanism_families {
         let clusters = family_clusters.get(family_id).ok_or_else(|| {
             ClusterInferenceError::FamilyRegistry("registered family missing cluster vector".into())
         })?;
-        let valid_clusters = clusters.iter().filter(|cluster| !cluster.invalid_task_cluster).count();
+        let valid_clusters = clusters
+            .iter()
+            .filter(|cluster| !cluster.invalid_task_cluster)
+            .count();
         let invalid_clusters = clusters.len().checked_sub(valid_clusters).ok_or_else(|| {
             ClusterInferenceError::ArithmeticOverflow("invalid cluster count underflow".into())
         })?;
@@ -623,40 +674,58 @@ pub fn analyze_repeated_run_task_clusters(
                 invalid_task_clusters: invalid_clusters,
                 ..EndpointCounts::default()
             };
-            for cluster in clusters.iter().filter(|cluster| !cluster.invalid_task_cluster) {
+            for cluster in clusters
+                .iter()
+                .filter(|cluster| !cluster.invalid_task_cluster)
+            {
                 let difference = cluster_effect(*endpoint, cluster)?;
                 counts.effect_sum = counts.effect_sum.checked_add(difference).ok_or_else(|| {
                     ClusterInferenceError::ArithmeticOverflow("cluster effect sum overflow".into())
                 })?;
                 match difference.cmp(&0) {
-                    std::cmp::Ordering::Less => increment(&mut counts.reference_wins, "reference cluster win")?,
+                    std::cmp::Ordering::Less => {
+                        increment(&mut counts.reference_wins, "reference cluster win")?
+                    }
                     std::cmp::Ordering::Equal => increment(&mut counts.ties, "tied cluster")?,
-                    std::cmp::Ordering::Greater => increment(&mut counts.candidate_wins, "candidate cluster win")?,
+                    std::cmp::Ordering::Greater => {
+                        increment(&mut counts.candidate_wins, "candidate cluster win")?
+                    }
                 }
             }
-            let discordant = counts.candidate_wins.checked_add(counts.reference_wins).ok_or_else(|| {
-                ClusterInferenceError::ArithmeticOverflow("discordant cluster count overflow".into())
-            })?;
+            let discordant = counts
+                .candidate_wins
+                .checked_add(counts.reference_wins)
+                .ok_or_else(|| {
+                    ClusterInferenceError::ArithmeticOverflow(
+                        "discordant cluster count overflow".into(),
+                    )
+                })?;
             if discordant > MAX_EXACT_CLUSTER_DISCORDANT_PAIRS {
                 return Err(ClusterInferenceError::UnsupportedExactSampleSize(format!(
                     "family {family_id} endpoint {endpoint:?} has {discordant} discordant clusters; exact paired sign cap is {}",
                     MAX_EXACT_CLUSTER_DISCORDANT_PAIRS
                 )));
             }
-            let p_value = exact_two_sided_sign_test_p_value(
-                counts.candidate_wins,
-                counts.reference_wins,
-            )
-            .map_err(|error| ClusterInferenceError::ArithmeticOverflow(error.to_string()))?;
+            let p_value =
+                exact_two_sided_sign_test_p_value(counts.candidate_wins, counts.reference_wins)
+                    .map_err(|error| {
+                        ClusterInferenceError::ArithmeticOverflow(error.to_string())
+                    })?;
 
-            let per_cluster_scale = if *endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate {
+            let per_cluster_scale = if *endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate
+            {
                 plan.repetitions_per_task
             } else {
                 1
             };
-            let effect_denominator = valid_clusters.checked_mul(per_cluster_scale).ok_or_else(|| {
-                ClusterInferenceError::ArithmeticOverflow("mean effect denominator overflow".into())
-            })?;
+            let effect_denominator =
+                valid_clusters
+                    .checked_mul(per_cluster_scale)
+                    .ok_or_else(|| {
+                        ClusterInferenceError::ArithmeticOverflow(
+                            "mean effect denominator overflow".into(),
+                        )
+                    })?;
             let mean_effect = (valid_clusters > 0).then_some(SignedClusterMeanEffect {
                 numerator: counts.effect_sum,
                 denominator: effect_denominator as u128,
@@ -676,7 +745,8 @@ pub fn analyze_repeated_run_task_clusters(
                 valid_task_clusters: counts.valid_task_clusters,
                 invalid_task_clusters_excluded: counts.invalid_task_clusters,
                 required_valid_task_clusters: plan.minimum_valid_task_clusters_per_family,
-                meets_minimum_cluster_count: valid_clusters >= plan.minimum_valid_task_clusters_per_family,
+                meets_minimum_cluster_count: valid_clusters
+                    >= plan.minimum_valid_task_clusters_per_family,
                 candidate_cluster_wins: counts.candidate_wins,
                 reference_cluster_wins: counts.reference_wins,
                 tied_clusters: counts.ties,
@@ -724,10 +794,6 @@ pub fn analyze_repeated_run_task_clusters(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        ClusterInferenceEndpoint, TaskClusterInferencePlan,
-        analyze_repeated_run_task_clusters,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::{
         BenchmarkScope, MatchedBenchmarkManifest, ResourceBudget,
@@ -735,6 +801,9 @@ mod tests {
     use super::super::repeated_run_reliability::{
         ArmTaskReliability, FamilyRepeatedRunSummary, RepeatedRunReliabilityPlan,
         RepeatedRunReliabilityReceipt, TaskClusterReliability,
+    };
+    use super::{
+        ClusterInferenceEndpoint, TaskClusterInferencePlan, analyze_repeated_run_task_clusters,
     };
     use crate::Rational;
 
@@ -846,7 +915,12 @@ mod tests {
         }
     }
 
-    fn cluster(family: &str, task: &str, candidate: ArmTaskReliability, reference: ArmTaskReliability) -> TaskClusterReliability {
+    fn cluster(
+        family: &str,
+        task: &str,
+        candidate: ArmTaskReliability,
+        reference: ArmTaskReliability,
+    ) -> TaskClusterReliability {
         TaskClusterReliability {
             mechanism_family_id: family.into(),
             task_id: task.into(),
@@ -952,7 +1026,10 @@ mod tests {
         assert_eq!(result.total_task_clusters, 6);
         assert_eq!(result.total_valid_task_clusters, 5);
         assert_eq!(result.total_invalid_task_clusters_excluded, 1);
-        assert_eq!(result.inferential_unit, "one distinct mechanism_family × task_id cluster");
+        assert_eq!(
+            result.inferential_unit,
+            "one distinct mechanism_family × task_id cluster"
+        );
         assert_eq!(result.family_endpoint_hypothesis_count, 8);
         assert!(result.repeated_runs_not_counted_as_independent_samples);
         assert!(result.cluster_level_pairing_preserved);
@@ -964,18 +1041,26 @@ mod tests {
         let plan = inference_plan(source.mechanism_families.clone());
         let receipt = receipt(clusters());
         let result = analyze(&plan, &source, &receipt).unwrap();
-        let pass_every = result.family_endpoint_results.iter().find(|r| {
-            r.mechanism_family_id == "sensor-drift"
-                && r.endpoint == ClusterInferenceEndpoint::PassEveryK
-        }).unwrap();
+        let pass_every = result
+            .family_endpoint_results
+            .iter()
+            .find(|r| {
+                r.mechanism_family_id == "sensor-drift"
+                    && r.endpoint == ClusterInferenceEndpoint::PassEveryK
+            })
+            .unwrap();
         assert_eq!(pass_every.candidate_cluster_wins, 1);
         assert_eq!(pass_every.reference_cluster_wins, 1);
         assert_eq!(pass_every.tied_clusters, 2);
 
-        let hazard = result.family_endpoint_results.iter().find(|r| {
-            r.mechanism_family_id == "sensor-drift"
-                && r.endpoint == ClusterInferenceEndpoint::AnyHazard
-        }).unwrap();
+        let hazard = result
+            .family_endpoint_results
+            .iter()
+            .find(|r| {
+                r.mechanism_family_id == "sensor-drift"
+                    && r.endpoint == ClusterInferenceEndpoint::AnyHazard
+            })
+            .unwrap();
         assert_eq!(hazard.candidate_cluster_wins, 1);
         assert_eq!(hazard.reference_cluster_wins, 1);
     }
@@ -986,10 +1071,14 @@ mod tests {
         let plan = inference_plan(source.mechanism_families.clone());
         let receipt = receipt(clusters());
         let result = analyze(&plan, &source, &receipt).unwrap();
-        let run_rate = result.family_endpoint_results.iter().find(|r| {
-            r.mechanism_family_id == "sensor-drift"
-                && r.endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate
-        }).unwrap();
+        let run_rate = result
+            .family_endpoint_results
+            .iter()
+            .find(|r| {
+                r.mechanism_family_id == "sensor-drift"
+                    && r.endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate
+            })
+            .unwrap();
         let mean = run_rate.mean_paired_cluster_effect.as_ref().unwrap();
         let interval = run_rate.mean_effect_95_percent_interval.as_ref().unwrap();
         assert_eq!(mean.denominator, 12);
@@ -1002,7 +1091,10 @@ mod tests {
     fn abstention_is_not_given_a_universal_superiority_direction() {
         let source = source_plan(vec!["sensor-drift".into(), "actuator-fault".into()]);
         let plan = inference_plan(source.mechanism_families.clone());
-        assert!(plan.endpoints.contains(&ClusterInferenceEndpoint::AnyHazard));
+        assert!(
+            plan.endpoints
+                .contains(&ClusterInferenceEndpoint::AnyHazard)
+        );
         let result = analyze(&plan, &source, &receipt(clusters())).unwrap();
         assert!(result.abstention_is_descriptive_only);
         assert_eq!(result.endpoint_count, 4);
@@ -1013,9 +1105,11 @@ mod tests {
         let source = source_plan(vec!["sensor-drift".into(), "actuator-fault".into()]);
         let plan = inference_plan(source.mechanism_families.clone());
         let result = analyze(&plan, &source, &receipt(clusters())).unwrap();
-        let underpowered = result.family_endpoint_results.iter().filter(|r| {
-            r.mechanism_family_id == "actuator-fault"
-        }).collect::<Vec<_>>();
+        let underpowered = result
+            .family_endpoint_results
+            .iter()
+            .filter(|r| r.mechanism_family_id == "actuator-fault")
+            .collect::<Vec<_>>();
         assert_eq!(underpowered.len(), 4);
         assert!(underpowered.iter().all(|r| !r.meets_minimum_cluster_count));
         assert_eq!(result.family_endpoint_hypothesis_count, 8);
@@ -1047,7 +1141,11 @@ mod tests {
         assert!(analyze(&plan, &source, &changed).is_err());
 
         let mut changed = receipt(clusters());
-        changed.task_clusters[0].candidate.as_mut().unwrap().safe_success_count = 4;
+        changed.task_clusters[0]
+            .candidate
+            .as_mut()
+            .unwrap()
+            .safe_success_count = 4;
         assert!(analyze(&plan, &source, &changed).is_err());
     }
 
