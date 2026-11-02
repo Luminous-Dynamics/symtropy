@@ -258,15 +258,25 @@ fn log_gamma(z: f64) -> f64 {
     0.918_938_533_204_672_7 + (shifted + 0.5) * t.ln() - t + x.ln()
 }
 
+fn clamp_minimum_magnitude(value: f64) -> f64 {
+    if value.abs() < BETA_FPMIN {
+        if value.is_sign_negative() {
+            -BETA_FPMIN
+        } else {
+            BETA_FPMIN
+        }
+    } else {
+        value
+    }
+}
+
 fn beta_continued_fraction(a: f64, b: f64, x: f64) -> Result<f64, ClusterConfidenceError> {
     let qab = a + b;
     let qap = a + 1.0;
     let qam = a - 1.0;
     let mut c = 1.0;
     let mut d = 1.0 - qab * x / qap;
-    if d.abs() < BETA_FPMIN {
-        d = BETA_FPMIN;
-    }
+    d = clamp_minimum_magnitude(d);
     d = 1.0 / d;
     let mut h = d;
     for iteration in 1..=MAX_BETA_ITERATIONS {
@@ -274,25 +284,19 @@ fn beta_continued_fraction(a: f64, b: f64, x: f64) -> Result<f64, ClusterConfide
         let m2 = 2.0 * m;
         let mut aa = m * (b - m) * x / ((qam + m2) * (a + m2));
         d = 1.0 + aa * d;
-        if d.abs() < BETA_FPMIN {
-            d = BETA_FPMIN;
-        }
+        d = clamp_minimum_magnitude(d);
+        c = clamp_minimum_magnitude(c);
         c = 1.0 + aa / c;
-        if c.abs() < BETA_FPMIN {
-            c = BETA_FPMIN;
-        }
+        c = clamp_minimum_magnitude(c);
         d = 1.0 / d;
         h *= d * c;
 
         aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
         d = 1.0 + aa * d;
-        if d.abs() < BETA_FPMIN {
-            d = BETA_FPMIN;
-        }
+        d = clamp_minimum_magnitude(d);
+        c = clamp_minimum_magnitude(c);
         c = 1.0 + aa / c;
-        if c.abs() < BETA_FPMIN {
-            c = BETA_FPMIN;
-        }
+        c = clamp_minimum_magnitude(c);
         d = 1.0 / d;
         let delta = d * c;
         h *= delta;
@@ -942,6 +946,23 @@ mod tests {
         let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
+    }
+
+    #[test]
+    fn no_success_attack_cluster_remains_visible_and_blocks_cluster_floor() {
+        let (scenarios, mut trials) = scenarios_and_trials();
+        let no_success_id = &scenarios[0].scenario_id;
+        let trial = trials.iter_mut().find(|trial| &trial.scenario_id == no_success_id).unwrap();
+        trial.exploit_succeeded = false;
+        trial.detector_alerted = false;
+        trial.correctly_attributed_to_family = false;
+        trial.contained_before_exposure = false;
+        let plan = confidence_plan();
+        let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
+        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        assert_eq!(family.attack_clusters, 2);
+        assert_eq!(family.no_success_attack_clusters, 1);
+        assert_eq!(family.eligible_attack_clusters, 1);
     }
 
     #[test]
