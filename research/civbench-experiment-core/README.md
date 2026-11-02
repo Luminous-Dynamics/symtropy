@@ -81,3 +81,22 @@ The crate has no third-party dependencies. It is included in the standalone rese
 - Candidate/evaluator process isolation is a deployment responsibility; a Rust type boundary alone is not a security sandbox.
 - Passing unit tests establishes only the declared software invariants.
 - No field data, municipal operational authority, water-quality guarantee or causal service-impact claim is created by this crate.
+
+
+### 5. Decision-to-service evidence closure
+
+The event-chain validator checks one intervention from first observation through:
+1. source observation;
+2. state estimate;
+3. recommendation;
+4. human authorization, rejection or deferral;
+5. work order/action;
+6. independent verification;
+7. measured service outcome;
+8. post-event model discrepancy review.
+
+A rejected/deferred decision is a valid terminal state but cannot be followed by a work order or a claimed service outcome. An authorized chain is only classified as a verified service outcome when all eight ordered, linked stages are present. Event IDs must be unique, evidence digests nonzero, timestamps monotonic and each event linked to its immediate predecessor.
+
+This v0.1 API handles one event per stage in a linear chain. It does not yet model branched work orders, partial repairs, repeated observations or multi-crew work graphs. Such workflows require a versioned event-graph extension rather than weakening this validator.
+
+The chain validator does not verify the factual quality of observation data, whether the human had legal authority, whether a repair physically succeeded, or whether the service outcome was caused by the action. It verifies that the declared evidence sequence is complete and internally linked. Those other questions require independent evidence and a governed evaluation.
