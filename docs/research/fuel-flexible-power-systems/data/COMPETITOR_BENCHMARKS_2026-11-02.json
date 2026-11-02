@@ -305,52 +305,143 @@
     },
     {
       "entity_id": "capstone_c200_microturbine",
-      "name": "Capstone C200 / C200S microturbine family",
+      "name": "Capstone Energy+ C200 microturbine and C250 development platform",
       "conversion_topology": "microturbine_generator",
       "application": "stationary_distributed_generation",
       "evidence_records": [
         {
-          "record_id": "capstone_c200_product_family",
+          "record_id": "capstone_fy2026_10k_c200_c250_and_fuel_flexibility",
           "evidence_class": "manufacturer_regulatory_filing_and_product_literature",
-          "published_date": "2025",
+          "published_date": "2026-06-18",
           "accessed_at": "2026-11-02",
           "source": {
-            "id": "CAPSTONE-FY2025-10K",
-            "title": "Capstone Green Energy FY2025 annual report / Form 10-K",
-            "uri": "https://www.sec.gov/Archives/edgar/data/1009759/000149315225020580/form10-k.htm",
-            "publisher": "Capstone Green Energy"
+            "id": "CAPSTONE-ENERGYPLUS-FY2026-10K",
+            "title": "Capstone Energy+, Inc. Form 10-K for fiscal year ended 31 March 2026",
+            "uri": "https://www.sec.gov/Archives/edgar/data/1009759/000110465926077817/cgeh-20260331x10k.htm",
+            "publisher": "Capstone Energy+"
           },
           "claims": [
             {
-              "metric": "marketed_c200_product_rated_output",
+              "metric": "c200_rated_electrical_output",
               "value": 200,
               "unit": "kW",
-              "boundary": "C200 product family",
-              "status": "manufacturer_filing"
+              "boundary": "C200 core microturbine product platform",
+              "status": "manufacturer_filing",
+              "uncertainty": null
             },
             {
-              "metric": "net_electrical_efficiency",
-              "value": null,
-              "unit": "fraction",
-              "boundary": "not admitted in this record",
-              "status": "not_established_from_current_primary_source"
+              "metric": "c250_development_rated_electrical_output",
+              "value": 250,
+              "unit": "kW",
+              "boundary": "C250 development platform; not yet described as commercially released",
+              "status": "manufacturer_reported_development",
+              "uncertainty": null
             },
             {
-              "metric": "fuel_flexibility",
+              "metric": "c250_development_status",
+              "value": "successful_test_runs_completed; advancing_through_commercialization",
+              "unit": "categorical",
+              "boundary": "C250 product development",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "fuel_families_and_gas_quality",
               "value": [
                 "natural_gas",
-                "biogas",
-                "other_gaseous_fuels_by_configuration"
+                "renewable_biogas",
+                "landfill_gas",
+                "wastewater_derived_methane",
+                "sour_gas",
+                "low_BTU_gas",
+                "hydrogen_blends_up_to_30_percent"
               ],
               "unit": "categorical",
-              "boundary": "manufacturer product family; configuration details must be sourced",
-              "status": "manufacturer_product_family",
+              "boundary": "product family descriptions; configuration and gas specification remain decisive",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "simple_cycle_efficiency",
+              "value": 0.33,
+              "relation": "approximately",
+              "unit": "fraction",
+              "basis": null,
+              "boundary": "manufacturer filing describes approximately 33% simple-cycle operation; net/gross, LHV/HHV and correction boundary not specified in cited passage",
+              "status": "manufacturer_reported_approximation_not_admitted_for_ranking",
+              "uncertainty": null
+            },
+            {
+              "metric": "c200_grid_interconnection_certifications",
+              "value": [
+                "UL1741_SB",
+                "IEEE_1547"
+              ],
+              "unit": "categorical",
+              "boundary": "North American C200 and C1000 families; certification completed during FY2026",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "800VDC_microturbine_solution",
+              "value": "developed",
+              "unit": "categorical",
+              "boundary": "manufacturer-developed DC-output platform for data-center use",
+              "status": "manufacturer_filing",
+              "uncertainty": null
+            },
+            {
+              "metric": "800VDC_power_efficiency_improvement_claim",
+              "value": 0.05,
+              "relation": "up_to",
+              "unit": "fraction",
+              "boundary": "manufacturer-reported comparison against legacy AC distribution; not independent net plant efficiency test",
+              "status": "manufacturer_claim",
               "uncertainty": null
             }
           ],
           "comparison_limitations": [
-            "Do not reuse an older projected 33% or 35% efficiency figure as a current measured net-AC value.",
-            "Obtain current controlled C200/C200S datasheet with net/gross boundary, rated conditions, emissions, fuel limits, package mass, service intervals and warranty before quantitative ranking."
+            "The filing is a manufacturer regulatory disclosure, not an independent comparative performance test.",
+            "The approximately 33% simple-cycle efficiency statement does not specify the net/gross terminal, LHV/HHV basis or test correction details in the cited passage; do not use it as a matched net-AC ranking value.",
+            "C250 has completed successful test runs but is still described as advancing through commercialization; distinguish development status from commercial availability.",
+            "Hydrogen blends up to 30% are reported; do not claim that the C200 is already commercially qualified for 100% hydrogen from this filing.",
+            "C200 and C1000 UL1741 SB / IEEE 1547 certification is North American grid-interconnection evidence, not a South African compliance approval.",
+            "The 800VDC up-to-5% efficiency improvement is a manufacturer comparison claim for data-centre power architecture; obtain test boundary and independent validation before using it as a quantified advantage."
+          ]
+        },
+        {
+          "record_id": "capstone_fy2025_fuel_flexibility_development",
+          "evidence_class": "manufacturer_regulatory_filing_and_product_literature",
+          "published_date": "2025-06-30",
+          "accessed_at": "2026-11-02",
+          "source": {
+            "id": "CAPSTONE-ENERGYPLUS-FY2025-10K",
+            "title": "Capstone Green Energy Holdings, Inc. Form 10-K for fiscal year ended 31 March 2025",
+            "uri": "https://www.sec.gov/Archives/edgar/data/1009759/000155837025008930/cgeh-20250331x10k.htm",
+            "publisher": "Capstone Green Energy"
+          },
+          "claims": [
+            {
+              "metric": "combustor_fuel_configuration",
+              "value": "common_combustor_architecture_with_fuel_specific_injectors_for_multiple_gaseous_fuels",
+              "unit": "categorical",
+              "boundary": "manufacturer description of microturbine family",
+              "status": "manufacturer_filing"
+            },
+            {
+              "metric": "hydrogen_fuel_development",
+              "value": [
+                "70_percent_natural_gas_30_percent_hydrogen_blend",
+                "100_percent_hydrogen_development_target"
+              ],
+              "unit": "categorical",
+              "boundary": "development programme with Argonne National Laboratory; C200 hydrogen testing described as planned for FY2026",
+              "status": "manufacturer_reported_development_not_general_product_qualification"
+            }
+          ],
+          "comparison_limitations": [
+            "Hydrogen development and planned testing in the FY2025 filing are not equivalent to general commercial qualification.",
+            "The filing describes the microturbine family and development programme; verify exact per-model fuel certification."
           ]
         }
       ]
