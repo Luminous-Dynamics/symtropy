@@ -744,6 +744,31 @@ mod tests {
     }
 
     #[test]
+    fn exact_sign_test_matches_exhaustive_binary_oracle_for_all_small_counts() {
+        for discordant in 1usize..=10 {
+            let denominator = 1u128 << discordant;
+            for observed_wins in 0..=discordant {
+                let observed_losses = discordant - observed_wins;
+                let observed_tail = observed_wins.min(observed_losses);
+                let mut extreme = 0u128;
+                for assignment in 0u128..denominator {
+                    let assigned_wins = assignment.count_ones() as usize;
+                    let assigned_losses = discordant - assigned_wins;
+                    if assigned_wins.min(assigned_losses) <= observed_tail {
+                        extreme += 1;
+                    }
+                }
+                let expected = q(extreme, denominator);
+                assert_eq!(
+                    exact_two_sided_sign_test_p_value(observed_wins, observed_losses).unwrap(),
+                    expected,
+                    "discordant={discordant}, wins={observed_wins}, losses={observed_losses}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn sign_test_exhaustive_small_domains_is_symmetric_and_bounded() {
         for wins in 0..=12 {
             for losses in 0..=12 {
