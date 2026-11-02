@@ -98,7 +98,7 @@ The report averages metric-specific MAPE values into one “overall MAPE”, des
 
 Use a metric-specific score vector instead: absolute or squared errors for temperature in stated units, suitable relative errors for positive-scale variables, and proper probabilistic scores (for example Brier/log score or CRPS) when distributions are available. Compare with persistence, historical mean/climatology, linear trend and appropriate time-series baselines. Report calibration and interval coverage, not only point error.
 
-This issue is tracked in [parent repository issue #3816](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3816).
+This issue is tracked in [parent repository issue #3816](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3816). The related [causal-path audit #3817](https://github.com/Luminous-Dynamics/luminous-dynamics/issues/3817) makes intervention-to-outcome pathways, disaggregated effects and positive/negative controls explicit.
 
 ### Empirical parameter lineage
 
