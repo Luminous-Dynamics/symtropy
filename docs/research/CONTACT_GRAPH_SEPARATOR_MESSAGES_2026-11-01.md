@@ -187,3 +187,19 @@ Every leaf stores its exact binary64 bounds, depth and binary lineage. The indep
 Depth, node-budget, and no-representable-midpoint limits produce retained unresolved frontier cells. These remain part of the cover; they are not silently dropped and do not become NO-SOLUTION claims. The partition reports coverage preservation separately from whether every cell received a strict regime classification.
 
 The frozen dyadic case (u_n=1-p_{S,n}/2), (p_{S,n}in[1,3]), crosses the transition at (p_{S,n}=2). A depth-3 partition retains two strict-separating cells, two strict Signorini-defeating cells for the separating hypothesis, and two boundary cells adjacent to the transition.
+
+
+## Composition of local regime-message partitions — 2026-11-02
+
+The follow-on [#3298](https://github.com/Luminous-Dynamics/symtropy/pull/3298) composes two coverage-preserving separator partitions over the same root impulse domain.
+
+For each pair of source cells, it computes their axis-aligned box intersection. Every nonempty intersection carries both source classifications and both binary lineages. Empty pair intersections are counted separately. The combined local status is:
+- all-local-hypotheses-strict when both messages prove their own strict response over the whole intersection;
+- local-hypothesis-excluded when at least one message proves its own strict regime impossible there;
+- boundary/inconclusive otherwise.
+
+A local hypothesis defeater never means global NO-SOLUTION. Alternative contact regimes or separator branches can remain admissible.
+
+The independent composite verifier replays both source partition covers/classifications, reconstructs the full Cartesian product, recomputes every nonempty intersection, and requires one retained composed cell for each lineage pair. Geometry is not the identity key: two different branch pairs that intersect on the same split face remain two separate composed cells. A dropped intersection cell or relabelled branch fails verification.
+
+This exposes the combinatorial cost of composition directly: source cell counts, Cartesian candidate-pair count, empty intersections, distinct geometric intersections, label/lineage multiplicity, unresolved coverage and resource-budget carry-through must all be reported.

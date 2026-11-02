@@ -470,6 +470,14 @@ impl SeparatorImpulseBox {
         }
         Ok(Self { lower, upper })
     }
+
+    fn intersection(&self, other: &Self) -> Option<Self> {
+        let lower = SVector::<f64, 3>::from_fn(|axis, _| self.lower[axis].max(other.lower[axis]));
+        let upper = SVector::<f64, 3>::from_fn(|axis, _| self.upper[axis].min(other.upper[axis]));
+        (0..3)
+            .all(|axis| lower[axis] <= upper[axis])
+            .then_some(Self { lower, upper })
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -496,10 +504,38 @@ struct SeparatorBoxCell {
 
 #[derive(Clone, Debug, PartialEq)]
 struct SeparatorBoxPartition {
+    root_box: SeparatorImpulseBox,
     cells: Vec<SeparatorBoxCell>,
     processed_nodes: usize,
     max_depth_reached: usize,
     node_budget_exhausted: bool,
+    coverage_preserved: bool,
+    classification_complete: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ComposedSeparatorClassification {
+    AllLocalHypothesesStrict,
+    LocalHypothesisExcluded,
+    BoundaryOrInconclusive,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ComposedSeparatorBoxCell {
+    separator_box: SeparatorImpulseBox,
+    left_classification: SeparatingBoxClassification,
+    right_classification: SeparatingBoxClassification,
+    left_lineage: Vec<u8>,
+    right_lineage: Vec<u8>,
+    classification: ComposedSeparatorClassification,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct ComposedSeparatorBoxPartition {
+    root_box: SeparatorImpulseBox,
+    cells: Vec<ComposedSeparatorBoxCell>,
+    candidate_pairs: usize,
+    empty_intersections: usize,
     coverage_preserved: bool,
     classification_complete: bool,
 }
@@ -728,6 +764,7 @@ impl SeparatingLeafMessage {
             .all(|cell| cell.classification != SeparatingBoxClassification::BoundaryOrInconclusive);
 
         Ok(SeparatorBoxPartition {
+            root_box: root.clone(),
             cells,
             processed_nodes,
             max_depth_reached,
@@ -735,6 +772,182 @@ impl SeparatingLeafMessage {
             coverage_preserved,
             classification_complete,
         })
+    }
+
+    fn composed_classification(
+        left: SeparatingBoxClassification,
+        right: SeparatingBoxClassification,
+    ) -> ComposedSeparatorClassification {
+        if left == SeparatingBoxClassification::SignoriniViolation
+            || right == SeparatingBoxClassification::SignoriniViolation
+        {
+            ComposedSeparatorClassification::LocalHypothesisExcluded
+        } else if left == SeparatingBoxClassification::StrictlySeparating
+            && right == SeparatingBoxClassification::StrictlySeparating
+        {
+            ComposedSeparatorClassification::AllLocalHypothesesStrict
+        } else {
+            ComposedSeparatorClassification::BoundaryOrInconclusive
+        }
+    }
+
+    /// Independently verify a Cartesian intersection of two local regime
+    /// partitions. The lineage pair is identity: equal geometric boxes with
+    /// distinct source branches must remain distinct composed cells.
+    fn verify_composed_partition(
+        &self,
+        left: &SeparatorBoxPartition,
+        right_message: &SeparatingLeafMessage,
+        right: &SeparatorBoxPartition,
+        composed: &ComposedSeparatorBoxPartition,
+    ) -> bool {
+        if left.root_box != right.root_box
+            || composed.root_box != left.root_box
+            || !left.coverage_preserved
+            || !right.coverage_preserved
+            || !self.verify_box_cover(&left.root_box, &left.cells)
+            || !right_message.verify_box_cover(&right.root_box, &right.cells)
+        {
+            return false;
+        }
+
+        let candidate_pairs = match left.cells.len().checked_mul(right.cells.len()) {
+            Some(count) => count,
+            None => return false,
+        };
+        if composed.candidate_pairs != candidate_pairs {
+            return false;
+        }
+
+        let mut expected = std::collections::BTreeMap::<
+            (Vec<u8>, Vec<u8>),
+            ComposedSeparatorBoxCell,
+        >::new();
+        let mut empty_intersections = 0_usize;
+        for left_cell in &left.cells {
+            for right_cell in &right.cells {
+                let key = (
+                    left_cell.lineage.clone(),
+                    right_cell.lineage.clone(),
+                );
+                if let Some(intersection) = left_cell
+                    .separator_box
+                    .intersection(&right_cell.separator_box)
+                {
+                    let classification = Self::composed_classification(
+                        left_cell.classification,
+                        right_cell.classification,
+                    );
+                    expected.insert(
+                        key.clone(),
+                        ComposedSeparatorBoxCell {
+                            separator_box: intersection,
+                            left_classification: left_cell.classification,
+                            right_classification: right_cell.classification,
+                            left_lineage: key.0,
+                            right_lineage: key.1,
+                            classification,
+                        },
+                    );
+                } else {
+                    empty_intersections += 1;
+                }
+            }
+        }
+        if composed.empty_intersections != empty_intersections
+            || composed.cells.len() != expected.len()
+        {
+            return false;
+        }
+
+        let mut observed = std::collections::BTreeSet::<(Vec<u8>, Vec<u8>)>::new();
+        for cell in &composed.cells {
+            let key = (cell.left_lineage.clone(), cell.right_lineage.clone());
+            if !observed.insert(key.clone()) {
+                return false;
+            }
+            let Some(expected_cell) = expected.get(&key) else {
+                return false;
+            };
+            if cell != expected_cell {
+                return false;
+            }
+        }
+        observed.len() == expected.len()
+    }
+
+    /// Intersect two coverage-preserving local regime partitions over one
+    /// common separator domain. Empty pair intersections are counted, while
+    /// every nonempty branch-pair cell keeps both labels and lineages.
+    fn compose_separator_partitions(
+        &self,
+        left: &SeparatorBoxPartition,
+        right_message: &SeparatingLeafMessage,
+        right: &SeparatorBoxPartition,
+    ) -> Result<ComposedSeparatorBoxPartition, &'static str> {
+        if left.root_box != right.root_box {
+            return Err("local separator partitions do not share an identical root domain");
+        }
+        if !left.coverage_preserved
+            || !right.coverage_preserved
+            || !self.verify_box_cover(&left.root_box, &left.cells)
+            || !right_message.verify_box_cover(&right.root_box, &right.cells)
+        {
+            return Err("local separator partition failed independent source coverage verification");
+        }
+
+        let candidate_pairs = left
+            .cells
+            .len()
+            .checked_mul(right.cells.len())
+            .ok_or("separator partition Cartesian product size overflowed")?;
+        let mut cells = Vec::new();
+        let mut empty_intersections = 0_usize;
+        for left_cell in &left.cells {
+            for right_cell in &right.cells {
+                let Some(separator_box) = left_cell
+                    .separator_box
+                    .intersection(&right_cell.separator_box)
+                else {
+                    empty_intersections += 1;
+                    continue;
+                };
+                cells.push(ComposedSeparatorBoxCell {
+                    separator_box,
+                    left_classification: left_cell.classification,
+                    right_classification: right_cell.classification,
+                    left_lineage: left_cell.lineage.clone(),
+                    right_lineage: right_cell.lineage.clone(),
+                    classification: Self::composed_classification(
+                        left_cell.classification,
+                        right_cell.classification,
+                    ),
+                });
+            }
+        }
+        cells.sort_by(|left, right| {
+            left.left_lineage
+                .cmp(&right.left_lineage)
+                .then_with(|| left.right_lineage.cmp(&right.right_lineage))
+        });
+
+        let mut composed = ComposedSeparatorBoxPartition {
+            root_box: left.root_box.clone(),
+            cells,
+            candidate_pairs,
+            empty_intersections,
+            coverage_preserved: false,
+            classification_complete: false,
+        };
+        composed.coverage_preserved =
+            self.verify_composed_partition(left, right_message, right, &composed);
+        if !composed.coverage_preserved {
+            return Err("composed separator partition failed its independent intersection-cover check");
+        }
+        composed.classification_complete = composed.cells.iter().all(|cell| {
+            cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
+        });
+        Ok(composed)
     }
 
     /// Evaluate the separating response at one separator impulse.
@@ -1335,6 +1548,107 @@ fn separating_leaf_box_partition_retains_unresolved_budget_and_unsplittable_fron
     );
 
     assert!(message.partition_separator_box(&crossing, 2, 0).is_err());
+}
+
+#[test]
+fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() {
+    let left_message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+    };
+    let right_message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+    };
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(5.0, 0.5, 0.5),
+    )
+    .unwrap();
+
+    let left_partition = left_message.partition_separator_box(&root, 3, 128).unwrap();
+    let right_partition = right_message.partition_separator_box(&root, 3, 128).unwrap();
+    let composed = left_message
+        .compose_separator_partitions(&left_partition, &right_message, &right_partition)
+        .unwrap();
+
+    assert!(composed.coverage_preserved);
+    assert_eq!(
+        composed.candidate_pairs,
+        left_partition.cells.len() * right_partition.cells.len()
+    );
+    assert!(composed.empty_intersections > 0);
+    assert!(!composed.cells.is_empty());
+    assert!(left_message.verify_composed_partition(
+        &left_partition,
+        &right_message,
+        &right_partition,
+        &composed
+    ));
+    assert!(composed.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::AllLocalHypothesesStrict
+    }));
+    assert!(composed.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::LocalHypothesisExcluded
+    }));
+    assert!(composed.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::BoundaryOrInconclusive
+    }));
+
+    let mut dropped = composed.clone();
+    dropped.cells.pop();
+    assert!(!left_message.verify_composed_partition(
+        &left_partition,
+        &right_message,
+        &right_partition,
+        &dropped
+    ));
+
+    let mismatched_root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(4.0, 0.5, 0.5),
+    )
+    .unwrap();
+    let mismatched = right_message.partition_separator_box(&mismatched_root, 2, 64).unwrap();
+    assert!(
+        left_message
+            .compose_separator_partitions(&left_partition, &right_message, &mismatched)
+            .is_err()
+    );
+}
+
+#[test]
+fn separator_message_composition_retains_equal_geometry_with_distinct_branch_lineage() {
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+    };
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(3.0, 0.5, 0.5),
+    )
+    .unwrap();
+    let partition = message.partition_separator_box(&root, 1, 16).unwrap();
+    assert_eq!(partition.cells.len(), 2);
+
+    let composed = message
+        .compose_separator_partitions(&partition, &message, &partition)
+        .unwrap();
+    let same_geometry = composed
+        .cells
+        .iter()
+        .filter(|cell| cell.separator_box.lower == SVector::<f64, 3>::new(2.0, -0.5, -0.5)
+            && cell.separator_box.upper == SVector::<f64, 3>::new(2.0, 0.5, 0.5))
+        .collect::<Vec<_>>();
+    assert_eq!(same_geometry.len(), 2);
+    assert_ne!(same_geometry[0].left_lineage, same_geometry[1].left_lineage);
+    assert_ne!(same_geometry[0].right_lineage, same_geometry[1].right_lineage);
+    assert!(message.verify_composed_partition(
+        &partition,
+        &message,
+        &partition,
+        &composed
+    ));
 }
 
 #[test]
