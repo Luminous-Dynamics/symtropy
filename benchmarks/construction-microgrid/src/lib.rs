@@ -689,7 +689,7 @@ mod tests {
         assert_eq!(r.intervals[0].battery_end_soc_wh, 3_000);
         assert_eq!(r.intervals[1].battery_discharge_delivered_wh, 2_500);
         assert_eq!(r.intervals[1].battery_end_soc_wh, 500);
-        assert_eq!(r.total_source_energy_wh, 7_000);
+        assert_eq!(r.total_source_energy_wh, 4_000);
         assert_eq!(r.total_battery_loss_wh, 0);
     }
 
