@@ -41,8 +41,17 @@ fn run() -> Result<bool, String> {
     if options.inputs.is_empty() {
         return Err("at least one --input SOURCE=RUN_RELATIVE_PATH is required".to_owned());
     }
-    if options.outputs.is_empty() {
-        return Err("at least one --output RUN_RELATIVE_PATH is required".to_owned());
+    if options.solver_id == "SU2_CFD_DRY_RUN" {
+        if !options.outputs.is_empty() {
+            return Err("SU2_CFD_DRY_RUN must use a process-only receipt with no expected outputs".to_owned());
+        }
+        if options.solver_arguments.len() != 2
+            || options.solver_arguments[0] != "-d"
+        {
+            return Err("SU2_CFD_DRY_RUN requires exactly: -- -d CONFIG_PATH".to_owned());
+        }
+    } else if options.outputs.is_empty() {
+        return Err("only SU2_CFD_DRY_RUN may use a process-only receipt".to_owned());
     }
     if options.solver_arguments.is_empty() {
         return Err(
