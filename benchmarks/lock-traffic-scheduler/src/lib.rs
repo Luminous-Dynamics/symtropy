@@ -595,6 +595,83 @@ mod tests {
     }
 
     #[test]
+    fn fcfs_can_lose_feasible_service_against_tiny_exhaustive_order_oracle() {
+        let lock = profile();
+        let long_older = request(
+            "long-older",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let short_deadline = PassageRequest {
+            latest_start_tick: 10,
+            maximum_wait_ticks: 10,
+            service_duration_ticks: 10,
+            ..request(
+                "short-deadline",
+                "p2",
+                1,
+                Direction::Upstream,
+                ServiceClass::EssentialPassenger,
+            )
+        };
+
+        let fcfs = schedule_lock(
+            &lock,
+            &[long_older.clone(), short_deadline.clone()],
+            0,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
+        assert_eq!(fcfs.metrics.served_count, 1);
+        assert_eq!(
+            fcfs.unscheduled[0].reason,
+            UnscheduledReason::LatestStartExceeded
+        );
+
+        // Independent two-permutation oracle for this deliberately tiny,
+        // single-window, same-direction instance. Either candidate order must
+        // meet each request's start deadline and the common availability bound.
+        let finish_if_short_first = short_deadline
+            .arrival_tick
+            .max(short_deadline.earliest_start_tick)
+            + short_deadline.service_duration_ticks;
+        let long_after_short_start = finish_if_short_first;
+        let finish_if_long_after_short =
+            long_after_short_start + long_older.service_duration_ticks;
+        let short_then_long_is_feasible =
+            finish_if_short_first <= short_deadline.latest_start_tick + short_deadline.service_duration_ticks
+                && long_after_short_start <= long_older.latest_start_tick
+                && finish_if_long_after_short <= lock.availability[0].end_tick;
+
+        let long_first_start = long_older
+            .arrival_tick
+            .max(long_older.earliest_start_tick);
+        let long_first_finish = long_first_start + long_older.service_duration_ticks;
+        let short_after_long_start = long_first_finish.max(short_deadline.arrival_tick);
+        let long_then_short_is_feasible =
+            long_first_start <= long_older.latest_start_tick
+                && short_after_long_start <= short_deadline.latest_start_tick
+                && short_after_long_start + short_deadline.service_duration_ticks
+                    <= lock.availability[0].end_tick;
+
+        let oracle_best_served = [
+            short_then_long_is_feasible,
+            long_then_short_is_feasible,
+        ]
+        .into_iter()
+        .map(|feasible| if feasible { 2_u64 } else { 0_u64 })
+        .max()
+        .unwrap_or(0);
+
+        assert!(short_then_long_is_feasible);
+        assert!(!long_then_short_is_feasible);
+        assert_eq!(oracle_best_served, 2);
+        assert_eq!(oracle_best_served - fcfs.metrics.served_count, 1);
+    }
+
+    #[test]
     fn priority_is_re_evaluated_when_lock_becomes_available() {
         let mut lock = profile();
         lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
