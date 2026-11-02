@@ -9,14 +9,15 @@ Given:
 - an occlusion mesh containing all opaque geometry (target surfaces, dishes, racks and walls),
 - idealized nozzle origin, axis, cone half-angle and range,
 
-the crate samples target surfaces and estimates the area-weighted fraction inside the cone with unobstructed line of sight.
+the crate samples target surfaces and estimates the area-weighted fraction inside the cone with unobstructed line of sight. It separately reports the absolute surface-normal incidence cosine (1 = normal, 0 = grazing), but does not infer impact pressure or cleaning effectiveness.
 
 The implementation provides:
 - Deterministic Halton sampling over triangles.
 - Möller–Trumbore ray/triangle intersection.
 - Separation of counted target area from non-target occluder geometry.
 - Per-triangle and aggregate geometrically visible area estimates.
-- Input validation and tests for cone boundaries, occlusion, range, degenerate geometry and deterministic output.
+- Area-weighted absolute incidence cosine and a configurable favorable-incidence area fraction, reported separately from visibility.
+- Input validation and tests for cone boundaries, occlusion, range, grazing versus normal incidence, degenerate geometry and deterministic output.
 
 ## What it does not compute
 
