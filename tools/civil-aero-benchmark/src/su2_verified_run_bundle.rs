@@ -14,17 +14,14 @@ use crate::su2_boundary_audit::{
     Su2BoundaryAuditReport, audit_su2_boundary_markers, verify_su2_boundary_audit,
 };
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
-use crate::su2_field_preflight::{
-    Su2FieldPreflightReport, audit_su2_field_preflight,
-};
+use crate::su2_field_preflight::{Su2FieldPreflightReport, audit_su2_field_preflight};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
 
 pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.1.0";
-pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str =
-    "replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
+pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str = "replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
 
 /// A resource value is either grounded in a named measurement source or explicitly unavailable.
 /// In particular, unknown resource telemetry is never encoded as zero.
