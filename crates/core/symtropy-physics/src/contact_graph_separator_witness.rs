@@ -558,9 +558,7 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
         free_velocity: SVector::<f64, 3>::new(1.0, 0.125, -0.25),
     };
     let separator_inside = SVector::<f64, 3>::new(1.0, -0.5, 0.0);
-    let strict = message
-        .response_at(&separator_inside, TOLERANCE)
-        .unwrap();
+    let strict = message.response_at(&separator_inside, TOLERANCE).unwrap();
     assert_eq!(
         strict.classification,
         SeparatingLeafClassification::StrictlySeparating
@@ -574,9 +572,7 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
     // The contact remains complementarity-admissible, but is not a strict
     // separating branch and must be retained as a boundary stratum.
     let separator_boundary = SVector::<f64, 3>::new(2.0, -0.5, 0.0);
-    let boundary = message
-        .response_at(&separator_boundary, TOLERANCE)
-        .unwrap();
+    let boundary = message.response_at(&separator_boundary, TOLERANCE).unwrap();
     assert_eq!(
         boundary.classification,
         SeparatingLeafClassification::BoundaryWithinTolerance
@@ -586,9 +582,7 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
 
     // Beyond the boundary, p_n=0 yields a strict Signorini violation.
     let separator_outside = SVector::<f64, 3>::new(3.0, -0.5, 0.0);
-    let outside = message
-        .response_at(&separator_outside, TOLERANCE)
-        .unwrap();
+    let outside = message.response_at(&separator_outside, TOLERANCE).unwrap();
     assert_eq!(
         outside.classification,
         SeparatingLeafClassification::SignoriniViolation
@@ -600,11 +594,7 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
     assert_eq!(schur_operator, Matrix3::zeros());
     assert_eq!(schur_free_velocity, SVector::<f64, 3>::zeros());
 
-    assert!(
-        message
-            .response_at(&separator_inside, 0.0)
-            .is_err()
-    );
+    assert!(message.response_at(&separator_inside, 0.0).is_err());
     assert!(
         message
             .response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), TOLERANCE)
@@ -649,10 +639,7 @@ fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
     let effective_operator = separator_block - sticking_w - separating_w;
     let effective_free_velocity = vector(0) - sticking_q - separating_q;
     assert!((effective_operator - Matrix3::identity() * 0.75).norm() < 1.0e-12);
-    assert!(
-        (effective_free_velocity - SVector::<f64, 3>::new(-0.25, 0.875, 0.0)).norm()
-            < 1.0e-12
-    );
+    assert!((effective_free_velocity - SVector::<f64, 3>::new(-0.25, 0.875, 0.0)).norm() < 1.0e-12);
 
     let reduced = solve_coupled_signorini_coulomb(
         &effective_operator,
@@ -709,8 +696,8 @@ fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
     let separator_tau = separator.disk_multiplier;
     assert!(separator_tau > 0.0);
     assert!(post_velocity[0].abs() < 1.0e-9);
-    let separator_kkt = post_velocity.fixed_rows::<2>(1)
-        + separator_tau * separator.impulse.fixed_rows::<2>(1);
+    let separator_kkt =
+        post_velocity.fixed_rows::<2>(1) + separator_tau * separator.impulse.fixed_rows::<2>(1);
     assert!(separator_kkt.norm() < 1.0e-9);
     assert!(
         (FRICTION * separator.impulse[0] - separator.impulse.fixed_rows::<2>(1).norm()).abs()
