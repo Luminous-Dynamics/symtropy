@@ -98,10 +98,6 @@ impl ResourceVector {
         )
     }
 
-    fn residual(self, other: Self) -> Self {
-        self.subtract(other)
-    }
-
     fn max_abs(self) -> f64 {
         self.water_m3.abs().max(self.energy_kwh.abs()).max(self.food_kg.abs())
     }
@@ -371,6 +367,7 @@ impl World {
         for index in 0..self.regions.len() {
             let region = &self.regions[index];
             let demand = region.essential_demand_per_capita.scale(region.population);
+            demand.validate_non_negative("essential_demand")?;
             let served = working[index].minimum(demand);
             let unmet = demand.subtract(served);
             let ending = working[index].subtract(served);
@@ -715,6 +712,28 @@ mod tests {
             ),
             Err(WorldError::ProductionCountMismatch { expected: 2, actual: 1 })
         );
+    }
+
+    #[test]
+    fn overflowed_aggregate_demand_is_rejected_without_mutation() {
+        let mut world = World::new(vec![Region {
+            id: "overflow".into(),
+            population: f64::MAX,
+            opening_stock: ResourceVector::new(1.0, 1.0, 1.0),
+            essential_demand_per_capita: ResourceVector::new(2.0, 1.0, 1.0),
+        }]).unwrap();
+        let before = world.clone();
+        assert_eq!(
+            world.step(
+                &StepInput { production: vec![Production::default()], transfers: vec![] },
+                TransferPolicy::Unrestricted
+            ),
+            Err(WorldError::NonFiniteValue {
+                field: "essential_demand",
+                quantity: "water_m3",
+            })
+        );
+        assert_eq!(world, before);
     }
 
     #[test]
