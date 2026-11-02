@@ -183,7 +183,7 @@ The current 0D model cannot predict these transients. It can only store and comp
 
 Generator efficiency alone does not establish resilient-power capability. Where a configuration claims grid-forming or islandable operation, add the following tests to the relevant product scope. They are a benchmark matrix, not a replacement for the applicable IEEE/utility/mission acceptance criteria.
 
-**Published research test template:** NREL/PR-5D00-91714 (22 October 2024) covers stand-alone steady-state loading at power factors 1.0, 0.8 lagging and 0.8 leading across 5/10/25/50/75/100% loading; load steps 0→50%, 50→100% and 0→100%; 150% overload testing; black start by energizing a similarly rated transformer; loss of the other generator; sourcing/sinking P/Q; impedance scans; voltage and phase jumps; 1 Hz/s ROCOF; synchronization and islanding. Its example inverter passed black start but failed the reported ROCOF test. This is evidence that capability must be tested dimension-by-dimension, not attributed from a product label.
+**Published research test template:** National Laboratory of the Rockies (NLR; formerly NREL), NREL/PR-5D00-91714 (22 October 2024) covers stand-alone steady-state loading at power factors 1.0, 0.8 lagging and 0.8 leading across 5/10/25/50/75/100% loading; load steps 0→50%, 50→100% and 0→100%; 150% overload testing; black start by energizing a similarly rated transformer; loss of the other generator; sourcing/sinking P/Q; impedance scans; voltage and phase jumps; 1 Hz/s ROCOF; synchronization and islanding. Its example inverter passed black start but failed the reported ROCOF test. This is evidence that capability must be tested dimension-by-dimension, not attributed from a product label.
 
 Required test groups:
 1. **Modes:** grid-following, grid-forming, grid-parallel, island transition, stable island, black start, staged restoration, synchronization/reconnection and safe shutdown. Mark unsupported modes explicitly.
@@ -213,8 +213,13 @@ Standards/version register:
 - IEEE P3710.1, DC distribution 300–1500 V for data centres (active project): https://standards.ieee.org/ieee/3710.1/12521/
 - OCP Power Distribution / LVDC workstream and white-paper editions: https://www.opencompute.org/projects/data-center-facility/power-distribution/
 - IEA, The State of Energy Innovation 2026, grid-forming inverter and grid-resilience discussion: https://www.iea.org/reports/the-state-of-energy-innovation-2026
-- NREL, Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments (NREL/PR-5D00-91714): https://www.nrel.gov/docs/fy25osti/91714.pdf
-- NREL, Black Start research: https://www.nrel.gov/grid/black-start
+- National Laboratory of the Rockies (formerly NREL), Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments (NREL/PR-5D00-91714): https://www.nlr.gov/docs/fy25osti/91714.pdf
+- National Laboratory of the Rockies, Black Start research: https://www.nlr.gov/grid/black-start
+
+
+**Multi-vendor hardware reference:** The NLR-hosted UNIFI 1-MW Multi-Vendor Grid-Forming Inverter Test Updates presentation (25PESGM3880, July 2025; https://docs.nlr.gov/docs/fy26osti/96886.pdf) tests five scenarios with 7 GFM inverters (760 kVA), 4 GFL inverters (340 kVA), one synchronous generator and multiple controllable load banks. Its scenarios cover 69–100% IBR share and 0–69% GFM share. The report identifies ROCOF failures in its 68% and 100% GFM asset-mix scenarios; higher GFM share reduces some oscillations but introduces GFM/GFM interactions, unequal sharing and voltage/reactive-power problems. It reports that changing frequency droop from 0.6% to 1.2% allowed S4/S5 to survive the described ROCOF condition. This is a research testbed result, not a general droop prescription or universal acceptance threshold.
+
+Use the versioned [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) and [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json) to freeze test cases and evidence receipts. The 24 listed cases leave acceptance thresholds null until the specific standard edition, utility agreement and mission requirements are selected.
 
 ## 6. Energy arithmetic and acceptance checks
 
