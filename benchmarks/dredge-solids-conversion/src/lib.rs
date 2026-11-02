@@ -899,7 +899,7 @@ mod tests {
         let mut req = request();
         req.wet_density.observed_at_tick = 161;
         assert_eq!(
-            evaluate(&req, &ConversionCursor::default()).disposition,
+            eval(&req, &ConversionCursor::default()).disposition,
             ConversionDisposition::EvidenceInconsistent
         );
     }
@@ -909,7 +909,7 @@ mod tests {
         let mut req = request();
         req.solids_fraction.sampled_at_tick = 161;
         assert_eq!(
-            evaluate(&req, &ConversionCursor::default()).disposition,
+            eval(&req, &ConversionCursor::default()).disposition,
             ConversionDisposition::EvidenceInconsistent
         );
     }
