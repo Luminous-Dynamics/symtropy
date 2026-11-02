@@ -154,3 +154,50 @@ The system should be able to:
 - Preserve the reason for every action, exclusion, and final recommendation.
 
 The core outcome is not "more optimizer wins." It is more independently defensible engineering decisions per measured unit of cost, with fewer false-feasible outcomes and no hidden degradation in risk.
+
+## Risk-based model credibility (2026 update)
+
+The October 5, 2026 NIST report, *On Methods of Uncertainty Quantification in Computational Modeling and Simulation: Harmonizing Modeling and Metrology Practices*, recommends harmonizing ASME computational-model UQ with JCGM metrology practices and scaling credibility work according to model influence and decision consequence.
+
+Symtropy should translate that into claim-specific admission policies:
+- Exploratory shape ranking: lighter evidence is permissible, but the report must say it is exploratory and out-of-envelope designs must be flagged.
+- Aerodynamic loads used by structural sizing: require stronger numerical uncertainty, model discrepancy and validation support at relevant conditions.
+- Flutter, stability, propulsion limits or safety-critical claims: require additional model-specific validation, independent review, physical evidence where appropriate and a strictly narrower domain of use.
+- Any missing required evidence produces an explicit unknown/reject/abstain outcome, never a favourable default.
+
+Reference: https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing
+
+## New benchmark gate: stopping-policy completeness
+
+For SU2 cases, the benchmark manifest must record the entire configured stopping protocol, not merely one residual:
+- Every CONV_FIELD entry, its exact dry-run recognition and its production-history import.
+- Explicit WINDOW_CAUCHY_CRIT enablement.
+- Every CONV_WINDOW_FIELD entry and its exact dry-run recognition.
+- Window start, convergence start, window-element count, epsilon and window function.
+- A post-run independent screen for every active convergence field.
+- Time-window fields require terminal mean/range/drift/slope screening; residual-only acceptance is not a substitute for time-average stability.
+
+For periodic/unsteady cases, iterative convergence, windowed time-average convergence, sample-length sufficiency, frequency/spectral convergence and time-step refinement remain distinct gates. A configuration preflight only proves compatibility/recognition; it does not prove the flow is statistically stationary or adequately sampled.
+
+## Cost-to-decision accounting
+
+The benchmark's primary resource unit should be **measured total decision cost**, not a raw count of CFD runs. Maintain a vector rather than hiding cost in one scalar:
+- high-fidelity-equivalent solver calls;
+- CPU core-hours and GPU-hours;
+- peak memory;
+- measured energy;
+- wall-clock latency;
+- human setup/review time;
+- physical test and metrology cost.
+
+An aggregate monetary or carbon score may be computed only after unit conversion assumptions, rates, hardware and measurement uncertainties have been declared. Unknown quantities remain unknown. Failed simulations, retries, mesh repair, manual intervention and discarded candidates remain in the ledger.
+
+## Statistical acceptance detail
+
+- Publish task-level paired deltas and confidence intervals, not only a mean over tasks.
+- Stratify results by geometry family, objective type, fidelity and flow regime.
+- Predeclare the hypervolume reference point, feasibility tolerances, non-inferiority margin and treatment of failed/abstained tasks.
+- Evaluate interval coverage with binomial confidence intervals, calibration by family and interval width/sharpness; do not use aggregate calibration error alone.
+- A zero false-feasible count is not proof of zero risk. Report a one-sided confidence bound and the size/independence limitations of the qualification corpus.
+- Test the decision policy against blind operating-condition shifts and model-form perturbations, not merely random seeds from the training distribution.
+
