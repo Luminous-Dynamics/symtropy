@@ -322,6 +322,15 @@ A queued run is not a pass. A simulation is not an experiment. A vendor claim is
 
 ## 13. Sources and dated baseline
 
+- Mainspring Linear Generator product specifications (manufacturer claims; accessed 2 November 2026): https://www.mainspringenergy.com/product/
+- Mainspring 2.5 MW / 10 × 250 kW product datasheet R40322: https://linear-power.files.svdcdn.com/production/Mainspring-Linear-Generator-2.5MW-Datasheet-R40322.pdf
+- California Energy Commission, CEC-500-2024-037 project page: https://www.energy.ca.gov/publications/2024/high-efficiency-and-ultra-low-emissions-linear-generator-demonstration-project
+- California Energy Commission / Mainspring, final project report PDF: https://www.energy.ca.gov/sites/default/files/2024-05/CEC-500-2024-037.pdf
+- U.S. Department of the Air Force / AFMC, 250 kW Mainspring multi-fuel pilot (4 March 2026): https://www.afmc.af.mil/News/Article-Display/Article/4421866/air-force-pilots-fuel-flexible-generator-for-travis-afb/
+- Mainspring, U.S. Air Force pilot project announcement (4 March 2026): https://www.mainspringenergy.com/news/mainspring-energy-awarded-u-s-air-force-pilot-project-for-multi-fuel-resilient-power-generation-at-travis-air-force-base
+- Mainspring / AEP up-to-1.6 GW sales agreement (13 October 2026): https://www.mainspringenergy.com/news/mainspring-energy-signs-landmark-1-6-gw-agreement-with-aep-for-reliable-affordable-power-capacity
+- ASME, Performance Test Codes catalogue (PTC 50 is listed for Fuel Cell Power Systems Performance): https://www.asme.org/codes-standards/publications-information/performance-test-codes
+- Capstone C200S microturbine: https://www.capstoneenergyplus.com/products/capstone-microturbines/c200s
 - U.S. DOE, SuperTruck results and SuperTruck 3 goals (10 June 2024): https://www.energy.gov/cmei/vehicles/articles/fotw-1346-june-10-2024-us-doe-supertruck-3-initiative-seeks-reduce
 - Cummins, MY2027 X10/X15 HELM production transition (2026): https://investor.cummins.com/news/detail/700/cummins-announces-phased-model-year-2027-product-launch-plan
 - Wärtsilä, marine methanol engines: https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines
