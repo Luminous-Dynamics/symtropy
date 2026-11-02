@@ -10,6 +10,7 @@ This crate validates:
 - declared receptor/body/homeostatic channel schemas;
 - observation source, unit, range and freshness;
 - body-snapshot binding for proprioceptive/contact samples;
+- one physiology-snapshot binding for all homeostatic modulators in an observation frame;
 - bounded muscle or motor-unit activation proposals;
 - compatibility between model effectors and a supplied body-effector set.
 
