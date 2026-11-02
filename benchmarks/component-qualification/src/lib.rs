@@ -252,9 +252,21 @@ pub fn evaluate_dimension(
         inconsistent = true;
     }
     if measurement.report_reference.format_id.trim().is_empty()
-        || measurement.report_reference.format_version.trim().is_empty()
-        || measurement.report_reference.document_reference.trim().is_empty()
-        || measurement.report_reference.native_result_id.trim().is_empty()
+        || measurement
+            .report_reference
+            .format_version
+            .trim()
+            .is_empty()
+        || measurement
+            .report_reference
+            .document_reference
+            .trim()
+            .is_empty()
+        || measurement
+            .report_reference
+            .native_result_id
+            .trim()
+            .is_empty()
     {
         reasons.push(ComponentReason::MissingReportReference);
         unknown = true;
@@ -557,11 +569,11 @@ mod tests {
                 format: MetrologyReportFormat::QifIso23952_2020,
                 format_id: "ISO 23952:2020".into(),
                 format_version: "3.0".into(),
-                schema_sha256:
-                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                schema_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .into(),
                 document_reference: "qif://inspection-report-500".into(),
-                document_sha256:
-                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                document_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    .into(),
                 native_result_id: "qif-result-500-thickness".into(),
                 subject_component_id: "tbm-segment-001".into(),
                 subject_serial_id: "serial-7781".into(),
