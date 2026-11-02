@@ -780,7 +780,22 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 10\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 6\nCONV_WINDOW_CAUCHY_EPS= 1E-3\nWINDOW_FUNCTION= SQUARE\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
+            r#"SOLVER= NAVIER_STOKES
+CONV_FIELD= RMS_DENSITY
+CONV_RESIDUAL_MINVAL= -8
+HISTORY_OUTPUT= (TIME_ITER, INNER_ITER, RMS_RES, AERO_COEFF, TAVG_AERO_COEFF)
+TIME_DOMAIN= YES
+WINDOW_CAUCHY_CRIT= YES
+CONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)
+WINDOW_START_ITER= 10
+CONV_WINDOW_STARTITER= 10
+CONV_WINDOW_CAUCHY_ELEMS= 6
+CONV_WINDOW_CAUCHY_EPS= 1E-3
+WINDOW_FUNCTION= SQUARE
+MESH_FILENAME= mesh.su2
+MARKER_HEATFLUX= (wall, 0.0)
+MARKER_MONITORING= (wall)
+"#,
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
@@ -789,20 +804,20 @@ mod tests {
         let solver = r#"#!/bin/sh
 set -eu
 if [ "${1:-}" = "-d" ]; then
-  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  printf '%s\\n' 'Available screen/history output fields for the current configuration:' 'TIME_ITER' 'INNER_ITER' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
   exit 0
 fi
-printf '"Iteration","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
-printf '0,0.42310,%s,%s,0.42310,-1,-1\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '10,0.42310,%s,%s,0.42310,-2,-2\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '20,0.42310,%s,%s,0.42310,-6.0,-6.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '30,0.42310,%s,%s,0.42310,-6.4,-6.4\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '40,0.42310,%s,%s,0.42310,-6.8,-6.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '50,0.42310,%s,%s,0.42310,-7.2,-7.2\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '60,0.42310,%s,%s,0.42310,-7.6,-7.6\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '70,0.42310,%s,%s,0.42310,-8.0,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf 'synthetic force output; not CFD evidence\n' > forces.dat
-printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
+printf '"TIME_ITER","INNER_ITER","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\\n' > history.csv
+printf '10,5,0.42310,%s,%s,0.42310,-8.2,-1\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '11,5,0.42310,%s,%s,0.42310,-8.3,-2\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '12,5,0.42310,%s,%s,0.42310,-8.4,-6.0\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '13,5,0.42310,%s,%s,0.42310,-8.5,-6.4\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '14,5,0.42310,%s,%s,0.42310,-8.6,-6.8\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '15,5,0.42310,%s,%s,0.42310,-8.7,-7.2\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '16,5,0.42310,%s,%s,0.42310,-8.8,-7.6\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '17,5,0.42310,%s,%s,0.42310,-8.9,-8.0\\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf 'synthetic force output; not CFD evidence\\n' > forces.dat
+printf '%s\\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
@@ -814,7 +829,8 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
         let history_schema = Su2HistorySchema {
             history_relative_path: "history.csv".to_owned(),
             expected_header: vec![
-                "Iteration".to_owned(),
+                "TIME_ITER".to_owned(),
+                "INNER_ITER".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
                 "TAVG_DRAG".to_owned(),
@@ -822,8 +838,12 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
                 "RMS_DENSITY".to_owned(),
                 "RMS_MOMENTUM-X".to_owned(),
             ],
-            iteration_column: "Iteration".to_owned(),
+            iteration_column: "TIME_ITER".to_owned(),
             numeric_fields: vec![
+                Su2HistoryField {
+                    column: "INNER_ITER".to_owned(),
+                    unit: "iterations".to_owned(),
+                },
                 Su2HistoryField {
                     column: "CL".to_owned(),
                     unit: "dimensionless".to_owned(),
@@ -854,15 +874,23 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
         let criteria = ConvergenceCriteria {
             residuals: ["RMS_DENSITY", "RMS_MOMENTUM-X"]
                 .into_iter()
-                .map(|column| ResidualCriterion {
-                    column: column.to_owned(),
-                    unit: "log10(residual)".to_owned(),
-                    terminal_window_rows: 6,
-                    acceptance: ResidualAcceptance::Log10 {
-                        maximum_final_log10_residual: -8.0,
-                        minimum_log10_reduction: 6.0,
-                        maximum_terminal_span_log10: 2.0,
-                    },
+                .map(|column| {
+                    let (maximum_final_log10_residual, minimum_log10_reduction, maximum_terminal_span_log10) =
+                        if column == "RMS_DENSITY" {
+                            (-8.0, 0.5, 1.0)
+                        } else {
+                            (-8.0, 6.0, 2.0)
+                        };
+                    ResidualCriterion {
+                        column: column.to_owned(),
+                        unit: "log10(residual)".to_owned(),
+                        terminal_window_rows: 6,
+                        acceptance: ResidualAcceptance::Log10 {
+                            maximum_final_log10_residual,
+                            minimum_log10_reduction,
+                            maximum_terminal_span_log10,
+                        },
+                    }
                 })
                 .collect(),
             monitors: ["CL", "CD", "TAVG_DRAG", "TAVG_LIFT"]
@@ -914,7 +942,8 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
                 execute_external_solver(&dry_run_request).expect("execute fake SU2 dry run");
             assert!(dry_run_receipt.is_process_success());
             let required_history_fields = vec![
-                "Iteration".to_owned(),
+                "TIME_ITER".to_owned(),
+                "INNER_ITER".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
                 "TAVG_DRAG".to_owned(),
