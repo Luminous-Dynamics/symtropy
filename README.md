@@ -1,41 +1,48 @@
 # Symtropy
 
-State-coupled N-dimensional physics engine. Any metric you define modulates forces, friction, and energy budgets in real-time through a thermodynamically-closed system.
+**A Rust-based N-dimensional mathematics and rigid-body physics engine for interactive simulation, research, and embodied systems.**
 
-Ships with Phi (integrated information) as the default metric and 68 research experiments. But the coupling framework is generic — plug in health, wealth, trust, skill, or any [0,1] value per body.
+Symtropy provides const-generic geometry and physics primitives, collision detection, constraints, raycasting, deterministic replay, and state-coupling hooks. A caller-defined metric can modulate selected dynamics such as forces, friction, and energy budgets.
 
-**827 tests | 5 shapes | 5 joints | CCD | raycasting | warm-starting | island sleeping | 11 crates on crates.io**
+The coupling interface is generic: applications can supply normalized metrics such as health, trust, skill, or other domain-specific state. The repository also contains optional Phi/IIT-inspired research extensions; these are experimental research mechanisms, not established physical laws or validated measurements of consciousness.
 
-## The Symtropy Adoption Story
+**Repository-reported capabilities:** 827 tests, 5 collision-shape families, 5 joint types, continuous collision detection, raycasting, warm-starting, island sleeping, and 11 crates published on crates.io. Treat these as project-maintained figures; consult current CI, release metadata, and benchmark conditions before using them in external comparisons.
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
+## What Symtropy is useful for
 
-Why choose Symtropy over traditional solutions?
+- N-dimensional geometry and rigid-body simulation.
+- Interactive applications and Bevy-based simulation prototypes.
+- Deterministic replay and reproducible physics experiments.
+- Research into coupling application-defined state metrics to physical simulation.
+- Embodied-agent and robotics experiments, subject to platform-specific validation.
 
-| Traditional Need | The Symtropy Stack |
-|---|---|
-| AI (behavior trees) | **Symthaea** cognitive loop — ethics-aware, Phi-gated, Free Energy Principle |
-| Player accounts | **Mycelix** DIDs (W3C standard, ZKP selective disclosure) |
-| Cloud save | **Mycelix** personal cluster vault |
-| In-game economy | **TEND** time-exchange with demurrage |
-| UGC attribution | **Mycelix-craft** talent marketplace |
-| Governance/voting | **Mycelix** DHT-backed proposals |
+Symtropy is a simulation substrate, not a complete industrial digital-twin, CAD, finite-element, or engineering-assurance suite. Such applications require additional domain models, validation datasets, numerical analysis, uncertainty treatment, and independent engineering review.
 
-### 1. The Permissive Core (Track B)
-For game developers and industrial simulation, Symtropy provides a high-performance, N-dimensional rigid body engine on Bevy. Use it for standard games where you need deterministic replay, 4D physics, or custom per-body metrics (health, trust, wealth) without any copyleft obligations.
+## Adoption paths
+
+### 1. Permissively licensed physics core
+
+For developers who want the core math and rigid-body functionality in games, interactive applications, and simulation prototypes.
+
 - **Crates:** `symtropy-core`, `symtropy-physics`, `symtropy-bevy-core`.
 - **License:** Apache-2.0 OR MIT.
 
-### 2. The Research Hero (Track A)
-For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy integrates Φ (integrated information) as a first-class physical law. This enables simulations where an agent's internal complexity (consciousness) meaningfully modulates its motor authority and energy efficiency.
-- **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
-- **License:** GNU AGPL v3.
+### 2. Research extensions
 
-### 3. The Civilizational Stack (Symthaea + Mycelix)
-When combined with **Symthaea** (cognitive loop) and **Mycelix** (decentralized governance), Symtropy becomes a test-bed for autonomous societies.
-- **Cognition:** FEP-driven agents (`symthaea-fep`) with multi-theory consciousness.
-- **Governance:** Real-time peer-to-peer voting and resource allocation via Holochain DHT.
-- **Metabolism:** Digital twins of physical bootstrap hardware (plastic shredders, solar grids).
+For research in artificial life, embodied intelligence, dynamical systems, and consciousness-related computational hypotheses. These extensions allow selected metrics and experimental coupling mechanisms to be investigated in simulation. They do not establish that consciousness is a physical field or that Phi is a validated safety or control signal.
+
+- **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
+- **License:** AGPL-3.0-or-later.
+
+### 3. Luminous Dynamics ecosystem experiments
+
+Symtropy can be used alongside other Luminous Dynamics projects in research prototypes:
+
+- **Symthaea:** experimental cognitive architectures and active-inference agents.
+- **Mycelix:** decentralized identity and coordination components.
+- **Sol Atlas:** spatial visualization and scenario exploration.
+
+These are integration directions and experimental compositions, not a single turnkey product. Check each project's README for the current implementation and maturity boundary.
 
 ## Will NOT Do (Scope Boundaries)
 To maintain focus on our core differentiators (4D physics, consciousness coupling, decentralized governance), we explicitly scope out the following:
