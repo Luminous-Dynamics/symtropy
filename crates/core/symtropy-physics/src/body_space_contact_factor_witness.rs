@@ -716,6 +716,12 @@ mod tests {
                     + body_velocity_derivative[axis]
             });
 
+        // The impulse law and body balance are affine in epsilon. We prove
+        // the quantitative cone margin at epsilon=0 (the nominal p0) and at
+        // epsilon=1/100 below. Concavity in epsilon then covers the full
+        // interval; concavity in alpha reduces each fixed-epsilon cube to its
+        // 64 vertices. This certifies [0,1/100] x [-1,1]^6, not just one slice.
+        let mut minimum_perturbed_shifted_soc_margins = [i128::MAX; 4];
         for impulse_derivative in &derivative_allocations {
             let perturbed_impulse_numerators: [i128; 12] =
                 std::array::from_fn(|index| {
@@ -765,8 +771,23 @@ mod tests {
                     tangent_1 * tangent_1 + tangent_2 * tangent_2 < normal * normal,
                     "the perturbed impulse must remain strictly inside the local Coulomb disk"
                 );
+
+                // With denominator 100, this is the exact squared predicate
+                // for physical SOC slack n-49.9 > ||t||:
+                // (100*n - 4990)^2 > (100*t1)^2 + (100*t2)^2.
+                let shifted_normal = normal - 4_990;
+                assert!(shifted_normal > 0);
+                let shifted_soc_margin =
+                    shifted_normal * shifted_normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
+                assert!(
+                    shifted_soc_margin > 0,
+                    "the perturbation fibre must retain a uniform SOC slack above 49.9"
+                );
+                minimum_perturbed_shifted_soc_margins[contact] =
+                    minimum_perturbed_shifted_soc_margins[contact].min(shifted_soc_margin);
             }
         }
+        assert_eq!(minimum_perturbed_shifted_soc_margins, [38, 55, 95, 76]);
     }
 
     #[test]
