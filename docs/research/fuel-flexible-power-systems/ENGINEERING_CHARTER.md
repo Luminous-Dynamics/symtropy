@@ -165,7 +165,7 @@ Report the measurement boundary, test procedure, fuel properties, ambient condit
 |---|---|---|
 | Brake thermal efficiency | Brake work / fuel LHV input; gross/net convention declared | Match the same-class fuel-specific reference before claiming a viable shared core |
 | Net electrical efficiency | Net AC output / fuel LHV input, including auxiliaries | Match or exceed the same-class reference at weighted operating points |
-| Fuel Flexibility Efficiency Retention (FFER) | Shared-architecture efficiency / optimized fuel-specific reference, at matched points | Target ≥0.97 on a weighted steady-state map; report every point and uncertainty |
+| Fuel Flexibility Efficiency Retention (FFER) | Shared-architecture efficiency / optimized fuel-specific reference, at matched points | Stage the internal target: ≥0.90 feasibility, ≥0.95 strong platform target, ≥0.97 stretch; report every point, weighting basis and uncertainty |
 | Transient performance | Load acceptance, settling time, frequency/voltage excursions, smoke/knock/combustion stability | Meet generator/OEM power-quality and application requirements |
 | Fuel-quality robustness | Performance and fault response across characterized fuel-property distributions | No unsafe state; bounded derating and detectable rejection outside validated envelope |
 | Regulated emissions | NOx, PM/PN, CO, THC/CH4, NH3 slip and N2O where relevant | Meet the target market's applicable limits with measurement uncertainty included |
@@ -179,10 +179,13 @@ These are **proposed programme gates**, not published industry standards or achi
 
 ### 7.3 Test procedures and duty cycles
 
-- Use ISO 8178 methods/cycles for applicable non-road and stationary reciprocating-engine emissions work.
-- Use the applicable heavy-duty on-road certification procedures and transient/steady-state cycles (e.g. WHTC/WHSC where required by the target jurisdiction).
-- For marine engines, use the NOx Technical Code 2008 and applicable MARPOL Annex VI requirements, including the correct Tier / ECA scope.
+- For complete AC generator-set performance and test methods, evaluate ISO 8528-5:2025 and ISO 8528-6:2023; ISO 8528-1:2018 remains published but ISO/DIS 8528-1 is under revision. Keep the exact edition and application classification in the test record.
+- For applicable stationary/non-road engine emissions, evaluate ISO 8178-1:2020 test-bed methods and ISO 8178-2:2021 field methods. ISO 8178-1 is under revision; check the current edition before testing.
+- Use the applicable heavy-duty on-road certification procedures and transient/steady-state cycles separately; a generator-set test does not qualify a road engine or vehicle.
+- For marine engines, use the NOx Technical Code 2008 and applicable MARPOL Annex VI requirements, including the correct Tier / ECA scope. Regulation 13 applies to installed marine diesel engines over 130 kW subject to scope and exceptions.
 - For ships, report EEXI/CII-relevant operational metrics and IMO well-to-wake lifecycle intensity; engine g/kWh alone is insufficient.
+
+See [GENERATOR_BENCHMARK_PROTOCOL.md](GENERATOR_BENCHMARK_PROTOCOL.md) for the detailed standards register, synthetic load profiles, measurement boundary, test matrix, uncertainty and FFER calculation.
 - Add real duty-cycle trials: South African high ambient temperature, altitude, dust, fuel-quality variance, remote maintenance and route/load profiles; port/shore-power availability for vessels.
 
 The team must verify the currently applicable local certification rules before selecting hardware or claiming a market-ready configuration.
@@ -288,7 +291,11 @@ A queued run is not a pass. A simulation is not an experiment. A vendor claim is
 - Wärtsilä, marine methanol engines: https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines
 - Everllence, ammonia engine factory acceptance test (20 April 2026): https://www.everllence.com/company/press-releases/details/2026/04/20/ammonia-engine-passes--huge-milestone--en-route-to-commercial-debut
 - U.S. DOE Alternative Fuels Data Center, fuel properties comparison: https://afdc.energy.gov/fuels/properties
-- ISO 8178-1, exhaust emission measurement for reciprocating internal combustion engines: https://www.iso.org/obp/ui?_escaped_fragment_=iso%3Astd%3Aiso%3A8178%3A-1%3Aed-4%3Av1%3Aen
+- ISO 8528-1:2018 and revision status: https://www.iso.org/standard/68539.html
+- ISO 8528-5:2025 generator sets: https://www.iso.org/standard/85960.html
+- ISO 8528-6:2023 set-level test methods: https://committee.iso.org/cms/live/live/en/sites/isoorg/contents/data/standard/07/10/71010.html?browse=ics
+- ISO 8178-1:2020 test-bed emissions measurement: https://www.iso.org/standard/79330.html
+- ISO 8178-2:2021 field emissions measurement: https://www.iso.org/standard/75546.html
 - IMO, NOx Regulation 13 and marine engine certification: https://www.imo.org/en/ourwork/environment/pages/nitrogen-oxides-%28nox%29-%E2%80%93-regulation-13.aspx
 - IMO, lifecycle GHG intensity guidelines for marine fuels: https://www.imo.org/en/ourwork/environment/pages/lifecycle-ghg---carbon-intensity-guidelines.aspx
 - IMO, EEXI/CII framework: https://www.imo.org/en/mediacentre/hottopics/pages/eexi-cii-faq.aspx
