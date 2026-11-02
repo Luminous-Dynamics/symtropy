@@ -109,6 +109,19 @@ fn verify_robust_descent(
         .all(|gradient| gradient_box_support_upper(gradient, direction) <= required_upper)
 }
 
+fn direction_l1_norm(direction: &RationalVector) -> BigRational {
+    direction
+        .iter()
+        .fold(rational(0), |sum, value| {
+            let magnitude = if value < &rational(0) {
+                -value.clone()
+            } else {
+                value.clone()
+            };
+            sum + magnitude
+        })
+}
+
 fn candidate_for_direction(
     branches: &[GradientBox],
     direction: RationalVector,
@@ -142,9 +155,12 @@ fn search_grid_recursive(
             .try_into()
             .expect("the grid recursion emits exactly six coordinates");
         if let Some(candidate) = candidate_for_direction(branches, direction) {
-            let improves = best
-                .as_ref()
-                .is_none_or(|previous| candidate.margin > previous.margin);
+            let improves = best.as_ref().is_none_or(|previous| {
+                candidate.margin > previous.margin
+                    || (candidate.margin == previous.margin
+                        && direction_l1_norm(&candidate.direction)
+                            < direction_l1_norm(&previous.direction))
+            });
             if improves {
                 *best = Some(candidate);
             }
@@ -185,6 +201,36 @@ fn search_rational_grid(
         &mut best,
     );
     best
+}
+
+/// Exact dual upper bound on the max-min descent margin for a finite set
+/// of point gradients: ||sum_i lambda_i g_i||_1, with lambda in the simplex.
+fn convex_combination_l1_upper_bound(
+    gradients: &[RationalVector],
+    weights: &[BigRational],
+) -> Option<BigRational> {
+    if gradients.is_empty() || gradients.len() != weights.len() {
+        return None;
+    }
+    let zero = rational(0);
+    let one = rational(1);
+    if weights.iter().any(|weight| weight < &zero)
+        || weights.iter().fold(zero.clone(), |sum, weight| sum + weight) != one
+    {
+        return None;
+    }
+
+    let mut bound = zero.clone();
+    for coordinate in 0..INPUT_DIMENSION {
+        let value = gradients
+            .iter()
+            .zip(weights.iter())
+            .fold(zero.clone(), |sum, (gradient, weight)| {
+                sum + &gradient[coordinate] * weight
+            });
+        bound += if value < zero { -value } else { value };
+    }
+    Some(bound)
 }
 
 /// Verify a Farkas/Gordan witness that zero is in the convex hull of a complete
@@ -249,12 +295,12 @@ mod tests {
             &rational_fraction(1, 100)
         ));
 
-        let candidate = search_rational_grid(&branches, 1)
-            .expect("the exact six-dimensional grid contains a common descent direction");
+        let candidate = search_rational_grid(&branches, 3)
+            .expect("the rational grid contains a common descent direction");
         assert_eq!(
             candidate.direction,
             [
-                rational(-1),
+                rational_fraction(-1, 3),
                 rational(-1),
                 rational(0),
                 rational(0),
@@ -262,11 +308,24 @@ mod tests {
                 rational(0)
             ]
         );
-        assert_eq!(candidate.margin, rational(1));
+        assert_eq!(candidate.margin, rational_fraction(7, 3));
         assert_eq!(
             candidate.branch_upper_bounds,
-            vec![rational(-9), rational(-1)]
+            vec![rational_fraction(-7, 3), rational_fraction(-7, 3)]
         );
+
+        // A matching exact dual convex combination proves the margin is
+        // globally optimal for this complete two-gradient point set.
+        let point_gradients = vec![
+            [rational(10), rational(-1), rational(0), rational(0), rational(0), rational(0)],
+            [rational(-2), rational(3), rational(0), rational(0), rational(0), rational(0)],
+        ];
+        let dual_bound = convex_combination_l1_upper_bound(
+            &point_gradients,
+            &[rational_fraction(1, 6), rational_fraction(5, 6)],
+        )
+        .expect("the dual weights form an exact simplex point");
+        assert_eq!(dual_bound, candidate.margin);
         assert!(verify_robust_descent(
             &branches,
             &candidate.direction,
