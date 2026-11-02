@@ -272,11 +272,7 @@ fn valid_sha256_reference(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn push_optional_digest(
-    value: &Option<String>,
-    reason: ReasonCode,
-    reasons: &mut Vec<ReasonCode>,
-) {
+fn push_optional_digest(value: &Option<String>, reason: ReasonCode, reasons: &mut Vec<ReasonCode>) {
     if let Some(digest) = value {
         if !valid_sha256_reference(digest) {
             reasons.push(reason);
@@ -306,9 +302,7 @@ fn observation_age_is_valid(sample_tick: u64, frame_tick: u64, maximum_age: u64)
 ///
 /// This checks digest-reference syntax only. It does not fetch, hash or authenticate source
 /// artifacts; a qualified provenance authority must do that independently.
-pub fn validate_model_descriptor(
-    descriptor: &ModelDescriptor,
-) -> Result<(), ValidationFailure> {
+pub fn validate_model_descriptor(descriptor: &ModelDescriptor) -> Result<(), ValidationFailure> {
     let mut reasons = Vec::new();
 
     if descriptor.schema_version != MODEL_DESCRIPTOR_SCHEMA_VERSION {
@@ -394,10 +388,7 @@ pub fn validate_model_descriptor(
         } else if !valid_identifier(&spec.key.instance_id) {
             reasons.push(ReasonCode::InvalidChannelInstanceId);
         }
-        if !spec.minimum.is_finite()
-            || !spec.maximum.is_finite()
-            || spec.minimum >= spec.maximum
-        {
+        if !spec.minimum.is_finite() || !spec.maximum.is_finite() || spec.minimum >= spec.maximum {
             reasons.push(ReasonCode::InvalidChannelRange);
         }
         if descriptor.channels[..index]
@@ -414,9 +405,7 @@ pub fn validate_model_descriptor(
         } else if !valid_identifier(&spec.effector_id) {
             reasons.push(ReasonCode::InvalidEffectorId);
         }
-        if spec.maximum_activation_ppm == 0
-            || spec.maximum_activation_ppm > MAX_ACTIVATION_PPM
-        {
+        if spec.maximum_activation_ppm == 0 || spec.maximum_activation_ppm > MAX_ACTIVATION_PPM {
             reasons.push(ReasonCode::InvalidEffectorActivationLimit);
         }
         if descriptor.effectors[..index]
@@ -784,10 +773,7 @@ mod tests {
 
     fn body_effectors() -> BodyEffectorSet {
         BodyEffectorSet {
-            supported_effector_ids: vec![
-                "muscle.left".to_string(),
-                "muscle.right".to_string(),
-            ],
+            supported_effector_ids: vec!["muscle.left".to_string(), "muscle.right".to_string()],
         }
     }
 
@@ -897,8 +883,7 @@ mod tests {
     #[test]
     fn stale_body_sensor_is_rejected() {
         let mut input = frame();
-        if let ObservationOrigin::BodySensor { sample_tick, .. } =
-            &mut input.observations[1].origin
+        if let ObservationOrigin::BodySensor { sample_tick, .. } = &mut input.observations[1].origin
         {
             *sample_tick = 1;
         }
@@ -970,8 +955,10 @@ mod tests {
 
     #[test]
     fn valid_activation_proposal_is_admitted_for_body_arbitration() {
-        assert!(validate_motor_proposal(&descriptor(), &frame(), &proposal(), &body_effectors())
-            .is_ok());
+        assert!(
+            validate_motor_proposal(&descriptor(), &frame(), &proposal(), &body_effectors())
+                .is_ok()
+        );
     }
 
     #[test]
