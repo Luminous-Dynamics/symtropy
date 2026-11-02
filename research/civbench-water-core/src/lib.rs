@@ -236,6 +236,41 @@ impl WaterStorage {
         self.stored_l = stock_after_l;
         Ok(report)
     }
+
+    /// Evaluate both declared event-order profiles against the same starting state.
+    ///
+    /// This is a sensitivity diagnostic, not a choice of which chronology is
+    /// physically correct. The original storage is not mutated. A caller should
+    /// use the comparison to expose chronology-dependent results when the
+    /// modeled physical boundary is not yet qualified.
+    pub fn compare_event_orders(
+        &self,
+        inflow_l: u64,
+        demand: WaterDemand,
+        priority: AllocationPriority,
+    ) -> Result<WaterEventOrderComparison, WaterError> {
+        let mut storage_before_demand = *self;
+        let mut demand_before_residual_storage = *self;
+
+        let storage_before_demand_report = storage_before_demand.step_with_event_order(
+            inflow_l,
+            demand,
+            priority,
+            WaterEventOrder::StorageBeforeDemandV1,
+        )?;
+        let demand_before_residual_storage_report = demand_before_residual_storage
+            .step_with_event_order(
+                inflow_l,
+                demand,
+                priority,
+                WaterEventOrder::DemandBeforeResidualStorageV1,
+            )?;
+
+        Ok(WaterEventOrderComparison {
+            storage_before_demand: storage_before_demand_report,
+            demand_before_residual_storage: demand_before_residual_storage_report,
+        })
+    }
 }
 
 /// Auditable result of one water allocation step.
@@ -265,6 +300,63 @@ pub struct WaterStepReport {
     pub priority: AllocationPriority,
     /// Versioned physical/accounting event chronology used for this tick.
     pub event_order: WaterEventOrder,
+}
+
+/// Side-by-side reports for the two supported event-order profiles.
+///
+/// Signed deltas are always computed as
+/// demand-before-residual-storage minus storage-before-demand. They are signed
+/// rather than saturating so a future semantic change cannot silently hide a
+/// negative delta.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WaterEventOrderComparison {
+    /// Report using storage-before-demand chronology.
+    pub storage_before_demand: WaterStepReport,
+    /// Report using demand-before-residual-storage chronology.
+    pub demand_before_residual_storage: WaterStepReport,
+}
+
+impl WaterEventOrderComparison {
+    /// Household delivery delta in litres (demand-before minus storage-before).
+    pub fn household_delivery_delta_l(&self) -> i128 {
+        i128::from(self.demand_before_residual_storage.household_delivered_l)
+            - i128::from(self.storage_before_demand.household_delivered_l)
+    }
+
+    /// Agriculture delivery delta in litres (demand-before minus storage-before).
+    pub fn agriculture_delivery_delta_l(&self) -> i128 {
+        i128::from(self.demand_before_residual_storage.agriculture_delivered_l)
+            - i128::from(self.storage_before_demand.agriculture_delivered_l)
+    }
+
+    /// Total delivery delta in litres (demand-before minus storage-before).
+    pub fn total_delivery_delta_l(&self) -> i128 {
+        self.household_delivery_delta_l() + self.agriculture_delivery_delta_l()
+    }
+
+    /// Spill delta in litres (demand-before minus storage-before).
+    pub fn spill_delta_l(&self) -> i128 {
+        i128::from(self.demand_before_residual_storage.spill_l)
+            - i128::from(self.storage_before_demand.spill_l)
+    }
+
+    /// Ending-stock delta in litres (demand-before minus storage-before).
+    pub fn ending_stock_delta_l(&self) -> i128 {
+        i128::from(self.demand_before_residual_storage.stock_after_l)
+            - i128::from(self.storage_before_demand.stock_after_l)
+    }
+
+    /// Whether delivered or unmet demand differs between the two profiles.
+    pub fn service_outcomes_differ(&self) -> bool {
+        self.storage_before_demand.household_delivered_l
+            != self.demand_before_residual_storage.household_delivered_l
+            || self.storage_before_demand.agriculture_delivered_l
+                != self.demand_before_residual_storage.agriculture_delivered_l
+            || self.storage_before_demand.household_unmet_l
+                != self.demand_before_residual_storage.household_unmet_l
+            || self.storage_before_demand.agriculture_unmet_l
+                != self.demand_before_residual_storage.agriculture_unmet_l
+    }
 }
 
 impl WaterStepReport {
@@ -484,6 +576,108 @@ mod tests {
             assert_eq!(a, b);
             assert_eq!(first, second);
         }
+    }
+
+    #[test]
+    fn event_order_comparison_exposes_delta_without_mutating_starting_storage() {
+        let storage = WaterStorage::new(100, 80).unwrap();
+        let comparison = storage
+            .compare_event_orders(
+                50,
+                WaterDemand::new(120, 0),
+                AllocationPriority::HouseholdFirst,
+            )
+            .unwrap();
+
+        assert_eq!(
+            comparison.storage_before_demand.event_order,
+            WaterEventOrder::StorageBeforeDemandV1
+        );
+        assert_eq!(
+            comparison.demand_before_residual_storage.event_order,
+            WaterEventOrder::DemandBeforeResidualStorageV1
+        );
+        assert_eq!(comparison.household_delivery_delta_l(), 20);
+        assert_eq!(comparison.agriculture_delivery_delta_l(), 0);
+        assert_eq!(comparison.total_delivery_delta_l(), 20);
+        assert_eq!(comparison.spill_delta_l(), -30);
+        assert_eq!(comparison.ending_stock_delta_l(), 10);
+        assert!(comparison.service_outcomes_differ());
+        assert_eq!(storage.stored_l(), 80);
+    }
+
+    #[test]
+    fn bounded_exhaustive_event_order_comparison_is_componentwise_monotone() {
+        for capacity in 1..=8 {
+            for initial in 0..=capacity {
+                for inflow in 0..=8 {
+                    for household in 0..=8 {
+                        for agriculture in 0..=8 {
+                            for priority in [
+                                AllocationPriority::HouseholdFirst,
+                                AllocationPriority::AgricultureFirst,
+                            ] {
+                                let storage = WaterStorage::new(capacity, initial).unwrap();
+                                let comparison = storage
+                                    .compare_event_orders(
+                                        inflow,
+                                        WaterDemand::new(household, agriculture),
+                                        priority,
+                                    )
+                                    .unwrap();
+
+                                assert!(
+                                    comparison.household_delivery_delta_l() >= 0,
+                                    "household delta must be nonnegative: {comparison:?}"
+                                );
+                                assert!(
+                                    comparison.agriculture_delivery_delta_l() >= 0,
+                                    "agriculture delta must be nonnegative: {comparison:?}"
+                                );
+                                assert!(comparison.storage_before_demand.conservation_holds());
+                                assert!(
+                                    comparison
+                                        .demand_before_residual_storage
+                                        .conservation_holds()
+                                );
+                                assert!(comparison.storage_before_demand.demand_accounting_holds());
+                                assert!(
+                                    comparison
+                                        .demand_before_residual_storage
+                                        .demand_accounting_holds()
+                                );
+                                assert!(
+                                    comparison.storage_before_demand.stock_after_l <= capacity
+                                );
+                                assert!(
+                                    comparison
+                                        .demand_before_residual_storage
+                                        .stock_after_l
+                                        <= capacity
+                                );
+
+                                if initial + inflow <= capacity {
+                                    assert_eq!(comparison.total_delivery_delta_l(), 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn event_order_comparison_overflow_leaves_original_storage_unchanged() {
+        let storage = WaterStorage::new(u64::MAX, 1).unwrap();
+        let result = storage.compare_event_orders(
+            u64::MAX,
+            WaterDemand::new(0, 0),
+            AllocationPriority::HouseholdFirst,
+        );
+
+        assert_eq!(result, Err(WaterError::AvailableWaterOverflow));
+        assert_eq!(storage.stored_l(), 1);
     }
 
     #[test]
