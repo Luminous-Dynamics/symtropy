@@ -530,6 +530,25 @@ pub fn audit_su2_boundary_markers(
     Ok(report)
 }
 
+/// Recompute a saved boundary audit from its original dry-run receipt and exact schema.
+pub fn replay_su2_boundary_audit(
+    run_directory: &Path,
+    report: &Su2BoundaryAuditReport,
+) -> Result<(), String> {
+    verify_su2_boundary_audit(report)?;
+    let recomputed = audit_su2_boundary_markers(
+        run_directory,
+        &report.configuration_path,
+        &report.mesh_path,
+        &report.boundary_option_specs,
+        &report.non_boundary_marker_options,
+    )?;
+    if recomputed != *report {
+        return Err("replayed SU2 boundary audit differs from supplied report".to_owned());
+    }
+    Ok(())
+}
+
 pub fn verify_su2_boundary_audit(report: &Su2BoundaryAuditReport) -> Result<(), String> {
     if report.schema != SU2_BOUNDARY_AUDIT_SCHEMA
         || report.status != "every_mesh_marker_mapped_once_and_config_marker_references_resolve"
@@ -537,16 +556,35 @@ pub fn verify_su2_boundary_audit(report: &Su2BoundaryAuditReport) -> Result<(), 
     {
         return Err("boundary audit schema/status/evidence ceiling is invalid".to_owned());
     }
+    validate_specs(
+        &report.boundary_option_specs,
+        &report.non_boundary_marker_options,
+    )?;
     let mesh = report
         .mesh_markers
         .iter()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
+    let spec_map = report
+        .boundary_option_specs
+        .iter()
+        .map(|spec| (spec.option_name.as_str(), spec))
+        .collect::<BTreeMap<_, _>>();
     let assigned = report
         .assignments
         .iter()
-        .map(|a| a.marker.as_str())
-        .collect::<BTreeSet<_>>();
+        .map(|assignment| {
+            let spec = spec_map
+                .get(assignment.config_option.as_str())
+                .ok_or_else(|| format!("assignment references undeclared boundary option {}", assignment.config_option))?;
+            if !spec.marker_positions.contains(&assignment.marker_position)
+                || assignment.record_index >= usize::MAX / spec.record_width.max(1)
+            {
+                return Err(format!("assignment for marker {} has invalid tuple location", assignment.marker));
+            }
+            Ok(assignment.marker.as_str())
+        })
+        .collect::<Result<BTreeSet<_>, String>>()?;
     if mesh.len() != report.mesh_markers.len()
         || assigned.len() != report.assignments.len()
         || mesh != assigned
