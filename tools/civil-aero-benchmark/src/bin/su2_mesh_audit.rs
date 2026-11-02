@@ -22,8 +22,7 @@ fn run() -> Result<(), String> {
     if arguments.next().is_some() {
         return Err("usage: su2_mesh_audit <mesh.su2>".to_owned());
     }
-    let bytes = fs::read(&path)
-        .map_err(|error| format!("cannot read SU2 mesh {path}: {error}"))?;
+    let bytes = fs::read(&path).map_err(|error| format!("cannot read SU2 mesh {path}: {error}"))?;
     let summary = inspect_su2_mesh(&bytes)?;
     let element_types = summary
         .volume_element_type_counts
