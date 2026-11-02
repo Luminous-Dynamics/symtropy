@@ -1,0 +1,393 @@
+{
+  "suite_id": "MINE-ADAPTIVE-CAUSALITY-001",
+  "suite_version": "0.1.0",
+  "evidence_class": "authored_synthetic_trace_contract",
+  "claim_ceiling": "Trace admissibility and non-anticipativity semantics on public synthetic fixtures only. No claim about real mine value, geological prediction, reserve quality, safety, or industrial performance.",
+  "scenarios": [
+    {
+      "scenario_id": "QUALIFIED_RESULT_DELIVERED_BEFORE_DECISION",
+      "expected_disposition": "pass",
+      "expected_reason_codes": [],
+      "events": [
+        {
+          "event_id": "E_INITIAL_ASSAY",
+          "sample_lot_id": "LOT_A",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_INITIAL",
+          "qc_pass": true,
+          "result_code": "GRADE_MEDIUM"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 0,
+          "action": "hold",
+          "used_event_ids": [
+            "E_INITIAL_ASSAY"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "FUTURE_RESULT_LEAK",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "event_used_before_delivery"
+      ],
+      "events": [
+        {
+          "event_id": "E_FUTURE_ASSAY",
+          "sample_lot_id": "LOT_B",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 3,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_FUTURE",
+          "qc_pass": true,
+          "result_code": "GRADE_HIGH"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 2,
+          "action": "change_plan",
+          "used_event_ids": [
+            "E_FUTURE_ASSAY"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "COLLECTION_TIME_IS_NOT_DELIVERY_TIME",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "event_used_before_delivery"
+      ],
+      "events": [
+        {
+          "event_id": "E_LAB_PENDING",
+          "sample_lot_id": "LOT_C",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 4,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_LAB",
+          "qc_pass": true,
+          "result_code": "GRADE_HIGH"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 3,
+          "action": "blend_lots",
+          "used_event_ids": [
+            "E_LAB_PENDING"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "QC_FAILURE_BLOCKS_DECISION",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "event_not_qualified",
+        "event_qc_failed"
+      ],
+      "events": [
+        {
+          "event_id": "E_BAD_QC",
+          "sample_lot_id": "LOT_D",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 1,
+          "status": "rejected",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_BAD_QC",
+          "qc_pass": false,
+          "result_code": "QC_FAIL"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 2,
+          "action": "schedule_extraction",
+          "used_event_ids": [
+            "E_BAD_QC"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "MISSING_SOURCE_RECORD_BLOCKS_DECISION",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "event_source_missing"
+      ],
+      "events": [
+        {
+          "event_id": "E_NO_SOURCE",
+          "sample_lot_id": "LOT_E",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 1,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": null,
+          "qc_pass": true,
+          "result_code": "GRADE_HIGH"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 2,
+          "action": "change_plan",
+          "used_event_ids": [
+            "E_NO_SOURCE"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "NO_ADMISSIBLE_RESULT_MEANS_HOLD",
+      "expected_disposition": "pass",
+      "expected_reason_codes": [],
+      "events": [
+        {
+          "event_id": "E_STILL_PENDING",
+          "sample_lot_id": "LOT_F",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 5,
+          "status": "missing",
+          "visibility": "policy_visible",
+          "source_record_id": null,
+          "qc_pass": false,
+          "result_code": "NO_RESULT"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 2,
+          "action": "hold",
+          "used_event_ids": []
+        }
+      ]
+    },
+    {
+      "scenario_id": "EVALUATOR_ONLY_TRUTH_CANNOT_ENTER_POLICY",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "evaluator_only_event_used"
+      ],
+      "events": [
+        {
+          "event_id": "E_HIDDEN_TRUTH",
+          "sample_lot_id": "LOT_G",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "evaluator_only",
+          "source_record_id": "SRC_EVAL",
+          "qc_pass": true,
+          "result_code": "TRUE_GRADE"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 1,
+          "action": "change_plan",
+          "used_event_ids": [
+            "E_HIDDEN_TRUTH"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "COUNTERFACTUAL_HIGH_OUTCOME",
+      "expected_disposition": "pass",
+      "expected_reason_codes": [],
+      "counterfactual": {
+        "group_id": "VALID_FUTURE_FORK",
+        "fork_hour": 2,
+        "branch_id": "A"
+      },
+      "events": [
+        {
+          "event_id": "E_SHARED",
+          "sample_lot_id": "LOT_H",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_SHARED",
+          "qc_pass": true,
+          "result_code": "BASELINE"
+        },
+        {
+          "event_id": "E_FORK_RESULT",
+          "sample_lot_id": "LOT_H",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 2,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_FORK",
+          "qc_pass": true,
+          "result_code": "RECOVERY_HIGH"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 1,
+          "action": "hold",
+          "used_event_ids": [
+            "E_SHARED"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "COUNTERFACTUAL_LOW_OUTCOME",
+      "expected_disposition": "pass",
+      "expected_reason_codes": [],
+      "counterfactual": {
+        "group_id": "VALID_FUTURE_FORK",
+        "fork_hour": 2,
+        "branch_id": "B"
+      },
+      "events": [
+        {
+          "event_id": "E_SHARED",
+          "sample_lot_id": "LOT_H",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_SHARED",
+          "qc_pass": true,
+          "result_code": "BASELINE"
+        },
+        {
+          "event_id": "E_FORK_RESULT",
+          "sample_lot_id": "LOT_H",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 2,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_FORK",
+          "qc_pass": true,
+          "result_code": "RECOVERY_LOW"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 1,
+          "action": "hold",
+          "used_event_ids": [
+            "E_SHARED"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "COUNTERFACTUAL_EARLY_CHANGE_A",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "counterfactual_pre_fork_decision_mismatch"
+      ],
+      "counterfactual": {
+        "group_id": "INVALID_EARLY_FORK",
+        "fork_hour": 2,
+        "branch_id": "A"
+      },
+      "events": [
+        {
+          "event_id": "E_SHARED_2",
+          "sample_lot_id": "LOT_I",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_SHARED_2",
+          "qc_pass": true,
+          "result_code": "BASELINE"
+        },
+        {
+          "event_id": "E_FORK_2",
+          "sample_lot_id": "LOT_I",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 2,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_FORK_2",
+          "qc_pass": true,
+          "result_code": "RECOVERY_HIGH"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 1,
+          "action": "change_plan",
+          "used_event_ids": [
+            "E_SHARED_2"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario_id": "COUNTERFACTUAL_EARLY_CHANGE_B",
+      "expected_disposition": "reject",
+      "expected_reason_codes": [
+        "counterfactual_pre_fork_decision_mismatch"
+      ],
+      "counterfactual": {
+        "group_id": "INVALID_EARLY_FORK",
+        "fork_hour": 2,
+        "branch_id": "B"
+      },
+      "events": [
+        {
+          "event_id": "E_SHARED_2",
+          "sample_lot_id": "LOT_I",
+          "observed_at_hour": 0,
+          "delivered_at_hour": 0,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_SHARED_2",
+          "qc_pass": true,
+          "result_code": "BASELINE"
+        },
+        {
+          "event_id": "E_FORK_2",
+          "sample_lot_id": "LOT_I",
+          "observed_at_hour": 1,
+          "delivered_at_hour": 2,
+          "status": "qualified",
+          "visibility": "policy_visible",
+          "source_record_id": "SRC_FORK_2",
+          "qc_pass": true,
+          "result_code": "RECOVERY_LOW"
+        }
+      ],
+      "decisions": [
+        {
+          "decision_id": "D0",
+          "at_hour": 1,
+          "action": "hold",
+          "used_event_ids": [
+            "E_SHARED_2"
+          ]
+        }
+      ]
+    }
+  ]
+}
