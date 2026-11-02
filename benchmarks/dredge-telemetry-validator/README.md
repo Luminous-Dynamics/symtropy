@@ -14,6 +14,8 @@ cargo clippy --locked --manifest-path benchmarks/dredge-telemetry-validator/Carg
 - Models Hopper, Mechanical, Pipeline Standard/Small Business and Scow Monitoring/Ullage profile identities.
 - Profile sensor requirements are declarative. This crate intentionally does not claim to encode the exhaustive DQM sensor lists or certify DQM protocol conformance.
 - Preserves raw sensor observations, timestamps, units, calibration, position datum and quality.
+- Uses an independent spatial-fix field (latitude/longitude microdegrees, declared datum and uncertainty); position is not double-counted as a scalar sensor.
+- All time ticks and sensor ranges in the fixtures are synthetic, profile-specific values; they are not DQM contract values.
 - Distinguishes required sensors from optional fitted sensors. Optional density/velocity values are retained when supplied; missing optional values never become zero.
 - Treats scow bin-volume interpretation as unreliable for mounded or unevenly settled loads while retaining the raw ullage/volume observations.
 - Detects duplicate/replayed event identity, changed payload digest, sequence gaps, clock issues, stale calibration and profile/configuration mismatch.
