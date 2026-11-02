@@ -32,7 +32,7 @@ Every observation has an explicit origin class:
 
 ### 3. Probabilistic held-out scoring
 
-Each model prediction is joined by exact `sample_id`, not row position. Duplicate, missing, unexpected or wrong-model predictions fail closed.
+Each model prediction is joined by exact `sample_id`, not row position. Duplicate, missing, unexpected, wrong-model, wrong-metric or wrong-unit predictions fail closed.
 
 For a single declared scalar metric/unit per run, the scorecard reports:
 - RMSE;
