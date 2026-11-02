@@ -476,7 +476,8 @@ where
     }
 
     let mut statements = BTreeMap::<String, &ScientificEvidenceStatement>::new();
-    let mut statement_payloads = BTreeMap::<String, Vec<u8>>::new();
+    let mut signed_by_digest =
+        BTreeMap::<String, &SignedScientificEvidenceStatement>::new();
     for signed in &package.statements {
         validate_statement_structure(&signed.statement)?;
         if signed.signed_statement_bytes.is_empty()
@@ -531,7 +532,7 @@ where
                 "statement digest is duplicated in the package",
             ));
         }
-        statement_payloads.insert(statement_digest, canonical);
+        signed_by_digest.insert(statement_digest, signed);
     }
 
     validate_predecessor_graph(&statements)?;
@@ -576,26 +577,6 @@ where
             "offline package contains unreferenced artifact blobs",
         ));
     }
-
-    let signed_by_digest = package
-        .statements
-        .iter()
-        .map(|signed| {
-            let encoded = statement_payloads
-                .iter()
-                .find(|(_, payload)| **payload == signed.canonical_payload)
-                .map(|(digest, _)| digest.clone())
-                .ok_or_else(|| {
-                    fail(
-                        ScientificEvidenceStage::FinalConsistency,
-                        None,
-                        None,
-                        "canonical signed payload has no statement digest",
-                    )
-                })?;
-            Ok((encoded, signed))
-        })
-        .collect::<Result<BTreeMap<_, _>, ScientificEvidenceError>>()?;
 
     let mut verified_statements = Vec::with_capacity(package.statements.len());
     for (statement_digest, signed) in signed_by_digest {
@@ -692,7 +673,7 @@ where
 mod tests {
     use super::{
         EvidenceArtifactBlob, EvidenceArtifactReference, EvidenceArtifactRole,
-        EvidenceDigestProvider, EvidencePayloadEncoder, EvidencePackage,
+        EvidenceDigestProvider, EvidencePayloadEncoder, ScientificEvidencePackage,
         IssuerSignatureVerifier, ScientificEvidenceStatement,
         SignedScientificEvidenceStatement, TransparencyReceiptEnvelope,
         TransparencyReceiptVerifier, VerifiedIssuerIdentity,
@@ -865,7 +846,7 @@ mod tests {
         }
     }
 
-    fn package() -> EvidencePackage {
+    fn package() -> ScientificEvidencePackage {
         let blob = artifact(b"raw-result");
         let first = signed(statement("campaign-1", 100, &blob, Vec::new()));
         let first_payload = TestEncoder.encode_canonical_payload(&first.statement).unwrap();
