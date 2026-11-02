@@ -315,7 +315,8 @@ mod tests {
         )
         .expect("transformed transversal impact");
 
-        let state_velocity_to_length_ratio = time_scale / length_scale;
+        let saltation_lower_left_scale = 1.0 / time_scale;
+        let event_time_derivative_scale = time_scale / length_scale;
         close(
             transformed.saltation_matrix[0][0],
             base.saltation_matrix[0][0],
@@ -328,7 +329,7 @@ mod tests {
         );
         close(
             transformed.saltation_matrix[1][0],
-            state_velocity_to_length_ratio * base.saltation_matrix[1][0],
+            saltation_lower_left_scale * base.saltation_matrix[1][0],
             1.0e-14,
         );
         close(
@@ -338,8 +339,7 @@ mod tests {
         );
         close(
             transformed.event_time_derivative_wrt_height_s_per_m,
-            state_velocity_to_length_ratio
-                * base.event_time_derivative_wrt_height_s_per_m,
+            event_time_derivative_scale * base.event_time_derivative_wrt_height_s_per_m,
             1.0e-14,
         );
     }
