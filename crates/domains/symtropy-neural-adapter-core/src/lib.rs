@@ -273,10 +273,10 @@ fn valid_sha256_reference(value: &str) -> bool {
 }
 
 fn push_optional_digest(value: &Option<String>, reason: ReasonCode, reasons: &mut Vec<ReasonCode>) {
-    if let Some(digest) = value {
-        if !valid_sha256_reference(digest) {
-            reasons.push(reason);
-        }
+    if let Some(digest) = value
+        && !valid_sha256_reference(digest)
+    {
+        reasons.push(reason);
     }
 }
 
@@ -445,10 +445,10 @@ pub fn validate_observation_frame(
     if !valid_sha256_reference(&frame.body_state_sha256) {
         reasons.push(ReasonCode::MalformedBodyStateDigest);
     }
-    if let Some(digest) = &frame.physiology_state_sha256 {
-        if !valid_sha256_reference(digest) {
-            reasons.push(ReasonCode::MalformedFramePhysiologyDigest);
-        }
+    if let Some(digest) = &frame.physiology_state_sha256
+        && !valid_sha256_reference(digest)
+    {
+        reasons.push(ReasonCode::MalformedFramePhysiologyDigest);
     }
 
     for (index, observation) in frame.observations.iter().enumerate() {
