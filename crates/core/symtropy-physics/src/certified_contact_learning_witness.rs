@@ -29,12 +29,7 @@
 type Vector4 = [i128; 4];
 type Matrix4 = [[i128; 4]; 4];
 
-const H_NUM: Matrix4 = [
-    [10, 0, 1, 0],
-    [0, 10, 0, 1],
-    [1, 0, 10, 0],
-    [0, 1, 0, 10],
-];
+const H_NUM: Matrix4 = [[10, 0, 1, 0], [0, 10, 0, 1], [1, 0, 10, 0], [0, 1, 0, 10]];
 
 const C_NUM_OVER_100: Vector4 = [66, 88, 66, 88];
 const J_STAR_NUM_OVER_10: Vector4 = [-6, -8, -6, -8];
@@ -53,10 +48,7 @@ fn mat_vec(matrix: &Matrix4, vector: &Vector4) -> Vector4 {
 }
 
 fn dot(left: &Vector4, right: &Vector4) -> i128 {
-    left.iter()
-        .zip(right.iter())
-        .map(|(a, b)| a * b)
-        .sum()
+    left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
 }
 
 fn squared_norm(vector: &Vector4) -> i128 {
@@ -67,10 +59,7 @@ fn disk_squared(vector: &[i128; 2]) -> i128 {
     vector[0] * vector[0] + vector[1] * vector[1]
 }
 
-fn assert_product_of_disks_feasible(
-    vector_numerators: &[i128; 4],
-    denominator: i128,
-) {
+fn assert_product_of_disks_feasible(vector_numerators: &[i128; 4], denominator: i128) {
     let first = [vector_numerators[0], vector_numerators[1]];
     let second = [vector_numerators[2], vector_numerators[3]];
     let denominator_squared = denominator * denominator;
@@ -130,9 +119,8 @@ mod tests {
             std::array::from_fn(|index| h_j_hat_num[index] + C_NUM_OVER_100[index]);
         assert_eq!(residual_numerator, RESIDUAL_NUM_OVER_100);
 
-        let error_numerator: Vector4 = std::array::from_fn(|index| {
-            J_HAT_NUM_OVER_10[index] - J_STAR_NUM_OVER_10[index]
-        });
+        let error_numerator: Vector4 =
+            std::array::from_fn(|index| J_HAT_NUM_OVER_10[index] - J_STAR_NUM_OVER_10[index]);
         assert_eq!(error_numerator, [1, -1, -1, 1]);
 
         // Exact squared error: ||j_hat-j*||^2 = 4/100.
@@ -150,7 +138,9 @@ mod tests {
         let alpha_numerator = 9_i128;
         let alpha_denominator = 10_i128;
         assert_eq!(
-            residual_squared_numerator * alpha_denominator * alpha_denominator
+            residual_squared_numerator
+                * alpha_denominator
+                * alpha_denominator
                 * error_squared_denominator,
             error_squared_numerator
                 * residual_squared_denominator
@@ -184,40 +174,30 @@ mod tests {
         let fixed_point_residual_squared_denominator = 40_000_i128;
         let one_minus_rho_numerator = 17_i128;
         let one_minus_rho_denominator = 40_i128;
-        let fixed_point_bound_squared_numerator =
-            fixed_point_residual_squared_numerator
-                * one_minus_rho_denominator
-                * one_minus_rho_denominator;
-        let fixed_point_bound_squared_denominator =
-            fixed_point_residual_squared_denominator
-                * one_minus_rho_numerator
-                * one_minus_rho_numerator;
+        let fixed_point_bound_squared_numerator = fixed_point_residual_squared_numerator
+            * one_minus_rho_denominator
+            * one_minus_rho_denominator;
+        let fixed_point_bound_squared_denominator = fixed_point_residual_squared_denominator
+            * one_minus_rho_numerator
+            * one_minus_rho_numerator;
         assert_eq!(fixed_point_bound_squared_numerator, 1_166_400);
         assert_eq!(fixed_point_bound_squared_denominator, 11_560_000);
         // Compare with exact error squared 1/25 by cross multiplication.
-        assert!(
-            fixed_point_bound_squared_numerator * 25
-                >= fixed_point_bound_squared_denominator
-        );
+        assert!(fixed_point_bound_squared_numerator * 25 >= fixed_point_bound_squared_denominator);
         // It is strictly looser than the KKT residual/alpha bound.
-        assert!(
-            fixed_point_bound_squared_numerator * 25
-                > fixed_point_bound_squared_denominator
-        );
+        assert!(fixed_point_bound_squared_numerator * 25 > fixed_point_bound_squared_denominator);
     }
 
     #[test]
     fn rank_deficient_tangential_hessian_cannot_claim_strong_monotonicity() {
-        let rank_deficient: Matrix4 = [
-            [10, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 10, 0],
-            [0, 0, 0, 0],
-        ];
+        let rank_deficient: Matrix4 = [[10, 0, 0, 0], [0, 0, 0, 0], [0, 0, 10, 0], [0, 0, 0, 0]];
         let null_direction = [0_i128, 1, 0, 0];
         assert_eq!(mat_vec(&rank_deficient, &null_direction), [0; 4]);
         assert_eq!(squared_norm(&null_direction), 1);
-        assert_eq!(dot(&null_direction, &mat_vec(&rank_deficient, &null_direction)), 0);
+        assert_eq!(
+            dot(&null_direction, &mat_vec(&rank_deficient, &null_direction)),
+            0
+        );
 
         // A claimed positive lower bound alpha would require x^T H x >=
         // alpha ||x||^2 for every x. This exact null direction disproves any
