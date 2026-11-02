@@ -266,19 +266,28 @@ fn extract_available_history_fields(output: &str) -> Result<Vec<String>, String>
             break;
         }
         if normalized.is_empty() {
-            if observed_any {
-                break;
-            }
             continue;
         }
+        let source = if normalized.contains('|') {
+            normalized
+                .trim_matches('|')
+                .split('|')
+                .next()
+                .unwrap_or("")
+                .trim()
+        } else {
+            normalized
+        };
         let mut token = String::new();
-        for character in normalized.chars().chain(std::iter::once(' ')) {
-            if character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '[' | ']') {
+        for character in source.chars().chain(std::iter::once(' ')) {
+            if character.is_ascii_alphanumeric() || matches!(character, '_' | '-') {
                 token.push(character);
             } else if !token.is_empty() {
-                tokens.insert(token.clone());
+                if token != "Field" && token != "Name" && token != "FIELD" && token != "NAME" {
+                    tokens.insert(token.clone());
+                    observed_any = true;
+                }
                 token.clear();
-                observed_any = true;
             }
         }
     }
