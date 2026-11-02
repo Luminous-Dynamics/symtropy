@@ -343,6 +343,7 @@ mod tests {
         // 43 throughout the entire six-dimensional cube.
         let mut minimum_disk_margins = [i128::MAX; 4];
         let mut minimum_normal_impulses = [i128::MAX; 4];
+        let mut minimum_shifted_soc_margins = [i128::MAX; 4];
         for corner in 0_u8..64 {
             let mut candidate = p0;
             for (basis_index, basis_vector) in FOUR_CONTACT_NULL_BASIS.iter().enumerate() {
@@ -385,10 +386,14 @@ mod tests {
                 const UNIFORM_SOC_SLACK_LOWER_BOUND: i128 = 43;
                 let shifted_normal = normal - UNIFORM_SOC_SLACK_LOWER_BOUND;
                 assert!(shifted_normal > 0);
+                let shifted_soc_margin =
+                    shifted_normal * shifted_normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
                 assert!(
-                    shifted_normal * shifted_normal > tangent_1 * tangent_1 + tangent_2 * tangent_2,
+                    shifted_soc_margin > 0,
                     "every fibre-cube vertex must exceed the exact SOC slack lower bound"
                 );
+                minimum_shifted_soc_margins[contact] =
+                    minimum_shifted_soc_margins[contact].min(shifted_soc_margin);
                 minimum_normal_impulses[contact] = minimum_normal_impulses[contact].min(normal);
                 minimum_disk_margins[contact] = minimum_disk_margins[contact].min(disk_margin);
             }
@@ -407,6 +412,7 @@ mod tests {
         }
         assert_eq!(minimum_normal_impulses, [48, 49, 50, 49]);
         assert_eq!(minimum_disk_margins, [2_287, 2_384, 2_498, 2_399]);
+        assert_eq!(minimum_shifted_soc_margins, [8, 19, 47, 34]);
     }
 
     #[test]
