@@ -6,8 +6,9 @@ use std::{env, fs, process};
 const EMBEDDED_FIXTURE: &str =
     include_str!("../../../../docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json");
 
+// This binary validates the event-timeline projection. The main manifest
+// verifier remains responsible for strict validation of every root-level field.
 #[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct Fixture {
     schema_version: String,
     fixture_id: String,
