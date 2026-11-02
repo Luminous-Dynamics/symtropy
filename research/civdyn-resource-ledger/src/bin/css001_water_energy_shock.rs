@@ -112,12 +112,9 @@ fn adaptive_request(world: &World, production: &[Production]) -> TransferRequest
         receiver_prod: f64,
         receiver_demand: f64,
     ) -> f64 {
-        let receiver_deficit =
-            (receiver_demand - (receiver_stock + receiver_prod)).max(0.0);
-        let donor_surplus = (donor_stock + donor_prod
-            - donor_demand
-            - DONOR_RESERVE_TICKS * donor_demand)
-            .max(0.0);
+        let receiver_deficit = (receiver_demand - (receiver_stock + receiver_prod)).max(0.0);
+        let donor_surplus =
+            (donor_stock + donor_prod - donor_demand - DONOR_RESERVE_TICKS * donor_demand).max(0.0);
         receiver_deficit.min(donor_surplus)
     }
 
@@ -207,12 +204,19 @@ fn simulate(policy: Policy) -> ScenarioResult {
             delivered.food_kg += receipt.delivered.food_kg;
         }
         for region in &report.regions {
-            for coverage in [region.coverage.water, region.coverage.energy, region.coverage.food] {
+            for coverage in [
+                region.coverage.water,
+                region.coverage.energy,
+                region.coverage.food,
+            ] {
                 if coverage.map(|value| value < SERVICE_FLOOR).unwrap_or(false) {
                     floor_violations += 1;
                 }
             }
-            assert!(region.ledger.is_conserved(), "ledger conservation must hold");
+            assert!(
+                region.ledger.is_conserved(),
+                "ledger conservation must hold"
+            );
         }
         reports.push(report);
     }
@@ -227,8 +231,12 @@ fn simulate(policy: Policy) -> ScenarioResult {
 }
 
 fn main() {
-    println!("scenario=CSS-001; epistemic_class=synthetic_benchmark; geography=abstract_two_region");
-    println!("tick,policy,region,water_coverage,energy_coverage,food_coverage,unmet_water_m3,unmet_energy_kwh,unmet_food_kg,closing_water_m3,closing_energy_kwh,closing_food_kg,ledger_residual_max");
+    println!(
+        "scenario=CSS-001; epistemic_class=synthetic_benchmark; geography=abstract_two_region"
+    );
+    println!(
+        "tick,policy,region,water_coverage,energy_coverage,food_coverage,unmet_water_m3,unmet_energy_kwh,unmet_food_kg,closing_water_m3,closing_energy_kwh,closing_food_kg,ledger_residual_max"
+    );
     for policy in Policy::ALL {
         let result = simulate(policy);
         for report in &result.reports {
@@ -272,7 +280,9 @@ fn main() {
 }
 
 fn fmt(value: Option<f64>) -> String {
-    value.map(|number| format!("{number:.3}")).unwrap_or_else(|| "undefined".into())
+    value
+        .map(|number| format!("{number:.3}"))
+        .unwrap_or_else(|| "undefined".into())
 }
 
 #[cfg(test)]
@@ -283,8 +293,14 @@ mod tests {
     fn synthetic_shock_causes_late_receiver_service_failures_without_transfers() {
         let result = simulate(Policy::NoTransfer);
         assert!(result.floor_violations > 0);
-        let last_south = result.reports.last().unwrap().regions.iter()
-            .find(|region| region.region_id == "synthetic_south").unwrap();
+        let last_south = result
+            .reports
+            .last()
+            .unwrap()
+            .regions
+            .iter()
+            .find(|region| region.region_id == "synthetic_south")
+            .unwrap();
         assert!(last_south.coverage.water.unwrap() < SERVICE_FLOOR);
         assert!(last_south.coverage.energy.unwrap() < SERVICE_FLOOR);
         assert!(last_south.coverage.food.unwrap() < SERVICE_FLOOR);
@@ -295,8 +311,13 @@ mod tests {
         for policy in [Policy::FixedSolidarity, Policy::AdaptiveServiceDeficit] {
             let result = simulate(policy);
             assert_eq!(result.floor_violations, 0, "{:?}", policy);
-            assert!(result.reports.iter().flat_map(|report| &report.regions)
-                .all(|region| region.ledger.is_conserved()));
+            assert!(
+                result
+                    .reports
+                    .iter()
+                    .flat_map(|report| &report.regions)
+                    .all(|region| region.ledger.is_conserved())
+            );
         }
     }
 
@@ -313,8 +334,11 @@ mod tests {
     fn adaptive_policy_preserves_donor_service_and_half_tick_buffer() {
         let result = simulate(Policy::AdaptiveServiceDeficit);
         for report in &result.reports {
-            let donor = report.regions.iter()
-                .find(|region| region.region_id == "synthetic_north").unwrap();
+            let donor = report
+                .regions
+                .iter()
+                .find(|region| region.region_id == "synthetic_north")
+                .unwrap();
             assert_eq!(donor.coverage.water, Some(1.0));
             assert_eq!(donor.coverage.energy, Some(1.0));
             assert_eq!(donor.coverage.food, Some(1.0));
