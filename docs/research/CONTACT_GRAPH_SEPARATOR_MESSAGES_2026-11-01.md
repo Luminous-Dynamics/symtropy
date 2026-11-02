@@ -174,3 +174,19 @@ The strict interior separator box now uses dyadic endpoints:
 - second tangent separator impulse ([-1/8,1/8]).
 
 The exact affine impulse centre/map is (a=(3/4,-1/8,0)), (K=operatorname{diag}(1/4,-1/4,-1/4)). The tangent components lie in ([-1/32,0]) and ([-1/32,1/32]); the exact normal load stays strictly positive and the entire Coulomb disk margin has a strict positive lower bound. Boundary and outside-disk controls use dyadic separator coordinates 3/2 and 13/8 respectively. This keeps the frozen local oracle rational without decimal-to-rational reconstruction ambiguity.
+
+
+## Coverage-preserving separator regime partitions — 2026-11-02
+
+The next increment [#3294](https://github.com/Luminous-Dynamics/symtropy/pull/3294) adds deterministic bounded subdivision for separator boxes that cross the affine separating boundary.
+
+For the normal response (u_{n,L}=q_{n,L}+b_{n,L}^Tp_S), each node is classified with the outward interval oracle. Strict-positive and strict-negative boxes are retained as certified local-regime cells. Boundary/inconclusive boxes are bisected along a deterministic axis with nonzero normal-response coefficient. The shared split face is retained in both closed children; their union therefore contains the entire parent without gaps.
+
+Every leaf stores its exact binary64 bounds, depth and binary lineage. The independent coverage verifier reconstructs the deterministic split tree from the root box and message, checks that every leaf matches its reconstructed bounds, rejects duplicate or ancestor/descendant paths, and requires descendants in both children of every split node. The negative control drops a child and must fail the verifier.
+
+Depth, node-budget, and no-representable-midpoint limits produce retained unresolved frontier cells. These remain part of the cover; they are not silently dropped and do not become NO-SOLUTION claims. The partition reports coverage preservation separately from whether every cell received a strict regime classification.
+
+The frozen dyadic case (u_n=1-p_{S,n}/2), (p_{S,n}in[1,3]), crosses the transition at (p_{S,n}=2). A depth-3 partition retains two strict-separating cells, two strict Signorini-defeating cells for the separating hypothesis, and two boundary cells adjacent to the transition.
+
+
+The independent lineage verifier also recomputes each retained leaf's interval classification from the declared message and its recorded box. This prevents a geometrically complete cover from relabelling a boundary/inconclusive box as a strict regime. The cover is therefore checked both for complete geometric lineage and for per-cell sign-label consistency.
