@@ -1,0 +1,33 @@
+name: coastal-sediment-ledger
+
+on:
+  pull_request:
+    paths:
+      - "benchmarks/coastal-sediment-ledger/**"
+      - ".github/workflows/coastal-sediment-ledger.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/coastal-sediment-ledger/**"
+      - ".github/workflows/coastal-sediment-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coastal-sediment-ledger-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/coastal-sediment-ledger/Cargo.toml -- --check
+      - name: Test deterministic reference evaluator
+        run: cargo test --locked --manifest-path benchmarks/coastal-sediment-ledger/Cargo.toml
