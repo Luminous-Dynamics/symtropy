@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Evidence-bounded construction work-package capability matching.
 //!
 //! A positive result is only a synthetic capability match. It is not a
