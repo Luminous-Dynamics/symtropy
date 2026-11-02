@@ -387,6 +387,7 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
         || plan.allowed_reasoning_profiles.is_empty()
         || plan.minimum_calibration_tasks == 0
         || plan.maximum_holdout_tasks == 0
+        || plan.maximum_holdout_tasks > MAX_TASKS_PER_RELEASE
     {
         return Err(AdaptiveBenchmarkError::InvalidPlan(
             "domains, modalities, reasoning profiles, calibration floor and holdout cap must be non-empty/positive".into(),
@@ -1440,6 +1441,23 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn rejects_holdout_task_cap_above_global_verifier_limit() {
+        let events = vec![event(0, D2)];
+        let freeze = freeze(&events);
+        let mut changed_plan = plan();
+        changed_plan.maximum_holdout_tasks = super::MAX_TASKS_PER_RELEASE + 1;
+        assert!(verify(
+            &changed_plan,
+            &events,
+            &freeze,
+            &calibration(),
+            &release(vec![task("task-1", "a")]),
+            &NoSemanticOverlap
+        )
+        .is_err());
+    }
+
     fn rejects_calibration_quality_failure_and_freeze_mismatch() {
         let events = vec![event(0, D2)];
         let freeze = freeze(&events);
