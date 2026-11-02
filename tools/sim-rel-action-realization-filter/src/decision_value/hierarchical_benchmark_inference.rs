@@ -217,7 +217,6 @@ struct TaskEffectRow {
     concept_digest: String,
     recipe_template_digest: String,
     task_id: String,
-    effect: Option<ExactHierarchicalEffect>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -632,7 +631,6 @@ fn validate_plan(
         || plan.campaign_id != cluster_plan.campaign_id
         || plan.campaign_id != reliability_plan.campaign_id
         || plan.campaign_id != manifest.campaign_id
-        || plan.campaign_id != adaptive_plan.benchmark_id && false
         || plan.scope != BenchmarkScope::FullScientificCampaign
         || plan.scope != cluster_plan.scope
         || plan.scope != reliability_plan.scope
@@ -728,29 +726,17 @@ fn build_task_rows(
                 cluster.task_id
             ))
         })?;
-        let effect = if cluster.invalid_task_cluster {
-            if cluster.reference.is_some() || cluster.candidate.is_some() {
-                return Err(HierarchicalInferenceError::InvalidHierarchy(
-                    "invalid task cluster must not contain arm outcomes".into(),
-                ));
-            }
-            None
-        } else {
-            Some(task_effect(
-                ClusterInferenceEndpoint::PassAtK,
-                cluster,
-                reliability_plan.repetitions_per_task,
-            )?)
-        };
-        // The temporary effect above is replaced per endpoint in the analysis;
-        // None is retained only for invalid clusters.
+        if cluster.invalid_task_cluster && (cluster.reference.is_some() || cluster.candidate.is_some()) {
+            return Err(HierarchicalInferenceError::InvalidHierarchy(
+                "invalid task cluster must not contain arm outcomes".into(),
+            ));
+        }
         rows.push(TaskEffectRow {
             domain_id: artifact.domain_id.clone(),
             mechanism_family_id: cluster.mechanism_family_id.clone(),
             concept_digest: artifact.concept_digest.clone(),
             recipe_template_digest: artifact.recipe_template_digest.clone(),
             task_id: cluster.task_id.clone(),
-            effect,
         });
     }
     if seen_cluster_task_ids.len() != artifacts.len() {
@@ -880,12 +866,6 @@ fn aggregate_for_endpoint(
         concept_details.push(detail);
     }
 
-    let hypotheses = domains.len().checked_mul(families.len())
-        .and_then(|value| value.checked_mul(1))
-        .ok_or_else(|| HierarchicalInferenceError::ArithmeticOverflow(
-            "domain × family hypothesis grid overflow".into(),
-        ))?;
-    let _ = hypotheses;
     let mut summaries = Vec::with_capacity(domains.len() * families.len());
     for domain in domains {
         for family in families {
@@ -895,9 +875,7 @@ fn aggregate_for_endpoint(
             let mut candidate_wins = 0usize;
             let mut reference_wins = 0usize;
             let mut tied = 0usize;
-            let mut effect_sum = ExactHierarchicalEffect::zero();
             for effect in &effects {
-                effect_sum = effect_sum.checked_add(effect)?;
                 match effect.sign() {
                     std::cmp::Ordering::Greater => candidate_wins = candidate_wins.checked_add(1).ok_or_else(|| {
                         HierarchicalInferenceError::ArithmeticOverflow("candidate concept win count overflow".into())
@@ -941,16 +919,12 @@ fn aggregate_for_endpoint(
         }
     }
 
-    // The recipe and concept details are endpoint-specific.
+    // Multiplicity correction is applied by the caller across the complete
+    // domain × family × endpoint grid, not separately within one endpoint.
     recipe_details.shrink_to_fit();
     concept_details.shrink_to_fit();
-    let _ = effect_sum_placeholder();
-    apply_holm(&mut summaries, alpha)?;
+    let _ = alpha;
     Ok((recipe_details, concept_details, summaries))
-}
-
-fn effect_sum_placeholder() -> usize {
-    0
 }
 
 /// Recompute both upstream evidence layers and then aggregate at the declared
@@ -1058,6 +1032,7 @@ where
         all_concept_details.extend(concepts);
         all_summaries.extend(summaries);
     }
+    apply_holm(&mut all_summaries, plan.family_wise_alpha)?;
     let recipe_template_count = release.task_artifacts.iter()
         .map(|task| task.recipe_template_digest.clone())
         .collect::<BTreeSet<_>>()
@@ -1180,7 +1155,6 @@ mod tests {
                 concept_digest: "concept-a".into(),
                 recipe_template_digest: "recipe-1".into(),
                 task_id: "t1".into(),
-                effect: None,
             },
             TaskEffectRow {
                 domain_id: "materials".into(),
@@ -1188,7 +1162,6 @@ mod tests {
                 concept_digest: "concept-a".into(),
                 recipe_template_digest: "recipe-1".into(),
                 task_id: "t2".into(),
-                effect: None,
             },
             TaskEffectRow {
                 domain_id: "materials".into(),
@@ -1196,7 +1169,6 @@ mod tests {
                 concept_digest: "concept-a".into(),
                 recipe_template_digest: "recipe-2".into(),
                 task_id: "t3".into(),
-                effect: None,
             },
             TaskEffectRow {
                 domain_id: "materials".into(),
@@ -1204,7 +1176,6 @@ mod tests {
                 concept_digest: "concept-b".into(),
                 recipe_template_digest: "recipe-3".into(),
                 task_id: "t4".into(),
-                effect: None,
             },
             TaskEffectRow {
                 domain_id: "materials".into(),
@@ -1212,14 +1183,9 @@ mod tests {
                 concept_digest: "concept-b".into(),
                 recipe_template_digest: "recipe-4".into(),
                 task_id: "t5".into(),
-                effect: None,
             },
         ];
         (rows, clusters)
-    }
-
-    fn fake_receipt(clusters: Vec<TaskClusterReliability>) -> super::super::repeated_run_reliability::RepeatedRunReliabilityReceipt {
-        unreachable!("aggregation helper tests call the pure effect builder below")
     }
 
     #[test]
@@ -1307,10 +1273,9 @@ mod tests {
                 concept_digest: "concept-a".into(),
                 recipe_template_digest: "recipe-1".into(),
                 task_id,
-                effect: None,
             });
         }
-        let (recipes, concepts, summaries) = super::aggregate_rows_for_test(
+        let (recipes, concepts, summaries) = aggregate_for_endpoint(
             &task_rows,
             &["materials".into(), "biology".into()],
             &["causal-mechanism".into()],
@@ -1322,8 +1287,9 @@ mod tests {
         let concept_a = concepts.iter().find(|c| c.concept_digest == "concept-a" && c.domain_id == "materials").unwrap();
         let recipe_1 = recipes.iter().find(|r| r.recipe_template_digest == "recipe-1").unwrap();
         assert_eq!(recipe_1.valid_task_cluster_count, 102);
+        assert_eq!(recipe_1.mean_task_effect, Some(ratio(50, 51)));
         assert_eq!(concept_a.recipe_template_count, 2);
-        assert_eq!(concept_a.mean_recipe_effect, Some(ratio(0, 1)));
+        assert_eq!(concept_a.mean_recipe_effect, Some(ratio(101, 102)));
         assert_eq!(summaries.len(), 2);
         let empty_domain = summaries.iter().find(|s| s.domain_id == "biology").unwrap();
         assert_eq!(empty_domain.valid_concept_clusters, 0);
