@@ -7,6 +7,7 @@ publish = false
 description = "Deterministic synthetic construction fleet resilience manifest verifier"
 
 [workspace]
+resolver = "3"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
