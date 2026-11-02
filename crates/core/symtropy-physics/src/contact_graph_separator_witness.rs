@@ -535,23 +535,33 @@ impl SeparatingLeafMessage {
         parent: &SeparatorImpulseBox,
     ) -> Option<(usize, f64, SeparatorImpulseBox, SeparatorImpulseBox)> {
         let mut selected_axis = None;
+        let mut selected_midpoint = 0.0_f64;
         let mut largest_coefficient = 0.0_f64;
         for axis in 0..3 {
             let coefficient = self.separator_coupling[(axis, 0)].abs();
-            if parent.lower[axis] < parent.upper[axis] && coefficient > largest_coefficient {
+            if coefficient == 0.0 || parent.lower[axis] >= parent.upper[axis] {
+                continue;
+            }
+            // Halving each endpoint avoids overflowing an intermediate
+            // upper-lower difference for finite values near the binary64 range.
+            let midpoint = parent.lower[axis] * 0.5 + parent.upper[axis] * 0.5;
+            if !midpoint.is_finite()
+                || midpoint <= parent.lower[axis]
+                || midpoint >= parent.upper[axis]
+            {
+                continue;
+            }
+            // Select the strongest normal-response axis among those that can
+            // actually be bisected. A larger but unsplittable axis must not
+            // prevent subdivision along another active coordinate.
+            if coefficient > largest_coefficient {
                 selected_axis = Some(axis);
+                selected_midpoint = midpoint;
                 largest_coefficient = coefficient;
             }
         }
         let axis = selected_axis?;
-        let lower = parent.lower[axis];
-        let upper = parent.upper[axis];
-        // Halving each endpoint avoids overflowing an intermediate upper-lower
-        // difference for finite values near the binary64 range limit.
-        let midpoint = lower * 0.5 + upper * 0.5;
-        if !midpoint.is_finite() || midpoint <= lower || midpoint >= upper {
-            return None;
-        }
+        let midpoint = selected_midpoint;
 
         let mut left_upper = parent.upper;
         left_upper[axis] = midpoint;
