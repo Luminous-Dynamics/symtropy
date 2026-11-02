@@ -1,0 +1,430 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/civbench-jhb-water/experiment.schema.v0.1.json",
+  "title": "CivBench Johannesburg Water Experiment Protocol v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "protocol_id",
+    "version",
+    "date",
+    "status",
+    "scope",
+    "factors",
+    "stages",
+    "matching_contract",
+    "estimands",
+    "hard_gates",
+    "statistical_plan",
+    "benchmark_targets",
+    "provenance_receipt",
+    "promotion_gates",
+    "limitations"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "protocol_id": {
+      "const": "CIVBENCH-JHB-WATER-EXPERIMENT-001"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^0\\\\.1\\\\.0$"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "enum": [
+        "design_only_pre_registration_pending",
+        "locked_pre_registration",
+        "retired"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "geography",
+        "domain",
+        "claim_ceiling",
+        "reference_sources",
+        "evidence_classes",
+        "prohibited_inference"
+      ],
+      "properties": {
+        "geography": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "claim_ceiling": {
+          "type": "string"
+        },
+        "reference_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_id",
+              "uri",
+              "period",
+              "evidence_class",
+              "assurance",
+              "snapshot_status"
+            ],
+            "properties": {
+              "source_id": {
+                "type": "string"
+              },
+              "uri": {
+                "type": "string",
+                "format": "uri"
+              },
+              "period": {
+                "type": "string"
+              },
+              "evidence_class": {
+                "type": "string"
+              },
+              "assurance": {
+                "type": "string"
+              },
+              "snapshot_status": {
+                "type": "string"
+              },
+              "render_verification": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "evidence_classes": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "observed_reported",
+              "derived",
+              "assumption",
+              "synthetic_truth"
+            ]
+          }
+        },
+        "prohibited_inference": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "factors": {
+      "type": "object",
+      "required": [
+        "G",
+        "M",
+        "I",
+        "H"
+      ],
+      "properties": {
+        "G": {
+          "$ref": "#/$defs/factor"
+        },
+        "M": {
+          "$ref": "#/$defs/factor"
+        },
+        "I": {
+          "$ref": "#/$defs/factor"
+        },
+        "H": {
+          "$ref": "#/$defs/factor"
+        }
+      },
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "confirmatory"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "confirmatory": {
+            "type": "boolean"
+          },
+          "comparisons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "three_way_interaction": {
+            "type": "string"
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "matching_contract": {
+      "type": "object",
+      "required": [
+        "pairing",
+        "fixed_between_arms",
+        "resource_ledgers",
+        "no_double_spend",
+        "endogenous_failures"
+      ],
+      "properties": {
+        "pairing": {
+          "type": "string"
+        },
+        "fixed_between_arms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resource_ledgers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "no_double_spend": {
+          "type": "boolean",
+          "const": true
+        },
+        "endogenous_failures": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "estimands": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "unit",
+          "direction"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "distributional": {
+            "type": "boolean"
+          },
+          "requires_water_balance": {
+            "type": "boolean"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hard_gates": {
+      "type": "array",
+      "minItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "statistical_plan": {
+      "type": "object",
+      "required": [
+        "unit_of_analysis",
+        "pilot_use",
+        "minimum_detectable_effect",
+        "sample_count",
+        "interval",
+        "multiple_testing",
+        "confirmatory_holdout",
+        "uncertainty_types"
+      ],
+      "properties": {
+        "unit_of_analysis": {
+          "type": "string"
+        },
+        "pilot_use": {
+          "type": "string"
+        },
+        "minimum_detectable_effect": {
+          "type": "string"
+        },
+        "sample_count": {
+          "type": "string"
+        },
+        "interval": {
+          "type": "string"
+        },
+        "multiple_testing": {
+          "type": "string"
+        },
+        "confirmatory_holdout": {
+          "type": "string"
+        },
+        "uncertainty_types": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "benchmark_targets": {
+      "type": "object",
+      "required": [
+        "accounting_correctness",
+        "hydraulic_fidelity",
+        "leak_detection",
+        "leak_localization",
+        "competitive_improvement",
+        "sensor_placement",
+        "robustness"
+      ],
+      "properties": {
+        "accounting_correctness": {
+          "type": "string"
+        },
+        "hydraulic_fidelity": {
+          "type": "string"
+        },
+        "leak_detection": {
+          "type": "string"
+        },
+        "leak_localization": {
+          "type": "string"
+        },
+        "competitive_improvement": {
+          "type": "string"
+        },
+        "sensor_placement": {
+          "type": "string"
+        },
+        "robustness": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance_receipt": {
+      "type": "object",
+      "required": [
+        "required_digests",
+        "required_versions",
+        "missing_digest_behavior",
+        "replay"
+      ],
+      "properties": {
+        "required_digests": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_versions": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_digest_behavior": {
+          "const": "fail_closed"
+        },
+        "replay": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "promotion_gates": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "factor": {
+      "type": "object",
+      "required": [
+        "name",
+        "kind",
+        "levels"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "levels": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
