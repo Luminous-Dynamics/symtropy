@@ -674,7 +674,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        EvidenceArtifactBlob, EvidenceArtifactReference, EvidenceArtifactRole,
+        EvidenceArtifactBlob, EvidenceArtifactReference, ScientificArtifactRole,
         EvidenceDigestProvider, EvidencePayloadEncoder, IssuerSignatureVerifier,
         ScientificEvidencePackage, ScientificEvidenceStatement, SignedScientificEvidenceStatement,
         TransparencyReceiptEnvelope, TransparencyReceiptVerifier, VerifiedIssuerIdentity,
@@ -822,7 +822,7 @@ mod tests {
                 artifact_id: "primary-result".into(),
                 content_digest: artifact_blob.content_digest.clone(),
                 media_type: "application/octet-stream".into(),
-                role: EvidenceArtifactRole::BenchmarkTrial,
+                role: ScientificArtifactRole::BenchmarkTrial,
                 byte_length: artifact_blob.bytes.len() as u64,
             }],
             predecessor_statement_digests: predecessors,
@@ -1030,9 +1030,10 @@ mod tests {
         );
 
         let mut changed = package();
+        let duplicate_receipt = changed.statements[0].transparency_receipts[0].clone();
         changed.statements[0]
             .transparency_receipts
-            .push(changed.statements[0].transparency_receipts[0].clone());
+            .push(duplicate_receipt);
         assert!(
             verify_scientific_evidence_package(
                 &changed,
