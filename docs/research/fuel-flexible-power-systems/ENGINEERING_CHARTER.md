@@ -187,6 +187,8 @@ These are **proposed programme gates**, not published industry standards or achi
 
 The team must verify the currently applicable local certification rules before selecting hardware or claiming a market-ready configuration.
 
+**IMO Net-Zero Framework status snapshot (2026-11-02):** the framework should be treated as proposed / under negotiation, not as adopted law. IMO's published schedule lists MEPC 85 for 30 November–3 December 2026; the resumed second extraordinary session is listed for 4 December subject to confirmation by MEPC 85. Freeze this status with a retrieval date and re-check before any vessel investment or compliance claim.
+
 ## 8. SOTA baseline and honest comparison
 
 | Industry reference | Public evidence | Implication |
