@@ -62,6 +62,8 @@ All values in the example are illustrative caller-selected criteria, not univers
 
 ## Next integration
 
-The next adapter work is to pass only verified run-lineage records into the CFD study/evidence chain. It must reconcile raw log10 residuals with the existing numerical-admission API without implicit exponentiation, absolute values, or hidden transforms. Any transform to a positive-linear scalar must preserve the original logged series, the exact formula, units and provenance.
+The next composition layer is documented in [`SU2_VERIFIED_RUN_BUNDLE_V0_1.md`](./SU2_VERIFIED_RUN_BUNDLE_V0_1.md). It replays the field preflight and boundary audit from the same receipt-bound `SU2_CFD -d` run, then requires their executable/configuration/mesh identities to match the production receipt and staged inputs. The grid-family evaluator now requires this composed bundle per member.
 
-Before a run can enter an efficiency benchmark, the run bundle must also record measured CPU time, peak memory, GPU time and energy where those measurements are available, with measurement provenance and uncertainty. GCI/Richardson and experimental validation remain separate gates after the run-lineage binding.
+The remaining numerical-admission bridge must consume raw history observations directly. It must preserve log10 residual encoding and must not infer a positive-linear value through implicit exponentiation, absolute values, or hidden transforms. Any explicit transform must preserve the original series, formula, units and provenance.
+
+Resource telemetry is deliberately partial: elapsed wall time is derived from the process receipt; CPU time, peak memory, GPU time and energy remain unknown until bound to real measurements. A wall-time comparison must not be described as a complete compute-cost or energy-efficiency comparison. GCI/Richardson and experimental validation remain separate gates after the run bundle.
