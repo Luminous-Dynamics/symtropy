@@ -2303,12 +2303,12 @@ fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
     )
     .unwrap();
     let owned = [
-        make_nary_separating_source(37, 0, 0.5, -0.5, &root, 2).unwrap(),
-        make_nary_separating_source(11, 0, 1.0, -0.5, &root, 2).unwrap(),
-        make_nary_separating_source(23, 1, 0.5, -0.5, &root, 2).unwrap(),
-        make_nary_separating_source(41, 2, -0.5, 1.0, &root, 2).unwrap(),
-        make_nary_separating_source(53, 1, 1.5, -0.5, &root, 2).unwrap(),
-        make_nary_separating_source(61, 2, 0.5, -0.5, &root, 2).unwrap(),
+        make_nary_separating_source(37, 0, 0.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(11, 0, 1.0, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(23, 1, 0.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(41, 2, -0.5, 1.0, &root, 4).unwrap(),
+        make_nary_separating_source(53, 1, 1.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(61, 2, 0.5, -0.5, &root, 4).unwrap(),
     ];
 
     let three_sources = [37_u64, 11, 23]
