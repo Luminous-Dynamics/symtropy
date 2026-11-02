@@ -597,13 +597,16 @@ mod tests {
     #[test]
     fn fcfs_can_lose_feasible_service_against_tiny_exhaustive_order_oracle() {
         let lock = profile();
-        let long_older = request(
-            "long-older",
-            "p1",
-            0,
-            Direction::Upstream,
-            ServiceClass::OrdinaryFreight,
-        );
+        let long_older = PassageRequest {
+            service_duration_ticks: 100,
+            ..request(
+                "long-older",
+                "p1",
+                0,
+                Direction::Upstream,
+                ServiceClass::OrdinaryFreight,
+            )
+        };
         let short_deadline = PassageRequest {
             latest_start_tick: 10,
             maximum_wait_ticks: 10,
@@ -633,15 +636,15 @@ mod tests {
         // Independent two-permutation oracle for this deliberately tiny,
         // single-window, same-direction instance. Either candidate order must
         // meet each request's start deadline and the common availability bound.
-        let finish_if_short_first = short_deadline
+        let short_start = short_deadline
             .arrival_tick
-            .max(short_deadline.earliest_start_tick)
-            + short_deadline.service_duration_ticks;
+            .max(short_deadline.earliest_start_tick);
+        let finish_if_short_first = short_start + short_deadline.service_duration_ticks;
         let long_after_short_start = finish_if_short_first;
         let finish_if_long_after_short =
             long_after_short_start + long_older.service_duration_ticks;
         let short_then_long_is_feasible =
-            finish_if_short_first <= short_deadline.latest_start_tick + short_deadline.service_duration_ticks
+            short_start <= short_deadline.latest_start_tick
                 && long_after_short_start <= long_older.latest_start_tick
                 && finish_if_long_after_short <= lock.availability[0].end_tick;
 
