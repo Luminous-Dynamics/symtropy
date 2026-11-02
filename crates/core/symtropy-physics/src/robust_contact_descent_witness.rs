@@ -203,12 +203,11 @@ fn search_rational_grid(
     best
 }
 
-/// Exact dual upper bound on the max-min descent margin for a finite set
-/// of point gradients: ||sum_i lambda_i g_i||_1, with lambda in the simplex.
-fn convex_combination_l1_upper_bound(
+/// Validate simplex weights and construct their exact convex combination.
+fn convex_combination(
     gradients: &[RationalVector],
     weights: &[BigRational],
-) -> Option<BigRational> {
+) -> Option<RationalVector> {
     if gradients.is_empty() || gradients.len() != weights.len() {
         return None;
     }
@@ -220,49 +219,41 @@ fn convex_combination_l1_upper_bound(
         return None;
     }
 
-    let mut bound = zero.clone();
-    for coordinate in 0..INPUT_DIMENSION {
-        let value = gradients
-            .iter()
-            .zip(weights.iter())
-            .fold(zero.clone(), |sum, (gradient, weight)| {
-                sum + &gradient[coordinate] * weight
-            });
-        bound += if value < zero { -value } else { value };
-    }
-    Some(bound)
-}
-
-/// Verify a Farkas/Gordan witness that zero is in the convex hull of a complete
-/// finite gradient set. Such a witness rules out a direction with strictly
-/// negative directional derivative on every gradient in that set.
-fn verify_zero_convex_combination(gradients: &[RationalVector], weights: &[BigRational]) -> bool {
-    if gradients.is_empty() || gradients.len() != weights.len() {
-        return false;
-    }
-
-    let zero = rational(0);
-    let one = rational(1);
-    if weights.iter().any(|weight| weight < &zero) {
-        return false;
-    }
-    if weights
-        .iter()
-        .fold(zero.clone(), |sum, weight| sum + weight)
-        != one
-    {
-        return false;
-    }
-
-    (0..INPUT_DIMENSION).all(|coordinate| {
+    Some(std::array::from_fn(|coordinate| {
         gradients
             .iter()
             .zip(weights.iter())
             .fold(zero.clone(), |sum, (gradient, weight)| {
                 sum + &gradient[coordinate] * weight
             })
-            == zero
-    })
+    }))
+}
+
+/// Exact dual upper bound on the max-min descent margin for a finite set
+/// of point gradients: ||sum_i lambda_i g_i||_1, with lambda in the simplex.
+fn convex_combination_l1_upper_bound(
+    gradients: &[RationalVector],
+    weights: &[BigRational],
+) -> Option<BigRational> {
+    let combination = convex_combination(gradients, weights)?;
+    Some(combination.iter().fold(rational(0), |sum, value| {
+        if value < &rational(0) {
+            sum - value
+        } else {
+            sum + value
+        }
+    }))
+}
+
+/// Verify a Farkas/Gordan witness that zero is in the convex hull of a complete
+/// finite gradient set. Such a witness rules out a direction with strictly
+/// negative directional derivative on every gradient in that set.
+fn verify_zero_convex_combination(
+    gradients: &[RationalVector],
+    weights: &[BigRational],
+) -> bool {
+    convex_combination(gradients, weights)
+        .is_some_and(|combination| combination.iter().all(|value| value == &rational(0)))
 }
 
 #[cfg(test)]
@@ -272,7 +263,7 @@ mod tests {
     #[test]
     fn grid_synthesis_finds_common_descent_when_coordinate_axes_conflict() {
         // Each coordinate-axis direction helps one branch and hurts the other,
-        // but the combined direction (-1, -1, 0, ...) improves both.
+        // but the combined rational direction (-1/3, -1, 0, ...) improves both.
         let branches = vec![
             point_gradient([10, -1, 0, 0, 0, 0]),
             point_gradient([-2, 3, 0, 0, 0, 0]),
@@ -317,8 +308,22 @@ mod tests {
         // A matching exact dual convex combination proves the margin is
         // globally optimal for this complete two-gradient point set.
         let point_gradients = vec![
-            [rational(10), rational(-1), rational(0), rational(0), rational(0), rational(0)],
-            [rational(-2), rational(3), rational(0), rational(0), rational(0), rational(0)],
+            [
+                rational(10),
+                rational(-1),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+            ],
+            [
+                rational(-2),
+                rational(3),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+            ],
         ];
         let dual_bound = convex_combination_l1_upper_bound(
             &point_gradients,
