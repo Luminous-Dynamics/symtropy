@@ -16,7 +16,7 @@ cargo clippy --locked --manifest-path benchmarks/tbm-ring-metrics/Cargo.toml --a
 - Whole-site electrical energy per accepted excavation volume = site meter energy (Wh) / accepted volume (L), numerically equal to kWh/m³.
 - Cutter wear rate = radial radius loss (µm) / interval excavated volume (L), numerically equal to mm/m³.
 
-Mechanical excavation energy and whole-site electrical meter energy are separate fields and are never substituted for one another. The site-meter boundary must be declared by the data provider; it is not inferred from installed machine ratings.
+Mechanical excavation energy and whole-site electrical meter energy are separate optional measurements and are never substituted for one another. A missing meter remains `None`; it is never converted to a numeric zero. The site-meter boundary must be declared by the data provider; it is not inferred from installed machine ratings.
 
 Cutter wear uses two measurements of the same cutter and a declared expanded uncertainty on the radial loss. The reported interval is a simple bounded measurement interval, not a probability distribution or remaining-life model.
 
