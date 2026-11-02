@@ -392,3 +392,45 @@ The tiers have distinct labels, costs, time resolutions and error consequences. 
 - The architecture fails closed when the event cannot be mapped to a current network asset identity or the downstream tier lacks sufficient measurement evidence.
 
 Primary claim: improve **end-to-end operational utility** at matched total lifecycle cost and safety/service constraints, while reporting per-tier statistical performance separately. Do not claim an autonomous replacement for SCADA, GIS, hydraulic engineers or operator authorization.
+
+
+## 16. Digital-twin maturity: prediction is not closure
+
+A 2026 systematic review of explainable AI and digital twins for sustainable/resilient water management screened 48 records. Within its corpus, 43 remained at conceptual, offline, retrospective or connected-pilot stages (M0–M2), five reached operational decision support (M3), and none was identified as an audited M4 closed-loop implementation. The review also found that explanation faithfulness/stability, calibrated uncertainty and practitioner workflow were rarely assessed together. These counts describe that review's corpus and classification; they are not a census of every utility or commercial deployment. Reference: [Explainable AI and Digital Twins for Sustainable and Resilient Water Management, Water (2026)](https://www.mdpi.com/2073-4441/18/19/2443).
+
+An AWWA survey analysis published 15 April 2026 reports utility interest in AI, digital twins and predictive analytics, while many respondents lacked well-defined implementation plans. The survey was based on a 2024 utility survey, so it is evidence about adoption patterns and planning—not the current installed base in 2026. Reference: [Model or Digital Twin? AWWA Survey on Water Distribution Technology](https://doi.org/10.1002/awwa.70075).
+
+### CivBench operational maturity ladder
+
+This is a working benchmark adaptation, not a claim that every sector uses the same M0–M4 definition:
+
+- **M0 — conceptual:** proposed architecture and intended use documented.
+- **M1 — offline/retrospective:** historical or simulated data evaluation, with frozen splits and leakage controls.
+- **M2 — connected pilot:** live or near-live data connection in a bounded non-authoritative pilot; uptime, freshness, missingness and operator workflow measured.
+- **M3 — operational decision support:** named users receive calibrated outputs in a defined workflow; recommendations, overrides, time-to-decision, failure handling and action handoff are logged.
+- **M4 — audited decision-to-service closure:** source observations, state estimate, uncertainty, recommendation, human authorization, action/work order, independent completion verification and measured service outcome are linked in a reproducible audit trail, with safety gates, rollback and post-event model discrepancy review.
+
+M4 does **not** mean autonomous infrastructure actuation. It means the evidence chain is closed and independently auditable. Any operational control remains subject to utility authority, safety engineering and human authorization.
+
+### M4 closure metrics
+
+Report separate values:
+- observation-to-state-estimate latency and freshness;
+- state-estimate calibration and model discrepancy;
+- recommendation-to-human-decision latency and override rate;
+- decision-to-work-order and work-order-to-field-completion time;
+- proportion of actions independently verified;
+- proportion of verified actions linked to a measured service outcome;
+- service outcome persistence and recurrence;
+- failed, cancelled, deferred, unsupported and unverified cases in the denominator;
+- post-event residual review, correction and model rollback time.
+
+Do not call a system M4 merely because it has a live dashboard, an API connection, an automated ticket or a digital twin label. A prediction that does not change a feasible decision is not an operational outcome; a work order that is not independently verified is not a completed intervention; and a completed intervention without service evidence is not measured impact.
+
+## 17. New probabilistic sensor-placement comparator
+
+A newly indexed 2026 Journal of Hydrology article proposes probabilistic sensor placement using Dynamic Residual Masking and game-theoretic pseudo-Jacobians derived from Random Forest / SHAP contributions. Its article highlights report 91.4% detection accuracy with five sensors and a 4.2% false-positive rate on its own evaluation. Those figures are **paper-specific reported results**, not a direct comparison to the Net3 benchmark, the within-300m localization benchmark, or field-transfer studies. Reference: [Probabilistic sensor placement in water distribution networks](https://doi.org/10.1016/j.jhydrol.2026.136514).
+
+Add this method as a reconstruction target in the sensor-placement lane. Before any numeric comparison, recover the exact network, topology, labels, train/test split, sensor assumptions, input variables, cost model, hardware and false-positive definition. If those details or artifacts are unavailable, compare at the method-family level and label the result protocol-matched rather than reproduced.
+
+The baseline set therefore includes: current/reference placement; seeded random; topology-only/shortest-path; hydraulic-sensitivity/observability; topology-plus-sensitivity hybrid; probabilistic Dynamic Residual Masking / pseudo-Jacobian method; cascading-aware placement; and decision-aware placement tied to telemetry, dispatch/repair capacity and service outcomes.
