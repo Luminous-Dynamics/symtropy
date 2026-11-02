@@ -1284,7 +1284,8 @@ mod tests {
         VerifiedOutcomeMeasurement, analyze_scientific_decision_value,
     };
     use super::super::hierarchical_benchmark_inference::{
-        ExactHierarchicalEffect, HierarchicalConceptEffect, HierarchicalInferenceReceipt,
+        DomainFamilyEndpointInference, ExactHierarchicalEffect,
+        HierarchicalConceptEffect, HierarchicalInferenceReceipt,
     };
     use super::super::task_cluster_inference::ClusterInferenceEndpoint;
     use super::super::counterexample_ledger::EvidenceSplit;
@@ -1329,7 +1330,7 @@ mod tests {
             scope: BenchmarkScope::FullScientificCampaign,
             reference_arm_id: "reference".into(),
             candidate_arm_id: "candidate".into(),
-            domains: vec!["materials".into(), "biology".into()],
+            domains: vec!["materials".into()],
             mechanism_families: vec!["causal".into()],
             minimum_valid_concepts_per_stratum: 2,
             family_wise_alpha: Rational::new(5, 100).unwrap(),
@@ -1399,7 +1400,26 @@ mod tests {
             inferential_unit: "concept".into(),
             hierarchy: Vec::new(),
             concept_effects: vec![concept(D3), concept(D4)],
-            domain_family_endpoint_results: Vec::new(),
+            domain_family_endpoint_results: vec![DomainFamilyEndpointInference {
+                domain_id: "materials".into(),
+                mechanism_family_id: "causal".into(),
+                endpoint: ClusterInferenceEndpoint::PassAtK,
+                total_concept_clusters: 2,
+                valid_concept_clusters: 2,
+                concepts_without_valid_recipes: 0,
+                required_valid_concept_clusters: 1,
+                meets_minimum_concept_count: true,
+                candidate_concept_wins: 1,
+                reference_concept_wins: 1,
+                tied_concepts: 0,
+                discordant_concepts: 2,
+                exact_two_sided_sign_p_value: Rational::one(),
+                mean_concept_effect: Some(ExactHierarchicalEffect { numerator: 0, denominator: 1 }),
+                mean_effect_95_percent_interval: None,
+                holm_rank: 1,
+                holm_threshold: Rational::new(5, 100).unwrap(),
+                rejected_after_holm: false,
+            }],
             runs_collapsed_within_task: true,
             tasks_equal_weighted_within_recipe: true,
             recipes_equal_weighted_within_concept: true,
@@ -1409,6 +1429,39 @@ mod tests {
             abstention_not_given_unregistered_direction: true,
             sealed_holdout_only: true,
         }
+    }
+
+    fn hierarchy_with_empty_domain() -> HierarchicalInferenceReceipt {
+        let mut source = hierarchy();
+        source.domain_count = 2;
+        source.hypothesis_count = 2;
+        source.domain_family_endpoint_results.push(DomainFamilyEndpointInference {
+            domain_id: "biology".into(),
+            mechanism_family_id: "causal".into(),
+            endpoint: ClusterInferenceEndpoint::PassAtK,
+            total_concept_clusters: 0,
+            valid_concept_clusters: 0,
+            concepts_without_valid_recipes: 0,
+            required_valid_concept_clusters: 1,
+            meets_minimum_concept_count: false,
+            candidate_concept_wins: 0,
+            reference_concept_wins: 0,
+            tied_concepts: 0,
+            discordant_concepts: 0,
+            exact_two_sided_sign_p_value: Rational::one(),
+            mean_concept_effect: None,
+            mean_effect_95_percent_interval: None,
+            holm_rank: 2,
+            holm_threshold: Rational::new(1, 100).unwrap(),
+            rejected_after_holm: false,
+        });
+        source
+    }
+
+    fn plan_with_empty_domain() -> DecisionValuePlan {
+        let mut result = plan();
+        result.domains.push("biology".into());
+        result
     }
 
     fn loss(value: u128, suffix: &str) -> VerifiedDecisionLoss {
@@ -1504,6 +1557,28 @@ mod tests {
         let tokens = receipt.cost_channels.iter().find(|row| row.channel_id == "tokens").unwrap();
         assert_eq!(tokens.mean_incremental_cost_per_concept, Some(q(20, 1)));
         assert_eq!(tokens.incremental_cost_per_decision_loss_unit, Some(q(50, 1)));
+    }
+
+    #[test]
+    fn preregistered_empty_domain_remains_in_results_and_cost_grid() {
+        let receipt = analyze_scientific_decision_value(
+            &plan_with_empty_domain(),
+            &hierarchy_with_empty_domain(),
+            &[evidence(D3, 8, 4), evidence(D4, 7, 3)],
+        ).unwrap();
+        assert_eq!(receipt.domain_count, 2);
+        let empty = receipt.domain_family_results.iter()
+            .find(|row| row.domain_id == "biology"
+                && row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction)
+            .unwrap();
+        assert_eq!(empty.source_concept_count, 0);
+        assert_eq!(empty.measured_concept_count, 0);
+        assert_eq!(empty.exact_two_sided_sign_p_value, Rational::one());
+        assert!(!empty.meets_minimum_concept_count);
+        let empty_cost = receipt.cost_channels.iter()
+            .find(|row| row.domain_id == "biology" && row.channel_id == "tokens")
+            .unwrap();
+        assert!(!empty_cost.complete);
     }
 
     #[test]
