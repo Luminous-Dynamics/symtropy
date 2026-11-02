@@ -125,6 +125,7 @@ pub enum ComponentReason {
     MeasurementReportSubjectMismatch,
     ReportSchemaDigestInvalid,
     ReportDocumentDigestInvalid,
+    UnsupportedReportFormatIdentifier,
     UnsupportedReportFormatVersion,
     EntireIntervalBelowLowerLimit,
     EntireIntervalAboveUpperLimit,
@@ -275,11 +276,15 @@ pub fn evaluate_dimension(
         reasons.push(ComponentReason::ReportDocumentDigestInvalid);
         inconsistent = true;
     }
-    if measurement.report_reference.format == MetrologyReportFormat::QifIso23952_2020
-        && measurement.report_reference.format_version != "3.0"
-    {
-        reasons.push(ComponentReason::UnsupportedReportFormatVersion);
-        unsupported = true;
+    if measurement.report_reference.format == MetrologyReportFormat::QifIso23952_2020 {
+        if measurement.report_reference.format_id != "ISO 23952:2020" {
+            reasons.push(ComponentReason::UnsupportedReportFormatIdentifier);
+            unsupported = true;
+        }
+        if measurement.report_reference.format_version != "3.0" {
+            reasons.push(ComponentReason::UnsupportedReportFormatVersion);
+            unsupported = true;
+        }
     }
 
     match measurement.calibration_valid_through_tick {
@@ -882,6 +887,16 @@ mod tests {
         assert_eq!(
             evaluate(&c, &r, &different_design).disposition,
             ComponentDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn qif_profile_requires_exact_iso_23952_identifier() {
+        let mut m = measurement();
+        m.report_reference.format_id = "QIF 3.0".into();
+        assert_eq!(
+            evaluate(&component(), &requirement(), &m).disposition,
+            ComponentDisposition::UnsupportedRequirementOrMethod
         );
     }
 
