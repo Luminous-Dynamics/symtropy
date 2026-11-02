@@ -84,9 +84,7 @@ fn finite_or_overflow(value: f64) -> Result<f64, ImpactError> {
 /// This function deliberately does not compute the closed-form impact time or
 /// any derived trajectory result, so numerical event-location baselines can
 /// share model validation without depending on the analytical oracle.
-pub(crate) fn validate_impact_parameters(
-    parameters: ImpactParameters,
-) -> Result<(), ImpactError> {
+pub(crate) fn validate_impact_parameters(parameters: ImpactParameters) -> Result<(), ImpactError> {
     if !finite(parameters.mass_kg) {
         return Err(ImpactError::NonFiniteMass);
     }
