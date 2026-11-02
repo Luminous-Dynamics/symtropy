@@ -530,13 +530,13 @@ pub fn evaluate_conversion(
         ConversionDisposition::AcceptedAsBoundedSyntheticObservation
     };
 
-    if disposition == ConversionDisposition::AcceptedAsBoundedSyntheticObservation {
-        if let Some(result) = mass_interval {
-            next_cursor.accepted.insert(
-                request.manifest.conversion_id.clone(),
-                (request.clone(), result),
-            );
-        }
+    if disposition == ConversionDisposition::AcceptedAsBoundedSyntheticObservation
+        && let Some(result) = mass_interval
+    {
+        next_cursor.accepted.insert(
+            request.manifest.conversion_id.clone(),
+            (request.clone(), result),
+        );
     }
 
     ConversionResult {
