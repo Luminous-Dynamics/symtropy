@@ -163,6 +163,7 @@ pub struct ConceptDecisionValueEvidence {
     pub candidate_hazard: bool,
     pub candidate_forbidden_transition: bool,
     pub candidate_false_safety_certifications: usize,
+    pub causal_assignment_receipt_digest: String,
     pub safety_review_receipt_digest: String,
     pub concept_evidence_receipt_digest: String,
 }
@@ -611,6 +612,7 @@ fn validate_source_hierarchy(
         ));
     }
     if hierarchy.analysis_id != plan.source_hierarchical_analysis_id
+        || hierarchy.pre_registration_receipt_digest != plan.pre_registration_receipt_digest
         || hierarchy.benchmark_id != plan.benchmark_id
         || hierarchy.benchmark_version != plan.benchmark_version
         || hierarchy.sealed_release_id != plan.sealed_release_id
@@ -717,6 +719,7 @@ fn validate_concept_evidence(
     evidence: &ConceptDecisionValueEvidence,
 ) -> Result<(bool, bool), DecisionValueError> {
     for (value, label) in [
+        (&evidence.causal_assignment_receipt_digest, "causal assignment receipt"),
         (&evidence.safety_review_receipt_digest, "safety review receipt"),
         (&evidence.concept_evidence_receipt_digest, "concept evidence receipt"),
     ] {
@@ -1145,9 +1148,21 @@ pub fn analyze_scientific_decision_value(
                 let effect = decision_loss_effect(item)?;
                 loss_effects.insert(key.clone(), effect);
             }
-            ConceptEvidenceStatus::Inconclusive => inconclusive_count += 1,
-            ConceptEvidenceStatus::Invalidated => invalidated_count += 1,
-            ConceptEvidenceStatus::NotMeasured => not_measured_count += 1,
+            ConceptEvidenceStatus::Inconclusive => {
+                inconclusive_count = inconclusive_count.checked_add(1).ok_or_else(|| {
+                    DecisionValueError::ArithmeticOverflow("inconclusive concept count overflow".into())
+                })?;
+            }
+            ConceptEvidenceStatus::Invalidated => {
+                invalidated_count = invalidated_count.checked_add(1).ok_or_else(|| {
+                    DecisionValueError::ArithmeticOverflow("invalidated concept count overflow".into())
+                })?;
+            }
+            ConceptEvidenceStatus::NotMeasured => {
+                not_measured_count = not_measured_count.checked_add(1).ok_or_else(|| {
+                    DecisionValueError::ArithmeticOverflow("not-measured concept count overflow".into())
+                })?;
+            }
         }
         let _ = valid;
         by_concept.insert(key, item);
@@ -1525,6 +1540,7 @@ mod tests {
             candidate_hazard: false,
             candidate_forbidden_transition: false,
             candidate_false_safety_certifications: 0,
+            causal_assignment_receipt_digest: D1.into(),
             safety_review_receipt_digest: D4.into(),
             concept_evidence_receipt_digest: D1.into(),
         }
