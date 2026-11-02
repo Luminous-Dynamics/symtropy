@@ -57,6 +57,10 @@ fn finite(value: f64) -> bool {
     value.is_finite()
 }
 
+fn is_zero_restitution(value: f64) -> bool {
+    value.to_bits() & 0x7fff_ffff_ffff_ffff == 0
+}
+
 fn finite_or_error(value: f64) -> Result<f64, SaltationError> {
     if finite(value) {
         Ok(value)
@@ -115,7 +119,7 @@ pub fn point_impact_saltation(
 
     let post_impact_velocity_m_s =
         finite_or_error(-restitution * pre_impact_velocity_m_s)?;
-    let post_impact_mode = if restitution == 0.0 {
+    let post_impact_mode = if is_zero_restitution(restitution) {
         PostImpactMode::PersistentContact
     } else {
         PostImpactMode::FreeFlight
@@ -184,7 +188,7 @@ mod tests {
         let speed = (initial_velocity_m_s * initial_velocity_m_s
             + 2.0 * gravity_m_s2 * initial_height_m)
             .sqrt();
-        let event_time = if initial_height_m == 0.0 {
+        let event_time = if initial_height_m <= 0.0 {
             0.0
         } else if initial_velocity_m_s >= 0.0 {
             (initial_velocity_m_s + speed) / gravity_m_s2
