@@ -14,6 +14,14 @@
   ],
   "sources": [
     {
+      "source_id": "MARAD-2024-ENERGY-EFFICIENCY-ALT-FUELS-GUIDE",
+      "title": "Energy Efficiency and Alternative Fuels Technical Guide (December 2024)",
+      "uri": "https://www.maritime.dot.gov/sites/marad.dot.gov/files/2025-03/Energy%20Eff.%20and%20Alt.%20Fuels%20Technical%20Guide%20-%202024.pdf",
+      "evidence_class": "government_technical_guide",
+      "accessed_at": "2026-11-02",
+      "source_notes": "U.S. Maritime Administration guide, Dec 2024. Fuel sections state ~7.6 times MGO tank volume for liquid hydrogen, ~4 times for ammonia and ~2.3 times for methanol. These are source-specific relative volume estimates, not the same table boundary as the RSC 2026 tank-included volumetric energy density."
+    },
+    {
       "source_id": "RSC-2026-CONTAINER-SHIPPING-H2-FUELS",
       "title": "Decarbonizing potential of global container shipping with hydrogen-based fuels",
       "uri": "https://pubs.rsc.org/en/content/articlehtml/2026/ee/d5ee03477a",
@@ -146,6 +154,28 @@
       "storage_assumption": "diesel-like tank geometry with compatible coating or stainless steel",
       "storage_energy_density_mj_per_liter": 15.5,
       "note": "Different tank/system assumption; broadly similar to RSC fuel-volume value but not a measured tank-inclusive ship system."
+    },
+    {
+      "fuel_id": "liquid_hydrogen",
+      "source_id": "MARAD-2024-ENERGY-EFFICIENCY-ALT-FUELS-GUIDE",
+      "estimated_tank_volume_multiple_vs_mgo": 7.6,
+      "basis": "MARAD 2024 guide, liquid hydrogen tank volume relative to MGO",
+      "note": "Distinct guide-specific tank and vessel assumptions. RSC 2026 tank-included volumetric densities imply 7.77x; do not average."
+    },
+    {
+      "fuel_id": "liquid_ammonia",
+      "source_id": "MARAD-2024-ENERGY-EFFICIENCY-ALT-FUELS-GUIDE",
+      "volumetric_fuel_lhv_mj_per_liter": 12.7,
+      "estimated_tank_volume_multiple_vs_mgo": 4,
+      "basis": "MARAD 2024 guide, ammonia liquid volumetric LHV and estimated tank volume relative to MGO",
+      "note": "Rounded guide estimate. MARAD 2022 gives about 4.1x; RSC 2026 tank-included densities imply 3.48x. Different tank assumptions and boundaries; do not average."
+    },
+    {
+      "fuel_id": "methanol",
+      "source_id": "MARAD-2024-ENERGY-EFFICIENCY-ALT-FUELS-GUIDE",
+      "estimated_tank_volume_multiple_vs_mgo": 2.3,
+      "basis": "MARAD 2024 guide, methanol tank volume relative to MGO",
+      "note": "Guide estimate aligns approximately with RSC 2026 tank-included volumetric ratio of 2.30x under that study's assumptions."
     }
   ],
   "design_implications": [
