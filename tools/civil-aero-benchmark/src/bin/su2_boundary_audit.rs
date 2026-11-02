@@ -2,9 +2,7 @@ use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use civil_aero_benchmark::su2_boundary_audit::{
-    Su2BoundaryOptionSpec, audit_su2_boundary_markers,
-};
+use civil_aero_benchmark::su2_boundary_audit::{Su2BoundaryOptionSpec, audit_su2_boundary_markers};
 
 struct Options {
     run_directory: PathBuf,
@@ -64,12 +62,12 @@ fn parse_arguments() -> Result<Options, String> {
             "--config" => configuration_path = Some(value),
             "--mesh" => mesh_path = Some(value),
             "--boundary-option" => {
-                let (name, schema) = value
-                    .split_once('=')
-                    .ok_or_else(|| "--boundary-option must be OPTION=RECORD_WIDTH:MARKER_POSITIONS".to_owned())?;
-                let (width, positions) = schema
-                    .split_once(':')
-                    .ok_or_else(|| "--boundary-option schema must be RECORD_WIDTH:MARKER_POSITIONS".to_owned())?;
+                let (name, schema) = value.split_once('=').ok_or_else(|| {
+                    "--boundary-option must be OPTION=RECORD_WIDTH:MARKER_POSITIONS".to_owned()
+                })?;
+                let (width, positions) = schema.split_once(':').ok_or_else(|| {
+                    "--boundary-option schema must be RECORD_WIDTH:MARKER_POSITIONS".to_owned()
+                })?;
                 let record_width = width
                     .parse::<usize>()
                     .map_err(|error| format!("invalid boundary record width: {error}"))?;
