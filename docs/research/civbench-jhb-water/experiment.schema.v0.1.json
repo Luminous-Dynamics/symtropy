@@ -31,7 +31,7 @@
     },
     "version": {
       "type": "string",
-      "pattern": "^0\\\\.1\\\\.0$"
+      "pattern": "^0\\.1\\.0$"
     },
     "date": {
       "type": "string",
