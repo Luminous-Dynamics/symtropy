@@ -62,6 +62,8 @@ Johannesburg Water's Integrated Annual Report 2024/25 adds a newer reported year
 - 14.7 km water-main and 20.5 km sewer-main replacement reported; upgrading/renewal capex actual R171.733m vs R239.965m budget.
 - 90.29% actual water-meter readings submitted for billing, which is not the same as physical meter coverage.
 
+Derived budget-execution ratios from the annual report are 71.57% for upgrading/renewal capex, 103.63% for water-demand-management capex and 105.09% for repair/maintenance expenditure. These describe financial execution, not physical completion or impact.
+
 This year's evidence allows the benchmark to distinguish **inputs, activities, outputs and outcomes**:
 - inputs: budgets, cash, parts, crew-hours, equipment;
 - activities: procurement, inspection, pressure management, repair, replacement;
