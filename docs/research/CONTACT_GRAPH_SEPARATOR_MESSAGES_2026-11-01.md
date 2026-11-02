@@ -228,3 +228,18 @@ The n-ary composition branch was refreshed against the current binary compositio
 The n-ary six-source fixture now partitions each local affine domain to depth four so the intersection contains a nonempty strictly-admissible interior cell while retaining boundary and excluded regions. This is necessary because the interval partition uses closed children: a child that includes the exact transition face must remain BoundaryOrInconclusive, never StrictlySeparating. The test asserts both that strict interior and the exact full Cartesian product account. The binary-composition base was also rustfmt-normalized at head e0e22917c350a8ecc7811fdf6ed003b76bdb22e before the next merged-tree validation.
 
 A further correctness refinement reclassifies **every source message on the final full-tuple intersection**, rather than blindly copying its parent-cell classification. This matters because a source parent box may be boundary/inconclusive while its intersection with other source cells lies wholly on one strict side. The producer evaluates each source message over the final intersection; the independent verifier independently reconstructs that intersection from the full Cartesian tuple and repeats the classification. A regression covers a coarse boundary parent intersecting three refined regions: strict interior (upgraded to all-local-strict), strict defeater (upgraded to excluded), and transition-crossing (remains boundary/inconclusive).
+
+## Heterogeneous response work: sticking-leaf interval partitions — 2026-11-02
+
+[Issue #3310](https://github.com/Luminous-Dynamics/symtropy/issues/3310) starts the transition from separate regime-specific partition types toward a heterogeneous separator response algebra.
+
+The first executable component is a coverage-preserving interval partitioner for StickingLeafMessage, using the existing outward interval Gaussian-elimination response evaluator as the classification authority. It:
+- chooses a deterministic split axis by estimated affine response variation over the current box;
+- splits only when a representable strict interior midpoint exists;
+- preserves both closed children and their shared face;
+- retains unresolved transition boxes at max depth or node-budget exhaustion;
+- independently replays source classifications, lineages, split geometry and complete root coverage.
+
+The new tests cover strictly sticking boxes, boxes strictly outside the sticking disk domain, an exact disk boundary, a mixed box that must retain strict/interior/excluded/boundary cells, zero node-budget rejection, node-budget frontiers, and a deleted-child coverage negative control.
+
+**Claim boundary:** this is a sticking-leaf partition primitive. It is not yet a common heterogeneous n-ary message join, not a sliding-leaf polynomial message, and not a complete contact-island solver. The subsequent join will use a typed regime tag and reclassify every local response on the final tuple intersection.
