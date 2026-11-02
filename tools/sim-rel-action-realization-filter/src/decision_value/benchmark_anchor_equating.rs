@@ -414,10 +414,6 @@ impl ExactLinkRatio {
         mean_square.checked_sub(&mean.checked_square()?)
     }
 
-    fn checked_square_alias(&self) -> Result<Self, AnchorEquatingError> {
-        self.checked_square()
-    }
-
     fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, AnchorEquatingError> {
         let left = self.numerator.checked_mul(i128::try_from(other.denominator).map_err(|_| {
             AnchorEquatingError::ArithmeticOverflow("ratio comparison denominator exceeds i128".into())
@@ -778,7 +774,9 @@ fn validate_anchor_responses(
             "older/newer anchor response sets are not paired over the same anchor-agent-run keys".into(),
         ));
     }
-    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool)>> = BTreeMap::new();
+    // Tuple fields are: valid_for_drift, any_outcome_diff, success_diff,
+    // hazard_diff, abstention_diff.
+    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool, bool, bool)>> = BTreeMap::new();
     let mut paired_count = 0usize;
     let mut valid_pair_count = 0usize;
     let mut invalid_pair_count = 0usize;
@@ -796,26 +794,35 @@ fn validate_anchor_responses(
         paired_count = paired_count.checked_add(1).ok_or_else(|| {
             AnchorEquatingError::ArithmeticOverflow("paired anchor count overflow".into())
         })?;
-        if old.valid != new.valid {
-            per_anchor.entry(old.anchor_id.clone()).or_default().push((true, old.safe_success != new.safe_success, old.any_hazard != new.any_hazard || old.abstained != new.abstained));
+        if old.valid && new.valid {
             valid_pair_count = valid_pair_count.checked_add(1).ok_or_else(|| {
                 AnchorEquatingError::ArithmeticOverflow("valid pair count overflow".into())
             })?;
-        } else if !old.valid {
-            invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
-                AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
-            })?;
-            per_anchor.entry(old.anchor_id.clone()).or_default().push((false, false, false));
-        } else {
+            let success_diff = old.safe_success != new.safe_success;
+            let hazard_diff = old.any_hazard != new.any_hazard;
+            let abstention_diff = old.abstained != new.abstained;
+            per_anchor.entry(old.anchor_id.clone()).or_default().push((
+                true,
+                success_diff || hazard_diff || abstention_diff,
+                success_diff,
+                hazard_diff,
+                abstention_diff,
+            ));
+        } else if old.valid != new.valid {
+            // A validity mismatch is itself drift: one form could use the
+            // response while the other could not.
             valid_pair_count = valid_pair_count.checked_add(1).ok_or_else(|| {
                 AnchorEquatingError::ArithmeticOverflow("valid pair count overflow".into())
             })?;
             per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                old.safe_success != new.safe_success
-                    || old.any_hazard != new.any_hazard
-                    || old.abstained != new.abstained,
-                old.safe_success != new.safe_success,
-                old.any_hazard != new.any_hazard,
+                true, true, false, false, false,
+            ));
+        } else {
+            invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
+            })?;
+            per_anchor.entry(old.anchor_id.clone()).or_default().push((
+                false, false, false, false, false,
             ));
         }
     }
@@ -837,19 +844,17 @@ fn validate_anchor_responses(
         let mut safe = 0usize;
         let mut hazard = 0usize;
         let mut abstention = 0usize;
-        for (any_diff, safe_diff, hazard_or_abstention_diff) in observations {
-            if *any_diff || *safe_diff || *hazard_or_abstention_diff {
+        for (valid, any_diff, safe_diff, hazard_diff, abstention_diff) in observations {
+            if *valid {
+                item_valid = item_valid.checked_add(1).ok_or_else(|| {
+                    AnchorEquatingError::ArithmeticOverflow("anchor valid response count overflow".into())
+                })?;
                 if *any_diff { any += 1; }
                 if *safe_diff { safe += 1; }
-                if *hazard_or_abstention_diff { hazard += 1; }
-            }
-            if *any_diff || *safe_diff || *hazard_or_abstention_diff || observations.len() > 0 {
-                item_valid = item_valid.saturating_add(1);
+                if *hazard_diff { hazard += 1; }
+                if *abstention_diff { abstention += 1; }
             }
         }
-        // Invalid response pairs are excluded from drift denominators.
-        let invalid_here = observations.iter().filter(|(any, safe, hazard)| !*any && !*safe && !*hazard).count();
-        item_valid = item_valid.saturating_sub(invalid_here);
         let item_disagreements = any;
         if item_valid == 0 {
             return Err(AnchorEquatingError::AnchorResponse(format!(
@@ -885,7 +890,7 @@ fn validate_anchor_responses(
             any_outcome_disagreement_count: item_disagreements,
             safe_success_disagreement_count: safe,
             hazard_disagreement_count: hazard,
-            abstention_disagreement_count: 0,
+            abstention_disagreement_count: abstention,
             any_outcome_disagreement_rate: Some(rate),
         });
     }
@@ -1087,15 +1092,22 @@ pub fn link_benchmark_forms(
             "older/newer form score panels do not contain the same reference-agent set".into(),
         ));
     }
-    for (old_score, new_score) in older_agent_scores.iter().zip(newer_agent_scores.iter()) {
-        if old_score.agent_id != new_score.agent_id
-            || old_score.agent_configuration_digest != new_score.agent_configuration_digest
-            || old_score.agent_stratum_id != new_score.agent_stratum_id
-        {
-            return Err(AnchorEquatingError::ReferencePanel(
-                "reference-agent configuration or stratum changed between forms".into(),
-            ));
-        }
+    let old_score_metadata = older_agent_scores.iter()
+        .map(|score| (
+            score.agent_id.as_str(),
+            (score.agent_configuration_digest.as_str(), score.agent_stratum_id.as_str()),
+        ))
+        .collect::<BTreeMap<_, _>>();
+    let new_score_metadata = newer_agent_scores.iter()
+        .map(|score| (
+            score.agent_id.as_str(),
+            (score.agent_configuration_digest.as_str(), score.agent_stratum_id.as_str()),
+        ))
+        .collect::<BTreeMap<_, _>>();
+    if old_score_metadata != new_score_metadata {
+        return Err(AnchorEquatingError::ReferencePanel(
+            "reference-agent configuration or stratum changed between forms".into(),
+        ));
     }
 
     let anchor_ids = selected;
