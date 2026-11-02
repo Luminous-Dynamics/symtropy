@@ -61,6 +61,10 @@ pub struct MetrologyReportReference {
     pub document_sha256: String,
     /// Stable source-native result/characteristic identifier within the report.
     pub native_result_id: String,
+    pub subject_component_id: String,
+    pub subject_serial_id: String,
+    pub subject_design_revision: String,
+    pub subject_specification_revision: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,6 +120,7 @@ pub enum ComponentReason {
     MeasurementEvidenceRevoked,
     MeasurementEvidenceUnknown,
     MissingReportReference,
+    MeasurementReportSubjectMismatch,
     ReportSchemaDigestInvalid,
     ReportDocumentDigestInvalid,
     UnsupportedReportFormatVersion,
@@ -249,6 +254,15 @@ pub fn evaluate_dimension(
     {
         reasons.push(ComponentReason::MissingReportReference);
         unknown = true;
+    }
+    if measurement.report_reference.subject_component_id != measurement.component_id
+        || measurement.report_reference.subject_serial_id != measurement.serial_id
+        || measurement.report_reference.subject_design_revision != measurement.design_revision
+        || measurement.report_reference.subject_specification_revision
+            != measurement.specification_revision
+    {
+        reasons.push(ComponentReason::MeasurementReportSubjectMismatch);
+        inconsistent = true;
     }
     if !valid_sha256(&measurement.report_reference.schema_sha256) {
         reasons.push(ComponentReason::ReportSchemaDigestInvalid);
@@ -540,6 +554,10 @@ mod tests {
                 document_sha256:
                     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
                 native_result_id: "qif-result-500-thickness".into(),
+                subject_component_id: "tbm-segment-001".into(),
+                subject_serial_id: "serial-7781".into(),
+                subject_design_revision: "design-r4".into(),
+                subject_specification_revision: "spec-r2".into(),
             },
         }
     }
@@ -839,6 +857,26 @@ mod tests {
         invalid_schema_digest.report_reference.schema_sha256 = "not-a-digest".into();
         assert_eq!(
             evaluate(&c, &r, &invalid_schema_digest).disposition,
+            ComponentDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn metrology_report_cannot_be_reused_for_another_serial_or_design() {
+        let c = component();
+        let r = requirement();
+
+        let mut different_serial = measurement();
+        different_serial.report_reference.subject_serial_id = "serial-other".into();
+        assert_eq!(
+            evaluate(&c, &r, &different_serial).disposition,
+            ComponentDisposition::EvidenceInconsistent
+        );
+
+        let mut different_design = measurement();
+        different_design.report_reference.subject_design_revision = "design-r3".into();
+        assert_eq!(
+            evaluate(&c, &r, &different_design).disposition,
             ComponentDisposition::EvidenceInconsistent
         );
     }
