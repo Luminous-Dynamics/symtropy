@@ -106,6 +106,9 @@ pub struct OutcomeMeasureDefinition {
 pub struct ResourceChannelDefinition {
     pub channel_id: String,
     pub unit: String,
+    /// Preregistered hard per-concept cap; baseline and candidate use the
+    /// same declared unit and ceiling.
+    pub maximum_amount_per_concept: ExactValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -142,7 +145,7 @@ pub struct VerifiedOutcomeMeasurement {
     pub calibration_chain_digest: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ConceptEvidenceStatus {
     Verified,
     Inconclusive,
@@ -594,6 +597,13 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     for channel in &plan.resource_channels {
         require_id(&channel.channel_id, "resource channel ID")?;
         require_id(&channel.unit, "resource channel unit")?;
+        if channel.maximum_amount_per_concept.denominator == 0
+            || !channel.maximum_amount_per_concept.is_non_negative()
+        {
+            return Err(DecisionValueError::InvalidPlan(
+                "resource channel hard cap must be a non-negative exact value".into(),
+            ));
+        }
         if !channel_ids.insert(channel.channel_id.clone()) {
             return Err(DecisionValueError::InvalidPlan(
                 "resource channel IDs must be unique".into(),
@@ -702,19 +712,24 @@ fn validate_resource_use(
     use_record: &ConceptArmResourceUse,
 ) -> Result<BTreeMap<String, &ResourceMeasurement>, DecisionValueError> {
     let allowed = plan.resource_channels.iter()
-        .map(|channel| channel.channel_id.as_str())
-        .collect::<BTreeSet<_>>();
+        .map(|channel| (channel.channel_id.as_str(), &channel.maximum_amount_per_concept))
+        .collect::<BTreeMap<_, _>>();
     let mut values = BTreeMap::new();
     for measurement in &use_record.measurements {
         require_id(&measurement.channel_id, "resource measurement channel")?;
-        if !allowed.contains(measurement.channel_id.as_str()) {
-            return Err(DecisionValueError::ResourceAccounting(
+        let maximum = allowed.get(measurement.channel_id.as_str()).ok_or_else(|| {
+            DecisionValueError::ResourceAccounting(
                 "resource observation contains a channel not preregistered in the plan".into(),
-            ));
-        }
+            )
+        })?;
         if measurement.amount.denominator == 0 || !measurement.amount.is_non_negative() {
             return Err(DecisionValueError::ResourceAccounting(
-                "resource consumption cannot be negative".into(),
+                "resource consumption must be a non-negative exact value".into(),
+            ));
+        }
+        if measurement.amount.compare(maximum)? == std::cmp::Ordering::Greater {
+            return Err(DecisionValueError::ResourceAccounting(
+                "resource consumption exceeds the preregistered per-concept hard cap".into(),
             ));
         }
         if measurement.complete {
@@ -1382,10 +1397,12 @@ mod tests {
                 ResourceChannelDefinition {
                     channel_id: "tokens".into(),
                     unit: "tokens".into(),
+                    maximum_amount_per_concept: q(10_000, 1),
                 },
                 ResourceChannelDefinition {
                     channel_id: "energy".into(),
                     unit: "mJ".into(),
+                    maximum_amount_per_concept: q(50_000, 1),
                 },
             ],
         }
@@ -1709,6 +1726,16 @@ mod tests {
         assert!(matches!(
             analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]),
             Err(DecisionValueError::MissingOutcomeEvidence(_))
+        ));
+    }
+
+    #[test]
+    fn resource_channel_hard_cap_is_enforced_for_each_concept() {
+        let mut item = evidence(D3, 8, 4);
+        item.candidate_resource_use.measurements[0].amount = q(10_001, 1);
+        assert!(matches!(
+            analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]),
+            Err(DecisionValueError::ResourceAccounting(_))
         ));
     }
 
