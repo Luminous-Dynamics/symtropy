@@ -312,7 +312,28 @@ mod tests {
 
         // The reordered null vectors remain a complete kernel basis because
         // block permutation is invertible and the selected minor's rank is
-        // unchanged. Recheck all 64 outputs rather than assuming labels.
+        // unchanged. Recheck every permuted cube vertex and the tracked
+        // physical contact's allocation-sensitive normal-load range.
+        let permuted_body_impulse = scatter(&permuted_jacobian, &permuted_base);
+        let mut observed_tracked_load = [i128::MAX, i128::MIN];
+        for corner in 0_u8..64 {
+            let candidate = build_candidate(corner, permuted_base, &permuted_basis);
+            assert_eq!(
+                scatter(&permuted_jacobian, &candidate),
+                permuted_body_impulse
+            );
+            for contact in 0..4 {
+                let offset = contact * 3;
+                let normal = candidate[offset];
+                let tangent_1 = candidate[offset + 1];
+                let tangent_2 = candidate[offset + 2];
+                assert!(normal > 0);
+                assert!(normal * normal > tangent_1 * tangent_1 + tangent_2 * tangent_2);
+            }
+            observed_tracked_load[0] = observed_tracked_load[0].min(candidate[6]);
+            observed_tracked_load[1] = observed_tracked_load[1].max(candidate[6]);
+        }
+        assert_eq!(observed_tracked_load, [48, 52]);
         for direction in permuted_basis {
             assert_eq!(scatter(&permuted_jacobian, &direction), [0_i128; 6]);
         }
