@@ -10,7 +10,10 @@
 //! Signorini-Coulomb problem. Every reconstructed candidate is checked against
 //! the original 9x9 contact law and full-island energy.
 
-use crate::coupled_friction::{CoupledCoulombRegime, solve_coupled_signorini_coulomb};
+use crate::coupled_friction::{
+    CoupledCoulombCandidate, CoupledCoulombRegime, CoupledCoulombStatus,
+    solve_coupled_signorini_coulomb,
+};
 use nalgebra::{Matrix3, SMatrix, SVector};
 
 type Matrix9 = SMatrix<f64, 9, 9>;
@@ -3106,4 +3109,278 @@ fn sticking_separator_partition_retains_node_budget_frontier_and_rejects_a_gap()
     missing_child.pop();
     assert!(!message.verify_box_cover(&root, &missing_child));
     assert!(message.partition_separator_box(&root, 8, 0).is_err());
+}
+
+/// A local sliding leaf whose self-contact response depends on a separator
+/// impulse through q_leaf_eff = q_leaf + B^T p_separator.
+#[derive(Clone, Debug)]
+struct SlidingLeafMessage {
+    self_operator: Matrix3<f64>,
+    separator_coupling: Matrix3<f64>,
+    free_velocity: SVector<f64, 3>,
+    friction_coefficient: f64,
+}
+
+/// Candidate provenance only. The ordinal is stable within one returned
+/// response, but is not a cross-run algebraic root identity.
+#[derive(Clone, Debug)]
+struct SlidingLeafBranchCandidate {
+    candidate_ordinal: usize,
+    candidate: CoupledCoulombCandidate,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SlidingLeafPointClassification {
+    /// One or more sliding candidates were returned by the floating-point
+    /// single-contact enumerator; independent root-box certification is pending.
+    CandidateSetNeedsCertification,
+    /// The bounded numerical candidate set contains no sliding candidate.
+    /// This is not a global interval exclusion over separator domains.
+    NoSlidingCandidateInNumericalSet,
+    /// The underlying single-contact enumerator could not classify completely.
+    Inconclusive,
+}
+
+#[derive(Clone, Debug)]
+struct SlidingLeafPointResponse {
+    effective_free_velocity: SVector<f64, 3>,
+    solver_status: CoupledCoulombStatus,
+    sliding_quartic: [f64; 5],
+    sliding_angles: Vec<f64>,
+    sliding_candidates: Vec<SlidingLeafBranchCandidate>,
+    non_sliding_candidate_count: usize,
+    classification: SlidingLeafPointClassification,
+}
+
+impl SlidingLeafMessage {
+    /// Generate a pointwise sliding candidate set for one separator impulse.
+    ///
+    /// This adapter preserves every sliding branch emitted by the existing
+    /// quartic reference, but deliberately does not promote floating-point
+    /// root enumeration to a certified branch-completeness result.
+    fn candidate_response_at(
+        &self,
+        separator_impulse: &SVector<f64, 3>,
+        relative_tolerance: f64,
+    ) -> Result<SlidingLeafPointResponse, &'static str> {
+        if !self
+            .self_operator
+            .iter()
+            .chain(self.separator_coupling.iter())
+            .chain(self.free_velocity.iter())
+            .all(|value| value.is_finite())
+            || !self.friction_coefficient.is_finite()
+            || self.friction_coefficient < 0.0
+            || !separator_impulse.iter().all(|value| value.is_finite())
+            || !relative_tolerance.is_finite()
+            || relative_tolerance <= 0.0
+            || relative_tolerance >= 0.1
+        {
+            return Err("sliding leaf message contains invalid or non-finite input");
+        }
+
+        let effective_free_velocity =
+            self.free_velocity + self.separator_coupling.transpose() * separator_impulse;
+        if !effective_free_velocity
+            .iter()
+            .all(|value| value.is_finite())
+        {
+            return Err("sliding leaf effective free velocity is non-finite");
+        }
+
+        let outcome = solve_coupled_signorini_coulomb(
+            &self.self_operator,
+            &effective_free_velocity,
+            self.friction_coefficient,
+            relative_tolerance,
+        )
+        .map_err(|_| "sliding leaf self-contact problem is invalid or unsupported")?;
+
+        let mut sliding_candidates = Vec::new();
+        let mut non_sliding_candidate_count = 0;
+        for (candidate_ordinal, candidate) in outcome.candidates.into_iter().enumerate() {
+            if candidate.regime == CoupledCoulombRegime::Sliding {
+                sliding_candidates.push(SlidingLeafBranchCandidate {
+                    candidate_ordinal,
+                    candidate,
+                });
+            } else {
+                non_sliding_candidate_count += 1;
+            }
+        }
+
+        let classification = if outcome.status == CoupledCoulombStatus::Inconclusive {
+            SlidingLeafPointClassification::Inconclusive
+        } else if sliding_candidates.is_empty() {
+            SlidingLeafPointClassification::NoSlidingCandidateInNumericalSet
+        } else {
+            SlidingLeafPointClassification::CandidateSetNeedsCertification
+        };
+
+        Ok(SlidingLeafPointResponse {
+            effective_free_velocity,
+            solver_status: outcome.status,
+            sliding_quartic: outcome.sliding_quartic,
+            sliding_angles: outcome.sliding_angles,
+            sliding_candidates,
+            non_sliding_candidate_count,
+            classification,
+        })
+    }
+}
+
+#[cfg(test)]
+mod sliding_leaf_candidate_message_tests {
+    use super::*;
+
+    fn identity_sliding_leaf(
+        free_velocity: SVector<f64, 3>,
+        friction_coefficient: f64,
+    ) -> SlidingLeafMessage {
+        SlidingLeafMessage {
+            self_operator: Matrix3::identity(),
+            separator_coupling: Matrix3::zeros(),
+            free_velocity,
+            friction_coefficient,
+        }
+    }
+
+    #[test]
+    fn sliding_leaf_adapter_preserves_every_returned_sliding_candidate() {
+        let self_operator = Matrix3::new(
+            0.59497432,
+            -0.39054620,
+            -0.63542426,
+            -0.39054620,
+            1.65052340,
+            0.80910089,
+            -0.63542426,
+            0.80910089,
+            0.94522735,
+        );
+        let free_velocity = SVector::<f64, 3>::new(-0.10770302, 1.49149027, -0.95561905);
+        let friction_coefficient = 1.383289774658335;
+        let direct = solve_coupled_signorini_coulomb(
+            &self_operator,
+            &free_velocity,
+            friction_coefficient,
+            1.0e-11,
+        )
+        .unwrap();
+        assert_eq!(direct.status, CoupledCoulombStatus::MultipleSolutions);
+        let expected_sliding = direct
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.regime == CoupledCoulombRegime::Sliding)
+            .count();
+        assert!(expected_sliding > 0);
+
+        let message = SlidingLeafMessage {
+            self_operator,
+            separator_coupling: Matrix3::zeros(),
+            free_velocity,
+            friction_coefficient,
+        };
+        let response = message
+            .candidate_response_at(&SVector::<f64, 3>::zeros(), 1.0e-11)
+            .unwrap();
+
+        assert_eq!(
+            response.solver_status,
+            CoupledCoulombStatus::MultipleSolutions
+        );
+        assert_eq!(
+            response.classification,
+            SlidingLeafPointClassification::CandidateSetNeedsCertification
+        );
+        assert_eq!(response.sliding_candidates.len(), expected_sliding);
+        assert_eq!(
+            response.non_sliding_candidate_count + expected_sliding,
+            direct.candidates.len()
+        );
+        let candidate_ordinals = response
+            .sliding_candidates
+            .iter()
+            .map(|branch| branch.candidate_ordinal)
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(candidate_ordinals.len(), response.sliding_candidates.len());
+        assert!(
+            candidate_ordinals
+                .iter()
+                .all(|ordinal| *ordinal < direct.candidates.len())
+        );
+        assert_eq!(response.sliding_quartic, direct.sliding_quartic);
+        assert_eq!(response.sliding_angles, direct.sliding_angles);
+
+        for branch in &response.sliding_candidates {
+            let candidate = &branch.candidate;
+            assert_eq!(candidate.regime, CoupledCoulombRegime::Sliding);
+            assert!(candidate.disk_multiplier > 0.0);
+            assert!(candidate.normal_complementarity_residual <= 1.0e-7);
+            assert!(candidate.tangential_kkt_residual <= 1.0e-7);
+            assert!(candidate.coulomb_disk_violation <= 1.0e-7);
+
+            let reconstructed_velocity =
+                response.effective_free_velocity + message.self_operator * candidate.impulse;
+            assert!((reconstructed_velocity - candidate.post_velocity).norm() <= 1.0e-9);
+            assert!(candidate.kinetic_energy_delta.is_finite());
+        }
+    }
+
+    #[test]
+    fn separator_impulse_enters_sliding_leaf_through_transposed_coupling() {
+        let coupling = Matrix3::new(0.0, 0.1, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::identity(),
+            separator_coupling: coupling,
+            free_velocity: SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
+            friction_coefficient: 0.5,
+        };
+        let separator_impulse = SVector::<f64, 3>::new(0.0, 2.0, 0.0);
+        let response = message
+            .candidate_response_at(&separator_impulse, 1.0e-12)
+            .unwrap();
+        let expected_free_velocity =
+            message.free_velocity + message.separator_coupling.transpose() * separator_impulse;
+
+        assert_eq!(response.effective_free_velocity, expected_free_velocity);
+        assert_eq!(response.effective_free_velocity[0], -0.8);
+        assert!(response.sliding_candidates.iter().all(|branch| {
+            branch.candidate.regime == CoupledCoulombRegime::Sliding
+                && branch.candidate.disk_multiplier > 0.0
+        }));
+    }
+
+    #[test]
+    fn sticking_only_point_is_not_misreported_as_a_sliding_branch() {
+        let message = identity_sliding_leaf(SVector::<f64, 3>::new(-1.0, 0.2, 0.1), 0.5);
+        let response = message
+            .candidate_response_at(&SVector::<f64, 3>::zeros(), 1.0e-12)
+            .unwrap();
+
+        assert_eq!(
+            response.classification,
+            SlidingLeafPointClassification::NoSlidingCandidateInNumericalSet
+        );
+        assert!(response.sliding_candidates.is_empty());
+        assert!(response.non_sliding_candidate_count > 0);
+        assert_ne!(response.solver_status, CoupledCoulombStatus::Inconclusive);
+    }
+
+    #[test]
+    fn sliding_leaf_adapter_rejects_nonfinite_separator_and_invalid_friction() {
+        let mut message = identity_sliding_leaf(SVector::<f64, 3>::new(-1.0, 1.0, 0.0), 0.5);
+        assert!(
+            message
+                .candidate_response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), 1.0e-12,)
+                .is_err()
+        );
+
+        message.friction_coefficient = -0.1;
+        assert!(
+            message
+                .candidate_response_at(&SVector::<f64, 3>::zeros(), 1.0e-12)
+                .is_err()
+        );
+    }
 }
