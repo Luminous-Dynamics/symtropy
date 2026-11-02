@@ -612,8 +612,8 @@ mod tests {
     #[test]
     fn unsteady_dual_time_policy_requires_inner_temporal_and_window_evidence() {
         let context = context(
-            RiskBand::Moderate,
-            RiskBand::Moderate,
+            ModelInfluence::Moderate,
+            DecisionConsequence::Moderate,
             DomainExposure::InDomain,
             AnalysisRegime::UnsteadyDualTime,
         );
@@ -632,8 +632,8 @@ mod tests {
     #[test]
     fn all_source_bound_required_gates_admit_and_replay_deterministically() {
         let context = context(
-            RiskBand::Low,
-            RiskBand::Low,
+            ModelInfluence::Low,
+            DecisionConsequence::Low,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         );
@@ -652,8 +652,8 @@ mod tests {
     #[test]
     fn missing_failed_and_unknown_gates_withhold_admission() {
         let context = context(
-            RiskBand::Moderate,
-            RiskBand::Moderate,
+            ModelInfluence::Moderate,
+            DecisionConsequence::Moderate,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         );
@@ -680,8 +680,8 @@ mod tests {
     #[test]
     fn passing_gate_without_source_digest_or_reference_is_rejected() {
         let context = context(
-            RiskBand::Low,
-            RiskBand::Low,
+            ModelInfluence::Low,
+            DecisionConsequence::Low,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         );
@@ -697,8 +697,8 @@ mod tests {
     #[test]
     fn extra_evidence_is_preserved_but_does_not_lower_the_required_profile() {
         let context = context(
-            RiskBand::Low,
-            RiskBand::Low,
+            ModelInfluence::Low,
+            DecisionConsequence::Low,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         );
