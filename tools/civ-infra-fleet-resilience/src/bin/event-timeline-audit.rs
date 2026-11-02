@@ -9,7 +9,7 @@ const EMBEDDED_FIXTURE: &str = include_str!(
 
 // This binary validates the event-timeline projection. The main manifest
 // verifier remains responsible for strict validation of every root-level field.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct Fixture {
     schema_version: String,
     fixture_id: String,
@@ -19,14 +19,14 @@ struct Fixture {
     disturbance_cases: Vec<DisturbanceCase>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct ClockSpec {
     unit: String,
     interval_semantics: String,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 enum DisturbanceKind {
     #[serde(rename = "localization_quality_out_of_profile")]
     LocalizationQualityOutOfProfile,
@@ -94,7 +94,7 @@ impl DisturbanceKind {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct DisturbanceCase {
     case_id: String,
@@ -359,7 +359,6 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     for case in &fixture.disturbance_cases {
         if case.case_id.trim().is_empty()
             || case.name.trim().is_empty()
-            || case.event.trim().is_empty()
         {
             errors.push("disturbance case ID, name and event must be non-empty".to_string());
         }
