@@ -254,9 +254,8 @@ mod tests {
         let mut parameters = fixture();
         parameters.initial_height_m = 0.999_999_9;
         let analytic = first_impact(parameters).expect("analytic reference");
-        let result =
-            bisect_first_impact(parameters, 0.0, 1.0, 1.0e-10, 1.0e-10, 128)
-                .expect("crossing is in the previous step");
+        let result = bisect_first_impact(parameters, 0.0, 1.0, 1.0e-10, 1.0e-10, 128)
+            .expect("crossing is in the previous step");
 
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(result.estimated_event_time_s < 1.0);
@@ -281,9 +280,8 @@ mod tests {
         let mut parameters = fixture();
         parameters.initial_velocity_m_s = -3.0;
         let analytic = first_impact(parameters).expect("analytic reference");
-        let result =
-            bisect_first_impact(parameters, 0.0, 0.5, 1.0e-10, 1.0e-10, 128)
-                .expect("crossing bracket");
+        let result = bisect_first_impact(parameters, 0.0, 0.5, 1.0e-10, 1.0e-10, 128)
+            .expect("crossing bracket");
 
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(
@@ -295,8 +293,7 @@ mod tests {
     #[test]
     fn iteration_limit_is_visible_and_returns_remaining_bracket() {
         let result =
-            bisect_first_impact(fixture(), 0.0, 2.0, 1.0e-16, 1.0e-16, 1)
-                .expect("valid bracket");
+            bisect_first_impact(fixture(), 0.0, 2.0, 1.0e-16, 1.0e-16, 1).expect("valid bracket");
 
         assert_eq!(result.status, LocalizationStatus::IterationLimit);
         assert!(result.bracket_width_s > 1.0e-16);
