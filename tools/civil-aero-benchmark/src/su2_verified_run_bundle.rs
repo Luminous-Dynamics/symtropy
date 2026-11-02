@@ -452,13 +452,20 @@ pub fn create_su2_verified_run_bundle(
     {
         return Err("production receipt, history, screen, termination and lineage identities differ".to_owned());
     }
-    let expected_termination_mode = if matches!(
+    let expected_termination_mode = match (
+        preflight.convergence_protocol.time_domain,
         &preflight.convergence_protocol.window,
-        crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }
     ) {
-        "time_window"
-    } else {
-        "steady"
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => "steady",
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            "time_window"
+        }
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => {
+            "unsteady_no_window"
+        }
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            return Err("time-window convergence is incompatible with TIME_DOMAIN=NO".to_owned());
+        }
     };
     if termination.mode != expected_termination_mode {
         return Err("native solver termination mode differs from declared convergence protocol".to_owned());
