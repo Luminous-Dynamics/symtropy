@@ -66,6 +66,103 @@ pub enum UnknownConditionState {
     Unbounded,
 }
 
+/// Evidence produced at the closeout stage, separate from capability admission.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyntheticCompletionEvidence {
+    pub evidence_id: String,
+    pub work_package_id: String,
+    pub site_snapshot_revision: String,
+    pub as_built_revision: String,
+    pub inspection_state: InspectionState,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompletionDisposition {
+    NotRequired,
+    AcceptedForSyntheticCloseout,
+    EvidencePending,
+    EvidenceRejected,
+    EvidenceInconsistent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompletionReason {
+    MissingInspectionEvidence,
+    InvalidEvidenceIdentity,
+    WorkPackageMismatch,
+    SiteSnapshotRevisionMismatch,
+    AsBuiltRevisionMismatch,
+    InspectionPending,
+    InspectionNotRequired,
+    InspectionRejected,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompletionResult {
+    pub disposition: CompletionDisposition,
+    pub reasons: Vec<CompletionReason>,
+}
+
+/// Evaluate post-work evidence. This never authorizes dispatch or field operation.
+#[must_use]
+pub fn evaluate_synthetic_completion(
+    task: &SyntheticWorkPackage,
+    evidence: Option<&SyntheticCompletionEvidence>,
+) -> CompletionResult {
+    if !task.inspection_required {
+        return CompletionResult {
+            disposition: CompletionDisposition::NotRequired,
+            reasons: Vec::new(),
+        };
+    }
+
+    let Some(evidence) = evidence else {
+        return CompletionResult {
+            disposition: CompletionDisposition::EvidencePending,
+            reasons: vec![CompletionReason::MissingInspectionEvidence],
+        };
+    };
+
+    let mut reasons = Vec::new();
+    if evidence.evidence_id.trim().is_empty() {
+        reasons.push(CompletionReason::InvalidEvidenceIdentity);
+    }
+    if evidence.work_package_id != task.work_package_id {
+        reasons.push(CompletionReason::WorkPackageMismatch);
+    }
+    if evidence.site_snapshot_revision != task.site_snapshot_revision {
+        reasons.push(CompletionReason::SiteSnapshotRevisionMismatch);
+    }
+    if evidence.as_built_revision != task.expected_as_built_revision {
+        reasons.push(CompletionReason::AsBuiltRevisionMismatch);
+    }
+    if !reasons.is_empty() {
+        return CompletionResult {
+            disposition: CompletionDisposition::EvidenceInconsistent,
+            reasons,
+        };
+    }
+
+    match evidence.inspection_state {
+        InspectionState::Accepted => CompletionResult {
+            disposition: CompletionDisposition::AcceptedForSyntheticCloseout,
+            reasons,
+        },
+        InspectionState::Pending | InspectionState::NotRequired => CompletionResult {
+            disposition: CompletionDisposition::EvidencePending,
+            reasons: vec![if evidence.inspection_state == InspectionState::Pending {
+                CompletionReason::InspectionPending
+            } else {
+                CompletionReason::InspectionNotRequired
+            }],
+        },
+        InspectionState::Rejected => CompletionResult {
+            disposition: CompletionDisposition::EvidenceRejected,
+            reasons: vec![CompletionReason::InspectionRejected],
+        },
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyntheticWorkPackage {
     pub work_package_id: String,
@@ -88,7 +185,6 @@ pub struct SyntheticWorkPackage {
     pub operator_approval_required: bool,
     pub operator_approval: OperatorApproval,
     pub inspection_required: bool,
-    pub inspection_state: InspectionState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,8 +220,6 @@ pub enum MatchReason {
     UnknownSiteConditions,
     OperatorApprovalPending,
     OperatorDeclined,
-    InspectionPending,
-    InspectionRejected,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -281,20 +375,6 @@ pub fn evaluate_synthetic_match(
         reasons.push(MatchReason::OperatorDeclined);
         incompatible = true;
     }
-    if task.inspection_required {
-        match task.inspection_state {
-            InspectionState::Accepted => {}
-            InspectionState::Rejected => {
-                reasons.push(MatchReason::InspectionRejected);
-                incompatible = true;
-            }
-            InspectionState::Pending | InspectionState::NotRequired => {
-                reasons.push(MatchReason::InspectionPending);
-                unknown = true;
-            }
-        }
-    }
-
     let disposition = if inconsistent {
         MatchDisposition::EvidenceInconsistent
     } else if unsupported {
@@ -363,7 +443,6 @@ mod tests {
             operator_approval_required: false,
             operator_approval: OperatorApproval::NotRequired,
             inspection_required: false,
-            inspection_state: InspectionState::NotRequired,
         }
     }
 
@@ -466,18 +545,62 @@ mod tests {
         );
     }
     #[test]
-    fn missing_or_rejected_inspection_never_passes() {
+    fn post_work_inspection_does_not_block_capability_admission() {
         let mut t = task();
         t.inspection_required = true;
-        t.inspection_state = InspectionState::Pending;
         assert_eq!(
             evaluate_synthetic_match(&profile(), &t).disposition,
-            MatchDisposition::UnknownReviewRequired
+            MatchDisposition::CompatibleForSyntheticCase
         );
-        t.inspection_state = InspectionState::Rejected;
+    }
+
+    #[test]
+    fn closeout_requires_revision_bound_accepted_inspection() {
+        let mut t = task();
+        t.inspection_required = true;
         assert_eq!(
-            evaluate_synthetic_match(&profile(), &t).disposition,
-            MatchDisposition::Incompatible
+            evaluate_synthetic_completion(&t, None).disposition,
+            CompletionDisposition::EvidencePending
+        );
+
+        let mut evidence = SyntheticCompletionEvidence {
+            evidence_id: "inspection-91".into(),
+            work_package_id: "wp-17".into(),
+            site_snapshot_revision: "site-v12".into(),
+            as_built_revision: "asbuilt-7".into(),
+            inspection_state: InspectionState::Pending,
+        };
+        assert_eq!(
+            evaluate_synthetic_completion(&t, Some(&evidence)).disposition,
+            CompletionDisposition::EvidencePending
+        );
+
+        evidence.site_snapshot_revision = "stale-site".into();
+        assert_eq!(
+            evaluate_synthetic_completion(&t, Some(&evidence)).disposition,
+            CompletionDisposition::EvidenceInconsistent
+        );
+
+        evidence.site_snapshot_revision = "site-v12".into();
+        evidence.inspection_state = InspectionState::Accepted;
+        assert_eq!(
+            evaluate_synthetic_completion(&t, Some(&evidence)).disposition,
+            CompletionDisposition::AcceptedForSyntheticCloseout
+        );
+
+        evidence.inspection_state = InspectionState::Rejected;
+        assert_eq!(
+            evaluate_synthetic_completion(&t, Some(&evidence)).disposition,
+            CompletionDisposition::EvidenceRejected
+        );
+    }
+
+    #[test]
+    fn closeout_inspection_not_required_is_explicit() {
+        let t = task();
+        assert_eq!(
+            evaluate_synthetic_completion(&t, None).disposition,
+            CompletionDisposition::NotRequired
         );
     }
     #[test]
