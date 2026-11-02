@@ -152,7 +152,7 @@ if [ "${STFR_CHECK_NANODRONE_RECOVERABILITY:-0}" = "1" ]; then
     --max-tracking-rmse-m 0.5 --recoverability-threshold 0.5 \
     --bootstrap 50 --seed 17 --evidence-class synthetic --output "$out"
   jq -e '
-    .schema_version == "symtropy-nanodrone-recoverability-frontier-v0.1"
+    .schema_version == "symtropy-nanodrone-recoverability-frontier-v0.2"
     and .evidence_class == "synthetic"
     and .registered_family_count == 2
     and .registered_flight_count == 2
