@@ -110,9 +110,7 @@ fn verify_robust_descent(
 }
 
 fn direction_l1_norm(direction: &RationalVector) -> BigRational {
-    direction
-        .iter()
-        .fold(rational(0), |sum, value| {
+    direction.iter().fold(rational(0), |sum, value| {
             let magnitude = if value < &rational(0) {
                 -value.clone()
             } else {
@@ -214,7 +212,10 @@ fn convex_combination(
     let zero = rational(0);
     let one = rational(1);
     if weights.iter().any(|weight| weight < &zero)
-        || weights.iter().fold(zero.clone(), |sum, weight| sum + weight) != one
+        || weights
+            .iter()
+            .fold(zero.clone(), |sum, weight| sum + weight)
+            != one
     {
         return None;
     }
@@ -248,10 +249,7 @@ fn convex_combination_l1_upper_bound(
 /// Verify a Farkas/Gordan witness that zero is in the convex hull of a complete
 /// finite gradient set. Such a witness rules out a direction with strictly
 /// negative directional derivative on every gradient in that set.
-fn verify_zero_convex_combination(
-    gradients: &[RationalVector],
-    weights: &[BigRational],
-) -> bool {
+fn verify_zero_convex_combination(gradients: &[RationalVector], weights: &[BigRational]) -> bool {
     convex_combination(gradients, weights)
         .is_some_and(|combination| combination.iter().all(|value| value == &rational(0)))
 }
