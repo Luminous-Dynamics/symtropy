@@ -183,6 +183,8 @@ The current 0D model cannot predict these transients. It can only store and comp
 
 Generator efficiency alone does not establish resilient-power capability. Where a configuration claims grid-forming or islandable operation, add the following tests to the relevant product scope. They are a benchmark matrix, not a replacement for the applicable IEEE/utility/mission acceptance criteria.
 
+Use the machine-readable [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) and [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json). It contains 7 groups / 24 test cases; all acceptance thresholds are intentionally null until the applicable standard, utility agreement and mission scope are frozen.
+
 **Published research test template:** National Laboratory of the Rockies (NLR; formerly NREL), NREL/PR-5D00-91714 (22 October 2024) covers stand-alone steady-state loading at power factors 1.0, 0.8 lagging and 0.8 leading across 5/10/25/50/75/100% loading; load steps 0→50%, 50→100% and 0→100%; 150% overload testing; black start by energizing a similarly rated transformer; loss of the other generator; sourcing/sinking P/Q; impedance scans; voltage and phase jumps; 1 Hz/s ROCOF; synchronization and islanding. Its example inverter passed black start but failed the reported ROCOF test. This is evidence that capability must be tested dimension-by-dimension, not attributed from a product label.
 
 Required test groups:
@@ -269,6 +271,8 @@ Proposed staged research gates:
 - **Stretch target:** FFER >= 0.97.
 
 These are programme targets, not claims about achievable engine performance. A candidate that fails the threshold is still a useful result if it exposes the mass, cost, efficiency or emissions cost of modularity.
+
+The reproducible arithmetic pack is [MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json](data/MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json), validated against [MATCHED_SERVICE_FFER_SCHEMA_2026-11-03.json](data/MATCHED_SERVICE_FFER_SCHEMA_2026-11-03.json). It includes two matched-service passes, a surplus-exclusion control, a material under-delivery rejection and an excessive-tolerance rejection. Its fuel-input, net-AC output, common-service and FFER equations have been independently recomputed from the synthetic inputs. This is software-oracle evidence, not physical performance validation.
 
 ### 7.1 Fuel-flexibility qualification matrix
 
