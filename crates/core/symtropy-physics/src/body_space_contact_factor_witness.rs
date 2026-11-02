@@ -615,6 +615,140 @@ mod tests {
     }
 
     #[test]
+    fn body_response_derivative_is_unique_while_impulse_derivative_is_a_six_dimensional_fibre() {
+        let jacobian = four_contact_jacobian();
+        let gram = four_contact_gram(&jacobian);
+        let delassus = four_contact_delassus(&jacobian);
+
+        // Perturb the free body velocity in the first Gram-column direction:
+        // delta_v = (J^T J)e_0. Then delta_p_particular = -J e_0 is an
+        // exact particular solution of J^T delta_p = -delta_v.
+        let body_velocity_derivative: [i128; 6] =
+            std::array::from_fn(|axis| gram[axis][0]);
+        assert_eq!(body_velocity_derivative, [4, 0, 0, 0, -4, -1]);
+        let particular_impulse_derivative: [i128; 12] =
+            std::array::from_fn(|row| -jacobian[row][0]);
+        assert_eq!(
+            particular_impulse_derivative,
+            [0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0]
+        );
+        let unique_body_impulse_derivative =
+            four_contact_scatter(&jacobian, &particular_impulse_derivative);
+        assert_eq!(
+            unique_body_impulse_derivative,
+            [-4, 0, 0, 0, 4, 1]
+        );
+        let expected_body_impulse_derivative =
+            body_velocity_derivative.map(|value| -value);
+        assert_eq!(
+            unique_body_impulse_derivative,
+            expected_body_impulse_derivative
+        );
+
+        // The complete impulse derivative fibre is the particular solution
+        // plus ker(J^T). The six vectors below were already shown to be an
+        // independent basis of that kernel; every affine choice must preserve
+        // the same generalized body impulse derivative.
+        let mut derivative_allocations = Vec::with_capacity(64);
+        for corner in 0_u8..64 {
+            let mut impulse_derivative = particular_impulse_derivative;
+            for (basis_index, basis_vector) in FOUR_CONTACT_NULL_BASIS.iter().enumerate() {
+                let coefficient = if corner & (1 << basis_index) == 0 {
+                    -1_i128
+                } else {
+                    1_i128
+                };
+                for (value, direction) in impulse_derivative.iter_mut().zip(basis_vector.iter()) {
+                    *value += coefficient * direction;
+                }
+            }
+
+            let body_impulse_derivative =
+                four_contact_scatter(&jacobian, &impulse_derivative);
+            assert_eq!(
+                body_impulse_derivative,
+                unique_body_impulse_derivative,
+                "allocation derivative must not alter the unique body-response derivative"
+            );
+            assert!(
+                !derivative_allocations.contains(&impulse_derivative),
+                "independent nullspace coordinates must produce distinct impulse derivatives"
+            );
+            derivative_allocations.push(impulse_derivative);
+        }
+        assert_eq!(derivative_allocations.len(), 64);
+
+        // The nominal all-sticking impulse is strictly interior. Perturb its
+        // free body velocity by epsilon*delta_v and each contact impulse by
+        // epsilon*delta_p. We use epsilon=1/100 and check all 64 derivative
+        // cube vertices using integer numerators over 100.
+        const EPSILON_DENOMINATOR: i128 = 100;
+        const NOMINAL_NORMAL_IMPULSE: i128 = 50;
+        let nominal_impulse = [
+            50_i128, 0, 0, 50, 0, 0, 50, 0, 0, 50, 0, 0,
+        ];
+        let nominal_body_impulse = four_contact_scatter(&jacobian, &nominal_impulse);
+        assert_eq!(nominal_body_impulse, [0, 0, 200, 50, -200, 0]);
+        let perturbed_free_body_velocity_numerators: [i128; 6] =
+            std::array::from_fn(|axis| {
+                -EPSILON_DENOMINATOR * nominal_body_impulse[axis]
+                    + body_velocity_derivative[axis]
+            });
+
+        for impulse_derivative in &derivative_allocations {
+            let perturbed_impulse_numerators: [i128; 12] =
+                std::array::from_fn(|index| {
+                    EPSILON_DENOMINATOR * nominal_impulse[index]
+                        + impulse_derivative[index]
+                });
+            let perturbed_body_impulse_numerators =
+                four_contact_scatter(&jacobian, &perturbed_impulse_numerators);
+
+            // M=I: body momentum balance takes the perturbed body from v_minus
+            // to v_plus=0. Thus its derivative is the same for all allocations.
+            let body_post_velocity_numerators: [i128; 6] = std::array::from_fn(|axis| {
+                perturbed_free_body_velocity_numerators[axis]
+                    + perturbed_body_impulse_numerators[axis]
+            });
+            assert_eq!(body_post_velocity_numerators, [0_i128; 6]);
+
+            // Reconstruct q=J v_minus and replay u=q+Wp=J v_plus=0 in the
+            // original 12D contact space, not only the body-space balance.
+            let free_contact_velocity_numerators = four_contact_gather(
+                &jacobian,
+                &perturbed_free_body_velocity_numerators,
+            );
+            let contact_response_numerators =
+                four_contact_apply(&delassus, &perturbed_impulse_numerators);
+            let post_contact_velocity_numerators: [i128; 12] =
+                std::array::from_fn(|index| {
+                    free_contact_velocity_numerators[index]
+                        + contact_response_numerators[index]
+                });
+            assert_eq!(post_contact_velocity_numerators, [0_i128; 12]);
+
+            // Every perturbed contact remains loaded and strictly inside its
+            // mu=1 Coulomb disk. Squared inequalities are exact and avoid sqrt.
+            for contact in 0..4 {
+                let offset = contact * 3;
+                let normal = perturbed_impulse_numerators[offset];
+                let tangent_1 = perturbed_impulse_numerators[offset + 1];
+                let tangent_2 = perturbed_impulse_numerators[offset + 2];
+                assert!(normal > 0);
+                assert_eq!(
+                    normal,
+                    EPSILON_DENOMINATOR * NOMINAL_NORMAL_IMPULSE
+                        + impulse_derivative[offset]
+                );
+                assert!(
+                    tangent_1 * tangent_1 + tangent_2 * tangent_2 < normal * normal,
+                    "the perturbed impulse must remain strictly inside the local Coulomb disk"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn exact_geometry_fixture_has_expected_rank_and_contact_coupling() {
         let jacobian = contact_jacobian();
         let delassus = assemble_delassus(&jacobian);
