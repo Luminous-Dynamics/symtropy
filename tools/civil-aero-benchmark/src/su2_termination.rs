@@ -257,6 +257,52 @@ fn classify_exit_section(
     section: &str,
     protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
 ) -> Result<(String, String, Vec<Su2NativeCriterionResult>, Vec<String>), String> {
+    let steady_mode = !protocol.time_domain
+        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled);
+    let window_mode = protocol.time_domain
+        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Enabled { .. });
+    let mode = if steady_mode {
+        "steady"
+    } else if window_mode {
+        "time_window"
+    } else if protocol.time_domain {
+        "unsteady_no_window"
+    } else {
+        "invalid_steady_window_protocol"
+    };
+    let terminal_markers = [
+        INTERRUPTED,
+        STEADY_SUCCESS,
+        WINDOW_SUCCESS,
+        STEADY_ITERATION_LIMIT,
+        TIME_LIMIT,
+        TIME_ITERATION_LIMIT,
+    ];
+    let observed = terminal_markers
+        .iter()
+        .filter(|marker| section.contains(**marker))
+        .map(|marker| (*marker).to_owned())
+        .collect::<Vec<_>>();
+    if observed.len() > 1 {
+        return Ok((
+            mode.to_owned(),
+            "contradictory_terminal_messages".to_owned(),
+            Vec::new(),
+            observed,
+        ));
+    }
+    if !steady_mode && !window_mode {
+        return Ok((
+            mode.to_owned(),
+            if protocol.time_domain {
+                "unsupported_unsteady_termination_protocol".to_owned()
+            } else {
+                "invalid_steady_window_protocol".to_owned()
+            },
+            Vec::new(),
+            Vec::new(),
+        ));
+    }
     if protocol.time_domain
         && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled)
     {
@@ -608,6 +654,33 @@ mod tests {
                 .expect("classify scheduler signal");
         assert_eq!(classification, "interrupted");
         assert!(criteria.is_empty());
+    }
+
+    #[test]
+    fn contradictory_terminal_messages_are_never_classified_as_converged() {
+        let steady = concat!(
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All convergence criteria satisfied.\\n",
+            "Maximum number of iterations reached (ITER = 1000).\\n",
+        );
+        let (_, steady_class, steady_rows, steady_messages) =
+            classify_exit_section(steady, &steady_protocol())
+                .expect("classify contradictory steady terminal messages");
+        assert_eq!(steady_class, "contradictory_terminal_messages");
+        assert!(steady_rows.is_empty());
+        assert_eq!(steady_messages.len(), 2);
+
+        let window = concat!(
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\\n",
+            "Interrupt signal received, exiting before the convergence criteria were satisfied.\\n",
+        );
+        let (_, window_class, window_rows, window_messages) =
+            classify_exit_section(window, &window_protocol())
+                .expect("classify contradictory time-window terminal messages");
+        assert_eq!(window_class, "contradictory_terminal_messages");
+        assert!(window_rows.is_empty());
+        assert_eq!(window_messages.len(), 2);
     }
 
     #[test]
