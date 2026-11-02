@@ -217,9 +217,7 @@ fn inspect_bound_mesh(
     validate_relative_path(relative_path)?;
     let bytes = fs::read(root.join(relative_path))
         .map_err(|error| format!("cannot read staged SU2 mesh {relative_path}: {error}"))?;
-    if bytes.len() as u64 != expected.byte_length
-        || sha256_hex(&bytes)? != expected.sha256
-    {
+    if bytes.len() as u64 != expected.byte_length || sha256_hex(&bytes)? != expected.sha256 {
         return Err("staged SU2 mesh bytes differ from process receipt".to_owned());
     }
     inspect_su2_mesh(&bytes)
