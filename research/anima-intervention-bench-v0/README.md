@@ -53,7 +53,7 @@ This prevents repeated steps from one animal from being counted as independent b
 
 `rank_interventions` ranks feasible interventions by expected information gain per declared comparable cost unit. It rejects model-family-set drift, inconsistent metric/unit schemas, invalid costs and invalid predictive uncertainties. Infeasible interventions are excluded, not silently assigned a low score.
 
-This is Bayesian model-discrimination design, not a pairwise-KL proxy. The v0 independence assumption is one scalar endpoint per experiment; correlated multivariate outcomes and non-equal model priors are future extensions.
+This is Bayesian model-discrimination design, not a pairwise-KL proxy. The v0 independence assumption is one scalar endpoint per experiment; correlated multivariate outcomes and non-equal model priors are future extensions. Monte Carlo and bootstrap sample budgets are explicitly capped at 1,000,000 per estimate.
 
 ## Required next integration
 
