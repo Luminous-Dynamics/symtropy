@@ -724,6 +724,27 @@ mod tests {
     }
 
     #[test]
+    fn spacing_is_scale_aware_and_rejects_nonconvex_quadrilaterals() {
+        let tiny = "NDIME= 2\nNELEM= 2\n5 0 1 2\n5 0 2 3\nNPOIN= 4\n0 0\n1e-12 0\n1e-12 1e-12\n0 1e-12\nNMARK= 0\n";
+        let metric = derive_su2_characteristic_spacing_2d(tiny.as_bytes(), "m")
+            .expect("tiny but finite physical mesh is valid");
+        assert!((metric.total_cell_area - 1.0e-24).abs() / 1.0e-24 < 1.0e-12);
+        assert!((metric.characteristic_spacing - (0.5e-24_f64).sqrt()).abs() < 1.0e-25);
+
+        let reversed_quad = "NDIME= 2\nNELEM= 1\n9 0 3 2 1\nNPOIN= 4\n0 0\n1 0\n1 1\n0 1\nNMARK= 0\n";
+        let reversed = derive_su2_characteristic_spacing_2d(reversed_quad.as_bytes(), "m")
+            .expect("reversed convex orientation is valid");
+        assert!((reversed.total_cell_area - 1.0).abs() < 1.0e-14);
+
+        let bow_tie = "NDIME= 2\nNELEM= 1\n9 0 1 2 3\nNPOIN= 4\n0 0\n1 0\n0 1\n1 1\nNMARK= 0\n";
+        assert!(
+            derive_su2_characteristic_spacing_2d(bow_tie.as_bytes(), "m")
+                .expect_err("self-crossing quadrilateral rejected")
+                .contains("strictly convex")
+        );
+    }
+
+    #[test]
     fn parses_optional_legacy_point_and_element_indices() {
         let mesh = "NDIME= 2\nNPOIN= 3\n0 0 10\n1 0 11\n0 1 12\nNELEM= 1\n5 0 1 2 99\nNMARK= 0\n";
         let summary = inspect_su2_mesh(mesh.as_bytes()).expect("legacy index mesh");
