@@ -9,3 +9,4 @@ description = "Deterministic, evidence-bounded energy conversion and generator b
 path = "src/lib.rs"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
