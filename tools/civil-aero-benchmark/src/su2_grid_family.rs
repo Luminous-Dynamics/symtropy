@@ -16,7 +16,9 @@ use crate::grid_convergence::{
 use crate::integrity::sha256_hex;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
-use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d};
+use crate::su2_mesh::{
+    Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh,
+};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
@@ -24,6 +26,7 @@ use crate::su2_run_binding::{
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
     "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
+pub const SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE: f64 = 1.0e-10;
 pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
@@ -347,6 +350,8 @@ pub fn evaluate_su2_grid_family_study(
     let mut member_audits = Vec::with_capacity(study.members.len());
     let mut observations = Vec::with_capacity(study.members.len());
     let mut spacing_metrics = Vec::<Su2MeshSpacing2d>::with_capacity(study.members.len());
+    let mut shared_marker_tags: Option<Vec<String>> = None;
+    let mut shared_domain_area: Option<f64> = None;
     let mut shared_identity: Option<(String, String, String, String, String)> = None;
 
     for (index, member) in study.members.iter().enumerate() {
@@ -406,6 +411,38 @@ pub fn evaluate_su2_grid_family_study(
                 "grid member {} mesh spacing input differs from verified lineage artifact",
                 member.grid_id
             ));
+        }
+        let mesh_summary = inspect_su2_mesh(&mesh_bytes)?;
+        let marker_tags = mesh_summary
+            .markers
+            .iter()
+            .map(|marker| marker.tag.clone())
+            .collect::<Vec<_>>();
+        if let Some(reference) = &shared_marker_tags {
+            if reference != &marker_tags {
+                return Err(format!(
+                    "grid member {} changes the mesh marker-tag set",
+                    member.grid_id
+                ));
+            }
+        } else {
+            shared_marker_tags = Some(marker_tags);
+        }
+        if let Some(reference_area) = shared_domain_area {
+            let relative_difference =
+                (mesh_spacing.total_cell_area - reference_area).abs() / reference_area;
+            if !relative_difference.is_finite()
+                || relative_difference > SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
+            {
+                return Err(format!(
+                    "grid member {} changes total 2D mesh domain area by {:.6e} relative; limit is {:.6e}",
+                    member.grid_id,
+                    relative_difference,
+                    SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE
+                ));
+            }
+        } else {
+            shared_domain_area = Some(mesh_spacing.total_cell_area);
         }
         if let Some(previous) = spacing_metrics.last() {
             if previous.characteristic_spacing <= mesh_spacing.characteristic_spacing {
