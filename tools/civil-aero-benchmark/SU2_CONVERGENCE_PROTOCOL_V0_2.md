@@ -58,6 +58,21 @@ The verified run bundle therefore adds the separate [`SU2_UNSTEADY_INNER_SCREEN_
 
 Every saved time step must meet the residual threshold. Missing time-step records or any failed residual reject bundle admission. This is an outer-time-step endpoint screen; it does not reconstruct all inner-iteration residual traces or claim per-zone convergence for all multizone configurations.
 
+## SU2 v8.6.0 compatibility note
+
+SU2 v8.6.0 was released on 30 October 2026. Its release notes include:
+- #2881: fix the misleading "All convergence criteria satisfied." message on interrupted runs.
+- #2870: add OpenMP to force calculation.
+
+The native termination auditor remains intentionally receipt-bound to the complete stdout/stderr bytes and separately identifies process success, interruption and protocol-specific native convergence. A human-readable success banner is not promoted without checking the full log and the exact protocol.
+
+For performance comparisons, pin and record the exact executable digest, source tag/commit, build/compiler identity, linked libraries, OpenMP configuration, thread count and CPU affinity. A v8.6.0 result is not silently interchangeable with the historical v8.0.1 DPW participant reproduction lane. Keep separate compatibility lanes and compare only after matching physical problem identity.
+
+References:
+- https://github.com/su2code/SU2/releases/tag/v8.6.0
+- https://github.com/su2code/SU2/pull/2881
+- https://github.com/su2code/SU2/pull/2870
+
 ## Evidence ceiling
 
 `receipt_bound_su2_dry_run_multi_field_steady_and_explicit_time_window_configuration_discovery_only_not_history_convergence_or_validation`
