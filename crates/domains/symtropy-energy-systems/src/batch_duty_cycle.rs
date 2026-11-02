@@ -268,6 +268,7 @@ impl BatchBoundDutyCycle {
             segment_results.push(BatchDutyCycleSegmentResult {
                 segment_id: segment.segment_id.clone(),
                 time_window: segment.time_window,
+                fuel_flow_observation: segment.fuel_flow_observation.clone(),
                 evaluation,
             });
         }
@@ -292,6 +293,7 @@ impl BatchBoundDutyCycle {
 pub struct BatchDutyCycleSegmentResult {
     segment_id: String,
     time_window: TimeWindow,
+    fuel_flow_observation: FuelFlowObservation,
     evaluation: FuelBatchEvaluation,
 }
 
@@ -302,6 +304,10 @@ impl BatchDutyCycleSegmentResult {
 
     pub const fn time_window(&self) -> TimeWindow {
         self.time_window
+    }
+
+    pub const fn fuel_flow_observation(&self) -> &FuelFlowObservation {
+        &self.fuel_flow_observation
     }
 
     pub const fn evaluation(&self) -> &FuelBatchEvaluation {
