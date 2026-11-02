@@ -418,7 +418,7 @@ pub fn evaluate_su2_grid_family_study(
             let previous = &study.members[index - 1];
             if previous.grid_level >= member.grid_level {
                 return Err(format!(
-                    "grid family levels must be strictly increasing at member {}",
+                    "grid family levels must be strictly increasing coarse-to-fine at member {}",
                     member.grid_id
                 ));
             }
