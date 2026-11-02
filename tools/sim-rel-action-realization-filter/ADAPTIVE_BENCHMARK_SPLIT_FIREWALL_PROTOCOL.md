@@ -37,7 +37,7 @@ A Development event that names a Calibration or SealedHoldout input is rejected.
 Before Calibration or SealedHoldout generation, a freeze receipt binds:
 - benchmark/version and plan digest;
 - exact generator artifact and refinement-policy digests;
-- concept registry and recipe-schema digests;
+- concept registry, mechanism-family registry and recipe-schema digests;
 - oracle-verifier and semantic-auditor identities;
 - complete frozen concept and recipe-template registries;
 - adaptation-transcript digest and event count;
