@@ -146,6 +146,106 @@ enum SeparatingLeafClassification {
     SignoriniViolation,
 }
 
+/// A conservative interval whose endpoints enclose the exact arithmetic
+/// result for the represented binary64 inputs.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct OutwardInterval {
+    lower: f64,
+    upper: f64,
+}
+
+impl OutwardInterval {
+    fn point(value: f64) -> Result<Self, &'static str> {
+        if !value.is_finite() {
+            return Err("interval point must be finite");
+        }
+        Ok(Self {
+            lower: value,
+            upper: value,
+        })
+    }
+
+    fn from_bounds(lower: f64, upper: f64) -> Result<Self, &'static str> {
+        if !lower.is_finite() || !upper.is_finite() || lower > upper {
+            return Err("interval bounds must be finite and ordered");
+        }
+        Ok(Self { lower, upper })
+    }
+
+    fn outward_add(self, other: Self) -> Result<Self, &'static str> {
+        let lower = self.lower + other.lower;
+        let upper = self.upper + other.upper;
+        if !lower.is_finite() || !upper.is_finite() {
+            return Err("interval addition overflowed");
+        }
+        let enclosure = Self {
+            lower: lower.next_down(),
+            upper: upper.next_up(),
+        };
+        if !enclosure.lower.is_finite() || !enclosure.upper.is_finite() {
+            return Err("outward interval addition reached a non-finite endpoint");
+        }
+        Ok(enclosure)
+    }
+
+    fn outward_mul(self, other: Self) -> Result<Self, &'static str> {
+        let products = [
+            self.lower * other.lower,
+            self.lower * other.upper,
+            self.upper * other.lower,
+            self.upper * other.upper,
+        ];
+        if !products.iter().all(|value| value.is_finite()) {
+            return Err("interval multiplication overflowed or became non-finite");
+        }
+        let minimum = products.iter().copied().fold(f64::INFINITY, f64::min);
+        let maximum = products
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
+        let enclosure = Self {
+            lower: minimum.next_down(),
+            upper: maximum.next_up(),
+        };
+        if !enclosure.lower.is_finite() || !enclosure.upper.is_finite() {
+            return Err("outward interval multiplication reached a non-finite endpoint");
+        }
+        Ok(enclosure)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct SeparatorImpulseBox {
+    lower: SVector<f64, 3>,
+    upper: SVector<f64, 3>,
+}
+
+impl SeparatorImpulseBox {
+    fn new(
+        lower: SVector<f64, 3>,
+        upper: SVector<f64, 3>,
+    ) -> Result<Self, &'static str> {
+        for axis in 0..3 {
+            OutwardInterval::from_bounds(lower[axis], upper[axis])?;
+        }
+        Ok(Self { lower, upper })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SeparatingBoxClassification {
+    StrictlySeparating,
+    SignoriniViolation,
+    BoundaryOrInconclusive,
+}
+
+#[derive(Clone, Debug)]
+struct SeparatingBoxResponse {
+    impulse: SVector<f64, 3>,
+    post_velocity_bounds: [OutwardInterval; 3],
+    classification: SeparatingBoxClassification,
+}
+
 #[derive(Clone, Debug)]
 struct SeparatingLeafResponse {
     impulse: SVector<f64, 3>,
@@ -176,6 +276,50 @@ impl SeparatingLeafMessage {
     /// boundary-only, or violates Signorini. Tangential velocity is retained
     /// for the original-system replay, but the zero-radius Coulomb disk forces
     /// the tangential impulse to zero.
+    /// Enclose the entire affine response over an axis-aligned separator box.
+    ///
+    /// Each multiply and add widens its endpoints by one adjacent binary64
+    /// value. A strict regime is reported only when the complete normal
+    /// velocity interval has a strict sign. If zero is included, the result
+    /// remains boundary/inconclusive; midpoint signs are never used.
+    fn response_over_box(
+        &self,
+        separator_box: &SeparatorImpulseBox,
+    ) -> Result<SeparatingBoxResponse, &'static str> {
+        self.schur_terms()?;
+        let mut post_velocity_bounds = [OutwardInterval::point(0.0)?; 3];
+        for component in 0..3 {
+            let mut velocity = OutwardInterval::point(self.free_velocity[component])?;
+            for separator_axis in 0..3 {
+                let coefficient =
+                    OutwardInterval::point(self.separator_coupling[(separator_axis, component)])?;
+                let separator_coordinate = OutwardInterval::from_bounds(
+                    separator_box.lower[separator_axis],
+                    separator_box.upper[separator_axis],
+                )?;
+                velocity = velocity.outward_add(
+                    coefficient.outward_mul(separator_coordinate)?,
+                )?;
+            }
+            post_velocity_bounds[component] = velocity;
+        }
+
+        let normal = post_velocity_bounds[0];
+        let classification = if normal.lower > 0.0 {
+            SeparatingBoxClassification::StrictlySeparating
+        } else if normal.upper < 0.0 {
+            SeparatingBoxClassification::SignoriniViolation
+        } else {
+            SeparatingBoxClassification::BoundaryOrInconclusive
+        };
+
+        Ok(SeparatingBoxResponse {
+            impulse: SVector::<f64, 3>::zeros(),
+            post_velocity_bounds,
+            classification,
+        })
+    }
+
     fn response_at(
         &self,
         separator_impulse: &SVector<f64, 3>,
@@ -600,6 +744,106 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
             .response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), TOLERANCE)
             .is_err()
     );
+}
+
+#[test]
+fn separating_leaf_interval_messages_certify_only_boxes_with_a_strict_sign() {
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.125, -0.25),
+    };
+
+    // Exact dyadic reference: u_n = 1 - (1/2) p_S,n.
+    // For p_S,n in [1,5/4], its exact range is [3/8,1/2].
+    let strict_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(1.25, 0.5, 0.5),
+    )
+    .unwrap();
+    let strict = message.response_over_box(&strict_box).unwrap();
+    assert_eq!(
+        strict.classification,
+        SeparatingBoxClassification::StrictlySeparating
+    );
+    assert!(strict.post_velocity_bounds[0].lower <= 0.375);
+    assert!(strict.post_velocity_bounds[0].upper >= 0.5);
+    assert_eq!(strict.impulse, SVector::<f64, 3>::zeros());
+    assert!(strict.post_velocity_bounds[1].lower <= 0.125);
+    assert!(strict.post_velocity_bounds[1].upper >= 0.375);
+    assert!(strict.post_velocity_bounds[2].lower <= -0.375);
+    assert!(strict.post_velocity_bounds[2].upper >= -0.125);
+
+    // Exact dyadic reference: for p_S,n in [3,13/4], u_n is [-5/8,-1/2].
+    let violating_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(3.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(3.25, 0.5, 0.5),
+    )
+    .unwrap();
+    let violating = message.response_over_box(&violating_box).unwrap();
+    assert_eq!(
+        violating.classification,
+        SeparatingBoxClassification::SignoriniViolation
+    );
+    assert!(violating.post_velocity_bounds[0].lower <= -0.625);
+    assert!(violating.post_velocity_bounds[0].upper >= -0.5);
+
+    // This box straddles the exact transition hyperplane p_S,n=2.
+    let crossing_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.875, -0.5, -0.5),
+        SVector::<f64, 3>::new(2.125, 0.5, 0.5),
+    )
+    .unwrap();
+    let crossing = message.response_over_box(&crossing_box).unwrap();
+    assert_eq!(
+        crossing.classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+    assert!(crossing.post_velocity_bounds[0].lower <= 0.0);
+    assert!(crossing.post_velocity_bounds[0].upper >= 0.0);
+
+    // A zero-radius box exactly on the transition is still not strict:
+    // outward rounding encloses the exact zero from both sides.
+    let boundary_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+        SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+    )
+    .unwrap();
+    let boundary = message.response_over_box(&boundary_box).unwrap();
+    assert_eq!(
+        boundary.classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+    assert!(boundary.post_velocity_bounds[0].lower <= 0.0);
+    assert!(boundary.post_velocity_bounds[0].upper >= 0.0);
+}
+
+#[test]
+fn separating_leaf_interval_messages_reject_malformed_and_overflowing_boxes() {
+    assert!(
+        SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(0.0, 0.0, 0.0),
+        )
+        .is_err()
+    );
+    assert!(
+        SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        )
+        .is_err()
+    );
+
+    let overflowing = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(1.0e308, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::zeros(),
+    };
+    let box_with_large_coordinate = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0e308, 0.0, 0.0),
+        SVector::<f64, 3>::new(1.0e308, 0.0, 0.0),
+    )
+    .unwrap();
+    assert!(overflowing.response_over_box(&box_with_large_coordinate).is_err());
 }
 
 #[test]
