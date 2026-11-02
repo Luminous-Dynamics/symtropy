@@ -35,6 +35,13 @@ The binary emits CSV for a small predeclared sweep:
 - persons per homestead: 40, 50, 60;
 - homestead use duration: 40, 50, 60 years.
 
+
+## Independent reference vectors
+
+`fixtures/expected_sensitivity.csv` contains the 54 expected rows for the predeclared 3×3 assumption sweep. It was calculated directly from the documented equations, independently of the Rust implementation. It is a reference vector, **not captured Rust CLI output**; when Cargo is available, compare the program output byte-for-byte or within a declared decimal formatting tolerance.
+
+The broad ranges in this sweep are intentionally large because the estimator is strongly sensitive to its assumed people-per-homestead and homestead-use duration. For example, the general population estimate for Mapungubwe ranges from 3,648 to 8,208 across this small grid before adding the fixed capital estimate of 5,000. This is not a confidence interval or historically plausible range; it is a structural sensitivity demonstration under deliberately varied assumptions.
+
 ## Interpretation boundaries
 
 - Table 2 values are author-derived estimates, not observed population counts.
