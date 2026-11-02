@@ -29,6 +29,7 @@ const MAX_ID_BYTES: usize = 256;
 pub struct ThermalPhysicalReadbackBinding {
     pub task_id: String,
     pub command_id: String,
+    pub actuator_readback_unit: String,
     pub model_version: String,
     pub transition_event_id: String,
     pub sensor_event_id: String,
@@ -212,6 +213,12 @@ where
                 "unsupported command unit {}; expected {}",
                 causal.command.unit, SUPPORTED_COMMAND_UNIT
             ),
+        ));
+    }
+    if physical_binding.actuator_readback_unit != SUPPORTED_COMMAND_UNIT {
+        return Err(fail(
+            ThermalBridgeStage::UnitConversion,
+            "actuator readback unit must use the same declared milliwatt unit as the command",
         ));
     }
     if physical_binding.model_version != SUPPORTED_MODEL_VERSION
@@ -475,6 +482,7 @@ mod tests {
         ThermalPhysicalReadbackBinding {
             task_id: challenge.public_task.task_id.clone(),
             command_id: "heater-command-1".into(),
+            actuator_readback_unit: "milliwatt".into(),
             model_version: SUPPORTED_MODEL_VERSION.into(),
             transition_event_id: "transition-event".into(),
             sensor_event_id: "sensor-event".into(),
