@@ -236,7 +236,7 @@ def main() -> int:
                 "window function is invalid")
         restart = optional_int(config_values, "RESTART_ITER")
         require(restart is None or window_start >= restart, "WINDOW_START_ITER precedes RESTART_ITER")
-    require(report["window_convergence_fields"].split(";") if report["window_convergence_fields"] else [] == window_fields,
+    require((report["window_convergence_fields"].split(";") if report["window_convergence_fields"] else []) == window_fields,
             "window field list mismatch")
     require(report["window_start_iter"] == ("" if window_start is None else str(window_start)),
             "window start mismatch")
