@@ -473,13 +473,13 @@ pub fn evaluate_su2_grid_family_study(
         )?;
         shared_marker_tags.get_or_insert(marker_tags);
         shared_domain_area.get_or_insert(mesh_spacing.total_cell_area);
-        if let Some(previous) = spacing_metrics.last() {
-            if previous.characteristic_spacing <= mesh_spacing.characteristic_spacing {
+        if let Some(previous) = spacing_metrics.last()
+            && previous.characteristic_spacing <= mesh_spacing.characteristic_spacing
+        {
                 return Err(format!(
                     "mesh-derived spacing must refine coarse-to-fine at member {}",
                     member.grid_id
                 ));
-            }
         }
         spacing_metrics.push(mesh_spacing);
         let identity = (
