@@ -242,5 +242,8 @@ No candidate is called "better than SOTA" without a matched rating, duty cycle, 
 - Wärtsilä methanol engines: https://www.wartsila.com/marine/products/engines-and-generating-sets/methanol-engines
 - Everllence ammonia engine Type Approval / FAT milestones: https://www.everllence.com/marine/products/two-stroke-engines/ammonia-engine
 - PNNL / Nature Energy heavy-duty lifecycle comparison: https://www.pnnl.gov/publications/cradle-grave-lifecycle-analysis-us-medium-and-heavy-duty-vehicle-fuel-pathways
+- South African National Environmental Management: Air Quality Act, 2004: https://www.gov.za/documents/national-environment-management-air-quality-act
+- South African listed-activities notice and amendments: https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-listed-activities-and
+- Consolidated listed-activities text (screening reference; verify operative Gazette): https://www.saflii.org/za/legis/consol_reg/loawriaewhomhasdeoteihscececoch2046.pdf
 
 This protocol establishes a testable comparison process. It does not replace licensed standards, laboratory procedures, a hazard review or regulatory approval.
