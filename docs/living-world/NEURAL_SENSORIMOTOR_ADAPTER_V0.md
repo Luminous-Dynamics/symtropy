@@ -312,6 +312,23 @@ Therefore, "CPG plus proprioception" is not the differentiator by itself. Symtro
 
 FlyGym 2.0 was rewritten in March/April 2026 and reports roughly 10× CPU and 250–300× GPU simulation speedups depending on the official page/release. Pin the exact v2 API/release; it is not backward compatible with v1. Treat its throughput as a measured reference, not a promise Symtropy will exceed it.
 
+### Gait coordination metrics are speed- and task-conditioned
+
+A single tripod score is not a universal gait-quality objective. Walking flies exhibit speed-dependent coordination patterns and individual variation. At lower speeds, non-tripod patterns can be biologically appropriate; a controller should match a validated species/task reference distribution rather than maximize one named gait.
+
+For Drosophila, report separately:
+- neural/motor rhythm per leg;
+- realized step frequency, stance/swing duration and duty factor;
+- pairwise phase differences and phase-locking value (PLV);
+- tripod coordination strength (TCS) for both tripod groups (L1-R2-L3 and R1-L2-R3);
+- speed, turning, substrate/contact, slip, body stability and individual repeatability.
+
+The Sapkal et al. 2026 preprint defines per-trial TCS using overlapping swing duration for the three legs of each tripod, its stated onset-span denominator, per-trial medians, and zero for steps not part of a tripod event. Pin the exact formula, event segmentation and edge-case handling from that version before implementing a reproduction. PLV is reported on a 0–1 scale per inter-leg pair. These scores are not interchangeable.
+
+Stratify by speed, terrain, load/body condition, turning, contact/substrate and sensory-feedback condition. Keep the per-leg distributions and both tripod groups; a high average can conceal one failed leg pair or individual.
+
+Sources: https://doi.org/10.64898/2026.04.29.721658 (preprint v2); https://pmc.ncbi.nlm.nih.gov/articles/PMC11607691/ (published Drosophila walking variability and individuality reference).
+
 ### Calibration and identifiability: do not fit behaviour alone
 
 Two 2026 preprints reinforce an important methodological constraint:
