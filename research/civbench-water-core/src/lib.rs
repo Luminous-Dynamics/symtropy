@@ -186,12 +186,8 @@ impl WaterStorage {
         };
 
         let (first_demand_l, second_demand_l) = match priority {
-            AllocationPriority::HouseholdFirst => {
-                (demand.household_l, demand.agriculture_l)
-            }
-            AllocationPriority::AgricultureFirst => {
-                (demand.agriculture_l, demand.household_l)
-            }
+            AllocationPriority::HouseholdFirst => (demand.household_l, demand.agriculture_l),
+            AllocationPriority::AgricultureFirst => (demand.agriculture_l, demand.household_l),
         };
 
         let first_delivered_l = first_demand_l.min(allocatable_l);
@@ -208,12 +204,8 @@ impl WaterStorage {
         };
 
         let (household_delivered_l, agriculture_delivered_l) = match priority {
-            AllocationPriority::HouseholdFirst => {
-                (first_delivered_l, second_delivered_l)
-            }
-            AllocationPriority::AgricultureFirst => {
-                (second_delivered_l, first_delivered_l)
-            }
+            AllocationPriority::HouseholdFirst => (first_delivered_l, second_delivered_l),
+            AllocationPriority::AgricultureFirst => (second_delivered_l, first_delivered_l),
         };
 
         let report = WaterStepReport {
@@ -378,8 +370,7 @@ impl WaterStepReport {
     pub fn demand_accounting_holds(&self) -> bool {
         u128::from(self.household_delivered_l) + u128::from(self.household_unmet_l)
             == u128::from(self.household_demand_l)
-            && u128::from(self.agriculture_delivered_l)
-                + u128::from(self.agriculture_unmet_l)
+            && u128::from(self.agriculture_delivered_l) + u128::from(self.agriculture_unmet_l)
                 == u128::from(self.agriculture_demand_l)
     }
 }
@@ -404,7 +395,11 @@ mod tests {
     fn default_step_preserves_storage_before_demand_behavior() {
         let mut storage = WaterStorage::new(100, 80).unwrap();
         let report = storage
-            .step(50, WaterDemand::new(10, 0), AllocationPriority::HouseholdFirst)
+            .step(
+                50,
+                WaterDemand::new(10, 0),
+                AllocationPriority::HouseholdFirst,
+            )
             .unwrap();
 
         assert_eq!(report.event_order, WaterEventOrder::StorageBeforeDemandV1);
@@ -489,7 +484,11 @@ mod tests {
     fn household_priority_is_explicit_and_auditable() {
         let mut storage = WaterStorage::new(100, 60).unwrap();
         let report = storage
-            .step(0, WaterDemand::new(80, 50), AllocationPriority::HouseholdFirst)
+            .step(
+                0,
+                WaterDemand::new(80, 50),
+                AllocationPriority::HouseholdFirst,
+            )
             .unwrap();
 
         assert_eq!(report.household_delivered_l, 60);
@@ -503,7 +502,11 @@ mod tests {
     fn agriculture_priority_is_explicit_and_auditable() {
         let mut storage = WaterStorage::new(100, 60).unwrap();
         let report = storage
-            .step(0, WaterDemand::new(80, 50), AllocationPriority::AgricultureFirst)
+            .step(
+                0,
+                WaterDemand::new(80, 50),
+                AllocationPriority::AgricultureFirst,
+            )
             .unwrap();
 
         assert_eq!(report.agriculture_delivered_l, 50);
@@ -517,7 +520,11 @@ mod tests {
     fn reports_shortage_without_creating_water() {
         let mut storage = WaterStorage::new(0, 0).unwrap();
         let report = storage
-            .step(0, WaterDemand::new(12, 25), AllocationPriority::HouseholdFirst)
+            .step(
+                0,
+                WaterDemand::new(12, 25),
+                AllocationPriority::HouseholdFirst,
+            )
             .unwrap();
 
         assert_eq!(report.household_delivered_l, 0);
@@ -557,20 +564,10 @@ mod tests {
             let demand = WaterDemand::new(30, 80);
 
             let a = first
-                .step_with_event_order(
-                    15,
-                    demand,
-                    AllocationPriority::HouseholdFirst,
-                    event_order,
-                )
+                .step_with_event_order(15, demand, AllocationPriority::HouseholdFirst, event_order)
                 .unwrap();
             let b = second
-                .step_with_event_order(
-                    15,
-                    demand,
-                    AllocationPriority::HouseholdFirst,
-                    event_order,
-                )
+                .step_with_event_order(15, demand, AllocationPriority::HouseholdFirst, event_order)
                 .unwrap();
 
             assert_eq!(a, b);
@@ -646,13 +643,9 @@ mod tests {
                                         .demand_before_residual_storage
                                         .demand_accounting_holds()
                                 );
+                                assert!(comparison.storage_before_demand.stock_after_l <= capacity);
                                 assert!(
-                                    comparison.storage_before_demand.stock_after_l <= capacity
-                                );
-                                assert!(
-                                    comparison
-                                        .demand_before_residual_storage
-                                        .stock_after_l
+                                    comparison.demand_before_residual_storage.stock_after_l
                                         <= capacity
                                 );
 
@@ -695,8 +688,7 @@ mod tests {
                                     WaterEventOrder::StorageBeforeDemandV1,
                                     WaterEventOrder::DemandBeforeResidualStorageV1,
                                 ] {
-                                    let mut storage =
-                                        WaterStorage::new(capacity, initial).unwrap();
+                                    let mut storage = WaterStorage::new(capacity, initial).unwrap();
                                     let report = storage
                                         .step_with_event_order(
                                             inflow,
