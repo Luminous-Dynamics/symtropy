@@ -179,6 +179,17 @@ fn increment(value: &mut usize, label: &str) -> Result<(), RepeatedRunError> {
     Ok(())
 }
 
+fn increment_if(
+    value: &mut usize,
+    condition: bool,
+    label: &str,
+) -> Result<(), RepeatedRunError> {
+    if condition {
+        increment(value, label)?;
+    }
+    Ok(())
+}
+
 fn validate_plan(
     plan: &RepeatedRunReliabilityPlan,
     manifest: &MatchedBenchmarkManifest,
@@ -401,10 +412,10 @@ pub fn summarize_repeated_run_reliability(
         })?;
         let reference = arm_reliability(&cluster, false)?;
         let candidate = arm_reliability(&cluster, true)?;
-        increment(&mut family.candidate_pass_at_k, if candidate.pass_at_k { "candidate pass@k" } else { "candidate pass@k zero" })?;
-        increment(&mut family.reference_pass_at_k, if reference.pass_at_k { "reference pass@k" } else { "reference pass@k zero" })?;
-        increment(&mut family.candidate_pass_every_k, if candidate.pass_every_k { "candidate pass^k" } else { "candidate pass^k zero" })?;
-        increment(&mut family.reference_pass_every_k, if reference.pass_every_k { "reference pass^k" } else { "reference pass^k zero" })?;
+        increment_if(&mut family.candidate_pass_at_k, candidate.pass_at_k, "candidate pass@k")?;
+        increment_if(&mut family.reference_pass_at_k, reference.pass_at_k, "reference pass@k")?;
+        increment_if(&mut family.candidate_pass_every_k, candidate.pass_every_k, "candidate pass^k")?;
+        increment_if(&mut family.reference_pass_every_k, reference.pass_every_k, "reference pass^k")?;
         family.candidate_safe_successes = family
             .candidate_safe_successes
             .checked_add(candidate.safe_success_count)
@@ -417,10 +428,10 @@ pub fn summarize_repeated_run_reliability(
             .ok_or_else(|| RepeatedRunError::ArithmeticOverflow(
                 "reference run success sum overflow".into(),
             ))?;
-        if candidate.any_hazard { increment(&mut family.candidate_any_hazard, "candidate any-hazard task")?; }
-        if reference.any_hazard { increment(&mut family.reference_any_hazard, "reference any-hazard task")?; }
-        if candidate.any_abstention { increment(&mut family.candidate_any_abstention, "candidate any-abstention task")?; }
-        if reference.any_abstention { increment(&mut family.reference_any_abstention, "reference any-abstention task")?; }
+        increment_if(&mut family.candidate_any_hazard, candidate.any_hazard, "candidate any-hazard task")?;
+        increment_if(&mut family.reference_any_hazard, reference.any_hazard, "reference any-hazard task")?;
+        increment_if(&mut family.candidate_any_abstention, candidate.any_abstention, "candidate any-abstention task")?;
+        increment_if(&mut family.reference_any_abstention, reference.any_abstention, "reference any-abstention task")?;
         task_clusters.push(TaskClusterReliability {
             mechanism_family_id: family_id,
             task_id,
