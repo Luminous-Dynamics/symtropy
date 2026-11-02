@@ -480,8 +480,6 @@ pub fn evaluate_claim_assurance(
         evidence_level: RISK_ASSURANCE_EVIDENCE_LEVEL.to_owned(),
         assessment_sha256: String::new(),
     };
-    let mut canonical_observations = observations.to_vec();
-    canonical_observations.sort_by_key(|observation| observation.gate);
     report.assessment_sha256 = sha256_hex(&canonical_bytes(
         context,
         tier,
@@ -492,6 +490,9 @@ pub fn evaluate_claim_assurance(
     Ok(report)
 }
 
+/// Recompute the risk-profile policy and assessment digest.
+/// This does not reopen evidence artifacts. Callers must run the appropriate receipt, report,
+/// calibration-certificate or physical-measurement verifier before marking an observation Passed.
 pub fn verify_claim_assurance(
     context: &RiskContext,
     observations: &[EvidenceObservation],
