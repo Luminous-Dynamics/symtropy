@@ -77,7 +77,8 @@ pub fn derive_excavation_metrics(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CutterWearInterval {
-    pub cutter_id: String,
+    pub start_cutter_id: String,
+    pub end_cutter_id: String,
     pub start_inspection_id: String,
     pub end_inspection_id: String,
     pub start_radial_radius_micrometres: u64,
@@ -102,8 +103,11 @@ pub struct CutterWearRate {
 pub fn derive_cutter_wear_rate(
     interval: &CutterWearInterval,
 ) -> Result<CutterWearRate, MetricError> {
-    if interval.cutter_id.trim().is_empty() {
+    if interval.start_cutter_id.trim().is_empty() || interval.end_cutter_id.trim().is_empty() {
         return Err(MetricError::InvalidIdentity);
+    }
+    if interval.start_cutter_id != interval.end_cutter_id {
+        return Err(MetricError::CutterIdentityChanged);
     }
     if interval.start_inspection_id.trim().is_empty()
         || interval.end_inspection_id.trim().is_empty()
@@ -152,7 +156,8 @@ mod tests {
 
     fn wear() -> CutterWearInterval {
         CutterWearInterval {
-            cutter_id: "edge-cutter-12".into(),
+            start_cutter_id: "edge-cutter-12".into(),
+            end_cutter_id: "edge-cutter-12".into(),
             start_inspection_id: "inspection-a".into(),
             end_inspection_id: "inspection-b".into(),
             start_radial_radius_micrometres: 18_000,
@@ -282,6 +287,16 @@ mod tests {
         assert_eq!(
             derive_cutter_wear_rate(&w),
             Err(MetricError::ZeroInspectionIntervalVolume)
+        );
+    }
+
+    #[test]
+    fn cutter_replacement_cannot_be_counted_as_continuous_wear() {
+        let mut w = wear();
+        w.end_cutter_id = "replacement-cutter-13".into();
+        assert_eq!(
+            derive_cutter_wear_rate(&w),
+            Err(MetricError::CutterIdentityChanged)
         );
     }
 
