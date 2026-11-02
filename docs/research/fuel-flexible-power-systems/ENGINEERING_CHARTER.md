@@ -392,7 +392,7 @@ The catalogue deliberately distinguishes measured outputs, manufacturer claims, 
 
 A separate literature-reference dataset is maintained at:
 
-[MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json)
+[MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json) and [MARINE_FUEL_STORAGE_SCHEMA_2026-11-02.json](data/MARINE_FUEL_STORAGE_SCHEMA_2026-11-02.json)
 
 The 2026 container-shipping study reports tank-included volumetric energy-density values of approximately:
 - MGO: 10.1 MWh/m³ (reference);
