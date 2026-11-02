@@ -13,12 +13,7 @@ type Gram = [[i128; 6]; 6];
 type Impulses = [i128; 12];
 type Objective = [i128; 12];
 
-const CONTACT_POINTS: [[i128; 3]; 4] = [
-    [1, 0, -1],
-    [0, 1, -1],
-    [1, 1, -1],
-    [2, -1, -1],
-];
+const CONTACT_POINTS: [[i128; 3]; 4] = [[1, 0, -1], [0, 1, -1], [1, 1, -1], [2, -1, -1]];
 const CONTACT_AXES: [[i128; 3]; 3] = [[0, 0, 1], [1, 0, 0], [0, 1, 0]];
 
 // Each row z_k is one exact contact-impulse allocation direction in ker(J^T).
@@ -31,9 +26,7 @@ const NULL_BASIS: [Impulses; 6] = [
     [0, -1, -1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
 ];
 
-const BASE_IMPULSE: Impulses = [
-    50, 0, 0, 50, 0, 0, 50, 0, 0, 50, 0, 0,
-];
+const BASE_IMPULSE: Impulses = [50, 0, 0, 50, 0, 0, 50, 0, 0, 50, 0, 0];
 
 fn cross(left: [i128; 3], right: [i128; 3]) -> [i128; 3] {
     [
@@ -95,13 +88,8 @@ fn objective_range_on_fibre(
     [center - radius, center + radius]
 }
 
-fn objective_is_fibre_invariant(
-    objective: &Objective,
-    basis: &[Impulses; 6],
-) -> bool {
-    basis
-        .iter()
-        .all(|direction| dot(objective, direction) == 0)
+fn objective_is_fibre_invariant(objective: &Objective, basis: &[Impulses; 6]) -> bool {
+    basis.iter().all(|direction| dot(objective, direction) == 0)
 }
 
 // Fraction-free Bareiss determinant. Every division must be exact.
@@ -188,23 +176,18 @@ mod tests {
         // Every linear generalized body-impulse observable c=J e_a is constant
         // on the full allocation fibre, not only the selected z-axis example.
         for body_axis in 0..6 {
-            let body_observable: Objective =
-                std::array::from_fn(|row| jacobian[row][body_axis]);
+            let body_observable: Objective = std::array::from_fn(|row| jacobian[row][body_axis]);
             let expected = expected_body_impulse[body_axis];
             assert_eq!(
                 objective_range_on_fibre(&body_observable, &BASE_IMPULSE, &NULL_BASIS),
                 [expected, expected]
             );
-            assert!(objective_is_fibre_invariant(
-                &body_observable,
-                &NULL_BASIS
-            ));
+            assert!(objective_is_fibre_invariant(&body_observable, &NULL_BASIS));
         }
 
         // The total normal impulse is the z-linear-momentum observable:
         // c = J e_z. It depends only on J^T p and is invariant on the fibre.
-        let vertical_body_observable: Objective =
-            std::array::from_fn(|row| jacobian[row][2]);
+        let vertical_body_observable: Objective = std::array::from_fn(|row| jacobian[row][2]);
         assert_eq!(
             objective_range_on_fibre(&vertical_body_observable, &BASE_IMPULSE, &NULL_BASIS),
             [200, 200]
@@ -253,10 +236,8 @@ mod tests {
                 let disk_margin = normal * normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
                 assert!(normal > 0);
                 assert!(disk_margin > 0);
-                minimum_normal_impulses[contact] =
-                    minimum_normal_impulses[contact].min(normal);
-                minimum_disk_margins[contact] =
-                    minimum_disk_margins[contact].min(disk_margin);
+                minimum_normal_impulses[contact] = minimum_normal_impulses[contact].min(normal);
+                minimum_disk_margins[contact] = minimum_disk_margins[contact].min(disk_margin);
             }
 
             let vertical_value = dot(&vertical_body_observable, &candidate);
@@ -281,17 +262,11 @@ mod tests {
         let order = [2, 1, 0, 3];
         let permuted_jacobian = permute_jacobian_blocks(&jacobian, order);
         let permuted_base = permute_impulse_blocks(&BASE_IMPULSE, order);
-        let permuted_basis =
-            NULL_BASIS.map(|direction| permute_impulse_blocks(&direction, order));
+        let permuted_basis = NULL_BASIS.map(|direction| permute_impulse_blocks(&direction, order));
 
-        let vertical_body_observable: Objective =
-            std::array::from_fn(|row| permuted_jacobian[row][2]);
+        let vertical_body_observable: Objective = std::array::from_fn(|row| permuted_jacobian[row][2]);
         assert_eq!(
-            objective_range_on_fibre(
-                &vertical_body_observable,
-                &permuted_base,
-                &permuted_basis
-            ),
+            objective_range_on_fibre(&vertical_body_observable, &permuted_base, &permuted_basis),
             [200, 200]
         );
         assert!(objective_is_fibre_invariant(
@@ -302,11 +277,7 @@ mod tests {
         let mut old_first_contact_normal = [0_i128; 12];
         old_first_contact_normal[6] = 1;
         assert_eq!(
-            objective_range_on_fibre(
-                &old_first_contact_normal,
-                &permuted_base,
-                &permuted_basis
-            ),
+            objective_range_on_fibre(&old_first_contact_normal, &permuted_base, &permuted_basis),
             [48, 52]
         );
 
