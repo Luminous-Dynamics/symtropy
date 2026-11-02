@@ -457,3 +457,15 @@ The current standards snapshot must distinguish published standards from revisio
 - OCP Power Distribution published LVDC white-paper version 1.1.0 in September 2026; it is an open ecosystem reference, not a statutory code.
 
 Use exact source editions and site utility/mission requirements for acceptance. The system model may support architecture comparison, but no bookkeeping PASS establishes black-start capability, grid-forming performance, protection coordination, cybersecurity, interconnection approval or operational permission.
+
+
+## 19. 2026 dynamic marine powertrain literature baselines
+
+A new machine-readable register is maintained at [MARINE_POWERTRAIN_LITERATURE_BASELINES_2026-11-03.json](data/MARINE_POWERTRAIN_LITERATURE_BASELINES_2026-11-03.json), validated against [MARINE_POWERTRAIN_LITERATURE_SCHEMA_2026-11-03.json](data/MARINE_POWERTRAIN_LITERATURE_SCHEMA_2026-11-03.json).
+
+It records two new 2026 peer-reviewed, vessel-specific system studies:
+
+- Elkafas & Lazakis, *Energy Conversion and Management* 366 (15 October 2026), DOI 10.1016/j.enconman.2026.121836: dynamic deep-sea container-ship model comparing e-ammonia/e-methanol/e-liquid-hydrogen dual-fuel engines and PEMFC systems. The study reports direct-H2 PEMFC as the strongest energy/lifecycle-GHG performer, while e-ammonia dual-fuel engines provide the lowest reported annual and CO2 abatement cost under its assumptions. It reports 3.4–5 percentage-point PEMFC efficiency penalty for ammonia cracking and 8.3–9.4 points for methanol reforming versus direct hydrogen.
+- Zincir & Arslanoglu, *Next Energy* 13 (October 2026), DOI 10.1016/j.nxener.2026.101068: well-to-wake LCA/LCC using real operational data from a 6,177-GT Mediterranean/Black Sea general-cargo vessel. The paper reports e-methanol as the largest GHG-reduction pathway (76.2% vs MDO), hydrogen at 45.7%, e-ammonia at 32.4%; hydrogen's lifecycle cost ~2.7× LNG and tank volume ~3.7× MDO for equal propulsion energy, with estimated 6.8% cargo-deadweight displacement on that vessel.
+
+These results must remain tied to their vessel, route, functional unit, energy conversion model and lifecycle assumptions. They reinforce the central thesis: **no fuel wins independently of conversion topology, storage, route, payload, electricity/fuel pathway and stakeholder objective**. Do not apply one study's ranking or tank-volume penalty to another vessel.
