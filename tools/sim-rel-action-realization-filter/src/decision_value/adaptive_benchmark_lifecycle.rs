@@ -1062,6 +1062,8 @@ mod tests {
     const D3: &str = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     const D4: &str = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
     const D5: &str = "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const D6: &str = "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const D7: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 
     struct NoSemanticOverlap;
     impl BenchmarkSemanticOverlapAuditor for NoSemanticOverlap {
@@ -1157,6 +1159,10 @@ mod tests {
                     artifact_digest: D2.into(),
                     split: EvidenceSplit::Development,
                 },
+                SplitBoundBenchmarkArtifact {
+                    artifact_digest: D6.into(),
+                    split: EvidenceSplit::Development,
+                },
             ],
             adapted_at_unix_seconds: 100 + sequence,
         }
@@ -1242,7 +1248,7 @@ mod tests {
                 ambiguity_detected: false,
                 verified_at_unix_seconds: 800,
             },
-            generator_input_artifact_digests: vec![D1.into(), D2.into()],
+            generator_input_artifact_digests: vec![D1.into(), D6.into(), D2.into()],
             generated_at_unix_seconds: 700,
         }
     }
@@ -1279,6 +1285,11 @@ mod tests {
                     artifact_digest: D1.into(),
                     split: None,
                     role: GenerationInputRole::FrozenPlan,
+                },
+                GenerationInputArtifact {
+                    artifact_digest: D6.into(),
+                    split: Some(EvidenceSplit::Development),
+                    role: GenerationInputRole::DevelopmentEvidence,
                 },
                 GenerationInputArtifact {
                     artifact_digest: D2.into(),
@@ -1362,6 +1373,40 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn generator_inputs_must_be_split_typed_and_present_in_the_admitted_transcript() {
+        let events = vec![event(0, D2)];
+        let freeze = freeze(&events);
+
+        let mut sealed_leak = release(vec![task("task-1", "a")]);
+        sealed_leak.generation_inputs.push(GenerationInputArtifact {
+            artifact_digest: D7.into(),
+            split: Some(EvidenceSplit::SealedHoldout),
+            role: GenerationInputRole::DevelopmentEvidence,
+        });
+        sealed_leak.task_artifacts[0].generator_input_artifact_digests.push(D7.into());
+        assert!(verify(
+            &plan(), &events, &freeze, &calibration(), &sealed_leak, &NoSemanticOverlap
+        ).is_err());
+
+        let mut unadmitted_development = release(vec![task("task-1", "a")]);
+        unadmitted_development.generation_inputs.push(GenerationInputArtifact {
+            artifact_digest: D7.into(),
+            split: Some(EvidenceSplit::Development),
+            role: GenerationInputRole::DevelopmentEvidence,
+        });
+        unadmitted_development.task_artifacts[0].generator_input_artifact_digests.push(D7.into());
+        assert!(verify(
+            &plan(), &events, &freeze, &calibration(), &unadmitted_development, &NoSemanticOverlap
+        ).is_err());
+
+        let mut misclassified_calibration = release(vec![task("task-1", "a")]);
+        misclassified_calibration.generation_inputs[2].split = Some(EvidenceSplit::Development);
+        assert!(verify(
+            &plan(), &events, &freeze, &calibration(), &misclassified_calibration, &NoSemanticOverlap
+        ).is_err());
     }
 
     #[test]
