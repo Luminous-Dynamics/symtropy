@@ -203,3 +203,17 @@ A local hypothesis defeater never means global NO-SOLUTION. Alternative contact 
 The independent composite verifier replays both source partition covers/classifications, reconstructs the full Cartesian product, recomputes every nonempty intersection, and requires one retained composed cell for each lineage pair. Geometry is not the identity key: two different branch pairs that intersect on the same split face remain two separate composed cells. A dropped intersection cell or relabelled branch fails verification.
 
 This exposes the combinatorial cost of composition directly: source cell counts, Cartesian candidate-pair count, empty intersections, distinct geometric intersections, label/lineage multiplicity, unresolved coverage and resource-budget carry-through must all be reported.
+
+
+### Intersection-time reclassification
+
+The composition path no longer copies a parent cell's local regime label blindly. For each nonempty pairwise intersection, it re-evaluates **both** affine local messages on that narrower intersection. This can recover a strict result from a broader parent cell that was boundary/inconclusive, provided the intersection excludes the local transition face. The source cell lineages remain unchanged and every source-cell pair remains represented.
+
+Benchmark this separately:
+- parent cells that were boundary/inconclusive;
+- their intersections reclassified as strict-positive or strict-negative;
+- intersections remaining boundary/inconclusive;
+- false strict upgrade negative controls;
+- the additional interval-replay cost per nonempty intersection.
+
+This is a safe precision improvement only because the composition verifier independently recomputes both local interval classifications on every retained intersection. It does not alter the coverage or branch identity contract.
