@@ -16,6 +16,7 @@ pub mod finite_horizon;
 pub mod finite_physical_challenge;
 pub mod ledger_transition_oracle;
 pub mod matched_benchmark;
+pub mod repeated_run_reliability;
 pub mod robust_finite_horizon;
 pub mod scientific_challenge;
 pub mod scientific_evidence;
