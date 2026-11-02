@@ -97,8 +97,8 @@
         "candidate_surplus_energy_j": 0,
         "reference_unserved_energy_j": 0,
         "candidate_unserved_energy_j": 0,
-        "reference_matched_service_efficiency": 0.4197,
-        "candidate_matched_service_efficiency": 0.4663333333333333,
+        "reference_matched_service_efficiency": 0.41970232558139536,
+        "candidate_matched_service_efficiency": 0.4663359173126615,
         "ffer": 1.1111111111111112,
         "interpretation": "The candidate delivers identical segment-level net-AC service while requiring 10% less chemical input energy (FFER is reference input / candidate input = 1.111111...)."
       }
@@ -163,7 +163,7 @@
         "reference_unserved_energy_j": 0,
         "candidate_unserved_energy_j": 0,
         "reference_matched_service_efficiency": 0.37650232558139535,
-        "candidate_matched_service_efficiency": 0.41833333333333333,
+        "candidate_matched_service_efficiency": 0.4183359173126615,
         "ffer": 1.1111111111111112,
         "interpretation": "Reference surplus is 1,393,200 J. It is reported and excluded from common useful service; it cannot inflate reference efficiency or distort candidate credit."
       }
@@ -272,7 +272,7 @@
             50688,
             10920
           ],
-          "chemical_input_energy_j": 860400
+          "chemical_input_energy_j": 954600
         }
       },
       "tolerance": {
