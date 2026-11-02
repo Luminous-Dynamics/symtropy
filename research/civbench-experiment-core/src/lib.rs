@@ -652,8 +652,43 @@ impl QualifiedMetric {
         Ok(())
     }
 
-    fn paired_delta(self, control: Self) -> Option<i128> {
-        Some(i128::from(self.value?) - i128::from(control.value?))
+    fn paired_delta(self, control: Self) -> MetricDelta {
+        match (control.value, self.value) {
+            (None, None) => MetricDelta {
+                value: None,
+                status: MetricDeltaStatus::BothMissing {
+                    control: control.status,
+                    treatment: self.status,
+                },
+            },
+            (None, Some(_)) => MetricDelta {
+                value: None,
+                status: MetricDeltaStatus::MissingControl {
+                    status: control.status,
+                },
+            },
+            (Some(_), None) => MetricDelta {
+                value: None,
+                status: MetricDeltaStatus::MissingTreatment {
+                    status: self.status,
+                },
+            },
+            (Some(control_value), Some(treatment_value)) if control.status != self.status => {
+                MetricDelta {
+                    value: None,
+                    status: MetricDeltaStatus::EvidenceStatusMismatch {
+                        control: control.status,
+                        treatment: self.status,
+                    },
+                }
+            }
+            (Some(control_value), Some(treatment_value)) => MetricDelta {
+                value: Some(i128::from(treatment_value) - i128::from(control_value)),
+                status: MetricDeltaStatus::Comparable {
+                    evidence_status: self.status,
+                },
+            },
+        }
     }
 }
 
@@ -661,6 +696,53 @@ impl Default for QualifiedMetric {
     fn default() -> Self {
         Self::not_measured()
     }
+}
+
+/// Qualification state of a treatment-minus-control metric comparison.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetricDeltaStatus {
+    /// Both numeric values exist and carry the same evidence status.
+    Comparable {
+        /// Shared evidence status of the two values.
+        evidence_status: MetricEvidenceStatus,
+    },
+    /// The control value is unavailable.
+    MissingControl {
+        /// Why the control value is missing.
+        status: MetricEvidenceStatus,
+    },
+    /// The treatment value is unavailable.
+    MissingTreatment {
+        /// Why the treatment value is missing.
+        status: MetricEvidenceStatus,
+    },
+    /// Neither arm has a numeric value.
+    BothMissing {
+        /// Control-side missingness reason.
+        control: MetricEvidenceStatus,
+        /// Treatment-side missingness reason.
+        treatment: MetricEvidenceStatus,
+    },
+    /// Both values exist but their evidence classes are not comparable in v0.1.
+    EvidenceStatusMismatch {
+        /// Control-side evidence class.
+        control: MetricEvidenceStatus,
+        /// Treatment-side evidence class.
+        treatment: MetricEvidenceStatus,
+    },
+}
+
+/// One evidence-qualified metric delta.
+///
+/// The numeric delta is present only when both arms have values with exactly
+/// the same evidence status. Cross-status conversions require a separately
+/// preregistered and versioned comparison bridge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MetricDelta {
+    /// Signed treatment-minus-control difference, when comparable.
+    pub value: Option<i128>,
+    /// Explicit reason the delta is or is not comparable.
+    pub status: MetricDeltaStatus,
 }
 
 /// Typed, non-composite outcome vector from one evaluated scenario arm.
@@ -761,29 +843,29 @@ impl OutcomeVector {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct OutcomeDelta {
     /// Change in unmet essential water demand, in litres.
-    pub essential_shortfall_l: Option<i128>,
+    pub essential_shortfall_l: MetricDelta,
     /// Change in service interruption exposure, in service-unit seconds.
-    pub interruption_service_seconds: Option<i128>,
+    pub interruption_service_seconds: MetricDelta,
     /// Change in worst-group service performance, in parts per million.
-    pub worst_group_service_ppm: Option<i128>,
+    pub worst_group_service_ppm: MetricDelta,
     /// Change in physical water loss, in litres.
-    pub physical_loss_l: Option<i128>,
+    pub physical_loss_l: MetricDelta,
     /// Change in commercial/apparent loss, in litres.
-    pub commercial_loss_l: Option<i128>,
+    pub commercial_loss_l: MetricDelta,
     /// Change in unbilled authorised consumption, in litres.
-    pub unbilled_authorised_l: Option<i128>,
+    pub unbilled_authorised_l: MetricDelta,
     /// Change in asset failures.
-    pub asset_failures: Option<i128>,
+    pub asset_failures: MetricDelta,
     /// Change in independently verified completed repairs.
-    pub verified_repairs: Option<i128>,
+    pub verified_repairs: MetricDelta,
     /// Change in whole-life cost, in the declared smallest currency unit.
-    pub whole_life_cost_minor: Option<i128>,
+    pub whole_life_cost_minor: MetricDelta,
     /// Change in time to qualified recovery, in seconds.
-    pub recovery_seconds: Option<i128>,
+    pub recovery_seconds: MetricDelta,
     /// Change in qualified fallback water delivered, in litres.
-    pub safe_fallback_delivery_l: Option<i128>,
+    pub safe_fallback_delivery_l: MetricDelta,
     /// Change in false dispatches.
-    pub false_dispatches: Option<i128>,
+    pub false_dispatches: MetricDelta,
 }
 
 impl OutcomeDelta {
@@ -1460,9 +1542,15 @@ mod tests {
         };
         let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
 
-        assert_eq!(receipt.delta.essential_shortfall_l, Some(-300));
-        assert_eq!(receipt.delta.worst_group_service_ppm, Some(50_000));
-        assert_eq!(receipt.delta.false_dispatches, Some(4));
+        assert_eq!(receipt.delta.essential_shortfall_l.value, Some(-300));
+        assert_eq!(
+            receipt.delta.essential_shortfall_l.status,
+            MetricDeltaStatus::Comparable {
+                evidence_status: MetricEvidenceStatus::Observed
+            }
+        );
+        assert_eq!(receipt.delta.worst_group_service_ppm.value, Some(50_000));
+        assert_eq!(receipt.delta.false_dispatches.value, Some(4));
     }
 
     #[test]
@@ -1476,12 +1564,63 @@ mod tests {
             ..OutcomeVector::default()
         };
         let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
-        assert_eq!(receipt.delta.physical_loss_l, None);
+        assert_eq!(receipt.delta.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.delta.physical_loss_l.status,
+            MetricDeltaStatus::EvidenceStatusMismatch {
+                control: MetricEvidenceStatus::Observed,
+                treatment: MetricEvidenceStatus::Unsupported
+            }
+        );
         assert_eq!(receipt.control.physical_loss_l.value, Some(0));
         assert_eq!(receipt.treatment.physical_loss_l.value, None);
         assert_eq!(
             receipt.treatment.physical_loss_l.status,
             MetricEvidenceStatus::Unsupported
+        );
+    }
+
+    #[test]
+    fn outcome_receipt_rejects_mixed_numeric_evidence_classes() {
+        let control = OutcomeVector {
+            physical_loss_l: QualifiedMetric::observed(100),
+            ..OutcomeVector::default()
+        };
+        let treatment = OutcomeVector {
+            physical_loss_l: QualifiedMetric::modelled(70),
+            ..OutcomeVector::default()
+        };
+        let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
+
+        assert_eq!(receipt.delta.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.delta.physical_loss_l.status,
+            MetricDeltaStatus::EvidenceStatusMismatch {
+                control: MetricEvidenceStatus::Observed,
+                treatment: MetricEvidenceStatus::Modelled
+            }
+        );
+    }
+
+    #[test]
+    fn outcome_receipt_reports_both_missing_reasons() {
+        let control = OutcomeVector {
+            physical_loss_l: QualifiedMetric::not_measured(),
+            ..OutcomeVector::default()
+        };
+        let treatment = OutcomeVector {
+            physical_loss_l: QualifiedMetric::unsupported(),
+            ..OutcomeVector::default()
+        };
+        let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
+
+        assert_eq!(receipt.delta.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.delta.physical_loss_l.status,
+            MetricDeltaStatus::BothMissing {
+                control: MetricEvidenceStatus::NotMeasured,
+                treatment: MetricEvidenceStatus::Unsupported
+            }
         );
     }
 
