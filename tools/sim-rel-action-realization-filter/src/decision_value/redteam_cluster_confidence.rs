@@ -839,7 +839,7 @@ mod tests {
                 family,
                 kind: ScenarioKind::CleanNegativeControl,
                 scenario_digest: format!("sha256:{:064x}", family_index * 10 + 3),
-                generator_digest: D1.into(),
+                generator_digest: D4.into(),
                 author_identity: format!("control-author-{family_index}"),
                 split: EvidenceSplit::SealedHoldout,
                 development_exposed: false,
@@ -938,7 +938,7 @@ mod tests {
         // source verifier will still enforce one row per distinct scenario.
         let mut plan = confidence_plan();
         plan.minimum_successful_exploits_per_attack_cluster = 1;
-        let counts = aggregate_clusters(&plan, &source_plan(), &scenarios, &trials).unwrap();
+        let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
         let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
