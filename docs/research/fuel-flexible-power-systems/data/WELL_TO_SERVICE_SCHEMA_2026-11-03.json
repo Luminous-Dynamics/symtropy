@@ -14,7 +14,9 @@
     "accounting_boundaries",
     "evidence_register",
     "result_vector",
-    "claim_ceiling"
+    "claim_ceiling",
+    "expected_result",
+    "oracle"
   ],
   "properties": {
     "schema_version": {
@@ -74,6 +76,25 @@
       "items": {
         "type": "string"
       }
+    },
+    "expected_result": {
+      "enum": [
+        "pass",
+        "reject"
+      ]
+    },
+    "oracle": {
+      "type": "object",
+      "required": [
+        "interpretation"
+      ],
+      "properties": {
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
     }
   },
   "$defs": {
@@ -189,7 +210,11 @@
             "propulsion_work",
             "transport_service",
             "co_product",
-            "emissions"
+            "emissions",
+            "net_ac",
+            "regulated_dc",
+            "propulsion_work",
+            "transport_service"
           ]
         },
         "energy_quantity": {
@@ -489,6 +514,9 @@
     "results": {
       "type": "object",
       "required": [
+        "energy_unit",
+        "ghg_unit",
+        "cost_unit",
         "converter_input_energy",
         "primary_energy",
         "well_to_tank_ghg",
@@ -567,6 +595,18 @@
             "partial",
             "unknown"
           ]
+        },
+        "energy_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ghg_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cost_unit": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
