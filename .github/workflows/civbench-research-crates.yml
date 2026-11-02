@@ -26,23 +26,34 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install stable Rust
+      - name: Install stable Rust with formatting and lint components
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-      - name: Test every standalone research crate
+      - name: Check every standalone Rust research crate
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           manifests=(research/*/Cargo.toml)
+
           if (("${#manifests[@]}" == 0)); then
-            echo "No standalone research crates found."
-            exit 0
+            echo "ERROR: research-crate workflow ran, but no research/*/Cargo.toml manifests were found." >&2
+            exit 1
           fi
 
           for manifest in "${manifests[@]}"; do
+            lockfile="${manifest%Cargo.toml}Cargo.lock"
+            if [[ ! -f "${lockfile}" ]]; then
+              echo "ERROR: missing lockfile for ${manifest}: ${lockfile}" >&2
+              exit 1
+            fi
+
             echo "::group::${manifest}"
+            cargo fmt --manifest-path "${manifest}" --all -- --check
             cargo check --locked --manifest-path "${manifest}" --all-targets
             cargo test --locked --manifest-path "${manifest}" --all-targets
+            cargo clippy --locked --manifest-path "${manifest}" --all-targets -- -D warnings
             echo "::endgroup::"
           done
