@@ -49,7 +49,9 @@ The outcome vector retains separate fields for:
 - safe fallback delivery;
 - false dispatches.
 
-The paired receipt calculates signed treatment-minus-control deltas in every field. It validates the worst-group service field is in the declared 0..=1,000,000 ppm domain. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
+Every metric carries both a value and an evidence status: observed, derived, modelled, not measured, unsupported, withheld or not applicable. The first three require a numeric value; the latter four require no value. An observed zero is different from an unsupported or missing metric. Worst-group service is checked against its 0..=1,000,000 ppm domain.
+
+The paired receipt calculates signed treatment-minus-control deltas only when both arms contain valid numeric values. If either arm is missing, unsupported, withheld or not applicable, that field's delta is None rather than zero. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
 
 ### 4. Fail-closed provenance
 
