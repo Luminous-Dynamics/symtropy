@@ -3181,7 +3181,10 @@ impl SlidingLeafMessage {
 
         let effective_free_velocity =
             self.free_velocity + self.separator_coupling.transpose() * separator_impulse;
-        if !effective_free_velocity.iter().all(|value| value.is_finite()) {
+        if !effective_free_velocity
+            .iter()
+            .all(|value| value.is_finite())
+        {
             return Err("sliding leaf effective free velocity is non-finite");
         }
 
@@ -3282,13 +3285,19 @@ mod sliding_leaf_candidate_message_tests {
             .candidate_response_at(&SVector::<f64, 3>::zeros(), 1.0e-11)
             .unwrap();
 
-        assert_eq!(response.solver_status, CoupledCoulombStatus::MultipleSolutions);
+        assert_eq!(
+            response.solver_status,
+            CoupledCoulombStatus::MultipleSolutions
+        );
         assert_eq!(
             response.classification,
             SlidingLeafPointClassification::CandidateSetNeedsCertification
         );
         assert_eq!(response.sliding_candidates.len(), expected_sliding);
-        assert_eq!(response.non_sliding_candidate_count + expected_sliding, direct.candidates.len());
+        assert_eq!(
+            response.non_sliding_candidate_count + expected_sliding,
+            direct.candidates.len()
+        );
         assert_eq!(response.sliding_quartic, direct.sliding_quartic);
         assert_eq!(response.sliding_angles, direct.sliding_angles);
 
