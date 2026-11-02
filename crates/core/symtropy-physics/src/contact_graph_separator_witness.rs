@@ -53,6 +53,25 @@ struct StickingLeafResponse {
     strict_disk_margin: f64,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct StickingSeparatorBoxCell {
+    separator_box: SeparatorImpulseBox,
+    classification: StickingBoxClassification,
+    depth: usize,
+    lineage: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct StickingSeparatorBoxPartition {
+    root_box: SeparatorImpulseBox,
+    cells: Vec<StickingSeparatorBoxCell>,
+    processed_nodes: usize,
+    max_depth_reached: usize,
+    node_budget_exhausted: bool,
+    coverage_preserved: bool,
+    classification_complete: bool,
+}
+
 impl StickingLeafMessage {
     /// Return the affine impulse response p_leaf = offset + gain * p_separator.
     ///
@@ -233,6 +252,215 @@ impl StickingLeafMessage {
             local_residual_bounds,
             disk_margin_bounds,
             classification,
+        })
+    }
+
+    /// Choose a deterministic subdivision coordinate using the largest
+    /// affine-response variation over the current box. This heuristic only
+    /// selects a split; interval response classification remains the authority.
+    fn split_box(
+        &self,
+        parent: &SeparatorImpulseBox,
+    ) -> Option<(usize, f64, SeparatorImpulseBox, SeparatorImpulseBox)> {
+        let (_, gain) = self.affine_response_coefficients().ok()?;
+        let mut selected_axis = None;
+        let mut largest_variation = 0.0_f64;
+        for axis in 0..3 {
+            let width = parent.upper[axis] - parent.lower[axis];
+            if !width.is_finite() || width <= 0.0 {
+                continue;
+            }
+            let sensitivity = (0..3)
+                .map(|impulse_axis| gain[(impulse_axis, axis)].abs())
+                .fold(0.0_f64, f64::max);
+            let variation = sensitivity * width;
+            if variation.is_finite() && variation > largest_variation {
+                largest_variation = variation;
+                selected_axis = Some(axis);
+            }
+        }
+        let axis = selected_axis?;
+        let lower = parent.lower[axis];
+        let upper = parent.upper[axis];
+        let midpoint = lower * 0.5 + upper * 0.5;
+        if !midpoint.is_finite() || midpoint <= lower || midpoint >= upper {
+            return None;
+        }
+
+        let mut left_upper = parent.upper;
+        left_upper[axis] = midpoint;
+        let left = SeparatorImpulseBox {
+            lower: parent.lower,
+            upper: left_upper,
+        };
+        let mut right_lower = parent.lower;
+        right_lower[axis] = midpoint;
+        let right = SeparatorImpulseBox {
+            lower: right_lower,
+            upper: parent.upper,
+        };
+        Some((axis, midpoint, left, right))
+    }
+
+    /// Independently replay a closed binary cover for the sticking response.
+    /// Every cell's strict/boundary/excluded label is recomputed from its box.
+    fn verify_box_cover(
+        &self,
+        root: &SeparatorImpulseBox,
+        cells: &[StickingSeparatorBoxCell],
+    ) -> bool {
+        let mut leaves =
+            std::collections::BTreeMap::<Vec<u8>, &StickingSeparatorBoxCell>::new();
+        for cell in cells {
+            if cell.depth != cell.lineage.len()
+                || cell.lineage.iter().any(|branch| *branch > 1)
+                || leaves.insert(cell.lineage.clone(), cell).is_some()
+            {
+                return false;
+            }
+            let replayed = self
+                .response_over_box(&cell.separator_box)
+                .map(|response| response.classification)
+                .unwrap_or(StickingBoxClassification::BoundaryOrInconclusive);
+            if replayed != cell.classification {
+                return false;
+            }
+        }
+
+        let paths = leaves.keys().cloned().collect::<Vec<_>>();
+        for (index, path) in paths.iter().enumerate() {
+            for (other_index, other) in paths.iter().enumerate() {
+                if index != other_index && path.len() < other.len() && other.starts_with(path) {
+                    return false;
+                }
+            }
+        }
+
+        fn walk(
+            message: &StickingLeafMessage,
+            current_box: &SeparatorImpulseBox,
+            path: &mut Vec<u8>,
+            leaves: &std::collections::BTreeMap<Vec<u8>, &StickingSeparatorBoxCell>,
+        ) -> bool {
+            if let Some(cell) = leaves.get(path) {
+                return cell.separator_box == *current_box && cell.depth == path.len();
+            }
+            let Some((_, _, left, right)) = message.split_box(current_box) else {
+                return false;
+            };
+            let mut left_path = path.clone();
+            left_path.push(0);
+            let mut right_path = path.clone();
+            right_path.push(1);
+            let has_left = leaves.keys().any(|candidate| candidate.starts_with(&left_path));
+            let has_right = leaves.keys().any(|candidate| candidate.starts_with(&right_path));
+            if !has_left || !has_right {
+                return false;
+            }
+            path.push(0);
+            let left_valid = walk(message, &left, path, leaves);
+            path.pop();
+            if !left_valid {
+                return false;
+            }
+            path.push(1);
+            let right_valid = walk(message, &right, path, leaves);
+            path.pop();
+            right_valid
+        }
+
+        walk(self, root, &mut Vec::new(), &leaves)
+    }
+
+    /// Subdivide the separator domain while retaining every unresolved frontier.
+    /// Closed children overlap on their shared split face, so their union has
+    /// no gaps and boundary cells are intentionally preserved.
+    fn partition_separator_box(
+        &self,
+        root: &SeparatorImpulseBox,
+        max_depth: usize,
+        node_budget: usize,
+    ) -> Result<StickingSeparatorBoxPartition, &'static str> {
+        if node_budget == 0 {
+            return Err("sticking separator partition requires a positive node budget");
+        }
+        self.affine_response_coefficients()?;
+        let mut stack = vec![(root.clone(), 0_usize, Vec::<u8>::new())];
+        let mut cells = Vec::new();
+        let mut processed_nodes = 0_usize;
+        let mut node_budget_exhausted = false;
+
+        while let Some((current_box, depth, lineage)) = stack.pop() {
+            if processed_nodes >= node_budget {
+                node_budget_exhausted = true;
+                cells.push(StickingSeparatorBoxCell {
+                    separator_box: current_box,
+                    classification: StickingBoxClassification::BoundaryOrInconclusive,
+                    depth,
+                    lineage,
+                });
+                for (remaining_box, remaining_depth, remaining_lineage) in stack.drain(..) {
+                    cells.push(StickingSeparatorBoxCell {
+                        separator_box: remaining_box,
+                        classification: StickingBoxClassification::BoundaryOrInconclusive,
+                        depth: remaining_depth,
+                        lineage: remaining_lineage,
+                    });
+                }
+                break;
+            }
+            processed_nodes += 1;
+            let classification = self
+                .response_over_box(&current_box)
+                .map(|response| response.classification)
+                .unwrap_or(StickingBoxClassification::BoundaryOrInconclusive);
+
+            if classification != StickingBoxClassification::BoundaryOrInconclusive {
+                cells.push(StickingSeparatorBoxCell {
+                    separator_box: current_box,
+                    classification,
+                    depth,
+                    lineage,
+                });
+                continue;
+            }
+
+            if depth < max_depth {
+                if let Some((_, _, left, right)) = self.split_box(&current_box) {
+                    let mut left_lineage = lineage.clone();
+                    left_lineage.push(0);
+                    let mut right_lineage = lineage;
+                    right_lineage.push(1);
+                    stack.push((right, depth + 1, right_lineage));
+                    stack.push((left, depth + 1, left_lineage));
+                    continue;
+                }
+            }
+            cells.push(StickingSeparatorBoxCell {
+                separator_box: current_box,
+                classification: StickingBoxClassification::BoundaryOrInconclusive,
+                depth,
+                lineage,
+            });
+        }
+
+        cells.sort_by(|left, right| left.lineage.cmp(&right.lineage));
+        let coverage_preserved = self.verify_box_cover(root, &cells);
+        if !coverage_preserved {
+            return Err("sticking separator partition failed its independent lineage coverage check");
+        }
+        let max_depth_reached = cells.iter().map(|cell| cell.depth).max().unwrap_or(0);
+        let classification_complete = cells.iter().all(|cell| {
+            cell.classification != StickingBoxClassification::BoundaryOrInconclusive
+        });
+        Ok(StickingSeparatorBoxPartition {
+            root_box: root.clone(),
+            cells,
+            processed_nodes,
+            max_depth_reached,
+            node_budget_exhausted,
+            coverage_preserved,
+            classification_complete,
         })
     }
 
