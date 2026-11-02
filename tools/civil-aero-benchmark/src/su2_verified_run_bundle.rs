@@ -14,14 +14,17 @@ use crate::su2_boundary_audit::{
     Su2BoundaryAuditReport, audit_su2_boundary_markers, verify_su2_boundary_audit,
 };
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
-use crate::su2_field_preflight::{Su2FieldPreflightReport, audit_su2_field_preflight};
+use crate::su2_field_preflight::{
+    Su2FieldPreflightReport, audit_su2_field_preflight,
+};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
 
-pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.1.0";
-pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str = "replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
+pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.3.0";
+pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str =
+    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_scheduler_signal_guard_and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
 
 /// A resource value is either grounded in a named measurement source or explicitly unavailable.
 /// In particular, unknown resource telemetry is never encoded as zero.
@@ -62,9 +65,7 @@ impl ResourceMeasure {
             }
             Self::Unknown { reason } => {
                 if reason.trim().is_empty() {
-                    return Err(format!(
-                        "unknown resource measurement {name} needs a reason"
-                    ));
+                    return Err(format!("unknown resource measurement {name} needs a reason"));
                 }
             }
         }
@@ -163,6 +164,10 @@ pub struct Su2VerifiedRunBundleReport {
     pub history_import_sha256: String,
     pub convergence_screen_sha256: String,
     pub lineage_binding_sha256: String,
+    pub termination_classification: String,
+    pub termination_sha256: String,
+    /// Empty for steady protocols; otherwise the digest of the per-time-step inner residual screen.
+    pub unsteady_inner_screen_sha256: String,
     pub resource_evidence: Su2ResourceEvidence,
     pub resource_evidence_sha256: String,
     pub status: String,
@@ -180,6 +185,21 @@ pub struct Su2VerifiedRunBundleInputs<'a> {
     pub input_bindings: &'a Su2RunInputBindings,
     pub additional_output_paths: &'a [String],
     pub lineage_binding: &'a Su2RunLineageBinding,
+}
+
+fn validate_bundle_convergence_mode(
+    protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
+) -> Result<(), String> {
+    match (protocol.time_domain, &protocol.window) {
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => Ok(()),
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => Ok(()),
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => Err(
+            "verified SU2 run bundle v0.3 does not admit unsteady endpoint mode without an enabled and independently screened time-window convergence protocol".to_owned(),
+        ),
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => Err(
+            "time-window convergence is incompatible with TIME_DOMAIN=NO".to_owned(),
+        ),
+    }
 }
 
 fn append_u64(bytes: &mut Vec<u8>, value: u64) {
@@ -247,6 +267,9 @@ fn canonical_bytes(report: &Su2VerifiedRunBundleReport) -> Vec<u8> {
         report.history_import_sha256.as_str(),
         report.convergence_screen_sha256.as_str(),
         report.lineage_binding_sha256.as_str(),
+        report.termination_classification.as_str(),
+        report.termination_sha256.as_str(),
+        report.unsteady_inner_screen_sha256.as_str(),
         report.resource_evidence_sha256.as_str(),
         report.status.as_str(),
         report.evidence_level.as_str(),
@@ -264,6 +287,7 @@ fn is_sha256(value: &str) -> bool {
 fn validate_preflight_covers_history(
     preflight: &Su2FieldPreflightReport,
     history: &Su2HistoryReport,
+    screen: &ConvergenceScreen,
 ) -> Result<(), String> {
     let mut imported = BTreeSet::new();
     imported.insert(history.iteration_column.as_str());
@@ -295,6 +319,47 @@ fn validate_preflight_covers_history(
                 .to_owned(),
         );
     }
+
+    let mut active_convergence_fields = preflight
+        .convergence_protocol
+        .steady_fields
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let mut window_fields = BTreeSet::new();
+    if let crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+        fields,
+        ..
+    } = &preflight.convergence_protocol.window
+    {
+        window_fields.extend(fields.iter().map(String::as_str));
+        active_convergence_fields.extend(window_fields.iter().copied());
+    }
+    for field in active_convergence_fields {
+        if !imported.contains(field) || !required.contains(field) {
+            return Err(format!(
+                "configured SU2 convergence field {field} is not required and imported from production history"
+            ));
+        }
+        let criterion = screen.results.iter().find(|row| row.column == field);
+        let Some(criterion) = criterion else {
+            return Err(format!(
+                "configured SU2 convergence field {field} has no independent post-run screen criterion"
+            ));
+        };
+        if criterion.status != crate::su2_convergence_screen::CriterionStatus::Passed {
+            return Err(format!(
+                "configured SU2 convergence field {field} did not pass its independent post-run screen"
+            ));
+        }
+        if window_fields.contains(field)
+            && criterion.kind != "monitor_terminal_range_mean_drift_and_slope"
+        {
+            return Err(format!(
+                "time-window field {field} must have an independent terminal monitor-stability screen"
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -304,6 +369,7 @@ pub fn create_su2_verified_run_bundle(
     inputs: &Su2VerifiedRunBundleInputs<'_>,
 ) -> Result<Su2VerifiedRunBundleReport, String> {
     let preflight = inputs.field_preflight;
+    validate_bundle_convergence_mode(&preflight.convergence_protocol)?;
     let boundary = inputs.boundary_audit;
     let history = inputs.history;
     let screen = inputs.convergence_screen;
@@ -339,21 +405,37 @@ pub fn create_su2_verified_run_bundle(
         inputs.additional_output_paths,
         lineage,
     )?;
-    validate_preflight_covers_history(preflight, history)?;
+    validate_preflight_covers_history(preflight, history, screen)?;
 
     let dry_run_receipt = read_external_solver_receipt(inputs.dry_run_directory)?;
     verify_external_solver_receipt(inputs.dry_run_directory, &dry_run_receipt)?;
     let production_receipt = read_external_solver_receipt(inputs.production_run_directory)?;
     verify_external_solver_receipt(inputs.production_run_directory, &production_receipt)?;
+    let termination = crate::su2_termination::classify_su2_termination(
+        inputs.production_run_directory,
+        preflight,
+    )?;
+    if !termination.is_converged_for_protocol() {
+        return Err(format!(
+            "native SU2 termination is not converged for the declared protocol: {}",
+            termination.classification
+        ));
+    }
+    let unsteady_inner_screen = if preflight.convergence_protocol.time_domain {
+        Some(crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+            preflight,
+            history,
+        )?)
+    } else {
+        None
+    };
 
     if dry_run_receipt.solver_id != "SU2_CFD_DRY_RUN"
         || !dry_run_receipt.is_process_success()
         || production_receipt.solver_id != "SU2_CFD"
         || !production_receipt.is_process_success()
     {
-        return Err(
-            "run bundle requires successful SU2_CFD_DRY_RUN and SU2_CFD receipts".to_owned(),
-        );
+        return Err("run bundle requires successful SU2_CFD_DRY_RUN and SU2_CFD receipts".to_owned());
     }
     if preflight.run_id != dry_run_receipt.run_id
         || boundary.run_id != dry_run_receipt.run_id
@@ -362,9 +444,7 @@ pub fn create_su2_verified_run_bundle(
         || preflight.runner_receipt_sha256 != dry_run_receipt.receipt_sha256
         || boundary.runner_receipt_sha256 != dry_run_receipt.receipt_sha256
     {
-        return Err(
-            "field preflight and boundary audit do not share the exact dry-run receipt".to_owned(),
-        );
+        return Err("field preflight and boundary audit do not share the exact dry-run receipt".to_owned());
     }
     if preflight.executable_sha256 != dry_run_receipt.executable_sha256
         || boundary.executable_sha256 != dry_run_receipt.executable_sha256
@@ -383,9 +463,7 @@ pub fn create_su2_verified_run_bundle(
         || preflight.mesh_sha256 != lineage.mesh.sha256
         || boundary.mesh_sha256 != lineage.mesh.sha256
     {
-        return Err(
-            "dry-run configuration/mesh identities differ from production lineage".to_owned(),
-        );
+        return Err("dry-run configuration/mesh identities differ from production lineage".to_owned());
     }
     if production_receipt.run_id != lineage.run_id
         || production_receipt.receipt_sha256 != lineage.runner_receipt_sha256
@@ -395,18 +473,36 @@ pub fn create_su2_verified_run_bundle(
         || history.runner_receipt_sha256() != production_receipt.receipt_sha256
         || history.executable_sha256() != production_receipt.executable_sha256
         || screen.runner_receipt_sha256 != production_receipt.receipt_sha256
+        || termination.runner_receipt_sha256 != production_receipt.receipt_sha256
+        || termination.run_id != production_receipt.run_id
+        || termination.executable_sha256 != production_receipt.executable_sha256
     {
-        return Err("production receipt, history, screen and lineage identities differ".to_owned());
+        return Err("production receipt, history, screen, termination and lineage identities differ".to_owned());
+    }
+    let expected_termination_mode = match (
+        preflight.convergence_protocol.time_domain,
+        &preflight.convergence_protocol.window,
+    ) {
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => "steady",
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            "time_window"
+        }
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => {
+            "unsteady_no_window"
+        }
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            return Err("time-window convergence is incompatible with TIME_DOMAIN=NO".to_owned());
+        }
+    };
+    if termination.mode != expected_termination_mode {
+        return Err("native solver termination mode differs from declared convergence protocol".to_owned());
     }
     if screen.status != "declared_thresholds_met"
         || screen.failed_count != 0
         || screen.insufficient_count != 0
         || screen.passed_count != screen.results.len()
     {
-        return Err(
-            "all declared convergence screen criteria must pass for a verified run bundle"
-                .to_owned(),
-        );
+        return Err("all declared convergence screen criteria must pass for a verified run bundle".to_owned());
     }
     if !is_sha256(&lineage.geometry.sha256) {
         return Err("production geometry digest is malformed".to_owned());
@@ -436,9 +532,15 @@ pub fn create_su2_verified_run_bundle(
         history_import_sha256: history.import_sha256().to_owned(),
         convergence_screen_sha256: screen.screen_sha256.clone(),
         lineage_binding_sha256: lineage.binding_sha256.clone(),
+        termination_classification: termination.classification.clone(),
+        termination_sha256: termination.termination_sha256.clone(),
+        unsteady_inner_screen_sha256: unsteady_inner_screen
+            .as_ref()
+            .map(|screen| screen.screen_sha256.clone())
+            .unwrap_or_default(),
         resource_evidence,
         resource_evidence_sha256,
-        status: "run_identity_preflight_boundary_history_and_declared_screen_replayed".to_owned(),
+        status: "run_identity_preflight_boundary_history_native_termination_and_required_inner_residual_screen_replayed".to_owned(),
         evidence_level: SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL.to_owned(),
         bundle_sha256: String::new(),
     };
@@ -486,9 +588,7 @@ fn measurement_csv(measurement: &ResourceMeasure) -> (String, String, String, St
             format!(
                 "{}:{}",
                 source_sha256,
-                standard_uncertainty
-                    .map(|v| v.to_string())
-                    .unwrap_or_default()
+                standard_uncertainty.map(|v| v.to_string()).unwrap_or_default()
             ),
         ),
         ResourceMeasure::Unknown { reason } => (
@@ -498,6 +598,71 @@ fn measurement_csv(measurement: &ResourceMeasure) -> (String, String, String, St
             String::new(),
             reason.clone(),
         ),
+    }
+}
+
+#[cfg(test)]
+mod protocol_tests {
+    use super::*;
+    use crate::su2_field_preflight::{Su2ConvergenceProtocol, Su2WindowConvergenceProtocol};
+
+    fn protocol(time_domain: bool, window: Su2WindowConvergenceProtocol) -> Su2ConvergenceProtocol {
+        Su2ConvergenceProtocol {
+            time_domain,
+            steady_fields: vec!["RMS_DENSITY".to_owned()],
+            steady_start_iteration: Some(10),
+            steady_residual_min_log10: Some("-8".to_owned()),
+            steady_cauchy_epsilon: None,
+            steady_cauchy_elements: None,
+            window,
+        }
+    }
+
+    #[test]
+    fn only_steady_or_explicit_windowed_time_domain_modes_are_admitted() {
+        assert!(validate_bundle_convergence_mode(&protocol(
+            false,
+            Su2WindowConvergenceProtocol::Disabled,
+        ))
+        .is_ok());
+
+        assert!(validate_bundle_convergence_mode(&protocol(
+            true,
+            Su2WindowConvergenceProtocol::Enabled {
+                fields: vec!["TAVG_DRAG".to_owned()],
+                window_start_iter: 500,
+                convergence_start_iter: 10,
+                cauchy_elements: 10,
+                cauchy_epsilon: "1E-4".to_owned(),
+                window_function: "SQUARE".to_owned(),
+            },
+        ))
+        .is_ok());
+
+        assert!(
+            validate_bundle_convergence_mode(&protocol(
+                true,
+                Su2WindowConvergenceProtocol::Disabled,
+            ))
+            .expect_err("unsteady endpoint protocol has no separate admission adapter")
+            .contains("does not admit unsteady endpoint mode")
+        );
+
+        assert!(
+            validate_bundle_convergence_mode(&protocol(
+                false,
+                Su2WindowConvergenceProtocol::Enabled {
+                    fields: vec!["TAVG_DRAG".to_owned()],
+                    window_start_iter: 500,
+                    convergence_start_iter: 10,
+                    cauchy_elements: 10,
+                    cauchy_epsilon: "1E-4".to_owned(),
+                    window_function: "SQUARE".to_owned(),
+                },
+            ))
+            .expect_err("steady runs cannot enable time-window convergence")
+            .contains("incompatible with TIME_DOMAIN=NO")
+        );
     }
 }
 
@@ -527,6 +692,9 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         report.history_import_sha256.clone(),
         report.convergence_screen_sha256.clone(),
         report.lineage_binding_sha256.clone(),
+        report.termination_classification.clone(),
+        report.termination_sha256.clone(),
+        report.unsteady_inner_screen_sha256.clone(),
     ];
     for measure in measures {
         fields.extend([measure.0, measure.1, measure.2, measure.3, measure.4]);
@@ -538,60 +706,22 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         report.bundle_sha256.clone(),
     ]);
     let header = [
-        "schema",
-        "run_id",
-        "dry_run_id",
-        "solver_id",
-        "solver_version_claim",
-        "executable_sha256",
-        "dry_run_receipt_sha256",
-        "production_receipt_sha256",
-        "physics_configuration_sha256",
-        "geometry_sha256",
-        "mesh_sha256",
-        "field_preflight_sha256",
-        "boundary_audit_sha256",
-        "history_sha256",
-        "history_import_sha256",
-        "convergence_screen_sha256",
-        "lineage_binding_sha256",
-        "wall_time_status",
-        "wall_time_value",
-        "wall_time_unit",
-        "wall_time_method",
-        "wall_time_source_uncertainty",
-        "cpu_status",
-        "cpu_value",
-        "cpu_unit",
-        "cpu_method",
-        "cpu_source_uncertainty",
-        "peak_memory_status",
-        "peak_memory_value",
-        "peak_memory_unit",
-        "peak_memory_method",
-        "peak_memory_source_uncertainty",
-        "gpu_status",
-        "gpu_value",
-        "gpu_unit",
-        "gpu_method",
-        "gpu_source_uncertainty",
-        "energy_status",
-        "energy_value",
-        "energy_unit",
-        "energy_method",
-        "energy_source_uncertainty",
-        "resource_evidence_sha256",
-        "status",
-        "evidence_level",
-        "bundle_sha256",
+        "schema", "run_id", "dry_run_id", "solver_id", "solver_version_claim",
+        "executable_sha256", "dry_run_receipt_sha256", "production_receipt_sha256",
+        "physics_configuration_sha256", "geometry_sha256", "mesh_sha256",
+        "field_preflight_sha256", "boundary_audit_sha256", "history_sha256",
+        "history_import_sha256", "convergence_screen_sha256", "lineage_binding_sha256",
+        "termination_classification", "termination_sha256", "unsteady_inner_screen_sha256",
+        "wall_time_status", "wall_time_value", "wall_time_unit", "wall_time_method", "wall_time_source_uncertainty",
+        "cpu_status", "cpu_value", "cpu_unit", "cpu_method", "cpu_source_uncertainty",
+        "peak_memory_status", "peak_memory_value", "peak_memory_unit", "peak_memory_method", "peak_memory_source_uncertainty",
+        "gpu_status", "gpu_value", "gpu_unit", "gpu_method", "gpu_source_uncertainty",
+        "energy_status", "energy_value", "energy_unit", "energy_method", "energy_source_uncertainty",
+        "resource_evidence_sha256", "status", "evidence_level", "bundle_sha256",
     ];
     format!(
         "{}\n{}\n",
         header.join(","),
-        fields
-            .iter()
-            .map(|value| csv_escape(value))
-            .collect::<Vec<_>>()
-            .join(",")
+        fields.iter().map(|value| csv_escape(value)).collect::<Vec<_>>().join(",")
     )
 }
