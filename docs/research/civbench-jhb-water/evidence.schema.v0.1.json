@@ -144,7 +144,8 @@
           },
           "publication_date": {
             "type": "string",
-            "format": "date"
+            "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
+            "description": "Use YYYY-MM-DD when the exact publication day is known; use YYYY-MM when the source only supplies month-level publication precision."
           },
           "evidence_status": {
             "type": "string"
