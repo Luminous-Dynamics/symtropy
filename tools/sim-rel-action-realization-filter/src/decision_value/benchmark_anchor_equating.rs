@@ -151,8 +151,10 @@ pub enum AnchorEquatingStatus {
 pub struct AnchorItemDrift {
     pub anchor_id: String,
     pub paired_response_count: usize,
+    pub drift_comparison_count: usize,
     pub valid_paired_response_count: usize,
     pub invalid_paired_response_count: usize,
+    pub validity_disagreement_count: usize,
     pub any_outcome_disagreement_count: usize,
     pub safe_success_disagreement_count: usize,
     pub hazard_disagreement_count: usize,
@@ -426,12 +428,6 @@ impl ExactLinkRatio {
             AnchorEquatingError::ArithmeticOverflow("ratio comparison overflow".into())
         })?;
         Ok(left.cmp(&right))
-    }
-}
-
-impl ExactLinkRatio {
-    fn checked_square(&self) -> Result<Self, AnchorEquatingError> {
-        self.checked_mul(self)
     }
 }
 
@@ -732,6 +728,7 @@ fn validate_anchor_responses(
     new_responses: &[AnchorResponseObservation],
     anchor_ids: &BTreeSet<String>,
     score_agent_ids: &BTreeSet<String>,
+    score_metadata: &BTreeMap<String, (&str, &str)>,
 ) -> Result<(Vec<AnchorItemDrift>, usize, usize, usize, ExactLinkRatio, ExactLinkRatio, bool), AnchorEquatingError> {
     if old_responses.len() > MAX_RESPONSE_ROWS || new_responses.len() > MAX_RESPONSE_ROWS {
         return Err(AnchorEquatingError::UnsupportedSampleSize(
@@ -767,16 +764,24 @@ fn validate_anchor_responses(
             }
         }
     }
-    if old_map.len() != new_map.len()
+    let expected_response_count = anchor_ids.len()
+        .checked_mul(score_agent_ids.len())
+        .and_then(|count| count.checked_mul(plan.repetitions_per_anchor_agent))
+        .ok_or_else(|| AnchorEquatingError::ArithmeticOverflow(
+            "expected common-anchor response count overflow".into(),
+        ))?;
+    if old_map.len() != expected_response_count
+        || new_map.len() != expected_response_count
+        || old_map.len() != new_map.len()
         || old_map.keys().any(|key| !new_map.contains_key(key))
     {
         return Err(AnchorEquatingError::AnchorResponse(
-            "older/newer anchor response sets are not paired over the same anchor-agent-run keys".into(),
+            "older/newer response grids must cover every selected anchor × reference agent × repetition key".into(),
         ));
     }
-    // Tuple fields are: valid_for_drift, any_outcome_diff, success_diff,
-    // hazard_diff, abstention_diff.
-    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool, bool, bool)>> = BTreeMap::new();
+    // Tuple fields are: drift_eligible, both_valid, any_outcome_diff,
+    // success_diff, hazard_diff, abstention_diff.
+    let mut per_anchor: BTreeMap<String, Vec<(bool, bool, bool, bool, bool, bool)>> = BTreeMap::new();
     let mut paired_count = 0usize;
     let mut valid_pair_count = 0usize;
     let mut invalid_pair_count = 0usize;
@@ -784,11 +789,17 @@ fn validate_anchor_responses(
         let new = new_map.get(key).ok_or_else(|| {
             AnchorEquatingError::AnchorResponse("paired newer anchor response disappeared".into())
         })?;
-        if old.agent_stratum_id != new.agent_stratum_id
+        let (expected_configuration, expected_stratum) = score_metadata.get(&old.agent_id).ok_or_else(|| {
+            AnchorEquatingError::AnchorResponse("anchor response agent is missing from the common reference panel".into())
+        })?;
+        if old.agent_configuration_digest != *expected_configuration
+            || new.agent_configuration_digest != *expected_configuration
+            || old.agent_stratum_id != *expected_stratum
+            || new.agent_stratum_id != *expected_stratum
             || old.seed_commitment_digest != new.seed_commitment_digest
         {
             return Err(AnchorEquatingError::AnchorResponse(
-                "paired anchor runs must use the same agent stratum and seed commitment".into(),
+                "paired anchor responses must match the frozen agent configuration, stratum and seed".into(),
             ));
         }
         paired_count = paired_count.checked_add(1).ok_or_else(|| {
@@ -802,27 +813,24 @@ fn validate_anchor_responses(
             let hazard_diff = old.any_hazard != new.any_hazard;
             let abstention_diff = old.abstained != new.abstained;
             per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                true,
+                true, true,
                 success_diff || hazard_diff || abstention_diff,
-                success_diff,
-                hazard_diff,
-                abstention_diff,
+                success_diff, hazard_diff, abstention_diff,
             ));
         } else if old.valid != new.valid {
-            // A validity mismatch is itself drift: one form could use the
-            // response while the other could not.
-            valid_pair_count = valid_pair_count.checked_add(1).ok_or_else(|| {
-                AnchorEquatingError::ArithmeticOverflow("valid pair count overflow".into())
+            // A validity mismatch is a drift comparison but not a valid pair.
+            invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
+                AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
             })?;
             per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                true, true, false, false, false,
+                true, false, true, false, false, false,
             ));
         } else {
             invalid_pair_count = invalid_pair_count.checked_add(1).ok_or_else(|| {
                 AnchorEquatingError::ArithmeticOverflow("invalid pair count overflow".into())
             })?;
             per_anchor.entry(old.anchor_id.clone()).or_default().push((
-                false, false, false, false, false,
+                false, false, false, false, false, false,
             ));
         }
     }
@@ -839,34 +847,45 @@ fn validate_anchor_responses(
                 "anchor {anchor_id} has no paired agent responses"
             ))
         })?;
+        let mut drift_comparison_count = 0usize;
         let mut item_valid = 0usize;
         let mut any = 0usize;
         let mut safe = 0usize;
         let mut hazard = 0usize;
         let mut abstention = 0usize;
-        for (valid, any_diff, safe_diff, hazard_diff, abstention_diff) in observations {
-            if *valid {
-                item_valid = item_valid.checked_add(1).ok_or_else(|| {
-                    AnchorEquatingError::ArithmeticOverflow("anchor valid response count overflow".into())
+        let mut validity_disagreements = 0usize;
+        for (drift_eligible, both_valid, any_diff, safe_diff, hazard_diff, abstention_diff) in observations {
+            if *drift_eligible {
+                drift_comparison_count = drift_comparison_count.checked_add(1).ok_or_else(|| {
+                    AnchorEquatingError::ArithmeticOverflow("anchor drift comparison count overflow".into())
                 })?;
                 if *any_diff { any += 1; }
                 if *safe_diff { safe += 1; }
                 if *hazard_diff { hazard += 1; }
                 if *abstention_diff { abstention += 1; }
             }
+            if *both_valid {
+                item_valid = item_valid.checked_add(1).ok_or_else(|| {
+                    AnchorEquatingError::ArithmeticOverflow("anchor valid response count overflow".into())
+                })?;
+            } else if *drift_eligible {
+                validity_disagreements = validity_disagreements.checked_add(1).ok_or_else(|| {
+                    AnchorEquatingError::ArithmeticOverflow("anchor validity disagreement count overflow".into())
+                })?;
+            }
         }
         let item_disagreements = any;
-        if item_valid == 0 {
+        if item_valid == 0 || drift_comparison_count == 0 {
             return Err(AnchorEquatingError::AnchorResponse(format!(
-                "anchor {anchor_id} has no valid paired response"
+                "anchor {anchor_id} has no valid or drift-comparable paired response"
             )));
         }
         let rate = ExactLinkRatio::new(
             i128::try_from(item_disagreements).map_err(|_| {
                 AnchorEquatingError::ArithmeticOverflow("anchor disagreement count exceeds i128".into())
             })?,
-            u128::try_from(item_valid).map_err(|_| {
-                AnchorEquatingError::ArithmeticOverflow("anchor valid count exceeds u128".into())
+            u128::try_from(drift_comparison_count).map_err(|_| {
+                AnchorEquatingError::ArithmeticOverflow("anchor drift comparison count exceeds u128".into())
             })?,
         )?;
         if rate.compare(&maximum_drift)? == std::cmp::Ordering::Greater {
@@ -876,8 +895,8 @@ fn validate_anchor_responses(
         total_disagreements = total_disagreements.checked_add(item_disagreements).ok_or_else(|| {
             AnchorEquatingError::ArithmeticOverflow("anchor disagreement total overflow".into())
         })?;
-        total_valid_for_drift = total_valid_for_drift.checked_add(item_valid).ok_or_else(|| {
-            AnchorEquatingError::ArithmeticOverflow("anchor valid response total overflow".into())
+        total_valid_for_drift = total_valid_for_drift.checked_add(drift_comparison_count).ok_or_else(|| {
+            AnchorEquatingError::ArithmeticOverflow("anchor drift comparison total overflow".into())
         })?;
         if rate.compare(&plan.maximum_per_anchor_response_disagreement)? == std::cmp::Ordering::Greater {
             drift_gate_passed = false;
@@ -885,8 +904,10 @@ fn validate_anchor_responses(
         drifts.push(AnchorItemDrift {
             anchor_id: anchor_id.clone(),
             paired_response_count: observations.len(),
+            drift_comparison_count,
             valid_paired_response_count: item_valid,
             invalid_paired_response_count: observations.len().saturating_sub(item_valid),
+            validity_disagreement_count: validity_disagreements,
             any_outcome_disagreement_count: item_disagreements,
             safe_success_disagreement_count: safe,
             hazard_disagreement_count: hazard,
@@ -1111,6 +1132,7 @@ pub fn link_benchmark_forms(
     }
 
     let anchor_ids = selected;
+    let score_metadata = old_score_metadata;
     let (
         anchor_item_drifts,
         paired_anchor_response_count,
@@ -1127,6 +1149,7 @@ pub fn link_benchmark_forms(
         newer_anchor_responses,
         &anchor_ids,
         &old_agents,
+        &score_metadata,
     )?;
 
     let (old_mean, old_variance) = form_score_moments(&older_scores)?;
