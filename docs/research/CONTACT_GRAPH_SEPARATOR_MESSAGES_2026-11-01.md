@@ -114,3 +114,30 @@ and checks (Jv^+) against the contact-space velocity. The frozen energy change i
 ### Important limitation
 
 This remains a floating-point point-query prototype. The tolerance-based boundary label is not an interval proof. The next sound extension is a box classifier that returns strict separation only when the entire interval enclosure of (u_n) is positive, Signorini violation only when the entire enclosure is negative, and boundary/inconclusive when it intersects zero. A box touching zero must not be promoted to a strict regime.
+
+
+## Outward-enclosed separator boxes — 2026-11-02
+
+The follow-on [#3288](https://github.com/Luminous-Dynamics/symtropy/pull/3288) extends the pointwise separating message to axis-aligned boxes of separator impulses.
+
+For the affine normal response
+
+[
+u_{n,L}(p_S)=q_{n,L}+b_{n,L}^{T}p_S,
+]
+
+the prototype evaluates the full box image using conservative binary64 interval addition and multiplication. Each operation widens the rounded endpoint by one adjacent representable value. A result is:
+
+- `StrictlySeparating` only if the complete normal-velocity enclosure has lower bound greater than zero;
+- `SignoriniViolation` only if the complete enclosure has upper bound less than zero;
+- `BoundaryOrInconclusive` whenever zero is included.
+
+The message also retains interval enclosures for tangential post-velocity, with its impulse fixed at zero. Overflow, non-finite values, and malformed/inverted boxes return errors rather than guessed signs.
+
+The tests use dyadic boxes whose exact normal-velocity ranges are known:
+- separator normal impulse in [1, 5/4] gives [3/8, 1/2];
+- in [3, 13/4] gives [-5/8, -1/2];
+- in [15/8, 17/8] crosses zero;
+- the zero-radius box at 2 lies exactly on the transition and remains boundary/inconclusive.
+
+This is a conservative pointwise-box certificate for binary64 inputs interpreted as exact represented values. It is not a correlated uncertainty model for geometry, mass or friction parameters, and it is not a global contact-island completeness proof.
