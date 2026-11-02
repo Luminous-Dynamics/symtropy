@@ -31,6 +31,21 @@ struct StickingLeafMessage {
     friction_coefficient: f64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum StickingBoxClassification {
+    StrictlySticking,
+    OutsideStrictStickingDomain,
+    BoundaryOrInconclusive,
+}
+
+#[derive(Clone, Debug)]
+struct StickingBoxResponse {
+    impulse_bounds: [OutwardInterval; 3],
+    local_residual_bounds: [OutwardInterval; 3],
+    disk_margin_bounds: OutwardInterval,
+    classification: StickingBoxClassification,
+}
+
 #[derive(Clone, Debug)]
 struct StickingLeafResponse {
     impulse: SVector<f64, 3>,
@@ -64,6 +79,160 @@ impl StickingLeafMessage {
         let offset = -factor.solve(&self.free_velocity);
         let separator_gain = -factor.solve(&self.separator_coupling.transpose());
         Ok((offset, separator_gain))
+    }
+
+    /// Enclose the exact affine response over a whole separator box.
+    ///
+    /// The offset and gain are obtained by interval Gaussian elimination on
+    /// the represented binary64 A/B/q data. This encloses the exact solution
+    /// of those inputs; it does not merely widen a rounded Cholesky point solve.
+    fn response_over_box(
+        &self,
+        separator_box: &SeparatorImpulseBox,
+    ) -> Result<StickingBoxResponse, &'static str> {
+        if !self.self_operator.iter().all(|value| value.is_finite())
+            || !self
+                .separator_coupling
+                .iter()
+                .all(|value| value.is_finite())
+            || !self.free_velocity.iter().all(|value| value.is_finite())
+            || !self.friction_coefficient.is_finite()
+            || self.friction_coefficient < 0.0
+        {
+            return Err("sticking leaf message contains invalid or non-finite data");
+        }
+        for row in 0..3 {
+            for column in 0..3 {
+                if self.self_operator[(row, column)] != self.self_operator[(column, row)] {
+                    return Err("sticking leaf self-block must be exactly symmetric");
+                }
+            }
+        }
+
+        let interval_solve =
+            |right_hand_side: SVector<f64, 3>| -> Result<[OutwardInterval; 3], &'static str> {
+                let mut matrix = [[OutwardInterval::point(0.0)?; 3]; 3];
+                let mut rhs = [OutwardInterval::point(0.0)?; 3];
+                for row in 0..3 {
+                    rhs[row] = OutwardInterval::point(right_hand_side[row])?;
+                    for column in 0..3 {
+                        matrix[row][column] =
+                            OutwardInterval::point(self.self_operator[(row, column)])?;
+                    }
+                }
+
+                // No pivoting is needed for an SPD matrix. Requiring every
+                // outward-enclosed leading pivot to be positive certifies the
+                // represented symmetric A along this fixed elimination order.
+                for pivot_index in 0..3 {
+                    let pivot = matrix[pivot_index][pivot_index];
+                    if pivot.lower <= 0.0 {
+                        return Err("interval Gaussian elimination cannot certify a positive SPD pivot");
+                    }
+                    for row in (pivot_index + 1)..3 {
+                        let factor = matrix[row][pivot_index].outward_div(pivot)?;
+                        for column in (pivot_index + 1)..3 {
+                            matrix[row][column] = matrix[row][column].outward_sub(
+                                factor.outward_mul(matrix[pivot_index][column])?,
+                            )?;
+                        }
+                        rhs[row] =
+                            rhs[row].outward_sub(factor.outward_mul(rhs[pivot_index])?)?;
+                        matrix[row][pivot_index] = OutwardInterval::point(0.0)?;
+                    }
+                }
+
+                let mut solution = [OutwardInterval::point(0.0)?; 3];
+                for row in (0..3).rev() {
+                    let mut residual = rhs[row];
+                    for column in (row + 1)..3 {
+                        residual = residual.outward_sub(
+                            matrix[row][column].outward_mul(solution[column])?,
+                        )?;
+                    }
+                    solution[row] = residual.outward_div(matrix[row][row])?;
+                }
+                Ok(solution)
+            };
+
+        let offset = interval_solve(-self.free_velocity)?;
+        let mut gain = [[OutwardInterval::point(0.0)?; 3]; 3];
+        for separator_axis in 0..3 {
+            let right_hand_side = SVector::<f64, 3>::from_fn(|row, _| {
+                -self.separator_coupling[(separator_axis, row)]
+            });
+            let column = interval_solve(right_hand_side)?;
+            for impulse_axis in 0..3 {
+                gain[impulse_axis][separator_axis] = column[impulse_axis];
+            }
+        }
+
+        let mut impulse_bounds = [OutwardInterval::point(0.0)?; 3];
+        for impulse_axis in 0..3 {
+            let mut impulse = offset[impulse_axis];
+            for separator_axis in 0..3 {
+                let separator_coordinate = OutwardInterval::from_bounds(
+                    separator_box.lower[separator_axis],
+                    separator_box.upper[separator_axis],
+                )?;
+                impulse = impulse.outward_add(
+                    gain[impulse_axis][separator_axis].outward_mul(separator_coordinate)?,
+                )?;
+            }
+            impulse_bounds[impulse_axis] = impulse;
+        }
+
+        // Replay the original local equation over the same separator box.
+        // Its enclosure must contain zero in every component for the declared
+        // affine solve to be consistent with the unreduced contact law.
+        let mut local_residual_bounds = [OutwardInterval::point(0.0)?; 3];
+        for row in 0..3 {
+            let mut residual = OutwardInterval::point(self.free_velocity[row])?;
+            for separator_axis in 0..3 {
+                let separator_coordinate = OutwardInterval::from_bounds(
+                    separator_box.lower[separator_axis],
+                    separator_box.upper[separator_axis],
+                )?;
+                let coupling = OutwardInterval::point(
+                    self.separator_coupling[(separator_axis, row)],
+                )?;
+                residual = residual.outward_add(coupling.outward_mul(separator_coordinate)?)?;
+            }
+            for impulse_axis in 0..3 {
+                let coefficient =
+                    OutwardInterval::point(self.self_operator[(row, impulse_axis)])?;
+                residual = residual
+                    .outward_add(coefficient.outward_mul(impulse_bounds[impulse_axis])?)?;
+            }
+            if !residual.contains_zero() {
+                return Err("interval sticking response fails the original local velocity equation");
+            }
+            local_residual_bounds[row] = residual;
+        }
+
+        let normal_load = impulse_bounds[0];
+        let friction_radius =
+            OutwardInterval::point(self.friction_coefficient)?.outward_mul(normal_load)?;
+        let tangent_norm = impulse_bounds[1]
+            .outward_square()?
+            .outward_add(impulse_bounds[2].outward_square()?)?
+            .outward_sqrt()?;
+        let disk_margin_bounds = friction_radius.outward_sub(tangent_norm)?;
+
+        let classification = if normal_load.upper <= 0.0 || disk_margin_bounds.upper < 0.0 {
+            StickingBoxClassification::OutsideStrictStickingDomain
+        } else if normal_load.lower > 0.0 && disk_margin_bounds.lower > 0.0 {
+            StickingBoxClassification::StrictlySticking
+        } else {
+            StickingBoxClassification::BoundaryOrInconclusive
+        };
+
+        Ok(StickingBoxResponse {
+            impulse_bounds,
+            local_residual_bounds,
+            disk_margin_bounds,
+            classification,
+        })
     }
 
     /// Return the block-Schur terms for this regime-conditioned leaf.
@@ -208,6 +377,76 @@ impl OutwardInterval {
             return Err("outward interval multiplication reached a non-finite endpoint");
         }
         Ok(enclosure)
+    }
+
+    fn outward_sub(self, other: Self) -> Result<Self, &'static str> {
+        self.outward_add(Self {
+            lower: -other.upper,
+            upper: -other.lower,
+        })
+    }
+
+    fn outward_div(self, other: Self) -> Result<Self, &'static str> {
+        if other.lower <= 0.0 && other.upper >= 0.0 {
+            return Err("interval division denominator contains zero");
+        }
+        let reciprocal_a = 1.0 / other.lower;
+        let reciprocal_b = 1.0 / other.upper;
+        if !reciprocal_a.is_finite() || !reciprocal_b.is_finite() {
+            return Err("interval reciprocal overflowed");
+        }
+        let reciprocal = Self {
+            lower: reciprocal_a.min(reciprocal_b).next_down(),
+            upper: reciprocal_a.max(reciprocal_b).next_up(),
+        };
+        if !reciprocal.lower.is_finite() || !reciprocal.upper.is_finite() {
+            return Err("outward interval reciprocal reached a non-finite endpoint");
+        }
+        self.outward_mul(reciprocal)
+    }
+
+    fn contains_zero(self) -> bool {
+        self.lower <= 0.0 && self.upper >= 0.0
+    }
+
+    fn min_abs(self) -> f64 {
+        if self.contains_zero() {
+            0.0
+        } else {
+            self.lower.abs().min(self.upper.abs())
+        }
+    }
+
+    fn max_abs(self) -> f64 {
+        self.lower.abs().max(self.upper.abs())
+    }
+
+    fn outward_square(self) -> Result<Self, &'static str> {
+        let minimum = self.min_abs();
+        let maximum = self.max_abs();
+        let lower_product = minimum * minimum;
+        let upper_product = maximum * maximum;
+        if !lower_product.is_finite() || !upper_product.is_finite() {
+            return Err("interval square overflowed");
+        }
+        let lower = lower_product.next_down().max(0.0);
+        let upper = upper_product.next_up();
+        if !upper.is_finite() {
+            return Err("outward interval square reached a non-finite endpoint");
+        }
+        Ok(Self { lower, upper })
+    }
+
+    fn outward_sqrt(self) -> Result<Self, &'static str> {
+        if self.lower < 0.0 || !self.lower.is_finite() || !self.upper.is_finite() {
+            return Err("interval square root requires finite nonnegative bounds");
+        }
+        let lower = self.lower.sqrt().next_down().max(0.0);
+        let upper = self.upper.sqrt().next_up();
+        if !lower.is_finite() || !upper.is_finite() {
+            return Err("outward interval square root reached a non-finite endpoint");
+        }
+        Ok(Self { lower, upper })
     }
 }
 
@@ -736,6 +975,95 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
             .response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), TOLERANCE)
             .is_err()
     );
+}
+
+#[test]
+fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundaries() {
+    let message = StickingLeafMessage {
+        self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(2.0, 1.0, 1.0)),
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(-1.5, 0.125, 0.0),
+        friction_coefficient: 0.5,
+    };
+
+    // The pointwise affine map is a=(3/4,-1/8,0),
+    // K=diag(1/4,-1/4,-1/4). This whole box has positive normal load
+    // and remains strictly inside the Coulomb disk.
+    let strict_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(0.9, -0.55, -0.05),
+        SVector::<f64, 3>::new(1.1, -0.45, 0.05),
+    )
+    .unwrap();
+    let strict = message.response_over_box(&strict_box).unwrap();
+    assert_eq!(
+        strict.classification,
+        StickingBoxClassification::StrictlySticking
+    );
+    assert!(strict.impulse_bounds[0].lower > 0.97);
+    assert!(strict.impulse_bounds[0].upper < 1.03);
+    assert!(strict.disk_margin_bounds.lower > 0.45);
+    assert!(strict.local_residual_bounds.iter().all(|bound| bound.contains_zero()));
+
+    // Exact boundary: lambda=1, j_t=(-1/2,0), mu=1/2.
+    // A zero-radius separator box must not become a strict certificate.
+    let boundary_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 1.5, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.5, 0.0),
+    )
+    .unwrap();
+    let boundary = message.response_over_box(&boundary_box).unwrap();
+    assert_eq!(
+        boundary.classification,
+        StickingBoxClassification::BoundaryOrInconclusive
+    );
+    assert!(boundary.disk_margin_bounds.contains_zero());
+
+    // The entire box is beyond the disk boundary while the normal load is 1.
+    let outside_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 1.6, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.6, 0.0),
+    )
+    .unwrap();
+    let outside = message.response_over_box(&outside_box).unwrap();
+    assert_eq!(
+        outside.classification,
+        StickingBoxClassification::OutsideStrictStickingDomain
+    );
+    assert!(outside.disk_margin_bounds.upper < 0.0);
+
+    // The normal-load interval crosses zero; it cannot be certified strict.
+    let normal_boundary_box = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(-3.1, -0.5, 0.0),
+        SVector::<f64, 3>::new(-2.9, -0.5, 0.0),
+    )
+    .unwrap();
+    let normal_boundary = message.response_over_box(&normal_boundary_box).unwrap();
+    assert_eq!(
+        normal_boundary.classification,
+        StickingBoxClassification::BoundaryOrInconclusive
+    );
+}
+
+#[test]
+fn sticking_leaf_interval_solve_fails_closed_on_unproved_spd_pivots() {
+    for self_operator in [
+        Matrix3::from_diagonal(&SVector::<f64, 3>::new(1.0, -1.0, 1.0)),
+        Matrix3::from_diagonal(&SVector::<f64, 3>::new(1.0, 0.0, 1.0)),
+        Matrix3::new(1.0, 0.1, 0.0, 0.2, 1.0, 0.0, 0.0, 0.0, 1.0),
+    ] {
+        let message = StickingLeafMessage {
+            self_operator,
+            separator_coupling: Matrix3::identity(),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
+            friction_coefficient: 0.5,
+        };
+        let separator_box = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::zeros(),
+            SVector::<f64, 3>::zeros(),
+        )
+        .unwrap();
+        assert!(message.response_over_box(&separator_box).is_err());
+    }
 }
 
 #[test]
