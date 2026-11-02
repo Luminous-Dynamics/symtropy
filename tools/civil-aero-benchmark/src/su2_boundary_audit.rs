@@ -280,7 +280,9 @@ fn validate_specs(
         }
     }
     for name in non_boundary {
-        if !name.starts_with("MARKER_") || !names.insert(name.as_str()) {
+        if !(name.starts_with("MARKER_") || name == "GEO_MARKER")
+            || !names.insert(name.as_str())
+        {
             return Err(format!("invalid or duplicate non-boundary option {name}"));
         }
     }
@@ -296,12 +298,26 @@ fn resolve_assignments(
     validate_specs(boundary, non_boundary)?;
     let specs = boundary.iter().map(|s| (s.option_name.as_str(), s)).collect::<BTreeMap<_, _>>();
     let ignored = non_boundary.iter().map(String::as_str).collect::<BTreeSet<_>>();
-    for option in config.keys().filter(|key| key.starts_with("MARKER_")) {
+    if boundary.is_empty() || mesh_markers.is_empty() {
+        return Err("boundary audit requires at least one boundary option and one mesh marker".to_owned());
+    }
+    for option in config.keys().filter(|key| key.starts_with("MARKER_") || *key == "GEO_MARKER") {
         if !specs.contains_key(option.as_str()) && !ignored.contains(option.as_str()) {
             return Err(format!("unclassified SU2 marker option {option}"));
         }
     }
     let mesh = mesh_markers.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    for option in non_boundary {
+        if let Some(value) = config.get(option) {
+            for marker in parse_list(value, option)? {
+                if !mesh.contains(marker.as_str()) {
+                    return Err(format!(
+                        "non-boundary option {option} references marker {marker} absent from mesh"
+                    ));
+                }
+            }
+        }
+    }
     let mut assigned = BTreeSet::new();
     let mut rows = Vec::new();
     for spec in boundary {
