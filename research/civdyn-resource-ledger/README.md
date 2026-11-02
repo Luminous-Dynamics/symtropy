@@ -9,7 +9,8 @@ A small, deterministic, dependency-free resource accounting kernel for the Civil
 - applies explicit, ordered inter-region transfers;
 - supports unrestricted and reserve-preserving transfer policies;
 - computes service coverage for water, energy and food separately;
-- checks conservation for every region/resource after every step;
+- checks conservation independently for water (m³), energy (kWh) and food (kg) after every step, using separate absolute tolerances and same-unit relative scales;
+- reports three native-unit conservation residuals; it never reduces m³, kWh and kg to one cross-unit maximum;
 - keeps zero-demand coverage undefined rather than silently assigning a performance score.
 
 It intentionally does **not** simulate institutions, cognition, prices, ecology or technology yet. Those must be layered on only after the stock-flow accounting is validated.
