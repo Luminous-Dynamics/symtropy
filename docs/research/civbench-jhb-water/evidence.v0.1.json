@@ -113,6 +113,26 @@
       "source_class": "official_utility_annual_report_and_audited_financial_statements",
       "content_digest_status": "not_snapshotted",
       "notes": "The report's annual performance narrative and Note 27 report FY2023/24 NRW 46.18% (2023: 46.11%), comprising 24.83% physical losses, 9.66% commercial losses and 11.69% unbilled authorised consumption. Combined physical and commercial losses are 34.49% (2023: 33.41%); these are part of NRW, not the same metric as total NRW. The report notes FY2023/24 average asset renewal rate of 1.0% against the 1.5% annual replacement-value reference rate in asset plans, an R32.54bn renewal backlog, 26% of the asset base with under 10 years' remaining life, and operational reservoir/zonal meters increasing from 50% to 60%. Source bytes have not yet been snapshotted."
+    },
+    {
+      "source_id": "EPA_EPANET_2_2",
+      "publisher": "United States Environmental Protection Agency",
+      "title": "EPANET — Application for Modeling Drinking Water Distribution Systems",
+      "published_at": null,
+      "url": "https://www.epa.gov/water-research/epanet",
+      "source_class": "public_domain_hydraulic_and_water_quality_reference_solver",
+      "content_digest_status": "not_snapshotted",
+      "notes": "EPA describes EPANET as an extended-period hydraulic and water-quality simulator for pressurized networks with pipes, junctions, pumps, valves, tanks and reservoirs. It tracks flow, pressure, tank levels, chemical concentration, water age and source tracing; supports pressure-dependent demands, friction headloss formulas, pump energy and operational controls. Use as an external hydraulic reference where inputs and physical assumptions are aligned. It is not an institutional/governance simulator."
+    },
+    {
+      "source_id": "BENTLEY_OPENFLOWS_WATER",
+      "publisher": "Bentley Systems",
+      "title": "OpenFlows Water — Water Distribution Modeling Software",
+      "published_at": null,
+      "url": "https://www.bentley.com/products/openflows-water/",
+      "source_class": "commercial_water_distribution_engineering_software_reference",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Bentley lists steady-state and extended-period hydraulic simulation, water quality, pressure, flow, pump performance, transient/water-hammer analysis, GIS/CAD/SCADA integration and asset/pipe-renewal planning capabilities. Product feature claims are vendor-published and are a commercial industry comparator, not independent evidence of performance."
     }
   ],
   "observations": [
@@ -776,11 +796,16 @@
     "DWS Table 10 volume values are cubic metres per year (m3/year), not kilolitres per year. The City of Johannesburg 2022/23 SIV of 634,461,668 m3/year is about 1,738 ML/day when converted using 365 days; this derived conversion must retain the source boundary and year.",
     "The 2023 DWS benchmark report's 88 submissions (61% of WSAs) had mixed confidence: 55% high, 18% medium and 27% low among received datasets. Missing WSA balances could be calculated, extrapolated or estimated. Do not assume a per-municipality confidence level unless explicitly supplied.",
     "Johannesburg Water's FY2023/24 report says 34.49% combined physical+commercial losses and 46.18% total NRW; the approximately 35% wording in the November 2024 joint government statement is close to this combined-loss definition, but the two should not be treated as the same observation without period/denominator confirmation.",
-    "The No Drop 72% score is not NRW, physical loss, water quality or continuity. It is an institutional WC/WDM assessment for the 2021/22 audit period."
+    "The No Drop 72% score is not NRW, physical loss, water quality or continuity. It is an institutional WC/WDM assessment for the 2021/22 audit period.",
+    "EPANET is an external physical reference model, not an institutional policy evaluator. Compare only like-for-like hydraulic and water-quality outputs under aligned topology, units, demand profiles, controls, boundary conditions and time steps.",
+    "OpenFlows feature descriptions are vendor-published product claims. Product presence is not performance evidence; any comparison requires an exact benchmark case, product/version, input model, hardware and measured outputs.",
+    "The water core's discrete storage/allocation profiles are not hydraulic simulations and must not be represented as a replacement for EPANET or OpenFlows."
   ],
   "benchmark_alignment": {
     "awwa": "Use AWWA M36 / Water Audit Software concepts as the water-audit and loss-control baseline; do not claim to replace AWWA.",
     "newibnet": "Map utility KPIs to NewIBNET indicators including continuity, 24/7 supply, NRW percent, NRW per connection per hour, metering, water quality and complaints resolved.",
-    "civbench_extension": "Add typed multi-layer evidence, physical stock-flow, service continuity, quality, equity, maintenance, recovery, institutional dependency, and long-run feedback without collapsing outcomes into one score."
+    "civbench_extension": "Add typed multi-layer evidence, physical stock-flow, service continuity, quality, equity, maintenance, recovery, institutional dependency, and long-run feedback without collapsing outcomes into one score.",
+    "epanet": "EPA EPANET 2.2 is the hydraulic/water-quality reference solver for pressurized distribution cases; compose through Sol-Atlas #139, not a parallel hydraulic engine.",
+    "openflows": "Bentley OpenFlows Water is a commercial engineering-product comparator for hydraulic, water-quality, transient, GIS/SCADA and renewal-planning workflows; do not claim equivalent functionality without an apples-to-apples evaluation."
   }
 }
