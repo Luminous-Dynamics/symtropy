@@ -319,6 +319,11 @@ fn validate_source_evidence(
             "source evidence and source context pre-registration receipts differ".into(),
         ));
     }
+    if evidence.raw_observation_digest != context.raw_observation_digest {
+        return Err(DiscoveryClaimError::InvalidSourceEvidence(
+            "source evidence and source context raw-observation digests differ".into(),
+        ));
+    }
     if evidence.issued_at_unix_seconds == 0 {
         return Err(DiscoveryClaimError::InvalidSourceEvidence(
             "claim evidence issue time must be positive".into(),
@@ -1031,6 +1036,16 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn source_context_must_bind_the_exact_source_raw_observation_artifact() {
+        let mut changed = dossier(
+            PriorArtAdjudicationOutcome::RelevantPriorArt,
+            vec![independent_replication(ReplicationOutcome::Replicated)],
+        );
+        changed.source_context.raw_observation_digest = D4.into();
+        assert!(verify_discovery_claim_dossier(&changed).is_err());
+    }
+
     fn contradicted_source_claim_stays_contradicted_even_when_a_replay_succeeds() {
         let mut dossier = dossier(
             PriorArtAdjudicationOutcome::RelevantPriorArt,
