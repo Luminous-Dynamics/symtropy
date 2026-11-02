@@ -175,7 +175,7 @@ fn profile_shape_valid(profile: &DredgePlantProfile) -> bool {
     profile.required_sensors.iter().chain(&profile.optional_sensors).all(|rule| {
         nonempty(&rule.unit_id)
             && rule.minimum_milliunits <= rule.maximum_milliunits
-    }) && profile.position_rule.as_ref().is_none_or(|rule| nonempty(&rule.expected_crs))
+    }) && profile.position_rule.as_ref().is_some_and(|rule| nonempty(&rule.expected_crs))
 }
 
 fn validate_sensor(
