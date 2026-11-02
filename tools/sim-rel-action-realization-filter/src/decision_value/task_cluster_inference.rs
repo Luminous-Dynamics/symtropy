@@ -2,7 +2,6 @@
 //! clusters. Repeated runs are collapsed within each task before inference;
 //! the inferential n is the number of distinct valid family/task clusters.
 
-use super::anytime_paired_evidence::MAX_ANYTIME_DISCORDANT_PAIRS;
 use super::counterexample_ledger::EvidenceSplit;
 use super::matched_benchmark::{BenchmarkScope, MatchedBenchmarkManifest, ResourceBudget};
 use super::preregistered_analysis::exact_two_sided_sign_test_p_value;
@@ -15,6 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_ID_BYTES: usize = 256;
 const MAX_FAMILIES: usize = 128;
 const MAX_ENDPOINTS: usize = 4;
+const MAX_EXACT_CLUSTER_DISCORDANT_PAIRS: usize = 120;
 const MICRO_SCALE: i128 = 1_000_000;
 const SQRT_RADIUS_NUMERATOR: u128 = 2_000_000_000_000;
 
@@ -281,6 +281,7 @@ fn validate_plan(
         || plan.reference_arm_id != manifest.reference_arm_id
         || plan.candidate_arm_id != manifest.candidate_arm_id
         || plan.resource_budget != manifest.resource_budget
+        || source_plan.split != EvidenceSplit::SealedHoldout
     {
         return Err(ClusterInferenceError::ManifestMismatch(
             "cluster inference plan does not match the sealed matched-benchmark manifest".into(),
@@ -302,6 +303,7 @@ fn validate_plan(
         || source_receipt.sealed_holdout_only == false
         || source_receipt.pass_at_k_is_not_pass_every_k == false
         || source_receipt.repeated_runs_not_counted_as_independent_task_samples == false
+        || source_receipt.exact_manifest_and_resource_matching == false
     {
         return Err(ClusterInferenceError::ClusterReceipt(
             "source repeated-run receipt does not match its registered plan or assurance flags".into(),
@@ -607,6 +609,8 @@ pub fn analyze_repeated_run_task_clusters(
         if summary.valid_task_clusters != valid_clusters
             || summary.invalid_task_clusters_excluded != invalid_clusters
             || summary.required_valid_task_clusters != plan.minimum_valid_task_clusters_per_family
+            || summary.meets_minimum_valid_task_clusters
+                != (valid_clusters >= plan.minimum_valid_task_clusters_per_family)
         {
             return Err(ClusterInferenceError::ClusterReceipt(format!(
                 "family summary totals or preregistered minimum differ for {family_id}"
@@ -633,10 +637,10 @@ pub fn analyze_repeated_run_task_clusters(
             let discordant = counts.candidate_wins.checked_add(counts.reference_wins).ok_or_else(|| {
                 ClusterInferenceError::ArithmeticOverflow("discordant cluster count overflow".into())
             })?;
-            if discordant > MAX_ANYTIME_DISCORDANT_PAIRS {
+            if discordant > MAX_EXACT_CLUSTER_DISCORDANT_PAIRS {
                 return Err(ClusterInferenceError::UnsupportedExactSampleSize(format!(
                     "family {family_id} endpoint {endpoint:?} has {discordant} discordant clusters; exact paired sign cap is {}",
-                    MAX_ANYTIME_DISCORDANT_PAIRS
+                    MAX_EXACT_CLUSTER_DISCORDANT_PAIRS
                 )));
             }
             let p_value = exact_two_sided_sign_test_p_value(
@@ -998,7 +1002,7 @@ mod tests {
     fn abstention_is_not_given_a_universal_superiority_direction() {
         let source = source_plan(vec!["sensor-drift".into(), "actuator-fault".into()]);
         let plan = inference_plan(source.mechanism_families.clone());
-        assert!(!plan.endpoints.contains(&ClusterInferenceEndpoint::AnyHazard) == false);
+        assert!(plan.endpoints.contains(&ClusterInferenceEndpoint::AnyHazard));
         let result = analyze(&plan, &source, &receipt(clusters())).unwrap();
         assert!(result.abstention_is_descriptive_only);
         assert_eq!(result.endpoint_count, 4);
