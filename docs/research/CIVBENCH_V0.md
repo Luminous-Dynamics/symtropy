@@ -27,6 +27,22 @@ Every scored task run records:
 
 A run without a complete manifest is exploratory and cannot appear on the scored leaderboard.
 
+### Relationship to the existing Humanity Atlas contracts
+
+CivBench is the **scientific evaluation layer**, not a replacement for the existing scenario/run artifact contract.
+
+Compose the existing open draft work:
+- [Symtropy PR #1571](https://github.com/Luminous-Dynamics/symtropy/pull/1571) owns the generic Humanity Atlas scenario/run schema, run classification, evidence-gated model-credibility procedure, and exact-artifact qualification harness.
+- [Luminous Dynamics PR #3760](https://github.com/Luminous-Dynamics/luminous-dynamics/pull/3760) supplies the model-specific multiworld simulator output and technology-tree producer.
+- [Sol-Atlas PR #79](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/79) supplies the run-envelope/source-artifact consumer.
+- [Symtropy PR #369](https://github.com/Luminous-Dynamics/symtropy/pull/369) defines civilization authority boundaries; [PR #399](https://github.com/Luminous-Dynamics/symtropy/pull/399) defines astrobiology authority and uncertainty boundaries.
+- [Symtropy PR #378](https://github.com/Luminous-Dynamics/symtropy/pull/378) defines causal resource/inventory/shipment primitives; [PR #391](https://github.com/Luminous-Dynamics/symtropy/pull/391) defines a deterministic Three Worlds composition lab.
+
+These are open draft PRs at the time of this specification. Their authored tests and schemas are not merged-code or exact-head execution evidence. Humanity Atlas run artifacts should be reused for model identity, source bytes, configuration, output digests, and qualification receipts. CivBench adds the *task-specific* evaluation design: locked forecast origins and holdouts, outcome definitions, comparison baselines, metrics, calibration, transfer tests, physical invariants, causal-path checks, and failure analysis.
+
+Repository audit and specific validation gaps are recorded in [CIVILIZATION_BASELINE_AUDIT_2026-11-02.md](CIVILIZATION_BASELINE_AUDIT_2026-11-02.md). In particular, the existing multiworld simulator is the engine to compose and audit; this specification does not propose a parallel general-purpose simulator.
+
+
 ## 3. Evaluation tracks
 
 ### CIV-1 — Historical information and forecast integrity
