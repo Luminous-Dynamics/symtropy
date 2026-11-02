@@ -151,16 +151,16 @@ set -eu
 [ "$2" = "preflight.cfg" ]
 [ -s preflight.cfg ]
 [ -s mesh.su2 ]
-printf '%s\\n' 'Available screen/history output fields for the current configuration:'
-printf '%s\\n' '| Field Name | Description | Group Name |'
-printf '%s\\n' '| ITER | Iteration count | ITER |'
-printf '%s\\n' '| INNER_ITER | Inner iteration | ITER |'
-printf '%s\\n' '| RMS_DENSITY | Density residual | RMS_RES |'
-printf '%s\\n' '| RMS_MOMENTUM-X | X momentum residual | RMS_RES |'
-printf '%s\\n' '| DRAG | Drag coefficient | AERO_COEFF |'
-printf '%s\\n' '| CD | Drag coefficient | AERO_COEFF |'
-printf '%s\\n' 'Available volume output fields for the current configuration:'
-printf '%s\\n' '| PRESSURE | Pressure | PRIMITIVE |'
+printf '%s\n' 'Available screen/history output fields for the current configuration:'
+printf '%s\n' '| Field Name | Description | Group Name |'
+printf '%s\n' '| ITER | Iteration count | ITER |'
+printf '%s\n' '| INNER_ITER | Inner iteration | ITER |'
+printf '%s\n' '| RMS_DENSITY | Density residual | RMS_RES |'
+printf '%s\n' '| RMS_MOMENTUM-X | X momentum residual | RMS_RES |'
+printf '%s\n' '| DRAG | Drag coefficient | AERO_COEFF |'
+printf '%s\n' '| CD | Drag coefficient | AERO_COEFF |'
+printf '%s\n' 'Available volume output fields for the current configuration:'
+printf '%s\n' '| PRESSURE | Pressure | PRIMITIVE |'
 FAKE_DRY
 chmod +x "$root/fake-su2-dry-run"
 cat > "$root/preflight.cfg" <<'CFG'
@@ -171,31 +171,31 @@ MESH_FILENAME= mesh.su2
 CFG
 preflight_executable_sha256="$(sha256sum "$root/fake-su2-dry-run" | awk '{print $1}')"
 
-"$runner" \\
-  --run-id "ci-su2-dry-run-preflight" \\
-  --solver-id "SU2_CFD_DRY_RUN" \\
-  --version-claim "synthetic-ci-dry-run-not-a-SU2-version" \\
-  --executable "$root/fake-su2-dry-run" \\
-  --expected-executable-sha256 "$preflight_executable_sha256" \\
-  --run-dir "$root/preflight-run" \\
-  --input "$root/preflight.cfg=preflight.cfg" \\
-  --input "$root/mesh.su2=mesh.su2" \\
-  --timeout-seconds 10 \\
-  --max-log-bytes 16384 \\
+"$runner" \
+  --run-id "ci-su2-dry-run-preflight" \
+  --solver-id "SU2_CFD_DRY_RUN" \
+  --version-claim "synthetic-ci-dry-run-not-a-SU2-version" \
+  --executable "$root/fake-su2-dry-run" \
+  --expected-executable-sha256 "$preflight_executable_sha256" \
+  --run-dir "$root/preflight-run" \
+  --input "$root/preflight.cfg=preflight.cfg" \
+  --input "$root/mesh.su2=mesh.su2" \
+  --timeout-seconds 10 \
+  --max-log-bytes 16384 \
   -- -d preflight.cfg
 
 "$replay" "$root/preflight-run" | tee "$root/preflight-replay.txt"
 grep -q 'external_solver_replay=pass' "$root/preflight-replay.txt"
 grep -q 'process_status=process_exited_zero_no_outputs_declared' "$root/preflight-replay.txt"
 
-"$preflight" \\
-  --run-dir "$root/preflight-run" \\
-  --config preflight.cfg \\
-  --mesh mesh.su2 \\
-  --require-field RMS_DENSITY \\
-  --require-field RMS_MOMENTUM-X \\
-  --require-field DRAG \\
-  --require-field CD \\
+"$preflight" \
+  --run-dir "$root/preflight-run" \
+  --config preflight.cfg \
+  --mesh mesh.su2 \
+  --require-field RMS_DENSITY \
+  --require-field RMS_MOMENTUM-X \
+  --require-field DRAG \
+  --require-field CD \
   > "$root/su2-field-preflight.csv" 2> "$root/su2-field-preflight.txt"
 test "$(wc -l < "$root/su2-field-preflight.csv")" -eq 2
 grep -q 'su2_field_preflight=pass run_id=ci-su2-dry-run-preflight solver_family=NAVIER_STOKES conv_field=RMS_DENSITY available_fields=6 required_fields=4' "$root/su2-field-preflight.txt"
