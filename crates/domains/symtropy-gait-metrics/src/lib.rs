@@ -68,12 +68,6 @@ impl MetricFailure {
         }
     }
 
-    fn from_reasons(mut reasons: Vec<ReasonCode>) -> Self {
-        reasons.sort_unstable();
-        reasons.dedup();
-        Self { reasons }
-    }
-
     pub fn reasons(&self) -> &[ReasonCode] {
         &self.reasons
     }
