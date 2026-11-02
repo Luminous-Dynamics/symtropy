@@ -1,18 +1,5 @@
 #![forbid(unsafe_code)]
 
-use serde::Serialize;
-
-mod fuel;
-mod duty_cycle;
-
-pub use fuel::{
-    DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
-};
-pub use duty_cycle::{
-    DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, DurationSeconds, EnergyJoules,
-    FuelMassKg,
-};
-
 //! Deterministic 0D energy-conversion bookkeeping primitives.
 //!
 //! This crate is deliberately not a combustion, gas-exchange, CFD, emissions,
@@ -21,6 +8,18 @@ pub use duty_cycle::{
 //! steady-state energy balance. Unknown physical inputs have no defaults.
 
 use core::fmt;
+use serde::Serialize;
+
+mod duty_cycle;
+mod fuel;
+
+pub use duty_cycle::{
+    DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, DurationSeconds, EnergyJoules,
+    FuelMassKg,
+};
+pub use fuel::{
+    DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
+};
 
 /// Errors returned when an input is non-finite, physically out of range, or
 /// violates the declared energy-conversion boundary.
