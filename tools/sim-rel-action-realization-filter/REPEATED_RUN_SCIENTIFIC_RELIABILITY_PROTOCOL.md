@@ -1,6 +1,6 @@
 # SIM-REL-046 — repeated-run scientific reliability and task-cluster metrics
 
-Status: first executable task-cluster reliability adapter on a research branch. Exact-head qualification is pending. This layer reports repeatability; it does not independently establish statistical generalization across task families.
+Status: task-cluster reliability adapter qualified on exact formatted head `ef569b2067618dfdde05cf6d713fbfba3ff7f3d0`. Branch workflow #41404077635 passed 5/5 focused tests, 197/197 full locked crate tests, strict Clippy, pinned Rust 1.96 formatting, exact-head and clean-tree checks. This layer reports repeatability; it does not independently establish statistical generalization across task families.
 
 ## 1. Motivation
 
