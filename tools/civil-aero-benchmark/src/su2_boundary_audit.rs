@@ -616,12 +616,16 @@ mod tests {
     #[test]
     fn maps_all_mesh_markers_exactly_once_with_explicit_ignored_options() {
         let config = parse_config(
-            b"MARKER_SYM= (sym_top)\nMARKER_FAR= (farfield)\nMARKER_MONITORING= (wall)\n",
+            b"MARKER_SYM= (sym_top)\nMARKER_FAR= (farfield)\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
         )
         .expect("config");
         let rows = resolve_assignments(
             &config,
-            &["farfield".to_owned(), "sym_top".to_owned()],
+            &[
+                "farfield".to_owned(),
+                "sym_top".to_owned(),
+                "wall".to_owned(),
+            ],
             &[
                 Su2BoundaryOptionSpec {
                     option_name: "MARKER_SYM".to_owned(),
@@ -633,13 +637,19 @@ mod tests {
                     record_width: 1,
                     marker_positions: vec![0],
                 },
+                Su2BoundaryOptionSpec {
+                    option_name: "MARKER_HEATFLUX".to_owned(),
+                    record_width: 2,
+                    marker_positions: vec![0],
+                },
             ],
             &["MARKER_MONITORING".to_owned()],
         )
         .expect("complete mapping");
-        assert_eq!(rows.len(), 2);
+        assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].marker, "farfield");
         assert_eq!(rows[1].marker, "sym_top");
+        assert_eq!(rows[2].marker, "wall");
     }
 
     #[test]
