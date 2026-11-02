@@ -204,9 +204,7 @@ fn evaluate_monitoring(
     if evidence.observed_at_tick > case.evaluation_tick {
         reasons.push(WindowReason::FutureObservation);
         inconsistent = true;
-    } else if case.evaluation_tick - evidence.observed_at_tick
-        > case.maximum_monitoring_age_ticks
-    {
+    } else if case.evaluation_tick - evidence.observed_at_tick > case.maximum_monitoring_age_ticks {
         reasons.push(WindowReason::MonitoringStale);
         unknown = true;
     }
@@ -227,7 +225,8 @@ fn evaluate_monitoring(
     {
         reasons.push(WindowReason::ExposureUnitMismatch);
         inconsistent = true;
-    } else if !inconsistent && !unknown
+    } else if !inconsistent
+        && !unknown
         && evidence.maximum_exposure.value_microunits >= model.threshold.value_microunits
     {
         reasons.push(WindowReason::ExposureThresholdExceeded);
@@ -262,9 +261,7 @@ fn evaluate_forecast(
     if evidence.issued_at_tick > case.evaluation_tick {
         reasons.push(WindowReason::FutureForecast);
         inconsistent = true;
-    } else if case.evaluation_tick - evidence.issued_at_tick
-        > case.maximum_forecast_age_ticks
-    {
+    } else if case.evaluation_tick - evidence.issued_at_tick > case.maximum_forecast_age_ticks {
         reasons.push(WindowReason::ForecastStale);
         unknown = true;
     }
@@ -277,7 +274,8 @@ fn evaluate_forecast(
     {
         reasons.push(WindowReason::ExposureUnitMismatch);
         inconsistent = true;
-    } else if !inconsistent && !unknown
+    } else if !inconsistent
+        && !unknown
         && evidence.maximum_exposure.value_microunits >= model.threshold.value_microunits
     {
         reasons.push(WindowReason::ForecastThresholdExceeded);
@@ -321,7 +319,11 @@ pub fn evaluate_window(
         reasons.push(WindowReason::UnsupportedContext);
         unsupported = true;
     }
-    if !model.supported_contexts.iter().any(|context| context == &case.scope.context_id) {
+    if !model
+        .supported_contexts
+        .iter()
+        .any(|context| context == &case.scope.context_id)
+    {
         reasons.push(WindowReason::UnsupportedContext);
         unsupported = true;
     }
@@ -329,12 +331,19 @@ pub fn evaluate_window(
         reasons.push(WindowReason::EmptyAllowedIntervals);
         unknown = true;
     }
-    if case.allowed_intervals.iter().any(|interval| !interval.is_valid()) {
+    if case
+        .allowed_intervals
+        .iter()
+        .any(|interval| !interval.is_valid())
+    {
         reasons.push(WindowReason::InvalidAllowedInterval);
         inconsistent = true;
     }
     if !case.allowed_intervals.is_empty()
-        && !case.allowed_intervals.iter().any(|window| window.contains(case.planned_interval))
+        && !case
+            .allowed_intervals
+            .iter()
+            .any(|window| window.contains(case.planned_interval))
     {
         reasons.push(WindowReason::OutsideAllowedInterval);
         blocked = true;
@@ -363,8 +372,7 @@ pub fn evaluate_window(
     }
 
     if case.policy != WindowPolicy::Fixed {
-        let (bad, needs_review, threshold_blocked) =
-            evaluate_monitoring(case, model, &mut reasons);
+        let (bad, needs_review, threshold_blocked) = evaluate_monitoring(case, model, &mut reasons);
         inconsistent |= bad;
         unknown |= needs_review;
         blocked |= threshold_blocked;
@@ -378,8 +386,7 @@ pub fn evaluate_window(
             reasons.push(WindowReason::ProactiveLeadTimeInsufficient);
             unknown = true;
         }
-        let (bad, needs_review, threshold_blocked) =
-            evaluate_forecast(case, model, &mut reasons);
+        let (bad, needs_review, threshold_blocked) = evaluate_forecast(case, model, &mut reasons);
         inconsistent |= bad;
         unknown |= needs_review;
         blocked |= threshold_blocked;
@@ -397,7 +404,10 @@ pub fn evaluate_window(
         WindowDisposition::EligibleForSyntheticWindow
     };
 
-    WindowEvaluation { disposition, reasons }
+    WindowEvaluation {
+        disposition,
+        reasons,
+    }
 }
 
 #[cfg(test)]
@@ -624,7 +634,10 @@ mod tests {
         let r = evaluate_window(&c, &model());
         assert_eq!(r.disposition, WindowDisposition::UnknownReviewRequired);
         assert!(r.reasons.contains(&WindowReason::MonitoringNotCalibrated));
-        assert!(r.reasons.contains(&WindowReason::MonitoringCoverageIncomplete));
+        assert!(
+            r.reasons
+                .contains(&WindowReason::MonitoringCoverageIncomplete)
+        );
     }
 
     #[test]
