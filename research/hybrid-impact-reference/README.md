@@ -134,3 +134,21 @@ record. It does not authenticate that receipt itself: callers must verify the
 receipt and only set CertifiedEnclosure after that independent verification.
 A numerical bracket from the bisection locator remains NumericalEstimate until
 a separate sound interval method establishes a certified enclosure.
+
+
+## Deterministic partial event-order graph
+
+The event-order reference can build a bounded graph over a finite event set
+(up to 256 records). Event IDs are sorted canonically before pairwise
+classification, so graph output is independent of caller insertion order.
+
+It separates:
+- proof-grade order edges from disjoint certified enclosures;
+- estimate-only order edges from disjoint numerical intervals;
+- unresolved/estimated-overlap pairs, which remain explicit.
+
+Only proof-grade edges enter the proof-order DAG; a cycle is a typed error.
+The graph does not invent a total order or treat overlapping/singleton-equal
+times as simultaneous. The graph cap bounds the O(n²) pairwise classification
+cost. A later joint-event certificate must establish simultaneity and joint
+reset semantics independently.
