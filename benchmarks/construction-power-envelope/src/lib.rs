@@ -104,9 +104,7 @@ pub fn evaluate_campaign(
     }
 
     let mut battery_energy = if let Some(spec) = battery {
-        if spec.discharge_efficiency_permille == 0
-            || spec.discharge_efficiency_permille > 1_000
-        {
+        if spec.discharge_efficiency_permille == 0 || spec.discharge_efficiency_permille > 1_000 {
             return Err(PowerError::InvalidBatteryEfficiency);
         }
         if spec.initial_stored_energy_ws > spec.usable_capacity_ws {
@@ -136,8 +134,7 @@ pub fn evaluate_campaign(
         if load.start_tick != expected_start {
             return Err(PowerError::NonContiguousLoadTimeline);
         }
-        if supply.start_tick != load.start_tick
-            || supply.duration_seconds != load.duration_seconds
+        if supply.start_tick != load.start_tick || supply.duration_seconds != load.duration_seconds
         {
             return Err(PowerError::SupplyIntervalMisaligned);
         }
@@ -152,9 +149,7 @@ pub fn evaluate_campaign(
         let total_load_ws = interval_energy_ws(total_load_w, load.duration_seconds)?;
 
         // Allocate the firm source to critical demand before flexible demand.
-        let firm_to_critical_w = load
-            .critical_real_power_w
-            .min(supply.firm_real_power_w);
+        let firm_to_critical_w = load.critical_real_power_w.min(supply.firm_real_power_w);
         let firm_remaining_w = supply.firm_real_power_w - firm_to_critical_w;
         let firm_to_flexible_w = load.flexible_real_power_w.min(firm_remaining_w);
         let critical_deficit_w = load.critical_real_power_w - firm_to_critical_w;
@@ -177,8 +172,7 @@ pub fn evaluate_campaign(
                 / 1_000;
             let max_power_energy_ws =
                 interval_energy_ws(spec.discharge_power_w, load.duration_seconds)?;
-            let deficit_energy_ws =
-                interval_energy_ws(total_deficit_w, load.duration_seconds)?;
+            let deficit_energy_ws = interval_energy_ws(total_deficit_w, load.duration_seconds)?;
             battery_delivered_ws = deficit_energy_ws
                 .min(max_ac_energy_ws)
                 .min(max_power_energy_ws);
@@ -199,13 +193,11 @@ pub fn evaluate_campaign(
 
         // Convert the battery's delivered watt-seconds back into the interval's
         // critical-first allocation, preserving integer conservation exactly.
-        let critical_deficit_ws =
-            interval_energy_ws(critical_deficit_w, load.duration_seconds)?;
+        let critical_deficit_ws = interval_energy_ws(critical_deficit_w, load.duration_seconds)?;
         let battery_to_critical_ws = battery_delivered_ws.min(critical_deficit_ws);
         let battery_to_flexible_ws = battery_delivered_ws - battery_to_critical_ws;
         let critical_unserved_ws = critical_deficit_ws - battery_to_critical_ws;
-        let flexible_deficit_ws =
-            interval_energy_ws(flexible_deficit_w, load.duration_seconds)?;
+        let flexible_deficit_ws = interval_energy_ws(flexible_deficit_w, load.duration_seconds)?;
         let flexible_unserved_ws = flexible_deficit_ws - battery_to_flexible_ws;
 
         if critical_unserved_ws > 0 {
@@ -290,24 +282,16 @@ mod tests {
 
     #[test]
     fn firm_supply_exactly_meets_load() {
-        let result = evaluate_campaign(
-            &[load(0, 60, 800, 200)],
-            &[supply(0, 60, 1_000)],
-            None,
-        )
-        .unwrap();
+        let result =
+            evaluate_campaign(&[load(0, 60, 800, 200)], &[supply(0, 60, 1_000)], None).unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 0);
         assert_eq!(result.total_flexible_unserved_energy_ws, 0);
     }
 
     #[test]
     fn critical_load_is_served_before_flexible_load() {
-        let result = evaluate_campaign(
-            &[load(0, 60, 800, 600)],
-            &[supply(0, 60, 1_000)],
-            None,
-        )
-        .unwrap();
+        let result =
+            evaluate_campaign(&[load(0, 60, 800, 600)], &[supply(0, 60, 1_000)], None).unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 0);
         assert_eq!(result.total_flexible_unserved_energy_ws, 24_000);
         assert_eq!(result.critical_unserved_interval_seconds, 0);
@@ -315,12 +299,8 @@ mod tests {
 
     #[test]
     fn firm_supply_shortfall_on_critical_load_is_reported() {
-        let result = evaluate_campaign(
-            &[load(0, 60, 1_000, 0)],
-            &[supply(0, 60, 700)],
-            None,
-        )
-        .unwrap();
+        let result =
+            evaluate_campaign(&[load(0, 60, 1_000, 0)], &[supply(0, 60, 700)], None).unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 18_000);
         assert_eq!(result.critical_unserved_interval_seconds, 60);
     }
@@ -467,12 +447,8 @@ mod tests {
 
     #[test]
     fn supply_derating_reduces_adequacy() {
-        let result = evaluate_campaign(
-            &[load(0, 60, 1_000, 0)],
-            &[supply(0, 60, 800)],
-            None,
-        )
-        .unwrap();
+        let result =
+            evaluate_campaign(&[load(0, 60, 1_000, 0)], &[supply(0, 60, 800)], None).unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 12_000);
     }
 
@@ -499,11 +475,7 @@ mod tests {
     #[test]
     fn misaligned_supply_interval_is_rejected() {
         assert_eq!(
-            evaluate_campaign(
-                &[load(0, 60, 1, 0)],
-                &[supply(1, 60, 1)],
-                None,
-            ),
+            evaluate_campaign(&[load(0, 60, 1, 0)], &[supply(1, 60, 1)], None,),
             Err(PowerError::SupplyIntervalMisaligned)
         );
     }
@@ -573,11 +545,7 @@ mod tests {
     #[test]
     fn load_power_overflow_is_rejected() {
         assert_eq!(
-            evaluate_campaign(
-                &[load(0, 60, u64::MAX, 1)],
-                &[supply(0, 60, 0)],
-                None,
-            ),
+            evaluate_campaign(&[load(0, 60, u64::MAX, 1)], &[supply(0, 60, 0)], None,),
             Err(PowerError::LoadPowerOverflow)
         );
     }
