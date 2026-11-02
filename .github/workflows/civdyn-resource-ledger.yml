@@ -33,3 +33,62 @@ jobs:
 
       - name: Run all tests with locked dependencies
         run: cargo test --locked --manifest-path research/civdyn-resource-ledger/Cargo.toml --all-targets
+
+      - name: Execute CSS-001 and verify its output against the manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/css001-evidence
+          cargo run --locked --manifest-path research/civdyn-resource-ledger/Cargo.toml --bin css001-water-energy-shock \
+            | tee target/css001-evidence/css001-output.csv
+
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/css001-evidence/css001-output.csv")
+          rows = list(csv.reader(path.open(newline="", encoding="utf-8")))
+          summaries = {row[1]: row for row in rows if row and row[0] == "summary"}
+          delivered = {row[1]: row for row in rows if row and row[0] == "delivered"}
+
+          expected_floors = {
+              "no_transfer": 4,
+              "fixed_solidarity": 0,
+              "adaptive_service_deficit": 0,
+          }
+          expected_delivered = {
+              "no_transfer": (0.0, 0.0, 0.0),
+              "fixed_solidarity": (240.0, 1000.0, 320.0),
+              "adaptive_service_deficit": (154.0, 760.0, 290.0),
+          }
+
+          for policy, expected_count in expected_floors.items():
+              row = summaries[policy]
+              actual_count = int(row[6])
+              assert actual_count == expected_count, (
+                  f"{policy}: floor violations {actual_count}, expected {expected_count}"
+              )
+              out = delivered[policy]
+              actual = tuple(float(out[index]) for index in (2, 3, 4))
+              expected = expected_delivered[policy]
+              assert all(abs(a - e) <= 1e-9 for a, e in zip(actual, expected)), (
+                  f"{policy}: delivered {actual}, expected {expected}"
+              )
+
+          print("CSS-001 output matches the manifest's declared synthetic reference totals.")
+          PY
+
+          {
+            echo "## CSS-001 output verification"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/css001-evidence/css001-output.csv | cut -d' ' -f1)"
+            echo "- Floor-violation and resource-specific transfer expectations: verified"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload CSS-001 execution evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: css001-water-energy-shock-output
+          path: target/css001-evidence/css001-output.csv
+          if-no-files-found: error
+          retention-days: 30
