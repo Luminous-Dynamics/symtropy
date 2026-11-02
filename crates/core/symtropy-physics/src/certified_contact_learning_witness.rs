@@ -87,9 +87,9 @@ mod tests {
     #[test]
     fn strongly_monotone_disk_qp_has_exact_residual_over_alpha_error_bound() {
         // Verify symmetry of the exact coupled tangential Hessian.
-        for row in 0..4 {
-            for column in 0..4 {
-                assert_eq!(H_NUM[row][column], H_NUM[column][row]);
+        for (row_index, row_values) in H_NUM.iter().enumerate() {
+            for (column_index, value) in row_values.iter().enumerate() {
+                assert_eq!(value, &H_NUM[column_index][row_index]);
             }
         }
 
