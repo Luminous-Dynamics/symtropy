@@ -10,7 +10,7 @@
 use core::fmt;
 
 use crate::evaluate;
-use crate::{EngineModel, FuelInput, GeneratorModel, ModelError, Watts};
+use crate::{EngineModel, FuelInput, GeneratorModel, ModelError};
 
 /// Positive duration of one quasi-steady-state segment.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -311,7 +311,7 @@ impl std::error::Error for DutyCycleError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Efficiency, LowerHeatingValueJPerKg, MassFlowKgPerSecond};
+    use crate::{Efficiency, LowerHeatingValueJPerKg, MassFlowKgPerSecond, Watts};
 
     fn segment(
         duration_s: f64,
