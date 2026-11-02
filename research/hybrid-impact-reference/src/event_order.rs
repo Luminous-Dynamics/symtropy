@@ -317,7 +317,6 @@ mod tests {
     }
 }
 
-
 /// One directed event-order edge. Edge direction is always before -> after.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EventOrderEdge {
