@@ -1,0 +1,308 @@
+{
+  "$schema": "./experiment.schema.v0.1.json",
+  "protocol_id": "CIVBENCH-JHB-WATER-EXPERIMENT-001",
+  "version": "0.1.0",
+  "date": "2026-11-02",
+  "status": "design_only_pre_registration_pending",
+  "scope": {
+    "geography": "City of Johannesburg, South Africa",
+    "domain": "urban drinking-water service resilience, asset maintenance and institutional coordination",
+    "claim_ceiling": "source-bounded synthetic research; not a calibrated hydraulic model or causal field-impact estimate",
+    "reference_sources": [
+      {
+        "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+        "uri": "https://www.johannesburgwater.co.za/wp-content/uploads/2026/05/Annual-Report-2425.pdf",
+        "period": "FY2024/25",
+        "evidence_class": "published_aggregate_reported",
+        "assurance": "NRW described as unaudited in service-delivery section",
+        "snapshot_status": "not_snapshotted",
+        "render_verification": "not_completed"
+      },
+      {
+        "source_id": "DWS_MUNICIPAL_WATER_BALANCE_2022_23",
+        "uri": "https://www.dws.gov.za/Projects/wueew/documents/webinfo/2023%20Benchmarking%20Report.pdf",
+        "period": "FY2022/23",
+        "evidence_class": "published_aggregate_reported",
+        "assurance": "national benchmarking dataset with mixed reported confidence; no Johannesburg-specific confidence inferred",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOHANNESBURG_WATER_AR_2023_24",
+        "uri": "https://www.johannesburgwater.co.za/wp-content/uploads/2025/02/FINAL-JOHANNESBURG-WATER-ANNUAL-REPORT-23_2024-20-02-2025.pdf",
+        "period": "FY2023/24",
+        "evidence_class": "published_audited_financial_statement_and_annual_report",
+        "assurance": "financial statement water-balance components reported as audited",
+        "snapshot_status": "not_snapshotted"
+      }
+    ],
+    "evidence_classes": [
+      "observed_reported",
+      "derived",
+      "assumption",
+      "synthetic_truth"
+    ],
+    "prohibited_inference": [
+      "No pipe-level age, material, roughness, condition or failure hazard inferred from city aggregates",
+      "No system-input volume inferred from annual consumption",
+      "No causal savings inferred from sensor installation, expenditure or potential minimum-night-flow savings",
+      "No service continuity inferred from IVRS bulk storage",
+      "No audited trend inferred by directly comparing FY2024/25 unaudited NRW with FY2023/24 audited NRW"
+    ]
+  },
+  "factors": {
+    "G": {
+      "name": "allocation_governance",
+      "kind": "intervention",
+      "levels": [
+        "independent_local_allocation",
+        "fixed_central_allocation",
+        "negotiated_federation_current_observations",
+        "negotiated_federation_stale_conflicting_missing_observations"
+      ]
+    },
+    "M": {
+      "name": "maintenance_renewal",
+      "kind": "intervention",
+      "levels": [
+        "reactive_only",
+        "uniform_renewal",
+        "risk_prioritised_renewal",
+        "leak_detection_independently_verified_repair",
+        "hybrid_maintenance_renewal_metering"
+      ]
+    },
+    "I": {
+      "name": "information_quality_observability",
+      "kind": "intervention",
+      "levels": [
+        "complete_current_positive_control",
+        "realistic_missing_stale_delayed",
+        "biased_adversarial_reporting_hidden_truth",
+        "metering_telemetry_investment_no_automatic_quality_promotion"
+      ]
+    },
+    "H": {
+      "name": "physical_network_conditions",
+      "kind": "blocking_strata_not_policy_benefit",
+      "levels": [
+        "frozen_topology_and_boundary_conditions",
+        "declared_pressure_demand_regime",
+        "water_energy_common_cause_shock",
+        "water_event_order_sensitivity"
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "S0",
+      "name": "protocol_lock_source_qualification",
+      "confirmatory": false
+    },
+    {
+      "id": "S1",
+      "name": "physical_accounting_qualification",
+      "confirmatory": false
+    },
+    {
+      "id": "S2",
+      "name": "isolated_main_effects",
+      "confirmatory": true,
+      "comparisons": [
+        "G_vs_reference_at_fixed_M_I",
+        "M_vs_reference_at_fixed_G_I",
+        "I_vs_reference_at_fixed_G_M"
+      ]
+    },
+    {
+      "id": "S3",
+      "name": "pre_registered_interactions",
+      "confirmatory": true,
+      "comparisons": [
+        "GxM",
+        "GxI",
+        "MxI"
+      ],
+      "three_way_interaction": "only_if_pilot_power_and_compute_budget_support"
+    },
+    {
+      "id": "S4",
+      "name": "held_out_stress_and_robustness",
+      "confirmatory": true
+    },
+    {
+      "id": "S5",
+      "name": "reference_and_field_transfer",
+      "confirmatory": true,
+      "domains": [
+        "EPANET_supported_cases",
+        "laboratory_if_available",
+        "field_if_governed_and_available"
+      ]
+    }
+  ],
+  "matching_contract": {
+    "pairing": "paired scenario blocks with common random numbers for exogenous shocks where meaningful",
+    "fixed_between_arms": [
+      "initial_state",
+      "topology_within_block",
+      "exogenous_shock_schedule",
+      "time_grid",
+      "scenario_family",
+      "evaluation_horizon",
+      "compute_budget",
+      "whole_life_resource_envelope_unless_the_factor_is_the_registered_treatment"
+    ],
+    "resource_ledgers": [
+      "capital_budget",
+      "operating_budget",
+      "crew_skill_hours",
+      "parts_inventory",
+      "contractor_capacity",
+      "energy",
+      "sensor_and_telemetry_budget"
+    ],
+    "no_double_spend": true,
+    "endogenous_failures": "may diverge after common exogenous schedule as a consequence of the policy"
+  },
+  "estimands": [
+    {
+      "id": "E1",
+      "name": "essential_water_shortfall",
+      "unit": "declared_volume_and_duration",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E2",
+      "name": "service_interruption_hours",
+      "unit": "hours_per_declared_service_unit",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E3",
+      "name": "worst_group_service_floor",
+      "unit": "declared_service_metric",
+      "direction": "higher_is_better",
+      "distributional": true
+    },
+    {
+      "id": "E4",
+      "name": "physical_water_loss",
+      "unit": "source_qualified_volume_or_rate",
+      "direction": "lower_is_better",
+      "requires_water_balance": true
+    },
+    {
+      "id": "E5",
+      "name": "nrw_components",
+      "unit": "source_qualified_percent_or_volume",
+      "direction": "report_components_separately",
+      "components": [
+        "physical_loss",
+        "commercial_loss",
+        "unbilled_authorised_consumption"
+      ]
+    },
+    {
+      "id": "E6",
+      "name": "asset_failure_and_survival",
+      "unit": "failure_rate_per_exposure_and_cohort_survival",
+      "direction": "lower_failure_higher_survival"
+    },
+    {
+      "id": "E7",
+      "name": "maintenance_completion",
+      "unit": "cycle_time_and_independently_verified_completion",
+      "direction": "lower_cycle_time_higher_verified_completion"
+    },
+    {
+      "id": "E8",
+      "name": "whole_life_cost",
+      "unit": "declared_currency_and_price_year",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E9",
+      "name": "resilience_recovery",
+      "unit": "recovery_time_and_service_deficit_area",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E10",
+      "name": "institutional_agency",
+      "unit": "provider_concentration_portability_exit_cost_appeal_access",
+      "direction": "report_vector_no_composite"
+    }
+  ],
+  "hard_gates": [
+    "essential_service_floor",
+    "water_quality_and_public_health_where_qualified",
+    "physical_conservation_and_capacity",
+    "no_negative_inventory",
+    "no_duplicate_or_double_spent_resources",
+    "independent_verification_before_repair_or_restoration_promotion",
+    "privacy_and_critical_infrastructure_information_boundary",
+    "no_automated_physical_operational_authority_or_social_credit"
+  ],
+  "statistical_plan": {
+    "unit_of_analysis": "paired scenario block",
+    "pilot_use": "estimate variance, runtime and feasible sample size only",
+    "minimum_detectable_effect": "must be frozen after pilot and before confirmatory run",
+    "sample_count": "must be justified by power analysis; not specified in v0.1",
+    "interval": "95_percent_uncertainty_interval",
+    "multiple_testing": "Holm family-wise correction within each pre-declared primary-outcome family",
+    "confirmatory_holdout": "must remain unavailable to policy tuning and threshold selection",
+    "uncertainty_types": [
+      "measurement",
+      "parameter",
+      "stochastic",
+      "model_structure"
+    ]
+  },
+  "benchmark_targets": {
+    "accounting_correctness": "all known-truth positive and negative controls recover expected results; no silent invariant violation",
+    "hydraulic_fidelity": "differential comparison only on aligned supported EPANET cases and pinned versions",
+    "leak_detection": "calibrated sensitivity at a declared false-alarm/dispatch budget; PR-AUC and detection delay",
+    "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
+    "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
+    "sensor_placement": "reduce decision loss or verified service shortfall at matched sensor and operating cost; not entropy alone",
+    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score"
+  },
+  "provenance_receipt": {
+    "required_digests": [
+      "protocol",
+      "schema",
+      "source_inventory",
+      "source_snapshots_if_available",
+      "model",
+      "topology",
+      "scenario_generator",
+      "scenario",
+      "policy",
+      "evaluator",
+      "output"
+    ],
+    "required_versions": [
+      "solver",
+      "model",
+      "code_commit",
+      "runtime_environment"
+    ],
+    "missing_digest_behavior": "fail_closed",
+    "replay": "deterministic replay must bind exact versions and inputs"
+  },
+  "promotion_gates": [
+    "L0_specification",
+    "L1_deterministic_correctness",
+    "L2_synthetic_comparative_evidence",
+    "L3_reference_model_validation",
+    "L4_independent_empirical_transfer",
+    "L5_causal_pilot_evidence"
+  ],
+  "limitations": [
+    "The protocol is a design specification, not an executed experiment.",
+    "It is not an externally timestamped pre-registration.",
+    "No fixed sample count or minimum detectable effect is asserted until pilot variance and a confirmatory power analysis are available.",
+    "No synthetic success is evidence of municipal field impact.",
+    "Public FY2024/25 annual report source-byte snapshot and page-render verification remain incomplete."
+  ]
+}
