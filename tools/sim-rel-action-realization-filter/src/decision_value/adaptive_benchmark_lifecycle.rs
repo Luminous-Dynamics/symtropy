@@ -1447,15 +1447,17 @@ mod tests {
         let freeze = freeze(&events);
         let mut changed_plan = plan();
         changed_plan.maximum_holdout_tasks = super::MAX_TASKS_PER_RELEASE + 1;
-        assert!(verify(
-            &changed_plan,
-            &events,
-            &freeze,
-            &calibration(),
-            &release(vec![task("task-1", "a")]),
-            &NoSemanticOverlap
-        )
-        .is_err());
+        assert!(
+            verify(
+                &changed_plan,
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     fn rejects_calibration_quality_failure_and_freeze_mismatch() {
