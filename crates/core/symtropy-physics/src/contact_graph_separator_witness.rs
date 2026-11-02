@@ -127,17 +127,17 @@ impl StickingLeafMessage {
                 for pivot_index in 0..3 {
                     let pivot = matrix[pivot_index][pivot_index];
                     if pivot.lower <= 0.0 {
-                        return Err("interval Gaussian elimination cannot certify a positive SPD pivot");
+                        return Err(
+                            "interval Gaussian elimination cannot certify a positive SPD pivot",
+                        );
                     }
                     for row in (pivot_index + 1)..3 {
                         let factor = matrix[row][pivot_index].outward_div(pivot)?;
                         for column in (pivot_index + 1)..3 {
-                            matrix[row][column] = matrix[row][column].outward_sub(
-                                factor.outward_mul(matrix[pivot_index][column])?,
-                            )?;
+                            matrix[row][column] = matrix[row][column]
+                                .outward_sub(factor.outward_mul(matrix[pivot_index][column])?)?;
                         }
-                        rhs[row] =
-                            rhs[row].outward_sub(factor.outward_mul(rhs[pivot_index])?)?;
+                        rhs[row] = rhs[row].outward_sub(factor.outward_mul(rhs[pivot_index])?)?;
                         matrix[row][pivot_index] = OutwardInterval::point(0.0)?;
                     }
                 }
@@ -146,9 +146,8 @@ impl StickingLeafMessage {
                 for row in (0..3).rev() {
                     let mut residual = rhs[row];
                     for column in (row + 1)..3 {
-                        residual = residual.outward_sub(
-                            matrix[row][column].outward_mul(solution[column])?,
-                        )?;
+                        residual = residual
+                            .outward_sub(matrix[row][column].outward_mul(solution[column])?)?;
                     }
                     solution[row] = residual.outward_div(matrix[row][row])?;
                 }
@@ -193,19 +192,19 @@ impl StickingLeafMessage {
                     separator_box.lower[separator_axis],
                     separator_box.upper[separator_axis],
                 )?;
-                let coupling = OutwardInterval::point(
-                    self.separator_coupling[(separator_axis, row)],
-                )?;
+                let coupling =
+                    OutwardInterval::point(self.separator_coupling[(separator_axis, row)])?;
                 residual = residual.outward_add(coupling.outward_mul(separator_coordinate)?)?;
             }
             for impulse_axis in 0..3 {
-                let coefficient =
-                    OutwardInterval::point(self.self_operator[(row, impulse_axis)])?;
-                residual = residual
-                    .outward_add(coefficient.outward_mul(impulse_bounds[impulse_axis])?)?;
+                let coefficient = OutwardInterval::point(self.self_operator[(row, impulse_axis)])?;
+                residual =
+                    residual.outward_add(coefficient.outward_mul(impulse_bounds[impulse_axis])?)?;
             }
             if !residual.contains_zero() {
-                return Err("interval sticking response fails the original local velocity equation");
+                return Err(
+                    "interval sticking response fails the original local velocity equation",
+                );
             }
             local_residual_bounds[row] = residual;
         }
@@ -1002,7 +1001,12 @@ fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundar
     assert!(strict.impulse_bounds[0].lower > 0.96);
     assert!(strict.impulse_bounds[0].upper < 1.04);
     assert!(strict.disk_margin_bounds.lower > 0.43);
-    assert!(strict.local_residual_bounds.iter().all(|bound| bound.contains_zero()));
+    assert!(
+        strict
+            .local_residual_bounds
+            .iter()
+            .all(|bound| bound.contains_zero())
+    );
 
     // Exact boundary: lambda=1, j_t=(-1/2,0), mu=1/2.
     // A zero-radius separator box must not become a strict certificate.
@@ -1057,11 +1061,9 @@ fn sticking_leaf_interval_solve_fails_closed_on_unproved_spd_pivots() {
             free_velocity: SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
             friction_coefficient: 0.5,
         };
-        let separator_box = SeparatorImpulseBox::new(
-            SVector::<f64, 3>::zeros(),
-            SVector::<f64, 3>::zeros(),
-        )
-        .unwrap();
+        let separator_box =
+            SeparatorImpulseBox::new(SVector::<f64, 3>::zeros(), SVector::<f64, 3>::zeros())
+                .unwrap();
         assert!(message.response_over_box(&separator_box).is_err());
     }
 }
