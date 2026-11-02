@@ -780,7 +780,22 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
+            r#"SOLVER= NAVIER_STOKES
+CONV_FIELD= RMS_DENSITY
+CONV_RESIDUAL_MINVAL= -8
+HISTORY_OUTPUT= (TIME_ITER, INNER_ITER, RMS_RES, AERO_COEFF, TAVG_AERO_COEFF)
+TIME_DOMAIN= YES
+WINDOW_CAUCHY_CRIT= YES
+CONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)
+WINDOW_START_ITER= 10
+CONV_WINDOW_STARTITER= 10
+CONV_WINDOW_CAUCHY_ELEMS= 6
+CONV_WINDOW_CAUCHY_EPS= 1E-3
+WINDOW_FUNCTION= SQUARE
+MESH_FILENAME= mesh.su2
+MARKER_HEATFLUX= (wall, 0.0)
+MARKER_MONITORING= (wall)
+"#,
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
@@ -789,20 +804,23 @@ mod tests {
         let solver = r#"#!/bin/sh
 set -eu
 if [ "${1:-}" = "-d" ]; then
-  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'TIME_ITER' 'INNER_ITER' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
   exit 0
 fi
-printf '"Iteration","CL","CD","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
-printf '0,0.42310,%s,-1,-1\n' "$GRID_CD" >> history.csv
-printf '10,0.42310,%s,-2,-2\n' "$GRID_CD" >> history.csv
-printf '20,0.42310,%s,-6.0,-6.0\n' "$GRID_CD" >> history.csv
-printf '30,0.42310,%s,-6.4,-6.4\n' "$GRID_CD" >> history.csv
-printf '40,0.42310,%s,-6.8,-6.8\n' "$GRID_CD" >> history.csv
-printf '50,0.42310,%s,-7.2,-7.2\n' "$GRID_CD" >> history.csv
-printf '60,0.42310,%s,-7.6,-7.6\n' "$GRID_CD" >> history.csv
-printf '70,0.42310,%s,-8.0,-8.0\n' "$GRID_CD" >> history.csv
+printf '"TIME_ITER","INNER_ITER","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
+printf '10,5,0.42310,%s,%s,0.42310,-8.2,-1\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '11,5,0.42310,%s,%s,0.42310,-8.3,-2\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '12,5,0.42310,%s,%s,0.42310,-8.4,-3\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '13,5,0.42310,%s,%s,0.42310,-8.5,-4\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '14,5,0.42310,%s,%s,0.42310,-8.6,-5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '15,5,0.42310,%s,%s,0.42310,-8.7,-6\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '16,5,0.42310,%s,%s,0.42310,-8.8,-6.5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '17,5,0.42310,%s,%s,0.42310,-8.9,-7.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '18,5,0.42310,%s,%s,0.42310,-9.0,-7.5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '19,5,0.42310,%s,%s,0.42310,-9.1,-7.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '20,5,0.42310,%s,%s,0.42310,-9.2,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
-printf 'synthetic solver stdout\n'
+printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
@@ -814,20 +832,35 @@ printf 'synthetic solver stdout\n'
         let history_schema = Su2HistorySchema {
             history_relative_path: "history.csv".to_owned(),
             expected_header: vec![
-                "Iteration".to_owned(),
+                "TIME_ITER".to_owned(),
+                "INNER_ITER".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
                 "RMS_DENSITY".to_owned(),
                 "RMS_MOMENTUM-X".to_owned(),
             ],
-            iteration_column: "Iteration".to_owned(),
+            iteration_column: "TIME_ITER".to_owned(),
             numeric_fields: vec![
+                Su2HistoryField {
+                    column: "INNER_ITER".to_owned(),
+                    unit: "iterations".to_owned(),
+                },
                 Su2HistoryField {
                     column: "CL".to_owned(),
                     unit: "dimensionless".to_owned(),
                 },
                 Su2HistoryField {
                     column: "CD".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "TAVG_DRAG".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "TAVG_LIFT".to_owned(),
                     unit: "dimensionless".to_owned(),
                 },
                 Su2HistoryField {
@@ -844,18 +877,26 @@ printf 'synthetic solver stdout\n'
         let criteria = ConvergenceCriteria {
             residuals: ["RMS_DENSITY", "RMS_MOMENTUM-X"]
                 .into_iter()
-                .map(|column| ResidualCriterion {
-                    column: column.to_owned(),
-                    unit: "log10(residual)".to_owned(),
-                    terminal_window_rows: 6,
-                    acceptance: ResidualAcceptance::Log10 {
-                        maximum_final_log10_residual: -8.0,
-                        minimum_log10_reduction: 6.0,
-                        maximum_terminal_span_log10: 2.0,
-                    },
+                .map(|column| {
+                    let (maximum_final_log10_residual, minimum_log10_reduction, maximum_terminal_span_log10) =
+                        if column == "RMS_DENSITY" {
+                            (-8.0, 0.5, 1.0)
+                        } else {
+                            (-8.0, 6.0, 2.0)
+                        };
+                    ResidualCriterion {
+                        column: column.to_owned(),
+                        unit: "log10(residual)".to_owned(),
+                        terminal_window_rows: 6,
+                        acceptance: ResidualAcceptance::Log10 {
+                            maximum_final_log10_residual,
+                            minimum_log10_reduction,
+                            maximum_terminal_span_log10,
+                        },
+                    }
                 })
                 .collect(),
-            monitors: ["CL", "CD"]
+            monitors: ["CL", "CD", "TAVG_DRAG", "TAVG_LIFT"]
                 .into_iter()
                 .map(|column| MonitorCriterion {
                     column: column.to_owned(),
@@ -904,9 +945,12 @@ printf 'synthetic solver stdout\n'
                 execute_external_solver(&dry_run_request).expect("execute fake SU2 dry run");
             assert!(dry_run_receipt.is_process_success());
             let required_history_fields = vec![
-                "Iteration".to_owned(),
+                "TIME_ITER".to_owned(),
+                "INNER_ITER".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
                 "RMS_DENSITY".to_owned(),
                 "RMS_MOMENTUM-X".to_owned(),
             ];
@@ -1035,8 +1079,58 @@ printf 'synthetic solver stdout\n'
             additional_output_paths: &member.additional_output_paths,
             lineage_binding: &member.lineage_binding,
         };
+        assert!(matches!(
+            &member.field_preflight.convergence_protocol.window,
+            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+                fields,
+                window_start_iter: 10,
+                convergence_start_iter: 10,
+                cauchy_elements: 6,
+                cauchy_epsilon,
+                window_function,
+            } if fields == &vec!["TAVG_DRAG".to_owned(), "TAVG_LIFT".to_owned()]
+                && cauchy_epsilon == "1E-3"
+                && window_function == "SQUARE"
+        ));
+        let inner_screen = crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+            &member.field_preflight,
+            &member.history,
+        )
+        .expect("all saved time steps satisfy the inner residual threshold");
+        assert_eq!(inner_screen.contiguous_time_step_count, 11);
+        assert_eq!(inner_screen.fields[0].field, "RMS_DENSITY");
+        assert_eq!(inner_screen.fields[0].failed_time_step_count, 0);
+        let mut failing_inner_history = member.history.clone();
+        let residual_index = failing_inner_history
+            .numeric_fields
+            .iter()
+            .position(|field| field.column == "RMS_DENSITY")
+            .expect("RMS_DENSITY imported");
+        failing_inner_history.points[0].values[residual_index] = -7.0;
+        assert!(
+            crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+                &member.field_preflight,
+                &failing_inner_history,
+            )
+            .expect_err("a failed inner step must not be averaged away")
+            .contains("exceeded threshold")
+        );
+        let mut gapped_inner_history = member.history.clone();
+        gapped_inner_history.points[1].iteration += 1;
+        assert!(
+            crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+                &member.field_preflight,
+                &gapped_inner_history,
+            )
+            .expect_err("a missing time step must reject")
+            .contains("TIME_ITER gap")
+        );
         let bundle = create_su2_verified_run_bundle(&bundle_inputs)
-            .expect("compose dry-run and production run evidence");
+            .expect("compose dry-run, per-time-step inner, window and production run evidence");
+        assert_eq!(
+            bundle.unsteady_inner_screen_sha256,
+            inner_screen.screen_sha256
+        );
         crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(
             &bundle_inputs,
             &bundle,
@@ -1060,6 +1154,7 @@ printf 'synthetic solver stdout\n'
             let history_csv = oracle_directory.join("history-import.csv");
             let screen_csv = oracle_directory.join("screen.csv");
             let lineage_csv = oracle_directory.join("lineage.csv");
+            let inner_screen_csv = oracle_directory.join("unsteady-inner-screen.csv");
             fs::write(
                 &bundle_csv,
                 crate::su2_verified_run_bundle::report_to_csv(&bundle),
@@ -1080,6 +1175,30 @@ printf 'synthetic solver stdout\n'
                 crate::su2_run_binding::binding_to_csv(&member.lineage_binding),
             )
             .expect("write production lineage");
+            fs::write(
+                &inner_screen_csv,
+                crate::su2_unsteady_inner_screen::report_to_csv(&inner_screen),
+            )
+            .expect("write unsteady inner-step screen");
+            let preflight_oracle = std::process::Command::new("python3")
+                .arg(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/scripts/verify-su2-field-preflight-independent.py"
+                ))
+                .arg(&member.dry_run_directory)
+                .arg(&preflight_csv)
+                .output()
+                .expect("execute independent SU2 multi-mode preflight oracle");
+            assert!(
+                preflight_oracle.status.success(),
+                "independent preflight oracle failed: {}",
+                String::from_utf8_lossy(&preflight_oracle.stderr)
+            );
+            assert!(
+                String::from_utf8_lossy(&preflight_oracle.stdout)
+                    .contains("window_enabled=True")
+            );
+
             let oracle = std::process::Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
@@ -1093,6 +1212,7 @@ printf 'synthetic solver stdout\n'
                 .arg(&history_csv)
                 .arg(&screen_csv)
                 .arg(&lineage_csv)
+                .arg(&inner_screen_csv)
                 .output()
                 .expect("execute independent SU2 run-bundle oracle");
             assert!(
