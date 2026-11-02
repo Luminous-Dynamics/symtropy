@@ -96,6 +96,7 @@ pub struct TelemetryRecord {
 pub struct TelemetryCursor {
     pub contiguous_sequence: u64,
     pub event_digests: BTreeMap<String, String>,
+    pub event_records: BTreeMap<String, TelemetryRecord>,
     pub sequence_owners: BTreeMap<u64, String>,
 }
 
