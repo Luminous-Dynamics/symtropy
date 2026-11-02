@@ -14,24 +14,28 @@ use crate::grid_convergence::{
     GciReport, GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
 };
 use crate::integrity::sha256_hex;
+use crate::su2_boundary_audit::Su2BoundaryAuditReport;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
+use crate::su2_field_preflight::Su2FieldPreflightReport;
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh};
-use crate::su2_run_binding::{
-    Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
-};
+use crate::su2_run_binding::{Su2RunInputBindings, Su2RunLineageBinding};
+use crate::su2_verified_run_bundle::{Su2VerifiedRunBundleInputs, create_su2_verified_run_bundle};
 
-pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
+pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.2.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
     "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
 pub const SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE: f64 = 1.0e-10;
-pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_with_mesh_derived_2d_area_spacing_not_full_cfd_admission_or_experimental_validation";
+pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_preflight_boundary_production_run_bundles_and_terminal_monitor_derived_gci_with_mesh_derived_2d_area_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
 pub struct Su2GridFamilyMember {
     pub grid_id: String,
     /// Positive, unique, coarse-to-fine level identifier.
     pub grid_level: u32,
+    pub dry_run_directory: PathBuf,
+    pub field_preflight: Su2FieldPreflightReport,
+    pub boundary_audit: Su2BoundaryAuditReport,
     pub run_directory: PathBuf,
     pub history: Su2HistoryReport,
     pub convergence_screen: ConvergenceScreen,
@@ -77,6 +81,9 @@ pub struct Su2GridFamilyMemberAudit {
     pub history_import_sha256: String,
     pub convergence_screen_sha256: String,
     pub lineage_binding_sha256: String,
+    pub field_preflight_sha256: String,
+    pub boundary_audit_sha256: String,
+    pub verified_run_bundle_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -204,6 +211,9 @@ fn canonical_bytes(report: &Su2GridFamilyReport) -> Vec<u8> {
             member.history_import_sha256.as_str(),
             member.convergence_screen_sha256.as_str(),
             member.lineage_binding_sha256.as_str(),
+            member.field_preflight_sha256.as_str(),
+            member.boundary_audit_sha256.as_str(),
+            member.verified_run_bundle_sha256.as_str(),
         ] {
             append_string(&mut bytes, value);
         }
@@ -424,14 +434,17 @@ pub fn evaluate_su2_grid_family_study(
             }
         }
 
-        verify_su2_run_lineage_binding(
-            &member.run_directory,
-            &member.history,
-            &member.convergence_screen,
-            &member.input_bindings,
-            &member.additional_output_paths,
-            &member.lineage_binding,
-        )?;
+        let verified_bundle = create_su2_verified_run_bundle(&Su2VerifiedRunBundleInputs {
+            dry_run_directory: &member.dry_run_directory,
+            production_run_directory: &member.run_directory,
+            field_preflight: &member.field_preflight,
+            boundary_audit: &member.boundary_audit,
+            history: &member.history,
+            convergence_screen: &member.convergence_screen,
+            input_bindings: &member.input_bindings,
+            additional_output_paths: &member.additional_output_paths,
+            lineage_binding: &member.lineage_binding,
+        })?;
         let binding = &member.lineage_binding;
         if binding.solver_id != "SU2_CFD" {
             return Err(format!(
@@ -533,6 +546,9 @@ pub fn evaluate_su2_grid_family_study(
             history_import_sha256: binding.history_import_sha256.clone(),
             convergence_screen_sha256: binding.convergence_screen_sha256.clone(),
             lineage_binding_sha256: binding.binding_sha256.clone(),
+            field_preflight_sha256: member.field_preflight.preflight_sha256.clone(),
+            boundary_audit_sha256: member.boundary_audit.audit_sha256.clone(),
+            verified_run_bundle_sha256: verified_bundle.bundle_sha256,
         });
     }
 
@@ -601,7 +617,7 @@ pub fn verify_su2_grid_family_report(
     Ok(())
 }
 
-pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,mesh_coordinate_unit,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,mesh_cell_count,mesh_total_cell_area,mesh_mean_cell_area,mesh_minimum_cell_area,mesh_maximum_cell_area,mesh_cell_area_coefficient_of_variation,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
+pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,mesh_coordinate_unit,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,mesh_cell_count,mesh_total_cell_area,mesh_mean_cell_area,mesh_minimum_cell_area,mesh_maximum_cell_area,mesh_cell_area_coefficient_of_variation,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,field_preflight_sha256,boundary_audit_sha256,verified_run_bundle_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
 
 /// Export every sliding GCI triplet; the member CSV intentionally contains only its digest.
 pub fn gci_report_to_csv(report: &Su2GridFamilyReport) -> String {
@@ -646,6 +662,9 @@ pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
             member.history_import_sha256.clone(),
             member.convergence_screen_sha256.clone(),
             member.lineage_binding_sha256.clone(),
+            member.field_preflight_sha256.clone(),
+            member.boundary_audit_sha256.clone(),
+            member.verified_run_bundle_sha256.clone(),
             report.gci_report.triplets.len().to_string(),
             report.gci_report_sha256.clone(),
             report.study_sha256.clone(),
@@ -666,10 +685,12 @@ mod tests {
     use super::*;
     use crate::external_solver::{ExternalSolverRequest, StagedInputSpec, execute_external_solver};
     use crate::integrity::sha256_file;
+    use crate::su2_boundary_audit::{Su2BoundaryOptionSpec, audit_su2_boundary_markers};
     use crate::su2_convergence_screen::{
         ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
         screen_su2_history,
     };
+    use crate::su2_field_preflight::audit_su2_field_preflight;
     use crate::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
     use crate::su2_run_binding::bind_su2_run_lineage;
     use std::collections::BTreeMap;
@@ -757,7 +778,7 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\n",
+            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
@@ -765,6 +786,10 @@ mod tests {
         let executable = shared.join("fake-su2-cfd");
         let solver = r#"#!/bin/sh
 set -eu
+if [ "${1:-}" = "-d" ]; then
+  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  exit 0
+fi
 printf '"Iteration","CL","CD","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
 printf '0,0.42310,%s,-1,-1\n' "$GRID_CD" >> history.csv
 printf '10,0.42310,%s,-2,-2\n' "$GRID_CD" >> history.csv
@@ -856,6 +881,53 @@ printf 'synthetic solver stdout\n'
             let expected_spacing = (1.0 / (2.0 * divisions_f64.powi(2))).sqrt();
             let mesh_text = unit_square_triangular_mesh(divisions);
             fs::write(&mesh, mesh_text).expect("write grid mesh");
+            let dry_run_directory = root.join(format!("dry-run-{level}"));
+            let dry_run_request = ExternalSolverRequest {
+                run_id: format!("su2-grid-dry-run-{level}"),
+                solver_id: "SU2_CFD_DRY_RUN".to_owned(),
+                solver_version_claim: "synthetic-ci-fixture-not-a-SU2-version".to_owned(),
+                executable_path: executable.clone(),
+                run_directory: dry_run_directory.clone(),
+                arguments: vec!["-d".to_owned(), "config.cfg".to_owned()],
+                environment: BTreeMap::new(),
+                staged_inputs: vec![
+                    stage_spec(&config, "config.cfg", "synthetic-fixed-physics-config"),
+                    stage_spec(&mesh, "mesh.su2", "synthetic-grid-mesh"),
+                ],
+                expected_outputs: Vec::new(),
+                timeout: Duration::from_secs(2),
+                max_log_bytes_per_stream: 16 * 1024,
+            };
+            let dry_run_receipt =
+                execute_external_solver(&dry_run_request).expect("execute fake SU2 dry run");
+            assert!(dry_run_receipt.is_process_success());
+            let required_history_fields = vec![
+                "Iteration".to_owned(),
+                "CL".to_owned(),
+                "CD".to_owned(),
+                "RMS_DENSITY".to_owned(),
+                "RMS_MOMENTUM-X".to_owned(),
+            ];
+            let field_preflight = audit_su2_field_preflight(
+                &dry_run_directory,
+                "config.cfg",
+                "mesh.su2",
+                &required_history_fields,
+            )
+            .expect("dry-run field preflight");
+            let boundary_audit = audit_su2_boundary_markers(
+                &dry_run_directory,
+                "config.cfg",
+                "mesh.su2",
+                &[Su2BoundaryOptionSpec {
+                    option_name: "MARKER_HEATFLUX".to_owned(),
+                    record_width: 2,
+                    marker_positions: vec![0],
+                }],
+                &["MARKER_MONITORING".to_owned()],
+            )
+            .expect("dry-run boundary audit");
+
             let run_directory = root.join(format!("run-{level}"));
             let drag = 0.02 + 0.008 * expected_spacing.powi(2);
             let request = ExternalSolverRequest {
@@ -898,6 +970,9 @@ printf 'synthetic solver stdout\n'
             members.push(Su2GridFamilyMember {
                 grid_id: format!("grid-{level}"),
                 grid_level: level,
+                dry_run_directory,
+                field_preflight,
+                boundary_audit,
                 run_directory,
                 history,
                 convergence_screen: screen,
@@ -944,7 +1019,119 @@ printf 'synthetic solver stdout\n'
         assert!((report.gci_report.triplets[0].extrapolated_value - 0.02).abs() < 1.0e-10);
         assert_eq!(report_to_csv(&report).lines().count(), 4);
         assert_eq!(gci_report_to_csv(&report).lines().count(), 2);
-        verify_su2_grid_family_report(&study, &report).expect("independent lineage replay");
+        verify_su2_grid_family_report(&study, &report).expect("independent run-bundle replay");
+
+        let member = &study.members[0];
+        let bundle_inputs = Su2VerifiedRunBundleInputs {
+            dry_run_directory: &member.dry_run_directory,
+            production_run_directory: &member.run_directory,
+            field_preflight: &member.field_preflight,
+            boundary_audit: &member.boundary_audit,
+            history: &member.history,
+            convergence_screen: &member.convergence_screen,
+            input_bindings: &member.input_bindings,
+            additional_output_paths: &member.additional_output_paths,
+            lineage_binding: &member.lineage_binding,
+        };
+        let bundle = create_su2_verified_run_bundle(&bundle_inputs)
+            .expect("compose dry-run and production run evidence");
+        crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(&bundle_inputs, &bundle)
+            .expect("replay complete SU2 run bundle");
+        assert_eq!(bundle.resource_evidence.unknown_measurement_count(), 4);
+        assert_eq!(
+            bundle.resource_evidence_sha256.len(),
+            64,
+            "resource evidence has a canonical digest"
+        );
+        assert_eq!(
+            report.members[0].verified_run_bundle_sha256,
+            bundle.bundle_sha256
+        );
+
+        #[cfg(target_os = "linux")]
+        {
+            let oracle_directory = root.join("independent-run-bundle-oracle");
+            fs::create_dir_all(&oracle_directory).expect("create oracle directory");
+            let bundle_csv = oracle_directory.join("bundle.csv");
+            let preflight_csv = oracle_directory.join("preflight.csv");
+            let boundary_csv = oracle_directory.join("boundary.csv");
+            let history_csv = oracle_directory.join("history-import.csv");
+            let screen_csv = oracle_directory.join("screen.csv");
+            let lineage_csv = oracle_directory.join("lineage.csv");
+            fs::write(
+                &bundle_csv,
+                crate::su2_verified_run_bundle::report_to_csv(&bundle),
+            )
+            .expect("write composed bundle report");
+            fs::write(&preflight_csv, member.field_preflight.to_csv())
+                .expect("write preflight report");
+            fs::write(&boundary_csv, member.boundary_audit.to_csv())
+                .expect("write boundary report");
+            fs::write(&history_csv, member.history.to_csv()).expect("write history import");
+            fs::write(
+                &screen_csv,
+                crate::su2_convergence_screen::screen_to_csv(&member.convergence_screen),
+            )
+            .expect("write convergence screen");
+            fs::write(
+                &lineage_csv,
+                crate::su2_run_binding::binding_to_csv(&member.lineage_binding),
+            )
+            .expect("write production lineage");
+            let oracle = std::process::Command::new("python3")
+                .arg(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/scripts/verify-su2-run-bundle-independent.py"
+                ))
+                .arg(&member.dry_run_directory)
+                .arg(&member.run_directory)
+                .arg(&bundle_csv)
+                .arg(&preflight_csv)
+                .arg(&boundary_csv)
+                .arg(&history_csv)
+                .arg(&screen_csv)
+                .arg(&lineage_csv)
+                .output()
+                .expect("execute independent SU2 run-bundle oracle");
+            assert!(
+                oracle.status.success(),
+                "independent oracle failed: {}",
+                String::from_utf8_lossy(&oracle.stderr)
+            );
+            assert!(
+                String::from_utf8_lossy(&oracle.stdout)
+                    .contains("independent_su2_verified_run_bundle_oracle=pass")
+            );
+        }
+
+        let mut wrong_dry_run = study.clone();
+        wrong_dry_run.members[0].dry_run_directory =
+            wrong_dry_run.members[1].dry_run_directory.clone();
+        assert!(
+            evaluate_su2_grid_family_study(&wrong_dry_run)
+                .expect_err("another grid's dry-run receipt must be rejected")
+                .contains("replayed SU2 field preflight differs")
+        );
+
+        let mut altered_boundary = study.clone();
+        altered_boundary.members[0].boundary_audit.assignments[0].marker =
+            "not-the-mesh-marker".to_owned();
+        assert!(
+            evaluate_su2_grid_family_study(&altered_boundary)
+                .expect_err("mutated boundary assignment must be rejected")
+                .contains("replayed SU2 boundary audit differs")
+        );
+
+        let mut altered_preflight = study.clone();
+        altered_preflight.members[0]
+            .field_preflight
+            .available_history_fields
+            .retain(|field| field != "CL");
+        assert!(
+            evaluate_su2_grid_family_study(&altered_preflight)
+                .expect_err("omitted discovered history field must be rejected")
+                .contains("replayed SU2 field preflight differs")
+        );
 
         let mut reordered = study.clone();
         reordered.members.swap(0, 1);
