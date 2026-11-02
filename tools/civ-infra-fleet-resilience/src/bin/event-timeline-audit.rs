@@ -357,9 +357,7 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     let mut event_kinds = BTreeSet::new();
     let mut maximum_tick = 0_u64;
     for case in &fixture.disturbance_cases {
-        if case.case_id.trim().is_empty()
-            || case.name.trim().is_empty()
-        {
+        if case.case_id.trim().is_empty() || case.name.trim().is_empty() {
             errors.push("disturbance case ID, name and event must be non-empty".to_string());
         }
         if !case_ids.insert(case.case_id.as_str()) {
