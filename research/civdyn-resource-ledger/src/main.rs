@@ -26,7 +26,7 @@ fn main() {
 
     println!("scenario=synthetic_only; units=water_m3,energy_kwh,food_kg");
     println!(
-        "tick,region,water_coverage,energy_coverage,food_coverage,closing_water_m3,closing_energy_kwh,closing_food_kg,max_conservation_residual"
+        "tick,region,water_coverage,energy_coverage,food_coverage,closing_water_m3,closing_energy_kwh,closing_food_kg,residual_water_m3,residual_energy_kwh,residual_food_kg"
     );
 
     for tick in 0..4 {
@@ -65,9 +65,9 @@ fn main() {
             .expect("synthetic scenario must conserve all resource stocks");
 
         for outcome in report.regions {
-            let residual = outcome.ledger.conservation_residual().max_abs();
+            let residual = outcome.ledger.conservation_residual();
             println!(
-                "{},{},{},{},{},{:.3},{:.3},{:.3},{:.3}",
+                "{},{},{},{},{},{:.3},{:.3},{:.3},{:.12},{:.12},{:.12}",
                 report.tick,
                 outcome.region_id,
                 fmt(outcome.coverage.water),
@@ -76,7 +76,9 @@ fn main() {
                 outcome.closing_stock.water_m3,
                 outcome.closing_stock.energy_kwh,
                 outcome.closing_stock.food_kg,
-                residual,
+                residual.water_m3,
+                residual.energy_kwh,
+                residual.food_kg,
             );
         }
     }
