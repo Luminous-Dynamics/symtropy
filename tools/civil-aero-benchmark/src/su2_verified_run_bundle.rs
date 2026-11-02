@@ -166,6 +166,8 @@ pub struct Su2VerifiedRunBundleReport {
     pub lineage_binding_sha256: String,
     pub termination_classification: String,
     pub termination_sha256: String,
+    /// Empty for steady protocols; otherwise the digest of the per-time-step inner residual screen.
+    pub unsteady_inner_screen_sha256: String,
     pub resource_evidence: Su2ResourceEvidence,
     pub resource_evidence_sha256: String,
     pub status: String,
@@ -252,6 +254,7 @@ fn canonical_bytes(report: &Su2VerifiedRunBundleReport) -> Vec<u8> {
         report.lineage_binding_sha256.as_str(),
         report.termination_classification.as_str(),
         report.termination_sha256.as_str(),
+        report.unsteady_inner_screen_sha256.as_str(),
         report.resource_evidence_sha256.as_str(),
         report.status.as_str(),
         report.evidence_level.as_str(),
@@ -402,6 +405,14 @@ pub fn create_su2_verified_run_bundle(
             termination.classification
         ));
     }
+    let unsteady_inner_screen = if preflight.convergence_protocol.time_domain {
+        Some(crate::su2_unsteady_inner_screen::screen_su2_unsteady_inner_convergence(
+            preflight,
+            history,
+        )?)
+    } else {
+        None
+    };
 
     if dry_run_receipt.solver_id != "SU2_CFD_DRY_RUN"
         || !dry_run_receipt.is_process_success()
@@ -507,6 +518,10 @@ pub fn create_su2_verified_run_bundle(
         lineage_binding_sha256: lineage.binding_sha256.clone(),
         termination_classification: termination.classification.clone(),
         termination_sha256: termination.termination_sha256.clone(),
+        unsteady_inner_screen_sha256: unsteady_inner_screen
+            .as_ref()
+            .map(|screen| screen.screen_sha256.clone())
+            .unwrap_or_default(),
         resource_evidence,
         resource_evidence_sha256,
         status: "run_identity_preflight_boundary_history_and_declared_screen_replayed".to_owned(),
@@ -598,6 +613,7 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         report.lineage_binding_sha256.clone(),
         report.termination_classification.clone(),
         report.termination_sha256.clone(),
+        report.unsteady_inner_screen_sha256.clone(),
     ];
     for measure in measures {
         fields.extend([measure.0, measure.1, measure.2, measure.3, measure.4]);
@@ -614,7 +630,7 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         "physics_configuration_sha256", "geometry_sha256", "mesh_sha256",
         "field_preflight_sha256", "boundary_audit_sha256", "history_sha256",
         "history_import_sha256", "convergence_screen_sha256", "lineage_binding_sha256",
-        "termination_classification", "termination_sha256",
+        "termination_classification", "termination_sha256", "unsteady_inner_screen_sha256",
         "wall_time_status", "wall_time_value", "wall_time_unit", "wall_time_method", "wall_time_source_uncertainty",
         "cpu_status", "cpu_value", "cpu_unit", "cpu_method", "cpu_source_uncertainty",
         "peak_memory_status", "peak_memory_value", "peak_memory_unit", "peak_memory_method", "peak_memory_source_uncertainty",
