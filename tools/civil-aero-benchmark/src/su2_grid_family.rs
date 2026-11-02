@@ -802,7 +802,7 @@ printf '50,0.42310,%s,%s,0.42310,-7.2,-7.2\n' "$GRID_CD" "$GRID_CD" >> history.c
 printf '60,0.42310,%s,%s,0.42310,-7.6,-7.6\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf '70,0.42310,%s,%s,0.42310,-8.0,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
-printf 'synthetic solver stdout\n'
+printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
