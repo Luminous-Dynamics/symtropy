@@ -200,7 +200,6 @@ def termination_evidence(
 
 
 def unsteady_inner_screen_evidence(
-    production_dir: Path,
     raw_history_path: Path,
     preflight: dict[str, str],
     history_import_rows: list[dict[str, str]],
@@ -278,6 +277,14 @@ def unsteady_inner_screen_evidence(
             "unsteady history begins after WINDOW_START_ITER")
     require(time_iterations[-1] >= required_terminal_iteration,
             "unsteady history ends before the configured window convergence period")
+    require(len(history_import_rows) == len(raw_rows),
+            "unsteady imported history sample count differs from raw history")
+    inner_key = "INNER_ITER [iterations]"
+    for index, (imported, raw) in enumerate(zip(history_import_rows, raw_rows)):
+        require(int(imported["iteration"]) == time_iterations[index],
+                f"unsteady imported TIME_ITER differs at row {index}")
+        require(float(imported[inner_key]) == float(raw["INNER_ITER"]),
+                f"unsteady imported INNER_ITER differs at row {index}")
 
     canonical = bytearray()
     screen_status = "all_contiguous_saved_time_steps_passed_inner_residual_thresholds"
@@ -293,6 +300,10 @@ def unsteady_inner_screen_evidence(
         require(unit_by_field.get(field) == expected_unit,
                 f"unsteady import unit mismatch for {field}")
         require(field in raw_headers, f"unsteady raw history is missing {field}")
+        import_key = f"{field} [{expected_unit}]"
+        for index, (imported, raw) in enumerate(zip(history_import_rows, raw_rows)):
+            require(float(imported[import_key]) == float(raw[field]),
+                    f"unsteady imported {field} differs from raw history at row {index}")
         values = [float(row[field]) for row in raw_rows]
         require(all(math.isfinite(value) for value in values),
                 f"unsteady residual {field} contains a non-finite value")
@@ -523,7 +534,6 @@ def main() -> int:
             "preflight mesh differs from production bundle")
     raw_history_path = production_dir / roles["history"]["relative_path"]
     inner_digest = unsteady_inner_screen_evidence(
-        production_dir,
         raw_history_path,
         preflight,
         history_rows,
