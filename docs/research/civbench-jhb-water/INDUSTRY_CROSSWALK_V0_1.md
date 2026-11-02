@@ -50,6 +50,27 @@ Reference: https://connect4impact.worldbank.org/bangkok_initiative
 
 These are necessary comparators. A system cannot claim meaningful service improvement merely because NRW or financial performance improves while continuity, quality or coverage deteriorates.
 
+### Newest utility year: FY2024/25
+
+Johannesburg Water's Integrated Annual Report 2024/25 adds a newer reported year:
+- NRW is 44.79% in the high-level financial note; the service-delivery chapter explicitly describes the figure as unaudited (44.8%).
+- Consumption table: 632.176 million kL in FY2024/25 versus 658.312 million kL in FY2023/24, down 3.97%. This must not be mislabeled system input.
+- Repair and maintenance expenditure: R1.694bn against R1.612bn budget; reported annualised ratio 11.24% of the current asset base versus the report's cited 8% National Treasury benchmark. It is not an asset-renewal rate.
+- Asset renewal rate: 1.0%, against a 1.5% asset-plan reference.
+- Backlog values: R25.2bn for assets with under ten years remaining useful life (20% of the asset base); separately R26.61bn for assets with zero-to-two years remaining useful life and assets due for upgrade. The report does not explain the relationship, so do not force a trend line against FY2023/24's R32.54bn.
+- 125 leak-detection sensors installed at R5.6m reported project cost; 51 smart pressure controllers installed cumulatively; 5,918 ML/year potential minimum-night-flow savings (not verified achieved savings).
+- 14.7 km water-main and 20.5 km sewer-main replacement reported; upgrading/renewal capex actual R171.733m vs R239.965m budget.
+- 90.29% actual water-meter readings submitted for billing, which is not the same as physical meter coverage.
+
+This year's evidence allows the benchmark to distinguish **inputs, activities, outputs and outcomes**:
+- inputs: budgets, cash, parts, crew-hours, equipment;
+- activities: procurement, inspection, pressure management, repair, replacement;
+- outputs: sensors installed, pipes replaced, meters operational;
+- outcomes: independently verified leakage reduction, restored service, continuity, water quality, distributional impact;
+- impact: durable causal improvement against a pre-registered counterfactual.
+
+Do not treat the reported 44.79% as an audited water-balance result or infer that sensor installation caused the change. The annual report includes several implementation delays, and the component breakdown of 2024/25 NRW is not supplied in the cited summary.
+
 ## Source-grounded Johannesburg baseline
 
 Johannesburg Water's FY2023/24 audited statement reports NRW 46.18%, decomposed into 24.83% physical losses, 9.66% commercial losses and 11.69% unbilled authorised consumption. It separately reports physical-plus-commercial losses of 34.49%. This illustrates why a single "water lost" percentage is insufficient.
