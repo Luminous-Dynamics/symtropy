@@ -441,6 +441,12 @@ An energy-conversion platform should be assessed as a potential **microgrid reso
 
 The 2026 IEA energy-innovation review describes grid-forming inverters as deployed in pilots and early utility systems, while standards, protection practices, low-inertia models and multi-vendor interoperability remain active development areas. NREL's hardware test protocol shows how a unit can pass black start yet fail a reported ROCOF test: capability claims must be test-specific, not bundled into a generic "grid-forming" label.
 
+The benchmark matrix is machine-readable at [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) with [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json). It contains 7 test groups and 24 cases, with no universal pass thresholds invented; every case requires a standard / utility / mission acceptance source.
+
+A more demanding multi-vendor reference is the **UNIFI 1-MW multi-vendor grid-forming hardware experiment** (National Laboratory of the Rockies, presentation 25PESGM3880, July 2025). It combines 7 GFM inverters (760 kVA), 4 GFL inverters (340 kVA), a synchronous generator and five controllable loads across five test configurations. GFM asset-mix ranges from 0% to 100%; GFM nameplate share ranges from 0% to 69%; inverter-based resource penetration reaches 100%. The report records that higher GFM share reduced some oscillations but exposed unexpected GFM-to-GFM interactions, ROCOF failures in the 68% and 100% GFM asset-mix scenarios, and unequal power sharing. Changing frequency droop from 0.6% to 1.2% allowed those two test scenarios to survive the described ROCOF condition; that tuning is test-specific and must not be transplanted as a universal setting.
+
+The source was published under the laboratory's former NREL name. DOE renamed the institution the National Laboratory of the Rockies (NLR) effective 1 December 2025, and its official domain changed to nlr.gov in 2026. Cite legacy publication identifiers as printed but use the current NLR source records and URLs.
+
 Use the separate [POWER-SYSTEM-RESILIENCE-001 #3418](https://github.com/Luminous-Dynamics/symtropy/issues/3418) workstream for:
 - grid-following / grid-forming mode contracts by topology;
 - black-start from a declared dead-bus state with auxiliaries included;
