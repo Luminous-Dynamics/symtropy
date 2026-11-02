@@ -7,6 +7,7 @@ importer="${3:?SU2 history importer binary path required}"
 convergence="${4:?SU2 convergence screen binary path required}"
 mesh_audit="${5:?SU2 mesh audit binary path required}"
 preflight="${6:?SU2 field preflight audit binary path required}"
+boundary="${7:?SU2 boundary marker audit binary path required}"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
 
@@ -167,6 +168,8 @@ cat > "$root/preflight.cfg" <<'CFG'
 SOLVER= NAVIER_STOKES
 CONV_FIELD= RMS_DENSITY
 HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+MARKER_HEATFLUX= (wall, 0.0)
+MARKER_MONITORING= (wall)
 MESH_FILENAME= mesh.su2
 CFG
 preflight_executable_sha256="$(sha256sum "$root/fake-su2-dry-run" | awk '{print $1}')"
@@ -201,4 +204,16 @@ test "$(wc -l < "$root/su2-field-preflight.csv")" -eq 2
 grep -q 'su2_field_preflight=pass run_id=ci-su2-dry-run-preflight solver_family=NAVIER_STOKES conv_field=RMS_DENSITY available_fields=6 required_fields=4' "$root/su2-field-preflight.txt"
 grep -q 'receipt_bound_su2_dry_run_field_discovery_and_config_presence_only_not_history_convergence_or_validation' "$root/su2-field-preflight.txt"
 python3 scripts/verify-su2-field-preflight-independent.py "$root/preflight-run" "$root/su2-field-preflight.csv"
-echo "external_solver_cli_known_answer=pass staged_inputs=3 expected_outputs=3 tamper_rejected=true dry_run_process_only=true field_preflight=pass"
+
+"$boundary" \
+  --run-dir "$root/preflight-run" \
+  --config preflight.cfg \
+  --mesh mesh.su2 \
+  --boundary-option MARKER_HEATFLUX=2:0 \
+  --non-boundary-option MARKER_MONITORING \
+  > "$root/su2-boundary-audit.csv" 2> "$root/su2-boundary-audit.txt"
+test "$(wc -l < "$root/su2-boundary-audit.csv")" -eq 2
+grep -q 'su2_boundary_audit=pass run_id=ci-su2-dry-run-preflight mesh_markers=1 boundary_assignments=1 boundary_options=1 non_boundary_options=1' "$root/su2-boundary-audit.txt"
+grep -q 'receipt_bound_exact_mesh_marker_to_declared_config_boundary_option_mapping_not_boundary_physics_or_flow_validation' "$root/su2-boundary-audit.txt"
+python3 scripts/verify-su2-boundary-audit-independent.py "$root/preflight-run" "$root/su2-boundary-audit.csv"
+echo "external_solver_cli_known_answer=pass staged_inputs=3 expected_outputs=3 tamper_rejected=true dry_run_process_only=true field_preflight=pass marker_mapping=pass"
