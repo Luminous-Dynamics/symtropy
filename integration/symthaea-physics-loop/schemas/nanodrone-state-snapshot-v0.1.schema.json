@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-nanodrone-state-snapshot-v0.1.json",
+  "title": "NanoDrone branch state snapshot artifact v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "family_id",
+    "flight_id",
+    "rollout_start_id",
+    "regime",
+    "checkpoint_time_s",
+    "training_seed",
+    "synthetic_state_payload",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-nanodrone-state-snapshot-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_fixture"
+    },
+    "family_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "flight_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rollout_start_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checkpoint_time_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "training_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "synthetic_state_payload": {
+      "type": "string",
+      "pattern": "^SYNTHETIC_STATE_ONLY\\\\|.+"
+    },
+    "claim_ceiling": {
+      "const": "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation"
+    }
+  },
+  "x-content-addressing": "SHA-256 of exact UTF-8 bytes, including trailing newline; filename is <digest>.json"
+}
