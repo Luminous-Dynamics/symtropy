@@ -819,17 +819,12 @@ impl SeparatingLeafMessage {
             return false;
         }
 
-        let mut expected = std::collections::BTreeMap::<
-            (Vec<u8>, Vec<u8>),
-            ComposedSeparatorBoxCell,
-        >::new();
+        let mut expected =
+            std::collections::BTreeMap::<(Vec<u8>, Vec<u8>), ComposedSeparatorBoxCell>::new();
         let mut empty_intersections = 0_usize;
         for left_cell in &left.cells {
             for right_cell in &right.cells {
-                let key = (
-                    left_cell.lineage.clone(),
-                    right_cell.lineage.clone(),
-                );
+                let key = (left_cell.lineage.clone(), right_cell.lineage.clone());
                 if let Some(intersection) = left_cell
                     .separator_box
                     .intersection(&right_cell.separator_box)
@@ -893,7 +888,9 @@ impl SeparatingLeafMessage {
             || !self.verify_box_cover(&left.root_box, &left.cells)
             || !right_message.verify_box_cover(&right.root_box, &right.cells)
         {
-            return Err("local separator partition failed independent source coverage verification");
+            return Err(
+                "local separator partition failed independent source coverage verification",
+            );
         }
 
         let candidate_pairs = left
@@ -942,7 +939,9 @@ impl SeparatingLeafMessage {
         composed.coverage_preserved =
             self.verify_composed_partition(left, right_message, right, &composed);
         if !composed.coverage_preserved {
-            return Err("composed separator partition failed its independent intersection-cover check");
+            return Err(
+                "composed separator partition failed its independent intersection-cover check",
+            );
         }
         composed.classification_complete = composed.cells.iter().all(|cell| {
             cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
@@ -1567,7 +1566,9 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
     .unwrap();
 
     let left_partition = left_message.partition_separator_box(&root, 3, 128).unwrap();
-    let right_partition = right_message.partition_separator_box(&root, 3, 128).unwrap();
+    let right_partition = right_message
+        .partition_separator_box(&root, 3, 128)
+        .unwrap();
     let composed = left_message
         .compose_separator_partitions(&left_partition, &right_message, &right_partition)
         .unwrap();
@@ -1609,7 +1610,9 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
         SVector::<f64, 3>::new(4.0, 0.5, 0.5),
     )
     .unwrap();
-    let mismatched = right_message.partition_separator_box(&mismatched_root, 2, 64).unwrap();
+    let mismatched = right_message
+        .partition_separator_box(&mismatched_root, 2, 64)
+        .unwrap();
     assert!(
         left_message
             .compose_separator_partitions(&left_partition, &right_message, &mismatched)
@@ -1637,18 +1640,18 @@ fn separator_message_composition_retains_equal_geometry_with_distinct_branch_lin
     let same_geometry = composed
         .cells
         .iter()
-        .filter(|cell| cell.separator_box.lower == SVector::<f64, 3>::new(2.0, -0.5, -0.5)
-            && cell.separator_box.upper == SVector::<f64, 3>::new(2.0, 0.5, 0.5))
+        .filter(|cell| {
+            cell.separator_box.lower == SVector::<f64, 3>::new(2.0, -0.5, -0.5)
+                && cell.separator_box.upper == SVector::<f64, 3>::new(2.0, 0.5, 0.5)
+        })
         .collect::<Vec<_>>();
     assert_eq!(same_geometry.len(), 2);
     assert_ne!(same_geometry[0].left_lineage, same_geometry[1].left_lineage);
-    assert_ne!(same_geometry[0].right_lineage, same_geometry[1].right_lineage);
-    assert!(message.verify_composed_partition(
-        &partition,
-        &message,
-        &partition,
-        &composed
-    ));
+    assert_ne!(
+        same_geometry[0].right_lineage,
+        same_geometry[1].right_lineage
+    );
+    assert!(message.verify_composed_partition(&partition, &message, &partition, &composed));
 }
 
 #[test]
