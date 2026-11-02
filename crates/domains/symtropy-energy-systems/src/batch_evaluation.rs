@@ -223,8 +223,8 @@ mod tests {
     fn missing_lhv_uncertainty_is_not_treated_as_zero() {
         let batch = fuel_batch_with_lhv_uncertainty(None);
         let (engine, generator) = models();
-        let evaluation = evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator)
-            .unwrap();
+        let evaluation =
+            evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator).unwrap();
 
         assert_eq!(
             evaluation
