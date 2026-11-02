@@ -552,6 +552,70 @@ pub fn report_to_csv(decision: &ClaimDecision) -> String {
     )
 }
 
+pub fn request_to_csv(request: &ClaimRequest) -> String {
+    let header = "claim_id,claim_class,consequence,scope_sha256";
+    let fields = [
+        request.claim_id.clone(),
+        request.claim_class.as_str().to_owned(),
+        request.consequence.as_str().to_owned(),
+        request.scope_sha256.clone(),
+    ];
+    format!(
+        "{header}\\n{}\\n",
+        fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
+    )
+}
+
+pub fn evidence_manifest_to_csv(evidence: &[ScopedEvidence]) -> Result<String, String> {
+    let mut ordered = BTreeMap::new();
+    for item in evidence {
+        if ordered.insert(item.kind, item).is_some() {
+            return Err(format!("duplicate evidence assertion for {}", item.kind.as_str()));
+        }
+    }
+    let header = "kind,scope_sha256,assertion_status,artifact_sha256,verifier_id,verifier_sha256,verifier_receipt_sha256,reason";
+    let mut output = format!("{header}\\n");
+    for (kind, item) in ordered {
+        let (status, artifact, verifier_id, verifier, receipt, reason) =
+            match &item.assertion {
+                EvidenceAssertion::Verified {
+                    artifact_sha256,
+                    verifier_id,
+                    verifier_sha256,
+                    verifier_receipt_sha256,
+                } => (
+                    "verified",
+                    artifact_sha256.as_str(),
+                    verifier_id.as_str(),
+                    verifier_sha256.as_str(),
+                    verifier_receipt_sha256.as_str(),
+                    "",
+                ),
+                EvidenceAssertion::Unknown { reason } => (
+                    "unknown", "", "", "", "", reason.as_str(),
+                ),
+                EvidenceAssertion::Failed { reason } => (
+                    "failed", "", "", "", "", reason.as_str(),
+                ),
+            };
+        let fields = [
+            kind.as_str(),
+            item.scope_sha256.as_str(),
+            status,
+            artifact,
+            verifier_id,
+            verifier,
+            receipt,
+            reason,
+        ];
+        output.push_str(
+            &fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(","),
+        );
+        output.push('\\n');
+    }
+    Ok(output)
+}
+
 pub fn verify_claim_admission(
     request: &ClaimRequest,
     evidence: &[ScopedEvidence],
