@@ -163,6 +163,7 @@ struct BranchArtifactVerification {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct StateSnapshotArtifact {
     schema_version: String,
     evidence_class: String,
@@ -177,6 +178,7 @@ struct StateSnapshotArtifact {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct DisturbanceTapeArtifact {
     schema_version: String,
     evidence_class: String,
@@ -515,8 +517,8 @@ fn verify_branch_artifacts(
         };
         if artifact.schema_version != "symtropy-nanodrone-state-snapshot-v0.1"
             || artifact.evidence_class != artifact_evidence_class
-            || artifact.synthetic_state_payload.trim().is_empty()
-            || artifact.claim_ceiling.trim().is_empty()
+            || !artifact.synthetic_state_payload.starts_with("SYNTHETIC_STATE_ONLY|")
+            || artifact.claim_ceiling != "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation"
             || &observed_identity != expected_identity
         {
             return Err(format!("snapshot artifact metadata/identity mismatch: {}", path.display()));
@@ -1090,11 +1092,11 @@ mod tests {
                 checkpoint_time_s: row.checkpoint_time_s,
                 training_seed: row.training_seed,
                 synthetic_state_payload: format!(
-                    "TEST_STATE|{}|{}|{}|{}|{}|{}",
+                    "SYNTHETIC_STATE_ONLY|{}|{}|{}|{}|{}|{}",
                     row.family_id, row.flight_id, row.rollout_start_id, row.regime,
                     row.checkpoint_time_s, row.training_seed
                 ),
-                claim_ceiling: "fixture_byte_integrity_only".into(),
+                claim_ceiling: "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation".into(),
             };
             let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
             bytes.push(b'\n');
@@ -1116,11 +1118,11 @@ mod tests {
                 training_seed: row.training_seed,
                 branch_seed: row.branch_seed,
                 synthetic_disturbance_payload: format!(
-                    "TEST_TAPE|{}|{}|{}|{}|{}|{}|{}",
+                    "SYNTHETIC_TAPE_ONLY|{}|{}|{}|{}|{}|{}|{}",
                     row.family_id, row.flight_id, row.rollout_start_id, row.regime,
                     row.checkpoint_time_s, row.training_seed, row.branch_seed
                 ),
-                claim_ceiling: "fixture_byte_integrity_only".into(),
+                claim_ceiling: "fixture_byte_integrity_only_no_simulator_origin_or_rng_state_attestation".into(),
             };
             let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
             bytes.push(b'\n');
