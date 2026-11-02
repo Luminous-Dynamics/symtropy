@@ -1076,6 +1076,7 @@ pub fn link_benchmark_forms(
             bank,
             "anchor_identity_drift",
             false,
+            reuse_after,
         ));
     }
     for requirement in &plan.required_anchor_strata {
@@ -1089,6 +1090,7 @@ pub fn link_benchmark_forms(
                 bank,
                 "insufficient_anchor_stratum_coverage",
                 true,
+                reuse_after,
             ));
         }
     }
@@ -1100,6 +1102,7 @@ pub fn link_benchmark_forms(
             bank,
             "insufficient_anchor_difficulty_coverage",
             true,
+            reuse_after,
         ));
     }
 
@@ -1161,6 +1164,7 @@ pub fn link_benchmark_forms(
             bank,
             "reference_panel_variance_degenerate",
             true,
+            reuse_after,
         ));
     }
     let slope_squared = old_variance.checked_div(&new_variance)?;
@@ -1283,6 +1287,7 @@ fn not_comparable_receipt(
     bank: &AnchorBankSnapshot,
     reason: &str,
     anchor_identity_preserved: bool,
+    reuse_after: usize,
 ) -> AnchorEquatingReceipt {
     AnchorEquatingReceipt {
         link_id: plan.link_id.clone(),
@@ -1309,13 +1314,15 @@ fn not_comparable_receipt(
         newer_form_reference_scores: Vec::new(),
         score_transform: None,
         score_transfer_permitted: false,
-        anchor_reuse_count_after_link: 0,
+        anchor_reuse_count_after_link: reuse_after,
         anchor_reuse_limit: plan.maximum_anchor_reuse_count,
-        same_construct_blueprint: false,
-        same_score_semantics: false,
-        common_reference_panel: false,
+        same_construct_blueprint: older_form.construct_blueprint_digest == newer_form.construct_blueprint_digest,
+        same_score_semantics: older_form.score_semantics_digest == newer_form.score_semantics_digest,
+        common_reference_panel: older_form.reference_panel_digest == newer_form.reference_panel_digest,
         anchor_identity_preserved,
-        anchor_reuse_budget_respected: false,
+        // This helper is called only after every selected anchor passed its
+        // pre-release reuse-cap check.
+        anchor_reuse_budget_respected: true,
         drift_gate_passed: false,
         common_person_design_complete: false,
     }
