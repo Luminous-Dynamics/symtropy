@@ -1,5 +1,13 @@
 #![forbid(unsafe_code)]
 
+use serde::Serialize;
+
+mod fuel;
+
+pub use fuel::{
+    DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
+};
+
 //! Deterministic 0D energy-conversion bookkeeping primitives.
 //!
 //! This crate is deliberately not a combustion, gas-exchange, CFD, emissions,
@@ -60,7 +68,7 @@ impl fmt::Display for ModelError {
 impl std::error::Error for ModelError {}
 
 /// Non-negative power in watts.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Watts(f64);
 
 impl Watts {
@@ -84,7 +92,7 @@ impl Watts {
 }
 
 /// Fuel mass flow in kilograms per second.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct MassFlowKgPerSecond(f64);
 
 impl MassFlowKgPerSecond {
@@ -104,7 +112,7 @@ impl MassFlowKgPerSecond {
 }
 
 /// Fuel lower heating value in joules per kilogram.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct LowerHeatingValueJPerKg(f64);
 
 impl LowerHeatingValueJPerKg {
@@ -124,7 +132,7 @@ impl LowerHeatingValueJPerKg {
 }
 
 /// Dimensionless conversion efficiency bounded to the physical interval [0, 1].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Efficiency(f64);
 
 impl Efficiency {
