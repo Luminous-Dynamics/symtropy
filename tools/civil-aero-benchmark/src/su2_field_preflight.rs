@@ -34,6 +34,7 @@ pub enum Su2WindowConvergenceProtocol {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2ConvergenceProtocol {
     pub time_domain: bool,
+    pub time_domain: bool,
     pub steady_fields: Vec<String>,
     pub steady_start_iteration: Option<u64>,
     pub steady_residual_min_log10: Option<String>,
@@ -59,7 +60,6 @@ pub struct Su2FieldPreflightReport {
     /// Backward-compatible first field; use convergence_protocol.steady_fields for the full set.
     pub configured_convergence_field: String,
     pub convergence_protocol: Su2ConvergenceProtocol,
-    pub time_domain: bool,
     pub history_output_selectors: Vec<String>,
     pub stdout_sha256: String,
     pub stderr_sha256: String,
@@ -466,6 +466,12 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         Su2WindowConvergenceProtocol::Disabled
     };
 
+    if time_domain && matches!(window, Su2WindowConvergenceProtocol::Disabled) {
+        return Err(
+            "TIME_DOMAIN=YES requires an explicit, supported WINDOW_CAUCHY_CRIT=YES protocol for this admission path"
+                .to_owned(),
+        );
+    }
     let convergence_protocol = Su2ConvergenceProtocol {
         time_domain,
         steady_fields,
@@ -795,7 +801,6 @@ pub fn audit_su2_field_preflight(
         mesh_sha256: sha256_hex(&mesh_bytes)?,
         solver_family: config.solver_family,
         configured_convergence_field: config.convergence_protocol.steady_fields[0].clone(),
-        time_domain: config.convergence_protocol.time_domain,
         convergence_protocol: config.convergence_protocol,
         history_output_selectors: config.history_output_selectors,
         stdout_sha256: receipt.stdout_sha256.clone(),
