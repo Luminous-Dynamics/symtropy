@@ -251,9 +251,11 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
                     max[axis] = max[axis].max(coordinate);
                 }
                 if fields.len() == usize::from(dimension) + 1 {
-                    fields[usize::from(dimension)].parse::<u64>().map_err(|error| {
-                        format!("line {point_line}: invalid optional point index: {error}")
-                    })?;
+                    fields[usize::from(dimension)]
+                        .parse::<u64>()
+                        .map_err(|error| {
+                            format!("line {point_line}: invalid optional point index: {error}")
+                        })?;
                 }
             }
             point_count = Some(count);
