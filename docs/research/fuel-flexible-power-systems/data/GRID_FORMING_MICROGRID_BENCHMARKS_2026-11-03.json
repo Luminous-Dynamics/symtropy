@@ -17,20 +17,20 @@
   "sources": [
     {
       "source_id": "NREL_GFM_91714_2024",
-      "title": "Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments",
+      "title": "National Laboratory of the Rockies (formerly NREL), Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments",
       "publication_id": "NREL/PR-5D00-91714",
       "published_at": "2024-10-22",
-      "uri": "https://www.nrel.gov/docs/fy25osti/91714.pdf",
+      "uri": "https://www.nlr.gov/docs/fy25osti/91714.pdf",
       "evidence_class": "national_laboratory_hardware_test_protocol",
-      "notes": "Research test protocol and example inverter results. Its scenario matrix is a reproducible test-design reference, not universal standards acceptance limits."
+      "notes": "Published under the laboratory's former NREL name in October 2024; the laboratory was renamed National Laboratory of the Rockies (NLR) effective 1 December 2025. Research test protocol and example inverter results, not universal standards acceptance limits."
     },
     {
       "source_id": "NREL_BLACK_START",
-      "title": "Black Start research",
+      "title": "National Laboratory of the Rockies — Black Start research",
       "publisher": "National Laboratory of the Rockies (formerly NREL)",
-      "uri": "https://www.nrel.gov/grid/black-start",
+      "uri": "https://www.nlr.gov/grid/black-start",
       "evidence_class": "national_laboratory_research",
-      "notes": "Black start definition and inverter-based resource research context. Confirm current organization name and page wording before external reuse."
+      "notes": "Current NLR research page describing grid black start, auxiliary start supply, microgrid restoration and grid-forming inverter support."
     },
     {
       "source_id": "IEEE_2030_7_2017",
@@ -87,6 +87,15 @@
       "uri": "https://www.iea.org/reports/the-state-of-energy-innovation-2026",
       "evidence_class": "international_agency_research_review",
       "notes": "Grid-forming inverter development, deployments and interoperability/standards maturity."
+    },
+    {
+      "source_id": "NLR_UNIFI_1MW_MULTI_VENDOR_2025",
+      "title": "UNIFI 1-MW Multi-Vendor Grid-Forming Inverter Test Updates",
+      "publication_id": "Presentation No. 25PESGM3880",
+      "published_at": "2025-07",
+      "uri": "https://docs.nlr.gov/docs/fy26osti/96886.pdf",
+      "evidence_class": "national_laboratory_multi_vendor_hardware_experiment_report",
+      "notes": "Presentation authored under the National Renewable Energy Laboratory name before its 1 Dec 2025 renaming to National Laboratory of the Rockies. Five integration scenarios combine up to 7 GFM inverters (760 kVA), 4 GFL inverters (340 kVA), one synchronous genset and controllable loads; test matrix explores 0–100% inverter-based resources and 0–69% GFM share. Report notes ROCOF failures at 68% and 100% GFM asset-mix scenarios and unequal power sharing/instability in the highest-GFM case."
     }
   ],
   "test_groups": [
@@ -400,7 +409,8 @@
       "purpose": "Expose oscillations, circulating currents and controller interactions that single-device tests miss.",
       "source_ids": [
         "IEA_STATE_OF_ENERGY_INNOVATION_2026",
-        "IEEE_2030_8_2018"
+        "IEEE_2030_8_2018",
+        "NLR_UNIFI_1MW_MULTI_VENDOR_2025"
       ],
       "cases": [
         {
@@ -445,6 +455,77 @@
           ],
           "acceptance_threshold": null,
           "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-MULTI-04",
+          "name": "UNIFI 1 MW multi-vendor penetration sweep",
+          "test_type": "HIL_required",
+          "reference_testbed": {
+            "total_testbed_power_kva": 1258,
+            "gfm_inverters": {
+              "count": 7,
+              "total_rated_kva": 760
+            },
+            "gfl_inverters": {
+              "count": 4,
+              "total_rated_kva": 340
+            },
+            "synchronous_generator_kva": 187.5,
+            "controllable_loads": 5,
+            "scenarios": [
+              {
+                "scenario": "S1",
+                "total_scenario_power_kva": 488,
+                "ibr_fraction": 0.69,
+                "gfm_fraction": 0,
+                "gfm_asset_mix_fraction": 0
+              },
+              {
+                "scenario": "S2",
+                "total_scenario_power_kva": 633,
+                "ibr_fraction": 0.76,
+                "gfm_fraction": 0.23,
+                "gfm_asset_mix_fraction": 0.19
+              },
+              {
+                "scenario": "S3",
+                "total_scenario_power_kva": 783,
+                "ibr_fraction": 0.81,
+                "gfm_fraction": 0.38,
+                "gfm_asset_mix_fraction": 0.38
+              },
+              {
+                "scenario": "S4",
+                "total_scenario_power_kva": 1008,
+                "ibr_fraction": 0.85,
+                "gfm_fraction": 0.52,
+                "gfm_asset_mix_fraction": 0.68
+              },
+              {
+                "scenario": "S5",
+                "total_scenario_power_kva": 1108,
+                "ibr_fraction": 1,
+                "gfm_fraction": 0.69,
+                "gfm_asset_mix_fraction": 1
+              }
+            ]
+          },
+          "measured_channels": [
+            "P_by_source",
+            "Q_by_source",
+            "frequency_waveform",
+            "voltage_waveform",
+            "ROCOF_response",
+            "P_sharing_error",
+            "Q_sharing_error",
+            "oscillation_modes",
+            "islanding_transition",
+            "load_step_response",
+            "black_start"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Source-reported 1 MW multi-vendor HIL integration matrix. The 68% and 100% GFM asset-mixture cases failed the report's ROCOF test; the highest-GFM case exhibited the worst voltage/reactive-power interaction and unequal power sharing. More relaxed frequency droop (0.6% to 1.2%) allowed S4/S5 to survive the described ROCOF condition. These are study-specific findings, not general GFM thresholds or universal control settings."
         }
       ]
     },
