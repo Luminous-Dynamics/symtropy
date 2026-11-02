@@ -424,8 +424,11 @@ fn verify_branch_artifacts(
     }
     let artifact_evidence_class = match requested_evidence_class {
         "synthetic" => "synthetic_fixture",
-        "simulation" => "simulation",
-        "real-flight" => "real-flight",
+        "simulation" | "real-flight" => {
+            return Err(
+                "branch artifact schema v0.1 is synthetic-fixture-only; simulation and real-flight require producer-attested artifact schemas".into()
+            );
+        }
         other => return Err(format!("unsupported artifact evidence class {other:?}")),
     };
 
@@ -999,10 +1002,10 @@ fn evaluate(
     }
 
     Ok(Report {
-        schema_version: "symtropy-nanodrone-recoverability-frontier-v0.1".into(),
+        schema_version: "symtropy-nanodrone-recoverability-frontier-v0.2".into(),
         comparison_kind: "counterfactual-checkpoint-intervention-recoverability".into(),
         evidence_class: args.evidence_class.clone(),
-        claim_ceiling: "Recoverability under the declared precomputed simulator branches and Wilson threshold only; not full-policy benefit, real-flight generalization, or a flight-safety certificate.".into(),
+        claim_ceiling: "Recoverability under the declared precomputed branches and Wilson threshold only. Snapshot/tape content bytes and declared identities are SHA-256 verified; the restore_verified flag is still producer-declared and artifact bytes do not independently attest simulator capture, restore fidelity, RNG origin, full-policy benefit, real-flight generalization, or flight safety.".into(),
         source_commit: args.source_commit.clone(),
         dataset_receipt_sha256: args.dataset_receipt_sha256.clone(),
         model_manifest_sha256: args.model_manifest_sha256.clone(),
