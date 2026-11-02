@@ -11,7 +11,7 @@ use crate::integrity::sha256_hex;
 
 pub const RISK_ASSURANCE_SCHEMA: &str = "aero-risk-assurance/0.1.0";
 pub const RISK_ASSURANCE_EVIDENCE_LEVEL: &str =
-    "policy_profile_from_declared_influence_consequence_domain_and_regime_source_bound_gate_statuses_not_risk_estimate_regulatory_approval_or_physical_certification";
+    "policy_profile_from_declared_risk_inputs_and_caller_reported_evidence_references_and_digests_not_independently_replayed_not_risk_estimate_or_regulatory_approval";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ModelInfluence {
@@ -221,6 +221,7 @@ pub struct AssuranceReport {
     pub assurance_tier: String,
     pub required_gates: Vec<String>,
     pub passed_gates: Vec<String>,
+    pub supplemental_observations: Vec<String>,
     pub blockers: Vec<String>,
     pub admission_status: String,
     pub evidence_level: String,
@@ -402,6 +403,10 @@ fn canonical_bytes(
     for gate in &report.passed_gates {
         append_string(&mut bytes, gate);
     }
+    append_u64(&mut bytes, report.supplemental_observations.len());
+    for observation in &report.supplemental_observations {
+        append_string(&mut bytes, observation);
+    }
     append_u64(&mut bytes, report.blockers.len());
     for blocker in &report.blockers {
         append_string(&mut bytes, blocker);
@@ -446,6 +451,15 @@ pub fn evaluate_claim_assurance(
     }
 
     let tier = assurance_tier(context);
+    let mut canonical_observations = observations.to_vec();
+    canonical_observations.sort_by_key(|observation| observation.gate);
+    let supplemental_observations = canonical_observations
+        .iter()
+        .filter(|observation| !required.contains(&observation.gate))
+        .map(|observation| {
+            format!("{}:{}", observation.gate.as_str(), observation.status.as_str())
+        })
+        .collect::<Vec<_>>();
     let mut report = AssuranceReport {
         schema: RISK_ASSURANCE_SCHEMA.to_owned(),
         claim_id: context.claim_id.clone(),
@@ -457,10 +471,11 @@ pub fn evaluate_claim_assurance(
         required_gates: required.iter().map(|gate| gate.as_str().to_owned()).collect(),
         passed_gates,
         admission_status: if blockers.is_empty() {
-            "admitted_under_declared_risk_profile".to_owned()
+            "policy_profile_satisfied_by_declared_observations".to_owned()
         } else {
-            "withheld_required_evidence_missing_failed_or_unknown".to_owned()
+            "policy_profile_withheld_required_observations_missing_failed_or_unknown".to_owned()
         },
+        supplemental_observations,
         blockers,
         evidence_level: RISK_ASSURANCE_EVIDENCE_LEVEL.to_owned(),
         assessment_sha256: String::new(),
@@ -509,6 +524,7 @@ pub fn report_to_csv(report: &AssuranceReport) -> String {
         "assurance_tier",
         "required_gates",
         "passed_gates",
+        "supplemental_observations",
         "blockers",
         "admission_status",
         "evidence_level",
@@ -516,6 +532,7 @@ pub fn report_to_csv(report: &AssuranceReport) -> String {
     ];
     let required_gates = report.required_gates.join(";");
     let passed_gates = report.passed_gates.join(";");
+    let supplemental_observations = report.supplemental_observations.join(";");
     let blockers = report.blockers.join(";");
     let values = [
         report.schema.as_str(),
@@ -527,6 +544,7 @@ pub fn report_to_csv(report: &AssuranceReport) -> String {
         report.assurance_tier.as_str(),
         required_gates.as_str(),
         passed_gates.as_str(),
+        supplemental_observations.as_str(),
         blockers.as_str(),
         report.admission_status.as_str(),
         report.evidence_level.as_str(),
@@ -658,7 +676,7 @@ mod tests {
         );
         let observations = passing_observations(&context);
         let report = evaluate_claim_assurance(&context, &observations).expect("evaluate");
-        assert_eq!(report.admission_status, "admitted_under_declared_risk_profile");
+        assert_eq!(report.admission_status, "policy_profile_satisfied_by_declared_observations");
         verify_claim_assurance(&context, &observations, &report).expect("replay");
         assert_eq!(
             report.assessment_sha256,
@@ -679,7 +697,7 @@ mod tests {
         let mut observations = passing_observations(&context);
         observations.pop();
         let missing = evaluate_claim_assurance(&context, &observations).expect("assessment");
-        assert!(missing.admission_status.starts_with("withheld"));
+        assert!(missing.admission_status.starts_with("policy_profile_withheld"));
         assert!(missing.blockers.iter().any(|blocker| blocker.starts_with("missing:")));
 
         let mut observations = passing_observations(&context);
@@ -687,13 +705,13 @@ mod tests {
         observations[0].source_sha256.clear();
         observations[0].rationale = "no independent boundary-identity receipt".to_owned();
         let unknown = evaluate_claim_assurance(&context, &observations).expect("unknown assessment");
-        assert!(unknown.admission_status.starts_with("withheld"));
+        assert!(unknown.admission_status.starts_with("policy_profile_withheld"));
 
         let mut observations = passing_observations(&context);
         observations[0].status = EvidenceStatus::Failed;
         observations[0].rationale = "protocol identity mismatch".to_owned();
         let failed = evaluate_claim_assurance(&context, &observations).expect("failed assessment");
-        assert!(failed.admission_status.starts_with("withheld"));
+        assert!(failed.admission_status.starts_with("policy_profile_withheld"));
     }
 
     #[test]
@@ -730,7 +748,11 @@ mod tests {
             rationale: String::new(),
         });
         let report = evaluate_claim_assurance(&context, &observations).expect("assessment");
-        assert_eq!(report.admission_status, "admitted_under_declared_risk_profile");
+        assert_eq!(report.admission_status, "policy_profile_satisfied_by_declared_observations");
         assert!(!report.required_gates.contains(&"experimental_validation".to_owned()));
+        assert_eq!(
+            report.supplemental_observations,
+            vec!["experimental_validation:passed"]
+        );
     }
 }
