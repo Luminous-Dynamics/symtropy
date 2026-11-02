@@ -585,7 +585,7 @@ mod tests {
 
     fn unit_square_triangular_mesh(divisions: usize) -> String {
         let mut mesh = format!(
-            "NDIME= 2\\nNELEM= {}\\n",
+            "NDIME= 2\nNELEM= {}\n",
             2 * divisions * divisions
         );
         let node = |i: usize, j: usize| j * (divisions + 1) + i;
@@ -595,39 +595,39 @@ mod tests {
                 let lower_right = node(i + 1, j);
                 let upper_right = node(i + 1, j + 1);
                 let upper_left = node(i, j + 1);
-                mesh.push_str(&format!("5 {lower_left} {lower_right} {upper_right}\\n"));
-                mesh.push_str(&format!("5 {lower_left} {upper_right} {upper_left}\\n"));
+                mesh.push_str(&format!("5 {lower_left} {lower_right} {upper_right}\n"));
+                mesh.push_str(&format!("5 {lower_left} {upper_right} {upper_left}\n"));
             }
         }
-        mesh.push_str(&format!("NPOIN= {}\\n", (divisions + 1) * (divisions + 1)));
+        mesh.push_str(&format!("NPOIN= {}\n", (divisions + 1) * (divisions + 1)));
         for j in 0..=divisions {
             for i in 0..=divisions {
                 let x = i as f64 / divisions as f64;
                 let y = j as f64 / divisions as f64;
-                mesh.push_str(&format!("{x:.8} {y:.8}\\n"));
+                mesh.push_str(&format!("{x:.8} {y:.8}\n"));
             }
         }
-        mesh.push_str("NMARK= 1\\nMARKER_TAG= wall\\n");
-        mesh.push_str(&format!("MARKER_ELEMS= {}\\n", 4 * divisions));
+        mesh.push_str("NMARK= 1\nMARKER_TAG= wall\n");
+        mesh.push_str(&format!("MARKER_ELEMS= {}\n", 4 * divisions));
         for i in 0..divisions {
-            mesh.push_str(&format!("3 {} {}\\n", node(i, 0), node(i + 1, 0)));
+            mesh.push_str(&format!("3 {} {}\n", node(i, 0), node(i + 1, 0)));
         }
         for j in 0..divisions {
             mesh.push_str(&format!(
-                "3 {} {}\\n",
+                "3 {} {}\n",
                 node(divisions, j),
                 node(divisions, j + 1)
             ));
         }
         for i in (0..divisions).rev() {
             mesh.push_str(&format!(
-                "3 {} {}\\n",
+                "3 {} {}\n",
                 node(i + 1, divisions),
                 node(i, divisions)
             ));
         }
         for j in (0..divisions).rev() {
-            mesh.push_str(&format!("3 {} {}\\n", node(0, j + 1), node(0, j)));
+            mesh.push_str(&format!("3 {} {}\n", node(0, j + 1), node(0, j)));
         }
         mesh
     }
