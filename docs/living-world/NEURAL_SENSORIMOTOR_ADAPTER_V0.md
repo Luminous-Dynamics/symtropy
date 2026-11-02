@@ -238,6 +238,37 @@ Relevant references:
 - Brain-and-nerve-cord connectome: https://www.nature.com/articles/s41586-026-10735-w
 - FlyLite 2026 preprint on task/state-specific compression: https://doi.org/10.64898/2026.09.19.752860
 
+### Newly published walking-CGP reference (28 October 2026)
+
+Pugliese et al., *Connectome simulations identify a central pattern generator for fly walking*, Nature (version of record 2026-10-28), DOI: https://doi.org/10.1038/s41586-026-11195-y, is now the most concrete peer-reviewed neural-locomotion target for this programme.
+
+The paper reports:
+- DNg100 as the strongest descending driver of rhythmic leg motor activity under its declared model and screening procedure;
+- a minimal rhythm-generating core with one inhibitory and two excitatory interneurons;
+- reported necessity and sufficiency of that three-interneuron circuit for motor rhythms across six legs and four connectome datasets;
+- a distinct DNb08 descending pathway predicted by simulation and confirmed with optogenetic experiments in behaving flies.
+
+This gives us a source-grounded insect motor-circuit case, but not a universal CPG, whole-animal behavioural model or ready-made controller for other taxa. A local circuit producing rhythmic motor output is not by itself evidence of stable walking: the downstream muscle/limb mapping, contact mechanics, body dynamics and sensory feedback must still be tested.
+
+The paper's exact input identities must be version-pinned:
+- MANC public release v1.2.1;
+- FANC CAVE materialization v1178 (2025-01-07 timestamp);
+- male CNS public release v0.9;
+- BANC CAVE materialization v829 (2026-02-13 timestamp).
+
+The BANC resource is a dense reconstruction spanning the adult female brain and ventral nerve cord. Do not call it a universally complete Drosophila CNS connectome: the paper itself describes fly reconstructions separately from the taxa whose complete connectomes are available. Preserve the distinction between a dense reconstruction, a region-complete reconstruction and a complete organismal connectome.
+
+The authors' code is https://github.com/smpuglie/Pugliese_2026. The paper cites Zenodo record 22260923 for simulation outputs, while the repository README (still describing the earlier preprint) points to 22260924. Resolve the exact record/version and checksums before treating either artifact as the canonical reproduction source. Symthaea owns the exact scientific reproduction in [DROSOPHILA-WALKING-001 / #9934](https://github.com/Luminous-Dynamics/symthaea/issues/9934); Symtropy owns the body/contact qualification in [ANIMA-NEURO-002 / #3345](https://github.com/Luminous-Dynamics/symtropy/issues/3345).
+
+### Calibration and identifiability: do not fit behaviour alone
+
+Two 2026 preprints reinforce an important methodological constraint:
+
+- PGOB reports parameter generation for whole-organism worm/fly simulators from tracking video, using behavioural observables and Jacobian sensitivity information: https://doi.org/10.5281/zenodo.20691878
+- *How much of a nervous-system model does behaviour identify?* reports that behavioural data can leave most parameters in connectome-scale models weakly constrained, and that matching behaviour does not necessarily recover true parameters: https://doi.org/10.5281/zenodo.22120856
+
+Treat both as version-pinned preprint comparators, not established universal laws. Their joint lesson for our evaluation is still important: separate **behavioural equivalence**, **parameter recovery**, and **mechanistic identification**. Use multiple observables (pose, kinematics, contact/forces, physiological or neural activity where available) and targeted circuit perturbations. Report sensitivity and unidentifiable parameter directions; do not claim that a trajectory fit recovered the true connectome or physiology.
+
 ### Stage D — deer / visible game wildlife
 
 A deer is a useful gameplay vertical slice, but no validated deer connectome controller is claimed here.
