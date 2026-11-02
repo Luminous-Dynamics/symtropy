@@ -842,6 +842,278 @@ impl ProvenanceReceipt {
     }
 }
 
+/// Ordered stages in a decision-to-service evidence chain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceStage {
+    /// Dated, source-qualified observation or sensor sample.
+    Observation,
+    /// State estimate derived from observations and a pinned model.
+    StateEstimate,
+    /// Recommendation with declared scope and uncertainty.
+    Recommendation,
+    /// Human decision to authorize, reject or defer the recommendation.
+    HumanDecision,
+    /// Issued operational work order or authorized action record.
+    WorkOrder,
+    /// Independent verification of completed field work.
+    IndependentVerification,
+    /// Measured service outcome linked to the verified action.
+    ServiceOutcome,
+    /// Post-event model discrepancy and residual review.
+    ModelDiscrepancyReview,
+}
+
+/// Human disposition recorded before any operational action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HumanDecisionDisposition {
+    /// A named human authority authorized the proposed action.
+    Authorized,
+    /// The recommendation was rejected.
+    Rejected,
+    /// The recommendation was deferred.
+    Deferred,
+}
+
+/// Terminal status of a validated decision-to-service chain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DecisionServiceStatus {
+    /// The human decision rejected or deferred the recommendation; no action follows.
+    NotAuthorized,
+    /// Authorized action, independent verification, measured outcome and model review exist.
+    VerifiedServiceOutcome,
+}
+
+/// One immutable event in a decision-to-service evidence chain.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvidenceEvent {
+    /// Unique event identifier.
+    pub event_id: String,
+    /// Event type in the required chain.
+    pub stage: EvidenceStage,
+    /// Event time as Unix epoch milliseconds.
+    pub occurred_at_unix_ms: u64,
+    /// Immediate predecessor event identifier; absent only for the root observation.
+    pub predecessor_event_id: Option<String>,
+    /// Digest of the event evidence payload.
+    pub evidence_digest: Digest,
+    /// Present only on a human-decision event.
+    pub disposition: Option<HumanDecisionDisposition>,
+}
+
+impl EvidenceEvent {
+    /// Construct one event in the evidence chain.
+    pub fn new(
+        event_id: impl Into<String>,
+        stage: EvidenceStage,
+        occurred_at_unix_ms: u64,
+        predecessor_event_id: Option<String>,
+        evidence_digest: Digest,
+        disposition: Option<HumanDecisionDisposition>,
+    ) -> Self {
+        Self {
+            event_id: event_id.into(),
+            stage,
+            occurred_at_unix_ms,
+            predecessor_event_id,
+            evidence_digest,
+            disposition,
+        }
+    }
+}
+
+/// Errors returned when a decision-to-service chain is incomplete or incoherent.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DecisionChainError {
+    /// An event identifier is empty.
+    EmptyEventId,
+    /// An event identifier is duplicated.
+    DuplicateEventId(String),
+    /// An event evidence digest is an all-zero unset sentinel.
+    ZeroEvidenceDigest(String),
+    /// Event timestamps move backwards.
+    TimestampRegression {
+        /// Earlier event timestamp.
+        previous_ms: u64,
+        /// Later list entry timestamp.
+        current_ms: u64,
+    },
+    /// Root observation unexpectedly declares a predecessor.
+    RootHasPredecessor,
+    /// An event does not link to its immediate predecessor.
+    BrokenLineage(String),
+    /// The required decision or closure chain is incomplete.
+    IncompleteChain,
+    /// Event stage is not the expected stage at this position.
+    InvalidStageOrder {
+        /// Zero-based event position.
+        index: usize,
+    },
+    /// Human decision event lacks a disposition.
+    MissingHumanDisposition,
+    /// A non-decision event incorrectly carries a human disposition.
+    UnexpectedHumanDisposition(String),
+    /// A rejected/deferred recommendation is followed by an action or claimed outcome.
+    ActionAfterNonAuthorization,
+}
+
+impl fmt::Display for DecisionChainError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyEventId => write!(f, "evidence event identifier is empty"),
+            Self::DuplicateEventId(id) => write!(f, "duplicate evidence event identifier: {id}"),
+            Self::ZeroEvidenceDigest(id) => write!(f, "event {id} has an all-zero evidence digest"),
+            Self::TimestampRegression { previous_ms, current_ms } => write!(
+                f,
+                "event time regressed from {previous_ms} ms to {current_ms} ms"
+            ),
+            Self::RootHasPredecessor => write!(f, "root observation must not have a predecessor"),
+            Self::BrokenLineage(id) => write!(f, "event {id} does not link to its immediate predecessor"),
+            Self::IncompleteChain => write!(f, "decision-to-service evidence chain is incomplete"),
+            Self::InvalidStageOrder { index } => write!(f, "invalid evidence stage at chain position {index}"),
+            Self::MissingHumanDisposition => write!(f, "human decision event lacks an explicit disposition"),
+            Self::UnexpectedHumanDisposition(id) => {
+                write!(f, "non-decision event {id} carries a human decision disposition")
+            }
+            Self::ActionAfterNonAuthorization => {
+                write!(f, "rejected or deferred recommendation cannot be followed by an operational action")
+            }
+        }
+    }
+}
+
+impl std::error::Error for DecisionChainError {}
+
+/// A validated decision-to-service evidence chain.
+///
+/// A rejected or deferred recommendation is a valid terminal decision, but
+/// it is not a verified service intervention. An M4 closure requires all
+/// eight stages through post-event model discrepancy review.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecisionServiceChain {
+    events: Vec<EvidenceEvent>,
+    status: DecisionServiceStatus,
+}
+
+impl DecisionServiceChain {
+    /// Validate a linear event chain and classify its terminal status.
+    ///
+    /// This v0.1 validator supports one event per stage. A future branching or
+    /// multi-observation event graph needs a separately versioned schema.
+    pub fn new(mut events: Vec<EvidenceEvent>) -> Result<Self, DecisionChainError> {
+        if events.len() < 4 {
+            return Err(DecisionChainError::IncompleteChain);
+        }
+
+        let mut identifiers = BTreeSet::new();
+        for event in &mut events {
+            event.event_id = event.event_id.trim().to_owned();
+            if event.event_id.is_empty() {
+                return Err(DecisionChainError::EmptyEventId);
+            }
+            if !identifiers.insert(event.event_id.clone()) {
+                return Err(DecisionChainError::DuplicateEventId(event.event_id.clone()));
+            }
+            if event.evidence_digest.is_zero() {
+                return Err(DecisionChainError::ZeroEvidenceDigest(event.event_id.clone()));
+            }
+        }
+
+        if events[0].stage != EvidenceStage::Observation {
+            return Err(DecisionChainError::InvalidStageOrder { index: 0 });
+        }
+        if events[0].predecessor_event_id.is_some() {
+            return Err(DecisionChainError::RootHasPredecessor);
+        }
+        if events[0].disposition.is_some() {
+            return Err(DecisionChainError::UnexpectedHumanDisposition(
+                events[0].event_id.clone(),
+            ));
+        }
+
+        for index in 1..events.len() {
+            let previous = &events[index - 1];
+            let current = &events[index];
+            if current.occurred_at_unix_ms < previous.occurred_at_unix_ms {
+                return Err(DecisionChainError::TimestampRegression {
+                    previous_ms: previous.occurred_at_unix_ms,
+                    current_ms: current.occurred_at_unix_ms,
+                });
+            }
+            if current.predecessor_event_id.as_deref() != Some(previous.event_id.as_str()) {
+                return Err(DecisionChainError::BrokenLineage(current.event_id.clone()));
+            }
+            if current.stage == EvidenceStage::HumanDecision {
+                if current.disposition.is_none() {
+                    return Err(DecisionChainError::MissingHumanDisposition);
+                }
+            } else if current.disposition.is_some() {
+                return Err(DecisionChainError::UnexpectedHumanDisposition(
+                    current.event_id.clone(),
+                ));
+            }
+        }
+
+        let base_stages = [
+            EvidenceStage::Observation,
+            EvidenceStage::StateEstimate,
+            EvidenceStage::Recommendation,
+            EvidenceStage::HumanDecision,
+        ];
+        for (index, expected) in base_stages.iter().enumerate() {
+            if events[index].stage != *expected {
+                return Err(DecisionChainError::InvalidStageOrder { index });
+            }
+        }
+
+        let disposition = events[3]
+            .disposition
+            .ok_or(DecisionChainError::MissingHumanDisposition)?;
+        if disposition != HumanDecisionDisposition::Authorized {
+            if events.len() != 4 {
+                return Err(DecisionChainError::ActionAfterNonAuthorization);
+            }
+            return Ok(Self {
+                events,
+                status: DecisionServiceStatus::NotAuthorized,
+            });
+        }
+
+        let complete_stages = [
+            EvidenceStage::Observation,
+            EvidenceStage::StateEstimate,
+            EvidenceStage::Recommendation,
+            EvidenceStage::HumanDecision,
+            EvidenceStage::WorkOrder,
+            EvidenceStage::IndependentVerification,
+            EvidenceStage::ServiceOutcome,
+            EvidenceStage::ModelDiscrepancyReview,
+        ];
+        if events.len() != complete_stages.len() {
+            return Err(DecisionChainError::IncompleteChain);
+        }
+        for (index, expected) in complete_stages.iter().enumerate() {
+            if events[index].stage != *expected {
+                return Err(DecisionChainError::InvalidStageOrder { index });
+            }
+        }
+
+        Ok(Self {
+            events,
+            status: DecisionServiceStatus::VerifiedServiceOutcome,
+        })
+    }
+
+    /// Return the validated event list.
+    pub fn events(&self) -> &[EvidenceEvent] {
+        &self.events
+    }
+
+    /// Return the validated terminal status.
+    pub const fn status(&self) -> DecisionServiceStatus {
+        self.status
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1058,6 +1330,124 @@ mod tests {
         assert_eq!(
             PairedOutcomeReceipt::new(OutcomeVector::default(), invalid),
             Err(OutcomeError::WorstGroupServiceOutOfRange { value: 1_000_001 })
+        );
+    }
+
+    fn decision_chain_events() -> Vec<EvidenceEvent> {
+        let stages = [
+            EvidenceStage::Observation,
+            EvidenceStage::StateEstimate,
+            EvidenceStage::Recommendation,
+            EvidenceStage::HumanDecision,
+            EvidenceStage::WorkOrder,
+            EvidenceStage::IndependentVerification,
+            EvidenceStage::ServiceOutcome,
+            EvidenceStage::ModelDiscrepancyReview,
+        ];
+        let ids = ["obs", "estimate", "recommendation", "decision", "work", "verify", "outcome", "review"];
+        stages
+            .iter()
+            .enumerate()
+            .map(|(index, stage)| {
+                EvidenceEvent::new(
+                    ids[index],
+                    *stage,
+                    (index as u64 + 1) * 1000,
+                    if index == 0 {
+                        None
+                    } else {
+                        Some(ids[index - 1].to_owned())
+                    },
+                    digest(index as u8 + 1),
+                    if *stage == EvidenceStage::HumanDecision {
+                        Some(HumanDecisionDisposition::Authorized)
+                    } else {
+                        None
+                    },
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn decision_service_chain_requires_complete_verified_closure() {
+        let chain = DecisionServiceChain::new(decision_chain_events()).unwrap();
+        assert_eq!(chain.status(), DecisionServiceStatus::VerifiedServiceOutcome);
+        assert_eq!(chain.events().len(), 8);
+        assert_eq!(
+            chain.events().last().unwrap().stage,
+            EvidenceStage::ModelDiscrepancyReview
+        );
+    }
+
+    #[test]
+    fn rejected_or_deferred_decision_is_terminal_without_claimed_action() {
+        let mut events = decision_chain_events();
+        events[3].disposition = Some(HumanDecisionDisposition::Rejected);
+        events.truncate(4);
+        let chain = DecisionServiceChain::new(events).unwrap();
+        assert_eq!(chain.status(), DecisionServiceStatus::NotAuthorized);
+
+        let mut deferred = decision_chain_events();
+        deferred[3].disposition = Some(HumanDecisionDisposition::Deferred);
+        deferred.truncate(4);
+        assert_eq!(
+            DecisionServiceChain::new(deferred).unwrap().status(),
+            DecisionServiceStatus::NotAuthorized
+        );
+    }
+
+    #[test]
+    fn decision_chain_rejects_action_after_rejection() {
+        let mut events = decision_chain_events();
+        events[3].disposition = Some(HumanDecisionDisposition::Rejected);
+        assert_eq!(
+            DecisionServiceChain::new(events),
+            Err(DecisionChainError::ActionAfterNonAuthorization)
+        );
+    }
+
+    #[test]
+    fn decision_chain_rejects_broken_lineage_and_time_regression() {
+        let mut broken_parent = decision_chain_events();
+        broken_parent[1].predecessor_event_id = None;
+        assert_eq!(
+            DecisionServiceChain::new(broken_parent),
+            Err(DecisionChainError::BrokenLineage("estimate".to_owned()))
+        );
+
+        let mut time_regression = decision_chain_events();
+        time_regression[5].occurred_at_unix_ms = 4_500;
+        assert_eq!(
+            DecisionServiceChain::new(time_regression),
+            Err(DecisionChainError::TimestampRegression {
+                previous_ms: 5_000,
+                current_ms: 4_500
+            })
+        );
+    }
+
+    #[test]
+    fn decision_chain_rejects_duplicate_ids_zero_digests_and_wrong_stage_order() {
+        let mut duplicate = decision_chain_events();
+        duplicate[6].event_id = "work".to_owned();
+        assert_eq!(
+            DecisionServiceChain::new(duplicate),
+            Err(DecisionChainError::DuplicateEventId("work".to_owned()))
+        );
+
+        let mut zero_digest = decision_chain_events();
+        zero_digest[2].evidence_digest = digest(0);
+        assert_eq!(
+            DecisionServiceChain::new(zero_digest),
+            Err(DecisionChainError::ZeroEvidenceDigest("recommendation".to_owned()))
+        );
+
+        let mut wrong_stage = decision_chain_events();
+        wrong_stage[5].stage = EvidenceStage::ServiceOutcome;
+        assert_eq!(
+            DecisionServiceChain::new(wrong_stage),
+            Err(DecisionChainError::InvalidStageOrder { index: 5 })
         );
     }
 
