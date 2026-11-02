@@ -25,6 +25,74 @@ struct ClockSpec {
     interval_semantics: String,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+enum DisturbanceKind {
+    #[serde(rename = "localization_quality_out_of_profile")]
+    LocalizationQualityOutOfProfile,
+    #[serde(rename = "tool_identity_changed")]
+    ToolIdentityChanged,
+    #[serde(rename = "communication_link_unavailable")]
+    CommunicationLinkUnavailable,
+    #[serde(rename = "excavator_drive_fault")]
+    ExcavatorDriveFault,
+    #[serde(rename = "water-pipe-delivery_delayed")]
+    WaterPipeDeliveryDelayed,
+    #[serde(rename = "material_class_mismatch")]
+    MaterialClassMismatch,
+    #[serde(rename = "as_built_inspection_failed")]
+    AsBuiltInspectionFailed,
+    #[serde(rename = "workface_geometry_revision_changed")]
+    WorkfaceGeometryRevisionChanged,
+    #[serde(rename = "two_tasks_require_same_capacity_one_tool")]
+    CapacityOneToolConflict,
+    #[serde(rename = "remaining_energy_below_task_plus_return_reserve")]
+    EnergyReturnReserveInfeasible,
+    #[serde(rename = "utility_envelope_unbounded_unknown")]
+    UnboundedUnknownUtility,
+    #[serde(rename = "required_operator_approval_declined")]
+    OperatorApprovalDeclined,
+    #[serde(rename = "robot_capability_revision_superseded")]
+    CapabilityRevisionSuperseded,
+}
+
+impl DisturbanceKind {
+    const ALL: [Self; 13] = [
+        Self::LocalizationQualityOutOfProfile,
+        Self::ToolIdentityChanged,
+        Self::CommunicationLinkUnavailable,
+        Self::ExcavatorDriveFault,
+        Self::WaterPipeDeliveryDelayed,
+        Self::MaterialClassMismatch,
+        Self::AsBuiltInspectionFailed,
+        Self::WorkfaceGeometryRevisionChanged,
+        Self::CapacityOneToolConflict,
+        Self::EnergyReturnReserveInfeasible,
+        Self::UnboundedUnknownUtility,
+        Self::OperatorApprovalDeclined,
+        Self::CapabilityRevisionSuperseded,
+    ];
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::LocalizationQualityOutOfProfile => "localization_quality_out_of_profile",
+            Self::ToolIdentityChanged => "tool_identity_changed",
+            Self::CommunicationLinkUnavailable => "communication_link_unavailable",
+            Self::ExcavatorDriveFault => "excavator_drive_fault",
+            Self::WaterPipeDeliveryDelayed => "water-pipe-delivery_delayed",
+            Self::MaterialClassMismatch => "material_class_mismatch",
+            Self::AsBuiltInspectionFailed => "as_built_inspection_failed",
+            Self::WorkfaceGeometryRevisionChanged => "workface_geometry_revision_changed",
+            Self::CapacityOneToolConflict => "two_tasks_require_same_capacity_one_tool",
+            Self::EnergyReturnReserveInfeasible => {
+                "remaining_energy_below_task_plus_return_reserve"
+            }
+            Self::UnboundedUnknownUtility => "utility_envelope_unbounded_unknown",
+            Self::OperatorApprovalDeclined => "required_operator_approval_declined",
+            Self::CapabilityRevisionSuperseded => "robot_capability_revision_superseded",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DisturbanceCase {
@@ -32,7 +100,7 @@ struct DisturbanceCase {
     name: String,
     injection_tick: u64,
     observable_tick: u64,
-    event: String,
+    event: DisturbanceKind,
     affected_resources: Vec<String>,
     affected_tasks: Vec<String>,
     invalidates: Vec<String>,
@@ -204,7 +272,7 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
                 .map(|case| NewlyObservedEvent {
                     case_id: case.case_id.clone(),
                     observed_at_tick: tick,
-                    event: case.event.clone(),
+                    event: case.event.as_str().to_string(),
                 })
                 .collect();
             PolicyTick {
@@ -217,7 +285,7 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
 
     let typed_disturbance_kinds = cases
         .iter()
-        .map(|case| case.event.as_str())
+        .map(|case| case.event)
         .collect::<BTreeSet<_>>()
         .len();
 
@@ -366,6 +434,16 @@ mod tests {
                     && item.observed_at_tick == 4
                     && item.event == "workface_geometry_revision_changed"
             }));
+    }
+
+    #[test]
+    fn unknown_disturbance_kind_is_rejected() {
+        let mut candidate: serde_json::Value =
+            serde_json::from_str(EMBEDDED_FIXTURE).unwrap();
+        candidate["disturbance_cases"][0]["event"] =
+            serde_json::Value::String("unknown_event_kind".to_string());
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        assert!(verify_fixture_bytes(&bytes).is_err());
     }
 
     #[test]
