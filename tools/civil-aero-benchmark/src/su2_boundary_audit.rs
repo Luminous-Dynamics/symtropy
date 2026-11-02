@@ -14,8 +14,7 @@ use crate::integrity::sha256_hex;
 use crate::su2_mesh::inspect_su2_mesh;
 
 pub const SU2_BOUNDARY_AUDIT_SCHEMA: &str = "su2-boundary-marker-audit/0.1.0";
-pub const SU2_BOUNDARY_AUDIT_EVIDENCE_LEVEL: &str =
-    "receipt_bound_exact_mesh_marker_to_declared_config_boundary_option_mapping_not_boundary_physics_or_flow_validation";
+pub const SU2_BOUNDARY_AUDIT_EVIDENCE_LEVEL: &str = "receipt_bound_exact_mesh_marker_to_declared_config_boundary_option_mapping_not_boundary_physics_or_flow_validation";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2BoundaryOptionSpec {
@@ -97,12 +96,22 @@ impl Su2BoundaryAuditReport {
 }
 
 fn encode_specs(specs: &[Su2BoundaryOptionSpec]) -> String {
-    specs.iter().map(|spec| format!(
-        "{}:{}:{}",
-        spec.option_name,
-        spec.record_width,
-        spec.marker_positions.iter().map(usize::to_string).collect::<Vec<_>>().join("|")
-    )).collect::<Vec<_>>().join(";")
+    specs
+        .iter()
+        .map(|spec| {
+            format!(
+                "{}:{}:{}",
+                spec.option_name,
+                spec.record_width,
+                spec.marker_positions
+                    .iter()
+                    .map(usize::to_string)
+                    .collect::<Vec<_>>()
+                    .join("|")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(";")
 }
 
 fn append_u64(bytes: &mut Vec<u8>, value: u64) {
@@ -117,32 +126,46 @@ fn append_string(bytes: &mut Vec<u8>, value: &str) {
 fn canonical_bytes(report: &Su2BoundaryAuditReport) -> Vec<u8> {
     let mut bytes = Vec::new();
     for value in [
-        report.schema.as_str(), report.run_id.as_str(), report.solver_id.as_str(),
-        report.runner_receipt_sha256.as_str(), report.executable_sha256.as_str(),
-        report.configuration_path.as_str(), report.configuration_sha256.as_str(),
-        report.mesh_path.as_str(), report.mesh_sha256.as_str(), report.status.as_str(),
+        report.schema.as_str(),
+        report.run_id.as_str(),
+        report.solver_id.as_str(),
+        report.runner_receipt_sha256.as_str(),
+        report.executable_sha256.as_str(),
+        report.configuration_path.as_str(),
+        report.configuration_sha256.as_str(),
+        report.mesh_path.as_str(),
+        report.mesh_sha256.as_str(),
+        report.status.as_str(),
         report.evidence_level.as_str(),
     ] {
         append_string(&mut bytes, value);
     }
     for value in [
-        report.configuration_byte_length, report.mesh_byte_length,
-        u64::from(report.mesh_dimension), report.mesh_point_count,
+        report.configuration_byte_length,
+        report.mesh_byte_length,
+        u64::from(report.mesh_dimension),
+        report.mesh_point_count,
         report.mesh_volume_element_count,
     ] {
         append_u64(&mut bytes, value);
     }
     append_u64(&mut bytes, report.mesh_markers.len() as u64);
-    for marker in &report.mesh_markers { append_string(&mut bytes, marker); }
+    for marker in &report.mesh_markers {
+        append_string(&mut bytes, marker);
+    }
     append_u64(&mut bytes, report.boundary_option_specs.len() as u64);
     for spec in &report.boundary_option_specs {
         append_string(&mut bytes, &spec.option_name);
         append_u64(&mut bytes, spec.record_width as u64);
         append_u64(&mut bytes, spec.marker_positions.len() as u64);
-        for position in &spec.marker_positions { append_u64(&mut bytes, *position as u64); }
+        for position in &spec.marker_positions {
+            append_u64(&mut bytes, *position as u64);
+        }
     }
     append_u64(&mut bytes, report.non_boundary_marker_options.len() as u64);
-    for option in &report.non_boundary_marker_options { append_string(&mut bytes, option); }
+    for option in &report.non_boundary_marker_options {
+        append_string(&mut bytes, option);
+    }
     append_u64(&mut bytes, report.assignments.len() as u64);
     for row in &report.assignments {
         append_string(&mut bytes, &row.marker);
@@ -158,8 +181,14 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, String> {
         return Err("boundary audit path must not be empty".to_owned());
     }
     let path = Path::new(value);
-    if path.is_absolute() || path.components().any(|p| !matches!(p, Component::Normal(_))) {
-        return Err("boundary audit path must contain only normal run-relative components".to_owned());
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|p| !matches!(p, Component::Normal(_)))
+    {
+        return Err(
+            "boundary audit path must contain only normal run-relative components".to_owned(),
+        );
     }
     Ok(path.to_path_buf())
 }
@@ -169,9 +198,16 @@ fn staged_input<'a>(
     path: &str,
 ) -> Result<&'a crate::external_solver::StagedInputReceipt, String> {
     validate_relative_path(path)?;
-    let matches = receipt.staged_inputs.iter().filter(|row| row.relative_path == path).collect::<Vec<_>>();
+    let matches = receipt
+        .staged_inputs
+        .iter()
+        .filter(|row| row.relative_path == path)
+        .collect::<Vec<_>>();
     if matches.len() != 1 {
-        return Err(format!("expected exactly one staged input {path}, found {}", matches.len()));
+        return Err(format!(
+            "expected exactly one staged input {path}, found {}",
+            matches.len()
+        ));
     }
     Ok(matches[0])
 }
@@ -180,10 +216,13 @@ fn decode_hex(value: &str, name: &str) -> Result<String, String> {
     if !value.len().is_multiple_of(2) {
         return Err(format!("invocation argument {name} has odd-length hex"));
     }
-    let bytes = (0..value.len()).step_by(2).map(|i| {
-        u8::from_str_radix(&value[i..i + 2], 16)
-            .map_err(|e| format!("invocation argument {name} has invalid hex: {e}"))
-    }).collect::<Result<Vec<_>, _>>()?;
+    let bytes = (0..value.len())
+        .step_by(2)
+        .map(|i| {
+            u8::from_str_radix(&value[i..i + 2], 16)
+                .map_err(|e| format!("invocation argument {name} has invalid hex: {e}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     String::from_utf8(bytes).map_err(|e| format!("invocation argument {name} is not UTF-8: {e}"))
 }
 
@@ -192,7 +231,8 @@ fn verify_dry_run_invocation(root: &Path, config_path: &str) -> Result<(), Strin
         .map_err(|e| format!("cannot read invocation manifest: {e}"))?;
     let mut map = BTreeMap::new();
     for (index, line) in text.lines().enumerate() {
-        let (key, value) = line.split_once('=')
+        let (key, value) = line
+            .split_once('=')
             .ok_or_else(|| format!("invocation line {} is not key=value", index + 1))?;
         if map.insert(key.to_owned(), value.to_owned()).is_some() {
             return Err(format!("invocation manifest duplicates {key}"));
@@ -201,8 +241,14 @@ fn verify_dry_run_invocation(root: &Path, config_path: &str) -> Result<(), Strin
     if map.get("argument_count").map(String::as_str) != Some("2") {
         return Err("boundary audit requires exactly two dry-run argv elements".to_owned());
     }
-    let flag = decode_hex(map.get("argument_0_utf8_hex").ok_or("missing argv[0]")?, "argv[0]")?;
-    let path = decode_hex(map.get("argument_1_utf8_hex").ok_or("missing argv[1]")?, "argv[1]")?;
+    let flag = decode_hex(
+        map.get("argument_0_utf8_hex").ok_or("missing argv[0]")?,
+        "argv[0]",
+    )?;
+    let path = decode_hex(
+        map.get("argument_1_utf8_hex").ok_or("missing argv[1]")?,
+        "argv[1]",
+    )?;
     if flag != "-d" || path != config_path {
         return Err("boundary audit receipt does not bind SU2_CFD -d CONFIG_PATH".to_owned());
     }
@@ -218,12 +264,17 @@ fn parse_config(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
     let mut pending: Option<(usize, String)> = None;
     for (index, raw) in text.lines().enumerate() {
         let line = raw.split('%').next().unwrap_or("").trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let line_number = index + 1;
         let complete = if let Some((start, mut accumulated)) = pending.take() {
             let continued = line.strip_suffix('\\');
             let fragment = continued.unwrap_or(line).trim();
-            if !fragment.is_empty() { accumulated.push(' '); accumulated.push_str(fragment); }
+            if !fragment.is_empty() {
+                accumulated.push(' ');
+                accumulated.push_str(fragment);
+            }
             if continued.is_some() {
                 pending = Some((start, accumulated));
                 None
@@ -239,22 +290,36 @@ fn parse_config(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
         if let Some((source_line, record)) = complete {
             if let Some((raw_key, raw_value)) = record.split_once('=') {
                 let key = raw_key.trim();
-                if key.is_empty() || values.insert(key.to_owned(), raw_value.trim().to_owned()).is_some() {
-                    return Err(format!("SU2 config has an empty or duplicate key at line {source_line}"));
+                if key.is_empty()
+                    || values
+                        .insert(key.to_owned(), raw_value.trim().to_owned())
+                        .is_some()
+                {
+                    return Err(format!(
+                        "SU2 config has an empty or duplicate key at line {source_line}"
+                    ));
                 }
             }
         }
     }
     if let Some((line, _)) = pending {
-        return Err(format!("SU2 config line {line} has an unterminated continuation"));
+        return Err(format!(
+            "SU2 config line {line} has an unterminated continuation"
+        ));
     }
     Ok(values)
 }
 
 fn parse_list(value: &str, option: &str) -> Result<Vec<String>, String> {
-    let inner = value.trim().strip_prefix('(').and_then(|s| s.strip_suffix(')'))
+    let inner = value
+        .trim()
+        .strip_prefix('(')
+        .and_then(|s| s.strip_suffix(')'))
         .ok_or_else(|| format!("{option} must use parenthesized list syntax"))?;
-    let fields = inner.split(',').map(|s| s.trim().trim_matches('"').trim_matches('\'').to_owned()).collect::<Vec<_>>();
+    let fields = inner
+        .split(',')
+        .map(|s| s.trim().trim_matches('"').trim_matches('\'').to_owned())
+        .collect::<Vec<_>>();
     if fields.is_empty() || fields.iter().any(String::is_empty) {
         return Err(format!("{option} contains empty list fields"));
     }
@@ -267,22 +332,28 @@ fn validate_specs(
 ) -> Result<(), String> {
     let mut names = BTreeSet::new();
     for spec in boundary {
-        if !spec.option_name.starts_with("MARKER_") || spec.record_width == 0
-            || spec.marker_positions.is_empty() || !names.insert(spec.option_name.as_str())
+        if !spec.option_name.starts_with("MARKER_")
+            || spec.record_width == 0
+            || spec.marker_positions.is_empty()
+            || !names.insert(spec.option_name.as_str())
         {
-            return Err(format!("invalid or duplicate boundary option spec {}", spec.option_name));
+            return Err(format!(
+                "invalid or duplicate boundary option spec {}",
+                spec.option_name
+            ));
         }
         let mut positions = BTreeSet::new();
         for position in &spec.marker_positions {
             if *position >= spec.record_width || !positions.insert(*position) {
-                return Err(format!("{} has invalid marker position {position}", spec.option_name));
+                return Err(format!(
+                    "{} has invalid marker position {position}",
+                    spec.option_name
+                ));
             }
         }
     }
     for name in non_boundary {
-        if !(name.starts_with("MARKER_") || name == "GEO_MARKER")
-            || !names.insert(name.as_str())
-        {
+        if !(name.starts_with("MARKER_") || name == "GEO_MARKER") || !names.insert(name.as_str()) {
             return Err(format!("invalid or duplicate non-boundary option {name}"));
         }
     }
@@ -296,17 +367,31 @@ fn resolve_assignments(
     non_boundary: &[String],
 ) -> Result<Vec<Su2BoundaryAssignment>, String> {
     validate_specs(boundary, non_boundary)?;
-    let specs = boundary.iter().map(|s| (s.option_name.as_str(), s)).collect::<BTreeMap<_, _>>();
-    let ignored = non_boundary.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let specs = boundary
+        .iter()
+        .map(|s| (s.option_name.as_str(), s))
+        .collect::<BTreeMap<_, _>>();
+    let ignored = non_boundary
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     if boundary.is_empty() || mesh_markers.is_empty() {
-        return Err("boundary audit requires at least one boundary option and one mesh marker".to_owned());
+        return Err(
+            "boundary audit requires at least one boundary option and one mesh marker".to_owned(),
+        );
     }
-    for option in config.keys().filter(|key| key.starts_with("MARKER_") || *key == "GEO_MARKER") {
+    for option in config
+        .keys()
+        .filter(|key| key.starts_with("MARKER_") || *key == "GEO_MARKER")
+    {
         if !specs.contains_key(option.as_str()) && !ignored.contains(option.as_str()) {
             return Err(format!("unclassified SU2 marker option {option}"));
         }
     }
-    let mesh = mesh_markers.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    let mesh = mesh_markers
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     for option in non_boundary {
         if let Some(value) = config.get(option) {
             for marker in parse_list(value, option)? {
@@ -321,17 +406,27 @@ fn resolve_assignments(
     let mut assigned = BTreeSet::new();
     let mut rows = Vec::new();
     for spec in boundary {
-        let value = config.get(&spec.option_name)
-            .ok_or_else(|| format!("config is missing declared boundary option {}", spec.option_name))?;
+        let value = config.get(&spec.option_name).ok_or_else(|| {
+            format!(
+                "config is missing declared boundary option {}",
+                spec.option_name
+            )
+        })?;
         let fields = parse_list(value, &spec.option_name)?;
         if !fields.len().is_multiple_of(spec.record_width) {
-            return Err(format!("{} values are not divisible by record width {}", spec.option_name, spec.record_width));
+            return Err(format!(
+                "{} values are not divisible by record width {}",
+                spec.option_name, spec.record_width
+            ));
         }
         for (record_index, record) in fields.chunks(spec.record_width).enumerate() {
             for position in &spec.marker_positions {
                 let marker = &record[*position];
                 if !mesh.contains(marker.as_str()) {
-                    return Err(format!("{} references marker {marker} absent from mesh", spec.option_name));
+                    return Err(format!(
+                        "{} references marker {marker} absent from mesh",
+                        spec.option_name
+                    ));
                 }
                 if !assigned.insert(marker.clone()) {
                     return Err(format!("mesh marker {marker} is assigned more than once"));
@@ -345,10 +440,15 @@ fn resolve_assignments(
             }
         }
     }
-    let missing = mesh.difference(&assigned.iter().map(String::as_str).collect::<BTreeSet<_>>())
-        .copied().collect::<Vec<_>>();
+    let missing = mesh
+        .difference(&assigned.iter().map(String::as_str).collect::<BTreeSet<_>>())
+        .copied()
+        .collect::<Vec<_>>();
     if !missing.is_empty() {
-        return Err(format!("mesh markers have no boundary assignment: {}", missing.join(",")));
+        return Err(format!(
+            "mesh markers have no boundary assignment: {}",
+            missing.join(",")
+        ));
     }
     rows.sort_by(|a, b| a.marker.cmp(&b.marker));
     Ok(rows)
@@ -371,22 +471,38 @@ pub fn audit_su2_boundary_markers(
         return Err("boundary audit requires a successful SU2_CFD_DRY_RUN receipt".to_owned());
     }
     verify_external_solver_receipt(run_directory, &receipt)?;
-    let root = fs::canonicalize(run_directory).map_err(|e| format!("cannot resolve run directory: {e}"))?;
+    let root = fs::canonicalize(run_directory)
+        .map_err(|e| format!("cannot resolve run directory: {e}"))?;
     verify_dry_run_invocation(&root, configuration_path)?;
     let config_staged = staged_input(&receipt, configuration_path)?;
     let mesh_staged = staged_input(&receipt, mesh_path)?;
-    let config_bytes = fs::read(root.join(&config_rel)).map_err(|e| format!("cannot read staged config: {e}"))?;
-    let mesh_bytes = fs::read(root.join(&mesh_rel)).map_err(|e| format!("cannot read staged mesh: {e}"))?;
-    if config_bytes.len() as u64 != config_staged.byte_length || sha256_hex(&config_bytes)? != config_staged.sha256 {
+    let config_bytes =
+        fs::read(root.join(&config_rel)).map_err(|e| format!("cannot read staged config: {e}"))?;
+    let mesh_bytes =
+        fs::read(root.join(&mesh_rel)).map_err(|e| format!("cannot read staged mesh: {e}"))?;
+    if config_bytes.len() as u64 != config_staged.byte_length
+        || sha256_hex(&config_bytes)? != config_staged.sha256
+    {
         return Err("staged config bytes differ from receipt".to_owned());
     }
-    if mesh_bytes.len() as u64 != mesh_staged.byte_length || sha256_hex(&mesh_bytes)? != mesh_staged.sha256 {
+    if mesh_bytes.len() as u64 != mesh_staged.byte_length
+        || sha256_hex(&mesh_bytes)? != mesh_staged.sha256
+    {
         return Err("staged mesh bytes differ from receipt".to_owned());
     }
     let config = parse_config(&config_bytes)?;
     let mesh = inspect_su2_mesh(&mesh_bytes)?;
-    let mesh_markers = mesh.markers.iter().map(|m| m.tag.clone()).collect::<Vec<_>>();
-    let assignments = resolve_assignments(&config, &mesh_markers, boundary_options, non_boundary_options)?;
+    let mesh_markers = mesh
+        .markers
+        .iter()
+        .map(|m| m.tag.clone())
+        .collect::<Vec<_>>();
+    let assignments = resolve_assignments(
+        &config,
+        &mesh_markers,
+        boundary_options,
+        non_boundary_options,
+    )?;
     let mut report = Su2BoundaryAuditReport {
         schema: SU2_BOUNDARY_AUDIT_SCHEMA.to_owned(),
         run_id: receipt.run_id.clone(),
@@ -421,10 +537,23 @@ pub fn verify_su2_boundary_audit(report: &Su2BoundaryAuditReport) -> Result<(), 
     {
         return Err("boundary audit schema/status/evidence ceiling is invalid".to_owned());
     }
-    let mesh = report.mesh_markers.iter().map(String::as_str).collect::<BTreeSet<_>>();
-    let assigned = report.assignments.iter().map(|a| a.marker.as_str()).collect::<BTreeSet<_>>();
-    if mesh.len() != report.mesh_markers.len() || assigned.len() != report.assignments.len() || mesh != assigned {
-        return Err("boundary audit does not cover every unique mesh marker exactly once".to_owned());
+    let mesh = report
+        .mesh_markers
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let assigned = report
+        .assignments
+        .iter()
+        .map(|a| a.marker.as_str())
+        .collect::<BTreeSet<_>>();
+    if mesh.len() != report.mesh_markers.len()
+        || assigned.len() != report.assignments.len()
+        || mesh != assigned
+    {
+        return Err(
+            "boundary audit does not cover every unique mesh marker exactly once".to_owned(),
+        );
     }
     if sha256_hex(&canonical_bytes(report))? != report.audit_sha256 {
         return Err("boundary audit canonical digest mismatch".to_owned());
@@ -444,16 +573,26 @@ mod tests {
     fn maps_all_mesh_markers_exactly_once_with_explicit_ignored_options() {
         let config = parse_config(
             b"MARKER_SYM= (sym_top)\nMARKER_FAR= (farfield)\nMARKER_MONITORING= (wall)\n",
-        ).expect("config");
+        )
+        .expect("config");
         let rows = resolve_assignments(
             &config,
             &["farfield".to_owned(), "sym_top".to_owned()],
             &[
-                Su2BoundaryOptionSpec { option_name: "MARKER_SYM".to_owned(), record_width: 1, marker_positions: vec![0] },
-                Su2BoundaryOptionSpec { option_name: "MARKER_FAR".to_owned(), record_width: 1, marker_positions: vec![0] },
+                Su2BoundaryOptionSpec {
+                    option_name: "MARKER_SYM".to_owned(),
+                    record_width: 1,
+                    marker_positions: vec![0],
+                },
+                Su2BoundaryOptionSpec {
+                    option_name: "MARKER_FAR".to_owned(),
+                    record_width: 1,
+                    marker_positions: vec![0],
+                },
             ],
             &["MARKER_MONITORING".to_owned()],
-        ).expect("complete mapping");
+        )
+        .expect("complete mapping");
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].marker, "farfield");
         assert_eq!(rows[1].marker, "sym_top");
@@ -466,42 +605,99 @@ mod tests {
         ).expect("config");
         let rows = resolve_assignments(
             &config,
-            &["periodic_a".to_owned(), "periodic_b".to_owned(), "wall".to_owned()],
             &[
-                Su2BoundaryOptionSpec { option_name: "MARKER_HEATFLUX".to_owned(), record_width: 2, marker_positions: vec![0] },
-                Su2BoundaryOptionSpec { option_name: "MARKER_PERIODIC".to_owned(), record_width: 11, marker_positions: vec![0, 1] },
+                "periodic_a".to_owned(),
+                "periodic_b".to_owned(),
+                "wall".to_owned(),
+            ],
+            &[
+                Su2BoundaryOptionSpec {
+                    option_name: "MARKER_HEATFLUX".to_owned(),
+                    record_width: 2,
+                    marker_positions: vec![0],
+                },
+                Su2BoundaryOptionSpec {
+                    option_name: "MARKER_PERIODIC".to_owned(),
+                    record_width: 11,
+                    marker_positions: vec![0, 1],
+                },
             ],
             &[],
-        ).expect("mapping");
+        )
+        .expect("mapping");
         assert_eq!(rows.len(), 3);
     }
 
     #[test]
     fn rejects_missing_or_orphan_or_duplicate_mesh_marker_assignments() {
-        let options = [Su2BoundaryOptionSpec { option_name: "MARKER_SYM".to_owned(), record_width: 1, marker_positions: vec![0] }];
+        let options = [Su2BoundaryOptionSpec {
+            option_name: "MARKER_SYM".to_owned(),
+            record_width: 1,
+            marker_positions: vec![0],
+        }];
         let missing = parse_config(b"MARKER_SYM= (sym_top)\n").expect("config");
-        assert!(resolve_assignments(&missing, &["sym_top".to_owned(), "farfield".to_owned()], &options, &[])
-            .expect_err("missing tag").contains("no boundary assignment"));
+        assert!(
+            resolve_assignments(
+                &missing,
+                &["sym_top".to_owned(), "farfield".to_owned()],
+                &options,
+                &[]
+            )
+            .expect_err("missing tag")
+            .contains("no boundary assignment")
+        );
         let orphan = parse_config(b"MARKER_SYM= (ghost)\n").expect("config");
-        assert!(resolve_assignments(&orphan, &["sym_top".to_owned()], &options, &[])
-            .expect_err("orphan tag").contains("absent from mesh"));
-        let duplicate = parse_config(b"MARKER_SYM= (sym_top)\nMARKER_FAR= (sym_top)\n").expect("config");
-        assert!(resolve_assignments(&duplicate, &["sym_top".to_owned()], &[
-            options[0].clone(),
-            Su2BoundaryOptionSpec { option_name: "MARKER_FAR".to_owned(), record_width: 1, marker_positions: vec![0] },
-        ], &[]).expect_err("duplicate tag").contains("assigned more than once"));
+        assert!(
+            resolve_assignments(&orphan, &["sym_top".to_owned()], &options, &[])
+                .expect_err("orphan tag")
+                .contains("absent from mesh")
+        );
+        let duplicate =
+            parse_config(b"MARKER_SYM= (sym_top)\nMARKER_FAR= (sym_top)\n").expect("config");
+        assert!(
+            resolve_assignments(
+                &duplicate,
+                &["sym_top".to_owned()],
+                &[
+                    options[0].clone(),
+                    Su2BoundaryOptionSpec {
+                        option_name: "MARKER_FAR".to_owned(),
+                        record_width: 1,
+                        marker_positions: vec![0]
+                    },
+                ],
+                &[]
+            )
+            .expect_err("duplicate tag")
+            .contains("assigned more than once")
+        );
     }
 
     #[test]
     fn rejects_unclassified_marker_options_bad_tuple_width_and_duplicate_config_keys() {
-        let config = parse_config(b"MARKER_SYM= (sym_top)\nMARKER_UNKNOWN= (mystery)\n").expect("config");
-        let spec = [Su2BoundaryOptionSpec { option_name: "MARKER_SYM".to_owned(), record_width: 1, marker_positions: vec![0] }];
-        assert!(resolve_assignments(&config, &["sym_top".to_owned()], &spec, &[])
-            .expect_err("unknown option").contains("unclassified"));
+        let config =
+            parse_config(b"MARKER_SYM= (sym_top)\nMARKER_UNKNOWN= (mystery)\n").expect("config");
+        let spec = [Su2BoundaryOptionSpec {
+            option_name: "MARKER_SYM".to_owned(),
+            record_width: 1,
+            marker_positions: vec![0],
+        }];
+        assert!(
+            resolve_assignments(&config, &["sym_top".to_owned()], &spec, &[])
+                .expect_err("unknown option")
+                .contains("unclassified")
+        );
         let bad = parse_config(b"MARKER_HEATFLUX= (wall, 0.0, orphan)\n").expect("config");
-        let heat = [Su2BoundaryOptionSpec { option_name: "MARKER_HEATFLUX".to_owned(), record_width: 2, marker_positions: vec![0] }];
-        assert!(resolve_assignments(&bad, &["wall".to_owned()], &heat, &[])
-            .expect_err("bad tuple").contains("not divisible"));
+        let heat = [Su2BoundaryOptionSpec {
+            option_name: "MARKER_HEATFLUX".to_owned(),
+            record_width: 2,
+            marker_positions: vec![0],
+        }];
+        assert!(
+            resolve_assignments(&bad, &["wall".to_owned()], &heat, &[])
+                .expect_err("bad tuple")
+                .contains("not divisible")
+        );
         assert!(parse_config(b"MARKER_SYM= (a)\nMARKER_SYM= (b)\n").is_err());
     }
 }
