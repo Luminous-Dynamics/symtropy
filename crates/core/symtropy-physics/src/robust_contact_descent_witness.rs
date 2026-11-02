@@ -104,9 +104,9 @@ fn verify_robust_descent(
     }
 
     let required_upper = -margin.clone();
-    branches.iter().all(|gradient| {
-        gradient_box_support_upper(gradient, direction) <= required_upper
-    })
+    branches
+        .iter()
+        .all(|gradient| gradient_box_support_upper(gradient, direction) <= required_upper)
 }
 
 fn candidate_for_direction(
@@ -173,9 +173,7 @@ fn search_rational_grid(
 
     let denominator = BigInt::from(grid_denominator);
     let grid_values: Vec<BigRational> = (-grid_denominator..=grid_denominator)
-        .map(|numerator| {
-            BigRational::new(BigInt::from(numerator), denominator.clone())
-        })
+        .map(|numerator| BigRational::new(BigInt::from(numerator), denominator.clone()))
         .collect();
 
     let mut best = None;
@@ -192,10 +190,7 @@ fn search_rational_grid(
 /// Verify a Farkas/Gordan witness that zero is in the convex hull of a complete
 /// finite gradient set. Such a witness rules out a direction with strictly
 /// negative directional derivative on every gradient in that set.
-fn verify_zero_convex_combination(
-    gradients: &[RationalVector],
-    weights: &[BigRational],
-) -> bool {
+fn verify_zero_convex_combination(gradients: &[RationalVector], weights: &[BigRational]) -> bool {
     if gradients.is_empty() || gradients.len() != weights.len() {
         return false;
     }
@@ -205,7 +200,11 @@ fn verify_zero_convex_combination(
     if weights.iter().any(|weight| weight < &zero) {
         return false;
     }
-    if weights.iter().fold(zero.clone(), |sum, weight| sum + weight) != one {
+    if weights
+        .iter()
+        .fold(zero.clone(), |sum, weight| sum + weight)
+        != one
+    {
         return false;
     }
 
@@ -264,7 +263,10 @@ mod tests {
             ]
         );
         assert_eq!(candidate.margin, rational(1));
-        assert_eq!(candidate.branch_upper_bounds, vec![rational(-9), rational(-1)]);
+        assert_eq!(
+            candidate.branch_upper_bounds,
+            vec![rational(-9), rational(-1)]
+        );
         assert!(verify_robust_descent(
             &branches,
             &candidate.direction,
@@ -274,14 +276,7 @@ mod tests {
 
     #[test]
     fn interval_support_uses_the_adverse_endpoint_for_each_direction_sign() {
-        let gradient = interval_gradient([
-            (-2, -1),
-            (3, 5),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-        ]);
+        let gradient = interval_gradient([(-2, -1), (3, 5), (0, 0), (0, 0), (0, 0), (0, 0)]);
         let direction = [
             rational(-1),
             rational(1),
@@ -301,8 +296,22 @@ mod tests {
     #[test]
     fn exact_convex_combination_proves_no_strict_common_descent() {
         let gradients = vec![
-            [rational(1), rational(0), rational(0), rational(0), rational(0), rational(0)],
-            [rational(-1), rational(0), rational(0), rational(0), rational(0), rational(0)],
+            [
+                rational(1),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+            ],
+            [
+                rational(-1),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0),
+            ],
         ];
         let weights = vec![rational_fraction(1, 2), rational_fraction(1, 2)];
 
@@ -311,16 +320,18 @@ mod tests {
             &gradients,
             &[rational_fraction(1, 3), rational_fraction(2, 3)]
         ));
-        assert!(search_rational_grid(
-            &gradients
-                .iter()
-                .map(|gradient| std::array::from_fn(|index| {
-                    RationalInterval::point(gradient[index].clone())
-                }))
-                .collect::<Vec<_>>(),
-            1
-        )
-        .is_none());
+        assert!(
+            search_rational_grid(
+                &gradients
+                    .iter()
+                    .map(|gradient| std::array::from_fn(|index| {
+                        RationalInterval::point(gradient[index].clone())
+                    }))
+                    .collect::<Vec<_>>(),
+                1
+            )
+            .is_none()
+        );
     }
 
     #[test]
