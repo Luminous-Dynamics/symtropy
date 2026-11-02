@@ -28,6 +28,7 @@ pub struct DecisionValuePlan {
     pub analysis_id: String,
     pub analysis_version: String,
     pub pre_registration_receipt_digest: String,
+    pub decision_loss_table_digest: String,
     pub source_hierarchical_analysis_id: String,
     pub benchmark_id: String,
     pub benchmark_version: String,
@@ -44,7 +45,6 @@ pub struct DecisionValuePlan {
     pub outcome_measure: Option<OutcomeMeasureDefinition>,
     /// Units are never combined. Every channel remains visible separately.
     pub resource_channels: Vec<ResourceChannelDefinition>,
-    pub require_complete_resource_accounting: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -129,6 +129,7 @@ pub struct VerifiedOutcomeMeasurement {
     pub value: ExactValue,
     pub raw_observation_digest: String,
     pub independent_verification_receipt_digest: String,
+    pub verifier_profile_digest: String,
     pub calibration_chain_digest: String,
 }
 
@@ -281,6 +282,8 @@ pub enum DecisionValueEndpoint {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResourceChannelSummary {
+    pub domain_id: String,
+    pub mechanism_family_id: String,
     pub channel_id: String,
     pub unit: String,
     pub complete_concept_count: usize,
@@ -350,6 +353,7 @@ pub struct DecisionValueReceipt {
     pub inconclusive_concept_count: usize,
     pub invalidated_concept_count: usize,
     pub not_measured_concept_count: usize,
+    pub baseline_hazard_concept_count: usize,
     pub candidate_hazard_concept_count: usize,
     pub candidate_forbidden_transition_count: usize,
     pub candidate_false_safety_certification_count: usize,
@@ -529,6 +533,7 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     }
     for (value, label) in [
         (&plan.pre_registration_receipt_digest, "decision-value preregistration"),
+        (&plan.decision_loss_table_digest, "decision loss table"),
         (&plan.sealed_release_digest, "sealed release"),
     ] {
         require_digest(value, label)?;
@@ -673,6 +678,11 @@ fn validate_concept_evidence(
                 DecisionValueError::MissingOutcomeEvidence("verified concept is missing candidate decision loss".into())
             })?;
             for loss in [baseline, candidate] {
+                if loss.oracle_loss_table_digest != plan.decision_loss_table_digest {
+                    return Err(DecisionValueError::MissingOutcomeEvidence(
+                        "decision loss evidence uses a different loss table from the preregistered plan".into(),
+                    ));
+                }
                 if !in_unit_interval(&loss.normalized_loss)? {
                     return Err(DecisionValueError::InvalidValue(
                         "normalized decision loss must be in [0,1]".into(),
@@ -682,6 +692,11 @@ fn validate_concept_evidence(
                 require_digest(&loss.oracle_loss_table_digest, "oracle loss table")?;
                 require_digest(&loss.selected_decision_digest, "selected terminal decision")?;
                 require_digest(&loss.oracle_optimal_decision_digest, "oracle-optimal decision")?;
+            }
+            if baseline.oracle_optimal_decision_digest != candidate.oracle_optimal_decision_digest {
+                return Err(DecisionValueError::MissingOutcomeEvidence(
+                    "baseline and candidate decision-loss records do not share the same oracle-optimal decision reference".into(),
+                ));
             }
             match (&plan.outcome_measure, &evidence.baseline_outcome, &evidence.candidate_outcome) {
                 (Some(_), Some(baseline), Some(candidate)) => {
@@ -763,71 +778,86 @@ fn cost_channel_summaries(
     evidence: &[ConceptDecisionValueEvidence],
     decision_loss_effects: &BTreeMap<(String, String, String), ExactValue>,
 ) -> Result<Vec<ResourceChannelSummary>, DecisionValueError> {
-    let valid_count = evidence.iter()
-        .filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified)
-        .count();
-    let mut summaries = Vec::with_capacity(plan.resource_channels.len());
-    let mut loss_values = decision_loss_effects.values().cloned().collect::<Vec<_>>();
-    let mean_loss_effect = ExactValue::mean(&loss_values)?;
+    let strata = evidence.iter()
+        .map(|item| (item.domain_id.clone(), item.mechanism_family_id.clone()))
+        .collect::<BTreeSet<_>>();
+    let mut summaries = Vec::with_capacity(strata.len() * plan.resource_channels.len());
+    for (domain, family) in strata {
+        let stratum = evidence.iter()
+            .filter(|item| item.domain_id == domain && item.mechanism_family_id == family)
+            .collect::<Vec<_>>();
+        let valid_items = stratum.iter()
+            .filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified)
+            .collect::<Vec<_>>();
+        let valid_count = valid_items.len();
+        let loss_values = valid_items.iter()
+            .filter_map(|item| decision_loss_effects.get(&(
+                item.domain_id.clone(),
+                item.mechanism_family_id.clone(),
+                item.concept_digest.clone(),
+            )).cloned())
+            .collect::<Vec<_>>();
+        let mean_loss_effect = ExactValue::mean(&loss_values)?;
 
-    for channel in &plan.resource_channels {
-        let mut reference_total = ExactValue::zero();
-        let mut candidate_total = ExactValue::zero();
-        let mut complete_concepts = 0usize;
-        for item in evidence.iter().filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified) {
-            let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
-            let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
-            match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
-                (Some(reference), Some(candidate)) if reference.complete && candidate.complete => {
-                    reference_total = reference_total.checked_add(&reference.amount)?;
-                    candidate_total = candidate_total.checked_add(&candidate.amount)?;
-                    complete_concepts = complete_concepts.checked_add(1).ok_or_else(|| {
-                        DecisionValueError::ArithmeticOverflow("complete cost concept count overflow".into())
-                    })?;
+        for channel in &plan.resource_channels {
+            let mut reference_total = ExactValue::zero();
+            let mut candidate_total = ExactValue::zero();
+            let mut complete_concepts = 0usize;
+            for item in &valid_items {
+                let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
+                let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
+                match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
+                    (Some(reference), Some(candidate)) if reference.complete && candidate.complete => {
+                        reference_total = reference_total.checked_add(&reference.amount)?;
+                        candidate_total = candidate_total.checked_add(&candidate.amount)?;
+                        complete_concepts = complete_concepts.checked_add(1).ok_or_else(|| {
+                            DecisionValueError::ArithmeticOverflow("complete cost concept count overflow".into())
+                        })?;
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
+            let complete = valid_count > 0 && complete_concepts == valid_count;
+            let mean_increment = if complete {
+                Some(candidate_total.checked_sub(&reference_total)?.checked_div(
+                    &ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
+                        DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                    })?, 1)?
+                )?)
+            } else {
+                None
+            };
+            let incremental_cost_per_loss_unit = if complete {
+                mean_loss_effect.as_ref()
+                    .filter(|loss| loss.numerator > 0)
+                    .map(|loss| {
+                        candidate_total.checked_sub(&reference_total)?
+                            .checked_div(&ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
+                                DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                            })?, 1)?)?
+                            .checked_div(loss)
+                    })
+                    .transpose()?
+            } else {
+                None
+            };
+            summaries.push(ResourceChannelSummary {
+                domain_id: domain.clone(),
+                mechanism_family_id: family.clone(),
+                channel_id: channel.channel_id.clone(),
+                unit: channel.unit.clone(),
+                complete_concept_count: complete_concepts,
+                expected_valid_concept_count: valid_count,
+                reference_total: complete.then_some(reference_total),
+                candidate_total: complete.then_some(candidate_total),
+                mean_incremental_cost_per_concept: mean_increment,
+                incremental_cost_per_decision_loss_unit: incremental_cost_per_loss_unit,
+                complete,
+            });
         }
-        let complete = complete_concepts == valid_count;
-        let mean_increment = if complete && complete_concepts > 0 {
-            Some(candidate_total.checked_sub(&reference_total)?.checked_div(
-                &ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                    DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
-                })?, 1)?
-            )?)
-        } else {
-            None
-        };
-        let incremental_cost_per_loss_unit = if complete {
-            mean_loss_effect.as_ref()
-                .filter(|loss| loss.numerator > 0)
-                .map(|loss| {
-                    candidate_total.checked_sub(&reference_total)?
-                        .checked_div(&ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                            DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
-                        })?, 1)?)?
-                        .checked_div(loss)
-                })
-                .transpose()?
-        } else {
-            None
-        };
-        summaries.push(ResourceChannelSummary {
-            channel_id: channel.channel_id.clone(),
-            unit: channel.unit.clone(),
-            complete_concept_count: complete_concepts,
-            expected_valid_concept_count: valid_count,
-            reference_total: complete.then_some(reference_total),
-            candidate_total: complete.then_some(candidate_total),
-            mean_incremental_cost_per_concept: mean_increment,
-            incremental_cost_per_decision_loss_unit: incremental_cost_per_loss_unit,
-            complete,
-        });
     }
-    loss_values.clear();
     Ok(summaries)
 }
-
 fn exact_sign_p_value(
     candidate_wins: usize,
     reference_wins: usize,
@@ -998,6 +1028,7 @@ pub fn analyze_scientific_decision_value(
     let mut inconclusive_count = 0usize;
     let mut invalidated_count = 0usize;
     let mut not_measured_count = 0usize;
+    let mut baseline_hazard_count = 0usize;
     let mut candidate_hazard_count = 0usize;
     let mut forbidden_transition_count = 0usize;
     let mut false_safety_certification_count = 0usize;
@@ -1030,8 +1061,15 @@ pub fn analyze_scientific_decision_value(
                 })?;
                 let effect = decision_loss_effect(item)?;
                 loss_effects.insert(key.clone(), effect);
+                if item.baseline_hazard {
+                    baseline_hazard_count = baseline_hazard_count.checked_add(1).ok_or_else(|| {
+                        DecisionValueError::ArithmeticOverflow("baseline hazard concept count overflow".into())
+                    })?;
+                }
                 if item.candidate_hazard {
-                    candidate_hazard_count += 1;
+                    candidate_hazard_count = candidate_hazard_count.checked_add(1).ok_or_else(|| {
+                        DecisionValueError::ArithmeticOverflow("candidate hazard concept count overflow".into())
+                    })?;
                 }
                 if item.candidate_forbidden_transition {
                     forbidden_transition_count += 1;
@@ -1161,6 +1199,7 @@ pub fn analyze_scientific_decision_value(
         inconclusive_concept_count: inconclusive_count,
         invalidated_concept_count: invalidated_count,
         not_measured_concept_count: not_measured_count,
+        baseline_hazard_concept_count: baseline_hazard_count,
         candidate_hazard_concept_count: candidate_hazard_count,
         candidate_forbidden_transition_count: forbidden_transition_count,
         candidate_false_safety_certification_count: false_safety_certification_count,
@@ -1221,6 +1260,7 @@ mod tests {
             analysis_id: "decision-value".into(),
             analysis_version: "v1".into(),
             pre_registration_receipt_digest: D1.into(),
+            decision_loss_table_digest: D2.into(),
             source_hierarchical_analysis_id: "hierarchy".into(),
             benchmark_id: "science-benchmark".into(),
             benchmark_version: "v1".into(),
@@ -1252,7 +1292,6 @@ mod tests {
                     unit: "mJ".into(),
                 },
             ],
-            require_complete_resource_accounting: true,
         }
     }
 
@@ -1327,6 +1366,7 @@ mod tests {
             value: q(value, 10),
             raw_observation_digest: D1.into(),
             independent_verification_receipt_digest: D2.into(),
+            verifier_profile_digest: D3.into(),
             calibration_chain_digest: D3.into(),
         }
     }
@@ -1388,6 +1428,9 @@ mod tests {
         assert!(receipt.safety_gate_passed);
         assert!(!receipt.missing_cost_prevents_complete_cost_effectiveness);
         assert_eq!(receipt.cost_channels.len(), 2);
+        assert_eq!(receipt.baseline_hazard_concept_count, 0);
+        assert_eq!(receipt.cost_channels[0].domain_id, "materials");
+        assert_eq!(receipt.cost_channels[0].mechanism_family_id, "causal");
         let loss = receipt.domain_family_results.iter()
             .find(|row| row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction)
             .unwrap();
