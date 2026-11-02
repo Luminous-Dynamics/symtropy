@@ -104,7 +104,11 @@ pub struct ExternalSolverReceipt {
 
 impl ExternalSolverReceipt {
     pub fn is_process_success(&self) -> bool {
-        self.status == "process_exited_zero_expected_outputs_present"
+        matches!(
+            self.status.as_str(),
+            "process_exited_zero_expected_outputs_present"
+                | "process_exited_zero_no_outputs_declared"
+        )
     }
 
     pub fn missing_output_count(&self) -> usize {
@@ -514,6 +518,8 @@ fn status_label(
         "nonzero_exit"
     } else if outputs.iter().any(|output| !output.present) {
         "missing_expected_outputs"
+    } else if outputs.is_empty() {
+        "process_exited_zero_no_outputs_declared"
     } else {
         "process_exited_zero_expected_outputs_present"
     }
@@ -628,9 +634,7 @@ pub fn execute_external_solver(
     if request.timeout.is_zero() || request.max_log_bytes_per_stream == 0 {
         return Err("timeout and per-stream log cap must be positive".to_owned());
     }
-    if request.expected_outputs.is_empty() {
-        return Err("at least one expected output is required".to_owned());
-    }
+
     if request
         .arguments
         .iter()
@@ -1047,11 +1051,6 @@ fn parse_expected_output_manifest(input: &str) -> Result<Vec<ExpectedOutputRecor
             byte_length,
             sha256,
         });
-    }
-    if outputs.is_empty() {
-        return Err(
-            "expected-output manifest must contain at least one declared output".to_owned(),
-        );
     }
     Ok(outputs)
 }
