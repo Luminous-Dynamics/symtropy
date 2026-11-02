@@ -24,7 +24,7 @@ The parser calculates each linear triangle's area from its signed cross product 
 
 This definition is intentionally narrow. It rejects 3D meshes, high-order elements and unsupported cell types; it does not calculate anisotropy, skewness, orthogonality, boundary-layer resolution, (y^+), wake refinement or local error indicators. The coordinate unit is still a caller declaration because the SU2 mesh bytes do not encode a universal physical unit. It is therefore a mesh-derived global area spacing, not a complete mesh-quality or systematic-refinement proof. A 3D CFD lane needs a separately versioned volume-based definition and its own validation fixtures.
 
-The protocol-manifest digest remains caller supplied and bound into the study receipt; it is not source-authenticated by this library.
+The grid-family study also requires every member to preserve the same total 2D cell-domain area within a relative tolerance of 1e-10 and the same mesh marker-tag set. These are necessary family-consistency checks, not a proof of topological nesting or mesh quality. The protocol-manifest digest remains caller supplied and bound into the study receipt; it is not source-authenticated by this library.
 
 ## Outputs
 
