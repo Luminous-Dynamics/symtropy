@@ -78,3 +78,27 @@ This analytic Zeno classification does not choose a physically appropriate
 post-Zeno continuation. Real systems may require compliance, deformation,
 surface roughness, velocity-dependent restitution or another richer model;
 that continuation is a separate modeling decision.
+
+
+## Bracketed event-localization baseline
+
+The event-localization module implements a separate bisection lane for the
+constant-gravity point-mass guard y=0. The caller supplies a bracket [t_lo,
+t_hi] where y(t_lo)>0 and y(t_hi)<=0. Since the free-flight parabola with a
+positive initial height and positive gravity has exactly one positive root,
+the interval contains the first downward impact.
+
+The locator does not use the closed-form impact time internally. It reports:
+
+- final time bracket and midpoint estimate;
+- absolute guard residual at the midpoint;
+- bracket width and iteration count;
+- CONVERGED, ITERATION_LIMIT, or TIME_RESOLUTION_EXHAUSTED status.
+
+The numerical lane is compared to the closed-form first-impact solution in
+tests and in the event-localization benchmark. It includes an exact step-end
+event, just-before and just-after step-boundary controls, an initially
+downward trajectory, explicit iteration exhaustion and invalid-bracket
+rejection. A later event-capturing or adaptive integrator should use the same
+metric separation, not treat a robust bisection reference as an engine-wide
+event-handling solution.
