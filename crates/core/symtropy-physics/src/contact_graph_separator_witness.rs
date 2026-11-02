@@ -199,10 +199,7 @@ impl OutwardInterval {
             return Err("interval multiplication overflowed or became non-finite");
         }
         let minimum = products.iter().copied().fold(f64::INFINITY, f64::min);
-        let maximum = products
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let maximum = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let enclosure = Self {
             lower: minimum.next_down(),
             upper: maximum.next_up(),
@@ -221,10 +218,7 @@ struct SeparatorImpulseBox {
 }
 
 impl SeparatorImpulseBox {
-    fn new(
-        lower: SVector<f64, 3>,
-        upper: SVector<f64, 3>,
-    ) -> Result<Self, &'static str> {
+    fn new(lower: SVector<f64, 3>, upper: SVector<f64, 3>) -> Result<Self, &'static str> {
         for axis in 0..3 {
             OutwardInterval::from_bounds(lower[axis], upper[axis])?;
         }
@@ -297,9 +291,7 @@ impl SeparatingLeafMessage {
                     separator_box.lower[separator_axis],
                     separator_box.upper[separator_axis],
                 )?;
-                velocity = velocity.outward_add(
-                    coefficient.outward_mul(separator_coordinate)?,
-                )?;
+                velocity = velocity.outward_add(coefficient.outward_mul(separator_coordinate)?)?;
             }
             post_velocity_bounds[component] = velocity;
         }
@@ -843,7 +835,11 @@ fn separating_leaf_interval_messages_reject_malformed_and_overflowing_boxes() {
         SVector::<f64, 3>::new(1.0e308, 0.0, 0.0),
     )
     .unwrap();
-    assert!(overflowing.response_over_box(&box_with_large_coordinate).is_err());
+    assert!(
+        overflowing
+            .response_over_box(&box_with_large_coordinate)
+            .is_err()
+    );
 }
 
 #[test]
