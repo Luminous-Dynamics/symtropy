@@ -111,13 +111,13 @@ fn verify_robust_descent(
 
 fn direction_l1_norm(direction: &RationalVector) -> BigRational {
     direction.iter().fold(rational(0), |sum, value| {
-            let magnitude = if value < &rational(0) {
-                -value.clone()
-            } else {
-                value.clone()
-            };
-            sum + magnitude
-        })
+        let magnitude = if value < &rational(0) {
+            -value.clone()
+        } else {
+            value.clone()
+        };
+        sum + magnitude
+    })
 }
 
 fn candidate_for_direction(
