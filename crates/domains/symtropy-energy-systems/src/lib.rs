@@ -25,13 +25,13 @@ pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
 };
-pub use matched_service::{
-    MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
-    ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
-};
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use matched_service::{
+    MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
+    ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
