@@ -548,7 +548,9 @@ pub fn derive_su2_characteristic_spacing_2d(
     if points.iter().any(Option::is_none) {
         return Err("mesh point table contains an unfilled point index".to_owned());
     }
-    if volume_cells.len() != summary.volume_element_count as usize {
+    let expected_cell_count = usize::try_from(summary.volume_element_count)
+        .map_err(|error| format!("volume element count does not fit memory index: {error}"))?;
+    if volume_cells.len() != expected_cell_count {
         return Err("parsed cell count differs from native mesh summary".to_owned());
     }
 
@@ -567,17 +569,49 @@ pub fn derive_su2_characteristic_spacing_2d(
             .collect::<Result<Vec<_>, _>>()?;
         let area = if kind == 5 {
             let [a, b, c] = [coordinates[0], coordinates[1], coordinates[2]];
-            ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])).abs() * 0.5
+            let twice_signed_area =
+                (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+            twice_signed_area.abs() * 0.5
         } else {
-            let mut twice_area = 0.0;
+            let origin = coordinates[0];
+            let relative = coordinates
+                .iter()
+                .map(|point| [point[0] - origin[0], point[1] - origin[1]])
+                .collect::<Vec<_>>();
+            let mut turn_sign = 0_i8;
             for index in 0..4 {
-                let current = coordinates[index];
-                let next = coordinates[(index + 1) % 4];
-                twice_area += current[0] * next[1] - next[0] * current[1];
+                let current = relative[index];
+                let next = relative[(index + 1) % 4];
+                let after_next = relative[(index + 2) % 4];
+                let cross = (next[0] - current[0]) * (after_next[1] - next[1])
+                    - (next[1] - current[1]) * (after_next[0] - next[0]);
+                if !cross.is_finite() || cross == 0.0 {
+                    return Err(format!(
+                        "line {line_number}: quadrilateral is degenerate or non-finite"
+                    ));
+                }
+                let sign = if cross > 0.0 { 1 } else { -1 };
+                if turn_sign != 0 && sign != turn_sign {
+                    return Err(format!(
+                        "line {line_number}: quadrilateral must be strictly convex and non-self-intersecting"
+                    ));
+                }
+                turn_sign = sign;
+            }
+            let mut twice_area = 0.0;
+            let mut compensation = 0.0;
+            for index in 0..4 {
+                let current = relative[index];
+                let next = relative[(index + 1) % 4];
+                let term = current[0] * next[1] - next[0] * current[1];
+                let adjusted = term - compensation;
+                let accumulated = twice_area + adjusted;
+                compensation = (accumulated - twice_area) - adjusted;
+                twice_area = accumulated;
             }
             twice_area.abs() * 0.5
         };
-        if !area.is_finite() || area <= 1.0e-18 {
+        if !area.is_finite() || area <= 0.0 {
             return Err(format!(
                 "line {line_number}: cell has zero or non-finite area"
             ));
@@ -595,14 +629,25 @@ pub fn derive_su2_characteristic_spacing_2d(
         total = next;
     }
     let mean = total / count;
-    let mut squared_deviation = 0.0;
+    let mut squared_relative_deviation = 0.0;
+    let mut squared_compensation = 0.0;
     for area in &areas {
-        squared_deviation += (*area - mean).powi(2);
+        let relative_deviation = *area / mean - 1.0;
+        let term = relative_deviation * relative_deviation;
+        let adjusted = term - squared_compensation;
+        let next = squared_relative_deviation + adjusted;
+        squared_compensation = (next - squared_relative_deviation) - adjusted;
+        squared_relative_deviation = next;
     }
-    let standard_deviation = (squared_deviation / count).sqrt();
+    let coefficient_of_variation = (squared_relative_deviation / count).sqrt();
     let spacing = mean.sqrt();
-    if !total.is_finite() || !mean.is_finite() || !spacing.is_finite() || spacing <= 0.0 {
-        return Err("mesh-derived characteristic spacing is non-finite or non-positive".to_owned());
+    if !total.is_finite()
+        || !mean.is_finite()
+        || !coefficient_of_variation.is_finite()
+        || !spacing.is_finite()
+        || spacing <= 0.0
+    {
+        return Err("mesh-derived characteristic spacing or area dispersion is non-finite".to_owned());
     }
     Ok(Su2MeshSpacing2d {
         schema: SU2_MESH_SPACING_2D_SCHEMA,
@@ -614,7 +659,7 @@ pub fn derive_su2_characteristic_spacing_2d(
         mean_cell_area: mean,
         minimum_cell_area: areas.iter().copied().fold(f64::INFINITY, f64::min),
         maximum_cell_area: areas.iter().copied().fold(0.0, f64::max),
-        cell_area_coefficient_of_variation: standard_deviation / mean,
+        cell_area_coefficient_of_variation: coefficient_of_variation,
         characteristic_spacing: spacing,
         evidence_level: SU2_MESH_SPACING_2D_EVIDENCE_LEVEL,
     })
