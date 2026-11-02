@@ -242,12 +242,11 @@ mod tests {
 
     #[test]
     fn rejects_invalid_fuel_flow_property_uncertainty() {
-        let invalid: Result<FuelProperty<MassFlowKgPerSecond>, FuelRecordError> =
-            FuelProperty::new(
-                MassFlowKgPerSecond::new(0.01).unwrap(),
-                Some(-0.01),
-                evidence("LAB-FLOW-BAD"),
-            );
+        let invalid: Result<FuelProperty<MassFlowKgPerSecond>, FuelRecordError> = FuelProperty::new(
+            MassFlowKgPerSecond::new(0.01).unwrap(),
+            Some(-0.01),
+            evidence("LAB-FLOW-BAD"),
+        );
 
         assert!(invalid.is_err());
     }
