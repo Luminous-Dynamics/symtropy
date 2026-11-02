@@ -91,6 +91,17 @@ fn canonical_bytes(report: &Su2UnsteadyInnerScreenReport) -> Vec<u8> {
     bytes
 }
 
+fn required_terminal_iteration(
+    window_start_iter: u64,
+    convergence_start_iter: u64,
+    cauchy_elements: u64,
+) -> Result<u64, String> {
+    window_start_iter
+        .checked_add(convergence_start_iter)
+        .and_then(|start| start.checked_add(cauchy_elements))
+        .ok_or_else(|| "window convergence iteration range overflowed".to_owned())
+}
+
 pub fn screen_su2_unsteady_inner_convergence(
     preflight: &Su2FieldPreflightReport,
     history: &Su2HistoryReport,
@@ -152,9 +163,11 @@ pub fn screen_su2_unsteady_inner_convergence(
             "unsteady history begins at TIME_ITER {first_time_iteration} after WINDOW_START_ITER {window_start_iter}"
         ));
     }
-    let required_terminal_iteration = window_start_iter
-        .checked_add(convergence_start_iter.max(cauchy_elements))
-        .ok_or_else(|| "window convergence iteration range overflowed".to_owned())?;
+    let required_terminal_iteration = required_terminal_iteration(
+        window_start_iter,
+        convergence_start_iter,
+        cauchy_elements,
+    )?;
     if last_time_iteration < required_terminal_iteration {
         return Err(format!(
             "unsteady history ends at TIME_ITER {last_time_iteration} before the configured window convergence period ends at {required_terminal_iteration}"
@@ -332,4 +345,26 @@ pub fn report_to_csv(report: &Su2UnsteadyInnerScreenReport) -> String {
         output.push('\n');
     }
     output
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::required_terminal_iteration;
+
+    #[test]
+    fn window_coverage_includes_monitor_delay_then_all_cauchy_elements() {
+        assert_eq!(required_terminal_iteration(500, 10, 10).unwrap(), 520);
+        assert_eq!(required_terminal_iteration(500, 15, 10).unwrap(), 525);
+        assert_eq!(required_terminal_iteration(500, 10, 15).unwrap(), 525);
+    }
+
+    #[test]
+    fn window_coverage_rejects_iteration_overflow() {
+        assert!(
+            required_terminal_iteration(u64::MAX - 5, 3, 3)
+                .expect_err("window coverage overflow must reject")
+                .contains("overflowed")
+        );
+    }
 }
