@@ -5,7 +5,7 @@
 //! closed-form solution is used only as an external reference in tests and
 //! benchmark analysis.
 
-use super::{first_impact, ImpactError, ImpactParameters};
+use super::{ImpactError, ImpactParameters, first_impact};
 
 /// Input or model error when establishing an impact bracket.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
