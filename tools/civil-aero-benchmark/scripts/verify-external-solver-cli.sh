@@ -6,6 +6,7 @@ replay="${2:?replay binary path required}"
 importer="${3:?SU2 history importer binary path required}"
 convergence="${4:?SU2 convergence screen binary path required}"
 mesh_audit="${5:?SU2 mesh audit binary path required}"
+preflight="${6:?SU2 field preflight audit binary path required}"
 root="$(mktemp -d)"
 trap 'rm -rf "$root"' EXIT
 
@@ -140,4 +141,64 @@ if "$replay" "$root/tampered-run" > "$root/tampered-replay.txt" 2>&1; then
   exit 1
 fi
 grep -q 'persisted stdout.log differs from receipt' "$root/tampered-replay.txt"
-echo "external_solver_cli_known_answer=pass staged_inputs=3 expected_outputs=3 tamper_rejected=true"
+
+# A process-only receipt is permitted solely for this explicit SU2_CFD -d preflight path.
+cat > "$root/fake-su2-dry-run" <<'FAKE_DRY'
+#!/bin/sh
+set -eu
+[ "$#" -eq 2 ]
+[ "$1" = "-d" ]
+[ "$2" = "preflight.cfg" ]
+[ -s preflight.cfg ]
+[ -s mesh.su2 ]
+printf '%s\\n' 'Available screen/history output fields for the current configuration:'
+printf '%s\\n' '| Field Name | Description | Group Name |'
+printf '%s\\n' '| ITER | Iteration count | ITER |'
+printf '%s\\n' '| INNER_ITER | Inner iteration | ITER |'
+printf '%s\\n' '| RMS_DENSITY | Density residual | RMS_RES |'
+printf '%s\\n' '| RMS_MOMENTUM-X | X momentum residual | RMS_RES |'
+printf '%s\\n' '| DRAG | Drag coefficient | AERO_COEFF |'
+printf '%s\\n' '| CD | Drag coefficient | AERO_COEFF |'
+printf '%s\\n' 'Available volume output fields for the current configuration:'
+printf '%s\\n' '| PRESSURE | Pressure | PRIMITIVE |'
+FAKE_DRY
+chmod +x "$root/fake-su2-dry-run"
+cat > "$root/preflight.cfg" <<'CFG'
+SOLVER= NAVIER_STOKES
+CONV_FIELD= RMS_DENSITY
+HISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)
+MESH_FILENAME= mesh.su2
+CFG
+preflight_executable_sha256="$(sha256sum "$root/fake-su2-dry-run" | awk '{print $1}')"
+
+"$runner" \\
+  --run-id "ci-su2-dry-run-preflight" \\
+  --solver-id "SU2_CFD_DRY_RUN" \\
+  --version-claim "synthetic-ci-dry-run-not-a-SU2-version" \\
+  --executable "$root/fake-su2-dry-run" \\
+  --expected-executable-sha256 "$preflight_executable_sha256" \\
+  --run-dir "$root/preflight-run" \\
+  --input "$root/preflight.cfg=preflight.cfg" \\
+  --input "$root/mesh.su2=mesh.su2" \\
+  --timeout-seconds 10 \\
+  --max-log-bytes 16384 \\
+  -- -d preflight.cfg
+
+"$replay" "$root/preflight-run" | tee "$root/preflight-replay.txt"
+grep -q 'external_solver_replay=pass' "$root/preflight-replay.txt"
+grep -q 'process_status=process_exited_zero_no_outputs_declared' "$root/preflight-replay.txt"
+
+"$preflight" \\
+  --run-dir "$root/preflight-run" \\
+  --config preflight.cfg \\
+  --mesh mesh.su2 \\
+  --require-field RMS_DENSITY \\
+  --require-field RMS_MOMENTUM-X \\
+  --require-field DRAG \\
+  --require-field CD \\
+  > "$root/su2-field-preflight.csv" 2> "$root/su2-field-preflight.txt"
+test "$(wc -l < "$root/su2-field-preflight.csv")" -eq 2
+grep -q 'su2_field_preflight=pass run_id=ci-su2-dry-run-preflight solver_family=NAVIER_STOKES conv_field=RMS_DENSITY available_fields=6 required_fields=4' "$root/su2-field-preflight.txt"
+grep -q 'receipt_bound_su2_dry_run_field_discovery_and_config_presence_only_not_history_convergence_or_validation' "$root/su2-field-preflight.txt"
+python3 scripts/verify-su2-field-preflight-independent.py "$root/preflight-run" "$root/su2-field-preflight.csv"
+echo "external_solver_cli_known_answer=pass staged_inputs=3 expected_outputs=3 tamper_rejected=true dry_run_process_only=true field_preflight=pass"
