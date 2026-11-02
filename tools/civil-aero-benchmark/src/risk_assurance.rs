@@ -14,14 +14,31 @@ pub const RISK_ASSURANCE_EVIDENCE_LEVEL: &str =
     "policy_profile_from_declared_influence_consequence_domain_and_regime_source_bound_gate_statuses_not_risk_estimate_regulatory_approval_or_physical_certification";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RiskBand {
+pub enum ModelInfluence {
+    Low,
+    Moderate,
+    High,
+}
+
+impl ModelInfluence {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Low => "low",
+            Self::Moderate => "moderate",
+            Self::High => "high",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DecisionConsequence {
     Low,
     Moderate,
     High,
     SafetyCritical,
 }
 
-impl RiskBand {
+impl DecisionConsequence {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Low => "low",
@@ -172,9 +189,9 @@ impl EvidenceStatus {
 pub struct RiskContext {
     pub claim_id: String,
     /// How strongly this model can change the engineering decision.
-    pub model_influence: RiskBand,
+    pub model_influence: ModelInfluence,
     /// Consequence if the decision is wrong or the model is misleading.
-    pub decision_consequence: RiskBand,
+    pub decision_consequence: DecisionConsequence,
     pub domain_exposure: DomainExposure,
     pub analysis_regime: AnalysisRegime,
 }
@@ -214,18 +231,18 @@ fn is_sha256(value: &str) -> bool {
 
 /// A monotone, categorical policy. Risk is not collapsed into a caller-selected weighted score.
 pub fn assurance_tier(context: &RiskContext) -> AssuranceTier {
-    if context.decision_consequence == RiskBand::SafetyCritical {
+    if context.decision_consequence == DecisionConsequence::SafetyCritical {
         return AssuranceTier::Maximum;
     }
 
-    let base = if context.model_influence == RiskBand::High
-        || context.decision_consequence == RiskBand::High
-        || (context.model_influence == RiskBand::Moderate
-            && context.decision_consequence == RiskBand::Moderate)
+    let base = if context.model_influence == ModelInfluence::High
+        || context.decision_consequence == DecisionConsequence::High
+        || (context.model_influence == ModelInfluence::Moderate
+            && context.decision_consequence == DecisionConsequence::Moderate)
     {
         AssuranceTier::Enhanced
-    } else if context.model_influence == RiskBand::Moderate
-        || context.decision_consequence == RiskBand::Moderate
+    } else if context.model_influence == ModelInfluence::Moderate
+        || context.decision_consequence == DecisionConsequence::Moderate
     {
         AssuranceTier::Standard
     } else {
@@ -526,8 +543,8 @@ mod tests {
     use super::*;
 
     fn context(
-        model_influence: RiskBand,
-        decision_consequence: RiskBand,
+        model_influence: ModelInfluence,
+        decision_consequence: DecisionConsequence,
         domain_exposure: DomainExposure,
         analysis_regime: AnalysisRegime,
     ) -> RiskContext {
@@ -557,34 +574,34 @@ mod tests {
     #[test]
     fn declared_risk_axes_monotonically_increase_or_preserve_assurance_tier() {
         let base = assurance_tier(&context(
-            RiskBand::Low,
-            RiskBand::Low,
+            ModelInfluence::Low,
+            DecisionConsequence::Low,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         ));
         assert_eq!(base, AssuranceTier::Screening);
         assert!(assurance_tier(&context(
-            RiskBand::Moderate,
-            RiskBand::Low,
+            ModelInfluence::Moderate,
+            DecisionConsequence::Low,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         )) >= base);
         assert!(assurance_tier(&context(
-            RiskBand::Low,
-            RiskBand::Moderate,
+            ModelInfluence::Low,
+            DecisionConsequence::Moderate,
             DomainExposure::InDomain,
             AnalysisRegime::Steady,
         )) >= base);
         assert!(assurance_tier(&context(
-            RiskBand::Low,
-            RiskBand::Low,
+            ModelInfluence::Low,
+            DecisionConsequence::Low,
             DomainExposure::NearBoundary,
             AnalysisRegime::Steady,
         )) > base);
         assert_eq!(
             assurance_tier(&context(
-                RiskBand::High,
-                RiskBand::SafetyCritical,
+                ModelInfluence::High,
+                DecisionConsequence::SafetyCritical,
                 DomainExposure::OutOfDomain,
                 AnalysisRegime::CoupledTransient,
             )),
