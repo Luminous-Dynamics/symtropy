@@ -2857,6 +2857,113 @@ mod double_sliding_direction_oracle {
         }
     }
 
+    #[test]
+    fn certified_double_slide_branches_have_distinct_local_sensitivity_enclosures() {
+        const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
+        const COMMON_DENOMINATOR: i128 = 1_048_576;
+
+        let polynomials = asymmetric_dyadic_double_slide_polynomials();
+        let denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
+            ],
+            [
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator.clone()),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+
+        // The first contact's tangential free-velocity numerator q[1] enters
+        // G1 linearly through q[1] * Delta and does not enter G2. Therefore
+        // dG/dq[1] = (-2*t1*Delta, 0) exactly for this construction.
+        let d_g_d_q_tangent_1 = [
+            polynomials
+                .determinant
+                .mul(BivariateIntegerPolynomial::in_t1([0, 1, 0]).scale(-2)),
+            BivariateIntegerPolynomial::zero(),
+        ];
+
+        let sensitivities = centers.map(|center| {
+            let certificate = certify_exact_double_slide_root_box(
+                &polynomials,
+                center,
+                radius.clone(),
+                FRICTION_NUMERATORS,
+                COMMON_DENOMINATOR,
+            )
+            .expect("the nominal physical branch is uniquely certified in this box");
+            let domain = &certificate.domain;
+            let g = [
+                &polynomials.tangential_equation_1,
+                &polynomials.tangential_equation_2,
+            ];
+            let jacobian = [
+                [
+                    g[0].partial_t1().evaluate_interval(&domain[0], &domain[1]),
+                    g[0].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                ],
+                [
+                    g[1].partial_t1().evaluate_interval(&domain[0], &domain[1]),
+                    g[1].partial_t2().evaluate_interval(&domain[0], &domain[1]),
+                ],
+            ];
+            let determinant = jacobian[0][0]
+                .mul(&jacobian[1][1])
+                .sub(&jacobian[0][1].mul(&jacobian[1][0]));
+            assert!(
+                determinant.excludes_zero(),
+                "the branch Jacobian must stay nonsingular throughout the certified root box"
+            );
+
+            let parameter_derivative = [
+                d_g_d_q_tangent_1[0].evaluate_interval(&domain[0], &domain[1]),
+                d_g_d_q_tangent_1[1].evaluate_interval(&domain[0], &domain[1]),
+            ];
+            let dt1_numerator = jacobian[1][1]
+                .mul(&parameter_derivative[0])
+                .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
+                .neg();
+            let dt2_numerator = jacobian[0][0]
+                .mul(&parameter_derivative[1])
+                .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
+                .neg();
+            let dt1 = dt1_numerator
+                .div(&determinant)
+                .expect("the interval determinant excludes zero");
+            let dt2 = dt2_numerator
+                .div(&determinant)
+                .expect("the interval determinant excludes zero");
+
+            (certificate.normal_determinant, dt1, dt2)
+        });
+
+        // These are branch-conditioned derivatives with respect to the exact
+        // integer numerator q[1]. The physical q_t1 derivative is obtained by
+        // multiplying by COMMON_DENOMINATOR. The close physical roots move in
+        // opposite directions: averaging their gradients would be misleading.
+        // The normal-response determinant is negative on both certified
+        // branch boxes for this frozen sign convention. It must remain
+        // bounded away from zero; positivity would be the wrong invariant.
+        assert!(sensitivities[0].0.is_strictly_negative());
+        assert!(sensitivities[1].0.is_strictly_negative());
+        assert!(sensitivities[0].1.is_strictly_positive());
+        assert!(sensitivities[0].2.is_strictly_positive());
+        assert!(sensitivities[1].1.is_strictly_negative());
+        assert!(sensitivities[1].2.is_strictly_negative());
+
+        assert!(sensitivities[0].1.lower > sensitivities[1].1.upper);
+        assert!(sensitivities[0].2.lower > sensitivities[1].2.upper);
+    }
+
     fn trim_big_integer_polynomial_vector(coefficients: &mut Vec<BigIntegerPolynomial>) {
         while coefficients
             .last()
