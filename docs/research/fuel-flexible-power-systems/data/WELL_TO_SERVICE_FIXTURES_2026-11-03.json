@@ -83,7 +83,7 @@
           "energy_loss_unit": "kWh",
           "process_emissions_kgco2e": 96,
           "emissions_factor_ids": [
-            "DFFE-NGGEF-2024"
+            "DFFE-SA-NGGEF-2024"
           ],
           "method_id": "location-based-Scope2",
           "geography": "South Africa",
@@ -279,7 +279,7 @@
           "energy_loss_unit": "kWh",
           "process_emissions_kgco2e": 96,
           "emissions_factor_ids": [
-            "DFFE-NGGEF-2024"
+            "DFFE-SA-NGGEF-2024"
           ],
           "method_id": "location-based-Scope2",
           "geography": "South Africa",
@@ -306,7 +306,7 @@
           "energy_loss_unit": "kWh",
           "process_emissions_kgco2e": 88.32,
           "emissions_factor_ids": [
-            "DFFE-NGGEF-2024"
+            "DFFE-SA-NGGEF-2024"
           ],
           "method_id": "incorrect-duplicate-Scope2",
           "geography": "South Africa",
@@ -345,6 +345,34 @@
           "valid_until": "2024-12-31",
           "gwp_basis": "IPCC SAR",
           "claim_scope": "Location-based end-user electricity consumption factor NGGEF 0.960 tCO2e/MWh."
+        },
+        {
+          "evidence_id": "SYNTHETIC-BATTERY-CYCLE",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/synthetic-battery-cycle",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "100 kWh grid input, 92 kWh stored, 90 kWh delivered."
+        },
+        {
+          "evidence_id": "SYNTHETIC-DC-METER",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/synthetic-dc-meter",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "90 kWh delivered regulated DC service."
         }
       ],
       "result_vector": {
@@ -519,6 +547,20 @@
           "valid_until": null,
           "gwp_basis": null,
           "claim_scope": "100 MJ initial stored battery energy."
+        },
+        {
+          "evidence_id": "SYNTHETIC-SERVICE",
+          "evidence_class": "analyst_scenario",
+          "source_uri": "https://example.invalid/service-output",
+          "publisher": "Synthetic fixture",
+          "published_at": null,
+          "retrieved_at": "2026-11-03",
+          "geography": "Synthetic",
+          "period": "Synthetic",
+          "valid_from": null,
+          "valid_until": null,
+          "gwp_basis": null,
+          "claim_scope": "1 kWh net AC service output shared by two alternative input-basis paths."
         }
       ],
       "result_vector": {
