@@ -534,9 +534,11 @@ mod tests {
             report_reference: MetrologyReportReference {
                 format: MetrologyReportFormat::QifIso23952_2020,
                 format_version: "3.0".into(),
-                schema_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+                schema_sha256:
+                    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
                 document_reference: "qif://inspection-report-500".into(),
-                document_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
+                document_sha256:
+                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".into(),
                 native_result_id: "qif-result-500-thickness".into(),
             },
         }
