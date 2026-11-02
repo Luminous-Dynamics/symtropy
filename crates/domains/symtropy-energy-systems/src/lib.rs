@@ -25,8 +25,8 @@ pub use duty_cycle::{
     FuelMassKg,
 };
 pub use fuel::{
-    DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily,
-    FuelProperty, FuelRecordError,
+    DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
+    FuelRecordError,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
