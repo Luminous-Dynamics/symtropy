@@ -477,8 +477,7 @@ where
     }
 
     let mut statements = BTreeMap::<String, &ScientificEvidenceStatement>::new();
-    let mut signed_by_digest =
-        BTreeMap::<String, &SignedScientificEvidenceStatement>::new();
+    let mut signed_by_digest = BTreeMap::<String, &SignedScientificEvidenceStatement>::new();
     for signed in &package.statements {
         validate_statement_structure(&signed.statement)?;
         if signed.signed_statement_bytes.is_empty()
@@ -542,14 +541,16 @@ where
     for statement in statements.values() {
         for reference in &statement.artifact_references {
             referenced_artifacts.insert(reference.content_digest.clone());
-            let artifact = artifact_store.get(&reference.content_digest).ok_or_else(|| {
-                fail(
-                    ScientificEvidenceStage::ArtifactDigest,
-                    None,
-                    Some(&reference.content_digest),
-                    "referenced artifact bytes are absent from the offline package",
-                )
-            })?;
+            let artifact = artifact_store
+                .get(&reference.content_digest)
+                .ok_or_else(|| {
+                    fail(
+                        ScientificEvidenceStage::ArtifactDigest,
+                        None,
+                        Some(&reference.content_digest),
+                        "referenced artifact bytes are absent from the offline package",
+                    )
+                })?;
             let actual = digests.sha256(&artifact.bytes).map_err(|reason| {
                 fail(
                     ScientificEvidenceStage::ArtifactDigest,
@@ -674,12 +675,10 @@ where
 mod tests {
     use super::{
         EvidenceArtifactBlob, EvidenceArtifactReference, EvidenceArtifactRole,
-        EvidenceDigestProvider, EvidencePayloadEncoder, ScientificEvidencePackage,
-        IssuerSignatureVerifier, ScientificEvidenceStatement,
-        SignedScientificEvidenceStatement, TransparencyReceiptEnvelope,
-        TransparencyReceiptVerifier, VerifiedIssuerIdentity,
-        VerifiedTransparencyReceipt, format_sha256_digest,
-        verify_scientific_evidence_package,
+        EvidenceDigestProvider, EvidencePayloadEncoder, IssuerSignatureVerifier,
+        ScientificEvidencePackage, ScientificEvidenceStatement, SignedScientificEvidenceStatement,
+        TransparencyReceiptEnvelope, TransparencyReceiptVerifier, VerifiedIssuerIdentity,
+        VerifiedTransparencyReceipt, format_sha256_digest, verify_scientific_evidence_package,
     };
 
     struct TestDigest;
@@ -850,7 +849,9 @@ mod tests {
     fn package() -> ScientificEvidencePackage {
         let blob = artifact(b"raw-result");
         let first = signed(statement("campaign-1", 100, &blob, Vec::new()));
-        let first_payload = TestEncoder.encode_canonical_payload(&first.statement).unwrap();
+        let first_payload = TestEncoder
+            .encode_canonical_payload(&first.statement)
+            .unwrap();
         let first_id = format_sha256_digest(TestDigest.sha256(&first_payload).unwrap());
         let second = signed(statement("campaign-1", 200, &blob, vec![first_id]));
         ScientificEvidencePackage {
@@ -870,11 +871,13 @@ mod tests {
     #[test]
     fn accepts_content_addressed_predecessor_chain_with_receipts_from_independent_services() {
         let mut package = package();
-        package.statements[0].transparency_receipts.push(TransparencyReceiptEnvelope {
-            transparency_service_id: "transparency-b".into(),
-            vds_profile: "RFC9162_SHA256".into(),
-            cose_receipt_bytes: b"mock-receipt-valid".to_vec(),
-        });
+        package.statements[0]
+            .transparency_receipts
+            .push(TransparencyReceiptEnvelope {
+                transparency_service_id: "transparency-b".into(),
+                vds_profile: "RFC9162_SHA256".into(),
+                cose_receipt_bytes: b"mock-receipt-valid".to_vec(),
+            });
         let receipt = verify_scientific_evidence_package(
             &package,
             &TestEncoder,
@@ -887,62 +890,79 @@ mod tests {
         assert_eq!(receipt.artifact_count, 1);
         assert!(receipt.all_issuer_signatures_verified);
         assert!(receipt.all_transparency_receipts_verified);
-        assert_eq!(receipt.verified_statements[0].verified_transparency_services.len(), 2);
+        assert_eq!(
+            receipt.verified_statements[0]
+                .verified_transparency_services
+                .len(),
+            2
+        );
     }
 
     #[test]
     fn rejects_canonical_payload_mutation_and_artifact_content_tampering() {
         let mut changed = package();
         changed.statements[0].canonical_payload.push(0xff);
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
 
         let mut changed = package();
         changed.artifacts[0].bytes.push(0xff);
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn rejects_missing_predecessor_and_wrong_subject_or_time() {
         let mut changed = package();
-        changed.statements[1].statement.predecessor_statement_digests[0] =
+        changed.statements[1]
+            .statement
+            .predecessor_statement_digests[0] =
             format_sha256_digest(TestDigest.sha256(b"missing").unwrap());
-        changed.statements[1].canonical_payload =
-            TestEncoder.encode_canonical_payload(&changed.statements[1].statement).unwrap();
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        changed.statements[1].canonical_payload = TestEncoder
+            .encode_canonical_payload(&changed.statements[1].statement)
+            .unwrap();
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
 
         let mut changed = package();
         changed.statements[1].statement.subject_id = "other-campaign".into();
-        changed.statements[1].canonical_payload =
-            TestEncoder.encode_canonical_payload(&changed.statements[1].statement).unwrap();
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        changed.statements[1].canonical_payload = TestEncoder
+            .encode_canonical_payload(&changed.statements[1].statement)
+            .unwrap();
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -952,14 +972,16 @@ mod tests {
             issuer_id: "other-issuer".into(),
             ..signature_verifier()
         };
-        assert!(verify_scientific_evidence_package(
-            &valid,
-            &TestEncoder,
-            &TestDigest,
-            &wrong_signer,
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        assert!(
+            verify_scientific_evidence_package(
+                &valid,
+                &TestEncoder,
+                &TestDigest,
+                &wrong_signer,
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
 
         struct IncompleteTransparency;
         impl TransparencyReceiptVerifier for IncompleteTransparency {
@@ -980,53 +1002,62 @@ mod tests {
                 })
             }
         }
-        assert!(verify_scientific_evidence_package(
-            &valid,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &IncompleteTransparency,
-        )
-        .is_err());
+        assert!(
+            verify_scientific_evidence_package(
+                &valid,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &IncompleteTransparency,
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn rejects_unreferenced_artifacts_duplicate_receipt_services_and_empty_limitations() {
         let mut changed = package();
         changed.artifacts.push(artifact(b"unreferenced"));
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
 
         let mut changed = package();
-        changed.statements[0].transparency_receipts.push(
-            changed.statements[0].transparency_receipts[0].clone()
+        changed.statements[0]
+            .transparency_receipts
+            .push(changed.statements[0].transparency_receipts[0].clone());
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
         );
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
 
         let mut changed = package();
         changed.statements[0].statement.declared_limitations.clear();
-        changed.statements[0].canonical_payload =
-            TestEncoder.encode_canonical_payload(&changed.statements[0].statement).unwrap();
-        assert!(verify_scientific_evidence_package(
-            &changed,
-            &TestEncoder,
-            &TestDigest,
-            &signature_verifier(),
-            &TestTransparencyVerifier,
-        )
-        .is_err());
+        changed.statements[0].canonical_payload = TestEncoder
+            .encode_canonical_payload(&changed.statements[0].statement)
+            .unwrap();
+        assert!(
+            verify_scientific_evidence_package(
+                &changed,
+                &TestEncoder,
+                &TestDigest,
+                &signature_verifier(),
+                &TestTransparencyVerifier,
+            )
+            .is_err()
+        );
     }
 }
