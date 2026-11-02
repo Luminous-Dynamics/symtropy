@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.luminousdynamics.org/civbench/HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.schema.json",
+  "title": "HIST-001 published Tables 2 and 3 transcription",
+  "description": "Transcribed published population estimates and baobab chronology summaries. These are derived estimates and proxy-event summaries, not direct census or continuous climate observations.",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "case_id",
+    "artifact_id",
+    "status",
+    "source",
+    "table_2",
+    "table_3",
+    "limitations",
+    "next_steps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "https://schemas.luminousdynamics.org/civbench/HIST_001_TABLES_2_3_TRANSCRIPTION/0.1"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "const": "HIST-001"
+    },
+    "artifact_id": {
+      "const": "HIST001-DERIVED-TABLES-2-3"
+    },
+    "status": {
+      "enum": [
+        "transcribed_not_independently_reviewed",
+        "independently_reviewed",
+        "reproduced_from_source"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "citation",
+        "pdf_uri",
+        "locator_table_2",
+        "locator_table_3",
+        "retrieved_at",
+        "source_pdf_sha256"
+      ],
+      "properties": {
+        "source_id": {
+          "const": "HIST001-SRC-AMS-2021"
+        },
+        "citation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pdf_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "locator_table_2": {
+          "type": "string"
+        },
+        "locator_table_3": {
+          "type": "string"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_pdf_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "table_2": {
+      "type": "object",
+      "required": [
+        "title",
+        "evidence_class",
+        "values_are_direct_census",
+        "printed_formula",
+        "method_as_described_by_authors",
+        "records",
+        "caveats"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "evidence_class": {
+          "const": "published_derived_estimates"
+        },
+        "values_are_direct_census": {
+          "const": false
+        },
+        "printed_formula": {
+          "type": "string"
+        },
+        "method_as_described_by_authors": {
+          "type": "object"
+        },
+        "records": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "record_id",
+              "phase",
+              "occupation_interval_ad",
+              "homesteads",
+              "estimate_intervals"
+            ],
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^HIST001-T2-[A-Z]+$"
+              },
+              "phase": {
+                "type": "string"
+              },
+              "occupation_interval_ad": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "homesteads": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "estimate_intervals": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "subinterval",
+                    "duration_years",
+                    "general_population",
+                    "capital_population",
+                    "total_population"
+                  ],
+                  "properties": {
+                    "subinterval": {
+                      "type": "string"
+                    },
+                    "duration_years": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "general_population": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "capital_population": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "total_population": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "caveats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "table_3": {
+      "type": "object",
+      "required": [
+        "title",
+        "evidence_class",
+        "columns",
+        "records",
+        "interpretation_claims",
+        "caveats"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "evidence_class": {
+          "const": "published_proxy_chronology_and_event_interpretation"
+        },
+        "columns": {
+          "type": "object"
+        },
+        "records": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "type": "object",
+            "required": [
+              "record_id",
+              "group",
+              "cal_ad",
+              "baobab_cal_ad"
+            ],
+            "properties": {
+              "record_id": {
+                "type": "string",
+                "pattern": "^HIST001-T3-[A-Z0-9]+$"
+              },
+              "group": {
+                "type": "string"
+              },
+              "cal_ad": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "cal_ad_note": {
+                "type": "string"
+              },
+              "baobab_cal_ad": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "oneOf": [
+                    {
+                      "required": [
+                        "mean",
+                        "sigma"
+                      ],
+                      "properties": {
+                        "mean": {
+                          "type": "integer"
+                        },
+                        "sigma": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ],
+                      "properties": {
+                        "value": {
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "interpretation_claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "claim_id",
+              "statement",
+              "evidence_class",
+              "source_locator",
+              "status"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string"
+              },
+              "statement": {
+                "type": "string"
+              },
+              "evidence_class": {
+                "type": "string"
+              },
+              "source_locator": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "competing_mechanisms_to_preserve": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "caveats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}
