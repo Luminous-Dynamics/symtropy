@@ -253,7 +253,10 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
             continue;
         }
         if content.ends_with('\\') {
-            logical = Some((line_number, content.trim_end_matches('\\').trim().to_owned()));
+            logical = Some((
+                line_number,
+                content.trim_end_matches('\\').trim().to_owned(),
+            ));
             continue;
         }
         insert_config_option(&mut values, content, line_number)?;
@@ -641,7 +644,11 @@ mod tests {
         let incomplete = parse_configuration(
             b"SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, \\\n",
         );
-        assert!(incomplete.expect_err("unterminated continuation rejected").contains("unterminated"));
+        assert!(
+            incomplete
+                .expect_err("unterminated continuation rejected")
+                .contains("unterminated")
+        );
     }
 
     #[test]
