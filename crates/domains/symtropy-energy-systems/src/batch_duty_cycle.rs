@@ -25,7 +25,10 @@ pub struct TimeWindow {
 }
 
 impl TimeWindow {
-    pub fn new(start_unix_seconds: i64, end_unix_seconds: i64) -> Result<Self, BatchDutyCycleError> {
+    pub fn new(
+        start_unix_seconds: i64,
+        end_unix_seconds: i64,
+    ) -> Result<Self, BatchDutyCycleError> {
         if end_unix_seconds <= start_unix_seconds
             || end_unix_seconds.checked_sub(start_unix_seconds).is_none()
         {
@@ -459,7 +462,8 @@ impl fmt::Display for BatchDutyCycleError {
                 next_start,
             } => write!(
                 f,
-                "duty-cycle segments must be contiguous; previous end {previous_end}, next start {next_start}"
+                "duty-cycle segments must be contiguous; previous end {previous_end}, \
+                 next start {next_start}"
             ),
             Self::IntegratedValueOverflow { quantity } => {
                 write!(f, "integrated {quantity} overflowed")
