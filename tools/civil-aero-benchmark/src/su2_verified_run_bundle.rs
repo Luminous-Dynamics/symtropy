@@ -265,6 +265,7 @@ fn is_sha256(value: &str) -> bool {
 fn validate_preflight_covers_history(
     preflight: &Su2FieldPreflightReport,
     history: &Su2HistoryReport,
+    screen: &ConvergenceScreen,
 ) -> Result<(), String> {
     let mut imported = BTreeSet::new();
     imported.insert(history.iteration_column.as_str());
@@ -295,6 +296,47 @@ fn validate_preflight_covers_history(
             "field preflight does not discover every field consumed by the history importer"
                 .to_owned(),
         );
+    }
+
+    let mut active_convergence_fields = preflight
+        .convergence_protocol
+        .steady_fields
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let mut window_fields = BTreeSet::new();
+    if let crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+        fields,
+        ..
+    } = &preflight.convergence_protocol.window
+    {
+        window_fields.extend(fields.iter().map(String::as_str));
+        active_convergence_fields.extend(window_fields.iter().copied());
+    }
+    for field in active_convergence_fields {
+        if !imported.contains(field) || !required.contains(field) {
+            return Err(format!(
+                "configured SU2 convergence field {field} is not required and imported from production history"
+            ));
+        }
+        let criterion = screen.results.iter().find(|row| row.column == field);
+        let Some(criterion) = criterion else {
+            return Err(format!(
+                "configured SU2 convergence field {field} has no independent post-run screen criterion"
+            ));
+        };
+        if criterion.status != crate::su2_convergence_screen::CriterionStatus::Passed {
+            return Err(format!(
+                "configured SU2 convergence field {field} did not pass its independent post-run screen"
+            ));
+        }
+        if window_fields.contains(field)
+            && criterion.kind != "monitor_terminal_range_mean_drift_and_slope"
+        {
+            return Err(format!(
+                "time-window field {field} must have an independent terminal monitor-stability screen"
+            ));
+        }
     }
     Ok(())
 }
@@ -340,7 +382,7 @@ pub fn create_su2_verified_run_bundle(
         inputs.additional_output_paths,
         lineage,
     )?;
-    validate_preflight_covers_history(preflight, history)?;
+    validate_preflight_covers_history(preflight, history, screen)?;
 
     let dry_run_receipt = read_external_solver_receipt(inputs.dry_run_directory)?;
     verify_external_solver_receipt(inputs.dry_run_directory, &dry_run_receipt)?;
