@@ -96,6 +96,7 @@ pub enum UnscheduledReason {
     NoAvailableLockSlot,
     LatestStartExceeded,
     MaximumWaitExceeded,
+    LockProfileExpiresBeforeSlot,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -397,6 +398,13 @@ pub fn schedule_lock(
                 .ok_or(SchedulerError::ArithmeticOverflow)?;
             let waiting = service_start.saturating_sub(request.arrival_tick);
 
+            if profile
+                .valid_through_tick
+                .is_some_and(|valid_through| finish > valid_through)
+            {
+                rejected.push((index, UnscheduledReason::LockProfileExpiresBeforeSlot));
+                continue;
+            }
             if service_start > request.latest_start_tick {
                 rejected.push((index, UnscheduledReason::LatestStartExceeded));
                 continue;
@@ -535,6 +543,32 @@ mod tests {
 
     fn run(requests: &[PassageRequest], policy: SchedulingPolicy) -> ScheduleResult {
         schedule_lock(&profile(), requests, 0, policy).unwrap()
+    }
+
+    #[test]
+    fn lock_profile_must_remain_valid_through_service_completion() {
+        let mut lock = profile();
+        lock.valid_through_tick = Some(105);
+        let request = request(
+            "beyond-profile",
+            "p1",
+            100,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let result = schedule_lock(
+            &lock,
+            &[request],
+            100,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
+
+        assert!(result.scheduled.is_empty());
+        assert_eq!(
+            result.unscheduled[0].reason,
+            UnscheduledReason::LockProfileExpiresBeforeSlot
+        );
     }
 
     #[test]
