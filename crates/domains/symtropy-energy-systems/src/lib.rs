@@ -14,7 +14,7 @@ mod duty_cycle;
 mod fuel;
 
 pub use duty_cycle::{
-    DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, DurationSeconds, EnergyJoules,
+    DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
 };
 pub use fuel::{
