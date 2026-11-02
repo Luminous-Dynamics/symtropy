@@ -495,3 +495,20 @@ The cross-topology service contract fixture pack is [TYPED_SERVICE_CONTRACT_FIXT
 - under-delivered service rejection.
 
 These synthetic fixtures validate contracts and accounting only. They are not physical product results or lifecycle-energy comparisons.
+
+
+## 21. South African electricity lifecycle baseline
+
+A versioned, machine-readable register of the official 2024 national grid factors is maintained at [SOUTH_AFRICA_GRID_EMISSION_FACTORS_2024_PUBLISHED_2026-09-11.json](data/SOUTH_AFRICA_GRID_EMISSION_FACTORS_2024_PUBLISHED_2026-09-11.json), with [schema](data/SOUTH_AFRICA_GRID_EMISSION_FACTORS_SCHEMA_2026-11-03.json).
+
+The DFFE published Government Notice 7891 on 11 September 2026 using 2024 calendar-year data. The four factors are:
+- **DGGEF:** 0.994 tCO₂e/MWh (0.994 kgCO₂e/kWh), domestic generation boundary;
+- **NGGEF:** 0.960 tCO₂e/MWh (0.960 kgCO₂e/kWh), national end-user consumption boundary, the intended location-based Scope 2 factor;
+- **TLGEF:** 0.021 tCO₂e/MWh (0.021 kgCO₂e/kWh), transmission losses for relevant Scope 3 reporting;
+- **DLGEF:** 0.071 tCO₂e/MWh (0.071 kgCO₂e/kWh), distribution losses for relevant Scope 3 reporting.
+
+DFFE says the NGGEF excludes transmission and distribution losses; for typical facilities supplied through the distribution network, both TLGEF and DLGEF may apply to Scope 3 loss accounting. Facilities connected directly to transmission have a different boundary. DFFE also reports a residual imported-electricity factor of 0.244 tCO₂e/MWh for imports excluding South Africa, HCB and LEC hydro sources; it is a supporting methodology input, not a replacement for NGGEF.
+
+The report says all four 2024 GEFs increased relative to 2023 (NGGEF 0.906→0.960; DGGEF 0.942→0.994). The factors are annual-average, location-based reporting values with an approximately two-year data lag—not hourly marginal dispatch factors, forward forecasts, PPAs or project-specific electricity factors.
+
+**Platform implications:** battery charging, hydrogen electrolysis, methanol/ammonia production and DC-native data-centre supply must account for the actual electricity pathway and conversion losses. Do not label battery-electric operation "zero-carbon" from its tank-to-wheel operation; do not apply DGGEF as an onsite engine emission factor; and do not add transmission/distribution losses twice. The selected functional unit and Scope 2/Scope 3 lifecycle boundary must remain explicit.
