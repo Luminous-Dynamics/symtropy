@@ -68,12 +68,6 @@ pub enum HoldoutReason {
     ConnectomeDataset,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Partition {
-    Training,
-    HeldOut,
-}
-
 /// Indices refer to the exact input slice and are stable for that run only.
 /// Persist sample IDs and the policy in a run receipt; never persist indices as
 /// if they were durable identities.
@@ -92,7 +86,6 @@ pub enum BenchError {
     InvalidObservedValue { sample_id: String },
     DuplicateSampleId(String),
     EmptyHoldoutPolicy,
-    InvalidHoldoutIdentifier { field: &'static str },
     UnobservedHoldoutGroup { field: &'static str, value: String },
     EmptyTrainingPartition,
     EmptyHeldOutPartition,
@@ -124,7 +117,6 @@ impl fmt::Display for BenchError {
             Self::InvalidObservedValue { sample_id } => write!(f, "observed value is non-finite for sample {sample_id}"),
             Self::DuplicateSampleId(id) => write!(f, "duplicate sample identity: {id}"),
             Self::EmptyHoldoutPolicy => write!(f, "at least one explicit group holdout is required"),
-            Self::InvalidHoldoutIdentifier { field } => write!(f, "empty identifier in holdout set: {field}"),
             Self::UnobservedHoldoutGroup { field, value } => write!(f, "holdout group was not present in observations: {field}={value}"),
             Self::EmptyTrainingPartition => write!(f, "split produced no training observations"),
             Self::EmptyHeldOutPartition => write!(f, "split produced no held-out observations"),
@@ -139,7 +131,6 @@ impl fmt::Display for BenchError {
             Self::TooFewIndividualClusters => write!(f, "paired cluster bootstrap requires at least two independent individuals"),
             Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
             Self::NoFeasibleIntervention => write!(f, "no feasible intervention candidates were supplied"),
-            Self::DuplicateInterventionId(id) => write!(f, "duplicate intervention candidate id: {id}"),
             Self::InvalidInterventionCost { intervention_id } => write!(f, "invalid positive finite intervention cost: {intervention_id}"),
             Self::InvalidMonteCarloSamples => write!(f, "expected-information-gain estimation requires at least 100 samples per model"),
             Self::TooFewModelFamilies => write!(f, "at least two competing model families are required"),
