@@ -245,7 +245,9 @@ mod tests {
         assert!(result.impact_time_s > 0.0);
         assert!(result.impact_time_s < 1.0e-7);
         assert!(result.pre_impact_velocity_m_s < 0.0);
-        assert!(result.energy_balance_residual_j.abs() < 1.0e4);
+        let scale = result.initial_mechanical_energy_j.abs().max(1.0);
+        let tolerance = 64.0 * f64::EPSILON * scale;
+        assert!(result.energy_balance_residual_j.abs() <= tolerance);
     }
 
     #[test]
