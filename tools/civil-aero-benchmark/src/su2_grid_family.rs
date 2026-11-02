@@ -1050,6 +1050,62 @@ printf 'synthetic solver stdout\n'
         );
         assert_eq!(report.members[0].verified_run_bundle_sha256, bundle.bundle_sha256);
 
+        #[cfg(target_os = "linux")]
+        {
+            let oracle_directory = root.join("independent-run-bundle-oracle");
+            fs::create_dir_all(&oracle_directory).expect("create oracle directory");
+            let bundle_csv = oracle_directory.join("bundle.csv");
+            let preflight_csv = oracle_directory.join("preflight.csv");
+            let boundary_csv = oracle_directory.join("boundary.csv");
+            let history_csv = oracle_directory.join("history-import.csv");
+            let screen_csv = oracle_directory.join("screen.csv");
+            let lineage_csv = oracle_directory.join("lineage.csv");
+            fs::write(
+                &bundle_csv,
+                crate::su2_verified_run_bundle::report_to_csv(&bundle),
+            )
+            .expect("write composed bundle report");
+            fs::write(&preflight_csv, member.field_preflight.to_csv())
+                .expect("write preflight report");
+            fs::write(&boundary_csv, member.boundary_audit.to_csv())
+                .expect("write boundary report");
+            fs::write(&history_csv, member.history.to_csv()).expect("write history import");
+            fs::write(
+                &screen_csv,
+                crate::su2_convergence_screen::screen_to_csv(&member.convergence_screen),
+            )
+            .expect("write convergence screen");
+            fs::write(
+                &lineage_csv,
+                crate::su2_run_binding::binding_to_csv(&member.lineage_binding),
+            )
+            .expect("write production lineage");
+            let oracle = std::process::Command::new("python3")
+                .arg(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/scripts/verify-su2-run-bundle-independent.py"
+                ))
+                .arg(&member.dry_run_directory)
+                .arg(&member.run_directory)
+                .arg(&bundle_csv)
+                .arg(&preflight_csv)
+                .arg(&boundary_csv)
+                .arg(&history_csv)
+                .arg(&screen_csv)
+                .arg(&lineage_csv)
+                .output()
+                .expect("execute independent SU2 run-bundle oracle");
+            assert!(
+                oracle.status.success(),
+                "independent oracle failed: {}",
+                String::from_utf8_lossy(&oracle.stderr)
+            );
+            assert!(
+                String::from_utf8_lossy(&oracle.stdout)
+                    .contains("independent_su2_verified_run_bundle_oracle=pass")
+            );
+        }
+
         let mut wrong_dry_run = study.clone();
         wrong_dry_run.members[0].dry_run_directory =
             wrong_dry_run.members[1].dry_run_directory.clone();
