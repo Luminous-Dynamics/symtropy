@@ -33,6 +33,7 @@ pub enum Su2WindowConvergenceProtocol {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2ConvergenceProtocol {
+    pub time_domain: bool,
     pub steady_fields: Vec<String>,
     pub steady_start_iteration: Option<u64>,
     pub steady_residual_min_log10: Option<String>,
@@ -58,6 +59,7 @@ pub struct Su2FieldPreflightReport {
     /// Backward-compatible first field; use convergence_protocol.steady_fields for the full set.
     pub configured_convergence_field: String,
     pub convergence_protocol: Su2ConvergenceProtocol,
+    pub time_domain: bool,
     pub history_output_selectors: Vec<String>,
     pub stdout_sha256: String,
     pub stderr_sha256: String,
@@ -75,7 +77,7 @@ impl Su2FieldPreflightReport {
             Su2WindowConvergenceProtocol::Enabled { .. }
         );
         let mut output = String::from(
-            "schema,run_id,solver_id,runner_receipt_sha256,executable_sha256,configuration_path,configuration_byte_length,configuration_sha256,mesh_path,mesh_byte_length,mesh_sha256,solver_family,configured_convergence_field,steady_convergence_fields,steady_start_iteration,steady_residual_min_log10,steady_cauchy_epsilon,steady_cauchy_elements,window_cauchy_enabled,window_convergence_fields,window_start_iter,window_convergence_start_iter,window_cauchy_elements,window_cauchy_epsilon,window_function,history_output_selectors,stdout_sha256,stderr_sha256,available_history_fields,required_history_fields,status,preflight_sha256,evidence_level\n",
+            "schema,run_id,solver_id,runner_receipt_sha256,executable_sha256,configuration_path,configuration_byte_length,configuration_sha256,mesh_path,mesh_byte_length,mesh_sha256,solver_family,configured_convergence_field,steady_convergence_fields,steady_start_iteration,steady_residual_min_log10,steady_cauchy_epsilon,steady_cauchy_elements,time_domain,window_cauchy_enabled,window_convergence_fields,window_start_iter,window_convergence_start_iter,window_cauchy_elements,window_cauchy_epsilon,window_function,history_output_selectors,stdout_sha256,stderr_sha256,available_history_fields,required_history_fields,status,preflight_sha256,evidence_level\n",
         );
         let fields = [
             csv_escape(&self.schema),
@@ -96,6 +98,7 @@ impl Su2FieldPreflightReport {
             optional_string(&self.convergence_protocol.steady_residual_min_log10),
             optional_string(&self.convergence_protocol.steady_cauchy_epsilon),
             format_optional_u64(self.convergence_protocol.steady_cauchy_elements),
+            if self.convergence_protocol.time_domain { "YES".to_owned() } else { "NO".to_owned() },
             if window_enabled { "YES".to_owned() } else { "NO".to_owned() },
             csv_escape(&window_fields(&self.convergence_protocol.window)),
             optional_window_u64(&self.convergence_protocol.window, 0),
@@ -271,6 +274,7 @@ fn insert_config_option(
             | "CONV_WINDOW_CAUCHY_ELEMS"
             | "WINDOW_FUNCTION"
             | "RESTART_ITER"
+            | "TIME_DOMAIN"
     )
         && values
             .insert(key.to_owned(), raw_value.trim().to_owned())
@@ -335,12 +339,12 @@ fn required_positive_decimal(values: &BTreeMap<String, String>, key: &str) -> Re
         .ok_or_else(|| format!("SU2 config is missing required {key}"))
 }
 
-fn parse_window_enabled(values: &BTreeMap<String, String>) -> Result<bool, String> {
-    let raw = parse_config_value(values, "WINDOW_CAUCHY_CRIT")?;
+fn parse_config_boolean(values: &BTreeMap<String, String>, key: &str) -> Result<bool, String> {
+    let raw = parse_config_value(values, key)?;
     match raw.trim().trim_matches('"').to_ascii_uppercase().as_str() {
         "YES" | "TRUE" => Ok(true),
         "NO" | "FALSE" => Ok(false),
-        _ => Err("WINDOW_CAUCHY_CRIT must be explicitly YES or NO".to_owned()),
+        _ => Err(format!("{key} must be explicitly YES or NO")),
     }
 }
 
@@ -391,6 +395,7 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
     if solver_family.is_empty() {
         return Err("SU2 SOLVER value must not be empty".to_owned());
     }
+    let time_domain = parse_config_boolean(&values, "TIME_DOMAIN")?;
     let steady_fields = parse_field_list(
         parse_config_value(&values, "CONV_FIELD")?,
         "CONV_FIELD",
@@ -418,7 +423,11 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         return Err("SU2 config CONV_CAUCHY_ELEMS must be > 0".to_owned());
     }
 
-    let window = if parse_window_enabled(&values)? {
+    let window_enabled = parse_config_boolean(&values, "WINDOW_CAUCHY_CRIT")?;
+    if window_enabled && !time_domain {
+        return Err("WINDOW_CAUCHY_CRIT=YES requires TIME_DOMAIN=YES".to_owned());
+    }
+    let window = if window_enabled {
         let fields = parse_field_list(
             parse_config_value(&values, "CONV_WINDOW_FIELD")?,
             "CONV_WINDOW_FIELD",
@@ -458,6 +467,7 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
     };
 
     let convergence_protocol = Su2ConvergenceProtocol {
+        time_domain,
         steady_fields,
         steady_start_iteration,
         steady_residual_min_log10,
@@ -555,6 +565,7 @@ fn canonical_bytes(report: &Su2FieldPreflightReport) -> Vec<u8> {
     }
     append_u64(&mut bytes, report.configuration_byte_length);
     append_u64(&mut bytes, report.mesh_byte_length);
+    bytes.push(u8::from(report.convergence_protocol.time_domain));
     append_u64(&mut bytes, report.convergence_protocol.steady_fields.len() as u64);
     for field in &report.convergence_protocol.steady_fields {
         append_string(&mut bytes, field);
@@ -784,6 +795,7 @@ pub fn audit_su2_field_preflight(
         mesh_sha256: sha256_hex(&mesh_bytes)?,
         solver_family: config.solver_family,
         configured_convergence_field: config.convergence_protocol.steady_fields[0].clone(),
+        time_domain: config.convergence_protocol.time_domain,
         convergence_protocol: config.convergence_protocol,
         history_output_selectors: config.history_output_selectors,
         stdout_sha256: receipt.stdout_sha256.clone(),
