@@ -81,3 +81,21 @@ Do not assert that these model families have been reproduced until their source 
 The first run should report held-out predictive density, interval coverage, RMSE by metric, worst intervention/individual score, intervention cost, and model discrimination power. After a baseline variance and sample-size study, consider a preregistered target such as 10% relative held-out predictive-score improvement over the strongest non-connectome baseline, while retaining locomotion performance and reporting compute overhead.
 
 No SOTA, causal-mechanism, or biological-generalization claim follows from this synthetic test harness.
+
+
+### 6. Raw numerical output integrity
+
+The `RawTrajectoryAudit::validate_unmodified` gate separates a complete raw solver trajectory from an array that was made finite or bounded after the fact. A caller must preserve solver termination state, requested/returned save-grid counts, state dimension, raw scalar count, raw non-finite count, replacement/clipping counts and a digest of the raw state.
+
+It rejects:
+- maximum-step exhaustion, event termination, numerical failure or unknown solver status;
+- missing save points;
+- invalid dimensions or scalar counts;
+- raw NaN/Inf values;
+- any NaN/Inf-to-zero replacement;
+- any clipping;
+- missing raw-state digest.
+
+A transformed trajectory may still be retained as a separately labelled analysis product, but cannot be represented as an unmodified solver result. This is particularly relevant to the pinned Pugliese source profile: its event hook is declared but commented out, `throw=false` is used, and the output path replaces NaN/Inf with zero and clips to [0, 1000] Hz.
+
+The complete source/config audit is in [PUGLIESE_VNC_REFERENCE_AUDIT.md](PUGLIESE_VNC_REFERENCE_AUDIT.md), with a machine-readable profile at [pugliese-vnc-rate-model-v1.json](reference-models/pugliese-vnc-rate-model-v1.json). The audit records an unresolved data pointer difference: upstream README Zenodo 22260924 versus the Nature version-of-record Zenodo 22260923. Do not assume equivalence; verify manifests and checksums first.
