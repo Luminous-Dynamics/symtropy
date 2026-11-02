@@ -44,7 +44,7 @@ Run-level rates are stored as exact integer numerator/denominator pairs. A famil
 
 ## 4. Aggregation and inference boundary
 
-Family pass@k and pass^k counts are calculated over distinct valid task clusters. Run-level safe-success rates use all valid paired repetitions in those clusters.
+Family pass@k and pass^k counts are calculated over distinct valid task clusters. Their aggregate rates are stored as exact numerator/valid-task-cluster-denominator pairs. Run-level safe-success rates use all valid paired repetitions in those clusters and are stored separately as exact numerator/valid-run-pair-denominator pairs. A family with no valid task clusters has undefined rates, not zero.
 
 For generalization claims, the statistical sample size is the number of distinct task instances per mechanism family, not k times that number. The k repetitions from one task must never be fed to SIM-REL-042 or SIM-REL-045 as if they were independent task samples.
 
