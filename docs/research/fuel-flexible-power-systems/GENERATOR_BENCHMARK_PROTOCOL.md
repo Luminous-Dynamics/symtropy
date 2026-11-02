@@ -150,17 +150,15 @@ Numerical closure tolerance and measurement uncertainty are different quantities
 
 FFER is an internal comparative metric, not a certification standard.
 
-For a given fuel and a frozen reference duty cycle, use matched measurement boundaries and the same load weights:
+For a given fuel and a frozen reference duty cycle, compare the **integrated cycle efficiencies** at the same net electrical service boundary:
 
-`FFER = (\sum_i w_i \eta_{shared,i}) / (\sum_i w_i \eta_{fuel-specific-reference,i})`
+eta_net,cycle = sum(net AC energy over segments) / sum(fuel LHV energy over segments)
 
-where:
-- each `w_i` is the frozen fraction of reference-cycle fuel-energy input or another preregistered weighting basis;
-- the weights sum to one;
-- matched load points, ambient corrections and accessory boundaries are declared;
-- uncertainty and missing points remain visible.
+FFER = eta_net,cycle(shared architecture) / eta_net,cycle(fuel-specific reference)
 
-Do not compare unrelated fuels by their numerical heating value alone. FFER answers whether shared-platform flexibility has a performance penalty relative to a fuel-specific reference. It does not show lower lifecycle emissions or lower cost.
+Both candidates must use the same profile identity, segment order, dwell times, net-load demand, ambient correction and auxiliary boundary. Delivered net electrical energy must match within a preregistered tolerance; otherwise the comparison is a service mismatch, not an efficiency win. Report each segment and integrated totals so an aggregate cannot hide a low-load or transient penalty. Uncertainty and missing map points remain visible.
+
+Do not arithmetic-average segment efficiencies or silently normalize missing points. Do not compare unrelated fuels by their heating value alone. FFER answers whether shared-platform flexibility has an efficiency penalty relative to a fuel-specific reference. It does not show lower lifecycle emissions or lower cost.
 
 Proposed staged research gates:
 - **Feasibility gate:** FFER >= 0.90 on the frozen weighted map.
