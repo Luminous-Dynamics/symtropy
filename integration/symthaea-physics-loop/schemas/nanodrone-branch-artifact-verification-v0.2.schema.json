@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-nanodrone-branch-artifact-verification-v0.2.json",
+  "title": "NanoDrone branch artifact verification receipt v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "evidence_class",
+    "snapshot_artifacts_verified",
+    "disturbance_tape_artifacts_verified",
+    "branch_rows_bound",
+    "snapshot_manifest_sha256",
+    "disturbance_tape_manifest_sha256",
+    "combined_artifact_manifest_sha256",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "status": {
+      "const": "synthetic_fixture_content_verified_origin_unattested"
+    },
+    "evidence_class": {
+      "const": "synthetic_fixture"
+    },
+    "snapshot_artifacts_verified": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "disturbance_tape_artifacts_verified": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "branch_rows_bound": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "snapshot_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "disturbance_tape_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "combined_artifact_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "claim_ceiling": {
+      "const": "sha256_content_integrity_and_identity_only; no independent simulator state capture, restore fidelity, RNG source, or hardware origin attestation"
+    }
+  }
+}
