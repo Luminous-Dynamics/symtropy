@@ -210,7 +210,28 @@ def termination_evidence(
             "verified run bundle only supports steady or explicit windowed time-domain protocols")
     native_rows: list[tuple[str, str, str, str]] = []
     signal_message = scheduler_signal_message(combined)
-    if signal_message is not None:
+    terminal_markers = (
+        INTERRUPTED,
+        STEADY_SUCCESS,
+        WINDOW_SUCCESS,
+        STEADY_ITERATION_LIMIT,
+        TIME_LIMIT,
+        TIME_ITERATION_LIMIT,
+    )
+    observed_terminal_markers = [
+        marker for marker in terminal_markers if marker in section
+    ]
+    if len(observed_terminal_markers) > 1 or (
+        signal_message is not None
+        and any(marker in {STEADY_SUCCESS, WINDOW_SUCCESS}
+                for marker in observed_terminal_markers)
+    ):
+        mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
+        classification = "contradictory_terminal_messages"
+        terminal_messages = observed_terminal_markers + (
+            [signal_message] if signal_message is not None else []
+        )
+    elif signal_message is not None:
         mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
         classification = "interrupted"
         terminal_messages = [signal_message]
