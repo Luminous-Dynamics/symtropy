@@ -2245,9 +2245,12 @@ fn verify_nary_separator_composition(
         }
     }
 
+    let Some(accounted_combinations) = expected.len().checked_add(empty_intersections) else {
+        return false;
+    };
     if empty_intersections != composed.empty_intersections
         || expected.len() != composed.cells.len()
-        || expected.len() + empty_intersections != candidate_combinations
+        || accounted_combinations != candidate_combinations
     {
         return false;
     }
@@ -2320,7 +2323,14 @@ fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
         .collect::<Vec<_>>();
     let three = compose_nary_separator_partitions(&three_sources).unwrap();
     assert_eq!(three.source_ids, vec![11, 23, 37]);
-    assert_eq!(three.candidate_combinations, 27);
+    let three_product = nary_cartesian_product_size(
+        &three_sources
+            .iter()
+            .map(|source| source.partition.cells.len())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(three.candidate_combinations, three_product);
     assert_eq!(
         three.empty_intersections + three.cells.len(),
         three.candidate_combinations
@@ -2338,7 +2348,14 @@ fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
         .collect::<Vec<_>>();
     let six = compose_nary_separator_partitions(&six_sources).unwrap();
     assert_eq!(six.source_ids, vec![11, 23, 37, 41, 53, 61]);
-    assert_eq!(six.candidate_combinations, 729);
+    let six_product = nary_cartesian_product_size(
+        &six_sources
+            .iter()
+            .map(|source| source.partition.cells.len())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(six.candidate_combinations, six_product);
     assert_eq!(
         six.empty_intersections + six.cells.len(),
         six.candidate_combinations
