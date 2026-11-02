@@ -326,7 +326,8 @@
         "sensor_placement",
         "robustness",
         "resilience_performance_curves",
-        "hierarchical_hydroinformatics"
+        "hierarchical_hydroinformatics",
+        "digital_twin_maturity"
       ],
       "properties": {
         "accounting_correctness": {
@@ -354,6 +355,9 @@
           "type": "string"
         },
         "hierarchical_hydroinformatics": {
+          "type": "string"
+        },
+        "digital_twin_maturity": {
           "type": "string"
         }
       },
