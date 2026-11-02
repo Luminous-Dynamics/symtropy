@@ -1001,6 +1001,27 @@ mod tests {
     }
 
     #[test]
+    fn preserves_unsteady_endpoint_protocol_without_promoting_it_to_window_convergence() {
+        let root = root();
+        let config = "SOLVER= NAVIER_STOKES\\nTIME_DOMAIN= YES\\nCONV_FIELD= RMS_DENSITY\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n";
+        let run = fixture_run_with_config(&root.join("unsteady-endpoint"), config, INVENTORY);
+        let report = audit_su2_field_preflight(
+            &run,
+            "config.cfg",
+            "mesh.su2",
+            &["RMS_DENSITY".to_owned()],
+        )
+        .expect("unsteady endpoint preflight is recorded");
+        assert!(report.convergence_protocol.time_domain);
+        assert_eq!(
+            report.convergence_protocol.window,
+            Su2WindowConvergenceProtocol::Disabled
+        );
+        assert!(report.to_csv().contains(",YES,NO,,"));
+        fs::remove_dir_all(root).expect("remove unsteady endpoint fixture");
+    }
+
+    #[test]
     fn parses_multi_field_steady_and_time_window_convergence_protocols() {
         let configuration = parse_configuration(
             b"SOLVER= NAVIER_STOKES\nCONV_FIELD= (RMS_DENSITY, CD)\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nCONV_STARTITER= 25\nCONV_RESIDUAL_MINVAL= -8\nCONV_CAUCHY_EPS= 1E-10\nCONV_CAUCHY_ELEMS= 100\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 500\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 10\nCONV_WINDOW_CAUCHY_EPS= 1E-4\nWINDOW_FUNCTION= HANN_SQUARE\nRESTART_ITER= 100\n",
