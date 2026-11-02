@@ -780,7 +780,9 @@ mod tests {
         .unwrap();
         let cluster = &receipt.task_clusters[0];
         let candidate = cluster.candidate.as_ref().unwrap();
-        assert_eq!(candidate.completion_count, 3);
+        assert_eq!(candidate.completion_count, 2);
+        assert!(candidate.completed_at_least_once);
+        assert!(!candidate.completed_every_run);
         assert_eq!(candidate.safe_success_count, 2);
         assert!(candidate.any_hazard);
         assert_eq!(candidate.hazard_count, 1);
