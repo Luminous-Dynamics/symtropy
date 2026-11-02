@@ -666,6 +666,19 @@ fn validate_plan(
     Ok(())
 }
 
+fn validate_task_family_binding(
+    task_id: &str,
+    artifact_family_id: &str,
+    cluster_family_id: &str,
+) -> Result<(), HierarchicalInferenceError> {
+    if artifact_family_id != cluster_family_id {
+        return Err(HierarchicalInferenceError::TaskBindingMismatch(format!(
+            "task {task_id} release mechanism-family {artifact_family_id} differs from reliability cluster {cluster_family_id}"
+        )));
+    }
+    Ok(())
+}
+
 fn build_task_rows(
     plan: &HierarchicalInferencePlan,
     cluster_plan: &TaskClusterInferencePlan,
@@ -735,12 +748,11 @@ fn build_task_rows(
                 cluster.task_id
             ))
         })?;
-        if artifact.mechanism_family_id != cluster.mechanism_family_id {
-            return Err(HierarchicalInferenceError::TaskBindingMismatch(format!(
-                "task {} release mechanism-family {} differs from reliability cluster {}",
-                cluster.task_id, artifact.mechanism_family_id, cluster.mechanism_family_id
-            )));
-        }
+        validate_task_family_binding(
+            &cluster.task_id,
+            &artifact.mechanism_family_id,
+            &cluster.mechanism_family_id,
+        )?;
         if cluster.invalid_task_cluster && (cluster.reference.is_some() || cluster.candidate.is_some()) {
             return Err(HierarchicalInferenceError::InvalidHierarchy(
                 "invalid task cluster must not contain arm outcomes".into(),
@@ -1261,6 +1273,20 @@ mod tests {
     }
 
     #[test]
+    fn release_and_reliability_mechanism_family_mismatch_is_rejected() {
+        assert!(validate_task_family_binding(
+            "task-1",
+            "materials-mechanism",
+            "biology-mechanism",
+        ).is_err());
+        assert!(validate_task_family_binding(
+            "task-1",
+            "materials-mechanism",
+            "materials-mechanism",
+        ).is_ok());
+    }
+
+    #[test]
     fn recipe_and_concept_weighting_cannot_be_inflated_by_many_tasks() {
         let (mut task_rows, clusters) = rows();
         let mut receipt = super::super::repeated_run_reliability::RepeatedRunReliabilityReceipt {
@@ -1298,6 +1324,12 @@ mod tests {
                 task_id,
             });
         }
+        receipt.task_cluster_count = receipt.task_clusters.len();
+        receipt.valid_task_cluster_count = receipt.task_clusters.iter()
+            .filter(|cluster| !cluster.invalid_task_cluster)
+            .count();
+        receipt.invalid_task_cluster_count =
+            receipt.task_cluster_count - receipt.valid_task_cluster_count;
         let (recipes, concepts, summaries) = aggregate_for_endpoint(
             &task_rows,
             &["materials".into(), "biology".into()],
@@ -1313,8 +1345,14 @@ mod tests {
         assert_eq!(concept_a.recipe_template_count, 2);
         assert_eq!(concept_a.mean_recipe_effect, Some(ratio(101, 102)));
         assert_eq!(summaries.len(), 2);
+        let populated = summaries.iter().find(|s| s.domain_id == "materials").unwrap();
+        assert_eq!(populated.total_concept_clusters, 2);
+        assert_eq!(populated.valid_concept_clusters, 2);
+        assert_eq!(populated.discordant_concepts, 2);
+        assert_eq!(populated.exact_two_sided_sign_p_value, crate::Rational::new(1, 2).unwrap());
         let empty_domain = summaries.iter().find(|s| s.domain_id == "biology").unwrap();
         assert_eq!(empty_domain.valid_concept_clusters, 0);
+        assert_eq!(empty_domain.exact_two_sided_sign_p_value, crate::Rational::one());
         assert!(!empty_domain.meets_minimum_concept_count);
     }
 }
