@@ -273,9 +273,7 @@ fn require_digest(value: &str, label: &str) -> Result<(), DiscoveryClaimError> {
     Ok(())
 }
 
-fn validate_source_context(
-    context: &DiscoverySourceContext,
-) -> Result<(), DiscoveryClaimError> {
+fn validate_source_context(context: &DiscoverySourceContext) -> Result<(), DiscoveryClaimError> {
     for (value, label) in [
         (&context.campaign_id, "source campaign ID"),
         (&context.run_id, "source run ID"),
@@ -288,13 +286,19 @@ fn validate_source_context(
         require_id(value, label)?;
     }
     for (value, label) in [
-        (&context.calibration_chain_digest, "source calibration chain"),
+        (
+            &context.calibration_chain_digest,
+            "source calibration chain",
+        ),
         (&context.dataset_digest, "source dataset"),
         (&context.raw_observation_digest, "source raw observation"),
         (&context.task_manifest_digest, "source task manifest"),
         (&context.source_code_digest, "source code"),
         (&context.harness_digest, "source harness"),
-        (&context.pre_registration_receipt_digest, "source pre-registration receipt"),
+        (
+            &context.pre_registration_receipt_digest,
+            "source pre-registration receipt",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -324,8 +328,14 @@ fn validate_source_evidence(
         (&evidence.claim_result_digest, "claim result"),
         (&evidence.raw_observation_digest, "source raw observation"),
         (&evidence.analysis_receipt_digest, "source analysis receipt"),
-        (&evidence.evidence_verification_receipt_digest, "source evidence verification receipt"),
-        (&evidence.pre_registration_receipt_digest, "source pre-registration receipt"),
+        (
+            &evidence.evidence_verification_receipt_digest,
+            "source evidence verification receipt",
+        ),
+        (
+            &evidence.pre_registration_receipt_digest,
+            "source pre-registration receipt",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -346,7 +356,10 @@ fn validate_prior_art_assessment(
     for (value, label) in [
         (&search.corpus_snapshot_digest, "prior-art corpus snapshot"),
         (&search.query_bundle_digest, "prior-art query bundle"),
-        (&search.search_transcript_digest, "prior-art search transcript"),
+        (
+            &search.search_transcript_digest,
+            "prior-art search transcript",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -370,20 +383,30 @@ fn validate_prior_art_assessment(
     }
     for reference in &search.retrieved_candidate_references {
         require_digest(&reference.reference_digest, "prior-art candidate reference")?;
-        require_digest(&reference.relevance_note_digest, "prior-art candidate relevance note")?;
+        require_digest(
+            &reference.relevance_note_digest,
+            "prior-art candidate relevance note",
+        )?;
     }
 
     let mut reviewers = BTreeSet::new();
     let mut outcomes = BTreeSet::new();
     for adjudication in &assessment.adjudications {
         require_id(&adjudication.reviewer_id, "prior-art reviewer ID")?;
-        require_digest(&adjudication.reviewed_transcript_digest, "reviewed prior-art transcript")?;
-        require_digest(&adjudication.rationale_digest, "prior-art adjudication rationale")?;
+        require_digest(
+            &adjudication.reviewed_transcript_digest,
+            "reviewed prior-art transcript",
+        )?;
+        require_digest(
+            &adjudication.rationale_digest,
+            "prior-art adjudication rationale",
+        )?;
         if adjudication.reviewed_transcript_digest != search.search_transcript_digest
             || !reviewers.insert(adjudication.reviewer_id.clone())
         {
             return Err(DiscoveryClaimError::PriorArtAdjudication(
-                "prior-art reviewers must be distinct and review the frozen search transcript".into(),
+                "prior-art reviewers must be distinct and review the frozen search transcript"
+                    .into(),
             ));
         }
         outcomes.insert(adjudication.outcome);
@@ -414,7 +437,10 @@ fn validate_replication(
 ) -> Result<(), DiscoveryClaimError> {
     for (value, label) in [
         (&replication.replication_id, "replication ID"),
-        (&replication.replication_campaign_id, "replication campaign ID"),
+        (
+            &replication.replication_campaign_id,
+            "replication campaign ID",
+        ),
         (&replication.run_id, "replication run ID"),
         (&replication.operator_id, "replication operator ID"),
         (&replication.team_id, "replication team ID"),
@@ -425,16 +451,37 @@ fn validate_replication(
         require_id(value, label)?;
     }
     for (value, label) in [
-        (&replication.calibration_chain_digest, "replication calibration chain"),
+        (
+            &replication.calibration_chain_digest,
+            "replication calibration chain",
+        ),
         (&replication.dataset_digest, "replication dataset"),
-        (&replication.task_manifest_digest, "replication task manifest"),
+        (
+            &replication.task_manifest_digest,
+            "replication task manifest",
+        ),
         (&replication.source_code_digest, "replication source code"),
         (&replication.harness_digest, "replication harness"),
-        (&replication.raw_observation_digest, "replication raw observation"),
-        (&replication.analysis_receipt_digest, "replication analysis receipt"),
-        (&replication.pre_registration_receipt_digest, "replication pre-registration receipt"),
-        (&replication.criterion_receipt_digest, "replication criterion receipt"),
-        (&replication.evidence_verification_receipt_digest, "replication evidence verification receipt"),
+        (
+            &replication.raw_observation_digest,
+            "replication raw observation",
+        ),
+        (
+            &replication.analysis_receipt_digest,
+            "replication analysis receipt",
+        ),
+        (
+            &replication.pre_registration_receipt_digest,
+            "replication pre-registration receipt",
+        ),
+        (
+            &replication.criterion_receipt_digest,
+            "replication criterion receipt",
+        ),
+        (
+            &replication.evidence_verification_receipt_digest,
+            "replication evidence verification receipt",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -507,7 +554,10 @@ pub fn verify_discovery_claim_dossier(
     dossier: &DiscoveryClaimDossier,
 ) -> Result<DiscoveryClaimVerificationReceipt, DiscoveryClaimError> {
     require_id(&dossier.claim_id, "claim ID")?;
-    require_digest(&dossier.canonical_proposition_digest, "canonical proposition")?;
+    require_digest(
+        &dossier.canonical_proposition_digest,
+        "canonical proposition",
+    )?;
     validate_source_context(&dossier.source_context)?;
     validate_source_evidence(&dossier.source_evidence, &dossier.source_context)?;
 
@@ -545,9 +595,15 @@ pub fn verify_discovery_claim_dossier(
         match replication.outcome {
             ReplicationOutcome::Replicated => {
                 let level = match replication.level {
-                    ReplicationLevel::SameArtifactReplay => StrongestReplicationResult::SameArtifactReplay,
-                    ReplicationLevel::IndependentReproduction => StrongestReplicationResult::IndependentReproduction,
-                    ReplicationLevel::ExternalReplication => StrongestReplicationResult::ExternalReplication,
+                    ReplicationLevel::SameArtifactReplay => {
+                        StrongestReplicationResult::SameArtifactReplay
+                    }
+                    ReplicationLevel::IndependentReproduction => {
+                        StrongestReplicationResult::IndependentReproduction
+                    }
+                    ReplicationLevel::ExternalReplication => {
+                        StrongestReplicationResult::ExternalReplication
+                    }
                 };
                 if level > strongest_successful_replication {
                     strongest_successful_replication = level;
@@ -556,47 +612,62 @@ pub fn verify_discovery_claim_dossier(
             ReplicationOutcome::NotReplicated => match replication.level {
                 ReplicationLevel::SameArtifactReplay => {}
                 ReplicationLevel::IndependentReproduction => {
-                    independent_replication_failures = independent_replication_failures.checked_add(1).ok_or_else(|| {
-                        DiscoveryClaimError::ArithmeticOverflow("independent failure count overflow".into())
-                    })?;
+                    independent_replication_failures = independent_replication_failures
+                        .checked_add(1)
+                        .ok_or_else(|| {
+                            DiscoveryClaimError::ArithmeticOverflow(
+                                "independent failure count overflow".into(),
+                            )
+                        })?;
                 }
                 ReplicationLevel::ExternalReplication => {
-                    external_replication_failures = external_replication_failures.checked_add(1).ok_or_else(|| {
-                        DiscoveryClaimError::ArithmeticOverflow("external failure count overflow".into())
-                    })?;
+                    external_replication_failures = external_replication_failures
+                        .checked_add(1)
+                        .ok_or_else(|| {
+                            DiscoveryClaimError::ArithmeticOverflow(
+                                "external failure count overflow".into(),
+                            )
+                        })?;
                 }
             },
             ReplicationOutcome::Inconclusive => {
-                inconclusive_replications = inconclusive_replications.checked_add(1).ok_or_else(|| {
-                    DiscoveryClaimError::ArithmeticOverflow("inconclusive replication count overflow".into())
-                })?;
+                inconclusive_replications =
+                    inconclusive_replications.checked_add(1).ok_or_else(|| {
+                        DiscoveryClaimError::ArithmeticOverflow(
+                            "inconclusive replication count overflow".into(),
+                        )
+                    })?;
             }
         }
     }
     replication_receipt_ids.sort();
-    replication_outcomes.sort_by(|left, right| {
-        left.replication_id.cmp(&right.replication_id)
-    });
+    replication_outcomes.sort_by(|left, right| left.replication_id.cmp(&right.replication_id));
 
     let disposition = match dossier.source_evidence.preregistered_outcome {
         PreregisteredClaimOutcome::Contradicted => DiscoveryClaimDisposition::Contradicted,
         PreregisteredClaimOutcome::Inconclusive => DiscoveryClaimDisposition::Inconclusive,
         PreregisteredClaimOutcome::Supported => match prior_art_scope_result {
             PriorArtScopeResult::KnownPriorArtFound => {
-                if strongest_successful_replication >= StrongestReplicationResult::IndependentReproduction {
+                if strongest_successful_replication
+                    >= StrongestReplicationResult::IndependentReproduction
+                {
                     DiscoveryClaimDisposition::ReproducedKnownFinding
                 } else {
                     DiscoveryClaimDisposition::KnownFindingWithoutIndependentReproduction
                 }
             }
             PriorArtScopeResult::NoPriorArtFoundWithinDeclaredCorpus => {
-                if strongest_successful_replication >= StrongestReplicationResult::IndependentReproduction {
+                if strongest_successful_replication
+                    >= StrongestReplicationResult::IndependentReproduction
+                {
                     DiscoveryClaimDisposition::ProvisionalNovelCandidate
                 } else {
                     DiscoveryClaimDisposition::NoPriorArtCandidateNotYetIndependentlyReproduced
                 }
             }
-            PriorArtScopeResult::PriorArtSearchInconclusive => DiscoveryClaimDisposition::Inconclusive,
+            PriorArtScopeResult::PriorArtSearchInconclusive => {
+                DiscoveryClaimDisposition::Inconclusive
+            }
         },
     };
 
@@ -611,7 +682,11 @@ pub fn verify_discovery_claim_dossier(
         disposition,
         evidence_split: dossier.source_evidence.evidence_split,
         prior_art_corpus_snapshot_digest: dossier.prior_art.search.corpus_snapshot_digest.clone(),
-        prior_art_search_transcript_digest: dossier.prior_art.search.search_transcript_digest.clone(),
+        prior_art_search_transcript_digest: dossier
+            .prior_art
+            .search
+            .search_transcript_digest
+            .clone(),
         source_claim_result_digest: dossier.source_evidence.claim_result_digest.clone(),
         replication_receipt_ids,
         replication_outcomes,
@@ -623,15 +698,14 @@ pub fn verify_discovery_claim_dossier(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        DiscoveryClaimDossier, DiscoveryClaimDisposition, DiscoveryClaimEvidence,
-        DiscoveryReplicationReceipt, DiscoverySourceContext, PriorArtAdjudication,
-        PriorArtAdjudicationOutcome, PriorArtAssessment, PriorArtMatchReference,
-        PriorArtSearchReceipt, PreregisteredClaimOutcome, PriorArtScopeResult,
-        ReplicationLevel, ReplicationOutcome, StrongestReplicationResult,
-        verify_discovery_claim_dossier,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
+    use super::{
+        DiscoveryClaimDisposition, DiscoveryClaimDossier, DiscoveryClaimEvidence,
+        DiscoveryReplicationReceipt, DiscoverySourceContext, PreregisteredClaimOutcome,
+        PriorArtAdjudication, PriorArtAdjudicationOutcome, PriorArtAssessment,
+        PriorArtMatchReference, PriorArtScopeResult, PriorArtSearchReceipt, ReplicationLevel,
+        ReplicationOutcome, StrongestReplicationResult, verify_discovery_claim_dossier,
+    };
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const D2: &str = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -768,9 +842,18 @@ mod tests {
             vec![external_replication(ReplicationOutcome::Replicated)],
         ))
         .unwrap();
-        assert_eq!(result.prior_art_scope_result, PriorArtScopeResult::KnownPriorArtFound);
-        assert_eq!(result.strongest_successful_replication, StrongestReplicationResult::ExternalReplication);
-        assert_eq!(result.disposition, DiscoveryClaimDisposition::ReproducedKnownFinding);
+        assert_eq!(
+            result.prior_art_scope_result,
+            PriorArtScopeResult::KnownPriorArtFound
+        );
+        assert_eq!(
+            result.strongest_successful_replication,
+            StrongestReplicationResult::ExternalReplication
+        );
+        assert_eq!(
+            result.disposition,
+            DiscoveryClaimDisposition::ReproducedKnownFinding
+        );
         assert!(!result.absolute_novelty_claim_made);
     }
 
@@ -781,8 +864,14 @@ mod tests {
             vec![independent_replication(ReplicationOutcome::Replicated)],
         ))
         .unwrap();
-        assert_eq!(result.prior_art_scope_result, PriorArtScopeResult::NoPriorArtFoundWithinDeclaredCorpus);
-        assert_eq!(result.disposition, DiscoveryClaimDisposition::ProvisionalNovelCandidate);
+        assert_eq!(
+            result.prior_art_scope_result,
+            PriorArtScopeResult::NoPriorArtFoundWithinDeclaredCorpus
+        );
+        assert_eq!(
+            result.disposition,
+            DiscoveryClaimDisposition::ProvisionalNovelCandidate
+        );
         assert!(!result.absolute_novelty_claim_made);
     }
 
@@ -801,8 +890,14 @@ mod tests {
             vec![replay],
         ))
         .unwrap();
-        assert_eq!(result.strongest_successful_replication, StrongestReplicationResult::SameArtifactReplay);
-        assert_eq!(result.disposition, DiscoveryClaimDisposition::NoPriorArtCandidateNotYetIndependentlyReproduced);
+        assert_eq!(
+            result.strongest_successful_replication,
+            StrongestReplicationResult::SameArtifactReplay
+        );
+        assert_eq!(
+            result.disposition,
+            DiscoveryClaimDisposition::NoPriorArtCandidateNotYetIndependentlyReproduced
+        );
     }
 
     #[test]
@@ -813,7 +908,10 @@ mod tests {
         );
         dossier.prior_art.search.search_completed = false;
         let result = verify_discovery_claim_dossier(&dossier).unwrap();
-        assert_eq!(result.prior_art_scope_result, PriorArtScopeResult::PriorArtSearchInconclusive);
+        assert_eq!(
+            result.prior_art_scope_result,
+            PriorArtScopeResult::PriorArtSearchInconclusive
+        );
         assert_eq!(result.disposition, DiscoveryClaimDisposition::Inconclusive);
     }
 
@@ -829,7 +927,10 @@ mod tests {
         .unwrap();
         assert_eq!(result.independent_replication_failures, 1);
         assert_eq!(result.inconclusive_replications, 1);
-        assert_eq!(result.disposition, DiscoveryClaimDisposition::NoPriorArtCandidateNotYetIndependentlyReproduced);
+        assert_eq!(
+            result.disposition,
+            DiscoveryClaimDisposition::NoPriorArtCandidateNotYetIndependentlyReproduced
+        );
         assert!(result.all_adverse_replication_outcomes_retained);
     }
 
@@ -837,48 +938,66 @@ mod tests {
     fn independent_reproduction_rejects_same_operator_dataset_or_seed() {
         let mut receipt = independent_replication(ReplicationOutcome::Replicated);
         receipt.operator_id = "source-operator".into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
+                vec![receipt],
+            ))
+            .is_err()
+        );
 
         let mut receipt = independent_replication(ReplicationOutcome::Replicated);
         receipt.dataset_digest = D2.into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
+                vec![receipt],
+            ))
+            .is_err()
+        );
 
         let mut receipt = independent_replication(ReplicationOutcome::Replicated);
         receipt.seed_namespace_id = "source-seed".into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
+                vec![receipt],
+            ))
+            .is_err()
+        );
     }
 
     #[test]
     fn external_replication_requires_distinct_lab_apparatus_and_calibration() {
         let mut receipt = external_replication(ReplicationOutcome::Replicated);
         receipt.laboratory_id = "source-lab".into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::RelevantPriorArt,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::RelevantPriorArt,
+                vec![receipt],
+            ))
+            .is_err()
+        );
 
         let mut receipt = external_replication(ReplicationOutcome::Replicated);
         receipt.apparatus_id = "source-apparatus".into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::RelevantPriorArt,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::RelevantPriorArt,
+                vec![receipt],
+            ))
+            .is_err()
+        );
 
         let mut receipt = external_replication(ReplicationOutcome::Replicated);
         receipt.calibration_chain_digest = D1.into();
-        assert!(verify_discovery_claim_dossier(&dossier(
-            PriorArtAdjudicationOutcome::RelevantPriorArt,
-            vec![receipt],
-        )).is_err());
+        assert!(
+            verify_discovery_claim_dossier(&dossier(
+                PriorArtAdjudicationOutcome::RelevantPriorArt,
+                vec![receipt],
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -894,7 +1013,8 @@ mod tests {
             PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
             vec![independent_replication(ReplicationOutcome::Replicated)],
         );
-        dossier.prior_art.adjudications[1].reviewer_id = dossier.prior_art.adjudications[0].reviewer_id.clone();
+        dossier.prior_art.adjudications[1].reviewer_id =
+            dossier.prior_art.adjudications[0].reviewer_id.clone();
         assert!(verify_discovery_claim_dossier(&dossier).is_err());
 
         let mut dossier = dossier(
@@ -903,7 +1023,10 @@ mod tests {
         );
         dossier.prior_art.adjudications[1].outcome = PriorArtAdjudicationOutcome::RelevantPriorArt;
         let result = verify_discovery_claim_dossier(&dossier).unwrap();
-        assert_eq!(result.prior_art_scope_result, PriorArtScopeResult::PriorArtSearchInconclusive);
+        assert_eq!(
+            result.prior_art_scope_result,
+            PriorArtScopeResult::PriorArtSearchInconclusive
+        );
         assert_eq!(result.disposition, DiscoveryClaimDisposition::Inconclusive);
     }
 
