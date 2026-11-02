@@ -14,24 +14,30 @@ use crate::grid_convergence::{
     GciReport, GciStudy, GridFamilyKind, GridObservation, evaluate_grid_convergence,
 };
 use crate::integrity::sha256_hex;
+use crate::su2_boundary_audit::Su2BoundaryAuditReport;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
+use crate::su2_field_preflight::Su2FieldPreflightReport;
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh};
-use crate::su2_run_binding::{
-    Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
+use crate::su2_run_binding::{Su2RunInputBindings, Su2RunLineageBinding};
+use crate::su2_verified_run_bundle::{
+    Su2VerifiedRunBundleInputs, create_su2_verified_run_bundle,
 };
 
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
     "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
 pub const SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE: f64 = 1.0e-10;
-pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_with_mesh_derived_2d_area_spacing_not_full_cfd_admission_or_experimental_validation";
+pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_preflight_boundary_production_run_bundles_and_terminal_monitor_derived_gci_with_mesh_derived_2d_area_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
 pub struct Su2GridFamilyMember {
     pub grid_id: String,
     /// Positive, unique, coarse-to-fine level identifier.
     pub grid_level: u32,
+    pub dry_run_directory: PathBuf,
+    pub field_preflight: Su2FieldPreflightReport,
+    pub boundary_audit: Su2BoundaryAuditReport,
     pub run_directory: PathBuf,
     pub history: Su2HistoryReport,
     pub convergence_screen: ConvergenceScreen,
@@ -77,6 +83,9 @@ pub struct Su2GridFamilyMemberAudit {
     pub history_import_sha256: String,
     pub convergence_screen_sha256: String,
     pub lineage_binding_sha256: String,
+    pub field_preflight_sha256: String,
+    pub boundary_audit_sha256: String,
+    pub verified_run_bundle_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -204,6 +213,9 @@ fn canonical_bytes(report: &Su2GridFamilyReport) -> Vec<u8> {
             member.history_import_sha256.as_str(),
             member.convergence_screen_sha256.as_str(),
             member.lineage_binding_sha256.as_str(),
+            member.field_preflight_sha256.as_str(),
+            member.boundary_audit_sha256.as_str(),
+            member.verified_run_bundle_sha256.as_str(),
         ] {
             append_string(&mut bytes, value);
         }
@@ -424,14 +436,17 @@ pub fn evaluate_su2_grid_family_study(
             }
         }
 
-        verify_su2_run_lineage_binding(
-            &member.run_directory,
-            &member.history,
-            &member.convergence_screen,
-            &member.input_bindings,
-            &member.additional_output_paths,
-            &member.lineage_binding,
-        )?;
+        let verified_bundle = create_su2_verified_run_bundle(&Su2VerifiedRunBundleInputs {
+            dry_run_directory: &member.dry_run_directory,
+            production_run_directory: &member.run_directory,
+            field_preflight: &member.field_preflight,
+            boundary_audit: &member.boundary_audit,
+            history: &member.history,
+            convergence_screen: &member.convergence_screen,
+            input_bindings: &member.input_bindings,
+            additional_output_paths: &member.additional_output_paths,
+            lineage_binding: &member.lineage_binding,
+        })?;
         let binding = &member.lineage_binding;
         if binding.solver_id != "SU2_CFD" {
             return Err(format!(
@@ -533,6 +548,9 @@ pub fn evaluate_su2_grid_family_study(
             history_import_sha256: binding.history_import_sha256.clone(),
             convergence_screen_sha256: binding.convergence_screen_sha256.clone(),
             lineage_binding_sha256: binding.binding_sha256.clone(),
+            field_preflight_sha256: member.field_preflight.preflight_sha256.clone(),
+            boundary_audit_sha256: member.boundary_audit.audit_sha256.clone(),
+            verified_run_bundle_sha256: verified_bundle.bundle_sha256,
         });
     }
 
@@ -601,7 +619,7 @@ pub fn verify_su2_grid_family_report(
     Ok(())
 }
 
-pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,mesh_coordinate_unit,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,mesh_cell_count,mesh_total_cell_area,mesh_mean_cell_area,mesh_minimum_cell_area,mesh_maximum_cell_area,mesh_cell_area_coefficient_of_variation,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
+pub const SU2_GRID_FAMILY_CSV_HEADER: &str = "schema,study_id,case_id,protocol_manifest_sha256,quantity,quantity_field,quantity_unit,source_reference,spacing_definition,mesh_coordinate_unit,solver_id,solver_version_claim,solver_executable_sha256,physics_configuration_sha256,geometry_sha256,grid_family_kind,safety_factor,grid_id,grid_level,run_id,characteristic_spacing,mesh_cell_count,mesh_total_cell_area,mesh_mean_cell_area,mesh_minimum_cell_area,mesh_maximum_cell_area,mesh_cell_area_coefficient_of_variation,quantity_value,terminal_rows_used,mesh_sha256,history_sha256,history_import_sha256,convergence_screen_sha256,lineage_binding_sha256,field_preflight_sha256,boundary_audit_sha256,verified_run_bundle_sha256,gci_triplet_count,gci_report_sha256,study_sha256,evidence_level";
 
 /// Export every sliding GCI triplet; the member CSV intentionally contains only its digest.
 pub fn gci_report_to_csv(report: &Su2GridFamilyReport) -> String {
@@ -646,6 +664,9 @@ pub fn report_to_csv(report: &Su2GridFamilyReport) -> String {
             member.history_import_sha256.clone(),
             member.convergence_screen_sha256.clone(),
             member.lineage_binding_sha256.clone(),
+            member.field_preflight_sha256.clone(),
+            member.boundary_audit_sha256.clone(),
+            member.verified_run_bundle_sha256.clone(),
             report.gci_report.triplets.len().to_string(),
             report.gci_report_sha256.clone(),
             report.study_sha256.clone(),
