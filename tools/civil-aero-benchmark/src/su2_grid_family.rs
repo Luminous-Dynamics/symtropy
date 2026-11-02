@@ -780,7 +780,7 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
+            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nWINDOW_CAUCHY_CRIT= NO\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
