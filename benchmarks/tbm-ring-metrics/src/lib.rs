@@ -9,10 +9,10 @@ pub struct ExcavationSegment {
     pub axial_advance_millimetres: u64,
     pub cutterhead_revolutions: u64,
     /// Integrated mechanical energy at the declared excavation boundary.
-    pub mechanical_excavation_energy_watt_hours: u64,
+    pub mechanical_excavation_energy_watt_hours: Option<u64>,
     pub excavated_volume_litres: u64,
     /// Integrated energy from a separately declared whole-site meter boundary.
-    pub whole_site_electrical_energy_watt_hours: u64,
+    pub whole_site_electrical_energy_watt_hours: Option<u64>,
     pub accepted_excavation_volume_litres: u64,
 }
 
@@ -24,7 +24,6 @@ pub enum MetricError {
     ZeroAcceptedVolume,
     AcceptedVolumeExceedsExcavated,
     ZeroInspectionIntervalVolume,
-    CutterIdentityChanged,
     InspectionIdentityInvalid,
     RadiusIncreased,
     ArithmeticOverflow,
@@ -33,8 +32,8 @@ pub enum MetricError {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ExcavationMetrics {
     pub penetration_millimetres_per_revolution: f64,
-    pub mechanical_specific_excavation_energy_kwh_per_m3: f64,
-    pub whole_site_electrical_energy_kwh_per_accepted_m3: f64,
+    pub mechanical_specific_excavation_energy_kwh_per_m3: Option<f64>,
+    pub whole_site_electrical_energy_kwh_per_accepted_m3: Option<f64>,
     pub accepted_volume_fraction: f64,
 }
 
@@ -59,10 +58,12 @@ pub fn derive_excavation_metrics(
     }
 
     // Wh/L is numerically identical to kWh/m³ because 1 L = 0.001 m³.
-    let mechanical_specific_energy = segment.mechanical_excavation_energy_watt_hours as f64
-        / segment.excavated_volume_litres as f64;
-    let site_electrical_energy = segment.whole_site_electrical_energy_watt_hours as f64
-        / segment.accepted_excavation_volume_litres as f64;
+    let mechanical_specific_energy = segment
+        .mechanical_excavation_energy_watt_hours
+        .map(|energy_wh| energy_wh as f64 / segment.excavated_volume_litres as f64);
+    let site_electrical_energy = segment
+        .whole_site_electrical_energy_watt_hours
+        .map(|energy_wh| energy_wh as f64 / segment.accepted_excavation_volume_litres as f64);
 
     Ok(ExcavationMetrics {
         penetration_millimetres_per_revolution: segment.axial_advance_millimetres as f64
@@ -143,9 +144,9 @@ mod tests {
             segment_id: "drive-a-ring-100".into(),
             axial_advance_millimetres: 1_100,
             cutterhead_revolutions: 100,
-            mechanical_excavation_energy_watt_hours: 3_000,
+            mechanical_excavation_energy_watt_hours: Some(3_000),
             excavated_volume_litres: 500,
-            whole_site_electrical_energy_watt_hours: 5_000,
+            whole_site_electrical_energy_watt_hours: Some(5_000),
             accepted_excavation_volume_litres: 400,
         }
     }
@@ -166,18 +167,18 @@ mod tests {
     fn hand_calculates_penetration_and_separate_energy_boundaries() {
         let metrics = derive_excavation_metrics(&segment()).unwrap();
         assert!((metrics.penetration_millimetres_per_revolution - 11.0).abs() < 1e-12);
-        assert!((metrics.mechanical_specific_excavation_energy_kwh_per_m3 - 6.0).abs() < 1e-12);
-        assert!((metrics.whole_site_electrical_energy_kwh_per_accepted_m3 - 12.5).abs() < 1e-12);
+        assert!((metrics.mechanical_specific_excavation_energy_kwh_per_m3.unwrap() - 6.0).abs() < 1e-12);
+        assert!((metrics.whole_site_electrical_energy_kwh_per_accepted_m3.unwrap() - 12.5).abs() < 1e-12);
         assert!((metrics.accepted_volume_fraction - 0.8).abs() < 1e-12);
     }
 
     #[test]
     fn installed_or_mechanical_energy_is_not_substituted_for_site_electricity() {
         let mut s = segment();
-        s.whole_site_electrical_energy_watt_hours = 0;
+        s.whole_site_electrical_energy_watt_hours = None;
         let m = derive_excavation_metrics(&s).unwrap();
-        assert_eq!(m.mechanical_specific_excavation_energy_kwh_per_m3, 6.0);
-        assert_eq!(m.whole_site_electrical_energy_kwh_per_accepted_m3, 0.0);
+        assert_eq!(m.mechanical_specific_excavation_energy_kwh_per_m3, Some(6.0));
+        assert_eq!(m.whole_site_electrical_energy_kwh_per_accepted_m3, None);
     }
 
     #[test]
