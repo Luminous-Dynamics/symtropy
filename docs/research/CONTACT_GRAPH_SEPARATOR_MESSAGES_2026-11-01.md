@@ -203,3 +203,22 @@ A local hypothesis defeater never means global NO-SOLUTION. Alternative contact 
 The independent composite verifier replays both source partition covers/classifications, reconstructs the full Cartesian product, recomputes every nonempty intersection, and requires one retained composed cell for each lineage pair. Geometry is not the identity key: two different branch pairs that intersect on the same split face remain two separate composed cells. A dropped intersection cell or relabelled branch fails verification.
 
 This exposes the combinatorial cost of composition directly: source cell counts, Cartesian candidate-pair count, empty intersections, distinct geometric intersections, label/lineage multiplicity, unresolved coverage and resource-budget carry-through must all be reported.
+
+
+## N-ary composition of separator messages — 2026-11-02
+
+[Issue #3303](https://github.com/Luminous-Dynamics/symtropy/issues/3303) and the implementation branch research/contact-nary-message-join-2026-11-02 extend binary composition to three or more independently certified local response partitions.
+
+The join:
+- requires one exactly shared separator root box;
+- assigns each source a stable source_id and canonicalizes source order by that ID;
+- retains a full vector of local classifications and binary lineages for every output cell;
+- intersects each source cell incrementally, but never deduplicates cells by geometry;
+- counts the entire Cartesian product with checked multiplication and records every empty full tuple;
+- reports LocalHypothesisExcluded if at least one local hypothesis is strictly defeated, AllLocalHypothesesStrict only when every source is strict, and BoundaryOrInconclusive otherwise.
+
+The independent verifier uses a separate explicit-stack traversal of the complete Cartesian product. It recomputes each full intersection directly from the source cells, including tuples whose prefix intersection is already empty, and compares a lineage-tuple-keyed expected map against the producer output. It rejects missing, duplicated, relabelled, re-lineaged or geometrically altered cells. Canonical source identities make output invariant to caller enumeration order.
+
+The first bounded tests exercise three- and six-source joins, empty/full tuple accounting, source-order permutation, strict/excluded/boundary combinations, duplicate geometric split faces with distinct lineage tuples, and negative controls for deletion, duplication, relabelling, and geometry mutation. The checked-product helper also has an explicit usize overflow control.
+
+**Claim boundary:** this composes already-certified separating-leaf partitions. It is not yet a full tree-decomposition solver; it does not compose sticking and sliding response types into a common trait, solve sliding-leaf direction resultants, or propagate correlated body-parameter uncertainty. The raw Cartesian product remains an explicit scaling cost.
