@@ -64,6 +64,7 @@ pub enum ImpactError {
 }
 
 pub mod bounce_sequence;
+pub mod event_localization;
 
 fn finite(value: f64) -> bool {
     value.is_finite()
