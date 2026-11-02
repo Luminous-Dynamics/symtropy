@@ -580,6 +580,17 @@ impl SeparatingLeafMessage {
             {
                 return false;
             }
+
+            // Independently replay the interval classification as well as
+            // reconstructing the geometry of every retained leaf. A valid
+            // cover may not relabel a boundary cell as a strict regime.
+            let replayed_classification = self
+                .response_over_box(&cell.separator_box)
+                .map(|response| response.classification)
+                .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
+            if replayed_classification != cell.classification {
+                return false;
+            }
         }
         let paths = leaves.keys().cloned().collect::<Vec<_>>();
         for (index, path) in paths.iter().enumerate() {
