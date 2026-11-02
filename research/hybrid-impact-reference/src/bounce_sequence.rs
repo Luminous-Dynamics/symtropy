@@ -46,6 +46,14 @@ pub struct BounceImpactState {
     pub cumulative_energy_balance_residual_j: f64,
 }
 
+fn is_zero_restitution(value: f64) -> bool {
+    value.to_bits() & 0x7fff_ffff_ffff_ffff == 0
+}
+
+fn is_unit_restitution(value: f64) -> bool {
+    value.to_bits() == 1.0_f64.to_bits()
+}
+
 fn pow_u64(mut base: f64, mut exponent: u64) -> f64 {
     let mut result = 1.0;
     while exponent > 0 {
@@ -62,10 +70,10 @@ fn pow_u64(mut base: f64, mut exponent: u64) -> f64 {
 
 /// Compute e + e^2 + ... + e^n without catastrophic cancellation near e = 1.
 fn geometric_sum_from_one(restitution: f64, terms: u64) -> f64 {
-    if terms == 0 || restitution == 0.0 {
+    if terms == 0 || is_zero_restitution(restitution) {
         return 0.0;
     }
-    if restitution == 1.0 {
+    if is_unit_restitution(restitution) {
         return terms as f64;
     }
 
@@ -81,20 +89,24 @@ pub fn impact_sequence_summary(
     let first = first_impact(parameters)?;
     let initial_speed = -first.pre_impact_velocity_m_s;
 
-    let (regime, zeno_accumulation_time_s) = match parameters.restitution {
-        0.0 => (ImpactSequenceRegime::SettlesAfterFirstImpact, None),
-        1.0 => (ImpactSequenceRegime::NonAccumulating, None),
-        restitution => {
-            let flight_scale = finite_or_overflow(
-                (initial_speed / parameters.gravity_m_s2) * 2.0,
-            )?;
-            let remaining_flight_sum =
-                finite_or_overflow(restitution / (1.0 - restitution))?;
-            let tail = finite_or_overflow(flight_scale * remaining_flight_sum)?;
-            let zeno_time =
-                finite_or_overflow(first.impact_time_s + tail)?;
-            (ImpactSequenceRegime::FiniteTimeZeno, Some(zeno_time))
+    let restitution = parameters.restitution;
+    let (regime, zeno_accumulation_time_s) = if is_zero_restitution(restitution) {
+        (ImpactSequenceRegime::SettlesAfterFirstImpact, None)
+    } else if is_unit_restitution(restitution) {
+        (ImpactSequenceRegime::NonAccumulating, None)
+    } else {
+        let flight_scale = finite_or_overflow(
+            (initial_speed / parameters.gravity_m_s2) * 2.0,
+        )?;
+        let remaining_flight_sum =
+            finite_or_overflow(restitution / (1.0 - restitution))?;
+        let tail = finite_or_overflow(flight_scale * remaining_flight_sum)?;
+        let zeno_time =
+            finite_or_overflow(first.impact_time_s + tail)?;
+        if zeno_time <= first.impact_time_s {
+            return Err(ImpactError::TimeResolutionExhausted);
         }
+        (ImpactSequenceRegime::FiniteTimeZeno, Some(zeno_time))
     };
 
     Ok(ImpactSequenceSummary {
@@ -120,7 +132,7 @@ pub fn bounce_impact_state(
 
     let first = first_impact(parameters)?;
     let restitution = parameters.restitution;
-    if impact_number > 1 && restitution == 0.0 {
+    if impact_number > 1 && is_zero_restitution(restitution) {
         return Err(ImpactError::NoFurtherImpactAfterRest);
     }
 
@@ -164,13 +176,13 @@ pub fn bounce_impact_state(
         0.5 * parameters.mass_kg * one_minus_e_squared * incoming_speed_squared,
     )?;
 
-    let cumulative_fraction = match restitution {
-        0.0 => 1.0,
-        1.0 => 0.0,
-        value => {
-            let exponent = 2.0 * (impact_number as f64) * value.ln();
-            -exponent.exp_m1()
-        }
+    let cumulative_fraction = if is_zero_restitution(restitution) {
+        1.0
+    } else if is_unit_restitution(restitution) {
+        0.0
+    } else {
+        let exponent = 2.0 * (impact_number as f64) * restitution.ln();
+        -exponent.exp_m1()
     };
     let cumulative_impact_dissipation_j = finite_or_overflow(
         first.pre_impact_kinetic_energy_j * cumulative_fraction,
