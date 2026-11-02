@@ -689,6 +689,7 @@ fn build_task_rows(
         require_id(&artifact.domain_id, "task domain ID")?;
         if artifact.split != EvidenceSplit::SealedHoldout
             || artifact.family_group_id != plan.group_id
+            || !families.contains(&artifact.mechanism_family_id)
             || !domains.contains(&artifact.domain_id)
         {
             return Err(HierarchicalInferenceError::TaskBindingMismatch(format!(
@@ -725,6 +726,12 @@ fn build_task_rows(
                 cluster.task_id
             ))
         })?;
+        if artifact.mechanism_family_id != cluster.mechanism_family_id {
+            return Err(HierarchicalInferenceError::TaskBindingMismatch(format!(
+                "task {} release mechanism-family {} differs from reliability cluster {}",
+                cluster.task_id, artifact.mechanism_family_id, cluster.mechanism_family_id
+            )));
+        }
         if cluster.invalid_task_cluster && (cluster.reference.is_some() || cluster.candidate.is_some()) {
             return Err(HierarchicalInferenceError::InvalidHierarchy(
                 "invalid task cluster must not contain arm outcomes".into(),
@@ -1029,12 +1036,21 @@ where
         all_summaries.extend(summaries);
     }
     apply_holm(&mut all_summaries, plan.family_wise_alpha)?;
-    let recipe_template_count = release.task_artifacts.iter()
-        .map(|task| task.recipe_template_digest.clone())
+    let recipe_template_count = all_recipe_details.iter()
+        .map(|detail| (
+            detail.domain_id.clone(),
+            detail.mechanism_family_id.clone(),
+            detail.concept_digest.clone(),
+            detail.recipe_template_digest.clone(),
+        ))
         .collect::<BTreeSet<_>>()
         .len();
-    let concept_cluster_count = release.task_artifacts.iter()
-        .map(|task| (task.domain_id.clone(), task.concept_digest.clone()))
+    let concept_cluster_count = all_concept_details.iter()
+        .map(|detail| (
+            detail.domain_id.clone(),
+            detail.mechanism_family_id.clone(),
+            detail.concept_digest.clone(),
+        ))
         .collect::<BTreeSet<_>>()
         .len();
     let valid_concept_cluster_count = all_concept_details.iter()
