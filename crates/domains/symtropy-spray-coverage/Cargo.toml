@@ -1,0 +1,12 @@
+[package]
+name = "symtropy-spray-coverage"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic geometric spray-cone coverage and occlusion estimates for cleaning-system design"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+keywords = ["spray", "coverage", "geometry", "simulation"]
+categories = ["simulation", "science"]
+
+[dependencies]
