@@ -57,6 +57,30 @@
         "evidence_class": "published_systematic_review_86_studies",
         "assurance": "review-level synthesis and deployment recommendations; not an independent benchmark result",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WATER_2026_XAI_DIGITAL_TWIN_REVIEW_48_RECORDS",
+        "uri": "https://www.mdpi.com/2073-4441/18/19/2443",
+        "period": "2026",
+        "evidence_class": "published_systematic_review",
+        "assurance": "48-record review corpus; maturity counts and gaps reflect the review's own inclusion/classification, not an exhaustive deployment census",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "AWWA_MODEL_OR_DIGITAL_TWIN_SURVEY_2026",
+        "uri": "https://doi.org/10.1002/awwa.70075",
+        "period": "published_2026-04-15_survey_fieldwork_2024",
+        "evidence_class": "published_utility_survey_analysis",
+        "assurance": "survey findings about 2024 utility practices and implementation planning; not current 2026 installed-base measurement",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026",
+        "uri": "https://doi.org/10.1016/j.jhydrol.2026.136514",
+        "period": "2026-11_listing",
+        "evidence_class": "published_method_paper",
+        "assurance": "reported 91.4% accuracy and 4.2% false positives are specific to the article's own setup; exact cross-paper comparability not established",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -262,6 +286,12 @@
       "unit": "time_to_threshold_and_service_deficit_curve",
       "direction": "report_per_node_and_group_no_composite",
       "distributional": true
+    },
+    {
+      "id": "E12",
+      "name": "decision_to_service_evidence_closure",
+      "unit": "event_chain_latency_and_verified_linkage_rates",
+      "direction": "report_each_transition_separately_no_composite"
     }
   ],
   "hard_gates": [
@@ -295,10 +325,11 @@
     "leak_detection": "calibrated sensitivity at a declared false-alarm/dispatch budget; PR-AUC and detection delay",
     "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
     "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
-    "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published hybrid topology+sensitivity, and decision-aware placement at matched sensor count and whole-life cost. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome. Optimize/reports decision value and service effect, not entropy or detection accuracy alone.",
+    "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published topology+sensitivity hybrid, probabilistic Dynamic Residual Masking / game-theoretic pseudo-Jacobian placement, cascading-aware placement, and decision-aware placement at matched sensor count and whole-life cost. Reconstruct exact source task/split before numeric SOTA claims. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome.",
     "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score",
     "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
-    "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes."
+    "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
+    "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation."
   },
   "provenance_receipt": {
     "required_digests": [
