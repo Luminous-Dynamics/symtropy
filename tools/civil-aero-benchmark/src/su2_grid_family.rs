@@ -804,7 +804,6 @@ printf '70,0.42310,%s,%s,0.42310,-8.0,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.c
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
 printf 'synthetic solver stdout\n'
 "#;
-        fs::write(&executable, solver)"#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
             .expect("solver metadata")
