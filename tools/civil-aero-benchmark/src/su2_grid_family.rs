@@ -804,20 +804,20 @@ MARKER_MONITORING= (wall)
         let solver = r#"#!/bin/sh
 set -eu
 if [ "${1:-}" = "-d" ]; then
-  printf '%s\\n' 'Available screen/history output fields for the current configuration:' 'TIME_ITER' 'INNER_ITER' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'TIME_ITER' 'INNER_ITER' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
   exit 0
 fi
-printf '"TIME_ITER","INNER_ITER","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\\n' > history.csv
-printf '10,5,0.42310,%s,%s,0.42310,-8.2,-1\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '11,5,0.42310,%s,%s,0.42310,-8.3,-2\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '12,5,0.42310,%s,%s,0.42310,-8.4,-6.0\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '13,5,0.42310,%s,%s,0.42310,-8.5,-6.4\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '14,5,0.42310,%s,%s,0.42310,-8.6,-6.8\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '15,5,0.42310,%s,%s,0.42310,-8.7,-7.2\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '16,5,0.42310,%s,%s,0.42310,-8.8,-7.6\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '17,5,0.42310,%s,%s,0.42310,-8.9,-8.0\\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf 'synthetic force output; not CFD evidence\\n' > forces.dat
-printf '%s\\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
+printf '"TIME_ITER","INNER_ITER","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
+printf '10,5,0.42310,%s,%s,0.42310,-8.2,-1\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '11,5,0.42310,%s,%s,0.42310,-8.3,-2\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '12,5,0.42310,%s,%s,0.42310,-8.4,-6.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '13,5,0.42310,%s,%s,0.42310,-8.5,-6.4\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '14,5,0.42310,%s,%s,0.42310,-8.6,-6.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '15,5,0.42310,%s,%s,0.42310,-8.7,-7.2\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '16,5,0.42310,%s,%s,0.42310,-8.8,-7.6\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '17,5,0.42310,%s,%s,0.42310,-8.9,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf 'synthetic force output; not CFD evidence\n' > forces.dat
+printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
