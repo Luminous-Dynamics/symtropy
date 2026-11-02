@@ -238,6 +238,9 @@ impl InputEnergyRecord {
         if evidence_id.as_ref().is_some_and(|id| id.trim().is_empty()) {
             return Err(ServiceContractError::MissingEvidenceId);
         }
+        if matches!(&basis, InputEnergyBasis::Other(label) if label.trim().is_empty()) {
+            return Err(ServiceContractError::MissingInputEnergyBasisLabel);
+        }
 
         Ok(Self {
             basis,
@@ -470,6 +473,18 @@ impl TypedServiceComparisonSegment {
         self.time_window
     }
 
+    pub const fn required_energy_j(self) -> f64 {
+        self.required_energy_j
+    }
+
+    pub const fn reference_delivered_energy_j(self) -> f64 {
+        self.reference_delivered_energy_j
+    }
+
+    pub const fn candidate_delivered_energy_j(self) -> f64 {
+        self.candidate_delivered_energy_j
+    }
+
     pub const fn common_service_energy_j(self) -> f64 {
         self.common_service_energy_j
     }
@@ -530,6 +545,14 @@ impl TypedServiceComparison {
 
     pub fn candidate_name(&self) -> &str {
         &self.candidate_name
+    }
+
+    pub fn reference_topology_id(&self) -> &str {
+        &self.reference_topology_id
+    }
+
+    pub fn candidate_topology_id(&self) -> &str {
+        &self.candidate_topology_id
     }
 
     pub const fn required_service_energy_j(&self) -> f64 {
@@ -728,6 +751,7 @@ pub enum ServiceContractError {
     MissingProfileId,
     MissingProfileVersion,
     MissingEvidenceId,
+    MissingInputEnergyBasisLabel,
     MissingIdentity {
         field: &'static str,
     },
@@ -793,6 +817,9 @@ impl fmt::Display for ServiceContractError {
             Self::MissingProfileId => write!(f, "service profile ID must not be empty"),
             Self::MissingProfileVersion => write!(f, "service profile version must not be empty"),
             Self::MissingEvidenceId => write!(f, "input evidence ID must not be empty"),
+            Self::MissingInputEnergyBasisLabel => {
+                write!(f, "other input-energy basis label must not be empty")
+            }
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
             Self::EmptyProfile => write!(f, "service profile must not be empty"),
             Self::EmptyTrace => write!(f, "delivered service trace must not be empty"),
@@ -1185,6 +1212,9 @@ mod tests {
             Some(" ".to_string())
         )
         .is_err());
+        assert!(
+            InputEnergyRecord::new(InputEnergyBasis::Other(" ".to_string()), 1.0, None).is_err()
+        );
         assert!(ServiceDeliveryTolerance::new(0.0, 1.01).is_err());
     }
 }
