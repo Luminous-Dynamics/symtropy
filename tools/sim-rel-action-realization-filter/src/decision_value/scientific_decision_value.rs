@@ -305,7 +305,7 @@ pub struct ResourceChannelSummary {
     pub channel_id: String,
     pub unit: String,
     pub complete_concept_count: usize,
-    pub expected_valid_concept_count: usize,
+    pub expected_source_concept_count: usize,
     pub reference_total: Option<ExactValue>,
     pub candidate_total: Option<ExactValue>,
     /// Candidate minus reference. Positive means the agent-assisted workflow
@@ -884,24 +884,24 @@ fn cost_channel_summaries(
             let stratum = evidence.iter()
                 .filter(|item| item.domain_id == *domain && item.mechanism_family_id == *family)
                 .collect::<Vec<_>>();
-            let valid_items = stratum.iter()
-                .filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified)
-                .collect::<Vec<_>>();
-            let valid_count = valid_items.len();
-            let loss_values = valid_items.iter()
+            let expected_concept_count = stratum.len();
+            let loss_values = stratum.iter()
                 .filter_map(|item| decision_loss_effects.get(&(
                     item.domain_id.clone(),
                     item.mechanism_family_id.clone(),
                     item.concept_digest.clone(),
                 )).cloned())
                 .collect::<Vec<_>>();
+            let all_loss_effects_verified = loss_values.len() == expected_concept_count;
             let mean_loss_effect = ExactValue::mean(&loss_values)?;
 
             for channel in &plan.resource_channels {
                 let mut reference_total = ExactValue::zero();
                 let mut candidate_total = ExactValue::zero();
                 let mut complete_concepts = 0usize;
-                for item in &valid_items {
+                // Costs are counted for every concept, even when its efficacy
+                // result is inconclusive/invalidated/not measured.
+                for item in &stratum {
                     let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
                     let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
                     match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
@@ -915,23 +915,23 @@ fn cost_channel_summaries(
                         _ => {}
                     }
                 }
-                let complete = valid_count > 0 && complete_concepts == valid_count;
+                let complete = expected_concept_count > 0 && complete_concepts == expected_concept_count;
                 let mean_increment = if complete {
                     Some(candidate_total.checked_sub(&reference_total)?.checked_div(
-                        &ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                            DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                        &ExactValue::new(i128::try_from(expected_concept_count).map_err(|_| {
+                            DecisionValueError::ArithmeticOverflow("source concept count exceeds i128".into())
                         })?, 1)?
                     )?)
                 } else {
                     None
                 };
-                let incremental_cost_per_loss_unit = if complete {
+                let incremental_cost_per_loss_unit = if complete && all_loss_effects_verified {
                     mean_loss_effect.as_ref()
                         .filter(|loss| loss.numerator > 0)
                         .map(|loss| {
                             candidate_total.checked_sub(&reference_total)?
-                                .checked_div(&ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                                    DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                                .checked_div(&ExactValue::new(i128::try_from(expected_concept_count).map_err(|_| {
+                                    DecisionValueError::ArithmeticOverflow("source concept count exceeds i128".into())
                                 })?, 1)?)?
                                 .checked_div(loss)
                         })
@@ -945,7 +945,7 @@ fn cost_channel_summaries(
                     channel_id: channel.channel_id.clone(),
                     unit: channel.unit.clone(),
                     complete_concept_count: complete_concepts,
-                    expected_valid_concept_count: valid_count,
+                    expected_source_concept_count: expected_concept_count,
                     reference_total: complete.then_some(reference_total),
                     candidate_total: complete.then_some(candidate_total),
                     mean_incremental_cost_per_concept: mean_increment,
@@ -1683,6 +1683,30 @@ mod tests {
         assert_eq!(loss.source_concept_count, 2);
         assert_eq!(loss.measured_concept_count, 1);
         assert_eq!(loss.missing_or_invalid_concept_count, 1);
+    }
+
+    #[test]
+    fn costs_include_inconclusive_concepts_but_cost_effect_ratio_requires_all_loss_evidence() {
+        let mut inconclusive = evidence(D3, 8, 4);
+        inconclusive.evidence_status = ConceptEvidenceStatus::Inconclusive;
+        inconclusive.baseline_loss = None;
+        inconclusive.candidate_loss = None;
+        inconclusive.baseline_outcome = None;
+        inconclusive.candidate_outcome = None;
+        let receipt = analyze_scientific_decision_value(
+            &plan(),
+            &hierarchy(),
+            &[inconclusive, evidence(D4, 7, 3)],
+        ).unwrap();
+        let tokens = receipt.cost_channels.iter()
+            .find(|row| row.channel_id == "tokens")
+            .unwrap();
+        assert_eq!(tokens.complete_concept_count, 2);
+        assert_eq!(tokens.expected_source_concept_count, 2);
+        assert_eq!(tokens.reference_total, Some(q(200, 1)));
+        assert_eq!(tokens.candidate_total, Some(q(240, 1)));
+        assert_eq!(tokens.mean_incremental_cost_per_concept, Some(q(20, 1)));
+        assert!(tokens.incremental_cost_per_decision_loss_unit.is_none());
     }
 
     #[test]
