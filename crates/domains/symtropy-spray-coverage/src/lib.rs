@@ -1,15 +1,15 @@
 #![forbid(unsafe_code)]
 
-//! Deterministic geometric spray-cone coverage estimates.
+//! Deterministic geometric spray-cone visibility and incidence estimates.
 //!
-//! This crate answers a deliberately narrow question: given a nozzle's idealized
-//! conical envelope and a triangulated target mesh, what fraction of the mesh
-//! surface is geometrically visible to that nozzle without line-of-sight
-//! occlusion?
+//! The target mesh is the surface whose area is measured. A separate occlusion
+//! mesh contains all opaque geometry that can block line of sight, including
+//! dishes, racks and enclosure parts. The crate estimates area-weighted
+//! geometric visibility and a normal-versus-grazing incidence descriptor.
 //!
-//! This is NOT CFD, droplet transport, wetting, impingement, soil removal,
-//! drying, hygiene or sanitization. It is a cheap geometry-screening layer to
-//! prioritize designs for physical spray testing and higher-fidelity models.
+//! This is NOT CFD, droplet transport, wetting, impingement pressure, soil
+//! removal, drying, hygiene or sanitization. It is a cheap geometry screen to
+//! prioritize candidates for measured spray-deposition testing.
 
 use std::f64::consts::PI;
 
