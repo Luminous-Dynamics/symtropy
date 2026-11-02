@@ -521,9 +521,10 @@ fn validate_replication(
                 || replication.pre_registration_receipt_digest
                     == source.pre_registration_receipt_digest
                 || replication.raw_observation_digest == source.raw_observation_digest
+                || replication.raw_observation_digest == source.dataset_digest
             {
                 return Err(DiscoveryClaimError::ReplicationIndependence(
-                    "IndependentReproduction requires a distinct run, operator/team, data, seed namespace and pre-registration".into(),
+                    "IndependentReproduction requires distinct run, operator/team, dataset/raw observations, seed namespace and pre-registration".into(),
                 ));
             }
         }
@@ -539,6 +540,7 @@ fn validate_replication(
                 || replication.pre_registration_receipt_digest
                     == source.pre_registration_receipt_digest
                 || replication.raw_observation_digest == source.dataset_digest
+                || replication.raw_observation_digest == source.raw_observation_digest
             {
                 return Err(DiscoveryClaimError::ReplicationIndependence(
                     "ExternalReplication requires distinct run, operator/team, laboratory, apparatus, calibration, data, seed namespace and pre-registration".into(),
@@ -717,6 +719,7 @@ mod tests {
     const D3: &str = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     const D4: &str = "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
     const D5: &str = "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const D6: &str = "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     fn source() -> DiscoverySourceContext {
         DiscoverySourceContext {
@@ -806,7 +809,7 @@ mod tests {
             task_manifest_digest: D3.into(),
             source_code_digest: D4.into(),
             harness_digest: D5.into(),
-            raw_observation_digest: D2.into(),
+            raw_observation_digest: D6.into(),
             analysis_receipt_digest: D3.into(),
             pre_registration_receipt_digest: D5.into(),
             criterion_receipt_digest: D1.into(),
