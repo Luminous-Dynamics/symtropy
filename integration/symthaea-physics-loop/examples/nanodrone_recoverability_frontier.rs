@@ -1059,6 +1059,81 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_ARTIFACT_FIXTURE: AtomicU64 = AtomicU64::new(1);
+
+    fn write_artifact_fixture(mut branches: Vec<BranchRow>) -> (PathBuf, Vec<BranchRow>) {
+        let root = std::env::temp_dir().join(format!(
+            "nanodrone-branch-artifacts-{}-{}",
+            std::process::id(),
+            NEXT_ARTIFACT_FIXTURE.fetch_add(1, Ordering::Relaxed)
+        ));
+        let snapshots = root.join("snapshots");
+        let tapes = root.join("disturbance-tapes");
+        fs::create_dir_all(&snapshots).unwrap();
+        fs::create_dir_all(&tapes).unwrap();
+        fs::write(root.join("README.md"), b"synthetic test bundle\n").unwrap();
+
+        let mut snapshot_files = BTreeMap::<String, Vec<u8>>::new();
+        for row in &mut branches {
+            let artifact = StateSnapshotArtifact {
+                schema_version: "symtropy-nanodrone-state-snapshot-v0.1".into(),
+                evidence_class: "synthetic_fixture".into(),
+                family_id: row.family_id.clone(),
+                flight_id: row.flight_id.clone(),
+                rollout_start_id: row.rollout_start_id.clone(),
+                regime: row.regime.clone(),
+                checkpoint_time_s: row.checkpoint_time_s,
+                training_seed: row.training_seed,
+                synthetic_state_payload: format!(
+                    "TEST_STATE|{}|{}|{}|{}|{}|{}",
+                    row.family_id, row.flight_id, row.rollout_start_id, row.regime,
+                    row.checkpoint_time_s, row.training_seed
+                ),
+                claim_ceiling: "fixture_byte_integrity_only".into(),
+            };
+            let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
+            bytes.push(b'\n');
+            let digest = sha256(&bytes);
+            row.state_snapshot_sha256 = digest.clone();
+            snapshot_files.insert(digest, bytes);
+        }
+
+        let mut tape_files = BTreeMap::<String, Vec<u8>>::new();
+        for row in &mut branches {
+            let artifact = DisturbanceTapeArtifact {
+                schema_version: "symtropy-nanodrone-exogenous-tape-v0.1".into(),
+                evidence_class: "synthetic_fixture".into(),
+                family_id: row.family_id.clone(),
+                flight_id: row.flight_id.clone(),
+                rollout_start_id: row.rollout_start_id.clone(),
+                regime: row.regime.clone(),
+                checkpoint_time_s: row.checkpoint_time_s,
+                training_seed: row.training_seed,
+                branch_seed: row.branch_seed,
+                synthetic_disturbance_payload: format!(
+                    "TEST_TAPE|{}|{}|{}|{}|{}|{}|{}",
+                    row.family_id, row.flight_id, row.rollout_start_id, row.regime,
+                    row.checkpoint_time_s, row.training_seed, row.branch_seed
+                ),
+                claim_ceiling: "fixture_byte_integrity_only".into(),
+            };
+            let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
+            bytes.push(b'\n');
+            let digest = sha256(&bytes);
+            row.exogenous_tape_sha256 = digest.clone();
+            tape_files.insert(digest, bytes);
+        }
+
+        for (digest, bytes) in snapshot_files {
+            fs::write(snapshots.join(format!("{digest}.json")), bytes).unwrap();
+        }
+        for (digest, bytes) in tape_files {
+            fs::write(tapes.join(format!("{digest}.json")), bytes).unwrap();
+        }
+        (root, branches)
+    }
 
     fn test_args() -> Args {
         Args {
@@ -1112,6 +1187,99 @@ mod tests {
         args: &Args, checkpoints: Vec<CheckpointRow>, branches: Vec<BranchRow>, train: BTreeSet<String>,
     ) -> Result<Validated, String> {
         validate_inputs(args, checkpoints, branches, train, "d".repeat(64), "e".repeat(64), "f".repeat(64))
+    }
+
+    #[test]
+    fn content_addressed_branch_artifacts_verify_bytes_and_pairing_inventory() {
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        let verified = verify_branch_artifacts(&root, &branches, "synthetic").unwrap();
+        assert_eq!(verified.status, "synthetic_fixture_content_verified_origin_unattested");
+        assert_eq!(verified.snapshot_artifacts_verified, 8);
+        assert_eq!(verified.disturbance_tape_artifacts_verified, 16);
+        assert_eq!(verified.branch_rows_bound, 32);
+        assert_eq!(verified.evidence_class, "synthetic_fixture");
+        assert_eq!(verified.snapshot_manifest_sha256.len(), 64);
+        assert_eq!(verified.disturbance_tape_manifest_sha256.len(), 64);
+        assert_eq!(verified.combined_artifact_manifest_sha256.len(), 64);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn branch_artifact_verifier_rejects_byte_tampering_missing_and_orphan_files() {
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        let first = &branches[0];
+        let snapshot_path = root.join("snapshots").join(format!("{}.json", first.state_snapshot_sha256));
+        let mut bytes = fs::read(&snapshot_path).unwrap();
+        bytes.push(b' ');
+        fs::write(&snapshot_path, bytes).unwrap();
+        assert!(verify_branch_artifacts(&root, &branches, "synthetic")
+            .unwrap_err().contains("SHA-256 does not match"));
+        fs::remove_dir_all(&root).unwrap();
+
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        let first = &branches[0];
+        let snapshot_path = root.join("snapshots").join(format!("{}.json", first.state_snapshot_sha256));
+        fs::remove_file(snapshot_path).unwrap();
+        assert!(verify_branch_artifacts(&root, &branches, "synthetic")
+            .unwrap_err().contains("inventory mismatch"));
+        fs::remove_dir_all(&root).unwrap();
+
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        fs::write(root.join("disturbance-tapes").join(format!("{}.json", "f".repeat(64))), b"orphan")
+            .unwrap();
+        assert!(verify_branch_artifacts(&root, &branches, "synthetic")
+            .unwrap_err().contains("inventory mismatch"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn branch_artifact_verifier_rejects_hash_valid_but_misbound_snapshot_identity() {
+        let (_, mut branches, _) = fixture_inputs();
+        let (root, mut branches) = write_artifact_fixture(branches);
+        let old_digest = branches[0].state_snapshot_sha256.clone();
+        let old_path = root.join("snapshots").join(format!("{old_digest}.json"));
+        let mut artifact: StateSnapshotArtifact =
+            serde_json::from_slice(&fs::read(&old_path).unwrap()).unwrap();
+        artifact.family_id = "different-family".into();
+        let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
+        bytes.push(b'\\n');
+        let new_digest = sha256(&bytes);
+        fs::write(root.join("snapshots").join(format!("{new_digest}.json")), bytes).unwrap();
+        fs::remove_file(old_path).unwrap();
+        for row in branches.iter_mut().filter(|row| row.state_snapshot_sha256 == old_digest) {
+            row.state_snapshot_sha256 = new_digest.clone();
+        }
+        assert!(verify_branch_artifacts(&root, &branches, "synthetic")
+            .unwrap_err().contains("metadata/identity mismatch"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn branch_artifact_verifier_rejects_symlinked_root_and_artifact_file() {
+        use std::os::unix::fs::symlink;
+
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        let link = root.with_extension("symlink");
+        symlink(&root, &link).unwrap();
+        assert!(verify_branch_artifacts(&link, &branches, "synthetic")
+            .unwrap_err().contains("real non-symlink directory"));
+        fs::remove_file(&link).unwrap();
+
+        let target = root.join("snapshots").join("target.json");
+        fs::write(&target, b"not-an-artifact").unwrap();
+        let digest = &branches[0].state_snapshot_sha256;
+        let artifact = root.join("snapshots").join(format!("{digest}.json"));
+        fs::remove_file(&artifact).unwrap();
+        symlink(&target, &artifact).unwrap();
+        assert!(verify_branch_artifacts(&root, &branches, "synthetic")
+            .unwrap_err().contains("regular non-symlink files"));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
