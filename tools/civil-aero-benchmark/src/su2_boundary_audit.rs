@@ -576,7 +576,12 @@ pub fn verify_su2_boundary_audit(report: &Su2BoundaryAuditReport) -> Result<(), 
         .map(|assignment| {
             let spec = spec_map
                 .get(assignment.config_option.as_str())
-                .ok_or_else(|| format!("assignment references undeclared boundary option {}", assignment.config_option))?;
+                .ok_or_else(|| {
+                    format!(
+                        "assignment references undeclared boundary option {}",
+                        assignment.config_option
+                    )
+                })?;
             if !spec.marker_positions.contains(&assignment.marker_position) {
                 return Err(format!(
                     "assignment for marker {} has invalid tuple marker position",
