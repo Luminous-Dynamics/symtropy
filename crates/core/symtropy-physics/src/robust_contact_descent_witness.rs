@@ -286,6 +286,23 @@ mod tests {
             &rational_fraction(1, 100)
         ));
 
+        // Each sign of either coordinate-axis direction improves one
+        // branch only; the other branch has a strictly positive derivative.
+        for (axis, _) in [0, 1].iter().enumerate() {
+            for sign in [-1, 1] {
+                let axis_direction: RationalVector = std::array::from_fn(|coordinate| {
+                    if coordinate == axis {
+                        rational(sign)
+                    } else {
+                        rational(0)
+                    }
+                });
+                assert!(branches.iter().any(|gradient| {
+                    gradient_box_support_upper(gradient, &axis_direction) > rational(0)
+                }));
+            }
+        }
+
         let candidate = search_rational_grid(&branches, 3)
             .expect("the rational grid contains a common descent direction");
         assert_eq!(
@@ -380,6 +397,10 @@ mod tests {
         let weights = vec![rational_fraction(1, 2), rational_fraction(1, 2)];
 
         assert!(verify_zero_convex_combination(&gradients, &weights));
+        assert_eq!(
+            convex_combination_l1_upper_bound(&gradients, &weights),
+            Some(rational(0))
+        );
         assert!(!verify_zero_convex_combination(
             &gradients,
             &[rational_fraction(1, 3), rational_fraction(2, 3)]
