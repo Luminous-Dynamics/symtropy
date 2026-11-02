@@ -223,8 +223,16 @@ def termination_evidence(
     ]
     if len(observed_terminal_markers) > 1 or (
         signal_message is not None
-        and any(marker in {STEADY_SUCCESS, WINDOW_SUCCESS}
-                for marker in observed_terminal_markers)
+        and any(
+            marker in {
+                STEADY_SUCCESS,
+                WINDOW_SUCCESS,
+                STEADY_ITERATION_LIMIT,
+                TIME_LIMIT,
+                TIME_ITERATION_LIMIT,
+            }
+            for marker in observed_terminal_markers
+        )
     ):
         mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
         classification = "contradictory_terminal_messages"
