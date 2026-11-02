@@ -5,96 +5,46 @@
   "type": "object",
   "required": [
     "schema_version",
-    "record_id",
+    "dataset_id",
     "status",
-    "functional_unit",
-    "service_boundary",
-    "pathway_nodes",
-    "transformations",
-    "accounting_boundaries",
-    "evidence_register",
-    "result_vector",
+    "accessed_at",
+    "intended_use",
     "claim_ceiling",
-    "expected_result",
-    "oracle"
+    "fixtures"
   ],
   "properties": {
     "schema_version": {
       "const": "0.1.0"
     },
-    "record_id": {
+    "dataset_id": {
       "type": "string",
       "minLength": 1
     },
     "status": {
-      "enum": [
-        "synthetic_fixture",
-        "screening_scenario",
-        "measured_pathway",
-        "third_party_verified_pathway",
-        "independently_reproduced_pathway"
-      ]
+      "const": "synthetic_accounting_and_boundary_oracles"
     },
-    "functional_unit": {
-      "$ref": "#/$defs/functional_unit"
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
     },
-    "service_boundary": {
-      "$ref": "#/$defs/service_boundary"
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
     },
-    "pathway_nodes": {
-      "type": "array",
-      "minItems": 2,
-      "items": {
-        "$ref": "#/$defs/node"
-      }
+    "conventions": {
+      "type": "object",
+      "additionalProperties": true
     },
-    "transformations": {
+    "fixtures": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "$ref": "#/$defs/transformation"
+        "$ref": "#/$defs/fixture"
       }
-    },
-    "accounting_boundaries": {
-      "$ref": "#/$defs/boundaries"
-    },
-    "evidence_register": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/evidence"
-      }
-    },
-    "result_vector": {
-      "$ref": "#/$defs/results"
     },
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
-    },
-    "notes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "expected_result": {
-      "enum": [
-        "pass",
-        "reject"
-      ]
-    },
-    "oracle": {
-      "type": "object",
-      "required": [
-        "interpretation"
-      ],
-      "properties": {
-        "interpretation": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "additionalProperties": true
     }
   },
   "$defs": {
@@ -517,6 +467,9 @@
         "energy_unit",
         "ghg_unit",
         "cost_unit",
+        "energy_unit",
+        "ghg_unit",
+        "cost_unit",
         "converter_input_energy",
         "primary_energy",
         "well_to_tank_ghg",
@@ -607,6 +560,83 @@
         "cost_unit": {
           "type": "string",
           "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixture": {
+      "type": "object",
+      "required": [
+        "record_id",
+        "status",
+        "functional_unit",
+        "service_boundary",
+        "pathway_nodes",
+        "transformations",
+        "accounting_boundaries",
+        "evidence_register",
+        "result_vector",
+        "expected_result",
+        "oracle"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "synthetic_fixture"
+        },
+        "functional_unit": {
+          "$ref": "#/$defs/functional_unit"
+        },
+        "service_boundary": {
+          "$ref": "#/$defs/service_boundary"
+        },
+        "pathway_nodes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "transformations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/transformation"
+          }
+        },
+        "accounting_boundaries": {
+          "$ref": "#/$defs/boundaries"
+        },
+        "evidence_register": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "result_vector": {
+          "$ref": "#/$defs/results"
+        },
+        "expected_result": {
+          "enum": [
+            "pass",
+            "reject"
+          ]
+        },
+        "oracle": {
+          "type": "object",
+          "required": [
+            "interpretation"
+          ],
+          "properties": {
+            "interpretation": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
         }
       },
       "additionalProperties": false
