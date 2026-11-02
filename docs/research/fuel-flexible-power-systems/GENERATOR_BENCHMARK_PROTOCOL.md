@@ -251,7 +251,7 @@ Publish a flexibility vector:
 - **Fuel Supply Resilience:** service under dated, provenance-backed regional supply-disruption scenarios;
 - **Compliance Envelope:** exact configuration, fuel and jurisdiction-specific approval evidence.
 
-Unknown, literature-only, vendor-target or planned-pilot entries do not count as physically validated coverage. This keeps Mainspring's standard product fuel literature, the USAF pilot's planned ammonia/syngas tests, Capstone's described hydrogen blends and future Luminous tests distinguishable.
+Use [FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json](data/FUEL_CONFIGURATION_QUALIFICATION_SCHEMA_2026-11-02.json) to preserve exact configuration/fuel scope and evidence status. Unknown, literature-only, vendor-target or planned-pilot entries do not count as physically validated coverage. This keeps Mainspring's standard product fuel literature, the USAF pilot's planned ammonia/syngas tests, Capstone's described hydrogen blends and future Luminous tests distinguishable.
 
 ## 8. Emissions and lifecycle boundary
 
