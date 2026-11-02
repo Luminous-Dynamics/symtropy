@@ -340,7 +340,10 @@ pub fn evaluate_window(
     }
     if case.planned_interval.is_valid()
         && !case.allowed_intervals.is_empty()
-        && case.allowed_intervals.iter().all(|interval| interval.is_valid())
+        && case
+            .allowed_intervals
+            .iter()
+            .all(|interval| interval.is_valid())
         && !case
             .allowed_intervals
             .iter()
