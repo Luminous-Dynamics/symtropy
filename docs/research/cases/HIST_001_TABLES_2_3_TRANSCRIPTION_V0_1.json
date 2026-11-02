@@ -1,0 +1,330 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/HIST_001_TABLES_2_3_TRANSCRIPTION/0.1",
+  "schema_version": "0.1.0",
+  "case_id": "HIST-001",
+  "artifact_id": "HIST001-DERIVED-TABLES-2-3",
+  "status": "transcribed_not_independently_reviewed",
+  "source": {
+    "source_id": "HIST001-SRC-AMS-2021",
+    "citation": "Huffman, T.N. & Woodborne, S. (2021). New AMS dates for the Middle Iron Age in the Mapungubwe landscape. South African Journal of Science, 117(3/4), Article 8980. https://doi.org/10.17159/sajs.2021/8980",
+    "pdf_uri": "https://scielo.org.za/pdf/sajs/v117n3-4/26.pdf",
+    "locator_table_2": "Table 2, PDF page 4 of 5 (zero-based page 3)",
+    "locator_table_3": "Table 3, PDF page 4 of 5 (zero-based page 3)",
+    "retrieved_at": "2026-11-02",
+    "source_pdf_sha256": null
+  },
+  "table_2": {
+    "title": "Population dynamics for the South African portion of the Shashe-Limpopo valley",
+    "evidence_class": "published_derived_estimates",
+    "values_are_direct_census": false,
+    "printed_formula": "Number of sites ÷ 50 years × 50 people",
+    "method_as_described_by_authors": {
+      "people_per_homestead": 50,
+      "homestead_duration_years": 50,
+      "population_allocation_rule": "The authors divide the time span of each facies by 50-year units, then estimate people per interval from site counts and include capital populations.",
+      "special_k2_rule": "The initial 25 years of K2 are represented as half of a 50-year unit. Later K2 and initial K2 subinterval estimates are both printed in the same table row.",
+      "basis_cited_by_authors": "Middle Iron Age burials at Kgaswe, Botswana"
+    },
+    "records": [
+      {
+        "record_id": "HIST001-T2-MAPUNGUBWE",
+        "phase": "Mapungubwe",
+        "occupation_interval_ad": [
+          1270,
+          1320
+        ],
+        "homesteads": 114,
+        "estimate_intervals": [
+          {
+            "subinterval": "reported phase total",
+            "duration_years": 50,
+            "general_population": 5700,
+            "capital_population": 5000,
+            "total_population": 10700
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T2-TRANSITIONAL",
+        "phase": "Transitional",
+        "occupation_interval_ad": [
+          1150,
+          1270
+        ],
+        "homesteads": 143,
+        "estimate_intervals": [
+          {
+            "subinterval": "reported phase total",
+            "duration_years": 120,
+            "general_population": 2979,
+            "capital_population": 2500,
+            "total_population": 5479
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T2-K2",
+        "phase": "K2",
+        "occupation_interval_ad": [
+          1000,
+          1150
+        ],
+        "homesteads": 153,
+        "estimate_intervals": [
+          {
+            "subinterval": "later K2 period",
+            "duration_years": 125,
+            "general_population": 2550,
+            "capital_population": 1500,
+            "total_population": 4050
+          },
+          {
+            "subinterval": "initial 25-year small-capital period",
+            "duration_years": 25,
+            "general_population": 1275,
+            "capital_population": 300,
+            "total_population": 1575
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T2-LEOKWE",
+        "phase": "Leokwe",
+        "occupation_interval_ad": [
+          1000,
+          1200
+        ],
+        "homesteads": 63,
+        "estimate_intervals": [
+          {
+            "subinterval": "reported phase total",
+            "duration_years": 200,
+            "general_population": 787,
+            "capital_population": null,
+            "total_population": 787
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T2-ZHIZO",
+        "phase": "Zhizo",
+        "occupation_interval_ad": [
+          900,
+          1000
+        ],
+        "homesteads": 22,
+        "estimate_intervals": [
+          {
+            "subinterval": "reported phase total",
+            "duration_years": 100,
+            "general_population": 550,
+            "capital_population": 300,
+            "total_population": 850
+          }
+        ]
+      }
+    ],
+    "caveats": [
+      "These are estimates produced by the authors' site-count/homestead-duration/population rule, not census observations.",
+      "The 50 people per homestead and 50-year homestead duration assumptions are model assumptions informed by an external burial comparison; they are not exact measured values for every site.",
+      "The table reports general population, capital population, and totals. Null capital population for Leokwe is the table's printed 'none' and is not a missing value.",
+      "The K2 row contains two subinterval estimates (125 years and 25 years); do not add or average them without preserving their different temporal meanings.",
+      "Use as a published derived-estimate target or prior with sensitivity analysis, not as hard ground truth."
+    ]
+  },
+  "table_3": {
+    "title": "Baobab climatic sequence and severe droughts recognised in the archaeological record",
+    "evidence_class": "published_proxy_chronology_and_event_interpretation",
+    "columns": {
+      "cal_ad": "Calendar AD interval/year in the article's archaeological column",
+      "baobab_cal_ad": "Baobab-calibrated calendar AD estimate(s) as printed by the source"
+    },
+    "records": [
+      {
+        "record_id": "HIST001-T3-XIIIB",
+        "group": "XIIIb",
+        "cal_ad": null,
+        "baobab_cal_ad": [
+          {
+            "mean": 1660,
+            "sigma": 5
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-XIIIA",
+        "group": "XIIIa",
+        "cal_ad": [
+          1650,
+          1650
+        ],
+        "baobab_cal_ad": [
+          {
+            "mean": 1635,
+            "sigma": 5
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-XII",
+        "group": "XII",
+        "cal_ad": [
+          1530,
+          1530
+        ],
+        "baobab_cal_ad": [
+          {
+            "mean": 1530,
+            "sigma": 10
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-XI",
+        "group": "XI",
+        "cal_ad": [
+          1440,
+          1450
+        ],
+        "baobab_cal_ad": [
+          {
+            "mean": 1465,
+            "sigma": 5
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-X",
+        "group": "X",
+        "cal_ad": [
+          1350,
+          1400
+        ],
+        "baobab_cal_ad": [
+          {
+            "mean": 1390,
+            "sigma": 10
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-IX",
+        "group": "IX",
+        "cal_ad": [
+          1300,
+          1300
+        ],
+        "baobab_cal_ad": [
+          {
+            "mean": 1310,
+            "sigma": 5
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-VIIIB",
+        "group": "VIIIb",
+        "cal_ad": null,
+        "baobab_cal_ad": [
+          {
+            "mean": 1285,
+            "sigma": 5
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-VIII",
+        "group": "VIII",
+        "cal_ad": [
+          1200,
+          1250
+        ],
+        "baobab_cal_ad": [
+          {
+            "value": 1208
+          },
+          {
+            "value": 1226
+          },
+          {
+            "value": 1256
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-VIIIA",
+        "group": "VIIIa",
+        "cal_ad": null,
+        "baobab_cal_ad": [
+          {
+            "mean": 1185,
+            "sigma": 10
+          }
+        ]
+      },
+      {
+        "record_id": "HIST001-T3-VII",
+        "group": "VII",
+        "cal_ad": [
+          1020,
+          1070
+        ],
+        "baobab_cal_ad": []
+      },
+      {
+        "record_id": "HIST001-T3-VI",
+        "group": "VI",
+        "cal_ad": [
+          900,
+          1000
+        ],
+        "cal_ad_note": "two episodes",
+        "baobab_cal_ad": []
+      }
+    ],
+    "interpretation_claims": [
+      {
+        "claim_id": "HIST001-CLAIM-BAOBAB-001",
+        "statement": "The authors identify drought Group IX at about AD 1310±5 as contributing to the abandonment of Mapungubwe, with political instability and loss of leadership legitimacy proposed as mediating processes.",
+        "evidence_class": "published_causal_interpretation",
+        "source_locator": "PDF page 4, 'Droughts and abandonment' paragraph",
+        "status": "hypothesis_to_test_not_ground_truth",
+        "competing_mechanisms_to_preserve": [
+          "trade-network change",
+          "political succession and legitimacy",
+          "agricultural/settlement reorganization",
+          "local hydrological variation",
+          "other demographic and economic factors"
+        ]
+      },
+      {
+        "claim_id": "HIST001-CLAIM-BAOBAB-002",
+        "statement": "The authors report that dates from Weipe508 indicate Mapungubwe occupation persisted in the valley until about AD 1320, approximately contemporaneous with the Group IX drought.",
+        "evidence_class": "published_chronological_interpretation",
+        "source_locator": "PDF page 4, paragraph beginning 'Dates from Weipe508'",
+        "status": "chronological overlap claim_to_test"
+      }
+    ],
+    "caveats": [
+      "Table 3 is an event/sequence summary, not a continuous rainfall time series.",
+      "The baobab values are preserved as printed. A value with mean/sigma is not expanded into a probability distribution without the original proxy/calibration model.",
+      "The three VIII baobab values (1208, 1226, 1256) are kept as discrete reported values; no uncertainty was supplied in the table cells.",
+      "Blank archaeological or baobab entries are not interpreted as no drought or no occupation.",
+      "Group IX as a cause of abandonment is an author interpretation. It must be tested alongside political, trade, settlement and other environmental mechanisms."
+    ]
+  },
+  "limitations": [
+    "Transcribed from published Tables 2 and 3; not independently reviewed.",
+    "Source PDF bytes are not locally available in this environment; source_pdf_sha256 remains null.",
+    "Table 2 estimates are not empirical census observations.",
+    "Table 3 does not provide raw baobab isotope series, proxy calibration model or complete drought-event uncertainty.",
+    "The exact transformation from the baobab δ13C proxy curve to event timing requires the cited underlying proxy publications."
+  ],
+  "next_steps": [
+    "Second-person review of all Table 2 and Table 3 values against the publisher PDF page image.",
+    "Retrieve and hash the exact source PDF bytes before promoting source snapshot status.",
+    "Locate raw baobab isotope and calibration data and reconstruct uncertainty rather than interpolating the summary table.",
+    "Use Table 2 only as a published derived-estimate target with sensitivity over per-homestead population and occupation duration assumptions.",
+    "Preregister climate-only versus multi-causal experiments before comparing fit."
+  ]
+}
