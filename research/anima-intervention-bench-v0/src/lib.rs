@@ -55,6 +55,7 @@ pub struct TrialObservation {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SplitPolicy {
     pub held_out_intervention_families: BTreeSet<String>,
+    pub held_out_conditions: BTreeSet<String>,
     pub held_out_individuals: BTreeSet<String>,
     pub held_out_connectome_datasets: BTreeSet<String>,
 }
@@ -62,6 +63,7 @@ pub struct SplitPolicy {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HoldoutReason {
     InterventionFamily,
+    Condition,
     Individual,
     ConnectomeDataset,
 }
@@ -193,6 +195,7 @@ pub fn build_group_held_out_split(
 ) -> Result<TrialSplit, BenchError> {
     validate_observations(observations)?;
     if policy.held_out_intervention_families.is_empty()
+        && policy.held_out_conditions.is_empty()
         && policy.held_out_individuals.is_empty()
         && policy.held_out_connectome_datasets.is_empty()
     {
@@ -201,6 +204,9 @@ pub fn build_group_held_out_split(
 
     for id in &policy.held_out_intervention_families {
         non_empty(id, "held_out_intervention_family")?;
+    }
+    for id in &policy.held_out_conditions {
+        non_empty(id, "held_out_condition")?;
     }
     for id in &policy.held_out_individuals {
         non_empty(id, "held_out_individual")?;
@@ -212,6 +218,10 @@ pub fn build_group_held_out_split(
     let observed_interventions: BTreeSet<&str> = observations
         .iter()
         .map(|row| row.intervention_family_id.as_str())
+        .collect();
+    let observed_conditions: BTreeSet<&str> = observations
+        .iter()
+        .map(|row| row.condition_id.as_str())
         .collect();
     let observed_individuals: BTreeSet<&str> = observations
         .iter()
@@ -226,6 +236,14 @@ pub fn build_group_held_out_split(
         if !observed_interventions.contains(id.as_str()) {
             return Err(BenchError::UnobservedHoldoutGroup {
                 field: "intervention_family",
+                value: id.clone(),
+            });
+        }
+    }
+    for id in &policy.held_out_conditions {
+        if !observed_conditions.contains(id.as_str()) {
+            return Err(BenchError::UnobservedHoldoutGroup {
+                field: "condition",
                 value: id.clone(),
             });
         }
@@ -260,6 +278,9 @@ pub fn build_group_held_out_split(
         {
             reasons.push(HoldoutReason::InterventionFamily);
         }
+        if policy.held_out_conditions.contains(&row.condition_id) {
+            reasons.push(HoldoutReason::Condition);
+        }
         if policy.held_out_individuals.contains(&row.individual_id) {
             reasons.push(HoldoutReason::Individual);
         }
@@ -291,6 +312,7 @@ pub fn build_group_held_out_split(
     for index in &split.training_indices {
         let row = &observations[*index];
         if policy.held_out_intervention_families.contains(&row.intervention_family_id)
+            || policy.held_out_conditions.contains(&row.condition_id)
             || policy.held_out_individuals.contains(&row.individual_id)
             || policy
                 .held_out_connectome_datasets
@@ -740,6 +762,9 @@ pub fn rank_interventions(
 
         let mut ids = BTreeSet::new();
         for prediction in &candidate.predictions {
+            non_empty(&prediction.model_family_id, "model_family_id")?;
+            non_empty(&prediction.metric_id, "metric_id")?;
+            non_empty(&prediction.unit_id, "unit_id")?;
             if !ids.insert(prediction.model_family_id.clone())
                 || !prediction.mean.is_finite()
                 || !prediction.standard_deviation.is_finite()
@@ -894,6 +919,24 @@ mod tests {
         assert_eq!(
             split.held_out_reasons["s05"],
             vec![HoldoutReason::InterventionFamily]
+        );
+    }
+
+    #[test]
+    fn sensory_contact_condition_holdout_never_leaks_into_training() {
+        let mut rows = observations();
+        for row in &mut rows[4..] {
+            row.condition_id = "substrate-contact-off".to_string();
+        }
+        let policy = SplitPolicy {
+            held_out_conditions: BTreeSet::from(["substrate-contact-off".to_string()]),
+            ..SplitPolicy::default()
+        };
+        let split = build_group_held_out_split(&rows, &policy).unwrap();
+        assert_eq!(split.held_out_indices, vec![4, 5]);
+        assert_eq!(
+            split.held_out_reasons["s05"],
+            vec![HoldoutReason::Condition]
         );
     }
 
