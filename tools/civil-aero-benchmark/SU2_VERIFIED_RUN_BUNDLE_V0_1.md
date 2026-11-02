@@ -85,7 +85,7 @@ The fake executable, histories, meshes and GCI values are synthetic known-answer
 
 ## Evidence ceiling
 
-`replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated`
+`replayed_dry_run_multi_field_steady_and_time_window_protocol_and_boundary_audit_bound_to_production_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated`
 
 This bundle proves that the declared evidence objects refer to one consistent run and can be replayed. It does not prove that every relevant equation/monitor was selected, that the selected thresholds are scientifically adequate, that a steady-state assumption is valid, that the grid is independent, that the turbulence/model-form assumptions are appropriate, or that predictions agree with experiment.
 
