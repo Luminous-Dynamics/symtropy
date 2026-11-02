@@ -66,7 +66,9 @@ pub struct CampaignResult {
     pub total_battery_delivered_energy_ws: u128,
     pub total_critical_unserved_energy_ws: u128,
     pub total_flexible_unserved_energy_ws: u128,
-    pub critical_interruption_seconds: u64,
+    /// Conservative upper bound: sums whole intervals containing any unserved critical energy.
+    /// Exact within-interval outage timing is not modeled.
+    pub critical_unserved_interval_seconds: u64,
     pub final_battery_energy_ws: u128,
 }
 
@@ -125,7 +127,7 @@ pub fn evaluate_campaign(
     let mut total_battery_delivered_energy_ws = 0_u128;
     let mut total_critical_unserved_energy_ws = 0_u128;
     let mut total_flexible_unserved_energy_ws = 0_u128;
-    let mut critical_interruption_seconds = 0_u64;
+    let mut critical_unserved_interval_seconds = 0_u64;
 
     for (load, supply) in loads.iter().zip(supplies) {
         if load.duration_seconds == 0 || supply.duration_seconds == 0 {
@@ -207,7 +209,7 @@ pub fn evaluate_campaign(
         let flexible_unserved_ws = flexible_deficit_ws - battery_to_flexible_ws;
 
         if critical_unserved_ws > 0 {
-            critical_interruption_seconds = critical_interruption_seconds
+            critical_unserved_interval_seconds = critical_unserved_interval_seconds
                 .checked_add(load.duration_seconds)
                 .ok_or(PowerError::ArithmeticOverflow)?;
         }
@@ -237,7 +239,7 @@ pub fn evaluate_campaign(
         total_battery_delivered_energy_ws,
         total_critical_unserved_energy_ws,
         total_flexible_unserved_energy_ws,
-        critical_interruption_seconds,
+        critical_unserved_interval_seconds,
         final_battery_energy_ws: battery_energy,
     })
 }
@@ -308,7 +310,7 @@ mod tests {
         .unwrap();
         assert_eq!(result.total_critical_unserved_energy_ws, 0);
         assert_eq!(result.total_flexible_unserved_energy_ws, 24_000);
-        assert_eq!(result.critical_interruption_seconds, 0);
+        assert_eq!(result.critical_unserved_interval_seconds, 0);
     }
 
     #[test]
@@ -386,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn 20_mwe_microreactor_does_not_cover_22_mw_full_nameplate_tbM_case() {
+    fn microreactor_20mwe_does_not_cover_22mw_tb_m_full_nameplate_case() {
         let result = evaluate_campaign(
             &[load(0, 3_600, 22_000_000, 0)],
             &[supply(0, 3_600, 20_000_000)],
@@ -397,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn 20_mwe_microreactor_does_not_cover_44_18_mw_full_nameplate_dredger_case() {
+    fn microreactor_20mwe_does_not_cover_44_18mw_dredger_full_nameplate_case() {
         let result = evaluate_campaign(
             &[load(0, 3_600, 44_180_000, 0)],
             &[supply(0, 3_600, 20_000_000)],
