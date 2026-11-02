@@ -674,8 +674,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        EvidenceArtifactBlob, EvidenceArtifactReference, ScientificArtifactRole,
-        EvidenceDigestProvider, EvidencePayloadEncoder, IssuerSignatureVerifier,
+        EvidenceArtifactBlob, EvidenceArtifactReference, EvidenceDigestProvider,
+        EvidencePayloadEncoder, IssuerSignatureVerifier, ScientificArtifactRole,
         ScientificEvidencePackage, ScientificEvidenceStatement, SignedScientificEvidenceStatement,
         TransparencyReceiptEnvelope, TransparencyReceiptVerifier, VerifiedIssuerIdentity,
         VerifiedTransparencyReceipt, format_sha256_digest, verify_scientific_evidence_package,
