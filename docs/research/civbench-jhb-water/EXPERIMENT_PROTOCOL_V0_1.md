@@ -319,3 +319,45 @@ Pre-register at least these falsifiers:
 - A lower-accuracy model may yield higher verified service value if it is better calibrated and abstains on ambiguous cases.
 
 **Primary competitive claim:** outperform alternative placement methods on verified decision value and service outcomes at matched lifecycle cost, while reporting detection/localization performance separately. A sensor count, coverage score, entropy reduction or raw accuracy improvement alone is not a service-resilience win.
+
+
+## 14. Node-level service performance and safe-fail capacity
+
+Crozier and Weijs (13 June 2026) present a performance-based WARATA quantification approach for urban water supply. It recommends defining expanded system boundaries that include piped infrastructure, emergency supply options and human resources; evaluating water supplied at individual user nodes; and tracking time-based withstanding, absorptive, restorative, adaptive and transformative capabilities. The paper is theoretical and explicitly calls for future real-world case-study validation, so CivBench treats it as a framework to operationalize and test—not as a validated utility benchmark. Reference: [Water 2026, 18(12), 1458](https://doi.org/10.3390/w18121458).
+
+This aligns with the 2026 NIST lifeline-infrastructure review, which describes water, wastewater, electricity, fuel, communications and transportation as interdependent and identifies a lack of consistent system-level guidance for continuity and recovery after hazards. Reference: [NIST, 29 September 2026](https://www.nist.gov/publications/advancing-resilience-across-lifeline-infrastructure-systems-need-consistent-guidance).
+
+### Benchmark service as a time series
+
+For each declared service node or privacy-preserving group (g), report:
+- required/target service trajectory (r_g(t)), sourced or explicitly declared as a scenario assumption;
+- piped safe water delivered (q^{pipe}_g(t));
+- qualified fallback/emergency water delivered (q^{fallback}_g(t));
+- total qualified service (q_g(t)), without double-counting water or treating unsafe/unknown-quality supply as potable;
+- the first fail-safe threshold crossing (t^{impact}_g);
+- the first safe-fail / minimum-service threshold crossing (t^{collapse}_g);
+- time spent below each threshold, deficit volume, recovery time and any recurrence;
+- worst-group and per-node trajectories, not only citywide means.
+
+Where a fallback service is modeled, make its finite stock, source, quality, vehicle/pipe capacity, travel time, staff, fuel/energy, distribution hubs and replenishment constraints explicit. It is not an unlimited emergency buffer. A tanker dispatched is not water delivered; delivered volume is not safe potable service unless quality is qualified.
+
+Do not invent household minimums or infer them from the aggregate utility report. Thresholds must come from an applicable standard, approved service obligation, or explicit stakeholder/rights-based decision with source and time basis recorded. If no defensible threshold exists, publish the raw service trajectory and mark threshold analysis indeterminate.
+
+### Available, remaining and realized response capacity
+
+Keep three states separate:
+- **Available:** capacity potentially deployable at the start of the scenario (crew hours, qualified staff, vehicles, parts, emergency water, generator/fuel).
+- **Remaining:** capacity still usable after existing commitments, travel, maintenance, fatigue, lead time and failures during the scenario.
+- **Realized:** capacity actually mobilized and delivered in the recorded event chain.
+
+This avoids counting the same crew, vehicle, part or water reserve as available to multiple simultaneous incidents. It also prevents plans and procurement from being mistaken for operational capability.
+
+### Falsifiable service-resilience cases
+
+- A network can lose piped service while safe-fail service prevents collapse; compare the time buffer and whole-life cost of the fallback.
+- An apparent fallback capacity can fail because staff, vehicles, fuel, quality assurance or access—not water stock—are binding.
+- Power restoration can precede water restoration, or vice versa; common-cause and cross-lifeline dependency must be explicit.
+- A policy can improve average service while moving a vulnerable group's threshold crossing earlier; worst-group gates must catch it.
+- A service trajectory can recover briefly and fail again because the maintenance backlog or energy constraint persists.
+
+The benchmark therefore reports performance curves and threshold-crossing times alongside physical, asset, financial and institutional measures. The WARATA capabilities are explanatory dimensions, not one new weighted resilience score.
