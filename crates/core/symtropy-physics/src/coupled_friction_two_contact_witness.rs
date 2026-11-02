@@ -2870,20 +2870,14 @@ mod double_sliding_direction_oracle {
                     BigInt::from(2_044_412_562_120_879_i128),
                     denominator.clone(),
                 ),
-                BigRational::new(
-                    BigInt::from(-233_602_787_384_141_i128),
-                    denominator.clone(),
-                ),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
             ],
             [
                 BigRational::new(
                     BigInt::from(2_054_286_197_054_429_i128),
                     denominator.clone(),
                 ),
-                BigRational::new(
-                    BigInt::from(-227_603_740_377_268_i128),
-                    denominator.clone(),
-                ),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator.clone()),
             ],
         ];
         let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
