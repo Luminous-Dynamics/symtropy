@@ -65,6 +65,7 @@ The utility's newest annual report in this evidence pack adds a more recent oper
 - The report separately gives R25.2bn of assets with less than ten years' remaining useful life (20% of the asset base) and R26.61bn for assets with zero-to-two years remaining useful life and assets due for upgrade. The relationship/overlap is not explained; these must remain separate reported values, not a forced trend against FY2023/24's R32.54bn.
 - The report says 125 noise-logger leak-detection sensors were installed at a reported project cost of R5.6m, and 51 smart pressure controllers had been installed to date.
 - It reports potential minimum-night-flow savings of 5,918 ML/year. This is a potential estimate, not measured or verified achieved savings.
+- It states Johannesburg demand needs to be reduced to 1,550 ML/day under Rand Water apportionment licensing and that Phase II of the Lesotho Highlands Water Scheme, originally due in 2018, is expected in 2029. Treat 1,550 ML/day as a reported operating requirement, not achieved demand; treat 2029 as a project schedule expectation, not additional supply already available.
 - The report lists 14.7 km of water-main and 20.5 km of sewer-main replacement under the relevant replacement panel, and gives FY2024/25 upgrading/renewal capex of R171.733m against a R239.965m budget.
 - It reports 90.29% of actual water-meter readings submitted for billing; this is a billing-reading submission indicator, not physical meter coverage.
 
