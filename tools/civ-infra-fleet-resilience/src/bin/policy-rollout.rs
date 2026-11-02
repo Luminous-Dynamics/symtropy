@@ -761,10 +761,11 @@ mod tests {
 
     #[test]
     fn invalid_evidence_references_are_rejected() {
-        let invalid = EMBEDDED_FIXTURE.replace(
-            "\"prepared-panel-candidate\"",
-            "\"undeclared-evidence-token\"",
-        );
-        assert!(verify_fixture_bytes(invalid.as_bytes()).is_err());
+        let mut invalid: serde_json::Value =
+            serde_json::from_str(EMBEDDED_FIXTURE).unwrap();
+        invalid["tasks"][0]["acceptance_evidence"][0] =
+            serde_json::json!("undeclared-evidence-token");
+        let bytes = serde_json::to_vec(&invalid).unwrap();
+        assert!(verify_fixture_bytes(&bytes).is_err());
     }
 }
