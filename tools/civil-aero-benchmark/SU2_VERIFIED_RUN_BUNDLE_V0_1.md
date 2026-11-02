@@ -41,6 +41,16 @@ The bundle builder replays the reports from the original run directories. It rej
 
 The geometry is production-bound because the dry-run field and boundary checks need the configuration and mesh, but do not themselves authenticate the geometry file. Its identity is taken from the production run's staged-input receipt.
 
+## Scheduler-signal termination guard
+
+SU2 v8.6.0's SIGTERM handler writes `Interrupt signal (N) received, saving files and exiting.` before the driver's `Solver Exit` summary. In unsteady mode, the driver can print the normal time-window message without exposing the separate interruption flag in that summary. Therefore the termination auditor inspects the entire receipt-bound stdout/stderr byte stream, not only the text after `Solver Exit`.
+
+Any well-formed SU2 signal-handler line produces an `interrupted` classification and prevents admission, even when a time-window success banner is also present. A malformed line beginning with the signal-handler prefix is rejected as unclassified output. The independent Python oracle applies the same rule to the exact receipt-bound full logs.
+
+Pinned source references:
+- https://github.com/su2code/SU2/blob/6c0e5c5c720936b175c4004e57332884443437f5/SU2_CFD/src/output/COutput.cpp
+- https://github.com/su2code/SU2/blob/6c0e5c5c720936b175c4004e57332884443437f5/SU2_CFD/src/drivers/CSinglezoneDriver.cpp
+
 ## Resource observations
 
 The current external-solver receipt records elapsed wall time in milliseconds. The bundle derives wall-clock seconds from that exact receipt and binds the observation to the receipt digest.
