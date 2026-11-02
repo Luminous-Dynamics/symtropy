@@ -1985,7 +1985,6 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
     );
 }
 
-
 #[derive(Clone, Copy)]
 struct NarySeparatorPartitionSource<'a> {
     source_id: u64,
@@ -2033,9 +2032,10 @@ fn nary_composed_classification(
         .any(|classification| *classification == SeparatingBoxClassification::SignoriniViolation)
     {
         ComposedSeparatorClassification::LocalHypothesisExcluded
-    } else if classifications.iter().all(|classification| {
-        *classification == SeparatingBoxClassification::StrictlySeparating
-    }) {
+    } else if classifications
+        .iter()
+        .all(|classification| *classification == SeparatingBoxClassification::StrictlySeparating)
+    {
         ComposedSeparatorClassification::AllLocalHypothesesStrict
     } else {
         ComposedSeparatorClassification::BoundaryOrInconclusive
@@ -2080,7 +2080,10 @@ fn compose_nary_separator_partitions(
 ) -> Result<NaryComposedSeparatorBoxPartition, &'static str> {
     let ordered = canonical_nary_sources(sources)?;
     let root_box = ordered[0].partition.root_box.clone();
-    let source_ids = ordered.iter().map(|source| source.source_id).collect::<Vec<_>>();
+    let source_ids = ordered
+        .iter()
+        .map(|source| source.source_id)
+        .collect::<Vec<_>>();
     let source_sizes = ordered
         .iter()
         .map(|source| source.partition.cells.len())
@@ -2149,11 +2152,14 @@ fn compose_nary_separator_partitions(
     };
     result.coverage_preserved = verify_nary_separator_composition(&ordered, &result);
     if !result.coverage_preserved {
-        return Err("n-ary separator composition failed independent tuple/intersection verification");
+        return Err(
+            "n-ary separator composition failed independent tuple/intersection verification",
+        );
     }
-    result.classification_complete = result.cells.iter().all(|cell| {
-        cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive
-    });
+    result.classification_complete = result
+        .cells
+        .iter()
+        .all(|cell| cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive);
     Ok(result)
 }
 
@@ -2193,10 +2199,8 @@ fn verify_nary_separator_composition(
         return false;
     }
 
-    let mut expected = std::collections::BTreeMap::<
-        Vec<Vec<u8>>,
-        NaryComposedSeparatorBoxCell,
-    >::new();
+    let mut expected =
+        std::collections::BTreeMap::<Vec<Vec<u8>>, NaryComposedSeparatorBoxCell>::new();
     let mut empty_intersections = 0_usize;
     let mut stack = vec![(
         0_usize,
@@ -2451,7 +2455,10 @@ fn nary_separator_join_rejects_missing_duplicate_and_relabelled_tuple_cells() {
 
     let mut changed_geometry = joined;
     changed_geometry.cells[0].separator_box.lower[0] += 0.125;
-    assert!(!verify_nary_separator_composition(&sources, &changed_geometry));
+    assert!(!verify_nary_separator_composition(
+        &sources,
+        &changed_geometry
+    ));
 }
 
 #[test]
@@ -2479,9 +2486,7 @@ fn nary_separator_join_keeps_lineage_distinct_cells_with_equal_geometry() {
     let duplicate_geometry = joined
         .cells
         .iter()
-        .filter(|cell| {
-            cell.separator_box.lower[0] == 1.0 && cell.separator_box.upper[0] == 1.0
-        })
+        .filter(|cell| cell.separator_box.lower[0] == 1.0 && cell.separator_box.upper[0] == 1.0)
         .collect::<Vec<_>>();
     assert!(duplicate_geometry.len() >= 2);
     let distinct_lineages = duplicate_geometry
