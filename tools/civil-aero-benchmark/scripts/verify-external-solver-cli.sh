@@ -202,7 +202,7 @@ grep -q 'process_status=process_exited_zero_no_outputs_declared' "$root/prefligh
   --require-field CD \
   > "$root/su2-field-preflight.csv" 2> "$root/su2-field-preflight.txt"
 test "$(wc -l < "$root/su2-field-preflight.csv")" -eq 2
-grep -q 'su2_field_preflight=pass run_id=ci-su2-dry-run-preflight solver_family=NAVIER_STOKES conv_field=RMS_DENSITY steady_fields=RMS_DENSITY window_cauchy=NO window_fields= available_fields=6 required_fields=4' "$root/su2-field-preflight.txt"
+grep -q 'su2_field_preflight=pass run_id=ci-su2-dry-run-preflight solver_family=NAVIER_STOKES conv_field=RMS_DENSITY steady_fields=RMS_DENSITY time_domain=NO window_cauchy=NO window_fields= available_fields=6 required_fields=4' "$root/su2-field-preflight.txt"
 grep -q 'receipt_bound_su2_dry_run_multi_field_steady_and_explicit_time_window_configuration_discovery_only_not_history_convergence_or_validation' "$root/su2-field-preflight.txt"
 python3 scripts/verify-su2-field-preflight-independent.py "$root/preflight-run" "$root/su2-field-preflight.csv"
 
