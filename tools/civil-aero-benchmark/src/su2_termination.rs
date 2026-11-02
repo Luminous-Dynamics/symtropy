@@ -211,6 +211,16 @@ fn classify_exit_section(
     section: &str,
     protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
 ) -> Result<(String, String, Vec<Su2NativeCriterionResult>, Vec<String>), String> {
+    if protocol.time_domain
+        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled)
+    {
+        return Ok((
+            "unsteady_no_window".to_owned(),
+            "unsupported_unsteady_termination_protocol".to_owned(),
+            Vec::new(),
+            Vec::new(),
+        ));
+    }
     let classification =
         match &protocol.window {
             Su2WindowConvergenceProtocol::Disabled => {
@@ -399,6 +409,7 @@ mod tests {
 
     fn steady_protocol() -> Su2ConvergenceProtocol {
         Su2ConvergenceProtocol {
+            time_domain: false,
             steady_fields: vec!["DRAG".to_owned(), "RMS_DENSITY".to_owned()],
             steady_start_iteration: Some(10),
             steady_residual_min_log10: Some("-8".to_owned()),
@@ -410,6 +421,7 @@ mod tests {
 
     fn window_protocol() -> Su2ConvergenceProtocol {
         Su2ConvergenceProtocol {
+            time_domain: true,
             steady_fields: vec!["RMS_DENSITY".to_owned()],
             steady_start_iteration: Some(10),
             steady_residual_min_log10: Some("-8".to_owned()),
