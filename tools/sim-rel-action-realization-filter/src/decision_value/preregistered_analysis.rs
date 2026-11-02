@@ -138,7 +138,6 @@ impl std::error::Error for PairedInferenceError {}
 #[derive(Clone, Debug, Default)]
 struct FamilyCounts {
     valid_pairs: usize,
-    invalid_tasks_excluded: usize,
     candidate_wins: usize,
     reference_wins: usize,
     ties: usize,
