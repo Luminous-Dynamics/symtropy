@@ -29,6 +29,7 @@ pub struct DecisionValuePlan {
     pub analysis_version: String,
     pub pre_registration_receipt_digest: String,
     pub decision_loss_table_digest: String,
+    pub decision_loss_verifier_profile_digest: String,
     pub source_hierarchical_analysis_id: String,
     pub benchmark_id: String,
     pub benchmark_version: String,
@@ -119,6 +120,8 @@ pub struct VerifiedDecisionLoss {
     /// Loss must be normalized to [0,1] using the preregistered loss table.
     pub normalized_loss: ExactValue,
     pub decision_loss_evidence_digest: String,
+    pub independent_loss_verification_receipt_digest: String,
+    pub loss_verifier_profile_digest: String,
     pub oracle_loss_table_digest: String,
     pub selected_decision_digest: String,
     pub oracle_optimal_decision_digest: String,
@@ -534,6 +537,7 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     for (value, label) in [
         (&plan.pre_registration_receipt_digest, "decision-value preregistration"),
         (&plan.decision_loss_table_digest, "decision loss table"),
+        (&plan.decision_loss_verifier_profile_digest, "decision loss verifier profile"),
         (&plan.sealed_release_digest, "sealed release"),
     ] {
         require_digest(value, label)?;
@@ -678,9 +682,11 @@ fn validate_concept_evidence(
                 DecisionValueError::MissingOutcomeEvidence("verified concept is missing candidate decision loss".into())
             })?;
             for loss in [baseline, candidate] {
-                if loss.oracle_loss_table_digest != plan.decision_loss_table_digest {
+                if loss.oracle_loss_table_digest != plan.decision_loss_table_digest
+                    || loss.loss_verifier_profile_digest != plan.decision_loss_verifier_profile_digest
+                {
                     return Err(DecisionValueError::MissingOutcomeEvidence(
-                        "decision loss evidence uses a different loss table from the preregistered plan".into(),
+                        "decision loss evidence uses a different loss table or verifier profile from the preregistered plan".into(),
                     ));
                 }
                 if !in_unit_interval(&loss.normalized_loss)? {
@@ -689,6 +695,8 @@ fn validate_concept_evidence(
                     ));
                 }
                 require_digest(&loss.decision_loss_evidence_digest, "decision loss evidence")?;
+                require_digest(&loss.independent_loss_verification_receipt_digest, "independent loss verification")?;
+                require_digest(&loss.loss_verifier_profile_digest, "loss verifier profile")?;
                 require_digest(&loss.oracle_loss_table_digest, "oracle loss table")?;
                 require_digest(&loss.selected_decision_digest, "selected terminal decision")?;
                 require_digest(&loss.oracle_optimal_decision_digest, "oracle-optimal decision")?;
@@ -1265,6 +1273,7 @@ mod tests {
             analysis_version: "v1".into(),
             pre_registration_receipt_digest: D1.into(),
             decision_loss_table_digest: D2.into(),
+            decision_loss_verifier_profile_digest: D3.into(),
             source_hierarchical_analysis_id: "hierarchy".into(),
             benchmark_id: "science-benchmark".into(),
             benchmark_version: "v1".into(),
@@ -1359,6 +1368,8 @@ mod tests {
         VerifiedDecisionLoss {
             normalized_loss: q(value, 10),
             decision_loss_evidence_digest: D1.into(),
+            independent_loss_verification_receipt_digest: D3.into(),
+            loss_verifier_profile_digest: D3.into(),
             oracle_loss_table_digest: D2.into(),
             selected_decision_digest: format!("sha256:{}", suffix.repeat(64 / suffix.len())),
             oracle_optimal_decision_digest: D4.into(),
@@ -1510,6 +1521,36 @@ mod tests {
         assert!(matches!(
             analyze_scientific_decision_value(&plan(), &hierarchy(), &outside),
             Err(DecisionValueError::ConceptSetMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn safety_violations_are_retained_even_when_efficiency_evidence_is_inconclusive() {
+        let mut item = evidence(D3, 8, 4);
+        item.evidence_status = ConceptEvidenceStatus::Inconclusive;
+        item.baseline_loss = None;
+        item.candidate_loss = None;
+        item.baseline_outcome = None;
+        item.candidate_outcome = None;
+        item.candidate_hazard = true;
+        item.candidate_false_safety_certifications = 1;
+        let receipt = analyze_scientific_decision_value(
+            &plan(),
+            &hierarchy(),
+            &[item, evidence(D4, 7, 3)],
+        ).unwrap();
+        assert!(!receipt.safety_gate_passed);
+        assert_eq!(receipt.candidate_hazard_concept_count, 1);
+        assert_eq!(receipt.candidate_false_safety_certification_count, 1);
+    }
+
+    #[test]
+    fn decision_loss_evidence_must_use_preregistered_verifier_profile() {
+        let mut item = evidence(D3, 8, 4);
+        item.candidate_loss.as_mut().unwrap().loss_verifier_profile_digest = D4.into();
+        assert!(matches!(
+            analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]),
+            Err(DecisionValueError::MissingOutcomeEvidence(_))
         ));
     }
 
