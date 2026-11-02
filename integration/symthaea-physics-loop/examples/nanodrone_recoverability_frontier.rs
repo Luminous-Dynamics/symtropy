@@ -348,6 +348,29 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 
+const MAX_BRANCH_ARTIFACT_BYTES: u64 = 1024 * 1024;
+
+fn read_bounded_artifact_bytes(path: &Path, label: &str) -> Result<Vec<u8>, String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| format!("cannot inspect {label} {}: {error}", path.display()))?;
+    if metadata.file_type().is_symlink() || !metadata.file_type().is_file() {
+        return Err(format!("{label} must be a regular non-symlink file: {}", path.display()));
+    }
+    if metadata.len() > MAX_BRANCH_ARTIFACT_BYTES {
+        return Err(format!(
+            "{label} exceeds the {}-byte v0.1 artifact limit: {}",
+            MAX_BRANCH_ARTIFACT_BYTES,
+            path.display()
+        ));
+    }
+    let bytes = fs::read(path)
+        .map_err(|error| format!("cannot read {label} {}: {error}", path.display()))?;
+    if bytes.len() as u64 > MAX_BRANCH_ARTIFACT_BYTES {
+        return Err(format!("{label} grew beyond the v0.1 artifact limit while being read"));
+    }
+    Ok(bytes)
+}
+
 fn require_real_directory(path: &Path, label: &str) -> Result<(), String> {
     let metadata = fs::symlink_metadata(path)
         .map_err(|error| format!("cannot inspect {label} {}: {error}", path.display()))?;
@@ -501,7 +524,7 @@ fn verify_branch_artifacts(
 
     for (digest, expected_identity) in &expected_snapshots {
         let path = snapshot_dir.join(format!("{digest}.json"));
-        let bytes = fs::read(&path).map_err(|error| format!("cannot read snapshot artifact {}: {error}", path.display()))?;
+        let bytes = read_bounded_artifact_bytes(&path, "snapshot artifact")?;
         if sha256(&bytes) != digest.clone() {
             return Err(format!("snapshot artifact SHA-256 does not match its filename: {}", path.display()));
         }
@@ -527,7 +550,7 @@ fn verify_branch_artifacts(
 
     for (digest, expected_identity) in &expected_tapes {
         let path = tape_dir.join(format!("{digest}.json"));
-        let bytes = fs::read(&path).map_err(|error| format!("cannot read disturbance tape artifact {}: {error}", path.display()))?;
+        let bytes = read_bounded_artifact_bytes(&path, "disturbance tape artifact")?;
         if sha256(&bytes) != digest.clone() {
             return Err(format!("disturbance tape artifact SHA-256 does not match its filename: {}", path.display()));
         }
