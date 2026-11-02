@@ -379,7 +379,8 @@ fn validate_plan(plan: &AdversarialRedTeamPlan) -> Result<(), RedTeamError> {
                 "threat family requirements must be unique".into(),
             ));
         }
-        if requirement.minimum_attack_scenarios == 0
+        if requirement.minimum_attack_scenarios < requirement.minimum_attack_authors
+            || requirement.minimum_attack_scenarios < requirement.minimum_generator_variants
             || requirement.minimum_clean_controls == 0
             || requirement.minimum_successful_exploits == 0
             || requirement.minimum_attack_authors < 2
@@ -451,7 +452,6 @@ fn validate_source(
 
 fn validate_scenarios(
     plan: &AdversarialRedTeamPlan,
-    source: &AdversarialBenchmarkSource,
     scenarios: &[AdversarialScenario],
 ) -> Result<BTreeMap<String, &AdversarialScenario>, RedTeamError> {
     if scenarios.len() > MAX_SCENARIOS {
@@ -513,7 +513,6 @@ fn validate_scenarios(
             )));
         }
     }
-    let _ = source;
     Ok(result)
 }
 
@@ -570,7 +569,6 @@ struct FamilyAccumulator {
     contained: usize,
     uncontained: usize,
     leaked: usize,
-    resource_totals: BTreeMap<String, (String, u128, usize)>,
 }
 
 pub fn evaluate_adversarial_redteam_campaign(
@@ -581,7 +579,7 @@ pub fn evaluate_adversarial_redteam_campaign(
 ) -> Result<AdversarialRedTeamReceipt, RedTeamError> {
     validate_plan(plan)?;
     validate_source(plan, source)?;
-    let scenario_map = validate_scenarios(plan, source, scenarios)?;
+    let scenario_map = validate_scenarios(plan, scenarios)?;
     if trials.len() != scenarios.len() || trials.len() > MAX_TRIALS {
         return Err(RedTeamError::TrialEvidence(
             "every preregistered scenario must have exactly one trial row".into(),
@@ -899,7 +897,7 @@ mod tests {
             family_requirements: ThreatFamily::ALL.into_iter().map(|family| ThreatFamilyRequirement {
                 family,
                 critical: true,
-                minimum_attack_scenarios: 1,
+                minimum_attack_scenarios: 2,
                 minimum_clean_controls: 1,
                 minimum_successful_exploits: 1,
                 minimum_attack_authors: 2,
@@ -931,18 +929,22 @@ mod tests {
         }
     }
 
-    fn scenario(index: usize, kind: ScenarioKind) -> AdversarialScenario {
+    fn scenario(index: usize, kind: ScenarioKind, variant: usize) -> AdversarialScenario {
         let family = ThreatFamily::ALL[index];
         let author = match kind {
-            ScenarioKind::Attack => format!("attack-author-{index}"),
+            ScenarioKind::Attack => format!("attack-author-{index}-{variant}"),
             ScenarioKind::CleanNegativeControl => format!("control-author-{index}"),
         };
         AdversarialScenario {
-            scenario_id: format!("{family:?}-{}", match kind { ScenarioKind::Attack => "attack", ScenarioKind::CleanNegativeControl => "clean" }),
+            scenario_id: format!("{family:?}-{}-{variant}", match kind { ScenarioKind::Attack => "attack", ScenarioKind::CleanNegativeControl => "clean" }),
             family,
             kind,
             scenario_digest: D1.into(),
-            generator_digest: if kind == ScenarioKind::Attack { D5.into() } else { D1.into() },
+            generator_digest: match (kind, variant) {
+                (ScenarioKind::Attack, 0) => D5.into(),
+                (ScenarioKind::Attack, _) => D6.into(),
+                (ScenarioKind::CleanNegativeControl, _) => D1.into(),
+            },
             author_identity: author,
             split: EvidenceSplit::SealedHoldout,
             development_exposed: false,
@@ -986,8 +988,9 @@ mod tests {
     fn campaign() -> (Vec<AdversarialScenario>, Vec<AdversarialTrial>) {
         let mut scenarios = Vec::new();
         for index in 0..ThreatFamily::ALL.len() {
-            scenarios.push(scenario(index, ScenarioKind::Attack));
-            scenarios.push(scenario(index, ScenarioKind::CleanNegativeControl));
+            scenarios.push(scenario(index, ScenarioKind::Attack, 0));
+            scenarios.push(scenario(index, ScenarioKind::Attack, 1));
+            scenarios.push(scenario(index, ScenarioKind::CleanNegativeControl, 0));
         }
         let trials = scenarios.iter().map(trial).collect();
         (scenarios, trials)
@@ -999,9 +1002,9 @@ mod tests {
         let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(receipt.campaign_integrity_passed);
         assert_eq!(receipt.threat_family_count, 12);
-        assert_eq!(receipt.attack_scenario_count, 12);
+        assert_eq!(receipt.attack_scenario_count, 24);
         assert_eq!(receipt.clean_control_count, 12);
-        assert_eq!(receipt.successful_exploit_count, 12);
+        assert_eq!(receipt.successful_exploit_count, 24);
         assert_eq!(receipt.leaked_exploit_count, 0);
         let family = &receipt.family_results[0];
         assert_eq!(family.successful_exploit_detection_recall.as_ref().unwrap().numerator, 1);
@@ -1024,7 +1027,7 @@ mod tests {
     #[test]
     fn false_positive_on_clean_control_fails_specificity_gate() {
         let (scenarios, mut trials) = campaign();
-        let clean_id = &scenarios[1].scenario_id;
+        let clean_id = &scenarios[2].scenario_id;
         trials.iter_mut().find(|trial| &trial.scenario_id == clean_id).unwrap().detector_alerted = true;
         let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(!receipt.campaign_integrity_passed);
