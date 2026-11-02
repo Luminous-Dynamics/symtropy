@@ -49,6 +49,14 @@
         "evidence_class": "published_system_level_review",
         "assurance": "review identifies interdependence and guidance gap; not a municipal water observation",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOURNAL_HYDROINFORMATICS_HIERARCHICAL_LEAK_REVIEW_2026",
+        "uri": "https://doi.org/10.2166/hydro.2026.069",
+        "period": "2026",
+        "evidence_class": "published_systematic_review_86_studies",
+        "assurance": "review-level synthesis and deployment recommendations; not an independent benchmark result",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -289,7 +297,8 @@
     "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
     "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published hybrid topology+sensitivity, and decision-aware placement at matched sensor count and whole-life cost. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome. Optimize/reports decision value and service effect, not entropy or detection accuracy alone.",
     "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score",
-    "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate."
+    "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
+    "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes."
   },
   "provenance_receipt": {
     "required_digests": [
