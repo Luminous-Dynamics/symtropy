@@ -10,12 +10,23 @@ import sys
 from pathlib import Path
 
 
-SCHEMA = "su2-verified-run-bundle/0.1.0"
+SCHEMA = "su2-verified-run-bundle/0.2.0"
 EVIDENCE = (
-    "replayed_dry_run_multi_field_steady_and_time_window_protocol_and_boundary_audit_"
+    "replayed_dry_run_multi_field_protocol_and_native_solver_termination_classification_"
     "bound_to_production_history_screen_and_inputs_unsigned_wall_time_only_other_"
     "resources_unknown_not_grid_independent_or_experimentally_validated"
 )
+TERMINATION_SCHEMA = "su2-native-termination-evidence/0.1.0"
+TERMINATION_EVIDENCE = (
+    "receipt_bound_su2_solver_exit_reason_and_native_criterion_summary_from_exact_"
+    "stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation"
+)
+STEADY_SUCCESS = "All convergence criteria satisfied."
+WINDOW_SUCCESS = "All windowed time-averaged convergence criteria are fullfilled."
+INTERRUPTED = "Interrupt signal received, exiting before the convergence criteria were satisfied."
+STEADY_ITERATION_LIMIT = "Maximum number of iterations reached"
+TIME_LIMIT = "Maximum time reached"
+TIME_ITERATION_LIMIT = "Maximum number of time iterations reached"
 
 
 def require(condition: bool, message: str) -> None:
@@ -65,6 +76,124 @@ def add_measure(buffer: bytearray, row: dict[str, str], prefix: str) -> None:
         add_string(buffer, row[f"{prefix}_source_uncertainty"])
     else:
         raise ValueError(f"{prefix} has unsupported measurement status {status!r}")
+
+
+def add_u64(buffer: bytearray, value: int) -> None:
+    buffer.extend(struct.pack("<Q", value))
+
+
+def termination_evidence(
+    production_dir: Path,
+    preflight: dict[str, str],
+    receipt_row: dict[str, str],
+) -> tuple[str, str]:
+    stdout = (production_dir / "stdout.log").read_bytes()
+    stderr = (production_dir / "stderr.log").read_bytes()
+    stdout_sha = hashlib.sha256(stdout).hexdigest()
+    stderr_sha = hashlib.sha256(stderr).hexdigest()
+    require(stdout_sha == receipt_row["stdout_sha256"], "termination stdout receipt mismatch")
+    require(stderr_sha == receipt_row["stderr_sha256"], "termination stderr receipt mismatch")
+    combined = stdout.decode("utf-8") + "\n" + stderr.decode("utf-8")
+    marker = "Solver Exit"
+    positions = [index for index in range(len(combined)) if combined.startswith(marker, index)]
+    require(len(positions) == 1, f"expected exactly one Solver Exit section, found {len(positions)}")
+    section = combined[positions[0]:]
+    section_sha = hashlib.sha256(section.encode("utf-8")).hexdigest()
+    time_window = preflight["window_cauchy_enabled"] == "YES"
+    native_rows: list[tuple[str, str, str, str]] = []
+    if time_window:
+        mode = "time_window"
+        window_fields = preflight["window_convergence_fields"].split(";")
+        if INTERRUPTED in section:
+            classification = "interrupted"
+            terminal_messages = [INTERRUPTED]
+        elif WINDOW_SUCCESS in section:
+            classification = "time_window_native_criteria_satisfied"
+            terminal_messages = [WINDOW_SUCCESS]
+            success_sha = hashlib.sha256(WINDOW_SUCCESS.encode("utf-8")).hexdigest()
+            native_rows = [
+                (field, field, "passed", success_sha) for field in window_fields
+            ]
+        elif TIME_LIMIT in section:
+            classification = "maximum_time_reached"
+            terminal_messages = [TIME_LIMIT]
+        elif TIME_ITERATION_LIMIT in section:
+            classification = "maximum_time_iterations_reached"
+            terminal_messages = [TIME_ITERATION_LIMIT]
+        else:
+            classification = "unclassified_time_window_termination"
+            terminal_messages = []
+    else:
+        mode = "steady"
+        steady_fields = preflight["steady_convergence_fields"].split(";")
+        if INTERRUPTED in section:
+            classification = "interrupted"
+            terminal_messages = [INTERRUPTED]
+        elif STEADY_ITERATION_LIMIT in section:
+            classification = "maximum_iterations_reached"
+            terminal_messages = [STEADY_ITERATION_LIMIT]
+        elif STEADY_SUCCESS in section:
+            terminal_messages = [STEADY_SUCCESS]
+            statuses = []
+            for configured in steady_fields:
+                cauchy_field = f"CAUCHY_{configured}"
+                matches = []
+                for line in section.splitlines():
+                    cells = [cell.strip() for cell in line.split("|") if cell.strip()]
+                    if not cells or cells[-1] not in {"Yes", "No"}:
+                        continue
+                    if configured in cells or cauchy_field in cells:
+                        matches.append((line, cells[-1]))
+                require(len(matches) == 1,
+                        f"native SU2 convergence summary has {len(matches)} rows for {configured}")
+                line, status = matches[0]
+                reported_field = cauchy_field if cauchy_field in line else configured
+                row_status = "passed" if status == "Yes" else "failed"
+                row_sha = hashlib.sha256(line.encode("utf-8")).hexdigest()
+                native_rows.append((configured, reported_field, row_status, row_sha))
+                statuses.append(row_status)
+            classification = (
+                "steady_native_criteria_satisfied"
+                if all(status == "passed" for status in statuses)
+                else "steady_native_criteria_not_satisfied"
+            )
+        else:
+            classification = "unclassified_steady_termination"
+            terminal_messages = []
+
+    canonical = bytearray()
+    for value in (
+        TERMINATION_SCHEMA,
+        receipt_row["run_id"],
+        receipt_row["solver_id"],
+        receipt_row["solver_version_claim"],
+        receipt_row["receipt_sha256"],
+        receipt_row["executable_sha256"],
+        stdout_sha,
+        stderr_sha,
+        section_sha,
+        mode,
+        classification,
+        TERMINATION_EVIDENCE,
+    ):
+        add_string(canonical, value)
+    add_u64(canonical, len(native_rows))
+    for configured, reported, status, row_sha in native_rows:
+        add_string(canonical, configured)
+        add_string(canonical, reported)
+        add_string(canonical, status)
+        add_string(canonical, row_sha)
+    add_u64(canonical, len(terminal_messages))
+    for message in terminal_messages:
+        add_string(canonical, message)
+    digest = hashlib.sha256(canonical).hexdigest()
+    require(classification in {
+        "steady_native_criteria_satisfied",
+        "time_window_native_criteria_satisfied",
+    }, f"native SU2 termination is not converged: {classification}")
+    require(all(row[2] == "passed" for row in native_rows),
+            "native SU2 termination includes a failed criterion")
+    return classification, digest
 
 
 def receipt(run_directory: Path) -> dict[str, str]:
@@ -154,6 +283,14 @@ def main() -> int:
     require(screen["overall_status"] == "declared_thresholds_met"
             and screen["criterion_status"] == "passed", "a declared screen criterion did not pass")
 
+    termination_classification, termination_sha = termination_evidence(
+        production_dir, preflight, production_receipt
+    )
+    require(bundle["termination_classification"] == termination_classification,
+            "run-bundle native termination classification mismatch")
+    require(bundle["termination_sha256"] == termination_sha,
+            "run-bundle native termination digest mismatch")
+
     for row in boundary_rows:
         for key in ("run_id", "runner_receipt_sha256", "configuration_sha256", "mesh_sha256",
                     "audit_sha256", "status"):
@@ -224,6 +361,7 @@ def main() -> int:
         "physics_configuration_sha256", "geometry_sha256", "mesh_sha256",
         "field_preflight_sha256", "boundary_audit_sha256", "history_sha256",
         "history_import_sha256", "convergence_screen_sha256", "lineage_binding_sha256",
+        "termination_classification", "termination_sha256",
         "resource_evidence_sha256", "status", "evidence_level",
     ):
         add_string(canonical, bundle[field])
