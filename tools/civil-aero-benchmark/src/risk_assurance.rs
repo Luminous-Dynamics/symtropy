@@ -514,6 +514,37 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
+pub fn observations_to_csv(observations: &[EvidenceObservation]) -> String {
+    let header = [
+        "gate",
+        "status",
+        "source_reference",
+        "source_sha256",
+        "rationale",
+    ];
+    let mut rows = observations.iter().collect::<Vec<_>>();
+    rows.sort_by_key(|observation| observation.gate);
+    let mut output = format!("{}\\n", header.join(","));
+    for observation in rows {
+        let values = [
+            observation.gate.as_str(),
+            observation.status.as_str(),
+            observation.source_reference.as_str(),
+            observation.source_sha256.as_str(),
+            observation.rationale.as_str(),
+        ];
+        output.push_str(
+            &values
+                .iter()
+                .map(|value| csv_escape(value))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
+        output.push('\\n');
+    }
+    output
+}
+
 pub fn report_to_csv(report: &AssuranceReport) -> String {
     let header = [
         "schema",
@@ -730,6 +761,61 @@ mod tests {
                 .expect_err("passing evidence without digest must reject")
                 .contains("requires a source reference and SHA-256")
         );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn independent_python_oracle_recomputes_policy_and_canonical_digest() {
+        use std::fs;
+        use std::process::Command;
+
+        let context = context(
+            ModelInfluence::Moderate,
+            DecisionConsequence::High,
+            DomainExposure::NearBoundary,
+            AnalysisRegime::UnsteadyDualTime,
+        );
+        let mut observations = passing_observations(&context);
+        observations.push(EvidenceObservation {
+            gate: EvidenceGate::PhysicalConfirmation,
+            status: EvidenceStatus::Unknown,
+            source_reference: String::new(),
+            source_sha256: String::new(),
+            rationale: "physical coupon evidence has not been generated".to_owned(),
+        });
+        let report = evaluate_claim_assurance(&context, &observations)
+            .expect("evaluate evidence policy");
+        let root = std::env::temp_dir().join(format!(
+            "risk-assurance-oracle-{}-{}",
+            std::process::id(),
+            report.assessment_sha256
+        ));
+        fs::create_dir_all(&root).expect("create oracle directory");
+        let report_path = root.join("assurance.csv");
+        let observations_path = root.join("observations.csv");
+        fs::write(&report_path, report_to_csv(&report)).expect("write assurance report");
+        fs::write(&observations_path, observations_to_csv(&observations))
+            .expect("write observations");
+
+        let oracle = Command::new("python3")
+            .arg(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/scripts/verify-risk-assurance-independent.py"
+            ))
+            .arg(&report_path)
+            .arg(&observations_path)
+            .output()
+            .expect("run independent risk-assurance oracle");
+        assert!(
+            oracle.status.success(),
+            "independent risk assurance oracle failed: {}",
+            String::from_utf8_lossy(&oracle.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&oracle.stdout)
+                .contains("independent_risk_assurance_oracle=pass")
+        );
+        fs::remove_dir_all(root).expect("remove oracle directory");
     }
 
     #[test]
