@@ -543,8 +543,8 @@ mod tests {
         let mut protocol = window_protocol();
         protocol.window = Su2WindowConvergenceProtocol::Disabled;
         let section = concat!(
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "Maximum time reached (MAX_TIME = 2.0s).\\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "Maximum time reached (MAX_TIME = 2.0s).\n",
         );
         let (mode, classification, criteria, messages) =
             classify_exit_section(section, &protocol).expect("classify unsupported unsteady endpoint");
@@ -557,11 +557,11 @@ mod tests {
     #[test]
     fn scheduler_sigterm_before_window_success_is_always_interrupted() {
         let full_log = concat!(
-            "SU2 startup output\\n",
-            "Interrupt signal (15) received, saving files and exiting.\\n",
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All windowed time-averaged convergence criteria are fullfilled.\\n",
-            "-------------------------------------------------------------------------\\n",
+            "SU2 startup output\n",
+            "Interrupt signal (15) received, saving files and exiting.\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\n",
+            "-------------------------------------------------------------------------\n",
         );
         let section = exit_section(full_log).expect("find Solver Exit section");
         let (_, classification, criteria, messages) =
@@ -578,10 +578,10 @@ mod tests {
     #[test]
     fn malformed_scheduler_signal_output_is_not_ignored() {
         let full_log = concat!(
-            "Interrupt signal (fifteen) received, saving files and exiting.\\n",
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All windowed time-averaged convergence criteria are fullfilled.\\n",
-            "-------------------------------------------------------------------------\\n",
+            "Interrupt signal (fifteen) received, saving files and exiting.\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\n",
+            "-------------------------------------------------------------------------\n",
         );
         let section = exit_section(full_log).expect("find Solver Exit section");
         assert!(
@@ -594,13 +594,13 @@ mod tests {
     #[test]
     fn steady_signal_handler_line_before_exit_section_overrides_success() {
         let full_log = concat!(
-            "Interrupt signal (15) received, saving files and exiting.\\n",
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All convergence criteria satisfied.\\n",
-            "| Convergence Field | Value | Criterion | Converged |\\n",
-            "| CAUCHY_DRAG | 1.0e-12 | < 1.0e-10 | Yes |\\n",
-            "| RMS_DENSITY | -9.0 | < -8.0 | Yes |\\n",
-            "-------------------------------------------------------------------------\\n",
+            "Interrupt signal (15) received, saving files and exiting.\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All convergence criteria satisfied.\n",
+            "| Convergence Field | Value | Criterion | Converged |\n",
+            "| CAUCHY_DRAG | 1.0e-12 | < 1.0e-10 | Yes |\n",
+            "| RMS_DENSITY | -9.0 | < -8.0 | Yes |\n",
+            "-------------------------------------------------------------------------\n",
         );
         let section = exit_section(full_log).expect("find Solver Exit section");
         let (_, classification, criteria, _) =
