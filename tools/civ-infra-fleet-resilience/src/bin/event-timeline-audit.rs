@@ -398,7 +398,9 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         }
     }
     if event_kinds.len() != DisturbanceKind::ALL.len() {
-        errors.push("v0.1 disturbance fixture must cover exactly the 13 typed event kinds".to_string());
+        errors.push(
+            "v0.1 disturbance fixture must cover exactly the 13 typed event kinds".to_string(),
+        );
     }
     if maximum_tick >= 100_000 {
         errors.push("timeline exceeds the bounded 100000-tick audit horizon".to_string());
