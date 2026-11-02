@@ -551,78 +551,171 @@ impl ResourceLedger {
     }
 }
 
+/// Evidence status for an outcome metric.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MetricEvidenceStatus {
+    /// Measured directly from a declared observation source.
+    Observed,
+    /// Calculated by reproducible arithmetic from source-qualified values.
+    Derived,
+    /// Produced by a declared simulation or model.
+    Modelled,
+    /// No measurement is available for this case.
+    NotMeasured,
+    /// The metric is outside the qualified capability of this model/evaluator.
+    Unsupported,
+    /// The value exists but is withheld under a data-governance constraint.
+    Withheld,
+    /// The metric does not apply to this scenario.
+    NotApplicable,
+}
+
+/// A numeric metric paired with an explicit evidence status.
+///
+/// Unknown, unsupported, withheld and not-applicable values are represented
+/// with None; they are never silently converted to zero.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct QualifiedMetric {
+    /// Numeric value in the unit declared by the parent outcome field.
+    pub value: Option<u64>,
+    /// Evidence state explaining whether the value is available.
+    pub status: MetricEvidenceStatus,
+}
+
+impl QualifiedMetric {
+    /// Construct a directly observed metric.
+    pub const fn observed(value: u64) -> Self {
+        Self {
+            value: Some(value),
+            status: MetricEvidenceStatus::Observed,
+        }
+    }
+
+    /// Construct a derived metric.
+    pub const fn derived(value: u64) -> Self {
+        Self {
+            value: Some(value),
+            status: MetricEvidenceStatus::Derived,
+        }
+    }
+
+    /// Construct a modelled metric.
+    pub const fn modelled(value: u64) -> Self {
+        Self {
+            value: Some(value),
+            status: MetricEvidenceStatus::Modelled,
+        }
+    }
+
+    /// Construct a metric that has not been measured.
+    pub const fn not_measured() -> Self {
+        Self {
+            value: None,
+            status: MetricEvidenceStatus::NotMeasured,
+        }
+    }
+
+    /// Construct a metric unsupported by this model/evaluator.
+    pub const fn unsupported() -> Self {
+        Self {
+            value: None,
+            status: MetricEvidenceStatus::Unsupported,
+        }
+    }
+
+    /// Construct a metric withheld by a data-governance constraint.
+    pub const fn withheld() -> Self {
+        Self {
+            value: None,
+            status: MetricEvidenceStatus::Withheld,
+        }
+    }
+
+    /// Construct a metric that does not apply to this scenario.
+    pub const fn not_applicable() -> Self {
+        Self {
+            value: None,
+            status: MetricEvidenceStatus::NotApplicable,
+        }
+    }
+
+    fn validate(self, field: &'static str) -> Result<(), OutcomeError> {
+        let requires_value = matches!(
+            self.status,
+            MetricEvidenceStatus::Observed
+                | MetricEvidenceStatus::Derived
+                | MetricEvidenceStatus::Modelled
+        );
+        if self.value.is_some() != requires_value {
+            return Err(OutcomeError::StatusValueMismatch { field });
+        }
+        Ok(())
+    }
+
+    fn paired_delta(self, control: Self) -> Option<i128> {
+        Some(i128::from(self.value?) - i128::from(control.value?))
+    }
+}
+
+impl Default for QualifiedMetric {
+    fn default() -> Self {
+        Self::not_measured()
+    }
+}
+
 /// Typed, non-composite outcome vector from one evaluated scenario arm.
 ///
-/// Values use explicit integer units to avoid introducing floating-point
-/// rounding into the paired-difference receipt. The caller is responsible for
-/// supplying values under the protocol's declared metric definitions.
+/// Numeric units are carried by field names and the protocol. Missing values
+/// preserve an explicit status and cannot be mistaken for measured zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct OutcomeVector {
     /// Unmet essential water demand, in litres.
-    pub essential_shortfall_l: u64,
+    pub essential_shortfall_l: QualifiedMetric,
     /// Service interruption exposure, in service-unit seconds.
-    pub interruption_service_seconds: u64,
+    pub interruption_service_seconds: QualifiedMetric,
     /// Worst-group service performance, in parts per million (0..=1,000,000).
-    pub worst_group_service_ppm: u64,
+    pub worst_group_service_ppm: QualifiedMetric,
     /// Physical water loss, in litres.
-    pub physical_loss_l: u64,
+    pub physical_loss_l: QualifiedMetric,
     /// Commercial/apparent loss, in litres.
-    pub commercial_loss_l: u64,
+    pub commercial_loss_l: QualifiedMetric,
     /// Unbilled authorised consumption, in litres.
-    pub unbilled_authorised_l: u64,
+    pub unbilled_authorised_l: QualifiedMetric,
     /// Asset failures in the declared observation window.
-    pub asset_failures: u64,
+    pub asset_failures: QualifiedMetric,
     /// Independently verified completed repairs.
-    pub verified_repairs: u64,
+    pub verified_repairs: QualifiedMetric,
     /// Whole-life cost, in the declared smallest currency unit and price year.
-    pub whole_life_cost_minor: u64,
+    pub whole_life_cost_minor: QualifiedMetric,
     /// Time to qualified recovery, in seconds.
-    pub recovery_seconds: u64,
+    pub recovery_seconds: QualifiedMetric,
     /// Qualified fallback water delivered, in litres.
-    pub safe_fallback_delivery_l: u64,
+    pub safe_fallback_delivery_l: QualifiedMetric,
     /// False dispatches in the declared observation window.
-    pub false_dispatches: u64,
-}
-
-/// Signed outcome difference, defined as treatment minus control.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct OutcomeDelta {
-    /// Change in unmet essential water demand, in litres.
-    pub essential_shortfall_l: i128,
-    /// Change in service interruption exposure, in service-unit seconds.
-    pub interruption_service_seconds: i128,
-    /// Change in worst-group service performance, in parts per million.
-    pub worst_group_service_ppm: i128,
-    /// Change in physical water loss, in litres.
-    pub physical_loss_l: i128,
-    /// Change in commercial/apparent loss, in litres.
-    pub commercial_loss_l: i128,
-    /// Change in unbilled authorised consumption, in litres.
-    pub unbilled_authorised_l: i128,
-    /// Change in asset failures.
-    pub asset_failures: i128,
-    /// Change in independently verified completed repairs.
-    pub verified_repairs: i128,
-    /// Change in whole-life cost, in the declared smallest currency unit.
-    pub whole_life_cost_minor: i128,
-    /// Change in time to qualified recovery, in seconds.
-    pub recovery_seconds: i128,
-    /// Change in qualified fallback water delivered, in litres.
-    pub safe_fallback_delivery_l: i128,
-    /// Change in false dispatches.
-    pub false_dispatches: i128,
+    pub false_dispatches: QualifiedMetric,
 }
 
 /// Error returned when an outcome vector violates a declared value domain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutcomeError {
+    /// A metric's evidence status and numeric value presence do not agree.
+    StatusValueMismatch {
+        /// Outcome field whose status/value combination is invalid.
+        field: &'static str,
+    },
     /// Worst-group service performance must be between zero and one million ppm.
-    WorstGroupServiceOutOfRange { value: u64 },
+    WorstGroupServiceOutOfRange {
+        /// Invalid value.
+        value: u64,
+    },
 }
 
 impl fmt::Display for OutcomeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::StatusValueMismatch { field } => {
+                write!(f, "outcome field {field} has an invalid status/value combination")
+            }
             Self::WorstGroupServiceOutOfRange { value } => write!(
                 f,
                 "worst-group service value {value} ppm exceeds the 0..=1000000 domain"
@@ -634,54 +727,105 @@ impl fmt::Display for OutcomeError {
 impl std::error::Error for OutcomeError {}
 
 impl OutcomeVector {
-    /// Validate the bounded fields in the outcome vector.
+    /// Validate status/value consistency and bounded service performance.
     pub fn validate(&self) -> Result<(), OutcomeError> {
-        if self.worst_group_service_ppm > 1_000_000 {
-            return Err(OutcomeError::WorstGroupServiceOutOfRange {
-                value: self.worst_group_service_ppm,
-            });
+        self.essential_shortfall_l.validate("essential_shortfall_l")?;
+        self.interruption_service_seconds
+            .validate("interruption_service_seconds")?;
+        self.worst_group_service_ppm
+            .validate("worst_group_service_ppm")?;
+        self.physical_loss_l.validate("physical_loss_l")?;
+        self.commercial_loss_l.validate("commercial_loss_l")?;
+        self.unbilled_authorised_l.validate("unbilled_authorised_l")?;
+        self.asset_failures.validate("asset_failures")?;
+        self.verified_repairs.validate("verified_repairs")?;
+        self.whole_life_cost_minor.validate("whole_life_cost_minor")?;
+        self.recovery_seconds.validate("recovery_seconds")?;
+        self.safe_fallback_delivery_l
+            .validate("safe_fallback_delivery_l")?;
+        self.false_dispatches.validate("false_dispatches")?;
+
+        if let Some(value) = self.worst_group_service_ppm.value {
+            if value > 1_000_000 {
+                return Err(OutcomeError::WorstGroupServiceOutOfRange { value });
+            }
         }
         Ok(())
     }
 }
 
-impl OutcomeDelta {
-    /// Compute treatment minus control for every outcome, preserving sign.
-    pub fn between(control: OutcomeVector, treatment: OutcomeVector) -> Self {
-        Self {
-            essential_shortfall_l: delta(treatment.essential_shortfall_l, control.essential_shortfall_l),
-            interruption_service_seconds: delta(
-                treatment.interruption_service_seconds,
-                control.interruption_service_seconds,
-            ),
-            worst_group_service_ppm: delta(
-                treatment.worst_group_service_ppm,
-                control.worst_group_service_ppm,
-            ),
-            physical_loss_l: delta(treatment.physical_loss_l, control.physical_loss_l),
-            commercial_loss_l: delta(treatment.commercial_loss_l, control.commercial_loss_l),
-            unbilled_authorised_l: delta(
-                treatment.unbilled_authorised_l,
-                control.unbilled_authorised_l,
-            ),
-            asset_failures: delta(treatment.asset_failures, control.asset_failures),
-            verified_repairs: delta(treatment.verified_repairs, control.verified_repairs),
-            whole_life_cost_minor: delta(
-                treatment.whole_life_cost_minor,
-                control.whole_life_cost_minor,
-            ),
-            recovery_seconds: delta(treatment.recovery_seconds, control.recovery_seconds),
-            safe_fallback_delivery_l: delta(
-                treatment.safe_fallback_delivery_l,
-                control.safe_fallback_delivery_l,
-            ),
-            false_dispatches: delta(treatment.false_dispatches, control.false_dispatches),
-        }
-    }
+/// Signed, optional treatment-minus-control outcome differences.
+///
+/// A field is None when either arm lacks a valid numeric value. This prevents
+/// missingness from being silently interpreted as zero.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct OutcomeDelta {
+    /// Change in unmet essential water demand, in litres.
+    pub essential_shortfall_l: Option<i128>,
+    /// Change in service interruption exposure, in service-unit seconds.
+    pub interruption_service_seconds: Option<i128>,
+    /// Change in worst-group service performance, in parts per million.
+    pub worst_group_service_ppm: Option<i128>,
+    /// Change in physical water loss, in litres.
+    pub physical_loss_l: Option<i128>,
+    /// Change in commercial/apparent loss, in litres.
+    pub commercial_loss_l: Option<i128>,
+    /// Change in unbilled authorised consumption, in litres.
+    pub unbilled_authorised_l: Option<i128>,
+    /// Change in asset failures.
+    pub asset_failures: Option<i128>,
+    /// Change in independently verified completed repairs.
+    pub verified_repairs: Option<i128>,
+    /// Change in whole-life cost, in the declared smallest currency unit.
+    pub whole_life_cost_minor: Option<i128>,
+    /// Change in time to qualified recovery, in seconds.
+    pub recovery_seconds: Option<i128>,
+    /// Change in qualified fallback water delivered, in litres.
+    pub safe_fallback_delivery_l: Option<i128>,
+    /// Change in false dispatches.
+    pub false_dispatches: Option<i128>,
 }
 
-fn delta(treatment: u64, control: u64) -> i128 {
-    i128::from(treatment) - i128::from(control)
+impl OutcomeDelta {
+    /// Compute optional treatment-minus-control differences for every outcome.
+    fn between(control: OutcomeVector, treatment: OutcomeVector) -> Self {
+        Self {
+            essential_shortfall_l: treatment
+                .essential_shortfall_l
+                .paired_delta(control.essential_shortfall_l),
+            interruption_service_seconds: treatment
+                .interruption_service_seconds
+                .paired_delta(control.interruption_service_seconds),
+            worst_group_service_ppm: treatment
+                .worst_group_service_ppm
+                .paired_delta(control.worst_group_service_ppm),
+            physical_loss_l: treatment
+                .physical_loss_l
+                .paired_delta(control.physical_loss_l),
+            commercial_loss_l: treatment
+                .commercial_loss_l
+                .paired_delta(control.commercial_loss_l),
+            unbilled_authorised_l: treatment
+                .unbilled_authorised_l
+                .paired_delta(control.unbilled_authorised_l),
+            asset_failures: treatment.asset_failures.paired_delta(control.asset_failures),
+            verified_repairs: treatment
+                .verified_repairs
+                .paired_delta(control.verified_repairs),
+            whole_life_cost_minor: treatment
+                .whole_life_cost_minor
+                .paired_delta(control.whole_life_cost_minor),
+            recovery_seconds: treatment
+                .recovery_seconds
+                .paired_delta(control.recovery_seconds),
+            safe_fallback_delivery_l: treatment
+                .safe_fallback_delivery_l
+                .paired_delta(control.safe_fallback_delivery_l),
+            false_dispatches: treatment
+                .false_dispatches
+                .paired_delta(control.false_dispatches),
+        }
+    }
 }
 
 /// A paired, component-wise outcome receipt.
@@ -691,12 +835,12 @@ pub struct PairedOutcomeReceipt {
     pub control: OutcomeVector,
     /// Treatment outcome vector.
     pub treatment: OutcomeVector,
-    /// Signed treatment-minus-control difference.
+    /// Optional signed treatment-minus-control differences.
     pub delta: OutcomeDelta,
 }
 
 impl PairedOutcomeReceipt {
-    /// Construct a receipt with its signed difference calculated internally.
+    /// Construct a receipt after validating both outcome vectors.
     pub fn new(
         control: OutcomeVector,
         treatment: OutcomeVector,
@@ -1303,28 +1447,65 @@ mod tests {
     #[test]
     fn outcome_receipt_preserves_signed_component_deltas() {
         let control = OutcomeVector {
-            essential_shortfall_l: 1000,
-            worst_group_service_ppm: 800_000,
-            false_dispatches: 10,
+            essential_shortfall_l: QualifiedMetric::observed(1000),
+            worst_group_service_ppm: QualifiedMetric::observed(800_000),
+            false_dispatches: QualifiedMetric::observed(10),
             ..OutcomeVector::default()
         };
         let treatment = OutcomeVector {
-            essential_shortfall_l: 700,
-            worst_group_service_ppm: 850_000,
-            false_dispatches: 14,
+            essential_shortfall_l: QualifiedMetric::observed(700),
+            worst_group_service_ppm: QualifiedMetric::observed(850_000),
+            false_dispatches: QualifiedMetric::observed(14),
             ..OutcomeVector::default()
         };
         let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
 
-        assert_eq!(receipt.delta.essential_shortfall_l, -300);
-        assert_eq!(receipt.delta.worst_group_service_ppm, 50_000);
-        assert_eq!(receipt.delta.false_dispatches, 4);
+        assert_eq!(receipt.delta.essential_shortfall_l, Some(-300));
+        assert_eq!(receipt.delta.worst_group_service_ppm, Some(50_000));
+        assert_eq!(receipt.delta.false_dispatches, Some(4));
+    }
+
+    #[test]
+    fn outcome_receipt_preserves_missingness_instead_of_zero_filling() {
+        let control = OutcomeVector {
+            physical_loss_l: QualifiedMetric::observed(0),
+            ..OutcomeVector::default()
+        };
+        let treatment = OutcomeVector {
+            physical_loss_l: QualifiedMetric::unsupported(),
+            ..OutcomeVector::default()
+        };
+        let receipt = PairedOutcomeReceipt::new(control, treatment).unwrap();
+        assert_eq!(receipt.delta.physical_loss_l, None);
+        assert_eq!(receipt.control.physical_loss_l.value, Some(0));
+        assert_eq!(receipt.treatment.physical_loss_l.value, None);
+        assert_eq!(
+            receipt.treatment.physical_loss_l.status,
+            MetricEvidenceStatus::Unsupported
+        );
+    }
+
+    #[test]
+    fn outcome_receipt_rejects_status_value_mismatch() {
+        let invalid = OutcomeVector {
+            physical_loss_l: QualifiedMetric {
+                value: None,
+                status: MetricEvidenceStatus::Observed,
+            },
+            ..OutcomeVector::default()
+        };
+        assert_eq!(
+            PairedOutcomeReceipt::new(OutcomeVector::default(), invalid),
+            Err(OutcomeError::StatusValueMismatch {
+                field: "physical_loss_l"
+            })
+        );
     }
 
     #[test]
     fn outcome_receipt_rejects_out_of_range_service_value() {
         let invalid = OutcomeVector {
-            worst_group_service_ppm: 1_000_001,
+            worst_group_service_ppm: QualifiedMetric::observed(1_000_001),
             ..OutcomeVector::default()
         };
         assert_eq!(
