@@ -330,8 +330,7 @@ mod tests {
             .zip(free_contact_velocity.iter())
             .map(|(impulse, free)| 2 * impulse * free)
             .sum::<i128>()
-            + p0
-                .iter()
+            + p0.iter()
                 .zip(response0.iter())
                 .map(|(impulse, response)| impulse * response)
                 .sum::<i128>();
