@@ -86,6 +86,8 @@ impl StickingLeafMessage {
     /// The offset and gain are obtained by interval Gaussian elimination on
     /// the represented binary64 A/B/q data. This encloses the exact solution
     /// of those inputs; it does not merely widen a rounded Cholesky point solve.
+    // The indexed loops implement fixed-size interval Gaussian elimination.
+    #[allow(clippy::needless_range_loop)]
     fn response_over_box(
         &self,
         separator_box: &SeparatorImpulseBox,
