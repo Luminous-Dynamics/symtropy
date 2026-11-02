@@ -646,6 +646,54 @@ mod tests {
     }
 
     #[test]
+    fn battery_shifts_energy_across_intervals_with_exact_soc_reconciliation() {
+        let mut b = battery();
+        b.capacity_wh = 5_000;
+        b.initial_state_of_charge_wh = 0;
+        b.minimum_reserve_wh = 0;
+        b.charge_efficiency_ppm = EFFICIENCY_SCALE_PPM;
+        b.discharge_efficiency_ppm = EFFICIENCY_SCALE_PPM;
+        b.maximum_charge_power_w = 4_000;
+        b.maximum_discharge_power_w = 4_000;
+
+        let mut grid = source("grid", SourceKind::GridImport, 0, 4_000, 4_000);
+        grid.intervals = vec![
+            SourceInterval {
+                available_energy_wh: Some(4_000),
+                available_power_w: Some(4_000),
+            },
+            SourceInterval {
+                available_energy_wh: Some(0),
+                available_power_w: Some(0),
+            },
+        ];
+        let loads = vec![
+            LoadInterval {
+                interval_id: "charge".into(),
+                duration_seconds: 3_600,
+                total_energy_wh: 1_000,
+                critical_energy_wh: 1_000,
+                accepted_output_units: Some(1),
+            },
+            LoadInterval {
+                interval_id: "discharge".into(),
+                duration_seconds: 3_600,
+                total_energy_wh: 2_500,
+                critical_energy_wh: 2_500,
+                accepted_output_units: Some(1),
+            },
+        ];
+        let r = evaluate_portfolio(&input(loads, vec![grid], Some(b))).unwrap();
+        assert_eq!(r.disposition, PortfolioDisposition::FullyServed);
+        assert_eq!(r.intervals[0].battery_charge_stored_wh, 3_000);
+        assert_eq!(r.intervals[0].battery_end_soc_wh, 3_000);
+        assert_eq!(r.intervals[1].battery_discharge_delivered_wh, 2_500);
+        assert_eq!(r.intervals[1].battery_end_soc_wh, 500);
+        assert_eq!(r.total_source_energy_wh, 7_000);
+        assert_eq!(r.total_battery_loss_wh, 0);
+    }
+
+    #[test]
     fn no_simultaneous_charge_and_discharge() {
         let mut b = battery();
         b.initial_state_of_charge_wh = 3_000;
