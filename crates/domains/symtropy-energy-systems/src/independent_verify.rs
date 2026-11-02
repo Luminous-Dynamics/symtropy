@@ -584,10 +584,9 @@ impl std::error::Error for EnergyVerificationError {}
 mod tests {
     use super::*;
     use crate::{
-        BatchBoundDutyCycle, BatchDutyCycleSegment, Efficiency, EvidenceClass,
+        BatchBoundDutyCycle, BatchDutyCycleSegment, Efficiency, EngineModel, EvidenceClass,
         EvidenceReference, FuelBatch, FuelFamily, FuelFlowObservation, FuelProperty,
-        LowerHeatingValueJPerKg, MassFlowKgPerSecond, TimeWindow, Watts, EngineModel,
-        GeneratorModel,
+        GeneratorModel, LowerHeatingValueJPerKg, MassFlowKgPerSecond, TimeWindow, Watts,
     };
 
     fn evidence(id: &str) -> EvidenceReference {
