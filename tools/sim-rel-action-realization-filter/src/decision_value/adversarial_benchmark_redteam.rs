@@ -460,11 +460,17 @@ fn validate_scenarios(
         ));
     }
     let mut result = BTreeMap::new();
+    let mut scenario_digests = BTreeSet::new();
     for scenario in scenarios {
         require_id(&scenario.scenario_id, "scenario ID")?;
         require_id(&scenario.author_identity, "scenario author identity")?;
         require_digest(&scenario.scenario_digest, "scenario artifact")?;
         require_digest(&scenario.generator_digest, "scenario generator")?;
+        if !scenario_digests.insert(scenario.scenario_digest.clone()) {
+            return Err(RedTeamError::ScenarioCatalog(
+                "scenario artifact digests must be unique; duplicate payloads cannot inflate attack coverage".into(),
+            ));
+        }
         if scenario.split != EvidenceSplit::SealedHoldout || scenario.development_exposed {
             return Err(RedTeamError::NonSealedEvidence(format!(
                 "scenario {} was not kept exclusively in the sealed holdout",
@@ -931,6 +937,10 @@ mod tests {
 
     fn scenario(index: usize, kind: ScenarioKind, variant: usize) -> AdversarialScenario {
         let family = ThreatFamily::ALL[index];
+        let artifact_ordinal = index * 3 + match kind {
+            ScenarioKind::Attack => variant + 1,
+            ScenarioKind::CleanNegativeControl => 3,
+        };
         let author = match kind {
             ScenarioKind::Attack => format!("attack-author-{index}-{variant}"),
             ScenarioKind::CleanNegativeControl => format!("control-author-{index}"),
@@ -939,7 +949,7 @@ mod tests {
             scenario_id: format!("{family:?}-{}-{variant}", match kind { ScenarioKind::Attack => "attack", ScenarioKind::CleanNegativeControl => "clean" }),
             family,
             kind,
-            scenario_digest: D1.into(),
+            scenario_digest: format!("sha256:{artifact_ordinal:064x}"),
             generator_digest: match (kind, variant) {
                 (ScenarioKind::Attack, 0) => D5.into(),
                 (ScenarioKind::Attack, _) => D6.into(),
@@ -1063,6 +1073,32 @@ mod tests {
         let (scenarios, mut trials) = campaign();
         trials[1].trial_id = trials[0].trial_id.clone();
         assert!(evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err());
+    }
+
+    #[test]
+    fn duplicate_scenario_artifacts_cannot_inflate_independent_attack_coverage() {
+        let (mut scenarios, trials) = campaign();
+        scenarios[1].scenario_digest = scenarios[0].scenario_digest.clone();
+        assert!(evaluate_adversarial_redteam_campaign(
+            &plan(), &source(), &scenarios, &trials
+        ).is_err());
+    }
+
+    #[test]
+    fn fewer_than_two_independent_attack_authors_or_generators_rejects() {
+        let (mut scenarios, trials) = campaign();
+        scenarios[1].author_identity = scenarios[0].author_identity.clone();
+        assert!(evaluate_adversarial_redteam_campaign(
+            &plan(), &source(), &scenarios, &trials
+        ).unwrap().family_results[0].sample_floor_passed == false);
+
+        let (mut scenarios, trials) = campaign();
+        scenarios[1].generator_digest = scenarios[0].generator_digest.clone();
+        let receipt = evaluate_adversarial_redteam_campaign(
+            &plan(), &source(), &scenarios, &trials
+        ).unwrap();
+        assert!(!receipt.family_results[0].sample_floor_passed);
+        assert!(!receipt.campaign_integrity_passed);
     }
 
     #[test]
