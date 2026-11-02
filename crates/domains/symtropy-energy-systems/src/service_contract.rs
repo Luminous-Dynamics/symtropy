@@ -1076,7 +1076,14 @@ mod tests {
         let ac = boundary(ServiceInterface::NetAc, "facility-ac-main");
         let dc = boundary(ServiceInterface::RegulatedDc, "facility-800vdc-bus");
         let demand = contract(ac.clone());
-        let reference = trace("ac-system", "microturbine", "DATA-CENTER-DUTY", ac, [6e6, 6e6], None);
+        let reference = trace(
+            "ac-system",
+            "microturbine",
+            "DATA-CENTER-DUTY",
+            ac,
+            [6e6, 6e6],
+            None,
+        );
         let candidate = trace("dc-system", "dc-source", "DATA-CENTER-DUTY", dc, [6e6, 6e6], None);
 
         assert!(matches!(
@@ -1147,8 +1154,22 @@ mod tests {
             "vessel-propulsor-shaft",
         );
         let demand = contract(b.clone());
-        let reference = trace("diesel-drive", "diesel-engine-propulsor", "DATA-CENTER-DUTY", b.clone(), [6e6, 6e6], None);
-        let candidate = trace("battery-drive", "battery-electric-propulsor", "DATA-CENTER-DUTY", b, [6e6, 6e6], None);
+        let reference = trace(
+            "diesel-drive",
+            "diesel-engine-propulsor",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [6e6, 6e6],
+            None,
+        );
+        let candidate = trace(
+            "battery-drive",
+            "battery-electric-propulsor",
+            "DATA-CENTER-DUTY",
+            b,
+            [6e6, 6e6],
+            None,
+        );
         let comparison = compare_delivered_service(
             &demand,
             &reference,
@@ -1166,8 +1187,22 @@ mod tests {
     fn rejects_under_delivery_and_does_not_credit_surplus() {
         let b = boundary(ServiceInterface::NetAc, "site-ac-pcc");
         let demand = contract(b.clone());
-        let reference = trace("reference", "engine-gen", "DATA-CENTER-DUTY", b.clone(), [7e6, 6e6], None);
-        let deficit = trace("deficit", "small-engine-gen", "DATA-CENTER-DUTY", b.clone(), [5e6, 6e6], None);
+        let reference = trace(
+            "reference",
+            "engine-gen",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [7e6, 6e6],
+            None,
+        );
+        let deficit = trace(
+            "deficit",
+            "small-engine-gen",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [5e6, 6e6],
+            None,
+        );
         assert!(matches!(
             compare_delivered_service(
                 &demand,
@@ -1233,9 +1268,30 @@ mod tests {
     fn rejects_profile_identity_and_window_mismatch() {
         let b = boundary(ServiceInterface::NetAc, "site-ac-pcc");
         let demand = contract(b.clone());
-        let wrong_profile = trace("wrong-profile", "engine-gen", "other-profile", b.clone(), [6e6, 6e6], None);
-        let candidate = trace("candidate", "engine-gen", "DATA-CENTER-DUTY", b.clone(), [6e6, 6e6], None);
-        let reference = trace("reference", "engine-gen", "DATA-CENTER-DUTY", b.clone(), [6e6, 6e6], None);
+        let wrong_profile = trace(
+            "wrong-profile",
+            "engine-gen",
+            "other-profile",
+            b.clone(),
+            [6e6, 6e6],
+            None,
+        );
+        let candidate = trace(
+            "candidate",
+            "engine-gen",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [6e6, 6e6],
+            None,
+        );
+        let reference = trace(
+            "reference",
+            "engine-gen",
+            "DATA-CENTER-DUTY",
+            b.clone(),
+            [6e6, 6e6],
+            None,
+        );
 
         assert!(matches!(
             compare_delivered_service(
