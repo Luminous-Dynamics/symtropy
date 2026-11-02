@@ -208,6 +208,8 @@ Add a separate application profile, not an uncorrected universal derating factor
 
 A South African scenario may not be populated with guessed local fuel prices, grid emission factors or environmental averages. Use dated sources and preserve unknowns.
 
+**National listed-activity screening note (2026-11-02):** the consolidated NEMA: Air Quality Act listed-activities text identifies Subcategory 1.5 as liquid- and gas-fuel stationary reciprocating engines used for electricity generation, with an application threshold of at least 10 MW thermal input per unit (LHV basis). This is a heat-input threshold, not electrical output. The provisional 50–250 kWe demonstrator is expected to be materially smaller, but do not infer a blanket exemption from this note. Verify the currently operative Gazette/consolidated notice, any provincial MEC-listed activities, municipal air-quality requirements, site-specific approvals, fuel storage and fire requirements, electrical installation rules, occupational safety and noise obligations with the relevant authorities before procurement or operation. A threshold screen does not confer operating permission.
+
 ## 11. Decision outputs
 
 For each candidate publish:
