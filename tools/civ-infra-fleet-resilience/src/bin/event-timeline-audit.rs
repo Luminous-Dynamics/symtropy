@@ -3,8 +3,9 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::{env, fs, process};
 
-const EMBEDDED_FIXTURE: &str =
-    include_str!("../../../../docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json");
+const EMBEDDED_FIXTURE: &str = include_str!(
+    "../../../../docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json"
+);
 
 // This binary validates the event-timeline projection. The main manifest
 // verifier remains responsible for strict validation of every root-level field.
@@ -311,10 +312,26 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
         policy_timeline,
         claim_ceiling: fixture.claim_ceiling.clone(),
         explicit_limitations: vec![
-            "This audits declared injection and observation times; it does not simulate a construction policy.".to_string(),
-            "Evaluator-private event knowledge is represented separately and must not be passed to a policy before observable_tick.".to_string(),
-            "The disturbance declarations are synthetic fixtures, not measurements of real infrastructure or robot failures.".to_string(),
-            "A visible event is not proof that the event has been independently verified or that a recovery action is authorized.".to_string(),
+            concat!(
+                "This audits declared injection and observation times; it does not ",
+                "simulate a construction policy."
+            )
+            .to_string(),
+            concat!(
+                "Evaluator-private event knowledge is represented separately and must not ",
+                "be passed to a policy before observable_tick."
+            )
+            .to_string(),
+            concat!(
+                "The disturbance declarations are synthetic fixtures, not measurements ",
+                "of real infrastructure or robot failures."
+            )
+            .to_string(),
+            concat!(
+                "A visible event is not proof that the event has been independently ",
+                "verified or that a recovery action is authorized."
+            )
+            .to_string(),
         ],
     })
 }
@@ -339,6 +356,7 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
     }
 
     let mut case_ids = BTreeSet::new();
+    let mut event_kinds = BTreeSet::new();
     let mut maximum_tick = 0_u64;
     for case in &fixture.disturbance_cases {
         if case.case_id.trim().is_empty()
@@ -350,6 +368,7 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         if !case_ids.insert(case.case_id.as_str()) {
             errors.push(format!("duplicate disturbance case ID: {}", case.case_id));
         }
+        event_kinds.insert(case.event);
         if case.observable_tick < case.injection_tick {
             errors.push(format!(
                 "{}: observation cannot precede event injection",
@@ -373,6 +392,14 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
         maximum_tick = maximum_tick.max(case.observable_tick).max(case.injection_tick);
     }
 
+    for kind in DisturbanceKind::ALL {
+        if !event_kinds.contains(&kind) {
+            errors.push(format!("required v0.1 disturbance kind is missing: {}", kind.as_str()));
+        }
+    }
+    if event_kinds.len() != DisturbanceKind::ALL.len() {
+        errors.push("v0.1 disturbance fixture must cover exactly the 13 typed event kinds".to_string());
+    }
     if maximum_tick >= 100_000 {
         errors.push("timeline exceeds the bounded 100000-tick audit horizon".to_string());
     }
@@ -455,6 +482,16 @@ mod tests {
             .find(|case| case.case_id == "R-008")
             .unwrap()
             .observable_tick = 1;
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        assert!(verify_fixture_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn missing_declared_disturbance_kind_is_rejected() {
+        let mut candidate = fixture();
+        candidate
+            .disturbance_cases
+            .retain(|case| case.case_id != "R-013");
         let bytes = serde_json::to_vec(&candidate).unwrap();
         assert!(verify_fixture_bytes(&bytes).is_err());
     }
