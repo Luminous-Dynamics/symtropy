@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 name = "hist001-population-sensitivity"
 version = "0.1.0"
