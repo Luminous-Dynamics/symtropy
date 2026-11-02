@@ -670,8 +670,10 @@ mod tests {
         assert!(report.passed(), "{:?}", report.failed_checks().collect::<Vec<_>>());
         assert_eq!(report.segment_count(), 2);
         assert_eq!(report.check_count(), 23);
-        assert_eq!(report.batch_ids(), &["BATCH-1", "BATCH-2"]);
-        assert_eq!(report.flow_evidence_ids(), &["FLOW-SEG-1", "FLOW-SEG-2"]);
+        assert_eq!(report.batch_ids()[0], "BATCH-1");
+        assert_eq!(report.batch_ids()[1], "BATCH-2");
+        assert_eq!(report.flow_evidence_ids()[0], "FLOW-SEG-1");
+        assert_eq!(report.flow_evidence_ids()[1], "FLOW-SEG-2");
     }
 
     #[test]
