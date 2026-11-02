@@ -512,9 +512,16 @@ mod tests {
             .checked_mul(Rational::from_u64(1_000))
             .unwrap();
         assert_eq!(commanded_milliwatts.denominator(), 1);
-        assert_eq!(realized_milliwatts.denominator(), 1);
         let commanded_milliwatts = i64::try_from(commanded_milliwatts.numerator()).unwrap();
-        let realized_milliwatts = i64::try_from(realized_milliwatts.numerator()).unwrap();
+        // A real instrument reports an integer subunit count. Round this
+        // test readback to the nearest mW; the uncertainty interval must still
+        // contain the exact rational model output.
+        let rounded_realized_milliwatts = realized_milliwatts
+            .numerator()
+            .checked_add(realized_milliwatts.denominator() / 2)
+            .unwrap()
+            / realized_milliwatts.denominator();
+        let realized_milliwatts = i64::try_from(rounded_realized_milliwatts).unwrap();
         CausalExecutionBundle {
             command: CommandIntent {
                 event_id: "command-event".into(),
@@ -632,6 +639,44 @@ mod tests {
         assert!(receipt.post_state_commitment_verified);
         assert!(receipt.sensor_sample_commitment_verified);
         assert!(receipt.cross_module_binding_complete);
+    }
+
+    #[test]
+    fn exact_fractional_realized_power_is_contained_by_integer_milliwatt_readback() {
+        let mut recipe = recipe(120);
+        recipe.actuator_delivery_fraction_grid = vec![q(1, 3)];
+        let challenge = make_challenge(&recipe);
+        let causal = make_causal(&challenge);
+        let receipt = verify_thermal_causal_execution_bridge(
+            &challenge,
+            &recipe,
+            &registry(),
+            &causal,
+            &make_binding(&challenge),
+            &TestCommitments,
+        )
+        .unwrap();
+        assert_eq!(receipt.commanded_power_watts, q(100, 1));
+        assert_eq!(receipt.realized_power_watts, q(100, 3));
+        assert!(receipt.actuator_measurement_interval_contains_realized_power);
+    }
+
+    #[test]
+    fn rejects_mismatched_actuator_readback_unit() {
+        let recipe = recipe(120);
+        let challenge = make_challenge(&recipe);
+        let causal = make_causal(&challenge);
+        let mut physical_binding = make_binding(&challenge);
+        physical_binding.actuator_readback_unit = "watt".into();
+        assert!(verify_thermal_causal_execution_bridge(
+            &challenge,
+            &recipe,
+            &registry(),
+            &causal,
+            &physical_binding,
+            &TestCommitments,
+        )
+        .is_err());
     }
 
     #[test]
