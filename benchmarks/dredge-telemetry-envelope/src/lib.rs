@@ -69,8 +69,8 @@ pub struct SensorReading {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PositionObservation {
-    pub easting_mm: i64,
-    pub northing_mm: i64,
+    pub longitude_microdegrees: i64,
+    pub latitude_microdegrees: i64,
     pub crs: String,
     pub uncertainty_mm: u64,
     pub observed_at_tick: u64,
@@ -115,6 +115,7 @@ pub enum TelemetryReason {
     InvalidDigestBinding,
     ProfileIdentityMismatch,
     ProfileExpired,
+    ProfileCurrentnessUnknown,
     UnsupportedProfileShape,
     MissingRequiredSensor,
     MissingOptionalSensor,
@@ -130,6 +131,7 @@ pub enum TelemetryReason {
     MissingPosition,
     PositionCrsMismatch,
     PositionUncertaintyExceeded,
+    PositionCoordinateOutOfRange,
     PositionObservationInFuture,
     PositionStale,
     EventObservationInFuture,
@@ -239,6 +241,12 @@ fn validate_position(
         reasons.push(TelemetryReason::PositionCrsMismatch);
         inconsistent = true;
     }
+    if !(-180_000_000..=180_000_000).contains(&position.longitude_microdegrees)
+        || !(-90_000_000..=90_000_000).contains(&position.latitude_microdegrees)
+    {
+        reasons.push(TelemetryReason::PositionCoordinateOutOfRange);
+        inconsistent = true;
+    }
     if position.uncertainty_mm > rule.maximum_uncertainty_mm {
         reasons.push(TelemetryReason::PositionUncertaintyExceeded);
         unknown = true;
@@ -283,9 +291,16 @@ pub fn validate_telemetry(
         reasons.push(TelemetryReason::ProfileIdentityMismatch);
         unsupported = true;
     }
-    if profile.valid_through_tick.is_some_and(|expiry| expiry < evaluation_tick) {
-        reasons.push(TelemetryReason::ProfileExpired);
-        unknown = true;
+    match profile.valid_through_tick {
+        None => {
+            reasons.push(TelemetryReason::ProfileCurrentnessUnknown);
+            unknown = true;
+        }
+        Some(expiry) if expiry < evaluation_tick => {
+            reasons.push(TelemetryReason::ProfileExpired);
+            unknown = true;
+        }
+        Some(_) => {}
     }
     if !nonempty(&record.event_id) || !nonempty(&record.plant_id) {
         reasons.push(TelemetryReason::InvalidIdentity);
@@ -310,8 +325,9 @@ pub fn validate_telemetry(
         unknown = true;
     }
 
-    if let Some(existing) = cursor.event_digests.get(&record.event_id) {
-        if existing == &record.payload_digest {
+    if let Some(existing_digest) = cursor.event_digests.get(&record.event_id) {
+        let same_record = cursor.event_records.get(&record.event_id) == Some(record);
+        if existing_digest == &record.payload_digest && same_record {
             return TelemetryValidation {
                 disposition: TelemetryDisposition::DuplicateExactReplay,
                 reasons: Vec::new(),
@@ -383,6 +399,7 @@ pub fn validate_telemetry(
 
     if !inconsistent && !unsupported {
         next_cursor.event_digests.insert(record.event_id.clone(), record.payload_digest.clone());
+        next_cursor.event_records.insert(record.event_id.clone(), record.clone());
         next_cursor.sequence_owners.insert(record.sequence, record.event_id.clone());
         while next_cursor.sequence_owners.contains_key(
             &next_cursor.contiguous_sequence.saturating_add(1),
@@ -492,8 +509,8 @@ mod tests {
             observed_at_tick: 98,
             received_at_tick: 99,
             position: Some(PositionObservation {
-                easting_mm: 1_000_000,
-                northing_mm: 2_000_000,
+                longitude_microdegrees: 18_000_000,
+                latitude_microdegrees: -34_000_000,
                 crs: "EPSG:4326".into(),
                 uncertainty_mm: 1_000,
                 observed_at_tick: 98,
@@ -674,6 +691,38 @@ mod tests {
     }
 
     #[test]
+    fn profile_without_validity_horizon_is_unknown() {
+        let mut p = profile(PlantProfileKind::Hopper);
+        p.valid_through_tick = None;
+        let r = record(PlantProfileKind::Hopper);
+        let result = evaluate(&p, &r, &TelemetryCursor::default());
+        assert_eq!(result.disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert!(result.reasons.contains(&TelemetryReason::ProfileCurrentnessUnknown));
+    }
+
+    #[test]
+    fn position_outside_geographic_range_is_inconsistent() {
+        let p = profile(PlantProfileKind::Hopper);
+        let mut r = record(PlantProfileKind::Hopper);
+        r.position.as_mut().unwrap().latitude_microdegrees = 91_000_000;
+        assert_eq!(
+            evaluate(&p, &r, &TelemetryCursor::default()).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn position_staleness_requires_review() {
+        let p = profile(PlantProfileKind::Hopper);
+        let mut r = record(PlantProfileKind::Hopper);
+        r.position.as_mut().unwrap().observed_at_tick = 90;
+        assert_eq!(
+            evaluate(&p, &r, &TelemetryCursor::default()).disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
     fn missing_calibration_is_unknown() {
         let p = profile(PlantProfileKind::Hopper);
         let mut r = record(PlantProfileKind::Hopper);
@@ -769,6 +818,19 @@ mod tests {
         let replay = evaluate(&p, &r, &first.next_cursor);
         assert_eq!(replay.disposition, TelemetryDisposition::DuplicateExactReplay);
         assert_eq!(replay.next_cursor, first.next_cursor);
+    }
+
+    #[test]
+    fn same_digest_does_not_hide_changed_record_fields() {
+        let p = profile(PlantProfileKind::Hopper);
+        let r = record(PlantProfileKind::Hopper);
+        let first = evaluate(&p, &r, &TelemetryCursor::default());
+        let mut changed = r;
+        changed.sensors[0].value_milliunits += 1;
+        assert_eq!(
+            evaluate(&p, &changed, &first.next_cursor).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
