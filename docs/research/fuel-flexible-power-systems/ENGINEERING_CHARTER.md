@@ -512,3 +512,17 @@ DFFE says the NGGEF excludes transmission and distribution losses; for typical f
 The report says all four 2024 GEFs increased relative to 2023 (NGGEF 0.906→0.960; DGGEF 0.942→0.994). The factors are annual-average, location-based reporting values with an approximately two-year data lag—not hourly marginal dispatch factors, forward forecasts, PPAs or project-specific electricity factors.
 
 **Platform implications:** battery charging, hydrogen electrolysis, methanol/ammonia production and DC-native data-centre supply must account for the actual electricity pathway and conversion losses. Do not label battery-electric operation "zero-carbon" from its tank-to-wheel operation; do not apply DGGEF as an onsite engine emission factor; and do not add transmission/distribution losses twice. The selected functional unit and Scope 2/Scope 3 lifecycle boundary must remain explicit.
+
+
+## 22. Well-to-Service accounting
+
+The next lifecycle/accounting workstream is [WELL-TO-SERVICE-001 #3421](https://github.com/Luminous-Dynamics/symtropy/issues/3421). It composes the typed delivered-service interfaces (net AC, regulated DC, propulsion work) with evidence-qualified upstream energy-carrier pathway graphs.
+
+The first synthetic graph fixtures are [WELL_TO_SERVICE_FIXTURES_2026-11-03.json](data/WELL_TO_SERVICE_FIXTURES_2026-11-03.json) validated against [WELL_TO_SERVICE_SCHEMA_2026-11-03.json](data/WELL_TO_SERVICE_SCHEMA_2026-11-03.json). They exercise:
+- a grid-charged battery delivering regulated DC service with DFFE NGGEF applied once to the metered electricity input;
+- a hostile duplicate-emission-factor application to the same electricity lineage;
+- two alternatives that deliver the same net-AC service but use unlike input-energy bases (fuel LHV and stored battery energy), which must not produce one efficiency ratio.
+
+The synthetic battery fixture uses 100 kWh metered electricity, 90 kWh delivered DC and the 2024 DFFE NGGEF 0.960 kgCO2e/kWh. It computes 96 kgCO2e at the declared Scope 2 input boundary and 1.0667 kgCO2e per delivered kWh. Battery manufacturing/end-of-life are explicitly excluded. This is an accounting fixture, not a South African battery lifecycle assessment.
+
+The design principle is **service comparability first; primary-energy and lifecycle comparability second**. A result may validly compare delivered service while reporting primary energy or lifecycle emissions as unresolved when the upstream carrier pathway is incomplete.
