@@ -7,10 +7,12 @@
 pub mod approximate_blackwell;
 pub mod blackwell_transfer;
 pub mod causal_execution;
+pub mod causal_thermal_bridge;
 pub mod counterexample_ledger;
 pub mod counterexample_search;
 pub mod experiment_ordering;
 pub mod finite_horizon;
+pub mod finite_physical_challenge;
 pub mod ledger_transition_oracle;
 pub mod matched_benchmark;
 pub mod robust_finite_horizon;
