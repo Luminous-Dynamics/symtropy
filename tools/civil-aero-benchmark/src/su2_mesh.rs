@@ -371,7 +371,6 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
     })
 }
 
-
 /// Mesh-derived characteristic spacing for a linear 2D triangle/quadrilateral SU2 grid.
 ///
 /// The coordinate unit is supplied by the caller and is not inferred from SU2 ASCII mesh bytes.
@@ -422,11 +421,13 @@ pub fn derive_su2_characteristic_spacing_2d(
         .keys()
         .any(|kind| !matches!(kind, 5 | 9))
     {
-        return Err("mesh-derived spacing supports only linear triangles and quadrilaterals".to_owned());
+        return Err(
+            "mesh-derived spacing supports only linear triangles and quadrilaterals".to_owned(),
+        );
     }
 
-    let text = std::str::from_utf8(bytes)
-        .map_err(|error| format!("SU2 mesh is not UTF-8: {error}"))?;
+    let text =
+        std::str::from_utf8(bytes).map_err(|error| format!("SU2 mesh is not UTF-8: {error}"))?;
     let lines = text
         .lines()
         .enumerate()
@@ -459,13 +460,8 @@ pub fn derive_su2_characteristic_spacing_2d(
             for _ in 0..count {
                 let (element_line, record) =
                     next_nonempty(&lines, &mut cursor, "volume element connectivity")?;
-                let (kind, nodes) = parse_element_type(
-                    element_line,
-                    record,
-                    2,
-                    false,
-                    Some(summary.point_count),
-                )?;
+                let (kind, nodes) =
+                    parse_element_type(element_line, record, 2, false, Some(summary.point_count))?;
                 if !matches!(kind, 5 | 9) {
                     return Err(format!(
                         "line {element_line}: spacing derivation supports only triangles/quads; got type {kind}"
@@ -490,17 +486,19 @@ pub fn derive_su2_characteristic_spacing_2d(
                         "line {point_line}: expected two coordinates and optional point index"
                     ));
                 }
-                let x = fields[0].parse::<f64>()
+                let x = fields[0]
+                    .parse::<f64>()
                     .map_err(|error| format!("line {point_line}: invalid x coordinate: {error}"))?;
-                let y = fields[1].parse::<f64>()
+                let y = fields[1]
+                    .parse::<f64>()
                     .map_err(|error| format!("line {point_line}: invalid y coordinate: {error}"))?;
                 if !x.is_finite() || !y.is_finite() {
                     return Err(format!("line {point_line}: coordinates must be finite"));
                 }
                 let point_index = if fields.len() == 3 {
-                    fields[2]
-                        .parse::<usize>()
-                        .map_err(|error| format!("line {point_line}: invalid point index: {error}"))?
+                    fields[2].parse::<usize>().map_err(|error| {
+                        format!("line {point_line}: invalid point index: {error}")
+                    })?
                 } else {
                     sequential_index
                 };
@@ -508,7 +506,9 @@ pub fn derive_su2_characteristic_spacing_2d(
                     return Err(format!("line {point_line}: point index is outside NPOIN"));
                 }
                 if points[point_index].replace([x, y]).is_some() {
-                    return Err(format!("line {point_line}: duplicate point index {point_index}"));
+                    return Err(format!(
+                        "line {point_line}: duplicate point index {point_index}"
+                    ));
                 }
             }
             point_coordinates = Some(points);
@@ -523,8 +523,10 @@ pub fn derive_su2_characteristic_spacing_2d(
                 if !tag_record.starts_with("MARKER_TAG=") {
                     return Err(format!("line {tag_line}: expected MARKER_TAG="));
                 }
-                let (count_line, count_record) = next_nonempty(&lines, &mut cursor, "MARKER_ELEMS")?;
-                let boundary_count = parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
+                let (count_line, count_record) =
+                    next_nonempty(&lines, &mut cursor, "MARKER_ELEMS")?;
+                let boundary_count =
+                    parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
                 for _ in 0..boundary_count {
                     let (boundary_line, record) =
                         next_nonempty(&lines, &mut cursor, "marker element connectivity")?;
@@ -532,15 +534,17 @@ pub fn derive_su2_characteristic_spacing_2d(
                 }
             }
         } else {
-            return Err(format!("line {line_number}: unsupported mesh record in spacing derivation: {line}"));
+            return Err(format!(
+                "line {line_number}: unsupported mesh record in spacing derivation: {line}"
+            ));
         }
     }
 
     if !saw_elements {
         return Err("mesh spacing derivation did not find NELEM".to_owned());
     }
-    let points = point_coordinates
-        .ok_or_else(|| "mesh spacing derivation did not find NPOIN".to_owned())?;
+    let points =
+        point_coordinates.ok_or_else(|| "mesh spacing derivation did not find NPOIN".to_owned())?;
     if points.iter().any(Option::is_none) {
         return Err("mesh point table contains an unfilled point index".to_owned());
     }
@@ -556,10 +560,9 @@ pub fn derive_su2_characteristic_spacing_2d(
                 let index = usize::try_from(*index).map_err(|error| {
                     format!("line {line_number}: node index does not fit memory index: {error}")
                 })?;
-                points
-                    .get(index)
-                    .and_then(|point| *point)
-                    .ok_or_else(|| format!("line {line_number}: cell references missing point {index}"))
+                points.get(index).and_then(|point| *point).ok_or_else(|| {
+                    format!("line {line_number}: cell references missing point {index}")
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
         let area = if kind == 5 {
@@ -575,7 +578,9 @@ pub fn derive_su2_characteristic_spacing_2d(
             twice_area.abs() * 0.5
         };
         if !area.is_finite() || area <= 1.0e-18 {
-            return Err(format!("line {line_number}: cell has zero or non-finite area"));
+            return Err(format!(
+                "line {line_number}: cell has zero or non-finite area"
+            ));
         }
         areas.push(area);
     }
