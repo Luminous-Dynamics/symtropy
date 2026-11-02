@@ -852,7 +852,7 @@ mod tests {
         let first_payload = TestEncoder.encode_canonical_payload(&first.statement).unwrap();
         let first_id = format_sha256_digest(TestDigest.sha256(&first_payload).unwrap());
         let second = signed(statement("campaign-1", 200, &blob, vec![first_id]));
-        EvidencePackage {
+        ScientificEvidencePackage {
             statements: vec![first, second],
             artifacts: vec![blob],
         }
