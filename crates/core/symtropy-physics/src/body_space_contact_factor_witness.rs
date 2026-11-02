@@ -153,6 +153,257 @@ mod tests {
         [0, 0, -1, 0, 0, 0, 0, 0, 1],
     ];
 
+    const FOUR_CONTACT_NULL_BASIS: [[i128; 12]; 6] = [
+        [0, 1, -1, 0, -1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [-2, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, -2, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+        [0, -1, -1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
+    ];
+
+    const FOUR_CONTACT_POINTS: [[i128; 3]; 4] =
+        [[1, 0, -1], [0, 1, -1], [1, 1, -1], [2, -1, -1]];
+
+    fn four_contact_jacobian() -> [[i128; 6]; 12] {
+        let mut jacobian = [[0_i128; 6]; 12];
+        for (contact, point) in FOUR_CONTACT_POINTS.iter().copied().enumerate() {
+            for (axis_index, axis) in CONTACT_FRAME_AXES.iter().copied().enumerate() {
+                let moment = cross(point, axis);
+                let row = contact * 3 + axis_index;
+                jacobian[row] =
+                    [axis[0], axis[1], axis[2], moment[0], moment[1], moment[2]];
+            }
+        }
+        jacobian
+    }
+
+    fn four_contact_gram(jacobian: &[[i128; 6]; 12]) -> Gram {
+        let mut gram = [[0_i128; 6]; 6];
+        for row in jacobian {
+            for (left_axis, left_value) in row.iter().enumerate() {
+                for (right_axis, right_value) in row.iter().enumerate() {
+                    gram[left_axis][right_axis] += left_value * right_value;
+                }
+            }
+        }
+        gram
+    }
+
+    fn four_contact_delassus(jacobian: &[[i128; 6]; 12]) -> [[i128; 12]; 12] {
+        let mut delassus = [[0_i128; 12]; 12];
+        for (row_index, row) in jacobian.iter().enumerate() {
+            for (column_index, column) in jacobian.iter().enumerate() {
+                delassus[row_index][column_index] = row
+                    .iter()
+                    .zip(column.iter())
+                    .map(|(left, right)| left * right)
+                    .sum();
+            }
+        }
+        delassus
+    }
+
+    fn four_contact_scatter(
+        jacobian: &[[i128; 6]; 12],
+        impulses: &[i128; 12],
+    ) -> [i128; 6] {
+        let mut body_wrench = [0_i128; 6];
+        for (row, impulse) in jacobian.iter().zip(impulses.iter()) {
+            for (axis, coefficient) in row.iter().enumerate() {
+                body_wrench[axis] += coefficient * impulse;
+            }
+        }
+        body_wrench
+    }
+
+    fn four_contact_gather(
+        jacobian: &[[i128; 6]; 12],
+        body_velocity: &[i128; 6],
+    ) -> [i128; 12] {
+        std::array::from_fn(|contact| {
+            jacobian[contact]
+                .iter()
+                .zip(body_velocity.iter())
+                .map(|(coefficient, velocity)| coefficient * velocity)
+                .sum()
+        })
+    }
+
+    fn four_contact_apply(
+        delassus: &[[i128; 12]; 12],
+        impulses: &[i128; 12],
+    ) -> [i128; 12] {
+        std::array::from_fn(|row| {
+            delassus[row]
+                .iter()
+                .zip(impulses.iter())
+                .map(|(coefficient, impulse)| coefficient * impulse)
+                .sum()
+        })
+    }
+
+    #[test]
+    fn four_contacts_keep_six_dof_body_separator_and_six_dimensional_sticking_fibre() {
+        let jacobian = four_contact_jacobian();
+        let delassus = four_contact_delassus(&jacobian);
+        let gram = four_contact_gram(&jacobian);
+
+        // W = J J^T is exactly symmetric and PSD. The positive exact Gram
+        // determinant proves rank(J)=rank(W)=6, so nullity(W)=12-6=6.
+        for (row_index, row) in delassus.iter().enumerate() {
+            for (column_index, value) in row.iter().enumerate() {
+                assert_eq!(value, &delassus[column_index][row_index]);
+            }
+        }
+        assert_eq!(determinant_bareiss(gram), 456);
+
+        // Every pair of contacts is coupled. This is a 4-clique in contact
+        // space, while the retained mechanical separator is still six DOFs.
+        let expected_block_norms = [
+            [0_i128, 12, 21, 36],
+            [0_i128, 0, 21, 15],
+            [0_i128, 0, 0, 33],
+            [0_i128, 0, 0, 0],
+        ];
+        for left_contact in 0..4 {
+            for right_contact in (left_contact + 1)..4 {
+                let block_norm_squared: i128 = (0..3)
+                    .flat_map(|left_axis| {
+                        (0..3).map(move |right_axis| {
+                            delassus[left_contact * 3 + left_axis]
+                                [right_contact * 3 + right_axis]
+                                .pow(2)
+                        })
+                    })
+                    .sum();
+                assert_eq!(
+                    block_norm_squared, expected_block_norms[left_contact][right_contact]
+                );
+            }
+        }
+
+        // The six exact null directions have identity-determinant minor on
+        // coordinates (1,2,3,4,5,7), hence are independent. Since the Gram
+        // determinant proves nullity six, they span the complete kernel.
+        let null_minor = [
+            [1, 0, 0, 0, -2, -1],
+            [-1, 0, -1, 0, 0, -1],
+            [0, 0, 0, 1, 0, 0],
+            [-1, -1, 0, 0, 1, 1],
+            [1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+        ];
+        assert_eq!(determinant_bareiss(null_minor), 1);
+        for null_direction in FOUR_CONTACT_NULL_BASIS {
+            assert_eq!(
+                four_contact_scatter(&jacobian, &null_direction),
+                [0_i128; 6]
+            );
+            assert_eq!(
+                four_contact_apply(&delassus, &null_direction),
+                [0_i128; 12]
+            );
+        }
+
+        // Verify matrix-free scatter/body solve/gather against W for all
+        // twelve basis impulses and one dense impulse vector.
+        let impulses = [2_i128, -3, 5, 7, -11, 13, -17, 19, -23, 29, -31, 37];
+        let body_wrench = four_contact_scatter(&jacobian, &impulses);
+        assert_eq!(
+            four_contact_gather(&jacobian, &body_wrench),
+            four_contact_apply(&delassus, &impulses)
+        );
+        for basis_index in 0..12 {
+            let mut basis = [0_i128; 12];
+            basis[basis_index] = 1;
+            assert_eq!(
+                four_contact_gather(&jacobian, &four_contact_scatter(&jacobian, &basis)),
+                four_contact_apply(&delassus, &basis)
+            );
+        }
+
+        // The all-sticking base has four positive normal loads and zero
+        // tangential impulses. Its free body velocity is derived from
+        // M v_free = -J^T p0 with M=I_6, so q=J v_free and u=0.
+        let p0 = [50_i128, 0, 0, 50, 0, 0, 50, 0, 0, 50, 0, 0];
+        let body_impulse0 = four_contact_scatter(&jacobian, &p0);
+        assert_eq!(body_impulse0, [0, 0, 200, 50, -200, 0]);
+        let body_free_velocity = body_impulse0.map(|value| -value);
+        let free_contact_velocity = four_contact_gather(&jacobian, &body_free_velocity);
+        assert_eq!(
+            free_contact_velocity,
+            [
+                -400, -200, -50, -250, -200, -50, -450, -200, -50, -550, -200, -50
+            ]
+        );
+
+        let twice_energy0: i128 = p0
+            .iter()
+            .zip(free_contact_velocity.iter())
+            .map(|(impulse, free)| 2 * impulse * free)
+            .sum();
+        assert_eq!(twice_energy0, -82_500);
+
+        // Enumerate all 64 vertices of alpha in [-1,1]^6. Every vertex has
+        // the same body wrench/velocity, all four local laws remain strictly
+        // sticking, and the energy is invariant. Convexity of the four
+        // Coulomb cones then certifies the whole six-dimensional cube.
+        let mut minimum_disk_margins = [i128::MAX; 4];
+        let mut minimum_normal_impulses = [i128::MAX; 4];
+        for corner in 0_u8..64 {
+            let mut candidate = p0;
+            for (basis_index, basis_vector) in FOUR_CONTACT_NULL_BASIS.iter().enumerate() {
+                let coefficient = if corner & (1 << basis_index) == 0 {
+                    -1_i128
+                } else {
+                    1_i128
+                };
+                for (impulse, direction) in candidate.iter_mut().zip(basis_vector.iter()) {
+                    *impulse += coefficient * direction;
+                }
+            }
+
+            let body_impulse = four_contact_scatter(&jacobian, &candidate);
+            assert_eq!(body_impulse, body_impulse0);
+            let body_post_velocity: [i128; 6] =
+                std::array::from_fn(|axis| body_free_velocity[axis] + body_impulse[axis]);
+            assert_eq!(body_post_velocity, [0_i128; 6]);
+
+            let response = four_contact_apply(&delassus, &candidate);
+            let post_contact_velocity: [i128; 12] =
+                std::array::from_fn(|axis| free_contact_velocity[axis] + response[axis]);
+            assert_eq!(post_contact_velocity, [0_i128; 12]);
+
+            for contact in 0..4 {
+                let offset = contact * 3;
+                let normal = candidate[offset];
+                let tangent_1 = candidate[offset + 1];
+                let tangent_2 = candidate[offset + 2];
+                let disk_margin = normal * normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
+                assert!(normal > 0);
+                assert!(disk_margin > 0);
+                minimum_normal_impulses[contact] = minimum_normal_impulses[contact].min(normal);
+                minimum_disk_margins[contact] =
+                    minimum_disk_margins[contact].min(disk_margin);
+            }
+
+            let twice_energy: i128 = candidate
+                .iter()
+                .zip(free_contact_velocity.iter())
+                .map(|(impulse, free)| 2 * impulse * free)
+                .sum::<i128>()
+                + candidate
+                    .iter()
+                    .zip(response.iter())
+                    .map(|(impulse, post)| impulse * post)
+                    .sum::<i128>();
+            assert_eq!(twice_energy, twice_energy0);
+        }
+        assert_eq!(minimum_normal_impulses, [48, 49, 50, 49]);
+        assert_eq!(minimum_disk_margins, [2_287, 2_384, 2_498, 2_399]);
+    }
+
     #[test]
     fn one_body_contacts_form_dense_delassus_clique_but_retain_six_dof_separator() {
         let jacobian = contact_jacobian();
