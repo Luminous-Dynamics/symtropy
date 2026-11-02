@@ -154,10 +154,8 @@ pub fn first_impact(parameters: ImpactParameters) -> Result<FirstImpact, ImpactE
     let one_minus_e_squared = finite_or_overflow(1.0 - restitution_squared)?;
     let dissipation = finite_or_overflow(0.5 * mass * one_minus_e_squared * discriminant)?;
 
-    let energy_residual =
-        finite_or_overflow(initial_energy - (post_kinetic + dissipation))?;
-    let restitution_residual =
-        finite_or_overflow(post_velocity + restitution * pre_velocity)?;
+    let energy_residual = finite_or_overflow(initial_energy - (post_kinetic + dissipation))?;
+    let restitution_residual = finite_or_overflow(post_velocity + restitution * pre_velocity)?;
 
     Ok(FirstImpact {
         impact_time_s: impact_time,
@@ -261,7 +259,10 @@ mod tests {
     fn rejects_non_positive_gravity() {
         let mut parameters = fixture(0.5);
         parameters.gravity_m_s2 = -1.0;
-        assert_eq!(first_impact(parameters), Err(ImpactError::NonPositiveGravity));
+        assert_eq!(
+            first_impact(parameters),
+            Err(ImpactError::NonPositiveGravity)
+        );
     }
 
     #[test]
@@ -302,6 +303,9 @@ mod tests {
     fn reports_derived_overflow_instead_of_non_finite_evidence() {
         let mut parameters = fixture(0.5);
         parameters.initial_velocity_m_s = f64::MAX;
-        assert_eq!(first_impact(parameters), Err(ImpactError::NumericalOverflow));
+        assert_eq!(
+            first_impact(parameters),
+            Err(ImpactError::NumericalOverflow)
+        );
     }
 }
