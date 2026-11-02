@@ -54,11 +54,18 @@ Report at least two boundaries:
 2. **Net-set boundary:** net AC electrical output at the declared terminal after all included auxiliaries.
 
 For hybridized systems, also report a third boundary:
-3. **Delivered-bus boundary:** net AC/DC energy delivered after inverter, battery, rectifier and distribution losses, as applicable.
+3. **Delivered-load boundary:** net useful energy delivered to the specified customer interface after all included conversion, storage and distribution losses.
 
-Declare the measurement point, power factor, voltage/frequency, grid-parallel or islanded mode, ambient conditions, fuel temperature/state, and every included/excluded auxiliary.
+The delivered-load interface must be typed:
+- **AC terminal:** report net AC power/energy, voltage, frequency and power factor.
+- **DC bus:** report regulated DC power/energy, voltage window, current, ripple, protection and included DC/DC conversion losses.
+- **Mechanical output:** for vehicle or vessel comparisons, report shaft / wheel / propulsor work at the declared measurement point rather than relabeling it as electrical efficiency.
 
-Do not compare an engine BTE result against a net AC generator-set efficiency result.
+For a DC-native installation, compare candidates at the same DC load interface; do not force a DC output through a hypothetical AC conversion stage unless the actual customer system requires that conversion. For an AC installation, compare at the same net AC terminal. If a candidate can deliver both, report both boundaries separately. A common service boundary does not mean the internal conversion chain is identical.
+
+Declare the measurement point, power factor where applicable, voltage/frequency or DC voltage window, grid-parallel or islanded mode, ambient conditions, fuel temperature/state, and every included/excluded auxiliary.
+
+Do not compare an engine BTE result against a net AC generator-set efficiency result, or a fuel-cell stack DC efficiency against whole-plant net AC.
 
 ## 4. Baseline and candidate families
 
