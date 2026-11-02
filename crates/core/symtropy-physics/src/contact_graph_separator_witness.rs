@@ -1253,7 +1253,9 @@ fn separating_leaf_box_partition_preserves_cover_and_retains_boundary_cells() {
         partition
             .cells
             .iter()
-            .filter(|cell| cell.classification == SeparatingBoxClassification::BoundaryOrInconclusive)
+            .filter(
+                |cell| cell.classification == SeparatingBoxClassification::BoundaryOrInconclusive
+            )
             .count(),
         2
     );
