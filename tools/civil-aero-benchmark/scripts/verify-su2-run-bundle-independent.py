@@ -123,6 +123,40 @@ def self_test_scheduler_signal_classifier() -> None:
     with TemporaryDirectory(prefix="su2-sigterm-self-test-") as temporary:
         run_directory = Path(temporary)
         stdout = (
+            "Interrupt signal (15) received, saving files and exiting.\n"
+            "----------------------------- Solver Exit -------------------------------\n"
+            "All windowed time-averaged convergence criteria are fullfilled.\n"
+        ).encode("utf-8")
+        stderr = b""
+        (run_directory / "stdout.log").write_bytes(stdout)
+        (run_directory / "stderr.log").write_bytes(stderr)
+        receipt = {
+            "stdout_sha256": hashlib.sha256(stdout).hexdigest(),
+            "stderr_sha256": hashlib.sha256(stderr).hexdigest(),
+            "run_id": "sigterm-self-test",
+            "solver_id": "SU2_CFD",
+            "solver_version_claim": "synthetic-self-test",
+            "receipt_sha256": "0" * 64,
+            "executable_sha256": "1" * 64,
+        }
+        preflight = {
+            "time_domain": "YES",
+            "window_cauchy_enabled": "YES",
+            "window_convergence_fields": "TAVG_DRAG",
+        }
+        try:
+            termination_evidence(run_directory, preflight, receipt)
+        except ValueError as error:
+            require("interrupted" in str(error),
+                    "signal plus successful window banner failed for an unexpected reason")
+        else:
+            raise ValueError("scheduler-interrupted window run was incorrectly admitted")
+
+    # Exercise the full independent termination classifier: the signal precedes the
+    # Solver Exit section, which itself contains a successful window-convergence banner.
+    with TemporaryDirectory(prefix="su2-sigterm-self-test-") as temporary:
+        run_directory = Path(temporary)
+        stdout = (
             "Interrupt signal (15) received, saving files and exiting.\\n"
             "----------------------------- Solver Exit -------------------------------\\n"
             "All windowed time-averaged convergence criteria are fullfilled.\\n"
