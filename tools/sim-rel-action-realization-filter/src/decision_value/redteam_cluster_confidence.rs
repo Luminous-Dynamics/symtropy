@@ -49,8 +49,6 @@ pub struct ClopperPearsonInterval {
     pub trials: usize,
     pub lower_bound_ppm: u32,
     pub upper_bound_ppm: u32,
-    pub tail_alpha_numerator: u64,
-    pub tail_alpha_denominator: u64,
     pub confidence_method: String,
     pub numerical_quantile_tolerance: String,
 }
@@ -422,8 +420,6 @@ pub fn clopper_pearson_interval(
         trials,
         lower_bound_ppm: lower_ppm,
         upper_bound_ppm: upper_ppm,
-        tail_alpha_numerator: 1,
-        tail_alpha_denominator: 2,
         confidence_method: "two-sided Clopper-Pearson exact binomial interval; regularized incomplete-beta inversion".into(),
         numerical_quantile_tolerance: "bisection width <= 2e-14; bounds rounded outward to 1 ppm; numerical implementation requires independent reference-vector qualification".into(),
     })
@@ -434,14 +430,7 @@ fn confidence_interval(
     trials: usize,
     per_metric_alpha: f64,
 ) -> Result<ClopperPearsonInterval, ClusterConfidenceError> {
-    let mut result = clopper_pearson_interval(successes, trials, per_metric_alpha)?;
-    let numerator = 1u64;
-    let denominator = u64::try_from(FAMILY_COUNT * METRICS_PER_FAMILY).map_err(|_| {
-        ClusterConfidenceError::ArithmeticOverflow("metric-grid size exceeds u64".into())
-    })?;
-    result.tail_alpha_numerator = numerator;
-    result.tail_alpha_denominator = denominator;
-    Ok(result)
+    clopper_pearson_interval(successes, trials, per_metric_alpha)
 }
 
 #[derive(Clone, Debug)]
@@ -460,7 +449,6 @@ struct ClusterMetricCounts {
 
 fn aggregate_clusters(
     plan: &RedTeamClusterConfidencePlan,
-    redteam_plan: &AdversarialRedTeamPlan,
     scenarios: &[AdversarialScenario],
     trials: &[AdversarialTrial],
 ) -> Result<BTreeMap<ThreatFamily, ClusterMetricCounts>, ClusterConfidenceError> {
@@ -572,7 +560,6 @@ fn aggregate_clusters(
             }
         }
     }
-    let _ = redteam_plan;
     Ok(results)
 }
 
@@ -612,7 +599,7 @@ pub fn analyze_redteam_cluster_confidence(
         ));
     }
 
-    let clustered = aggregate_clusters(plan, source_plan, scenarios, trials)?;
+    let clustered = aggregate_clusters(plan, scenarios, trials)?;
     let per_metric_alpha = familywise_alpha / (FAMILY_COUNT as f64 * METRICS_PER_FAMILY as f64);
     let mut results = Vec::with_capacity(FAMILY_COUNT);
     for family in ThreatFamily::ALL {
@@ -700,7 +687,15 @@ pub fn analyze_redteam_cluster_confidence(
         analysis_plan_digest: plan.analysis_plan_digest.clone(),
         family_count: FAMILY_COUNT,
         metric_count: METRICS_PER_FAMILY,
-        simultaneous_familywise_coverage_percent: 95,
+        simultaneous_familywise_coverage_percent: u8::try_from(
+            (100u64.checked_mul(
+                plan.familywise_alpha_denominator - plan.familywise_alpha_numerator
+            ).ok_or_else(|| ClusterConfidenceError::ArithmeticOverflow(
+                "family-wise coverage percentage overflow".into()
+            ))?) / plan.familywise_alpha_denominator
+        ).map_err(|_| ClusterConfidenceError::ArithmeticOverflow(
+            "family-wise coverage percentage exceeds u8".into()
+        ))?,
         familywise_alpha_numerator: plan.familywise_alpha_numerator,
         familywise_alpha_denominator: plan.familywise_alpha_denominator,
         source_campaign_empirical_gates_passed: source_receipt.campaign_integrity_passed,
@@ -920,7 +915,7 @@ mod tests {
         let (scenarios, trials) = scenarios_and_trials();
         let mut plan = confidence_plan();
         plan.minimum_successful_exploits_per_attack_cluster = 1;
-        let counts = aggregate_clusters(&plan, &source_plan(), &scenarios, &trials).unwrap();
+        let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
         let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
@@ -931,8 +926,7 @@ mod tests {
     #[test]
     fn repeated_scenarios_in_one_author_generator_cluster_do_not_increase_n() {
         let (mut scenarios, mut trials) = scenarios_and_trials();
-        let original = scenarios[0].clone();
-        let mut repeated = original.clone();
+        let mut repeated = scenarios[0].clone();
         repeated.scenario_id = "same-cluster-extra-scenario".into();
         repeated.scenario_digest = "sha256:9999999999999999999999999999999999999999999999999999999999999999".into();
         scenarios.insert(2, repeated.clone());
@@ -948,7 +942,6 @@ mod tests {
         let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.eligible_attack_clusters, 2);
-        let _ = original;
     }
 
     #[test]
