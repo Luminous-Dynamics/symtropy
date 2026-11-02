@@ -99,7 +99,10 @@ def termination_evidence(
     require(len(positions) == 1, f"expected exactly one Solver Exit section, found {len(positions)}")
     section = combined[positions[0]:]
     section_sha = hashlib.sha256(section.encode("utf-8")).hexdigest()
+    time_domain = preflight["time_domain"] == "YES"
     time_window = preflight["window_cauchy_enabled"] == "YES"
+    require(time_window == time_domain,
+            "verified run bundle only supports steady or explicit windowed time-domain protocols")
     native_rows: list[tuple[str, str, str, str]] = []
     if time_window:
         mode = "time_window"
