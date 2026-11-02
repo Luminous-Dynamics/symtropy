@@ -78,7 +78,8 @@ def is_digest(value):
 
 def normalized_digest(value, label):
     require(is_digest(value), f"{label} is not a 64-character SHA-256 digest")
-    return value.lower()
+    require(value == value.lower(), f"{label} must use lowercase hexadecimal encoding")
+    return value
 
 
 def split_kinds(value):
