@@ -12,8 +12,8 @@
 use serde::Serialize;
 
 use crate::{
-    evaluate, EngineModel, FuelBatch, FuelProperty, GeneratorModel, LowerHeatingValueJPerKg,
-    MassFlowKgPerSecond, ModelError, PowerSystemResult, Watts,
+    EngineModel, FuelBatch, FuelProperty, GeneratorModel, LowerHeatingValueJPerKg,
+    MassFlowKgPerSecond, ModelError, PowerSystemResult, Watts, evaluate,
 };
 
 /// A conversion result that retains the fuel-batch and mass-flow evidence
@@ -55,17 +55,11 @@ impl FuelBatchEvaluation {
     /// This assumes independent input uncertainties. If either uncertainty
     /// is unknown, the result is Ok(None). Covariance and conversion-map
     /// uncertainty are not represented by this calculation.
-    pub fn chemical_input_power_standard_uncertainty(
-        &self,
-    ) -> Result<Option<Watts>, ModelError> {
+    pub fn chemical_input_power_standard_uncertainty(&self) -> Result<Option<Watts>, ModelError> {
         let flow_uncertainty = self.fuel_mass_flow.standard_uncertainty();
-        let lhv_uncertainty = self
-            .fuel_batch
-            .lower_heating_value()
-            .standard_uncertainty();
+        let lhv_uncertainty = self.fuel_batch.lower_heating_value().standard_uncertainty();
 
-        let (Some(flow_uncertainty), Some(lhv_uncertainty)) =
-            (flow_uncertainty, lhv_uncertainty)
+        let (Some(flow_uncertainty), Some(lhv_uncertainty)) = (flow_uncertainty, lhv_uncertainty)
         else {
             return Ok(None);
         };
@@ -165,10 +159,7 @@ mod tests {
     fn models() -> (EngineModel, GeneratorModel) {
         (
             EngineModel::new(Efficiency::new(0.45).unwrap()),
-            GeneratorModel::new(
-                Efficiency::new(0.96).unwrap(),
-                Watts::new(5_760.0).unwrap(),
-            ),
+            GeneratorModel::new(Efficiency::new(0.96).unwrap(), Watts::new(5_760.0).unwrap()),
         )
     }
 
@@ -201,8 +192,8 @@ mod tests {
     fn chemical_input_uncertainty_uses_independent_first_order_propagation() {
         let batch = fuel_batch();
         let (engine, generator) = models();
-        let evaluation = evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator)
-            .unwrap();
+        let evaluation =
+            evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator).unwrap();
 
         let uncertainty = evaluation
             .chemical_input_power_standard_uncertainty()
