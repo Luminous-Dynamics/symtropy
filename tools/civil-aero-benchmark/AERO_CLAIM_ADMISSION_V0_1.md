@@ -39,9 +39,11 @@ ClaimClass defines the type of conclusion. DecisionConsequence independently def
 | Structural load prediction | Structural verification and validation plus numerical/model uncertainty |
 | Aeroelastic stability prediction | Structural evidence, coupled convergence, time-step evidence and flutter validation |
 | Mission performance prediction | Aerodynamic/structural evidence, propulsion validation, mission model verification and mission uncertainty |
-| Flight release | Broad technical evidence, operational envelope, calibrated measurements, independent review, quality-system evidence and authority decision |
+| Flight release | Broad technical evidence, operational envelope, calibrated measurements, certification-basis evidence, independent review and quality-system evidence |
 
-High-consequence claims add independent review, calibration and model-uncertainty evidence. Safety-critical claims additionally require an authority-decision evidence reference.
+High-consequence claims add independent review, calibration and model-uncertainty evidence. Flight-release claims additionally require a certification-basis evidence package and quality-system evidence.
+
+The actual authority decision is a separate human gate, not a technical evidence item that the software may manufacture or infer. An archived authority-decision record may be supplied as supplemental evidence, but it does not satisfy the final human gate or authorize automatic release.
 
 Even complete evidence does not cause an automatic flight release. Flight-release and safety-critical requests return requires_human_authority_decision. The software cannot act as a regulator, delegated engineering authority or airworthiness approval body.
 
@@ -107,3 +109,6 @@ Before using the module for production engineering decisions:
 claim_specific_policy_evaluation_with_exact_scope_and_full_evidence_manifest_digest_binding_not_artifact_verification_not_regulatory_approval_or_flight_authorization
 
 The implementation is a software-policy prototype. Unit tests use synthetic verifier digests and assertions. They do not establish aerospace model accuracy, physical validation, regulatory compliance or airworthiness.
+
+
+The distinction between certification basis and final authority decision is intentional: a completed technical evidence package may be ready for an authority's consideration, but the system cannot issue that authority decision.
