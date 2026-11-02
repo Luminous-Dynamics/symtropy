@@ -15,7 +15,8 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.to
 - Upstream passage qualification reference is required; ineligible/unknown requests are never scheduled.
 - Participant-authorized arrival window bounds are explicit; no implicit demand shifting is inferred.
 - FCFS baseline and priority-with-aging/fairness baseline.
-- A two-request exhaustive-order counterexample records the FCFS deadline-loss gap; the exact oracle is test-only and makes no field-performance claim.
+- A reusable test-only exact oracle enumerates every request order on tiny instances and independently searches lock availability windows to maximize feasible served count.
+- A two-request counterexample records the FCFS deadline-loss gap, while a permutation control verifies oracle invariance; this is not a field-performance claim.
 - Direction-switch setup time, discrete lock availability windows, outages, service duration, latest start and maximum wait.
 - Lock-profile currentness must cover the complete reserved service interval; a slot extending beyond profile validity is not scheduled.
 - Exact integer-tick schedule and deterministic tie-breaking.
