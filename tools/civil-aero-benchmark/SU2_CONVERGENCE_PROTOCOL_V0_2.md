@@ -50,6 +50,14 @@ Before a run bundle is admitted:
 
 For a window field such as `TAVG_DRAG`, this prevents the run from being admitted when the solver was configured to stop on that quantity but the evidence chain never imported or screened it.
 
+## Unsteady inner-loop qualification
+
+The native time-window success message does not independently prove that the inner solver converged at every outer time step. SU2's unsteady driver can proceed when the inner solver converges or reaches its configured inner-iteration cap, then evaluate windowed time-averaged convergence.
+
+The verified run bundle therefore adds the separate [`SU2_UNSTEADY_INNER_SCREEN_V0_1.md`](./SU2_UNSTEADY_INNER_SCREEN_V0_1.md) contract. The current implementation supports residual-based `CONV_FIELD` values only. It requires `TIME_ITER`, `INNER_ITER`, an explicit `CONV_RESIDUAL_MINVAL`, contiguous saved time steps, and a complete history interval covering the configured window convergence start.
+
+Every saved time step must meet the residual threshold. Missing time-step records or any failed residual reject bundle admission. This is an outer-time-step endpoint screen; it does not reconstruct all inner-iteration residual traces or claim per-zone convergence for all multizone configurations.
+
 ## Evidence ceiling
 
 `receipt_bound_su2_dry_run_multi_field_steady_and_explicit_time_window_configuration_discovery_only_not_history_convergence_or_validation`
