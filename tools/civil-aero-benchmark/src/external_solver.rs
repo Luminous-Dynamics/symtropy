@@ -1528,6 +1528,70 @@ mod tests {
     }
 
     #[test]
+    fn process_only_receipts_are_limited_to_staged_su2_dry_run_invocations() {
+        let root = temporary_root("dry-run");
+        let executable = fake_solver(&root, "[ \"$1\" = \"-d\" ] && [ -s \"$2\" ]");
+        let config = root.join("case.cfg");
+        fs::write(&config, "SOLVER=NAVIER_STOKES\\n").expect("write dry-run config");
+        let bytes = fs::read(&config).expect("read dry-run config");
+
+        let mut valid = request(
+            &root,
+            executable.clone(),
+            "valid-dry-run",
+            vec!["-d".to_owned(), "case.cfg".to_owned()],
+            Vec::new(),
+        );
+        valid.solver_id = "SU2_CFD_DRY_RUN".to_owned();
+        valid.expected_outputs.clear();
+        valid.staged_inputs.push(StagedInputSpec {
+            source_path: config.clone(),
+            relative_path: "case.cfg".to_owned(),
+            expected_byte_length: bytes.len() as u64,
+            expected_sha256: sha256_hex(&bytes).expect("config digest"),
+            source_reference: "synthetic-dry-run-config".to_owned(),
+        });
+        let receipt = execute_external_solver(&valid).expect("valid process-only dry run");
+        assert_eq!(receipt.status, "process_exited_zero_no_outputs_declared");
+        assert!(receipt.is_process_success());
+        verify_external_solver_receipt(&valid.run_directory, &receipt)
+            .expect("process-only receipt replays");
+        fs::remove_dir_all(&root).expect("remove dry-run fixture");
+
+        let root = temporary_root("dry-run-policy");
+        let executable = fake_solver(&root, "exit 0");
+        let mut wrong_solver = request(
+            &root,
+            executable.clone(),
+            "wrong-solver-no-output",
+            Vec::new(),
+            Vec::new(),
+        );
+        wrong_solver.expected_outputs.clear();
+        assert!(
+            execute_external_solver(&wrong_solver)
+                .expect_err("generic solver cannot use process-only receipt")
+                .contains("process-only receipts are restricted")
+        );
+
+        let mut unstaged_config = request(
+            &root,
+            executable.clone(),
+            "unstaged-config-dry-run",
+            vec!["-d".to_owned(), "missing.cfg".to_owned()],
+            Vec::new(),
+        );
+        unstaged_config.solver_id = "SU2_CFD_DRY_RUN".to_owned();
+        unstaged_config.expected_outputs.clear();
+        assert!(
+            execute_external_solver(&unstaged_config)
+                .expect_err("dry-run config must be staged")
+                .contains("must be one of the staged inputs")
+        );
+        fs::remove_dir_all(root).expect("remove dry-run policy fixture");
+    }
+
+    #[test]
     fn nonzero_exit_and_missing_outputs_are_retained_as_failed_receipts() {
         let root = temporary_root("nonzero");
         let executable = fake_solver(&root, "printf 'failed\\n' >&2\nexit 17");
