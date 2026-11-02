@@ -109,14 +109,6 @@ impl ResourceVector {
         )
     }
 
-    /// Largest absolute component, useful for reporting the native-unit
-    /// conservation residual without collapsing resource quantities together.
-    pub fn max_abs(self) -> f64 {
-        self.water_m3
-            .abs()
-            .max(self.energy_kwh.abs())
-            .max(self.food_kg.abs())
-    }
 }
 
 /// A region's initial inventory and per-capita essential demand.
@@ -240,18 +232,53 @@ impl RegionLedger {
             .subtract(self.ending)
     }
 
+    /// Check conservation independently in m³, kWh and kg. Tolerances are
+    /// scaled only by quantities with the same unit; a large energy balance
+    /// can never mask a water or food residual.
     pub fn is_conserved(self) -> bool {
-        let residual = self.conservation_residual().max_abs();
-        let scale = self
-            .beginning
-            .max_abs()
-            .max(self.production.max_abs())
-            .max(self.imports.max_abs())
-            .max(self.exports.max_abs())
-            .max(self.served_essential_demand.max_abs())
-            .max(self.ending.max_abs())
-            .max(1.0);
-        residual <= CONSERVATION_ABSOLUTE_TOLERANCE + CONSERVATION_RELATIVE_TOLERANCE * scale
+        let residual = self.conservation_residual();
+
+        fn component_is_conserved(residual: f64, values: [f64; 6]) -> bool {
+            let scale = values
+                .into_iter()
+                .map(f64::abs)
+                .fold(1.0_f64, f64::max);
+            residual.abs()
+                <= CONSERVATION_ABSOLUTE_TOLERANCE
+                    + CONSERVATION_RELATIVE_TOLERANCE * scale
+        }
+
+        component_is_conserved(
+            residual.water_m3,
+            [
+                self.beginning.water_m3,
+                self.production.water_m3,
+                self.imports.water_m3,
+                self.exports.water_m3,
+                self.served_essential_demand.water_m3,
+                self.ending.water_m3,
+            ],
+        ) && component_is_conserved(
+            residual.energy_kwh,
+            [
+                self.beginning.energy_kwh,
+                self.production.energy_kwh,
+                self.imports.energy_kwh,
+                self.exports.energy_kwh,
+                self.served_essential_demand.energy_kwh,
+                self.ending.energy_kwh,
+            ],
+        ) && component_is_conserved(
+            residual.food_kg,
+            [
+                self.beginning.food_kg,
+                self.production.food_kg,
+                self.imports.food_kg,
+                self.exports.food_kg,
+                self.served_essential_demand.food_kg,
+                self.ending.food_kg,
+            ],
+        )
     }
 }
 
@@ -593,6 +620,23 @@ mod tests {
         );
         assert_eq!(report.regions[0].ledger.exports.water_m3, 30.0);
         assert_eq!(report.regions[1].ledger.imports.energy_kwh, 60.0);
+    }
+
+    #[test]
+    fn large_energy_scale_cannot_mask_a_water_conservation_error() {
+        let ledger = RegionLedger {
+            beginning: ResourceVector::new(100.0, 1_000_000_000_000.0, 100.0),
+            production: ResourceVector::default(),
+            imports: ResourceVector::default(),
+            exports: ResourceVector::default(),
+            served_essential_demand: ResourceVector::default(),
+            ending: ResourceVector::new(99.99999, 1_000_000_000_000.0, 100.0),
+        };
+        let residual = ledger.conservation_residual();
+        assert!(residual.water_m3.abs() > 1e-6);
+        assert_eq!(residual.energy_kwh, 0.0);
+        assert_eq!(residual.food_kg, 0.0);
+        assert!(!ledger.is_conserved());
     }
 
     #[test]
