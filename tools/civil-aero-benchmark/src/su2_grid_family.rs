@@ -545,9 +545,7 @@ mod tests {
         ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
         screen_su2_history,
     };
-    use crate::su2_history::{
-        Su2HistoryField, Su2HistorySchema, import_su2_history,
-    };
+    use crate::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
     use crate::su2_run_binding::bind_su2_run_lineage;
     use std::collections::BTreeMap;
     use std::fs;
@@ -560,10 +558,8 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("clock after epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "su2-grid-family-{}-{nonce}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("su2-grid-family-{}-{nonce}", std::process::id()));
         fs::create_dir_all(&path).expect("create test root");
         path
     }
@@ -584,10 +580,7 @@ mod tests {
     }
 
     fn unit_square_triangular_mesh(divisions: usize) -> String {
-        let mut mesh = format!(
-            "NDIME= 2\nNELEM= {}\n",
-            2 * divisions * divisions
-        );
+        let mut mesh = format!("NDIME= 2\nNELEM= {}\n", 2 * divisions * divisions);
         let node = |i: usize, j: usize| j * (divisions + 1) + i;
         for j in 0..divisions {
             for i in 0..divisions {
@@ -660,7 +653,9 @@ printf 'synthetic force output; not CFD evidence\n' > forces.dat
 printf 'synthetic solver stdout\n'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
-        let mut permissions = fs::metadata(&executable).expect("solver metadata").permissions();
+        let mut permissions = fs::metadata(&executable)
+            .expect("solver metadata")
+            .permissions();
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).expect("make solver executable");
 
@@ -762,8 +757,7 @@ printf 'synthetic solver stdout\n'
 
             let history =
                 import_su2_history(&run_directory, &history_schema).expect("import SU2 history");
-            let screen =
-                screen_su2_history(&history, &criteria).expect("screen history");
+            let screen = screen_su2_history(&history, &criteria).expect("screen history");
             assert_eq!(screen.status, "declared_thresholds_met");
             let additional_output_paths = vec!["forces.dat".to_owned()];
             let binding = bind_su2_run_lineage(
@@ -790,7 +784,8 @@ printf 'synthetic solver stdout\n'
         Su2GridFamilyStudy {
             study_id: "synthetic-3-grid-study".to_owned(),
             case_id: "synthetic-OAT15A-M0.73-Re3M-alpha1.50-periodic".to_owned(),
-            protocol_manifest_sha256: sha256_hex(b"synthetic protocol fixture").expect("protocol digest"),
+            protocol_manifest_sha256: sha256_hex(b"synthetic protocol fixture")
+                .expect("protocol digest"),
             quantity: "section drag coefficient".to_owned(),
             quantity_field: "CD".to_owned(),
             quantity_unit: "dimensionless".to_owned(),
