@@ -1532,6 +1532,49 @@ mod tests {
     }
 
     #[test]
+    fn construct_family_and_score_semantics_mismatch_are_not_comparable() {
+        let old = form("old", "same");
+
+        let mut other_family = form("new", "same");
+        other_family.construct_family_digest = D5.into();
+        let family_receipt = link_benchmark_forms(
+            &plan(), &old, &other_family, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &responses("new"),
+            &scores("old", 0), &scores("new", 1),
+        ).unwrap();
+        assert_eq!(family_receipt.status, super::AnchorEquatingStatus::NotComparable);
+        assert!(!family_receipt.score_transfer_permitted);
+
+        let mut other_score_semantics = form("new", "same");
+        other_score_semantics.score_semantics_digest = D5.into();
+        let semantics_receipt = link_benchmark_forms(
+            &plan(), &old, &other_score_semantics, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &responses("new"),
+            &scores("old", 0), &scores("new", 1),
+        ).unwrap();
+        assert_eq!(semantics_receipt.status, super::AnchorEquatingStatus::NotComparable);
+        assert!(!semantics_receipt.score_transfer_permitted);
+    }
+
+    #[test]
+    fn blueprint_change_with_anchor_drift_is_not_even_linked() {
+        let old = form("old", "same");
+        let new = form("new", "different");
+        let mut changed = responses("new");
+        changed[0].safe_success = !changed[0].safe_success;
+        let receipt = link_benchmark_forms(
+            &plan(), &old, &new, &bank(),
+            &[anchor()], &[anchor()],
+            &responses("old"), &changed,
+            &scores("old", 0), &scores("new", 1),
+        ).unwrap();
+        assert_eq!(receipt.status, super::AnchorEquatingStatus::NotComparable);
+        assert!(!receipt.score_transfer_permitted);
+    }
+
+    #[test]
     fn anchor_reuse_cap_and_changed_anchor_identity_fail_closed() {
         let old = form("old", "same");
         let new = form("new", "same");
