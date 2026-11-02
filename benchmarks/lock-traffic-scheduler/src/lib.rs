@@ -956,7 +956,13 @@ mod tests {
             request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight),
             request("b", "p2", 0, Direction::Downstream, ServiceClass::OrdinaryFreight),
         ];
-        let result = schedule_lock(&p, &requests, 0, SchedulingPolicy::FirstComeFirstServed).unwrap();
+        let result = schedule_lock(
+            &p,
+            &requests,
+            0,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
         assert_eq!(result.scheduled.len(), 1);
         assert_eq!(result.unscheduled[0].request_id, "b");
     }
@@ -1029,7 +1035,18 @@ mod tests {
         let mut p = profile();
         p.availability = vec![TimeInterval { start_tick: 5, end_tick: 5 }];
         assert_eq!(
-            schedule_lock(&p, &[request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight)], 0, SchedulingPolicy::FirstComeFirstServed),
+            schedule_lock(
+                &p,
+                &[request(
+                    "a",
+                    "p1",
+                    0,
+                    Direction::Upstream,
+                    ServiceClass::OrdinaryFreight,
+                )],
+                0,
+                SchedulingPolicy::FirstComeFirstServed,
+            ),
             Err(SchedulerError::InvalidAvailabilityWindow)
         );
     }
@@ -1080,7 +1097,18 @@ mod tests {
         let mut p = profile();
         p.valid_through_tick = None;
         assert_eq!(
-            schedule_lock(&p, &[request("a", "p1", 0, Direction::Upstream, ServiceClass::OrdinaryFreight)], 0, SchedulingPolicy::FirstComeFirstServed),
+            schedule_lock(
+                &p,
+                &[request(
+                    "a",
+                    "p1",
+                    0,
+                    Direction::Upstream,
+                    ServiceClass::OrdinaryFreight,
+                )],
+                0,
+                SchedulingPolicy::FirstComeFirstServed,
+            ),
             Err(SchedulerError::UnknownLockProfileCurrentness)
         );
     }
