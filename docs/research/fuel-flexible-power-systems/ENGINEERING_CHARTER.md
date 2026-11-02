@@ -196,13 +196,49 @@ The team must verify the currently applicable local certification rules before s
 
 | Industry reference | Public evidence | Implication |
 |---|---|---|
-| Cummins HELM / X10 / X15 | Cummins identifies fuel-agnostic engine platforms; MY2027 production ramp is scheduled through 2027 | Shared architecture across fuel-specific variants is already commercial strategy |
-| DOE SuperTruck 2 | DOE reports >52% engine brake thermal efficiency demonstrated by all teams, with three pathways to 55% | A 52–55% peak-BTE frontier is a serious heavy-duty benchmark; specify whether waste-heat recovery is included |
-| Wärtsilä 32 Methanol | Commercial marine methanol engine, 3.4–5.2 MW; 46F Methanol can use conventional fuels and methanol | Methanol dual-fuel marine technology is already commercial |
-| Everllence / MAN B&W ammonia | Manufacturer reports Type Approval Test in June 2026 and first-unit Factory Acceptance Test on 20 April 2026 for dual-fuel 6G60ME-LGIA | Ammonia two-stroke is entering shipboard deployment; vendor-stated lifecycle GHG reduction claims still require independent fuel-pathway verification |
-| Battery-electric / fuel-cell HDVs | Recent lifecycle analysis reports significant GHG reductions for BEVs and FCEVs, depending on vehicle class, duty cycle and energy source | Combustion is not the default climate winner; compare full transport work and regional energy pathways |
+| **Mainspring Linear Generator** | Product datasheet reports a 250 kW module, a 2.5 MW block made from ten 250 kW units, 46% net-AC LHV efficiency on natural gas/biogas, <1.5 ppm NOx and 0–100% output range. It states that the 46% result was measured under ASME PTC 50 at 15°C and 1 atm, including 1% assumed inverter/line loss. | **Closest direct competitor and mandatory primary benchmark.** Fuel-flexible stationary generation at this rating and a high net-AC efficiency claim already exist. A generic 250 kW multi-fuel generator is not a defensible novelty claim. |
+| **Mainspring California Energy Commission demonstration** | A 230 kW beta unit ran at a grocery site for nine months; the 2024 final report shows 41.5% net-AC efficiency, above 40% over a 130–370 kW building-load range, and third-party source tests of 1.6 ppm NOx, 0.8 ppm CO and 8.4 ppm VOC. The report was prepared by Mainspring under a CEC-sponsored project and disclaims CEC approval of its accuracy; third-party status is stated for the emissions source test. | A real-site operational reference exists, not just a product concept. Preserve the distinction between the beta demonstration, the manufacturer’s later 46% product specification, and the separate emissions test. |
+| **Mainspring / U.S. Air Force pilot** | The Department of the Air Force announced a 250 kW prototype pilot in March 2026 to collect fuel-efficiency, power, consumption and emissions data across natural gas, biomethane, syngas, ammonia, propane and hydrogen. | Ammonia and syngas belong in the competitor watchlist, but this is a pilot test programme—not published proof that the commercial product has already qualified every listed fuel. |
+| **Mainspring commercial scale-up** | Mainspring announced an agreement with AEP for up to 1.6 GW through 2034; the first 190 MW tranche is announced for delivery beginning in 2027. | Commercial traction is substantial, but an announced agreement and future delivery schedule are not the same as independently observed installed capacity or fleet availability. |
+| Cummins HELM / X10 / X15 | Cummins identifies fuel-agnostic engine platforms; MY2027 production ramp is scheduled through 2027 | Shared architecture across fuel-specific combustion variants is already an industry strategy. |
+| Capstone C200S microturbine | Manufacturer/supplier materials report a 200 kW unit at 33% LHV electrical efficiency and gaseous-fuel compatibility including natural gas and biogas; exact net/gross boundary and site corrections must be checked in the controlled datasheet. | A commercial microturbine is a relevant same-scale comparator, particularly for footprint, service life and fuel-gas tolerance. |
+| DOE SuperTruck 2 | DOE reports >52% engine brake thermal efficiency demonstrated by all teams, with three pathways to 55% | A 52–55% peak-BTE frontier is a heavy-duty engine benchmark, but BTE is not net AC efficiency and must not be compared directly with generator figures. |
+| Wärtsilä 32 Methanol | Commercial marine methanol engine, 3.4–5.2 MW; 46F Methanol can use conventional fuels and methanol | Methanol-capable marine engines are already commercial. |
+| Everllence / MAN B&W ammonia | Manufacturer reports Type Approval Test in June 2026 and first-unit Factory Acceptance Test on 20 April 2026 for dual-fuel 6G60ME-LGIA | Ammonia two-stroke development is advancing toward shipboard deployment; vendor-stated lifecycle GHG claims still require independent fuel-pathway verification. |
+| Battery-electric / fuel-cell HDVs | Recent lifecycle analysis reports significant GHG reductions for BEVs and FCEVs, depending on vehicle class, duty cycle and energy source | Combustion is not the default climate winner; compare full transport work and regional energy pathways. |
 
-**No "better than SOTA" claim** until a like-for-like dataset is available. The proposed competitive wedge is lower flexibility penalty, fuel-quality robustness, verified lifecycle outcomes, maintainability and whole-system cost—not a claim that Symtropy already simulates combustion better than specialist tools.
+### Mandatory Mainspring benchmark questions
+
+Before any SOTA claim, obtain and reconcile:
+- the full MSE3 / 2.5 MW test protocol, raw measurement boundary, fuel composition, LHV/HHV convention, ambient correction, auxiliaries and uncertainty;
+- why the manufacturer cites ASME PTC 50 for the linear generator and whether that code's fuel-cell-system scope is applicable or an agreed adaptation;
+- performance maps over low-to-full load, fuel switching transitions, starts/stops, step loads, parasitic loads, degradation and emissions;
+- the meaning of the published >1.5 million **core run hours**: core-hours are not automatically single-unit elapsed hours, fleet availability or MTBF;
+- clarification of the datasheet's 22-ton "unit weight" and whether this means one 250 kW module, the full package or another assembly;
+- fuel-by-fuel qualification status: the standard product specification lists biogas, natural gas, hydrogen and propane; the U.S. Air Force 2026 programme separately proposes testing syngas and ammonia.
+
+Mainspring describes its linear generator as a low-temperature, non-combustion reaction driving magnets through copper coils. It is therefore a distinct conversion topology—not simply another reciprocating engine. Our benchmark/model architecture must represent at least:
+1. reciprocating engine → shaft → alternator;
+2. free-piston / linear generator → direct electrical conversion;
+3. microturbine / gas turbine → shaft → alternator;
+4. fuel cell → DC power conditioning / inverter;
+5. battery storage / inverter as a delivered-service comparator.
+
+Do not compare brake thermal efficiency, net-AC efficiency, stack DC efficiency and battery round-trip efficiency as if they share one boundary.
+
+### Revised competitive thesis
+
+We cannot claim novelty for "a 250 kW fuel-flexible stationary generator", gaseous-fuel switching, 0–100% dispatchability, near-zero NOx or a 46% net-AC LHV figure alone. Those claims are already present in the Mainspring market / evidence baseline.
+
+A defensible Luminous research wedge must be demonstrated in one or more of these areas:
+- independently reproducible fuel-quality robustness across measured composition and contaminant distributions, not just nominal fuel labels;
+- validated liquid-fuel and marine duty-cycle integration (HVO, biodiesel blends, methanol and ammonia pathways) where the actual system boundary and safety case make sense;
+- substantially better mass / volume / delivered-power packaging for mobile truck and marine installations;
+- lower whole-life cost, maintenance downtime or supply-chain risk on a matched South African duty cycle;
+- superior net-AC efficiency or lifecycle GHG on the exact same test boundary and fuel batch;
+- evidence-carrying control and active experimental design that reduces qualification cost or decision regret versus established optimizers.
+
+**No "better than SOTA" claim** until like-for-like independent data exist. Mainspring's commercial product page, the 2024 CEC-sponsored demonstration report, the 2026 Air Force pilot and its announced AEP agreement are different evidence classes and must not be merged into one undifferentiated performance claim.
 
 ## 9. Paradigm-shift research hypotheses
 
