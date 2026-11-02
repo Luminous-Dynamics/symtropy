@@ -286,8 +286,8 @@ impl EnergyBalance {
             });
         }
 
-        let allowed = absolute_tolerance_w
-            .max(relative_tolerance * self.chemical_input_power.get());
+        let allowed =
+            absolute_tolerance_w.max(relative_tolerance * self.chemical_input_power.get());
         Ok(self.residual_w().abs() <= allowed)
     }
 }
@@ -348,10 +348,8 @@ mod tests {
             LowerHeatingValueJPerKg::new(43_000_000.0).unwrap(),
         );
         let engine = EngineModel::new(Efficiency::new(0.45).unwrap());
-        let generator = GeneratorModel::new(
-            Efficiency::new(0.96).unwrap(),
-            Watts::new(5_760.0).unwrap(),
-        );
+        let generator =
+            GeneratorModel::new(Efficiency::new(0.96).unwrap(), Watts::new(5_760.0).unwrap());
         (fuel, engine, generator)
     }
 
@@ -409,10 +407,8 @@ mod tests {
             LowerHeatingValueJPerKg::new(10_000_000.0).unwrap(),
         );
         let engine = EngineModel::new(Efficiency::new(0.2).unwrap());
-        let generator = GeneratorModel::new(
-            Efficiency::new(0.9).unwrap(),
-            Watts::new(5_000.0).unwrap(),
-        );
+        let generator =
+            GeneratorModel::new(Efficiency::new(0.9).unwrap(), Watts::new(5_000.0).unwrap());
 
         assert!(matches!(
             evaluate(fuel, engine, generator),
