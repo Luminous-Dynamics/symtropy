@@ -183,6 +183,9 @@ pub enum ReasonCode {
     ZeroTimestep,
     ZeroObservationAgeLimit,
     ZeroProposalHorizon,
+    MissingInputChannelSpecs,
+    MissingEffectorSpecs,
+    MissingBodyEffectors,
     EmptyChannelInstanceId,
     InvalidChannelInstanceId,
     InvalidChannelRange,
@@ -372,6 +375,12 @@ pub fn validate_model_descriptor(
     }
     if descriptor.maximum_proposal_horizon_ticks == 0 {
         reasons.push(ReasonCode::ZeroProposalHorizon);
+    }
+    if descriptor.channels.is_empty() {
+        reasons.push(ReasonCode::MissingInputChannelSpecs);
+    }
+    if descriptor.effectors.is_empty() {
+        reasons.push(ReasonCode::MissingEffectorSpecs);
     }
 
     for (index, spec) in descriptor.channels.iter().enumerate() {
@@ -584,6 +593,10 @@ pub fn validate_motor_proposal(
         _ => {}
     }
 
+    if body_effectors.supported_effector_ids.is_empty() {
+        reasons.push(ReasonCode::MissingBodyEffectors);
+    }
+
     for (index, effector_id) in body_effectors.supported_effector_ids.iter().enumerate() {
         if effector_id.trim().is_empty() {
             reasons.push(ReasonCode::EmptyBodyEffectorId);
@@ -784,6 +797,17 @@ mod tests {
     }
 
     #[test]
+    fn model_descriptor_requires_declared_input_channels_and_effectors() {
+        let mut model = descriptor();
+        model.channels.clear();
+        model.effectors.clear();
+        let error = validate_model_descriptor(&model)
+            .expect_err("model without channels or effectors must reject");
+        assert!(error.contains(ReasonCode::MissingInputChannelSpecs));
+        assert!(error.contains(ReasonCode::MissingEffectorSpecs));
+    }
+
+    #[test]
     fn connectome_claim_requires_source_digest() {
         let mut model = descriptor();
         model.evidence_tier = EvidenceTier::ConnectomeConstrained;
@@ -930,6 +954,16 @@ mod tests {
         let error = validate_motor_proposal(&descriptor(), &frame(), &proposal(), &body)
             .expect_err("unsupported body effector must reject");
         assert!(error.contains(ReasonCode::EffectorUnsupportedByBody));
+    }
+
+    #[test]
+    fn empty_body_effector_set_is_rejected() {
+        let body = BodyEffectorSet {
+            supported_effector_ids: Vec::new(),
+        };
+        let error = validate_motor_proposal(&descriptor(), &frame(), &proposal(), &body)
+            .expect_err("body without effectors must reject");
+        assert!(error.contains(ReasonCode::MissingBodyEffectors));
     }
 
     #[test]
