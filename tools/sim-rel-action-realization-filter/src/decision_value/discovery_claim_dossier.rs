@@ -85,6 +85,7 @@ pub struct DiscoverySourceContext {
     pub apparatus_id: String,
     pub calibration_chain_digest: String,
     pub dataset_digest: String,
+    pub raw_observation_digest: String,
     pub seed_namespace_id: String,
     pub task_manifest_digest: String,
     pub source_code_digest: String,
@@ -281,6 +282,7 @@ fn validate_source_context(
     for (value, label) in [
         (&context.calibration_chain_digest, "source calibration chain"),
         (&context.dataset_digest, "source dataset"),
+        (&context.raw_observation_digest, "source raw observation"),
         (&context.task_manifest_digest, "source task manifest"),
         (&context.source_code_digest, "source code"),
         (&context.harness_digest, "source harness"),
@@ -443,7 +445,7 @@ fn validate_replication(
                 || replication.task_manifest_digest != source.task_manifest_digest
                 || replication.source_code_digest != source.source_code_digest
                 || replication.harness_digest != source.harness_digest
-                || replication.raw_observation_digest != source.dataset_digest
+                || replication.raw_observation_digest != source.raw_observation_digest
             {
                 return Err(DiscoveryClaimError::ReplicationIndependence(
                     "SameArtifactReplay must use the source data, task manifest, code and harness identities".into(),
@@ -458,7 +460,7 @@ fn validate_replication(
                 || replication.seed_namespace_id == source.seed_namespace_id
                 || replication.pre_registration_receipt_digest
                     == source.pre_registration_receipt_digest
-                || replication.raw_observation_digest == source.dataset_digest
+                || replication.raw_observation_digest == source.raw_observation_digest
             {
                 return Err(DiscoveryClaimError::ReplicationIndependence(
                     "IndependentReproduction requires a distinct run, operator/team, data, seed namespace and pre-registration".into(),
@@ -629,6 +631,7 @@ mod tests {
             apparatus_id: "source-apparatus".into(),
             calibration_chain_digest: D1.into(),
             dataset_digest: D2.into(),
+            raw_observation_digest: D5.into(),
             seed_namespace_id: "source-seed".into(),
             task_manifest_digest: D3.into(),
             source_code_digest: D4.into(),
@@ -641,7 +644,7 @@ mod tests {
         DiscoveryClaimEvidence {
             evidence_split: EvidenceSplit::SealedHoldout,
             claim_result_digest: D2.into(),
-            raw_observation_digest: D2.into(),
+            raw_observation_digest: D5.into(),
             analysis_receipt_digest: D3.into(),
             evidence_verification_receipt_digest: D4.into(),
             pre_registration_receipt_digest: D1.into(),
@@ -771,7 +774,7 @@ mod tests {
         replay.level = ReplicationLevel::SameArtifactReplay;
         replay.replication_id = "replay-1".into();
         replay.dataset_digest = D2.into();
-        replay.raw_observation_digest = D2.into();
+        replay.raw_observation_digest = D5.into();
         replay.task_manifest_digest = D3.into();
         replay.source_code_digest = D4.into();
         replay.harness_digest = D5.into();
