@@ -687,6 +687,8 @@ mod tests {
     use super::*;
     use crate::external_solver::{ExternalSolverRequest, StagedInputSpec, execute_external_solver};
     use crate::integrity::sha256_file;
+    use crate::su2_boundary_audit::{Su2BoundaryOptionSpec, audit_su2_boundary_markers};
+    use crate::su2_field_preflight::audit_su2_field_preflight;
     use crate::su2_convergence_screen::{
         ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
         screen_su2_history,
@@ -778,7 +780,7 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\n",
+            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
@@ -786,6 +788,10 @@ mod tests {
         let executable = shared.join("fake-su2-cfd");
         let solver = r#"#!/bin/sh
 set -eu
+if [ "${1:-}" = "-d" ]; then
+  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  exit 0
+fi
 printf '"Iteration","CL","CD","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
 printf '0,0.42310,%s,-1,-1\n' "$GRID_CD" >> history.csv
 printf '10,0.42310,%s,-2,-2\n' "$GRID_CD" >> history.csv
@@ -877,6 +883,53 @@ printf 'synthetic solver stdout\n'
             let expected_spacing = (1.0 / (2.0 * divisions_f64.powi(2))).sqrt();
             let mesh_text = unit_square_triangular_mesh(divisions);
             fs::write(&mesh, mesh_text).expect("write grid mesh");
+            let dry_run_directory = root.join(format!("dry-run-{level}"));
+            let dry_run_request = ExternalSolverRequest {
+                run_id: format!("su2-grid-dry-run-{level}"),
+                solver_id: "SU2_CFD_DRY_RUN".to_owned(),
+                solver_version_claim: "synthetic-ci-fixture-not-a-SU2-version".to_owned(),
+                executable_path: executable.clone(),
+                run_directory: dry_run_directory.clone(),
+                arguments: vec!["-d".to_owned(), "config.cfg".to_owned()],
+                environment: BTreeMap::new(),
+                staged_inputs: vec![
+                    stage_spec(&config, "config.cfg", "synthetic-fixed-physics-config"),
+                    stage_spec(&mesh, "mesh.su2", "synthetic-grid-mesh"),
+                ],
+                expected_outputs: Vec::new(),
+                timeout: Duration::from_secs(2),
+                max_log_bytes_per_stream: 16 * 1024,
+            };
+            let dry_run_receipt =
+                execute_external_solver(&dry_run_request).expect("execute fake SU2 dry run");
+            assert!(dry_run_receipt.is_process_success());
+            let required_history_fields = vec![
+                "Iteration".to_owned(),
+                "CL".to_owned(),
+                "CD".to_owned(),
+                "RMS_DENSITY".to_owned(),
+                "RMS_MOMENTUM-X".to_owned(),
+            ];
+            let field_preflight = audit_su2_field_preflight(
+                &dry_run_directory,
+                "config.cfg",
+                "mesh.su2",
+                &required_history_fields,
+            )
+            .expect("dry-run field preflight");
+            let boundary_audit = audit_su2_boundary_markers(
+                &dry_run_directory,
+                "config.cfg",
+                "mesh.su2",
+                &[Su2BoundaryOptionSpec {
+                    option_name: "MARKER_HEATFLUX".to_owned(),
+                    record_width: 2,
+                    marker_positions: vec![0],
+                }],
+                &["MARKER_MONITORING".to_owned()],
+            )
+            .expect("dry-run boundary audit");
+
             let run_directory = root.join(format!("run-{level}"));
             let drag = 0.02 + 0.008 * expected_spacing.powi(2);
             let request = ExternalSolverRequest {
@@ -919,6 +972,9 @@ printf 'synthetic solver stdout\n'
             members.push(Su2GridFamilyMember {
                 grid_id: format!("grid-{level}"),
                 grid_level: level,
+                dry_run_directory,
+                field_preflight,
+                boundary_audit,
                 run_directory,
                 history,
                 convergence_screen: screen,
