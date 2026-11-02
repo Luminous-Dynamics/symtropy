@@ -451,7 +451,7 @@ impl OutwardInterval {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct SeparatorImpulseBox {
     lower: SVector<f64, 3>,
     upper: SVector<f64, 3>,
@@ -480,6 +480,24 @@ struct SeparatingBoxResponse {
     classification: SeparatingBoxClassification,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct SeparatorBoxCell {
+    separator_box: SeparatorImpulseBox,
+    classification: SeparatingBoxClassification,
+    depth: usize,
+    lineage: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct SeparatorBoxPartition {
+    cells: Vec<SeparatorBoxCell>,
+    processed_nodes: usize,
+    max_depth_reached: usize,
+    node_budget_exhausted: bool,
+    coverage_preserved: bool,
+    classification_complete: bool,
+}
+
 #[derive(Clone, Debug)]
 struct SeparatingLeafResponse {
     impulse: SVector<f64, 3>,
@@ -501,6 +519,209 @@ impl SeparatingLeafMessage {
             return Err("separating leaf message contains invalid or non-finite data");
         }
         Ok((Matrix3::zeros(), SVector::<f64, 3>::zeros()))
+    }
+
+    /// Select a deterministic split axis that actually changes the affine
+    /// normal response. The largest absolute normal coefficient wins; ties
+    /// resolve to the lowest axis index.
+    fn split_box(
+        &self,
+        parent: &SeparatorImpulseBox,
+    ) -> Option<(usize, f64, SeparatorImpulseBox, SeparatorImpulseBox)> {
+        let mut selected_axis = None;
+        let mut largest_coefficient = 0.0_f64;
+        for axis in 0..3 {
+            let coefficient = self.separator_coupling[(axis, 0)].abs();
+            if parent.lower[axis] < parent.upper[axis] && coefficient > largest_coefficient {
+                selected_axis = Some(axis);
+                largest_coefficient = coefficient;
+            }
+        }
+        let axis = selected_axis?;
+        let lower = parent.lower[axis];
+        let upper = parent.upper[axis];
+        // Halving each endpoint avoids overflowing an intermediate upper-lower
+        // difference for finite values near the binary64 range limit.
+        let midpoint = lower * 0.5 + upper * 0.5;
+        if !midpoint.is_finite() || midpoint <= lower || midpoint >= upper {
+            return None;
+        }
+
+        let mut left_upper = parent.upper;
+        left_upper[axis] = midpoint;
+        let left = SeparatorImpulseBox {
+            lower: parent.lower,
+            upper: left_upper,
+        };
+        let mut right_lower = parent.lower;
+        right_lower[axis] = midpoint;
+        let right = SeparatorImpulseBox {
+            lower: right_lower,
+            upper: parent.upper,
+        };
+        Some((axis, midpoint, left, right))
+    }
+
+    /// Verify that retained leaf lineages form a complete binary partition of
+    /// the declared root box, and that every lineage reconstructs its exact
+    /// recorded axis-aligned box under the deterministic split policy.
+    fn verify_box_cover(
+        &self,
+        root: &SeparatorImpulseBox,
+        cells: &[SeparatorBoxCell],
+    ) -> bool {
+        let mut leaves = std::collections::BTreeMap::<Vec<u8>, &SeparatorBoxCell>::new();
+        for cell in cells {
+            if cell.depth != cell.lineage.len()
+                || cell.lineage.iter().any(|branch| *branch > 1)
+                || leaves.insert(cell.lineage.clone(), cell).is_some()
+            {
+                return false;
+            }
+        }
+        let paths = leaves.keys().cloned().collect::<Vec<_>>();
+        for (index, path) in paths.iter().enumerate() {
+            for (other_index, other) in paths.iter().enumerate() {
+                if index != other_index
+                    && path.len() < other.len()
+                    && other.starts_with(path)
+                {
+                    return false;
+                }
+            }
+        }
+
+        fn walk(
+            message: &SeparatingLeafMessage,
+            current_box: &SeparatorImpulseBox,
+            path: &mut Vec<u8>,
+            leaves: &std::collections::BTreeMap<Vec<u8>, &SeparatorBoxCell>,
+        ) -> bool {
+            if let Some(cell) = leaves.get(path) {
+                return cell.separator_box == *current_box && cell.depth == path.len();
+            }
+            let Some((_, _, left, right)) = message.split_box(current_box) else {
+                return false;
+            };
+            let mut left_path = path.clone();
+            left_path.push(0);
+            let mut right_path = path.clone();
+            right_path.push(1);
+            let has_left_descendant = leaves.keys().any(|candidate| candidate.starts_with(&left_path));
+            let has_right_descendant =
+                leaves.keys().any(|candidate| candidate.starts_with(&right_path));
+            if !has_left_descendant || !has_right_descendant {
+                return false;
+            }
+            path.push(0);
+            let left_valid = walk(message, &left, path, leaves);
+            path.pop();
+            if !left_valid {
+                return false;
+            }
+            path.push(1);
+            let right_valid = walk(message, &right, path, leaves);
+            path.pop();
+            right_valid
+        }
+
+        walk(self, root, &mut Vec::new(), &leaves)
+    }
+
+    /// Subdivide a separator box while preserving every strict and unresolved
+    /// region. Budget/depth limits retain frontier boxes as inconclusive cells.
+    fn partition_separator_box(
+        &self,
+        root: &SeparatorImpulseBox,
+        max_depth: usize,
+        node_budget: usize,
+    ) -> Result<SeparatorBoxPartition, &'static str> {
+        if node_budget == 0 {
+            return Err("separator box partition requires a positive node budget");
+        }
+        self.schur_terms()?;
+
+        let mut stack = vec![(root.clone(), 0_usize, Vec::<u8>::new())];
+        let mut cells = Vec::new();
+        let mut processed_nodes = 0_usize;
+        let mut node_budget_exhausted = false;
+
+        while let Some((current_box, depth, lineage)) = stack.pop() {
+            if processed_nodes >= node_budget {
+                node_budget_exhausted = true;
+                cells.push(SeparatorBoxCell {
+                    separator_box: current_box,
+                    classification: SeparatingBoxClassification::BoundaryOrInconclusive,
+                    depth,
+                    lineage,
+                });
+                for (remaining_box, remaining_depth, remaining_lineage) in stack.drain(..) {
+                    cells.push(SeparatorBoxCell {
+                        separator_box: remaining_box,
+                        classification: SeparatingBoxClassification::BoundaryOrInconclusive,
+                        depth: remaining_depth,
+                        lineage: remaining_lineage,
+                    });
+                }
+                break;
+            }
+            processed_nodes += 1;
+
+            let classification = self
+                .response_over_box(&current_box)
+                .map(|response| response.classification)
+                .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
+
+            if classification != SeparatingBoxClassification::BoundaryOrInconclusive {
+                cells.push(SeparatorBoxCell {
+                    separator_box: current_box,
+                    classification,
+                    depth,
+                    lineage,
+                });
+                continue;
+            }
+
+            if depth < max_depth {
+                if let Some((_, _, left, right)) = self.split_box(&current_box) {
+                    let mut left_lineage = lineage.clone();
+                    left_lineage.push(0);
+                    let mut right_lineage = lineage;
+                    right_lineage.push(1);
+                    // Stack is LIFO: right is pushed first so the left branch
+                    // is processed first deterministically.
+                    stack.push((right, depth + 1, right_lineage));
+                    stack.push((left, depth + 1, left_lineage));
+                    continue;
+                }
+            }
+
+            cells.push(SeparatorBoxCell {
+                separator_box: current_box,
+                classification: SeparatingBoxClassification::BoundaryOrInconclusive,
+                depth,
+                lineage,
+            });
+        }
+
+        cells.sort_by(|left, right| left.lineage.cmp(&right.lineage));
+        let coverage_preserved = self.verify_box_cover(root, &cells);
+        if !coverage_preserved {
+            return Err("separator box partition failed its independent lineage coverage check");
+        }
+        let max_depth_reached = cells.iter().map(|cell| cell.depth).max().unwrap_or(0);
+        let classification_complete = cells.iter().all(|cell| {
+            cell.classification != SeparatingBoxClassification::BoundaryOrInconclusive
+        });
+
+        Ok(SeparatorBoxPartition {
+            cells,
+            processed_nodes,
+            max_depth_reached,
+            node_budget_exhausted,
+            coverage_preserved,
+            classification_complete,
+        })
     }
 
     /// Evaluate the separating response at one separator impulse.
@@ -976,6 +1197,132 @@ fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
             .response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), TOLERANCE)
             .is_err()
     );
+}
+
+#[test]
+fn separating_leaf_box_partition_preserves_cover_and_retains_boundary_cells() {
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+    };
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(3.0, 0.5, 0.5),
+    )
+    .unwrap();
+
+    let partition = message.partition_separator_box(&root, 3, 64).unwrap();
+    assert!(partition.coverage_preserved);
+    assert!(!partition.classification_complete);
+    assert!(!partition.node_budget_exhausted);
+    assert_eq!(partition.cells.len(), 6);
+    assert_eq!(
+        partition
+            .cells
+            .iter()
+            .filter(|cell| {
+                cell.classification == SeparatingBoxClassification::StrictlySeparating
+            })
+            .count(),
+        2
+    );
+    assert_eq!(
+        partition
+            .cells
+            .iter()
+            .filter(|cell| {
+                cell.classification == SeparatingBoxClassification::SignoriniViolation
+            })
+            .count(),
+        2
+    );
+    assert_eq!(
+        partition
+            .cells
+            .iter()
+            .filter(|cell| {
+                cell.classification
+                    == SeparatingBoxClassification::BoundaryOrInconclusive
+            })
+            .count(),
+        2
+    );
+    assert!(message.verify_box_cover(&root, &partition.cells));
+
+    let mut sorted_intervals = partition
+        .cells
+        .iter()
+        .map(|cell| (cell.separator_box.lower[0], cell.separator_box.upper[0]))
+        .collect::<Vec<_>>();
+    sorted_intervals.sort_by(|left, right| left.0.total_cmp(&right.0));
+    assert_eq!(sorted_intervals.first().unwrap().0, 1.0);
+    assert_eq!(sorted_intervals.last().unwrap().1, 3.0);
+    for adjacent in sorted_intervals.windows(2) {
+        assert_eq!(adjacent[0].1, adjacent[1].0);
+    }
+
+    let mut dropped_child = partition.cells.clone();
+    dropped_child.pop();
+    assert!(!message.verify_box_cover(&root, &dropped_child));
+
+    // Same input bits and policy produce a byte-for-byte equivalent lineage,
+    // class and box sequence.
+    assert_eq!(
+        partition,
+        message.partition_separator_box(&root, 3, 64).unwrap()
+    );
+}
+
+#[test]
+fn separating_leaf_box_partition_retains_unresolved_budget_and_unsplittable_frontiers() {
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+    };
+    let crossing = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        SVector::<f64, 3>::new(3.0, 0.0, 0.0),
+    )
+    .unwrap();
+
+    let budgeted = message.partition_separator_box(&crossing, 16, 1).unwrap();
+    assert!(budgeted.coverage_preserved);
+    assert!(budgeted.node_budget_exhausted);
+    assert!(!budgeted.classification_complete);
+    assert_eq!(budgeted.cells.len(), 2);
+    assert!(budgeted.cells.iter().all(|cell| {
+        cell.classification == SeparatingBoxClassification::BoundaryOrInconclusive
+    }));
+    assert!(message.verify_box_cover(&crossing, &budgeted.cells));
+
+    let boundary = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+        SVector::<f64, 3>::new(2.0, 0.0, 0.0),
+    )
+    .unwrap();
+    let unsplittable = message.partition_separator_box(&boundary, 8, 16).unwrap();
+    assert!(unsplittable.coverage_preserved);
+    assert!(!unsplittable.node_budget_exhausted);
+    assert_eq!(unsplittable.cells.len(), 1);
+    assert_eq!(
+        unsplittable.cells[0].classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+
+    let adjacent = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        SVector::<f64, 3>::new(f64::from_bits(1.0_f64.to_bits() + 1), 0.0, 0.0),
+    )
+    .unwrap();
+    let no_midpoint = message.partition_separator_box(&adjacent, 8, 16).unwrap();
+    assert!(no_midpoint.coverage_preserved);
+    assert_eq!(no_midpoint.cells.len(), 1);
+    assert_eq!(
+        no_midpoint.cells[0].classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+
+    assert!(message.partition_separator_box(&crossing, 2, 0).is_err());
 }
 
 #[test]
