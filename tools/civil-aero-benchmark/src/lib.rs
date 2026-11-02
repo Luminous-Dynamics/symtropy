@@ -31,6 +31,7 @@ pub mod su2_convergence_screen;
 pub mod su2_field_preflight;
 pub mod su2_history;
 pub mod su2_mesh;
+pub mod su2_grid_family;
 pub mod su2_run_binding;
 pub mod task_conformance;
 pub mod unsteady_spectrum;
