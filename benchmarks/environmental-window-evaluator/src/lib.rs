@@ -183,14 +183,15 @@ fn evaluate_monitoring(
     case: &EnvironmentalWindowCase,
     model: &SprModelProfile,
     reasons: &mut Vec<WindowReason>,
-) -> (bool, bool) {
+) -> (bool, bool, bool) {
     let Some(evidence) = &case.monitoring else {
         reasons.push(WindowReason::MissingMonitoring);
-        return (false, true);
+        return (false, true, false);
     };
 
     let mut inconsistent = false;
     let mut unknown = false;
+    let mut blocked = false;
 
     if !nonempty(&evidence.evidence_id) {
         reasons.push(WindowReason::InvalidEvidenceIdentity);
@@ -226,29 +227,29 @@ fn evaluate_monitoring(
     {
         reasons.push(WindowReason::ExposureUnitMismatch);
         inconsistent = true;
-    } else if evidence.maximum_exposure.value_microunits
-        >= model.threshold.value_microunits
+    } else if !inconsistent && !unknown
+        && evidence.maximum_exposure.value_microunits >= model.threshold.value_microunits
     {
         reasons.push(WindowReason::ExposureThresholdExceeded);
-        unknown = false;
-        return (false, true);
+        blocked = true;
     }
 
-    (inconsistent, unknown)
+    (inconsistent, unknown, blocked)
 }
 
 fn evaluate_forecast(
     case: &EnvironmentalWindowCase,
     model: &SprModelProfile,
     reasons: &mut Vec<WindowReason>,
-) -> (bool, bool) {
+) -> (bool, bool, bool) {
     let Some(evidence) = &case.forecast else {
         reasons.push(WindowReason::MissingForecast);
-        return (false, true);
+        return (false, true, false);
     };
 
     let mut inconsistent = false;
     let mut unknown = false;
+    let mut blocked = false;
 
     if !nonempty(&evidence.evidence_id) {
         reasons.push(WindowReason::InvalidEvidenceIdentity);
@@ -276,15 +277,14 @@ fn evaluate_forecast(
     {
         reasons.push(WindowReason::ExposureUnitMismatch);
         inconsistent = true;
-    } else if evidence.maximum_exposure.value_microunits
-        >= model.threshold.value_microunits
+    } else if !inconsistent && !unknown
+        && evidence.maximum_exposure.value_microunits >= model.threshold.value_microunits
     {
         reasons.push(WindowReason::ForecastThresholdExceeded);
-        unknown = false;
-        return (false, true);
+        blocked = true;
     }
 
-    (inconsistent, unknown)
+    (inconsistent, unknown, blocked)
 }
 
 /// Deterministic synthetic window evaluation. This is never a permit or dispatch decision.
@@ -361,9 +361,11 @@ pub fn evaluate_window(
     }
 
     if case.policy != WindowPolicy::Fixed {
-        let (bad, needs_review) = evaluate_monitoring(case, model, &mut reasons);
+        let (bad, needs_review, threshold_blocked) =
+            evaluate_monitoring(case, model, &mut reasons);
         inconsistent |= bad;
         unknown |= needs_review;
+        blocked |= threshold_blocked;
     }
 
     if case.policy == WindowPolicy::Proactive {
@@ -374,9 +376,11 @@ pub fn evaluate_window(
             reasons.push(WindowReason::ProactiveLeadTimeInsufficient);
             unknown = true;
         }
-        let (bad, needs_review) = evaluate_forecast(case, model, &mut reasons);
+        let (bad, needs_review, threshold_blocked) =
+            evaluate_forecast(case, model, &mut reasons);
         inconsistent |= bad;
         unknown |= needs_review;
+        blocked |= threshold_blocked;
     }
 
     let disposition = if inconsistent {
