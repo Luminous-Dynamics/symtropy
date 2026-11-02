@@ -16,7 +16,7 @@ cargo clippy --manifest-path research/anima-intervention-bench-v0/Cargo.toml --l
 
 ### 1. Leakage-resistant splitting
 
-`build_group_held_out_split` holds out entire intervention families, individuals, and/or connectome datasets. All rows from a held-out group remain outside training. It rejects duplicate sample IDs, missing holdout groups, empty partitions and mixed outcome metric/unit schemas.
+`build_group_held_out_split` holds out entire intervention families, sensory/contact conditions, individuals, and/or connectome datasets. All rows from a held-out group remain outside training. It rejects duplicate sample IDs, missing holdout groups, empty partitions and mixed outcome metric/unit schemas.
 
 The split is explicit and deterministic. It does not randomly distribute adjacent timesteps from the same individual between training and test.
 
@@ -32,7 +32,7 @@ Every observation has an explicit origin class:
 
 ### 3. Probabilistic held-out scoring
 
-Each model prediction is joined by exact `sample_id`, not row position. Duplicate, missing, unexpected, wrong-model, wrong-metric or wrong-unit predictions fail closed.
+Each model prediction is joined by exact `sample_id`, not row position. Duplicate, missing, unexpected, wrong-model, wrong-metric, wrong-unit and numerically invalid predictions fail closed.
 
 For a single declared scalar metric/unit per run, the scorecard reports:
 - RMSE;
