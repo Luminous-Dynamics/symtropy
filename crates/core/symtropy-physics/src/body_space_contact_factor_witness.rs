@@ -324,11 +324,17 @@ mod tests {
             ]
         );
 
+        let response0 = four_contact_apply(&delassus, &p0);
         let twice_energy0: i128 = p0
             .iter()
             .zip(free_contact_velocity.iter())
             .map(|(impulse, free)| 2 * impulse * free)
-            .sum();
+            .sum::<i128>()
+            + p0
+                .iter()
+                .zip(response0.iter())
+                .map(|(impulse, response)| impulse * response)
+                .sum::<i128>();
         assert_eq!(twice_energy0, -82_500);
 
         // Enumerate all 64 vertices of alpha in [-1,1]^6. Every vertex has
