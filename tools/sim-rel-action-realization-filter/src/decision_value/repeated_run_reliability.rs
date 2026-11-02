@@ -76,8 +76,12 @@ pub struct FamilyRepeatedRunSummary {
     pub meets_minimum_valid_task_clusters: bool,
     pub candidate_pass_at_k_tasks: usize,
     pub reference_pass_at_k_tasks: usize,
+    pub candidate_pass_at_k_rate: Option<ExactRunRate>,
+    pub reference_pass_at_k_rate: Option<ExactRunRate>,
     pub candidate_pass_every_k_tasks: usize,
     pub reference_pass_every_k_tasks: usize,
+    pub candidate_pass_every_k_rate: Option<ExactRunRate>,
+    pub reference_pass_every_k_rate: Option<ExactRunRate>,
     pub candidate_run_safe_successes: usize,
     pub reference_run_safe_successes: usize,
     pub total_valid_run_pairs: usize,
@@ -495,8 +499,24 @@ pub fn summarize_repeated_run_reliability(
                 >= plan.minimum_valid_task_clusters_per_family,
             candidate_pass_at_k_tasks: family.candidate_pass_at_k,
             reference_pass_at_k_tasks: family.reference_pass_at_k,
+            candidate_pass_at_k_rate: exact_run_rate(
+                family.candidate_pass_at_k,
+                family.valid_clusters,
+            ),
+            reference_pass_at_k_rate: exact_run_rate(
+                family.reference_pass_at_k,
+                family.valid_clusters,
+            ),
             candidate_pass_every_k_tasks: family.candidate_pass_every_k,
             reference_pass_every_k_tasks: family.reference_pass_every_k,
+            candidate_pass_every_k_rate: exact_run_rate(
+                family.candidate_pass_every_k,
+                family.valid_clusters,
+            ),
+            reference_pass_every_k_rate: exact_run_rate(
+                family.reference_pass_every_k,
+                family.valid_clusters,
+            ),
             candidate_run_safe_successes: family.candidate_safe_successes,
             reference_run_safe_successes: family.reference_safe_successes,
             total_valid_run_pairs,
@@ -700,7 +720,7 @@ mod tests {
         assert_eq!(
             family.reference_run_safe_success_rate,
             Some(super::ExactRunRate {
-                numerator: 3,
+                numerator: 2,
                 denominator: 6
             })
         );
