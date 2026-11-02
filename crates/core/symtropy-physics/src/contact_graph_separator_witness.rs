@@ -852,10 +852,8 @@ impl SeparatingLeafMessage {
                         .response_over_box(&intersection)
                         .map(|response| response.classification)
                         .unwrap_or(SeparatingBoxClassification::BoundaryOrInconclusive);
-                    let classification = Self::composed_classification(
-                        left_classification,
-                        right_classification,
-                    );
+                    let classification =
+                        Self::composed_classification(left_classification, right_classification);
                     expected.insert(
                         key.clone(),
                         ComposedSeparatorBoxCell {
@@ -1696,7 +1694,12 @@ fn separator_message_composition_reclassifies_strict_subregions_of_boundary_pare
     let refined = message.partition_separator_box(&root, 3, 128).unwrap();
 
     assert_eq!(
-        coarse.cells.iter().find(|cell| cell.lineage == vec![0]).unwrap().classification,
+        coarse
+            .cells
+            .iter()
+            .find(|cell| cell.lineage == vec![0])
+            .unwrap()
+            .classification,
         SeparatingBoxClassification::BoundaryOrInconclusive
     );
     let composed = message
@@ -1707,10 +1710,7 @@ fn separator_message_composition_reclassifies_strict_subregions_of_boundary_pare
         .iter()
         .find(|cell| cell.left_lineage == vec![0] && cell.right_lineage == vec![0, 1, 1])
         .expect("the coarse/refined source-cell intersection must be retained");
-    assert_eq!(
-        tightened.separator_box.lower[0],
-        2.5
-    );
+    assert_eq!(tightened.separator_box.lower[0], 2.5);
     assert_eq!(tightened.separator_box.upper[0], 3.0);
     assert_eq!(
         tightened.left_classification,
