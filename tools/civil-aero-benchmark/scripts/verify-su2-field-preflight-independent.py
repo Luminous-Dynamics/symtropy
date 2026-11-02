@@ -101,7 +101,7 @@ def parse_config(path: Path) -> dict[str, str]:
             "CONV_CAUCHY_EPS", "CONV_CAUCHY_ELEMS", "HISTORY_OUTPUT",
             "WINDOW_CAUCHY_CRIT", "CONV_WINDOW_FIELD", "WINDOW_START_ITER",
             "CONV_WINDOW_STARTITER", "CONV_WINDOW_CAUCHY_EPS",
-            "CONV_WINDOW_CAUCHY_ELEMS", "WINDOW_FUNCTION", "RESTART_ITER",
+            "CONV_WINDOW_CAUCHY_ELEMS", "WINDOW_FUNCTION", "RESTART_ITER", "TIME_DOMAIN",
         }:
             require(key not in values, f"duplicate config key {key} at line {line_number}")
             values[key] = value
@@ -213,9 +213,16 @@ def main() -> int:
     require(report["steady_cauchy_elements"] == ("" if steady_elems is None else str(steady_elems)),
             "steady Cauchy elements mismatch")
 
+    time_domain_mode = config_values["TIME_DOMAIN"].strip().strip('"').upper()
+    require(time_domain_mode in {"YES", "NO", "TRUE", "FALSE"}, "TIME_DOMAIN invalid")
+    time_domain = time_domain_mode in {"YES", "TRUE"}
+    require(report["time_domain"] == ("YES" if time_domain else "NO"),
+            "time-domain mode mismatch")
     window_mode = config_values["WINDOW_CAUCHY_CRIT"].strip().strip('"').upper()
     require(window_mode in {"YES", "NO", "TRUE", "FALSE"}, "WINDOW_CAUCHY_CRIT invalid")
     window_enabled = window_mode in {"YES", "TRUE"}
+    require(window_enabled == time_domain,
+            "this preflight supports steady mode or explicit time-window convergence only")
     require(report["window_cauchy_enabled"] == ("YES" if window_enabled else "NO"),
             "window convergence enablement mismatch")
     window_fields: list[str] = []
@@ -268,6 +275,7 @@ def main() -> int:
         add_string(buffer, value)
     add_u64(buffer, len(config))
     add_u64(buffer, len(mesh))
+    buffer.append(1 if time_domain else 0)
     add_u64(buffer, len(steady_fields))
     for item in steady_fields:
         add_string(buffer, item)
