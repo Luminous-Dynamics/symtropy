@@ -911,17 +911,20 @@ mod tests {
     #[test]
     fn paired_block_rejects_zero_truth_and_zero_horizon() {
         let resources = envelope([1000, 100, 100, 600, 30, 300, 500, 2]);
-        let control = arm("reactive_only", resources);
-        let treatment = arm("risk_prioritised", resources);
+        let mut control = arm("reactive_only", resources);
+        let mut treatment = arm("risk_prioritised", resources);
+        control.exogenous_digest = digest(0);
+        treatment.exogenous_digest = digest(0);
         assert_eq!(
             PairedScenarioBlock::new(control.clone(), treatment.clone(), &[], digest(99)),
             Err(PairError::ZeroScenarioDigest)
         );
 
-        let mut valid_control = control.clone();
+        let mut valid_control = arm("reactive_only", resources);
+        let mut valid_treatment = arm("risk_prioritised", resources);
         valid_control.exogenous_digest = digest(1);
-        let mut valid_treatment = treatment.clone();
         valid_treatment.exogenous_digest = digest(1);
+        
         assert_eq!(
             PairedScenarioBlock::new(
                 valid_control.clone(),
@@ -1003,7 +1006,7 @@ mod tests {
         let zero = ResourceEnvelope::zero();
         ledger.commit("same-id", zero).unwrap();
         assert_eq!(
-            ledger.commit("same-id", zero),
+            ledger.commit(" same-id ", zero),
             Err(LedgerError::DuplicateCommitment("same-id".to_owned()))
         );
         assert_eq!(ledger.commitment_count(), 1);
