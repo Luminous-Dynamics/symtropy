@@ -569,8 +569,7 @@ pub fn derive_su2_characteristic_spacing_2d(
             .collect::<Result<Vec<_>, _>>()?;
         let area = if kind == 5 {
             let [a, b, c] = [coordinates[0], coordinates[1], coordinates[2]];
-            let twice_signed_area =
-                (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+            let twice_signed_area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
             twice_signed_area.abs() * 0.5
         } else {
             let origin = coordinates[0];
@@ -649,7 +648,9 @@ pub fn derive_su2_characteristic_spacing_2d(
         || !spacing.is_finite()
         || spacing <= 0.0
     {
-        return Err("mesh-derived characteristic spacing or area dispersion is non-finite".to_owned());
+        return Err(
+            "mesh-derived characteristic spacing or area dispersion is non-finite".to_owned(),
+        );
     }
     Ok(Su2MeshSpacing2d {
         schema: SU2_MESH_SPACING_2D_SCHEMA,
@@ -734,7 +735,8 @@ mod tests {
         assert!((metric.total_cell_area - 1.0e-24).abs() / 1.0e-24 < 1.0e-12);
         assert!((metric.characteristic_spacing - (0.5e-24_f64).sqrt()).abs() < 1.0e-25);
 
-        let reversed_quad = "NDIME= 2\nNELEM= 1\n9 0 3 2 1\nNPOIN= 4\n0 0\n1 0\n1 1\n0 1\nNMARK= 0\n";
+        let reversed_quad =
+            "NDIME= 2\nNELEM= 1\n9 0 3 2 1\nNPOIN= 4\n0 0\n1 0\n1 1\n0 1\nNMARK= 0\n";
         let reversed = derive_su2_characteristic_spacing_2d(reversed_quad.as_bytes(), "m")
             .expect("reversed convex orientation is valid");
         assert!((reversed.total_cell_area - 1.0).abs() < 1.0e-14);
