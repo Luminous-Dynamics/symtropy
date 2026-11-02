@@ -16,7 +16,8 @@
     "record_count",
     "records",
     "limitations",
-    "next_steps"
+    "next_steps",
+    "source_internal_discrepancies"
   ],
   "properties": {
     "schema": {
@@ -289,6 +290,88 @@
       "minItems": 1,
       "items": {
         "type": "string"
+      }
+    },
+    "source_internal_discrepancies": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": [
+          "discrepancy_id",
+          "record_id",
+          "laboratory_identifier",
+          "field",
+          "table_value",
+          "table_value_sigma",
+          "table_locator",
+          "narrative_value",
+          "narrative_value_sigma",
+          "narrative_locator",
+          "handling",
+          "evidence_class",
+          "resolution_status",
+          "follow_up"
+        ],
+        "properties": {
+          "discrepancy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "record_id": {
+            "type": "string",
+            "pattern": "^HIST001-AMS-T1-[0-9]{2}$"
+          },
+          "laboratory_identifier": {
+            "type": "string",
+            "pattern": "^IT-C-[0-9]+$"
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "table_value": {
+            "type": "number"
+          },
+          "table_value_sigma": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "table_locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "narrative_value": {
+            "type": "number"
+          },
+          "narrative_value_sigma": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "narrative_locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "handling": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "const": "source_internal_conflict"
+          },
+          "resolution_status": {
+            "enum": [
+              "unresolved",
+              "resolved",
+              "superseded"
+            ]
+          },
+          "follow_up": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
       }
     }
   },
