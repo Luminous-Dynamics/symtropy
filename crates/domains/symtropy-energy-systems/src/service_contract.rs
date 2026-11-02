@@ -215,6 +215,45 @@ pub enum InputEnergyBasis {
     Other(String),
 }
 
+/// Evidence maturity for one delivered-service segment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum ServiceOutputEvidenceClass {
+    PhysicalMeasurement,
+    ThirdPartyTest,
+    IndependentLaboratoryTest,
+    ValidatedSolverOutput,
+    ModelPrediction,
+    AnalystScenario,
+}
+
+/// Provenance for a segment's delivered-service value.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ServiceOutputEvidence {
+    class: ServiceOutputEvidenceClass,
+    evidence_id: String,
+}
+
+impl ServiceOutputEvidence {
+    pub fn new(
+        class: ServiceOutputEvidenceClass,
+        evidence_id: impl Into<String>,
+    ) -> Result<Self, ServiceContractError> {
+        let evidence_id = evidence_id.into();
+        if evidence_id.trim().is_empty() {
+            return Err(ServiceContractError::MissingServiceOutputEvidenceId);
+        }
+        Ok(Self { class, evidence_id })
+    }
+
+    pub const fn class(&self) -> ServiceOutputEvidenceClass {
+        self.class
+    }
+
+    pub fn evidence_id(&self) -> &str {
+        &self.evidence_id
+    }
+}
+
 /// Evidence-qualified input-energy total for one service trace.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct InputEnergyRecord {
@@ -263,10 +302,11 @@ impl InputEnergyRecord {
 }
 
 /// Delivered useful service for one segment at the declared customer boundary.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DeliveredServiceSegment {
     time_window: TimeWindow,
     delivered_energy_j: f64,
+    evidence: Option<ServiceOutputEvidence>,
 }
 
 impl DeliveredServiceSegment {
@@ -284,15 +324,30 @@ impl DeliveredServiceSegment {
         Ok(Self {
             time_window,
             delivered_energy_j,
+            evidence: None,
         })
     }
 
-    pub const fn time_window(self) -> TimeWindow {
+    pub fn with_evidence(
+        time_window: TimeWindow,
+        delivered_energy_j: f64,
+        evidence: ServiceOutputEvidence,
+    ) -> Result<Self, ServiceContractError> {
+        let mut segment = Self::new(time_window, delivered_energy_j)?;
+        segment.evidence = Some(evidence);
+        Ok(segment)
+    }
+
+    pub const fn time_window(&self) -> TimeWindow {
         self.time_window
     }
 
-    pub const fn delivered_energy_j(self) -> f64 {
+    pub const fn delivered_energy_j(&self) -> f64 {
         self.delivered_energy_j
+    }
+
+    pub fn evidence(&self) -> Option<&ServiceOutputEvidence> {
+        self.evidence.as_ref()
     }
 }
 
@@ -455,7 +510,7 @@ pub enum InputEnergyComparison {
 }
 
 /// One segment's delivered service, credited service, surplus and deficit.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct TypedServiceComparisonSegment {
     time_window: TimeWindow,
     required_energy_j: f64,
@@ -466,43 +521,53 @@ pub struct TypedServiceComparisonSegment {
     candidate_surplus_energy_j: f64,
     reference_unserved_energy_j: f64,
     candidate_unserved_energy_j: f64,
+    reference_evidence: Option<ServiceOutputEvidence>,
+    candidate_evidence: Option<ServiceOutputEvidence>,
 }
 
 impl TypedServiceComparisonSegment {
-    pub const fn time_window(self) -> TimeWindow {
+    pub const fn time_window(&self) -> TimeWindow {
         self.time_window
     }
 
-    pub const fn required_energy_j(self) -> f64 {
+    pub const fn required_energy_j(&self) -> f64 {
         self.required_energy_j
     }
 
-    pub const fn reference_delivered_energy_j(self) -> f64 {
+    pub const fn reference_delivered_energy_j(&self) -> f64 {
         self.reference_delivered_energy_j
     }
 
-    pub const fn candidate_delivered_energy_j(self) -> f64 {
+    pub const fn candidate_delivered_energy_j(&self) -> f64 {
         self.candidate_delivered_energy_j
     }
 
-    pub const fn common_service_energy_j(self) -> f64 {
+    pub const fn common_service_energy_j(&self) -> f64 {
         self.common_service_energy_j
     }
 
-    pub const fn reference_surplus_energy_j(self) -> f64 {
+    pub const fn reference_surplus_energy_j(&self) -> f64 {
         self.reference_surplus_energy_j
     }
 
-    pub const fn candidate_surplus_energy_j(self) -> f64 {
+    pub const fn candidate_surplus_energy_j(&self) -> f64 {
         self.candidate_surplus_energy_j
     }
 
-    pub const fn reference_unserved_energy_j(self) -> f64 {
+    pub const fn reference_unserved_energy_j(&self) -> f64 {
         self.reference_unserved_energy_j
     }
 
-    pub const fn candidate_unserved_energy_j(self) -> f64 {
+    pub const fn candidate_unserved_energy_j(&self) -> f64 {
         self.candidate_unserved_energy_j
+    }
+
+    pub fn reference_evidence(&self) -> Option<&ServiceOutputEvidence> {
+        self.reference_evidence.as_ref()
+    }
+
+    pub fn candidate_evidence(&self) -> Option<&ServiceOutputEvidence> {
+        self.candidate_evidence.as_ref()
     }
 }
 
@@ -631,8 +696,8 @@ pub fn compare_delivered_service(
 
     for index in 0..contract.segments().len() {
         let demand = contract.segments()[index];
-        let reference_segment = reference.segments()[index];
-        let candidate_segment = candidate.segments()[index];
+        let reference_segment = &reference.segments()[index];
+        let candidate_segment = &candidate.segments()[index];
 
         if demand.time_window() != reference_segment.time_window()
             || demand.time_window() != candidate_segment.time_window()
@@ -692,6 +757,8 @@ pub fn compare_delivered_service(
             candidate_surplus_energy_j: candidate_surplus,
             reference_unserved_energy_j: reference_unserved,
             candidate_unserved_energy_j: candidate_unserved,
+            reference_evidence: reference_segment.evidence().cloned(),
+            candidate_evidence: candidate_segment.evidence().cloned(),
         });
     }
 
@@ -752,6 +819,7 @@ pub enum ServiceContractError {
     MissingProfileVersion,
     MissingEvidenceId,
     MissingInputEnergyBasisLabel,
+    MissingServiceOutputEvidenceId,
     MissingIdentity {
         field: &'static str,
     },
@@ -819,6 +887,9 @@ impl fmt::Display for ServiceContractError {
             Self::MissingEvidenceId => write!(f, "input evidence ID must not be empty"),
             Self::MissingInputEnergyBasisLabel => {
                 write!(f, "other input-energy basis label must not be empty")
+            }
+            Self::MissingServiceOutputEvidenceId => {
+                write!(f, "service-output evidence ID must not be empty")
             }
             Self::MissingIdentity { field } => write!(f, "{field} must not be empty"),
             Self::EmptyProfile => write!(f, "service profile must not be empty"),
@@ -1199,6 +1270,59 @@ mod tests {
             ),
             Err(ServiceContractError::TimeWindowMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn retains_output_evidence_on_each_compared_segment() {
+        let b = boundary(ServiceInterface::NetAc, "site-ac-pcc");
+        let demand = contract(b.clone());
+        let reference = DeliveredServiceTrace::new(
+            "reference",
+            "engine-gen",
+            "sha256:ref",
+            "DATA-CENTER-DUTY",
+            "v1",
+            b.clone(),
+            vec![
+                DeliveredServiceSegment::with_evidence(
+                    window(0, 60),
+                    6e6,
+                    ServiceOutputEvidence::new(
+                        ServiceOutputEvidenceClass::PhysicalMeasurement,
+                        "METER-READING-001",
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+                DeliveredServiceSegment::new(window(60, 120), 6e6).unwrap(),
+            ],
+            None,
+        )
+        .unwrap();
+        let candidate = trace(
+            "candidate",
+            "linear-gen",
+            "DATA-CENTER-DUTY",
+            b,
+            [6e6, 6e6],
+            None,
+        );
+        let comparison = compare_delivered_service(
+            &demand,
+            &reference,
+            &candidate,
+            ServiceDeliveryTolerance::new(0.0, 0.0).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            comparison.segments()[0]
+                .reference_evidence()
+                .unwrap()
+                .evidence_id(),
+            "METER-READING-001"
+        );
+        assert!(comparison.segments()[0].candidate_evidence().is_none());
     }
 
     #[test]
