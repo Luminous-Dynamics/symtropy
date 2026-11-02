@@ -13,8 +13,8 @@
 
 use super::counterexample_ledger::EvidenceSplit;
 use super::matched_benchmark::{
-    BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest,
-    MatchedBenchmarkTrial, validate_and_summarize_matched_campaign,
+    BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest, MatchedBenchmarkTrial,
+    validate_and_summarize_matched_campaign,
 };
 use crate::Rational;
 use std::collections::{BTreeMap, BTreeSet};
@@ -157,13 +157,22 @@ fn validate_plan(plan: &PreregisteredPairedAnalysisPlan) -> Result<(), PairedInf
         (&plan.group_id, "sealed group ID"),
         (&plan.agent_panel_id, "agent panel ID"),
         (&plan.task_manifest_digest, "task manifest digest"),
-        (&plan.model_configuration_digest, "model configuration digest"),
-        (&plan.prompt_configuration_digest, "prompt configuration digest"),
+        (
+            &plan.model_configuration_digest,
+            "model configuration digest",
+        ),
+        (
+            &plan.prompt_configuration_digest,
+            "prompt configuration digest",
+        ),
         (&plan.harness_digest, "harness digest"),
         (&plan.toolset_digest, "toolset digest"),
         (&plan.reference_arm_id, "reference arm ID"),
         (&plan.candidate_arm_id, "candidate arm ID"),
-        (&plan.pre_registration_receipt_digest, "pre-registration receipt digest"),
+        (
+            &plan.pre_registration_receipt_digest,
+            "pre-registration receipt digest",
+        ),
     ] {
         if !valid_id(value) {
             return Err(PairedInferenceError::InvalidPlan(format!(
@@ -280,11 +289,9 @@ pub fn exact_two_sided_sign_test_p_value(
     candidate_wins: usize,
     reference_wins: usize,
 ) -> Result<Rational, PairedInferenceError> {
-    let discordant = candidate_wins
-        .checked_add(reference_wins)
-        .ok_or_else(|| PairedInferenceError::ArithmeticOverflow(
-            "discordant pair count overflow".into(),
-        ))?;
+    let discordant = candidate_wins.checked_add(reference_wins).ok_or_else(|| {
+        PairedInferenceError::ArithmeticOverflow("discordant pair count overflow".into())
+    })?;
     if discordant > MAX_EXACT_DISCORDANT_PAIRS {
         return Err(PairedInferenceError::UnsupportedExactSampleSize(format!(
             "{discordant} discordant pairs exceeds the exact u128 cap of {MAX_EXACT_DISCORDANT_PAIRS}"
@@ -299,9 +306,9 @@ pub fn exact_two_sided_sign_test_p_value(
     for k in 0..=tail_count {
         tail_sum = tail_sum
             .checked_add(binomial_coefficient(discordant, k)?)
-            .ok_or_else(|| PairedInferenceError::ArithmeticOverflow(
-                "exact sign-test tail sum overflow".into(),
-            ))?;
+            .ok_or_else(|| {
+                PairedInferenceError::ArithmeticOverflow("exact sign-test tail sum overflow".into())
+            })?;
     }
     let doubled_tail = tail_sum.checked_mul(2).ok_or_else(|| {
         PairedInferenceError::ArithmeticOverflow("exact sign-test tail doubling overflow".into())
@@ -318,7 +325,11 @@ pub fn exact_two_sided_sign_test_p_value(
 fn floor_div_signed(numerator: i128, denominator: i128) -> i128 {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
-    if remainder < 0 { quotient - 1 } else { quotient }
+    if remainder < 0 {
+        quotient - 1
+    } else {
+        quotient
+    }
 }
 
 fn ceil_div_signed(numerator: i128, denominator: i128) -> i128 {
@@ -340,19 +351,17 @@ fn hoeffding_mean_interval(
             "mean interval requires at least one valid pair".into(),
         ));
     }
-    let n = u128::try_from(pair_count).map_err(|_| {
-        PairedInferenceError::ArithmeticOverflow("pair count exceeds u128".into())
-    })?;
-    let n_signed = i128::try_from(pair_count).map_err(|_| {
-        PairedInferenceError::ArithmeticOverflow("pair count exceeds i128".into())
-    })?;
+    let n = u128::try_from(pair_count)
+        .map_err(|_| PairedInferenceError::ArithmeticOverflow("pair count exceeds u128".into()))?;
+    let n_signed = i128::try_from(pair_count)
+        .map_err(|_| PairedInferenceError::ArithmeticOverflow("pair count exceeds i128".into()))?;
     let scaled_sum = difference_sum
         .checked_mul(i128::try_from(SCALE).map_err(|_| {
             PairedInferenceError::ArithmeticOverflow("micro scale exceeds i128".into())
         })?)
-        .ok_or_else(|| PairedInferenceError::ArithmeticOverflow(
-            "scaled mean numerator overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            PairedInferenceError::ArithmeticOverflow("scaled mean numerator overflow".into())
+        })?;
     let centre_lower = floor_div_signed(scaled_sum, n_signed);
     let centre_upper = ceil_div_signed(scaled_sum, n_signed);
     let radius_square = ceil_div_u128(SQRT_RADIUS_NUMERATOR, n);
@@ -360,9 +369,9 @@ fn hoeffding_mean_interval(
     let radius = i128::from(maximum_loss)
         .checked_mul(2)
         .and_then(|value| value.checked_mul(i128::try_from(radius_ppm).ok()?))
-        .ok_or_else(|| PairedInferenceError::ArithmeticOverflow(
-            "Hoeffding radius overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            PairedInferenceError::ArithmeticOverflow("Hoeffding radius overflow".into())
+        })?;
     let lower = centre_lower.checked_sub(radius).ok_or_else(|| {
         PairedInferenceError::ArithmeticOverflow("Hoeffding lower bound overflow".into())
     })?;
@@ -374,7 +383,9 @@ fn hoeffding_mean_interval(
         upper_micro_units: upper,
         scale: SCALE,
         confidence_level_percent: 95,
-        method: "pointwise conservative Hoeffding; radius 2L*sqrt(2/n); outward integer micro-units".into(),
+        method:
+            "pointwise conservative Hoeffding; radius 2L*sqrt(2/n); outward integer micro-units"
+                .into(),
     })
 }
 
@@ -394,23 +405,23 @@ fn apply_holm(
             })
     });
 
-    let family_count = u64::try_from(results.len()).map_err(|_| {
-        PairedInferenceError::ArithmeticOverflow("family count exceeds u64".into())
-    })?;
+    let family_count = u64::try_from(results.len())
+        .map_err(|_| PairedInferenceError::ArithmeticOverflow("family count exceeds u64".into()))?;
     let mut still_rejecting = true;
     for (rank_index, family_index) in order.into_iter().enumerate() {
         let rank = rank_index + 1;
-        let remaining = family_count - u64::try_from(rank_index).map_err(|_| {
-            PairedInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
-        })?;
+        let remaining = family_count
+            - u64::try_from(rank_index).map_err(|_| {
+                PairedInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
+            })?;
         let threshold = alpha
             .checked_div(Rational::from_u64(remaining))
             .map_err(PairedInferenceError::ArithmeticOverflow)?;
         let family = &mut results[family_index];
         family.holm_rank = rank;
         family.holm_threshold = threshold;
-        let passes = family.exact_two_sided_sign_p_value <= threshold
-            && family.meets_minimum_pair_count;
+        let passes =
+            family.exact_two_sided_sign_p_value <= threshold && family.meets_minimum_pair_count;
         family.rejected_after_holm = still_rejecting && passes;
         if !passes {
             still_rejecting = false;
@@ -469,24 +480,31 @@ pub fn analyze_sealed_matched_campaign(
         if reference.terminal_loss_units > plan.maximum_terminal_loss_units
             || candidate.terminal_loss_units > plan.maximum_terminal_loss_units
         {
-            return Err(PairedInferenceError::LossOutsidePreregisteredRange(format!(
-                "task {} contains terminal loss above the preregistered maximum {}",
-                trial.task_id, plan.maximum_terminal_loss_units
-            )));
+            return Err(PairedInferenceError::LossOutsidePreregisteredRange(
+                format!(
+                    "task {} contains terminal loss above the preregistered maximum {}",
+                    trial.task_id, plan.maximum_terminal_loss_units
+                ),
+            ));
         }
-        let difference = i128::from(candidate.terminal_loss_units)
-            - i128::from(reference.terminal_loss_units);
-        let family = counts
-            .get_mut(&trial.mechanism_family_id)
-            .ok_or_else(|| PairedInferenceError::UnregisteredFamily(
+        let difference =
+            i128::from(candidate.terminal_loss_units) - i128::from(reference.terminal_loss_units);
+        let family = counts.get_mut(&trial.mechanism_family_id).ok_or_else(|| {
+            PairedInferenceError::UnregisteredFamily(
                 "registered family disappeared during analysis".into(),
-            ))?;
+            )
+        })?;
         family.valid_pairs = family.valid_pairs.checked_add(1).ok_or_else(|| {
             PairedInferenceError::ArithmeticOverflow("valid pair count overflow".into())
         })?;
-        family.loss_difference_sum = family.loss_difference_sum.checked_add(difference).ok_or_else(|| {
-            PairedInferenceError::ArithmeticOverflow("paired loss-difference sum overflow".into())
-        })?;
+        family.loss_difference_sum = family
+            .loss_difference_sum
+            .checked_add(difference)
+            .ok_or_else(|| {
+                PairedInferenceError::ArithmeticOverflow(
+                    "paired loss-difference sum overflow".into(),
+                )
+            })?;
         match difference.cmp(&0) {
             std::cmp::Ordering::Less => {
                 family.candidate_wins = family.candidate_wins.checked_add(1).ok_or_else(|| {
@@ -521,13 +539,11 @@ pub fn analyze_sealed_matched_campaign(
         let discordant_pairs = family
             .candidate_wins
             .checked_add(family.reference_wins)
-            .ok_or_else(|| PairedInferenceError::ArithmeticOverflow(
-                "discordant count overflow".into(),
-            ))?;
-        let p_value = exact_two_sided_sign_test_p_value(
-            family.candidate_wins,
-            family.reference_wins,
-        )?;
+            .ok_or_else(|| {
+                PairedInferenceError::ArithmeticOverflow("discordant count overflow".into())
+            })?;
+        let p_value =
+            exact_two_sided_sign_test_p_value(family.candidate_wins, family.reference_wins)?;
         let mean_effect = (family.valid_pairs > 0).then_some(ExactSignedMeanEffect {
             numerator: family.loss_difference_sum,
             denominator: family.valid_pairs as u128,
@@ -572,9 +588,10 @@ pub fn analyze_sealed_matched_campaign(
         })
     })?;
     let total_invalid_tasks_excluded = family_results.iter().try_fold(0usize, |sum, family| {
-        sum.checked_add(family.invalid_tasks_excluded).ok_or_else(|| {
-            PairedInferenceError::ArithmeticOverflow("total invalid-task count overflow".into())
-        })
+        sum.checked_add(family.invalid_tasks_excluded)
+            .ok_or_else(|| {
+                PairedInferenceError::ArithmeticOverflow("total invalid-task count overflow".into())
+            })
     })?;
 
     Ok(PreregisteredPairedInferenceReceipt {
@@ -601,14 +618,14 @@ pub fn analyze_sealed_matched_campaign(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        PreregisteredPairedAnalysisPlan, analyze_sealed_matched_campaign,
-        exact_two_sided_sign_test_p_value, hoeffding_mean_interval,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::{
         ArmOutcome, BenchmarkScope, BenchmarkTaskValidity, MatchedBenchmarkManifest,
         PairedBenchmarkTrial, ResourceBudget, ResourceUsage,
+    };
+    use super::{
+        PreregisteredPairedAnalysisPlan, analyze_sealed_matched_campaign,
+        exact_two_sided_sign_test_p_value, hoeffding_mean_interval,
     };
     use crate::Rational;
 
@@ -693,7 +710,12 @@ mod tests {
         }
     }
 
-    fn trial(family: &str, pair: usize, reference_loss: u64, candidate_loss: u64) -> PairedBenchmarkTrial {
+    fn trial(
+        family: &str,
+        pair: usize,
+        reference_loss: u64,
+        candidate_loss: u64,
+    ) -> PairedBenchmarkTrial {
         let id = format!("{family}-{pair}");
         PairedBenchmarkTrial {
             pair_id: format!("pair-{id}"),
@@ -728,19 +750,13 @@ mod tests {
 
     #[test]
     fn exact_sign_test_matches_known_all_win_and_tie_fixtures() {
+        assert_eq!(exact_two_sided_sign_test_p_value(8, 0).unwrap(), q(1, 128));
+        assert_eq!(exact_two_sided_sign_test_p_value(4, 2).unwrap(), q(11, 16));
         assert_eq!(
-            exact_two_sided_sign_test_p_value(8, 0).unwrap(),
-            q(1, 128)
+            exact_two_sided_sign_test_p_value(0, 0).unwrap(),
+            Rational::one()
         );
-        assert_eq!(
-            exact_two_sided_sign_test_p_value(4, 2).unwrap(),
-            q(11, 16)
-        );
-        assert_eq!(exact_two_sided_sign_test_p_value(0, 0).unwrap(), Rational::one());
-        assert_eq!(
-            exact_two_sided_sign_test_p_value(0, 8).unwrap(),
-            q(1, 128)
-        );
+        assert_eq!(exact_two_sided_sign_test_p_value(0, 8).unwrap(), q(1, 128));
     }
 
     #[test]
@@ -795,14 +811,26 @@ mod tests {
         assert_eq!(result.total_valid_pairs, 11);
         assert_eq!(result.family_count, 3);
         assert!(result.all_preregistered_families_retained);
-        let sensor = result.family_results.iter().find(|f| f.mechanism_family_id == "sensor-drift").unwrap();
+        let sensor = result
+            .family_results
+            .iter()
+            .find(|f| f.mechanism_family_id == "sensor-drift")
+            .unwrap();
         assert_eq!(sensor.candidate_wins, 8);
         assert_eq!(sensor.exact_two_sided_sign_p_value, q(1, 128));
         assert!(sensor.rejected_after_holm);
-        let physics = result.family_results.iter().find(|f| f.mechanism_family_id == "omitted-physics").unwrap();
+        let physics = result
+            .family_results
+            .iter()
+            .find(|f| f.mechanism_family_id == "omitted-physics")
+            .unwrap();
         assert!(!physics.meets_minimum_pair_count);
         assert!(!physics.rejected_after_holm);
-        let actuator = result.family_results.iter().find(|f| f.mechanism_family_id == "actuator-fault").unwrap();
+        let actuator = result
+            .family_results
+            .iter()
+            .find(|f| f.mechanism_family_id == "actuator-fault")
+            .unwrap();
         assert_eq!(actuator.ties, 1);
         assert_eq!(actuator.exact_two_sided_sign_p_value, Rational::one());
     }
@@ -844,6 +872,13 @@ mod tests {
         assert!(analyze_sealed_matched_campaign(&plan(), &changed_manifest, &trials).is_err());
 
         trials[0].split = EvidenceSplit::Development;
-        assert!(analyze_sealed_matched_campaign(&plan(), &manifest(EvidenceSplit::SealedHoldout), &trials).is_err());
+        assert!(
+            analyze_sealed_matched_campaign(
+                &plan(),
+                &manifest(EvidenceSplit::SealedHoldout),
+                &trials
+            )
+            .is_err()
+        );
     }
 }
