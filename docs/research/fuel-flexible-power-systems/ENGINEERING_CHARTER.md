@@ -386,3 +386,23 @@ The dated industry baseline is also maintained as structured evidence:
 The catalogue separates Mainspring's product specification, CEC-sponsored beta demonstration, third-party emissions source test, Air Force pilot plan and AEP commercial agreement. It also records Capstone, Cummins, DOE SuperTruck 2, Wärtsilä, Everllence and a battery-electric HDV lifecycle comparator.
 
 The catalogue deliberately distinguishes measured outputs, manufacturer claims, government pilot announcements, peer-reviewed lifecycle studies and future commercial delivery plans. Null values mean unavailable, not zero. The dataset is an auditable benchmark register, not a calibrated engine map or a ranking.
+
+
+## 16. Maritime tank-system energy density and payload penalty
+
+A separate literature-reference dataset is maintained at:
+
+[MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json)
+
+The 2026 container-shipping study reports tank-included volumetric energy-density values of approximately:
+- MGO: 10.1 MWh/m³ (reference);
+- methanol: 4.4 MWh/m³ (~2.30× MGO tank-system volume for equal LHV energy);
+- LNG / bio-LNG: 3.1 MWh/m³ (~3.26×);
+- liquid ammonia: 2.9 MWh/m³ (~3.48×);
+- liquid hydrogen: 1.3 MWh/m³ (~7.77×).
+
+The same study reports tank-included gravimetric energy densities: MGO 10.1 MWh/t, methanol 4.6, LNG 8.3, liquid ammonia 4.2, liquid hydrogen 5.6. Lithium-ion storage is reported separately at 0.3 MWh/m³ and 0.17 MWh/t; it is not a fuel and must not be assigned a fuel-tank volume ratio.
+
+These are **study-specific tank-system references**, not universal tank design properties. MARAD's 2022 guide separately estimates ammonia tank volume at about 4.1× MGO and gives ammonia fuel LHV volumetric energy of 12.7 MJ/L; a Nordic technology report gives 7.2 MJ/L for ammonia in a 20-bar tank. These assumptions must remain separate rather than being averaged because tank pressure, temperature, insulation and containment designs differ.
+
+For maritime design, fuel choice affects cargo capacity, endurance, hull arrangement, tank mass, bunker frequency, safety spacing and port compatibility. Optimize delivered tonne-nautical-mile and retained payload, not engine efficiency alone. The reference data exclude some vessel-specific structure, piping, ventilation, bunkering and safety systems; detailed naval architecture and hazard engineering remain required.
