@@ -628,6 +628,4 @@ mod graph_tests {
 
         assert!(has_cycle(&ids, &edges));
     }
-
-
 }
