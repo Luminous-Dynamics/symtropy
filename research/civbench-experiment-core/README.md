@@ -31,7 +31,7 @@ Resources have explicit integer units:
 - parts and sensors: whole declared units;
 - energy: watt-hours.
 
-Every commitment has a unique identifier. The ledger checks every resource dimension before mutating state. Duplicate IDs, arithmetic overflow and over-budget requests leave the ledger unchanged. Create one ledger per policy arm and use the same declared resource envelope for paired comparisons unless the resource delta is the registered treatment.
+Every commitment has a unique, whitespace-normalized identifier. The ledger checks every resource dimension before mutating state. Duplicate IDs, arithmetic overflow and over-budget requests leave the ledger unchanged. Create one ledger per policy arm and use the same declared resource envelope for paired comparisons unless the resource delta is the registered treatment.
 
 ### 3. Non-composite outcome receipt
 
@@ -49,7 +49,7 @@ The outcome vector retains separate fields for:
 - safe fallback delivery;
 - false dispatches.
 
-The paired receipt calculates signed treatment-minus-control deltas in every field. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
+The paired receipt calculates signed treatment-minus-control deltas in every field. It validates the worst-group service field is in the declared 0..=1,000,000 ppm domain. It does not select weights, collapse outcomes into one score or infer causality. Outcome definitions, denominators and threshold rules remain controlled by the experiment protocol.
 
 ### 4. Fail-closed provenance
 
@@ -62,7 +62,7 @@ A qualified receipt requires SHA-256 digests for:
 - output artifact;
 - runtime environment.
 
-It also requires the exact code commit and solver/runtime version. Digests are fixed-size values; a missing or malformed digest cannot be represented. In particular, a source inventory whose source bytes remain **not_snapshotted** cannot be promoted into a qualified confirmatory receipt by inventing a placeholder digest.
+It also requires the exact 40- or 64-character hexadecimal code commit and solver/runtime version. Digests are fixed-size values; missing values cannot be represented, malformed hexadecimal digests are rejected, and all-zero unset sentinels are rejected. The receipt constructor also requires an explicit **Frozen** source-snapshot status. A source inventory still marked **not_snapshotted** cannot qualify for confirmatory evaluation. The caller must only assert Frozen after actually capturing and hashing the required source bytes; the crate does not independently fetch or authenticate those bytes.
 
 ## Run
 
