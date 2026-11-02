@@ -151,6 +151,7 @@ def required_for(claim_class, consequence):
             "propulsion_validation",
             "mission_model_verification",
             "mission_uncertainty_budget",
+            "multivariate_validation",
             "model_uncertainty_assessment",
             "validation_uncertainty_budget",
         })
