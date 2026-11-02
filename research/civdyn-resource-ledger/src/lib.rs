@@ -31,7 +31,11 @@ pub struct ResourceVector {
 
 impl ResourceVector {
     pub const fn new(water_m3: f64, energy_kwh: f64, food_kg: f64) -> Self {
-        Self { water_m3, energy_kwh, food_kg }
+        Self {
+            water_m3,
+            energy_kwh,
+            food_kg,
+        }
     }
 
     pub fn get(self, resource: Resource) -> f64 {
@@ -57,10 +61,17 @@ impl ResourceVector {
             ("food_kg", self.food_kg),
         ] {
             if !value.is_finite() {
-                return Err(WorldError::NonFiniteValue { field, quantity: name });
+                return Err(WorldError::NonFiniteValue {
+                    field,
+                    quantity: name,
+                });
             }
             if value < 0.0 {
-                return Err(WorldError::NegativeValue { field, quantity: name, value });
+                return Err(WorldError::NegativeValue {
+                    field,
+                    quantity: name,
+                    value,
+                });
             }
         }
         Ok(())
@@ -99,7 +110,10 @@ impl ResourceVector {
     }
 
     fn max_abs(self) -> f64 {
-        self.water_m3.abs().max(self.energy_kwh.abs()).max(self.food_kg.abs())
+        self.water_m3
+            .abs()
+            .max(self.energy_kwh.abs())
+            .max(self.food_kg.abs())
     }
 }
 
@@ -119,10 +133,14 @@ impl Region {
             return Err(WorldError::EmptyRegionId);
         }
         if !self.population.is_finite() || self.population < 0.0 {
-            return Err(WorldError::InvalidPopulation { region: self.id.clone(), population: self.population });
+            return Err(WorldError::InvalidPopulation {
+                region: self.id.clone(),
+                population: self.population,
+            });
         }
         self.opening_stock.validate_non_negative("opening_stock")?;
-        self.essential_demand_per_capita.validate_non_negative("essential_demand_per_capita")?;
+        self.essential_demand_per_capita
+            .validate_non_negative("essential_demand_per_capita")?;
         Ok(())
     }
 }
@@ -185,7 +203,11 @@ pub struct ResourceCoverage {
 impl ResourceCoverage {
     fn from_served(served: ResourceVector, demand: ResourceVector) -> Self {
         fn ratio(served: f64, demand: f64) -> Option<f64> {
-            if demand == 0.0 { None } else { Some((served / demand).clamp(0.0, 1.0)) }
+            if demand == 0.0 {
+                None
+            } else {
+                Some((served / demand).clamp(0.0, 1.0))
+            }
         }
         Self {
             water: ratio(served.water_m3, demand.water_m3),
@@ -218,15 +240,16 @@ impl RegionLedger {
 
     pub fn is_conserved(self) -> bool {
         let residual = self.conservation_residual().max_abs();
-        let scale = self.beginning.max_abs()
+        let scale = self
+            .beginning
+            .max_abs()
             .max(self.production.max_abs())
             .max(self.imports.max_abs())
             .max(self.exports.max_abs())
             .max(self.served_essential_demand.max_abs())
             .max(self.ending.max_abs())
             .max(1.0);
-        residual <= CONSERVATION_ABSOLUTE_TOLERANCE
-            + CONSERVATION_RELATIVE_TOLERANCE * scale
+        residual <= CONSERVATION_ABSOLUTE_TOLERANCE + CONSERVATION_RELATIVE_TOLERANCE * scale
     }
 }
 
@@ -322,8 +345,11 @@ impl World {
             request.amount.validate_non_negative("transfer_request")?;
         }
 
-        let beginning: Vec<ResourceVector> =
-            self.regions.iter().map(|region| region.opening_stock).collect();
+        let beginning: Vec<ResourceVector> = self
+            .regions
+            .iter()
+            .map(|region| region.opening_stock)
+            .collect();
         let mut working: Vec<ResourceVector> = beginning
             .iter()
             .zip(input.production.iter())
@@ -415,14 +441,36 @@ impl World {
 pub enum WorldError {
     EmptyWorld,
     EmptyRegionId,
-    InvalidPopulation { region: String, population: f64 },
-    NonFiniteValue { field: &'static str, quantity: &'static str },
-    NegativeValue { field: &'static str, quantity: &'static str, value: f64 },
+    InvalidPopulation {
+        region: String,
+        population: f64,
+    },
+    NonFiniteValue {
+        field: &'static str,
+        quantity: &'static str,
+    },
+    NegativeValue {
+        field: &'static str,
+        quantity: &'static str,
+        value: f64,
+    },
     InvalidReserveFraction(f64),
-    ProductionCountMismatch { expected: usize, actual: usize },
-    RegionIndexOutOfRange { request_index: usize, index: usize, region_count: usize },
-    SelfTransfer { request_index: usize },
-    ConservationViolation { region: String, residual: ResourceVector },
+    ProductionCountMismatch {
+        expected: usize,
+        actual: usize,
+    },
+    RegionIndexOutOfRange {
+        request_index: usize,
+        index: usize,
+        region_count: usize,
+    },
+    SelfTransfer {
+        request_index: usize,
+    },
+    ConservationViolation {
+        region: String,
+        residual: ResourceVector,
+    },
     TickOverflow,
 }
 
@@ -437,20 +485,40 @@ impl fmt::Display for WorldError {
             Self::NonFiniteValue { field, quantity } => {
                 write!(f, "{field}.{quantity} must be finite")
             }
-            Self::NegativeValue { field, quantity, value } => {
+            Self::NegativeValue {
+                field,
+                quantity,
+                value,
+            } => {
                 write!(f, "{field}.{quantity} is negative: {value}")
             }
             Self::InvalidReserveFraction(value) => {
-                write!(f, "reserve fraction must be finite and in [0, 1], got {value}")
+                write!(
+                    f,
+                    "reserve fraction must be finite and in [0, 1], got {value}"
+                )
             }
             Self::ProductionCountMismatch { expected, actual } => {
-                write!(f, "expected production for {expected} regions, got {actual}")
+                write!(
+                    f,
+                    "expected production for {expected} regions, got {actual}"
+                )
             }
-            Self::RegionIndexOutOfRange { request_index, index, region_count } => {
-                write!(f, "transfer {request_index} references region {index}, but world has {region_count} regions")
+            Self::RegionIndexOutOfRange {
+                request_index,
+                index,
+                region_count,
+            } => {
+                write!(
+                    f,
+                    "transfer {request_index} references region {index}, but world has {region_count} regions"
+                )
             }
             Self::SelfTransfer { request_index } => {
-                write!(f, "transfer {request_index} has identical source and destination")
+                write!(
+                    f,
+                    "transfer {request_index} has identical source and destination"
+                )
             }
             Self::ConservationViolation { region, residual } => {
                 write!(f, "resource conservation failed for {region}: {residual:?}")
@@ -487,28 +555,38 @@ mod tests {
                 ResourceVector::new(0.0, 0.0, 0.0),
                 ResourceVector::new(1.0, 2.0, 1.0),
             ),
-        ]).unwrap()
+        ])
+        .unwrap()
     }
 
     #[test]
     fn ledger_conserves_production_transfer_and_consumption() {
         let mut world = two_region_world();
-        let report = world.step(
-            &StepInput {
-                production: vec![
-                    Production { resources: ResourceVector::new(20.0, 50.0, 10.0) },
-                    Production::default(),
-                ],
-                transfers: vec![TransferRequest {
-                    from_region: 0,
-                    to_region: 1,
-                    amount: ResourceVector::new(30.0, 60.0, 30.0),
-                }],
-            },
-            TransferPolicy::Unrestricted,
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![
+                        Production {
+                            resources: ResourceVector::new(20.0, 50.0, 10.0),
+                        },
+                        Production::default(),
+                    ],
+                    transfers: vec![TransferRequest {
+                        from_region: 0,
+                        to_region: 1,
+                        amount: ResourceVector::new(30.0, 60.0, 30.0),
+                    }],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
 
-        assert!(report.regions.iter().all(|outcome| outcome.ledger.is_conserved()));
+        assert!(
+            report
+                .regions
+                .iter()
+                .all(|outcome| outcome.ledger.is_conserved())
+        );
         assert_eq!(report.regions[0].ledger.exports.water_m3, 30.0);
         assert_eq!(report.regions[1].ledger.imports.energy_kwh, 60.0);
     }
@@ -516,50 +594,64 @@ mod tests {
     #[test]
     fn transfers_cannot_create_resources() {
         let mut world = two_region_world();
-        let report = world.step(
-            &StepInput {
-                production: vec![Production::default(); 2],
-                transfers: vec![TransferRequest {
-                    from_region: 1,
-                    to_region: 0,
-                    amount: ResourceVector::new(1_000.0, 1_000.0, 1_000.0),
-                }],
-            },
-            TransferPolicy::Unrestricted,
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![TransferRequest {
+                        from_region: 1,
+                        to_region: 0,
+                        amount: ResourceVector::new(1_000.0, 1_000.0, 1_000.0),
+                    }],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
 
         assert_eq!(report.transfers[0].delivered, ResourceVector::default());
-        assert!(report.regions.iter().all(|outcome| outcome.ledger.is_conserved()));
+        assert!(
+            report
+                .regions
+                .iter()
+                .all(|outcome| outcome.ledger.is_conserved())
+        );
     }
 
     #[test]
     fn reserve_policy_preserves_fraction_of_opening_stock() {
         let mut world = two_region_world();
-        let report = world.step(
-            &StepInput {
-                production: vec![Production::default(); 2],
-                transfers: vec![TransferRequest {
-                    from_region: 0,
-                    to_region: 1,
-                    amount: ResourceVector::new(100.0, 500.0, 200.0),
-                }],
-            },
-            TransferPolicy::PreserveOpeningReserve { fraction: 0.25 },
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![TransferRequest {
+                        from_region: 0,
+                        to_region: 1,
+                        amount: ResourceVector::new(100.0, 500.0, 200.0),
+                    }],
+                },
+                TransferPolicy::PreserveOpeningReserve { fraction: 0.25 },
+            )
+            .unwrap();
 
-        assert_eq!(report.transfers[0].delivered, ResourceVector::new(75.0, 375.0, 150.0));
+        assert_eq!(
+            report.transfers[0].delivered,
+            ResourceVector::new(75.0, 375.0, 150.0)
+        );
     }
 
     #[test]
     fn essential_service_coverage_is_disaggregated() {
         let mut world = two_region_world();
-        let report = world.step(
-            &StepInput {
-                production: vec![Production::default(); 2],
-                transfers: vec![],
-            },
-            TransferPolicy::Unrestricted,
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
 
         assert_eq!(report.regions[0].coverage.water, Some(1.0));
         assert_eq!(report.regions[1].coverage.water, Some(0.0));
@@ -572,12 +664,18 @@ mod tests {
             "no-demand",
             ResourceVector::default(),
             ResourceVector::default(),
-        )]).unwrap();
+        )])
+        .unwrap();
 
-        let report = world.step(
-            &StepInput { production: vec![Production::default()], transfers: vec![] },
-            TransferPolicy::Unrestricted,
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![Production::default()],
+                    transfers: vec![],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
 
         assert_eq!(report.regions[0].coverage.water, None);
         assert_eq!(report.regions[0].coverage.energy, None);
@@ -590,17 +688,20 @@ mod tests {
             "basin",
             ResourceVector::default(),
             ResourceVector::new(1.0, 1.0, 1.0),
-        )]).unwrap();
+        )])
+        .unwrap();
 
-        let report = world.step(
-            &StepInput {
-                production: vec![Production {
-                    resources: ResourceVector::new(2.0, 15.0, 10.0),
-                }],
-                transfers: vec![],
-            },
-            TransferPolicy::Unrestricted,
-        ).unwrap();
+        let report = world
+            .step(
+                &StepInput {
+                    production: vec![Production {
+                        resources: ResourceVector::new(2.0, 15.0, 10.0),
+                    }],
+                    transfers: vec![],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
 
         assert_eq!(report.regions[0].coverage.water, Some(0.2));
         assert_eq!(report.regions[0].coverage.energy, Some(1.0));
@@ -612,7 +713,9 @@ mod tests {
     fn deterministic_inputs_produce_identical_worlds_and_reports() {
         let input = StepInput {
             production: vec![
-                Production { resources: ResourceVector::new(3.0, 4.0, 5.0) },
+                Production {
+                    resources: ResourceVector::new(3.0, 4.0, 5.0),
+                },
                 Production::default(),
             ],
             transfers: vec![TransferRequest {
@@ -625,8 +728,16 @@ mod tests {
         let mut b = two_region_world();
 
         assert_eq!(
-            a.step(&input, TransferPolicy::PreserveOpeningReserve { fraction: 0.1 }).unwrap(),
-            b.step(&input, TransferPolicy::PreserveOpeningReserve { fraction: 0.1 }).unwrap()
+            a.step(
+                &input,
+                TransferPolicy::PreserveOpeningReserve { fraction: 0.1 }
+            )
+            .unwrap(),
+            b.step(
+                &input,
+                TransferPolicy::PreserveOpeningReserve { fraction: 0.1 }
+            )
+            .unwrap()
         );
         assert_eq!(a, b);
     }
@@ -637,7 +748,10 @@ mod tests {
         let before = world.clone();
         assert_eq!(
             world.step(
-                &StepInput { production: vec![Production::default(); 2], transfers: vec![] },
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![]
+                },
                 TransferPolicy::PreserveOpeningReserve { fraction: 1.1 }
             ),
             Err(WorldError::InvalidReserveFraction(1.1))
@@ -693,7 +807,11 @@ mod tests {
     fn empty_world_and_negative_stocks_are_rejected() {
         assert_eq!(World::new(vec![]), Err(WorldError::EmptyWorld));
         assert_eq!(
-            World::new(vec![region("bad", ResourceVector::new(-1.0, 0.0, 0.0), ResourceVector::default())]),
+            World::new(vec![region(
+                "bad",
+                ResourceVector::new(-1.0, 0.0, 0.0),
+                ResourceVector::default()
+            )]),
             Err(WorldError::NegativeValue {
                 field: "opening_stock",
                 quantity: "water_m3",
@@ -707,10 +825,16 @@ mod tests {
         let mut world = two_region_world();
         assert_eq!(
             world.step(
-                &StepInput { production: vec![Production::default()], transfers: vec![] },
+                &StepInput {
+                    production: vec![Production::default()],
+                    transfers: vec![]
+                },
                 TransferPolicy::Unrestricted
             ),
-            Err(WorldError::ProductionCountMismatch { expected: 2, actual: 1 })
+            Err(WorldError::ProductionCountMismatch {
+                expected: 2,
+                actual: 1
+            })
         );
     }
 
@@ -721,11 +845,15 @@ mod tests {
             population: f64::MAX,
             opening_stock: ResourceVector::new(1.0, 1.0, 1.0),
             essential_demand_per_capita: ResourceVector::new(2.0, 1.0, 1.0),
-        }]).unwrap();
+        }])
+        .unwrap();
         let before = world.clone();
         assert_eq!(
             world.step(
-                &StepInput { production: vec![Production::default()], transfers: vec![] },
+                &StepInput {
+                    production: vec![Production::default()],
+                    transfers: vec![]
+                },
                 TransferPolicy::Unrestricted
             ),
             Err(WorldError::NonFiniteValue {
@@ -744,7 +872,9 @@ mod tests {
             world.step(
                 &StepInput {
                     production: vec![
-                        Production { resources: ResourceVector::new(f64::NAN, 0.0, 0.0) },
+                        Production {
+                            resources: ResourceVector::new(f64::NAN, 0.0, 0.0)
+                        },
                         Production::default(),
                     ],
                     transfers: vec![],
@@ -766,7 +896,10 @@ mod tests {
         let before = world.clone();
         assert_eq!(
             world.step(
-                &StepInput { production: vec![Production::default(); 2], transfers: vec![] },
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![]
+                },
                 TransferPolicy::Unrestricted
             ),
             Err(WorldError::TickOverflow)
@@ -778,10 +911,15 @@ mod tests {
     fn world_tick_advances_only_after_successful_step() {
         let mut world = two_region_world();
         assert_eq!(world.tick(), 0);
-        let _ = world.step(
-            &StepInput { production: vec![Production::default(); 2], transfers: vec![] },
-            TransferPolicy::Unrestricted
-        ).unwrap();
+        let _ = world
+            .step(
+                &StepInput {
+                    production: vec![Production::default(); 2],
+                    transfers: vec![],
+                },
+                TransferPolicy::Unrestricted,
+            )
+            .unwrap();
         assert_eq!(world.tick(), 1);
     }
 }
