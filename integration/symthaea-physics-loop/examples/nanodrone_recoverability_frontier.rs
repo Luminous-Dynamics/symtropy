@@ -528,7 +528,7 @@ fn verify_branch_artifacts(
     for (digest, expected_identity) in &expected_tapes {
         let path = tape_dir.join(format!("{digest}.json"));
         let bytes = fs::read(&path).map_err(|error| format!("cannot read disturbance tape artifact {}: {error}", path.display()))?;
-        if sha256(&bytes) != *digest {
+        if sha256(&bytes).as_str() != digest {
             return Err(format!("disturbance tape artifact SHA-256 does not match its filename: {}", path.display()));
         }
         let artifact: DisturbanceTapeArtifact = serde_json::from_slice(&bytes)
@@ -544,9 +544,9 @@ fn verify_branch_artifacts(
         };
         if artifact.schema_version != "symtropy-nanodrone-exogenous-tape-v0.1"
             || artifact.evidence_class != artifact_evidence_class
-            || artifact.synthetic_disturbance_payload.trim().is_empty()
-            || artifact.claim_ceiling.trim().is_empty()
-            || observed_identity != *expected_identity
+            || !artifact.synthetic_disturbance_payload.starts_with("SYNTHETIC_TAPE_ONLY|")
+            || artifact.claim_ceiling != "fixture_byte_integrity_only_no_simulator_origin_or_rng_state_attestation"
+            || &observed_identity != expected_identity
         {
             return Err(format!("disturbance tape artifact metadata/identity mismatch: {}", path.display()));
         }
