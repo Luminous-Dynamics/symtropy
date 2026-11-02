@@ -333,7 +333,9 @@ pub fn evaluate_window(
         reasons.push(WindowReason::InvalidAllowedInterval);
         inconsistent = true;
     }
-    if !case.allowed_intervals.iter().any(|window| window.contains(case.planned_interval)) {
+    if !case.allowed_intervals.is_empty()
+        && !case.allowed_intervals.iter().any(|window| window.contains(case.planned_interval))
+    {
         reasons.push(WindowReason::OutsideAllowedInterval);
         blocked = true;
     }
@@ -549,6 +551,42 @@ mod tests {
         assert_eq!(
             evaluate_window(&c, &model()).disposition,
             WindowDisposition::BlockedByHardConstraint
+        );
+    }
+
+    #[test]
+    fn uncalibrated_high_exposure_is_unknown_not_a_verified_block() {
+        let mut c = case(WindowPolicy::Reactive);
+        let mut e = monitoring();
+        e.calibrated = false;
+        e.maximum_exposure.value_microunits = 150;
+        c.monitoring = Some(e);
+        assert_eq!(
+            evaluate_window(&c, &model()).disposition,
+            WindowDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn stale_high_exposure_is_unknown_not_a_verified_block() {
+        let mut c = case(WindowPolicy::Reactive);
+        let mut e = monitoring();
+        e.observed_at_tick = 80;
+        e.maximum_exposure.value_microunits = 150;
+        c.monitoring = Some(e);
+        assert_eq!(
+            evaluate_window(&c, &model()).disposition,
+            WindowDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn empty_allowed_schedule_requires_review_instead_of_claiming_outside_window() {
+        let mut c = case(WindowPolicy::Fixed);
+        c.allowed_intervals.clear();
+        assert_eq!(
+            evaluate_window(&c, &model()).disposition,
+            WindowDisposition::UnknownReviewRequired
         );
     }
 
