@@ -54,6 +54,24 @@ Johannesburg Water's FY2023/24 Annual Report also reports an average asset renew
 
 These are separate asset-management and operational observations. They are not inferred from the NRW figures.
 
+### Johannesburg Water FY2024/25 Integrated Annual Report (published May 2026)
+
+The utility's newest annual report in this evidence pack adds a more recent operating year, but its measures carry different assurance levels:
+
+- NRW: 44.79% is reported in the financial high-level note; the service-delivery chapter explicitly calls the 2024/25 value unaudited (44.8%). Keep it classified as a utility-reported management value, not as equivalent assurance to audited FY2023/24 Note 27.
+- The monthly-consumption table totals 632,176,326 kL in FY2024/25, versus 658,312,002 kL in FY2023/24 (-3.97%). This is the utility's reported consumption table, not DWS system-input volume.
+- Repair and maintenance expenditure was R1.694bn against a R1.612bn budget; the report gives an annualised 11.24% of the current asset base and cites an 8% National Treasury benchmark. This is an operating maintenance-spend ratio, not capital renewal.
+- Average asset renewal remains reported at 1.0% against the 1.5% asset-plan reference.
+- The report separately gives R25.2bn of assets with less than ten years' remaining useful life (20% of the asset base) and R26.61bn for assets with zero-to-two years remaining useful life and assets due for upgrade. The relationship/overlap is not explained; these must remain separate reported values, not a forced trend against FY2023/24's R32.54bn.
+- The report says 125 noise-logger leak-detection sensors were installed at a reported project cost of R5.6m, and 51 smart pressure controllers had been installed to date.
+- It reports potential minimum-night-flow savings of 5,918 ML/year. This is a potential estimate, not measured or verified achieved savings.
+- The report lists 14.7 km of water-main and 20.5 km of sewer-main replacement under the relevant replacement panel, and gives FY2024/25 upgrading/renewal capex of R171.733m against a R239.965m budget.
+- It reports 90.29% of actual water-meter readings submitted for billing; this is a billing-reading submission indicator, not physical meter coverage.
+
+These observations add a meaningful mechanism picture: metering and leak-sensor deployment, pressure management, maintenance spend, asset renewal and procurement execution all matter. However, installed equipment, budgets, expenditure and estimated savings are not interchangeable with verified repair, hydraulic loss reduction or household continuity outcomes.
+
+The report also records implementation delays related to late contract awards, objections/reviews and late contractor payments in several capital categories. Keep these as reported operational constraints; do not infer a single causal explanation for the year's NRW change.
+
 ### Other dated context
 
 1. The DWS 5 December 2023 public release reports national NRW of 37% in 2014 and 47% in 2023. These are national figures, not Johannesburg.
