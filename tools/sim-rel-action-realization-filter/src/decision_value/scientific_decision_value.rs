@@ -40,6 +40,9 @@ pub struct DecisionValuePlan {
     pub scope: BenchmarkScope,
     pub reference_arm_id: String,
     pub candidate_arm_id: String,
+    /// Complete fixed domain/family registries include zero-concept strata.
+    pub domains: Vec<String>,
+    pub mechanism_families: Vec<String>,
     pub minimum_valid_concepts_per_stratum: usize,
     pub family_wise_alpha: Rational,
     pub causal_design: CausalIdentificationDesign,
@@ -543,6 +546,8 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
         require_digest(value, label)?;
     }
     if plan.reference_arm_id == plan.candidate_arm_id
+        || plan.domains.is_empty()
+        || plan.mechanism_families.is_empty()
         || plan.minimum_valid_concepts_per_stratum == 0
         || plan.family_wise_alpha.is_zero()
         || !plan.family_wise_alpha.is_probability()
@@ -552,6 +557,20 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
         return Err(DecisionValueError::InvalidPlan(
             "distinct arms, positive concept floor, alpha in (0,1] and bounded non-empty resource channels are required".into(),
         ));
+    }
+    let mut domain_ids = BTreeSet::new();
+    for domain in &plan.domains {
+        require_id(domain, "decision-value domain")?;
+        if !domain_ids.insert(domain.clone()) {
+            return Err(DecisionValueError::InvalidPlan("domain registry contains duplicates".into()));
+        }
+    }
+    let mut family_ids = BTreeSet::new();
+    for family in &plan.mechanism_families {
+        require_id(family, "decision-value mechanism family")?;
+        if !family_ids.insert(family.clone()) {
+            return Err(DecisionValueError::InvalidPlan("mechanism-family registry contains duplicates".into()));
+        }
     }
     let mut channel_ids = BTreeSet::new();
     for channel in &plan.resource_channels {
@@ -604,11 +623,44 @@ fn validate_source_hierarchy(
             "decision-value plan does not match the exact SIM-REL-050 hierarchy and sealed release".into(),
         ));
     }
+    let registered_domains = plan.domains.iter().cloned().collect::<BTreeSet<_>>();
+    let registered_families = plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    let hierarchy_domains = hierarchy.domain_family_endpoint_results.iter()
+        .map(|row| row.domain_id.clone())
+        .collect::<BTreeSet<_>>();
+    let hierarchy_families = hierarchy.domain_family_endpoint_results.iter()
+        .map(|row| row.mechanism_family_id.clone())
+        .collect::<BTreeSet<_>>();
+    let endpoint_registry = hierarchy.domain_family_endpoint_results.iter()
+        .map(|row| (row.domain_id.clone(), row.mechanism_family_id.clone(), row.endpoint))
+        .collect::<BTreeSet<_>>();
+    let expected_grid_size = plan.domains.len()
+        .checked_mul(plan.mechanism_families.len())
+        .and_then(|value| value.checked_mul(hierarchy.endpoint_count))
+        .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
+            "source hierarchy domain × family × endpoint grid overflow".into(),
+        ))?;
+    if hierarchy_domains != registered_domains
+        || hierarchy_families != registered_families
+        || endpoint_registry.len() != expected_grid_size
+        || hierarchy.domain_family_endpoint_results.len() != expected_grid_size
+    {
+        return Err(DecisionValueError::SourceMismatch(
+            "preregistered decision-value domain/family registry must match the complete source hierarchy grid, including empty strata".into(),
+        ));
+    }
     let mut concepts = BTreeSet::new();
     for concept in &hierarchy.concept_effects {
         require_id(&concept.domain_id, "source concept domain")?;
         require_id(&concept.mechanism_family_id, "source concept mechanism family")?;
         require_digest(&concept.concept_digest, "source concept digest")?;
+        if !registered_domains.contains(&concept.domain_id)
+            || !registered_families.contains(&concept.mechanism_family_id)
+        {
+            return Err(DecisionValueError::ConceptSetMismatch(
+                "source concept is outside the preregistered domain/family registry".into(),
+            ));
+        }
         concepts.insert((
             concept.domain_id.clone(),
             concept.mechanism_family_id.clone(),
@@ -783,85 +835,86 @@ fn outcome_effect(
 
 fn cost_channel_summaries(
     plan: &DecisionValuePlan,
+    domains: &[String],
+    families: &[String],
     evidence: &[ConceptDecisionValueEvidence],
     decision_loss_effects: &BTreeMap<(String, String, String), ExactValue>,
 ) -> Result<Vec<ResourceChannelSummary>, DecisionValueError> {
-    let strata = evidence.iter()
-        .map(|item| (item.domain_id.clone(), item.mechanism_family_id.clone()))
-        .collect::<BTreeSet<_>>();
-    let mut summaries = Vec::with_capacity(strata.len() * plan.resource_channels.len());
-    for (domain, family) in strata {
-        let stratum = evidence.iter()
-            .filter(|item| item.domain_id == domain && item.mechanism_family_id == family)
-            .collect::<Vec<_>>();
-        let valid_items = stratum.iter()
-            .filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified)
-            .collect::<Vec<_>>();
-        let valid_count = valid_items.len();
-        let loss_values = valid_items.iter()
-            .filter_map(|item| decision_loss_effects.get(&(
-                item.domain_id.clone(),
-                item.mechanism_family_id.clone(),
-                item.concept_digest.clone(),
-            )).cloned())
-            .collect::<Vec<_>>();
-        let mean_loss_effect = ExactValue::mean(&loss_values)?;
+    let mut summaries = Vec::with_capacity(domains.len() * families.len() * plan.resource_channels.len());
+    for domain in domains {
+        for family in families {
+            let stratum = evidence.iter()
+                .filter(|item| item.domain_id == *domain && item.mechanism_family_id == *family)
+                .collect::<Vec<_>>();
+            let valid_items = stratum.iter()
+                .filter(|item| item.evidence_status == ConceptEvidenceStatus::Verified)
+                .collect::<Vec<_>>();
+            let valid_count = valid_items.len();
+            let loss_values = valid_items.iter()
+                .filter_map(|item| decision_loss_effects.get(&(
+                    item.domain_id.clone(),
+                    item.mechanism_family_id.clone(),
+                    item.concept_digest.clone(),
+                )).cloned())
+                .collect::<Vec<_>>();
+            let mean_loss_effect = ExactValue::mean(&loss_values)?;
 
-        for channel in &plan.resource_channels {
-            let mut reference_total = ExactValue::zero();
-            let mut candidate_total = ExactValue::zero();
-            let mut complete_concepts = 0usize;
-            for item in &valid_items {
-                let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
-                let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
-                match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
-                    (Some(reference), Some(candidate)) if reference.complete && candidate.complete => {
-                        reference_total = reference_total.checked_add(&reference.amount)?;
-                        candidate_total = candidate_total.checked_add(&candidate.amount)?;
-                        complete_concepts = complete_concepts.checked_add(1).ok_or_else(|| {
-                            DecisionValueError::ArithmeticOverflow("complete cost concept count overflow".into())
-                        })?;
+            for channel in &plan.resource_channels {
+                let mut reference_total = ExactValue::zero();
+                let mut candidate_total = ExactValue::zero();
+                let mut complete_concepts = 0usize;
+                for item in &valid_items {
+                    let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
+                    let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
+                    match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
+                        (Some(reference), Some(candidate)) if reference.complete && candidate.complete => {
+                            reference_total = reference_total.checked_add(&reference.amount)?;
+                            candidate_total = candidate_total.checked_add(&candidate.amount)?;
+                            complete_concepts = complete_concepts.checked_add(1).ok_or_else(|| {
+                                DecisionValueError::ArithmeticOverflow("complete cost concept count overflow".into())
+                            })?;
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
+                let complete = valid_count > 0 && complete_concepts == valid_count;
+                let mean_increment = if complete {
+                    Some(candidate_total.checked_sub(&reference_total)?.checked_div(
+                        &ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
+                            DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                        })?, 1)?
+                    )?)
+                } else {
+                    None
+                };
+                let incremental_cost_per_loss_unit = if complete {
+                    mean_loss_effect.as_ref()
+                        .filter(|loss| loss.numerator > 0)
+                        .map(|loss| {
+                            candidate_total.checked_sub(&reference_total)?
+                                .checked_div(&ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
+                                    DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
+                                })?, 1)?)?
+                                .checked_div(loss)
+                        })
+                        .transpose()?
+                } else {
+                    None
+                };
+                summaries.push(ResourceChannelSummary {
+                    domain_id: domain.clone(),
+                    mechanism_family_id: family.clone(),
+                    channel_id: channel.channel_id.clone(),
+                    unit: channel.unit.clone(),
+                    complete_concept_count: complete_concepts,
+                    expected_valid_concept_count: valid_count,
+                    reference_total: complete.then_some(reference_total),
+                    candidate_total: complete.then_some(candidate_total),
+                    mean_incremental_cost_per_concept: mean_increment,
+                    incremental_cost_per_decision_loss_unit: incremental_cost_per_loss_unit,
+                    complete,
+                });
             }
-            let complete = valid_count > 0 && complete_concepts == valid_count;
-            let mean_increment = if complete {
-                Some(candidate_total.checked_sub(&reference_total)?.checked_div(
-                    &ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                        DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
-                    })?, 1)?
-                )?)
-            } else {
-                None
-            };
-            let incremental_cost_per_loss_unit = if complete {
-                mean_loss_effect.as_ref()
-                    .filter(|loss| loss.numerator > 0)
-                    .map(|loss| {
-                        candidate_total.checked_sub(&reference_total)?
-                            .checked_div(&ExactValue::new(i128::try_from(complete_concepts).map_err(|_| {
-                                DecisionValueError::ArithmeticOverflow("cost concept count exceeds i128".into())
-                            })?, 1)?)?
-                            .checked_div(loss)
-                    })
-                    .transpose()?
-            } else {
-                None
-            };
-            summaries.push(ResourceChannelSummary {
-                domain_id: domain.clone(),
-                mechanism_family_id: family.clone(),
-                channel_id: channel.channel_id.clone(),
-                unit: channel.unit.clone(),
-                complete_concept_count: complete_concepts,
-                expected_valid_concept_count: valid_count,
-                reference_total: complete.then_some(reference_total),
-                candidate_total: complete.then_some(candidate_total),
-                mean_incremental_cost_per_concept: mean_increment,
-                incremental_cost_per_decision_loss_unit: incremental_cost_per_loss_unit,
-                complete,
-            });
         }
     }
     Ok(summaries)
@@ -1108,23 +1161,13 @@ pub fn analyze_scientific_decision_value(
     let safety_gate_passed = candidate_hazard_count == 0
         && forbidden_transition_count == 0
         && false_safety_certification_count == 0;
-    let mut domains = BTreeSet::new();
-    let mut families = BTreeSet::new();
-    for (domain, family, _) in &source_concepts {
-        domains.insert(domain.clone());
-        families.insert(family.clone());
-    }
-
     let mut all_results = Vec::new();
-    for domain in &domains {
-        for family in &families {
+    for domain in &plan.domains {
+        for family in &plan.mechanism_families {
             let stratum_keys = source_concepts.iter()
                 .filter(|(d, f, _)| d == domain && f == family)
                 .cloned()
                 .collect::<Vec<_>>();
-            if stratum_keys.is_empty() {
-                continue;
-            }
             for endpoint in std::iter::once(DecisionValueEndpoint::DecisionLossReduction)
                 .chain(plan.outcome_measure.as_ref().map(|_| DecisionValueEndpoint::VerifiedOutcomeImprovement))
             {
@@ -1185,7 +1228,9 @@ pub fn analyze_scientific_decision_value(
     }
     apply_holm(&mut all_results, plan.family_wise_alpha)?;
 
-    let cost_channels = cost_channel_summaries(plan, evidence, &loss_effects)?;
+    let cost_channels = cost_channel_summaries(
+        plan, &plan.domains, &plan.mechanism_families, evidence, &loss_effects
+    )?;
     let cost_complete = cost_channels.iter().all(|channel| channel.complete);
     let source_count = source_concepts.len();
 
@@ -1202,8 +1247,8 @@ pub fn analyze_scientific_decision_value(
         split: EvidenceSplit::SealedHoldout,
         group_id: plan.group_id.clone(),
         causal_attribution_status: causal_status,
-        domain_count: domains.len(),
-        mechanism_family_count: families.len(),
+        domain_count: plan.domains.len(),
+        mechanism_family_count: plan.mechanism_families.len(),
         endpoint_count: if plan.outcome_measure.is_some() { 2 } else { 1 },
         hypothesis_count: all_results.len(),
         source_concept_count: source_count,
@@ -1284,6 +1329,8 @@ mod tests {
             scope: BenchmarkScope::FullScientificCampaign,
             reference_arm_id: "reference".into(),
             candidate_arm_id: "candidate".into(),
+            domains: vec!["materials".into(), "biology".into()],
+            mechanism_families: vec!["causal".into()],
             minimum_valid_concepts_per_stratum: 2,
             family_wise_alpha: Rational::new(5, 100).unwrap(),
             causal_design: design(),
