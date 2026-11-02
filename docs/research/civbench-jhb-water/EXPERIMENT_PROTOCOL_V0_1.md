@@ -268,3 +268,54 @@ Do not skip levels. A queued workflow is not a pass. A synthetic win is not real
 - Mycelix #5699 / #2006 — institutional feedback, evidence authority, privacy, contestability and appeal.
 
 **This document is a protocol proposal, not an executed result or an externally timestamped pre-registration.**
+
+
+## 13. 2025–2026 literature update: sensor-to-action value, not sensor accuracy alone
+
+Recent work strengthens the need for a decision-aware sensor benchmark:
+
+- Farah and Shahrour's 2026 systematic review includes 90 studies and finds substantial heterogeneity in dataset generation, splits, metrics and scenario definitions. It specifically identifies random-split scenario leakage, joint sensor-placement/detection optimization, multi-utility transfer, few-shot/limited-label testing and deployment latency/bandwidth as research needs. Reference: [Water 2026, 18(18), 2267](https://www.mdpi.com/2073-4441/18/18/2267), published 11 September 2026.
+- Di Menna et al. (1 July 2026) combine normalized hydraulic sensitivity with topological shortest-path coverage for sensor placement and evaluate a grid, an urban district and an irrigation network. This is a useful placement baseline, not evidence that the chosen sensors improve repair throughput or household service. Reference: [Environ. Earth Sci. Proc. 2026, 44(1), 44](https://doi.org/10.3390/eesp2026044044).
+- A 2026 cascading-aware placement study integrates graph-signal structure, hydraulic state and risk propagation. This motivates stress cases where a sensor's usefulness depends on cascading failures and changing risk, not only static distance or sensitivity. Reference: [Reliability Engineering & System Safety, DOI 10.1016/j.ress.2026.112709](https://www.sciencedirect.com/science/article/pii/S095183202600520X).
+- A 2026 LeakAgent study reports its own EXA7 evaluation with 21 sensors across 381 nodes, reporting an 82.9% reduction in mean detection time (48 h to 8.2 h), 0.974 network coverage and 0.940 leak-detection ratio. Treat these as source-reported results on that study's network and setup—not a transferable SOTA result or a direct comparison with Net3/field-transfer tasks. Reference: [Communications AI & Computing (2026)](https://www.nature.com/articles/s44488-026-00024-w).
+- A 2026 review of 72 studies reports a material simulated-versus-real validation gap, with reported real-world accuracy ranges of 70–79.7% across the reviewed studies and synthetic-to-real declines of roughly 3–30 percentage points. These are heterogeneous literature summaries, not a single pooled estimate. Reference: [IIC 2026 systematic review](https://doi.org/10.3390/iic2030010).
+
+### The decision-aware sensor benchmark
+
+Add a coupled but separately reported chain:
+
+`placement → sensing → telemetry → inference → dispatch → inspection → repair → independent verification → service outcome`.
+
+Measure each transition. In particular:
+- sensor placement must include installation, calibration, connectivity, power, data freshness, failure and maintenance cost;
+- detection must include calibration, false alarms, abstention, time-to-detect and localization uncertainty;
+- dispatch must include workload, prioritization, travel/crew hours, spare parts, contractor availability and the queue created by false positives;
+- repair must be verified independently and linked to a measured physical/service response;
+- service outcomes must include shortfall, interruption duration, worst-group effects and recovery—not merely detection accuracy.
+
+Define decision value for a declared loss function (L) and feasible policy class (Pi):
+
+`VOI = E[L(Y, π_{no\ info})] - E[L(Y, π_{info})]
+       - C_{sensor} - C_{telemetry} - C_{operation}`.
+
+This is evaluated over the same held-out scenario blocks and service floors. The policy (π_{info}) must obey the same physical, budget, crew, parts and safety constraints as its comparator. The loss vector is published by component; do not hide trade-offs in one opaque scalar. Where a single decision value is used for a registered decision, publish its full component vector and sensitivity to the declared weights.
+
+### Required sensor-placement baselines and falsifiers
+
+Compare, with the same sensor count and whole-life operating budget:
+1. existing/reference placement where known;
+2. seeded random placement;
+3. topology-only coverage / shortest-path placement;
+4. hydraulic-sensitivity or observability placement;
+5. published hybrid topology-plus-sensitivity placement where the method can be reconstructed;
+6. decision-aware placement that accounts for telemetry uptime, dispatch/repair capacity and service impact.
+
+Pre-register at least these falsifiers:
+- More sensors improve observability but do not improve service because repair capacity is the binding constraint.
+- Better detection increases false dispatch and worsens the repair queue under a constrained crew budget.
+- A sensor is installed but telemetry is unavailable, stale or unmaintained; no observability gain is credited.
+- The highest-risk/highest-sensitivity locations are not the best places for equitable service recovery.
+- Risk propagation or common-cause energy failure makes static placement brittle.
+- A lower-accuracy model may yield higher verified service value if it is better calibrated and abstains on ambiguous cases.
+
+**Primary competitive claim:** outperform alternative placement methods on verified decision value and service outcomes at matched lifecycle cost, while reporting detection/localization performance separately. A sensor count, coverage score, entropy reduction or raw accuracy improvement alone is not a service-resilience win.
