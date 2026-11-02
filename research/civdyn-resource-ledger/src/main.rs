@@ -25,7 +25,9 @@ fn main() {
     .expect("valid synthetic two-region world");
 
     println!("scenario=synthetic_only; units=water_m3,energy_kwh,food_kg");
-    println!("tick,region,water_coverage,energy_coverage,food_coverage,closing_water_m3,closing_energy_kwh,closing_food_kg,max_conservation_residual");
+    println!(
+        "tick,region,water_coverage,energy_coverage,food_coverage,closing_water_m3,closing_energy_kwh,closing_food_kg,max_conservation_residual"
+    );
 
     for tick in 0..4 {
         let drought = tick >= 2;
@@ -52,10 +54,15 @@ fn main() {
             amount: ResourceVector::new(40.0, 120.0, 40.0),
         }];
 
-        let report = world.step(
-            &StepInput { production, transfers },
-            TransferPolicy::PreserveOpeningReserve { fraction: 0.1 },
-        ).expect("synthetic scenario must conserve all resource stocks");
+        let report = world
+            .step(
+                &StepInput {
+                    production,
+                    transfers,
+                },
+                TransferPolicy::PreserveOpeningReserve { fraction: 0.1 },
+            )
+            .expect("synthetic scenario must conserve all resource stocks");
 
         for outcome in report.regions {
             let residual = outcome.ledger.conservation_residual().max_abs();
@@ -76,5 +83,7 @@ fn main() {
 }
 
 fn fmt(value: Option<f64>) -> String {
-    value.map(|number| format!("{number:.3}")).unwrap_or_else(|| "undefined".into())
+    value
+        .map(|number| format!("{number:.3}"))
+        .unwrap_or_else(|| "undefined".into())
 }
