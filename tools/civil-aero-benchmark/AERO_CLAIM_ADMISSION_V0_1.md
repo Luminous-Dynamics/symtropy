@@ -35,9 +35,9 @@ ClaimClass defines the type of conclusion. DecisionConsequence independently def
 |---|---|
 | Exploratory design ranking | Geometry/input/solver/process/convergence identity plus declared comparison protocol |
 | Aerodynamic prediction | Above plus grid convergence, conservation, model uncertainty, experimental validation and validation uncertainty |
-| Unsteady aerodynamic prediction | Above plus time-step and temporal convergence, statistical sampling assessment |
+| Unsteady aerodynamic prediction | Above plus time-step and temporal convergence, statistical sampling assessment and multivariate validation |
 | Structural load prediction | Structural verification and validation plus numerical/model uncertainty |
-| Aeroelastic stability prediction | Structural evidence, coupled convergence, time-step evidence and flutter validation |
+| Aeroelastic stability prediction | Structural evidence, coupled convergence, time-step evidence, flutter validation and multivariate validation |
 | Mission performance prediction | Aerodynamic/structural evidence, propulsion validation, mission model verification and mission uncertainty |
 | Flight release | Broad technical evidence, operational envelope, calibrated measurements, certification-basis evidence, independent review and quality-system evidence |
 
@@ -58,6 +58,12 @@ Every supplied ScopedEvidence has one of three states:
 - Failed: a non-empty reason explaining a failed verification or qualification.
 
 Missing and unknown required evidence lead to abstention. Failed or out-of-scope required evidence leads to rejection. Scope mismatch is rejected even for a supplemental assertion: the system does not mix evidence from another geometry, operating point or declared envelope into this claim.
+
+The evidence-kind taxonomy distinguishes **pointwise experimental validation** from **multivariate validation**. Multivariate evidence is required by default for unsteady aerodynamic, aeroelastic-stability and flight-release claims, and for every safety-critical consequence. This is intended for cases where several correlated outputs, locations or times jointly support the conclusion. A pointwise validation record must not be represented as a multivariate result.
+
+This policy is informed by ASME VVUQ 20.1-2024, which extends the V&V 20 pointwise framework with a multivariate metric for global discrepancies across multiple validation variables, spatial locations and time instants, including independent or shared experimental, numerical and input-parameter uncertainties. The software currently requires a verifier-referenced multivariate evidence item; it does not implement the standard's metric or independently judge its adequacy.
+
+Reference: https://www.asme.org/codes-standards/find-codes-standards/vvuq201-vvuq-20-1-multivariate-metric-for-validation
 
 The current module validates digest shape and binds verifier references. It does not authenticate a verifier against an external trust store, execute the verifier or independently verify the artifact. A trustworthy verifier registry, signature/attestation policy and verifier revocation mechanism remain separate requirements.
 
