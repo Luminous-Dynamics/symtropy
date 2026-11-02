@@ -583,6 +583,55 @@ mod tests {
         }
     }
 
+    fn unit_square_triangular_mesh(divisions: usize) -> String {
+        let mut mesh = format!(
+            "NDIME= 2\\nNELEM= {}\\n",
+            2 * divisions * divisions
+        );
+        let node = |i: usize, j: usize| j * (divisions + 1) + i;
+        for j in 0..divisions {
+            for i in 0..divisions {
+                let lower_left = node(i, j);
+                let lower_right = node(i + 1, j);
+                let upper_right = node(i + 1, j + 1);
+                let upper_left = node(i, j + 1);
+                mesh.push_str(&format!("5 {lower_left} {lower_right} {upper_right}\\n"));
+                mesh.push_str(&format!("5 {lower_left} {upper_right} {upper_left}\\n"));
+            }
+        }
+        mesh.push_str(&format!("NPOIN= {}\\n", (divisions + 1) * (divisions + 1)));
+        for j in 0..=divisions {
+            for i in 0..=divisions {
+                let x = i as f64 / divisions as f64;
+                let y = j as f64 / divisions as f64;
+                mesh.push_str(&format!("{x:.8} {y:.8}\\n"));
+            }
+        }
+        mesh.push_str("NMARK= 1\\nMARKER_TAG= wall\\n");
+        mesh.push_str(&format!("MARKER_ELEMS= {}\\n", 4 * divisions));
+        for i in 0..divisions {
+            mesh.push_str(&format!("3 {} {}\\n", node(i, 0), node(i + 1, 0)));
+        }
+        for j in 0..divisions {
+            mesh.push_str(&format!(
+                "3 {} {}\\n",
+                node(divisions, j),
+                node(divisions, j + 1)
+            ));
+        }
+        for i in (0..divisions).rev() {
+            mesh.push_str(&format!(
+                "3 {} {}\\n",
+                node(i + 1, divisions),
+                node(i, divisions)
+            ));
+        }
+        for j in (0..divisions).rev() {
+            mesh.push_str(&format!("3 {} {}\\n", node(0, j + 1), node(0, j)));
+        }
+        mesh
+    }
+
     fn build_fixture_study(root: &Path) -> Su2GridFamilyStudy {
         let shared = root.join("shared");
         fs::create_dir_all(&shared).expect("create shared inputs");
@@ -682,10 +731,8 @@ printf 'synthetic solver stdout\n'
         for (index, spacing) in spacings.into_iter().enumerate() {
             let level = u32::try_from(index + 1).expect("three levels fit u32");
             let mesh = shared.join(format!("mesh-{level}.su2"));
-            let extent = 1.0 / f64::from(level);
-            let mesh_text = format!(
-                "NDIME= 2\nNELEM= 2\n5 0 1 2\n5 0 2 3\nNPOIN= 4\n0.0 0.0\n{extent} 0.0\n{extent} {extent}\n0.0 {extent}\nNMARK= 1\nMARKER_TAG= wall\nMARKER_ELEMS= 4\n3 0 1\n3 1 2\n3 2 3\n3 3 0\n"
-            );
+            let divisions = [1_usize, 2, 4][index];
+            let mesh_text = unit_square_triangular_mesh(divisions);
             fs::write(&mesh, mesh_text).expect("write grid mesh");
             let run_directory = root.join(format!("run-{level}"));
             let drag = 0.02 + 0.008 * spacing.powi(2);
