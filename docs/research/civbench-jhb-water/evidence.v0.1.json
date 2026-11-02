@@ -182,7 +182,7 @@
       "url": "https://www.johannesburgwater.co.za/wp-content/uploads/2026/05/Annual-Report-2425.pdf",
       "source_class": "official_utility_integrated_annual_report_management_report_and_financial_high_level_notes",
       "content_digest_status": "not_snapshotted",
-      "notes": "Report covers 1 July 2024 to 30 June 2025 and was published May 2026. It describes 2024/25 NRW as unaudited 44.8% in the service-delivery chapter and precisely 44.79% in the financial high-level note; treat as a reported utility value, not independent audit verification of the water balance. It reports annual water consumption 632,176,326 kL versus 658,312,002 kL in 2023/24 (-3.97%); R1.694bn repair and maintenance expenditure; asset renewal rate 1.0% vs 1.5% reference; several differently defined backlog values; 125 leak-detection sensors installed; 51 smart pressure controllers installed to date; and 5,918 ML/year potential minimum-night-flow savings (potential, not verified achieved savings). PDF bytes have not been snapshotted."
+      "notes": "Report covers 1 July 2024 to 30 June 2025 and was published May 2026. It describes 2024/25 NRW as unaudited 44.8% in the service-delivery chapter and precisely 44.79% in the financial high-level note; treat as a reported utility value, not independent audit verification of the water balance. It reports annual water consumption 632,176,326 kL versus 658,312,002 kL in 2023/24 (-3.97%); R1.694bn repair and maintenance expenditure; asset renewal rate 1.0% vs 1.5% reference; several differently defined backlog values; 125 leak-detection sensors installed; 51 smart pressure controllers installed to date; and 5,918 ML/year potential minimum-night-flow savings (potential, not verified achieved savings). PDF bytes have not been snapshotted. The report also states that Phase II of the Lesotho Highlands Water Scheme, planned for completion in 2018, is expected only in 2029; it describes this as constraining further IVRS abstraction-license increases. It says Johannesburg demand needs to be reduced to 1,550 ML/day under the Rand Water apportionment licensing arrangement. Treat 1,550 ML/day as a reported operational demand constraint/requirement, not an independently verified achieved demand figure."
     }
   ],
   "observations": [
@@ -1181,6 +1181,18 @@
       "geography": "South Africa",
       "target_date": "2035",
       "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_JHB_DEMAND_1550_ML_PER_DAY_APPORTIONMENT",
+      "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+      "metric_code": "daily_municipal_water_demand_under_bulk_apportionment",
+      "operator": "at_most",
+      "value": 1550,
+      "unit": "ML_per_day",
+      "geography": "City_of_Johannesburg",
+      "target_date": "ongoing_per_FY2024_25_report",
+      "status": "policy_target",
+      "notes": "Utility report says CoJ water demand needs to be reduced to 1,550 ML/day as part of Rand Water apportionment licensing; this is a reported constraint/required demand level, not an achieved measured daily demand series."
     }
   ],
   "comparability_rules": [
@@ -1210,7 +1222,9 @@
     "FY2024/25 annual report has two differently worded asset-backlog values: R25.2bn for assets with remaining useful life under 10 years (20% of asset base), and R26.61bn for assets with 0–2 years remaining useful life and assets due for upgrade. The report does not explain their overlap or apparent ordering; preserve as separate reported values and flag reconciliation rather than forcing a time series.",
     "The 5,918 ML/year minimum-night-flow figure is identified as potential savings, not achieved or independently verified savings.",
     "The report states 125 leak-detection sensors were installed for a project cost of R5.6m, and 51 smart pressure controllers installed to date; installed count is not proof of leak-detection accuracy, repair success or realised water savings.",
-    "FY2024/25 upgrading-and-renewal capex actual of R171.733m versus budget R239.965m and water-demand-management capex actual R161.656m versus budget R156m are category-specific financial execution values; they do not alone establish physical completion or service impact."
+    "FY2024/25 upgrading-and-renewal capex actual of R171.733m versus budget R239.965m and water-demand-management capex actual R161.656m versus budget R156m are category-specific financial execution values; they do not alone establish physical completion or service impact.",
+    "The FY2024/25 annual report cites a 1,550 ML/day Johannesburg demand level under Rand Water apportionment licensing. Treat as a reported operating constraint/required demand level, not an achieved daily demand value or a measured present-day allocation.",
+    "The report attributes current bulk-supply constraints partly to delayed Phase II of the Lesotho Highlands Water Scheme, whose expected completion is stated as 2029; this is a schedule statement, not additional water already available."
   ],
   "benchmark_alignment": {
     "awwa": "Use AWWA M36 / Water Audit Software concepts as the water-audit and loss-control baseline; do not claim to replace AWWA.",
