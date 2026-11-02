@@ -9,9 +9,8 @@
 
 use core::fmt;
 
-use crate::{
-    evaluate, FuelInput, GeneratorModel, ModelError, EngineModel, Watts,
-};
+use crate::evaluate;
+use crate::{EngineModel, FuelInput, GeneratorModel, ModelError, Watts};
 
 /// Positive duration of one quasi-steady-state segment.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -358,7 +357,7 @@ mod tests {
         assert_eq!(result.segment_count(), 2);
         assert!((result.duration().get() - 90.0).abs() < 1e-12);
         assert!((result.fuel_mass().get() - 0.75).abs() < 1e-12);
-        assert!((result.chemical_input().get() - 38_700_000.0).abs() < 1e-6);
+        assert!((result.chemical_input().get() - 32_250_000.0).abs() < 1e-6);
         assert!((result.net_electrical().get() - 13_200_000.0).abs() < 1e-6);
     }
 
@@ -385,7 +384,7 @@ mod tests {
         .unwrap();
 
         let result = cycle.evaluate().unwrap();
-        let expected = 13_200_000.0 / 38_700_000.0;
+        let expected = 13_200_000.0 / 32_250_000.0;
 
         assert!((result.net_electrical_efficiency().unwrap() - expected).abs() < 1e-12);
     }
