@@ -5,6 +5,7 @@
 //! the complete mechanism/process/sensor/apparatus state.
 
 pub mod adaptive_benchmark_lifecycle;
+pub mod adversarial_benchmark_redteam;
 pub mod anytime_paired_evidence;
 pub mod approximate_blackwell;
 pub mod benchmark_anchor_equating;
