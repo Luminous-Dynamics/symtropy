@@ -9,10 +9,10 @@
 //! Causal language is permitted only for a valid randomized paired or
 //! preregistered crossover design. Observational designs remain association-only.
 
+use super::counterexample_ledger::EvidenceSplit;
 use super::hierarchical_benchmark_inference::HierarchicalInferenceReceipt;
 use super::matched_benchmark::BenchmarkScope;
 use super::task_cluster_inference::ClusterInferenceEndpoint;
-use super::counterexample_ledger::EvidenceSplit;
 use crate::Rational;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -215,16 +215,22 @@ impl ExactValue {
         let common = gcd_u128(self.denominator, other.denominator);
         let left_factor = other.denominator / common;
         let right_factor = self.denominator / common;
-        let left = self.numerator.checked_mul(i128::try_from(left_factor).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("value addition factor exceeds i128".into())
-        })?).ok_or_else(|| {
-            DecisionValueError::ArithmeticOverflow("value addition numerator overflow".into())
-        })?;
-        let right = other.numerator.checked_mul(i128::try_from(right_factor).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("value addition factor exceeds i128".into())
-        })?).ok_or_else(|| {
-            DecisionValueError::ArithmeticOverflow("value addition numerator overflow".into())
-        })?;
+        let left = self
+            .numerator
+            .checked_mul(i128::try_from(left_factor).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("value addition factor exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value addition numerator overflow".into())
+            })?;
+        let right = other
+            .numerator
+            .checked_mul(i128::try_from(right_factor).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("value addition factor exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value addition numerator overflow".into())
+            })?;
         let numerator = left.checked_add(right).ok_or_else(|| {
             DecisionValueError::ArithmeticOverflow("value addition overflow".into())
         })?;
@@ -246,15 +252,21 @@ impl ExactValue {
             return Err(DecisionValueError::InvalidValue("division by zero".into()));
         }
         let sign = if other.numerator < 0 { -1i128 } else { 1i128 };
-        let numerator = self.numerator
+        let numerator = self
+            .numerator
             .checked_mul(i128::try_from(other.denominator).map_err(|_| {
                 DecisionValueError::ArithmeticOverflow("value denominator exceeds i128".into())
             })?)
             .and_then(|value| value.checked_mul(sign))
-            .ok_or_else(|| DecisionValueError::ArithmeticOverflow("value division overflow".into()))?;
-        let denominator = self.denominator.checked_mul(other.numerator.unsigned_abs()).ok_or_else(|| {
-            DecisionValueError::ArithmeticOverflow("value division denominator overflow".into())
-        })?;
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value division overflow".into())
+            })?;
+        let denominator = self
+            .denominator
+            .checked_mul(other.numerator.unsigned_abs())
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value division denominator overflow".into())
+            })?;
         Self::new(numerator, denominator)
     }
 
@@ -266,9 +278,12 @@ impl ExactValue {
         for value in values {
             sum = sum.checked_add(value)?;
         }
-        let count = Self::new(i128::try_from(values.len()).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("value count exceeds i128".into())
-        })?, 1)?;
+        let count = Self::new(
+            i128::try_from(values.len()).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("value count exceeds i128".into())
+            })?,
+            1,
+        )?;
         Ok(Some(sum.checked_div(&count)?))
     }
 
@@ -278,12 +293,22 @@ impl ExactValue {
                 "exact value denominator must be positive".into(),
             ));
         }
-        let left = self.numerator.checked_mul(i128::try_from(other.denominator).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("comparison denominator exceeds i128".into())
-        })?).ok_or_else(|| DecisionValueError::ArithmeticOverflow("value comparison overflow".into()))?;
-        let right = other.numerator.checked_mul(i128::try_from(self.denominator).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("comparison denominator exceeds i128".into())
-        })?).ok_or_else(|| DecisionValueError::ArithmeticOverflow("value comparison overflow".into()))?;
+        let left = self
+            .numerator
+            .checked_mul(i128::try_from(other.denominator).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("comparison denominator exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value comparison overflow".into())
+            })?;
+        let right = other
+            .numerator
+            .checked_mul(i128::try_from(self.denominator).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("comparison denominator exceeds i128".into())
+            })?)
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("value comparison overflow".into())
+            })?;
         Ok(left.cmp(&right))
     }
 
@@ -456,7 +481,9 @@ fn valid_digest(value: &str) -> bool {
         return false;
     };
     hex.len() == 64
-        && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn require_digest(value: &str, label: &str) -> Result<(), DecisionValueError> {
@@ -469,8 +496,10 @@ fn require_digest(value: &str, label: &str) -> Result<(), DecisionValueError> {
 }
 
 fn in_unit_interval(value: &ExactValue) -> Result<bool, DecisionValueError> {
-    Ok(value.compare(&ExactValue::zero())? != std::cmp::Ordering::Less
-        && value.compare(&ExactValue::one())? != std::cmp::Ordering::Greater)
+    Ok(
+        value.compare(&ExactValue::zero())? != std::cmp::Ordering::Less
+            && value.compare(&ExactValue::one())? != std::cmp::Ordering::Greater,
+    )
 }
 
 fn validate_causal_design(
@@ -489,7 +518,10 @@ fn validate_causal_design(
             for (value, label) in [
                 (design_receipt_digest, "randomized design receipt"),
                 (randomization_receipt_digest, "randomization receipt"),
-                (allocation_concealment_receipt_digest, "allocation concealment"),
+                (
+                    allocation_concealment_receipt_digest,
+                    "allocation concealment",
+                ),
                 (interference_assessment_digest, "interference assessment"),
             ] {
                 require_digest(value, label)?;
@@ -511,7 +543,10 @@ fn validate_causal_design(
         } => {
             for (value, label) in [
                 (design_receipt_digest, "crossover design receipt"),
-                (sequence_randomization_digest, "crossover sequence randomization"),
+                (
+                    sequence_randomization_digest,
+                    "crossover sequence randomization",
+                ),
                 (washout_protocol_digest, "crossover washout protocol"),
                 (carryover_test_receipt_digest, "crossover carryover test"),
             ] {
@@ -538,7 +573,10 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     for (value, label) in [
         (&plan.analysis_id, "decision-value analysis ID"),
         (&plan.analysis_version, "decision-value analysis version"),
-        (&plan.source_hierarchical_analysis_id, "source hierarchical analysis ID"),
+        (
+            &plan.source_hierarchical_analysis_id,
+            "source hierarchical analysis ID",
+        ),
         (&plan.benchmark_id, "benchmark ID"),
         (&plan.benchmark_version, "benchmark version"),
         (&plan.sealed_release_id, "sealed release ID"),
@@ -550,19 +588,27 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
         require_id(value, label)?;
     }
     for (value, label) in [
-        (&plan.pre_registration_receipt_digest, "decision-value preregistration"),
+        (
+            &plan.pre_registration_receipt_digest,
+            "decision-value preregistration",
+        ),
         (&plan.decision_loss_table_digest, "decision loss table"),
-        (&plan.decision_loss_verifier_profile_digest, "decision loss verifier profile"),
+        (
+            &plan.decision_loss_verifier_profile_digest,
+            "decision loss verifier profile",
+        ),
         (&plan.sealed_release_digest, "sealed release"),
     ] {
         require_digest(value, label)?;
     }
-    let hypothesis_count = plan.domains.len()
+    let hypothesis_count = plan
+        .domains
+        .len()
         .checked_mul(plan.mechanism_families.len())
         .and_then(|value| value.checked_mul(if plan.outcome_measure.is_some() { 2 } else { 1 }))
-        .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
-            "decision-value hypothesis grid overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            DecisionValueError::ArithmeticOverflow("decision-value hypothesis grid overflow".into())
+        })?;
     if plan.reference_arm_id == plan.candidate_arm_id
         || plan.domains.is_empty()
         || plan.domains.len() > MAX_DOMAINS
@@ -583,14 +629,18 @@ fn validate_plan(plan: &DecisionValuePlan) -> Result<CausalAttributionStatus, De
     for domain in &plan.domains {
         require_id(domain, "decision-value domain")?;
         if !domain_ids.insert(domain.clone()) {
-            return Err(DecisionValueError::InvalidPlan("domain registry contains duplicates".into()));
+            return Err(DecisionValueError::InvalidPlan(
+                "domain registry contains duplicates".into(),
+            ));
         }
     }
     let mut family_ids = BTreeSet::new();
     for family in &plan.mechanism_families {
         require_id(family, "decision-value mechanism family")?;
         if !family_ids.insert(family.clone()) {
-            return Err(DecisionValueError::InvalidPlan("mechanism-family registry contains duplicates".into()));
+            return Err(DecisionValueError::InvalidPlan(
+                "mechanism-family registry contains duplicates".into(),
+            ));
         }
     }
     let mut channel_ids = BTreeSet::new();
@@ -652,26 +702,47 @@ fn validate_source_hierarchy(
         || hierarchy.group_id != plan.group_id
     {
         return Err(DecisionValueError::SourceMismatch(
-            "decision-value plan does not match the exact SIM-REL-050 hierarchy and sealed release".into(),
+            "decision-value plan does not match the exact SIM-REL-050 hierarchy and sealed release"
+                .into(),
         ));
     }
     let registered_domains = plan.domains.iter().cloned().collect::<BTreeSet<_>>();
-    let registered_families = plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
-    let hierarchy_domains = hierarchy.domain_family_endpoint_results.iter()
+    let registered_families = plan
+        .mechanism_families
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let hierarchy_domains = hierarchy
+        .domain_family_endpoint_results
+        .iter()
         .map(|row| row.domain_id.clone())
         .collect::<BTreeSet<_>>();
-    let hierarchy_families = hierarchy.domain_family_endpoint_results.iter()
+    let hierarchy_families = hierarchy
+        .domain_family_endpoint_results
+        .iter()
         .map(|row| row.mechanism_family_id.clone())
         .collect::<BTreeSet<_>>();
-    let endpoint_registry = hierarchy.domain_family_endpoint_results.iter()
-        .map(|row| (row.domain_id.clone(), row.mechanism_family_id.clone(), row.endpoint))
+    let endpoint_registry = hierarchy
+        .domain_family_endpoint_results
+        .iter()
+        .map(|row| {
+            (
+                row.domain_id.clone(),
+                row.mechanism_family_id.clone(),
+                row.endpoint,
+            )
+        })
         .collect::<BTreeSet<_>>();
-    let expected_grid_size = plan.domains.len()
+    let expected_grid_size = plan
+        .domains
+        .len()
         .checked_mul(plan.mechanism_families.len())
         .and_then(|value| value.checked_mul(hierarchy.endpoint_count))
-        .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
-            "source hierarchy domain × family × endpoint grid overflow".into(),
-        ))?;
+        .ok_or_else(|| {
+            DecisionValueError::ArithmeticOverflow(
+                "source hierarchy domain × family × endpoint grid overflow".into(),
+            )
+        })?;
     if hierarchy_domains != registered_domains
         || hierarchy_families != registered_families
         || endpoint_registry.len() != expected_grid_size
@@ -684,7 +755,10 @@ fn validate_source_hierarchy(
     let mut concepts = BTreeSet::new();
     for concept in &hierarchy.concept_effects {
         require_id(&concept.domain_id, "source concept domain")?;
-        require_id(&concept.mechanism_family_id, "source concept mechanism family")?;
+        require_id(
+            &concept.mechanism_family_id,
+            "source concept mechanism family",
+        )?;
         require_digest(&concept.concept_digest, "source concept digest")?;
         if !registered_domains.contains(&concept.domain_id)
             || !registered_families.contains(&concept.mechanism_family_id)
@@ -711,17 +785,26 @@ fn validate_resource_use(
     plan: &DecisionValuePlan,
     use_record: &ConceptArmResourceUse,
 ) -> Result<BTreeMap<String, &ResourceMeasurement>, DecisionValueError> {
-    let allowed = plan.resource_channels.iter()
-        .map(|channel| (channel.channel_id.as_str(), &channel.maximum_amount_per_concept))
+    let allowed = plan
+        .resource_channels
+        .iter()
+        .map(|channel| {
+            (
+                channel.channel_id.as_str(),
+                &channel.maximum_amount_per_concept,
+            )
+        })
         .collect::<BTreeMap<_, _>>();
     let mut values = BTreeMap::new();
     for measurement in &use_record.measurements {
         require_id(&measurement.channel_id, "resource measurement channel")?;
-        let maximum = allowed.get(measurement.channel_id.as_str()).ok_or_else(|| {
-            DecisionValueError::ResourceAccounting(
-                "resource observation contains a channel not preregistered in the plan".into(),
-            )
-        })?;
+        let maximum = allowed
+            .get(measurement.channel_id.as_str())
+            .ok_or_else(|| {
+                DecisionValueError::ResourceAccounting(
+                    "resource observation contains a channel not preregistered in the plan".into(),
+                )
+            })?;
         if measurement.amount.denominator == 0 || !measurement.amount.is_non_negative() {
             return Err(DecisionValueError::ResourceAccounting(
                 "resource consumption must be a non-negative exact value".into(),
@@ -740,7 +823,10 @@ fn validate_resource_use(
             })?;
             require_digest(digest, "resource meter receipt")?;
         }
-        if values.insert(measurement.channel_id.clone(), measurement).is_some() {
+        if values
+            .insert(measurement.channel_id.clone(), measurement)
+            .is_some()
+        {
             return Err(DecisionValueError::ResourceAccounting(
                 "resource channel appears more than once for an arm".into(),
             ));
@@ -754,9 +840,18 @@ fn validate_concept_evidence(
     evidence: &ConceptDecisionValueEvidence,
 ) -> Result<(bool, bool), DecisionValueError> {
     for (value, label) in [
-        (&evidence.causal_assignment_receipt_digest, "causal assignment receipt"),
-        (&evidence.safety_review_receipt_digest, "safety review receipt"),
-        (&evidence.concept_evidence_receipt_digest, "concept evidence receipt"),
+        (
+            &evidence.causal_assignment_receipt_digest,
+            "causal assignment receipt",
+        ),
+        (
+            &evidence.safety_review_receipt_digest,
+            "safety review receipt",
+        ),
+        (
+            &evidence.concept_evidence_receipt_digest,
+            "concept evidence receipt",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -766,14 +861,19 @@ fn validate_concept_evidence(
     match evidence.evidence_status {
         ConceptEvidenceStatus::Verified => {
             let baseline = evidence.baseline_loss.as_ref().ok_or_else(|| {
-                DecisionValueError::MissingOutcomeEvidence("verified concept is missing baseline decision loss".into())
+                DecisionValueError::MissingOutcomeEvidence(
+                    "verified concept is missing baseline decision loss".into(),
+                )
             })?;
             let candidate = evidence.candidate_loss.as_ref().ok_or_else(|| {
-                DecisionValueError::MissingOutcomeEvidence("verified concept is missing candidate decision loss".into())
+                DecisionValueError::MissingOutcomeEvidence(
+                    "verified concept is missing candidate decision loss".into(),
+                )
             })?;
             for loss in [baseline, candidate] {
                 if loss.oracle_loss_table_digest != plan.decision_loss_table_digest
-                    || loss.loss_verifier_profile_digest != plan.decision_loss_verifier_profile_digest
+                    || loss.loss_verifier_profile_digest
+                        != plan.decision_loss_verifier_profile_digest
                 {
                     return Err(DecisionValueError::MissingOutcomeEvidence(
                         "decision loss evidence uses a different loss table or verifier profile from the preregistered plan".into(),
@@ -784,24 +884,46 @@ fn validate_concept_evidence(
                         "normalized decision loss must be in [0,1]".into(),
                     ));
                 }
-                require_digest(&loss.decision_loss_evidence_digest, "decision loss evidence")?;
-                require_digest(&loss.independent_loss_verification_receipt_digest, "independent loss verification")?;
+                require_digest(
+                    &loss.decision_loss_evidence_digest,
+                    "decision loss evidence",
+                )?;
+                require_digest(
+                    &loss.independent_loss_verification_receipt_digest,
+                    "independent loss verification",
+                )?;
                 require_digest(&loss.loss_verifier_profile_digest, "loss verifier profile")?;
                 require_digest(&loss.oracle_loss_table_digest, "oracle loss table")?;
                 require_digest(&loss.selected_decision_digest, "selected terminal decision")?;
-                require_digest(&loss.oracle_optimal_decision_digest, "oracle-optimal decision")?;
+                require_digest(
+                    &loss.oracle_optimal_decision_digest,
+                    "oracle-optimal decision",
+                )?;
             }
             if baseline.oracle_optimal_decision_digest != candidate.oracle_optimal_decision_digest {
                 return Err(DecisionValueError::MissingOutcomeEvidence(
                     "baseline and candidate decision-loss records do not share the same oracle-optimal decision reference".into(),
                 ));
             }
-            match (&plan.outcome_measure, &evidence.baseline_outcome, &evidence.candidate_outcome) {
+            match (
+                &plan.outcome_measure,
+                &evidence.baseline_outcome,
+                &evidence.candidate_outcome,
+            ) {
                 (Some(_), Some(baseline), Some(candidate)) => {
                     for measurement in [baseline, candidate] {
-                        require_digest(&measurement.raw_observation_digest, "raw outcome observation")?;
-                        require_digest(&measurement.independent_verification_receipt_digest, "independent outcome verification")?;
-                        require_digest(&measurement.calibration_chain_digest, "measurement calibration chain")?;
+                        require_digest(
+                            &measurement.raw_observation_digest,
+                            "raw outcome observation",
+                        )?;
+                        require_digest(
+                            &measurement.independent_verification_receipt_digest,
+                            "independent outcome verification",
+                        )?;
+                        require_digest(
+                            &measurement.calibration_chain_digest,
+                            "measurement calibration chain",
+                        )?;
                     }
                 }
                 (Some(_), _, _) => {
@@ -811,14 +933,17 @@ fn validate_concept_evidence(
                 }
                 (None, Some(_), _) | (None, _, Some(_)) => {
                     return Err(DecisionValueError::InvalidPlan(
-                        "outcome observations supplied without a preregistered outcome measure".into(),
+                        "outcome observations supplied without a preregistered outcome measure"
+                            .into(),
                     ));
                 }
                 (None, None, None) => {}
             }
             Ok((true, false))
         }
-        ConceptEvidenceStatus::Inconclusive | ConceptEvidenceStatus::Invalidated | ConceptEvidenceStatus::NotMeasured => {
+        ConceptEvidenceStatus::Inconclusive
+        | ConceptEvidenceStatus::Invalidated
+        | ConceptEvidenceStatus::NotMeasured => {
             if evidence.baseline_loss.is_some()
                 || evidence.candidate_loss.is_some()
                 || evidence.baseline_outcome.is_some()
@@ -842,7 +967,9 @@ fn decision_loss_effect(
     let candidate = evidence.candidate_loss.as_ref().ok_or_else(|| {
         DecisionValueError::MissingOutcomeEvidence("candidate decision loss missing".into())
     })?;
-    baseline.normalized_loss.checked_sub(&candidate.normalized_loss)
+    baseline
+        .normalized_loss
+        .checked_sub(&candidate.normalized_loss)
 }
 
 fn outcome_effect(
@@ -878,19 +1005,26 @@ fn cost_channel_summaries(
     evidence: &[ConceptDecisionValueEvidence],
     decision_loss_effects: &BTreeMap<(String, String, String), ExactValue>,
 ) -> Result<Vec<ResourceChannelSummary>, DecisionValueError> {
-    let mut summaries = Vec::with_capacity(domains.len() * families.len() * plan.resource_channels.len());
+    let mut summaries =
+        Vec::with_capacity(domains.len() * families.len() * plan.resource_channels.len());
     for domain in domains {
         for family in families {
-            let stratum = evidence.iter()
+            let stratum = evidence
+                .iter()
                 .filter(|item| item.domain_id == *domain && item.mechanism_family_id == *family)
                 .collect::<Vec<_>>();
             let expected_concept_count = stratum.len();
-            let loss_values = stratum.iter()
-                .filter_map(|item| decision_loss_effects.get(&(
-                    item.domain_id.clone(),
-                    item.mechanism_family_id.clone(),
-                    item.concept_digest.clone(),
-                )).cloned())
+            let loss_values = stratum
+                .iter()
+                .filter_map(|item| {
+                    decision_loss_effects
+                        .get(&(
+                            item.domain_id.clone(),
+                            item.mechanism_family_id.clone(),
+                            item.concept_digest.clone(),
+                        ))
+                        .cloned()
+                })
                 .collect::<Vec<_>>();
             let all_loss_effects_verified = loss_values.len() == expected_concept_count;
             let mean_loss_effect = ExactValue::mean(&loss_values)?;
@@ -904,35 +1038,56 @@ fn cost_channel_summaries(
                 for item in &stratum {
                     let reference = validate_resource_use(plan, &item.baseline_resource_use)?;
                     let candidate = validate_resource_use(plan, &item.candidate_resource_use)?;
-                    match (reference.get(&channel.channel_id), candidate.get(&channel.channel_id)) {
-                        (Some(reference), Some(candidate)) if reference.complete && candidate.complete => {
+                    match (
+                        reference.get(&channel.channel_id),
+                        candidate.get(&channel.channel_id),
+                    ) {
+                        (Some(reference), Some(candidate))
+                            if reference.complete && candidate.complete =>
+                        {
                             reference_total = reference_total.checked_add(&reference.amount)?;
                             candidate_total = candidate_total.checked_add(&candidate.amount)?;
-                            complete_concepts = complete_concepts.checked_add(1).ok_or_else(|| {
-                                DecisionValueError::ArithmeticOverflow("complete cost concept count overflow".into())
-                            })?;
+                            complete_concepts =
+                                complete_concepts.checked_add(1).ok_or_else(|| {
+                                    DecisionValueError::ArithmeticOverflow(
+                                        "complete cost concept count overflow".into(),
+                                    )
+                                })?;
                         }
                         _ => {}
                     }
                 }
-                let complete = expected_concept_count > 0 && complete_concepts == expected_concept_count;
+                let complete =
+                    expected_concept_count > 0 && complete_concepts == expected_concept_count;
                 let mean_increment = if complete {
                     Some(candidate_total.checked_sub(&reference_total)?.checked_div(
-                        &ExactValue::new(i128::try_from(expected_concept_count).map_err(|_| {
-                            DecisionValueError::ArithmeticOverflow("source concept count exceeds i128".into())
-                        })?, 1)?
+                        &ExactValue::new(
+                            i128::try_from(expected_concept_count).map_err(|_| {
+                                DecisionValueError::ArithmeticOverflow(
+                                    "source concept count exceeds i128".into(),
+                                )
+                            })?,
+                            1,
+                        )?,
                     )?)
                 } else {
                     None
                 };
                 let incremental_cost_per_loss_unit = if complete && all_loss_effects_verified {
-                    mean_loss_effect.as_ref()
+                    mean_loss_effect
+                        .as_ref()
                         .filter(|loss| loss.numerator > 0)
                         .map(|loss| {
-                            candidate_total.checked_sub(&reference_total)?
-                                .checked_div(&ExactValue::new(i128::try_from(expected_concept_count).map_err(|_| {
-                                    DecisionValueError::ArithmeticOverflow("source concept count exceeds i128".into())
-                                })?, 1)?)?
+                            candidate_total
+                                .checked_sub(&reference_total)?
+                                .checked_div(&ExactValue::new(
+                                    i128::try_from(expected_concept_count).map_err(|_| {
+                                        DecisionValueError::ArithmeticOverflow(
+                                            "source concept count exceeds i128".into(),
+                                        )
+                                    })?,
+                                    1,
+                                )?)?
                                 .checked_div(loss)
                         })
                         .transpose()?
@@ -962,7 +1117,9 @@ fn exact_sign_p_value(
     reference_wins: usize,
 ) -> Result<Rational, DecisionValueError> {
     let discordant = candidate_wins.checked_add(reference_wins).ok_or_else(|| {
-        DecisionValueError::ArithmeticOverflow("decision-value discordant concept count overflow".into())
+        DecisionValueError::ArithmeticOverflow(
+            "decision-value discordant concept count overflow".into(),
+        )
     })?;
     if discordant > MAX_EXACT_DISCORDANT_CONCEPTS {
         return Err(DecisionValueError::UnsupportedSampleSize(format!(
@@ -972,21 +1129,29 @@ fn exact_sign_p_value(
     if discordant == 0 {
         return Ok(Rational::one());
     }
-    let k = candidate_wins.min(reference_wins).min(discordant - candidate_wins.min(reference_wins));
+    let k = candidate_wins
+        .min(reference_wins)
+        .min(discordant - candidate_wins.min(reference_wins));
     let mut tail = 1u128;
     let mut coefficient = 1u128;
     for index in 1..=k {
         coefficient = coefficient
             .checked_mul(u128::try_from(discordant - index + 1).map_err(|_| {
-                DecisionValueError::ArithmeticOverflow("sign coefficient factor exceeds u128".into())
+                DecisionValueError::ArithmeticOverflow(
+                    "sign coefficient factor exceeds u128".into(),
+                )
             })?)
-            .ok_or_else(|| DecisionValueError::ArithmeticOverflow("sign coefficient overflow".into()))?
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow("sign coefficient overflow".into())
+            })?
             / u128::try_from(index).map_err(|_| {
-                DecisionValueError::ArithmeticOverflow("sign coefficient divisor exceeds u128".into())
+                DecisionValueError::ArithmeticOverflow(
+                    "sign coefficient divisor exceeds u128".into(),
+                )
             })?;
-        tail = tail.checked_add(coefficient).ok_or_else(|| {
-            DecisionValueError::ArithmeticOverflow("sign tail overflow".into())
-        })?;
+        tail = tail
+            .checked_add(coefficient)
+            .ok_or_else(|| DecisionValueError::ArithmeticOverflow("sign tail overflow".into()))?;
     }
     let denominator = 1u128.checked_shl(discordant as u32).ok_or_else(|| {
         DecisionValueError::UnsupportedSampleSize("exact sign denominator exceeds u128".into())
@@ -1003,7 +1168,9 @@ fn mean_interval(
     count: usize,
 ) -> Result<DecisionValueInterval, DecisionValueError> {
     let denominator = i128::try_from(mean.denominator).map_err(|_| {
-        DecisionValueError::ArithmeticOverflow("decision-value mean denominator exceeds i128".into())
+        DecisionValueError::ArithmeticOverflow(
+            "decision-value mean denominator exceeds i128".into(),
+        )
     })?;
     let scaled = mean.numerator.checked_mul(MICRO_SCALE).ok_or_else(|| {
         DecisionValueError::ArithmeticOverflow("decision-value mean micro-scaling overflow".into())
@@ -1021,9 +1188,15 @@ fn mean_interval(
     let radius_square = ceil_div_u128(SQRT_RADIUS_NUMERATOR, n);
     let radius = integer_sqrt_ceil(radius_square)?
         .checked_mul(2)
-        .ok_or_else(|| DecisionValueError::ArithmeticOverflow("decision-value Hoeffding radius overflow".into()))?;
+        .ok_or_else(|| {
+            DecisionValueError::ArithmeticOverflow(
+                "decision-value Hoeffding radius overflow".into(),
+            )
+        })?;
     let radius = i128::try_from(radius).map_err(|_| {
-        DecisionValueError::ArithmeticOverflow("decision-value Hoeffding radius exceeds i128".into())
+        DecisionValueError::ArithmeticOverflow(
+            "decision-value Hoeffding radius exceeds i128".into(),
+        )
     })?;
     Ok(DecisionValueInterval {
         lower_micro_units: centre_lower.checked_sub(radius).ok_or_else(|| {
@@ -1041,7 +1214,11 @@ fn mean_interval(
 fn floor_div_signed(numerator: i128, denominator: i128) -> i128 {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
-    if remainder < 0 { quotient - 1 } else { quotient }
+    if remainder < 0 {
+        quotient - 1
+    } else {
+        quotient
+    }
 }
 
 fn ceil_div_signed(numerator: i128, denominator: i128) -> i128 {
@@ -1078,10 +1255,15 @@ fn apply_holm(
 ) -> Result<(), DecisionValueError> {
     let mut order = (0..results.len()).collect::<Vec<_>>();
     order.sort_by(|left, right| {
-        results[*left].exact_two_sided_sign_p_value
+        results[*left]
+            .exact_two_sided_sign_p_value
             .cmp(&results[*right].exact_two_sided_sign_p_value)
             .then_with(|| results[*left].domain_id.cmp(&results[*right].domain_id))
-            .then_with(|| results[*left].mechanism_family_id.cmp(&results[*right].mechanism_family_id))
+            .then_with(|| {
+                results[*left]
+                    .mechanism_family_id
+                    .cmp(&results[*right].mechanism_family_id)
+            })
             .then_with(|| results[*left].endpoint.cmp(&results[*right].endpoint))
     });
     let total = u64::try_from(results.len()).map_err(|_| {
@@ -1089,16 +1271,18 @@ fn apply_holm(
     })?;
     let mut still_rejecting = true;
     for (rank, result_index) in order.into_iter().enumerate() {
-        let remaining = total - u64::try_from(rank).map_err(|_| {
-            DecisionValueError::ArithmeticOverflow("Holm rank exceeds u64".into())
-        })?;
-        let threshold = alpha.checked_div(Rational::from_u64(remaining))
+        let remaining = total
+            - u64::try_from(rank).map_err(|_| {
+                DecisionValueError::ArithmeticOverflow("Holm rank exceeds u64".into())
+            })?;
+        let threshold = alpha
+            .checked_div(Rational::from_u64(remaining))
             .map_err(DecisionValueError::ArithmeticOverflow)?;
         let result = &mut results[result_index];
         result.holm_rank = rank + 1;
         result.holm_threshold = threshold;
-        let passes = result.meets_minimum_concept_count
-            && result.exact_two_sided_sign_p_value <= threshold;
+        let passes =
+            result.meets_minimum_concept_count && result.exact_two_sided_sign_p_value <= threshold;
         result.rejected_after_holm = still_rejecting && passes;
         if !passes {
             still_rejecting = false;
@@ -1144,12 +1328,14 @@ pub fn analyze_scientific_decision_value(
         );
         if !source_concepts.contains(&key) {
             return Err(DecisionValueError::ConceptSetMismatch(
-                "decision-value evidence includes a concept outside the SIM-REL-050 hierarchy".into(),
+                "decision-value evidence includes a concept outside the SIM-REL-050 hierarchy"
+                    .into(),
             ));
         }
         if by_concept.contains_key(&key) {
             return Err(DecisionValueError::DuplicateConcept(
-                "decision-value concept evidence must be unique per domain × family × concept".into(),
+                "decision-value concept evidence must be unique per domain × family × concept"
+                    .into(),
             ));
         }
         let (valid, _missing) = validate_concept_evidence(plan, item)?;
@@ -1157,24 +1343,33 @@ pub fn analyze_scientific_decision_value(
         // efficacy/outcome evidence is inconclusive or invalidated.
         if item.baseline_hazard {
             baseline_hazard_count = baseline_hazard_count.checked_add(1).ok_or_else(|| {
-                DecisionValueError::ArithmeticOverflow("baseline hazard concept count overflow".into())
+                DecisionValueError::ArithmeticOverflow(
+                    "baseline hazard concept count overflow".into(),
+                )
             })?;
         }
         if item.candidate_hazard {
             candidate_hazard_count = candidate_hazard_count.checked_add(1).ok_or_else(|| {
-                DecisionValueError::ArithmeticOverflow("candidate hazard concept count overflow".into())
+                DecisionValueError::ArithmeticOverflow(
+                    "candidate hazard concept count overflow".into(),
+                )
             })?;
         }
         if item.candidate_forbidden_transition {
-            forbidden_transition_count = forbidden_transition_count.checked_add(1).ok_or_else(|| {
-                DecisionValueError::ArithmeticOverflow("forbidden transition count overflow".into())
-            })?;
+            forbidden_transition_count =
+                forbidden_transition_count.checked_add(1).ok_or_else(|| {
+                    DecisionValueError::ArithmeticOverflow(
+                        "forbidden transition count overflow".into(),
+                    )
+                })?;
         }
         false_safety_certification_count = false_safety_certification_count
             .checked_add(item.candidate_false_safety_certifications)
-            .ok_or_else(|| DecisionValueError::ArithmeticOverflow(
-                "false safety certification count overflow".into()
-            ))?;
+            .ok_or_else(|| {
+                DecisionValueError::ArithmeticOverflow(
+                    "false safety certification count overflow".into(),
+                )
+            })?;
         match item.evidence_status {
             ConceptEvidenceStatus::Verified => {
                 verified_count = verified_count.checked_add(1).ok_or_else(|| {
@@ -1185,17 +1380,23 @@ pub fn analyze_scientific_decision_value(
             }
             ConceptEvidenceStatus::Inconclusive => {
                 inconclusive_count = inconclusive_count.checked_add(1).ok_or_else(|| {
-                    DecisionValueError::ArithmeticOverflow("inconclusive concept count overflow".into())
+                    DecisionValueError::ArithmeticOverflow(
+                        "inconclusive concept count overflow".into(),
+                    )
                 })?;
             }
             ConceptEvidenceStatus::Invalidated => {
                 invalidated_count = invalidated_count.checked_add(1).ok_or_else(|| {
-                    DecisionValueError::ArithmeticOverflow("invalidated concept count overflow".into())
+                    DecisionValueError::ArithmeticOverflow(
+                        "invalidated concept count overflow".into(),
+                    )
                 })?;
             }
             ConceptEvidenceStatus::NotMeasured => {
                 not_measured_count = not_measured_count.checked_add(1).ok_or_else(|| {
-                    DecisionValueError::ArithmeticOverflow("not-measured concept count overflow".into())
+                    DecisionValueError::ArithmeticOverflow(
+                        "not-measured concept count overflow".into(),
+                    )
                 })?;
             }
         }
@@ -1214,17 +1415,22 @@ pub fn analyze_scientific_decision_value(
     let mut all_results = Vec::new();
     for domain in &plan.domains {
         for family in &plan.mechanism_families {
-            let stratum_keys = source_concepts.iter()
+            let stratum_keys = source_concepts
+                .iter()
                 .filter(|(d, f, _)| d == domain && f == family)
                 .cloned()
                 .collect::<Vec<_>>();
-            for endpoint in std::iter::once(DecisionValueEndpoint::DecisionLossReduction)
-                .chain(plan.outcome_measure.as_ref().map(|_| DecisionValueEndpoint::VerifiedOutcomeImprovement))
-            {
+            for endpoint in std::iter::once(DecisionValueEndpoint::DecisionLossReduction).chain(
+                plan.outcome_measure
+                    .as_ref()
+                    .map(|_| DecisionValueEndpoint::VerifiedOutcomeImprovement),
+            ) {
                 let mut effects = Vec::new();
                 for key in &stratum_keys {
                     let item = by_concept.get(key).ok_or_else(|| {
-                        DecisionValueError::ConceptSetMismatch("concept evidence row missing".into())
+                        DecisionValueError::ConceptSetMismatch(
+                            "concept evidence row missing".into(),
+                        )
                     })?;
                     if item.evidence_status != ConceptEvidenceStatus::Verified {
                         continue;
@@ -1233,7 +1439,9 @@ pub fn analyze_scientific_decision_value(
                         DecisionValueEndpoint::DecisionLossReduction => decision_loss_effect(item)?,
                         DecisionValueEndpoint::VerifiedOutcomeImprovement => outcome_effect(
                             plan.outcome_measure.as_ref().ok_or_else(|| {
-                                DecisionValueError::InvalidPlan("outcome endpoint without outcome measure".into())
+                                DecisionValueError::InvalidPlan(
+                                    "outcome endpoint without outcome measure".into(),
+                                )
                             })?,
                             item,
                         )?,
@@ -1251,7 +1459,10 @@ pub fn analyze_scientific_decision_value(
                 }
                 let p_value = exact_sign_p_value(candidate_wins, reference_wins)?;
                 let mean = ExactValue::mean(&effects)?;
-                let interval = mean.as_ref().map(|value| mean_interval(value, effects.len())).transpose()?;
+                let interval = mean
+                    .as_ref()
+                    .map(|value| mean_interval(value, effects.len()))
+                    .transpose()?;
                 let missing = stratum_keys.len().saturating_sub(effects.len());
                 all_results.push(DomainFamilyDecisionValueInference {
                     domain_id: domain.clone(),
@@ -1261,7 +1472,8 @@ pub fn analyze_scientific_decision_value(
                     measured_concept_count: effects.len(),
                     missing_or_invalid_concept_count: missing,
                     required_valid_concept_count: plan.minimum_valid_concepts_per_stratum,
-                    meets_minimum_concept_count: effects.len() >= plan.minimum_valid_concepts_per_stratum,
+                    meets_minimum_concept_count: effects.len()
+                        >= plan.minimum_valid_concepts_per_stratum,
                     candidate_concept_wins: candidate_wins,
                     reference_concept_wins: reference_wins,
                     tied_concepts: ties,
@@ -1279,7 +1491,11 @@ pub fn analyze_scientific_decision_value(
     apply_holm(&mut all_results, plan.family_wise_alpha)?;
 
     let cost_channels = cost_channel_summaries(
-        plan, &plan.domains, &plan.mechanism_families, evidence, &loss_effects
+        plan,
+        &plan.domains,
+        &plan.mechanism_families,
+        evidence,
+        &loss_effects,
     )?;
     let cost_complete = cost_channels.iter().all(|channel| channel.complete);
     let source_count = source_concepts.len();
@@ -1318,7 +1534,8 @@ pub fn analyze_scientific_decision_value(
         resource_channels_not_collapsed: true,
         abstention_and_safety_not_traded_for_utility: true,
         missing_cost_prevents_complete_cost_effectiveness: !cost_complete,
-        no_causal_claim_from_observational_design: causal_status == CausalAttributionStatus::AssociationOnly,
+        no_causal_claim_from_observational_design: causal_status
+            == CausalAttributionStatus::AssociationOnly,
         concept_level_inference_preserved: true,
         sealed_holdout_only: true,
     })
@@ -1326,20 +1543,20 @@ pub fn analyze_scientific_decision_value(
 
 #[cfg(test)]
 mod tests {
+    use super::super::counterexample_ledger::EvidenceSplit;
+    use super::super::hierarchical_benchmark_inference::{
+        DomainFamilyEndpointInference, ExactHierarchicalEffect, HierarchicalConceptEffect,
+        HierarchicalInferenceReceipt,
+    };
+    use super::super::matched_benchmark::BenchmarkScope;
+    use super::super::task_cluster_inference::ClusterInferenceEndpoint;
     use super::{
         CausalAttributionStatus, CausalIdentificationDesign, ConceptArmResourceUse,
-        ConceptDecisionValueEvidence, ConceptEvidenceStatus, DecisionValueError,
-        DecisionValuePlan, ExactValue, OutcomeDirection, OutcomeMeasureDefinition,
-        ResourceChannelDefinition, ResourceMeasurement, VerifiedDecisionLoss,
-        VerifiedOutcomeMeasurement, analyze_scientific_decision_value,
+        ConceptDecisionValueEvidence, ConceptEvidenceStatus, DecisionValueError, DecisionValuePlan,
+        ExactValue, OutcomeDirection, OutcomeMeasureDefinition, ResourceChannelDefinition,
+        ResourceMeasurement, VerifiedDecisionLoss, VerifiedOutcomeMeasurement,
+        analyze_scientific_decision_value,
     };
-    use super::super::hierarchical_benchmark_inference::{
-        DomainFamilyEndpointInference, ExactHierarchicalEffect,
-        HierarchicalConceptEffect, HierarchicalInferenceReceipt,
-    };
-    use super::super::task_cluster_inference::ClusterInferenceEndpoint;
-    use super::super::counterexample_ledger::EvidenceSplit;
-    use super::super::matched_benchmark::BenchmarkScope;
     use crate::Rational;
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -1466,7 +1683,10 @@ mod tests {
                 tied_concepts: 0,
                 discordant_concepts: 2,
                 exact_two_sided_sign_p_value: Rational::one(),
-                mean_concept_effect: Some(ExactHierarchicalEffect { numerator: 0, denominator: 1 }),
+                mean_concept_effect: Some(ExactHierarchicalEffect {
+                    numerator: 0,
+                    denominator: 1,
+                }),
                 mean_effect_95_percent_interval: None,
                 holm_rank: 1,
                 holm_threshold: Rational::new(5, 100).unwrap(),
@@ -1487,26 +1707,28 @@ mod tests {
         let mut source = hierarchy();
         source.domain_count = 2;
         source.hypothesis_count = 2;
-        source.domain_family_endpoint_results.push(DomainFamilyEndpointInference {
-            domain_id: "biology".into(),
-            mechanism_family_id: "causal".into(),
-            endpoint: ClusterInferenceEndpoint::PassAtK,
-            total_concept_clusters: 0,
-            valid_concept_clusters: 0,
-            concepts_without_valid_recipes: 0,
-            required_valid_concept_clusters: 1,
-            meets_minimum_concept_count: false,
-            candidate_concept_wins: 0,
-            reference_concept_wins: 0,
-            tied_concepts: 0,
-            discordant_concepts: 0,
-            exact_two_sided_sign_p_value: Rational::one(),
-            mean_concept_effect: None,
-            mean_effect_95_percent_interval: None,
-            holm_rank: 2,
-            holm_threshold: Rational::new(1, 100).unwrap(),
-            rejected_after_holm: false,
-        });
+        source
+            .domain_family_endpoint_results
+            .push(DomainFamilyEndpointInference {
+                domain_id: "biology".into(),
+                mechanism_family_id: "causal".into(),
+                endpoint: ClusterInferenceEndpoint::PassAtK,
+                total_concept_clusters: 0,
+                valid_concept_clusters: 0,
+                concepts_without_valid_recipes: 0,
+                required_valid_concept_clusters: 1,
+                meets_minimum_concept_count: false,
+                candidate_concept_wins: 0,
+                reference_concept_wins: 0,
+                tied_concepts: 0,
+                discordant_concepts: 0,
+                exact_two_sided_sign_p_value: Rational::one(),
+                mean_concept_effect: None,
+                mean_effect_95_percent_interval: None,
+                holm_rank: 2,
+                holm_threshold: Rational::new(1, 100).unwrap(),
+                rejected_after_holm: false,
+            });
         source
     }
 
@@ -1561,7 +1783,11 @@ mod tests {
         }
     }
 
-    fn evidence(concept: &str, baseline_loss: u128, candidate_loss: u128) -> ConceptDecisionValueEvidence {
+    fn evidence(
+        concept: &str,
+        baseline_loss: u128,
+        candidate_loss: u128,
+    ) -> ConceptDecisionValueEvidence {
         ConceptDecisionValueEvidence {
             domain_id: "materials".into(),
             mechanism_family_id: "causal".into(),
@@ -1589,8 +1815,12 @@ mod tests {
             &plan(),
             &hierarchy(),
             &[evidence(D3, 8, 4), evidence(D4, 7, 3)],
-        ).unwrap();
-        assert_eq!(receipt.causal_attribution_status, CausalAttributionStatus::CausalIdentifiedUnderDeclaredDesign);
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.causal_attribution_status,
+            CausalAttributionStatus::CausalIdentifiedUnderDeclaredDesign
+        );
         assert_eq!(receipt.endpoint_count, 2);
         assert_eq!(receipt.verified_concept_count, 2);
         assert!(receipt.safety_gate_passed);
@@ -1599,17 +1829,28 @@ mod tests {
         assert_eq!(receipt.baseline_hazard_concept_count, 0);
         assert_eq!(receipt.cost_channels[0].domain_id, "materials");
         assert_eq!(receipt.cost_channels[0].mechanism_family_id, "causal");
-        let loss = receipt.domain_family_results.iter()
+        let loss = receipt
+            .domain_family_results
+            .iter()
             .find(|row| row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction)
             .unwrap();
         assert_eq!(loss.mean_concept_effect, Some(q(4, 10)));
-        let outcome = receipt.domain_family_results.iter()
+        let outcome = receipt
+            .domain_family_results
+            .iter()
             .find(|row| row.endpoint == super::DecisionValueEndpoint::VerifiedOutcomeImprovement)
             .unwrap();
         assert_eq!(outcome.mean_concept_effect, Some(q(2, 10)));
-        let tokens = receipt.cost_channels.iter().find(|row| row.channel_id == "tokens").unwrap();
+        let tokens = receipt
+            .cost_channels
+            .iter()
+            .find(|row| row.channel_id == "tokens")
+            .unwrap();
         assert_eq!(tokens.mean_incremental_cost_per_concept, Some(q(20, 1)));
-        assert_eq!(tokens.incremental_cost_per_decision_loss_unit, Some(q(50, 1)));
+        assert_eq!(
+            tokens.incremental_cost_per_decision_loss_unit,
+            Some(q(50, 1))
+        );
     }
 
     #[test]
@@ -1618,17 +1859,24 @@ mod tests {
             &plan_with_empty_domain(),
             &hierarchy_with_empty_domain(),
             &[evidence(D3, 8, 4), evidence(D4, 7, 3)],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(receipt.domain_count, 2);
-        let empty = receipt.domain_family_results.iter()
-            .find(|row| row.domain_id == "biology"
-                && row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction)
+        let empty = receipt
+            .domain_family_results
+            .iter()
+            .find(|row| {
+                row.domain_id == "biology"
+                    && row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction
+            })
             .unwrap();
         assert_eq!(empty.source_concept_count, 0);
         assert_eq!(empty.measured_concept_count, 0);
         assert_eq!(empty.exact_two_sided_sign_p_value, Rational::one());
         assert!(!empty.meets_minimum_concept_count);
-        let empty_cost = receipt.cost_channels.iter()
+        let empty_cost = receipt
+            .cost_channels
+            .iter()
             .find(|row| row.domain_id == "biology" && row.channel_id == "tokens")
             .unwrap();
         assert!(!empty_cost.complete);
@@ -1638,7 +1886,12 @@ mod tests {
     fn safety_violations_block_positive_safety_gate_even_with_better_loss() {
         let mut candidate = evidence(D3, 8, 2);
         candidate.candidate_hazard = true;
-        let receipt = analyze_scientific_decision_value(&plan(), &hierarchy(), &[candidate, evidence(D4, 8, 2)]).unwrap();
+        let receipt = analyze_scientific_decision_value(
+            &plan(),
+            &hierarchy(),
+            &[candidate, evidence(D4, 8, 2)],
+        )
+        .unwrap();
         assert!(!receipt.safety_gate_passed);
         assert_eq!(receipt.candidate_hazard_concept_count, 1);
     }
@@ -1650,18 +1903,34 @@ mod tests {
             design_receipt_digest: D1.into(),
             confounding_assessment_digest: D2.into(),
         };
-        let receipt = analyze_scientific_decision_value(&plan, &hierarchy(), &[evidence(D3, 8, 4), evidence(D4, 7, 3)]).unwrap();
-        assert_eq!(receipt.causal_attribution_status, CausalAttributionStatus::AssociationOnly);
+        let receipt = analyze_scientific_decision_value(
+            &plan,
+            &hierarchy(),
+            &[evidence(D3, 8, 4), evidence(D4, 7, 3)],
+        )
+        .unwrap();
+        assert_eq!(
+            receipt.causal_attribution_status,
+            CausalAttributionStatus::AssociationOnly
+        );
         assert!(receipt.no_causal_claim_from_observational_design);
     }
 
     #[test]
     fn missing_resource_channel_prevents_complete_cost_effectiveness() {
         let mut item = evidence(D3, 8, 4);
-        item.candidate_resource_use.measurements.retain(|m| m.channel_id != "energy");
-        let receipt = analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]).unwrap();
+        item.candidate_resource_use
+            .measurements
+            .retain(|m| m.channel_id != "energy");
+        let receipt =
+            analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)])
+                .unwrap();
         assert!(receipt.missing_cost_prevents_complete_cost_effectiveness);
-        let energy = receipt.cost_channels.iter().find(|row| row.channel_id == "energy").unwrap();
+        let energy = receipt
+            .cost_channels
+            .iter()
+            .find(|row| row.channel_id == "energy")
+            .unwrap();
         assert!(!energy.complete);
         assert!(energy.candidate_total.is_none());
     }
@@ -1674,10 +1943,14 @@ mod tests {
         item.candidate_loss = None;
         item.baseline_outcome = None;
         item.candidate_outcome = None;
-        let receipt = analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]).unwrap();
+        let receipt =
+            analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)])
+                .unwrap();
         assert_eq!(receipt.verified_concept_count, 1);
         assert_eq!(receipt.inconclusive_concept_count, 1);
-        let loss = receipt.domain_family_results.iter()
+        let loss = receipt
+            .domain_family_results
+            .iter()
             .find(|row| row.endpoint == super::DecisionValueEndpoint::DecisionLossReduction)
             .unwrap();
         assert_eq!(loss.source_concept_count, 2);
@@ -1697,8 +1970,11 @@ mod tests {
             &plan(),
             &hierarchy(),
             &[inconclusive, evidence(D4, 7, 3)],
-        ).unwrap();
-        let tokens = receipt.cost_channels.iter()
+        )
+        .unwrap();
+        let tokens = receipt
+            .cost_channels
+            .iter()
             .find(|row| row.channel_id == "tokens")
             .unwrap();
         assert_eq!(tokens.complete_concept_count, 2);
@@ -1716,7 +1992,14 @@ mod tests {
             analyze_scientific_decision_value(&plan(), &hierarchy(), &duplicate),
             Err(DecisionValueError::DuplicateConcept(_))
         ));
-        let outside = vec![evidence(D3, 8, 4), evidence("sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", 7, 3)];
+        let outside = vec![
+            evidence(D3, 8, 4),
+            evidence(
+                "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                7,
+                3,
+            ),
+        ];
         assert!(matches!(
             analyze_scientific_decision_value(&plan(), &hierarchy(), &outside),
             Err(DecisionValueError::ConceptSetMismatch(_))
@@ -1733,11 +2016,9 @@ mod tests {
         item.candidate_outcome = None;
         item.candidate_hazard = true;
         item.candidate_false_safety_certifications = 1;
-        let receipt = analyze_scientific_decision_value(
-            &plan(),
-            &hierarchy(),
-            &[item, evidence(D4, 7, 3)],
-        ).unwrap();
+        let receipt =
+            analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)])
+                .unwrap();
         assert!(!receipt.safety_gate_passed);
         assert_eq!(receipt.candidate_hazard_concept_count, 1);
         assert_eq!(receipt.candidate_false_safety_certification_count, 1);
@@ -1746,7 +2027,10 @@ mod tests {
     #[test]
     fn decision_loss_evidence_must_use_preregistered_verifier_profile() {
         let mut item = evidence(D3, 8, 4);
-        item.candidate_loss.as_mut().unwrap().loss_verifier_profile_digest = D4.into();
+        item.candidate_loss
+            .as_mut()
+            .unwrap()
+            .loss_verifier_profile_digest = D4.into();
         assert!(matches!(
             analyze_scientific_decision_value(&plan(), &hierarchy(), &[item, evidence(D4, 7, 3)]),
             Err(DecisionValueError::MissingOutcomeEvidence(_))

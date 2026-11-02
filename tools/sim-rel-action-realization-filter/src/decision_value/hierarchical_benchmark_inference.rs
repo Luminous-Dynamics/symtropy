@@ -12,10 +12,9 @@
 //! concepts are IID or representative of all scientific domains.
 
 use super::adaptive_benchmark_lifecycle::{
-    AdaptiveBenchmarkFreezeReceipt, AdaptiveBenchmarkPlan, AdaptiveBenchmarkSealedRelease,
-    AdaptiveBenchmarkLifecycleReceipt, BenchmarkSemanticOverlapAuditor,
-    CalibrationQualificationReceipt, DevelopmentAdaptationEvent,
-    verify_adaptive_benchmark_release,
+    AdaptiveBenchmarkFreezeReceipt, AdaptiveBenchmarkLifecycleReceipt, AdaptiveBenchmarkPlan,
+    AdaptiveBenchmarkSealedRelease, BenchmarkSemanticOverlapAuditor,
+    CalibrationQualificationReceipt, DevelopmentAdaptationEvent, verify_adaptive_benchmark_release,
 };
 use super::counterexample_ledger::EvidenceSplit;
 use super::matched_benchmark::{BenchmarkScope, MatchedBenchmarkManifest};
@@ -281,11 +280,12 @@ impl ExactHierarchicalEffect {
         }
         let divisor = gcd_u128(numerator.unsigned_abs(), denominator);
         Ok(Self {
-            numerator: numerator / i128::try_from(divisor).map_err(|_| {
-                HierarchicalInferenceError::ArithmeticOverflow(
-                    "effect reduction divisor exceeds i128".into(),
-                )
-            })?,
+            numerator: numerator
+                / i128::try_from(divisor).map_err(|_| {
+                    HierarchicalInferenceError::ArithmeticOverflow(
+                        "effect reduction divisor exceeds i128".into(),
+                    )
+                })?,
             denominator: denominator / divisor,
         })
     }
@@ -297,10 +297,7 @@ impl ExactHierarchicalEffect {
         }
     }
 
-    fn checked_add(
-        &self,
-        other: &Self,
-    ) -> Result<Self, HierarchicalInferenceError> {
+    fn checked_add(&self, other: &Self) -> Result<Self, HierarchicalInferenceError> {
         let common = gcd_u128(self.denominator, other.denominator);
         let left_factor = other.denominator / common;
         let right_factor = self.denominator / common;
@@ -314,12 +311,18 @@ impl ExactHierarchicalEffect {
                 "effect denominator multiplier exceeds i128".into(),
             )
         })?;
-        let left = self.numerator.checked_mul(left_factor_i128).ok_or_else(|| {
-            HierarchicalInferenceError::ArithmeticOverflow("effect numerator overflow".into())
-        })?;
-        let right = other.numerator.checked_mul(right_factor_i128).ok_or_else(|| {
-            HierarchicalInferenceError::ArithmeticOverflow("effect numerator overflow".into())
-        })?;
+        let left = self
+            .numerator
+            .checked_mul(left_factor_i128)
+            .ok_or_else(|| {
+                HierarchicalInferenceError::ArithmeticOverflow("effect numerator overflow".into())
+            })?;
+        let right = other
+            .numerator
+            .checked_mul(right_factor_i128)
+            .ok_or_else(|| {
+                HierarchicalInferenceError::ArithmeticOverflow("effect numerator overflow".into())
+            })?;
         let numerator = left.checked_add(right).ok_or_else(|| {
             HierarchicalInferenceError::ArithmeticOverflow("effect sum overflow".into())
         })?;
@@ -329,9 +332,7 @@ impl ExactHierarchicalEffect {
         Self::new(numerator, denominator)
     }
 
-    fn checked_mean(
-        values: &[Self],
-    ) -> Result<Option<Self>, HierarchicalInferenceError> {
+    fn checked_mean(values: &[Self]) -> Result<Option<Self>, HierarchicalInferenceError> {
         if values.is_empty() {
             return Ok(None);
         }
@@ -343,7 +344,9 @@ impl ExactHierarchicalEffect {
             HierarchicalInferenceError::ArithmeticOverflow("effect count exceeds u128".into())
         })?;
         let denominator = sum.denominator.checked_mul(count).ok_or_else(|| {
-            HierarchicalInferenceError::ArithmeticOverflow("effect mean denominator overflow".into())
+            HierarchicalInferenceError::ArithmeticOverflow(
+                "effect mean denominator overflow".into(),
+            )
         })?;
         Ok(Some(Self::new(sum.numerator, denominator)?))
     }
@@ -397,9 +400,7 @@ fn task_effect(
     };
     let denominator = if endpoint == ClusterInferenceEndpoint::MeanRunSafeSuccessRate {
         u128::try_from(repetitions).map_err(|_| {
-            HierarchicalInferenceError::ArithmeticOverflow(
-                "repetition count exceeds u128".into(),
-            )
+            HierarchicalInferenceError::ArithmeticOverflow("repetition count exceeds u128".into())
         })?
     } else {
         1
@@ -410,7 +411,11 @@ fn task_effect(
 fn floor_div_signed(numerator: i128, denominator: i128) -> i128 {
     let quotient = numerator / denominator;
     let remainder = numerator % denominator;
-    if remainder < 0 { quotient - 1 } else { quotient }
+    if remainder < 0 {
+        quotient - 1
+    } else {
+        quotient
+    }
 }
 
 fn ceil_div_signed(numerator: i128, denominator: i128) -> i128 {
@@ -484,10 +489,7 @@ fn mean_interval(
     })
 }
 
-fn binomial_coefficient(
-    n: usize,
-    k: usize,
-) -> Result<u128, HierarchicalInferenceError> {
+fn binomial_coefficient(n: usize, k: usize) -> Result<u128, HierarchicalInferenceError> {
     let k = k.min(n.saturating_sub(k));
     let mut value = 1u128;
     for index in 1..=k {
@@ -511,9 +513,11 @@ fn exact_sign_p_value(
         HierarchicalInferenceError::ArithmeticOverflow("discordant concept count overflow".into())
     })?;
     if discordant > MAX_EXACT_DISCORDANT_CONCEPTS {
-        return Err(HierarchicalInferenceError::UnsupportedExactSampleSize(format!(
-            "{discordant} discordant concepts exceeds exact sign-test cap {MAX_EXACT_DISCORDANT_CONCEPTS}"
-        )));
+        return Err(HierarchicalInferenceError::UnsupportedExactSampleSize(
+            format!(
+                "{discordant} discordant concepts exceeds exact sign-test cap {MAX_EXACT_DISCORDANT_CONCEPTS}"
+            ),
+        ));
     }
     if discordant == 0 {
         return Ok(Rational::one());
@@ -521,9 +525,11 @@ fn exact_sign_p_value(
     let tail_count = candidate_wins.min(reference_wins);
     let mut tail = 0u128;
     for index in 0..=tail_count {
-        tail = tail.checked_add(binomial_coefficient(discordant, index)?).ok_or_else(|| {
-            HierarchicalInferenceError::ArithmeticOverflow("sign-test tail overflow".into())
-        })?;
+        tail = tail
+            .checked_add(binomial_coefficient(discordant, index)?)
+            .ok_or_else(|| {
+                HierarchicalInferenceError::ArithmeticOverflow("sign-test tail overflow".into())
+            })?;
     }
     let denominator = 1u128.checked_shl(discordant as u32).ok_or_else(|| {
         HierarchicalInferenceError::UnsupportedExactSampleSize(
@@ -547,7 +553,11 @@ fn apply_holm(
             .exact_two_sided_sign_p_value
             .cmp(&results[*right].exact_two_sided_sign_p_value)
             .then_with(|| results[*left].domain_id.cmp(&results[*right].domain_id))
-            .then_with(|| results[*left].mechanism_family_id.cmp(&results[*right].mechanism_family_id))
+            .then_with(|| {
+                results[*left]
+                    .mechanism_family_id
+                    .cmp(&results[*right].mechanism_family_id)
+            })
             .then_with(|| results[*left].endpoint.cmp(&results[*right].endpoint))
     });
     let total = u64::try_from(results.len()).map_err(|_| {
@@ -555,19 +565,23 @@ fn apply_holm(
     })?;
     let mut still_rejecting = true;
     for (rank, result_index) in order.into_iter().enumerate() {
-        let remaining = total.checked_sub(u64::try_from(rank).map_err(|_| {
-            HierarchicalInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
-        })?).ok_or_else(|| {
-            HierarchicalInferenceError::ArithmeticOverflow("Holm remaining count underflow".into())
-        })?;
+        let remaining = total
+            .checked_sub(u64::try_from(rank).map_err(|_| {
+                HierarchicalInferenceError::ArithmeticOverflow("Holm rank exceeds u64".into())
+            })?)
+            .ok_or_else(|| {
+                HierarchicalInferenceError::ArithmeticOverflow(
+                    "Holm remaining count underflow".into(),
+                )
+            })?;
         let threshold = alpha
             .checked_div(Rational::from_u64(remaining))
             .map_err(HierarchicalInferenceError::ArithmeticOverflow)?;
         let result = &mut results[result_index];
         result.holm_rank = rank + 1;
         result.holm_threshold = threshold;
-        let passes = result.meets_minimum_concept_count
-            && result.exact_two_sided_sign_p_value <= threshold;
+        let passes =
+            result.meets_minimum_concept_count && result.exact_two_sided_sign_p_value <= threshold;
         result.rejected_after_holm = still_rejecting && passes;
         if !passes {
             still_rejecting = false;
@@ -587,8 +601,14 @@ fn validate_plan(
     for (value, label) in [
         (&plan.analysis_id, "hierarchical analysis ID"),
         (&plan.analysis_version, "hierarchical analysis version"),
-        (&plan.source_task_cluster_analysis_id, "source task-cluster analysis ID"),
-        (&plan.source_reliability_analysis_id, "source reliability analysis ID"),
+        (
+            &plan.source_task_cluster_analysis_id,
+            "source task-cluster analysis ID",
+        ),
+        (
+            &plan.source_reliability_analysis_id,
+            "source reliability analysis ID",
+        ),
         (&plan.campaign_id, "hierarchical campaign ID"),
         (&plan.benchmark_id, "benchmark ID"),
         (&plan.benchmark_version, "benchmark version"),
@@ -597,9 +617,13 @@ fn validate_plan(
     ] {
         require_id(value, label)?;
     }
-    require_digest(&plan.pre_registration_receipt_digest, "hierarchical preregistration")?;
+    require_digest(
+        &plan.pre_registration_receipt_digest,
+        "hierarchical preregistration",
+    )?;
     require_digest(&plan.sealed_release_digest, "sealed release digest")?;
-    if plan.family_wise_alpha.is_zero() || !plan.family_wise_alpha.is_probability()
+    if plan.family_wise_alpha.is_zero()
+        || !plan.family_wise_alpha.is_probability()
         || plan.minimum_valid_concepts_per_domain_family == 0
     {
         return Err(HierarchicalInferenceError::InvalidPlan(
@@ -620,17 +644,30 @@ fn validate_plan(
             ));
         }
     }
-    let adaptive_domains = adaptive_plan.allowed_domains.iter().cloned().collect::<BTreeSet<_>>();
+    let adaptive_domains = adaptive_plan
+        .allowed_domains
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     if domains != adaptive_domains {
         return Err(HierarchicalInferenceError::DomainRegistry(
             "hierarchical domain registry must equal the frozen adaptive benchmark domain set, retaining empty strata".into(),
         ));
     }
-    let cluster_families = cluster_plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
-    let adaptive_families = adaptive_plan.allowed_mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    let cluster_families = cluster_plan
+        .mechanism_families
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let adaptive_families = adaptive_plan
+        .allowed_mechanism_families
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     if cluster_families != adaptive_families {
         return Err(HierarchicalInferenceError::FamilyRegistry(
-            "task-cluster family registry must equal the frozen adaptive mechanism-family registry".into(),
+            "task-cluster family registry must equal the frozen adaptive mechanism-family registry"
+                .into(),
         ));
     }
     if plan.source_task_cluster_analysis_id != cluster_plan.analysis_id
@@ -702,12 +739,19 @@ fn build_task_rows(
         ));
     }
     let domains = plan.domains.iter().cloned().collect::<BTreeSet<_>>();
-    let families = cluster_plan.mechanism_families.iter().cloned().collect::<BTreeSet<_>>();
+    let families = cluster_plan
+        .mechanism_families
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let mut artifacts = BTreeMap::new();
     for artifact in &release.task_artifacts {
         require_id(&artifact.task_id, "sealed task ID")?;
         require_digest(&artifact.concept_digest, "task concept digest")?;
-        require_digest(&artifact.recipe_template_digest, "task recipe template digest")?;
+        require_digest(
+            &artifact.recipe_template_digest,
+            "task recipe template digest",
+        )?;
         require_id(&artifact.domain_id, "task domain ID")?;
         if artifact.split != EvidenceSplit::SealedHoldout
             || artifact.family_group_id != plan.group_id
@@ -719,7 +763,10 @@ fn build_task_rows(
                 artifact.task_id
             )));
         }
-        if artifacts.insert(artifact.task_id.clone(), artifact).is_some() {
+        if artifacts
+            .insert(artifact.task_id.clone(), artifact)
+            .is_some()
+        {
             return Err(HierarchicalInferenceError::DuplicateTask(format!(
                 "sealed task ID {} occurs more than once in release",
                 artifact.task_id
@@ -753,7 +800,9 @@ fn build_task_rows(
             &artifact.mechanism_family_id,
             &cluster.mechanism_family_id,
         )?;
-        if cluster.invalid_task_cluster && (cluster.reference.is_some() || cluster.candidate.is_some()) {
+        if cluster.invalid_task_cluster
+            && (cluster.reference.is_some() || cluster.candidate.is_some())
+        {
             return Err(HierarchicalInferenceError::InvalidHierarchy(
                 "invalid task cluster must not contain arm outcomes".into(),
             ));
@@ -782,12 +831,17 @@ fn aggregate_for_endpoint(
     endpoint: ClusterInferenceEndpoint,
     reliability_receipt: &RepeatedRunReliabilityReceipt,
     minimum_concepts: usize,
-) -> Result<(
-    Vec<HierarchicalRecipeEffect>,
-    Vec<HierarchicalConceptEffect>,
-    Vec<DomainFamilyEndpointInference>,
-), HierarchicalInferenceError> {
-    let clusters_by_task = reliability_receipt.task_clusters.iter()
+) -> Result<
+    (
+        Vec<HierarchicalRecipeEffect>,
+        Vec<HierarchicalConceptEffect>,
+        Vec<DomainFamilyEndpointInference>,
+    ),
+    HierarchicalInferenceError,
+> {
+    let clusters_by_task = reliability_receipt
+        .task_clusters
+        .iter()
         .map(|cluster| (cluster.task_id.as_str(), cluster))
         .collect::<BTreeMap<_, _>>();
     let mut recipe_task_effects: BTreeMap<
@@ -804,7 +858,11 @@ fn aggregate_for_endpoint(
         let effect = if cluster.invalid_task_cluster {
             None
         } else {
-            Some(task_effect(endpoint, cluster, reliability_receipt.repetitions_per_task)?)
+            Some(task_effect(
+                endpoint,
+                cluster,
+                reliability_receipt.repetitions_per_task,
+            )?)
         };
         let key = (
             row.domain_id.clone(),
@@ -812,23 +870,26 @@ fn aggregate_for_endpoint(
             row.concept_digest.clone(),
             row.recipe_template_digest.clone(),
         );
-        recipe_task_effects.entry(key).or_default().push((row.task_id.clone(), effect));
+        recipe_task_effects
+            .entry(key)
+            .or_default()
+            .push((row.task_id.clone(), effect));
     }
 
     let mut recipe_details = Vec::with_capacity(recipe_task_effects.len());
-    let mut concept_recipes: BTreeMap<
-        (String, String, String),
-        Vec<HierarchicalRecipeEffect>,
-    > = BTreeMap::new();
+    let mut concept_recipes: BTreeMap<(String, String, String), Vec<HierarchicalRecipeEffect>> =
+        BTreeMap::new();
 
     for ((domain, family, concept, recipe), mut task_values) in recipe_task_effects {
         task_values.sort_by(|left, right| left.0.cmp(&right.0));
         let task_cluster_count = task_values.len();
-        let effects = task_values.iter()
+        let effects = task_values
+            .iter()
             .filter_map(|(_, effect)| effect.clone())
             .collect::<Vec<_>>();
         let valid_task_cluster_count = effects.len();
-        let invalid_task_cluster_count = task_cluster_count.saturating_sub(valid_task_cluster_count);
+        let invalid_task_cluster_count =
+            task_cluster_count.saturating_sub(valid_task_cluster_count);
         let detail = HierarchicalRecipeEffect {
             domain_id: domain.clone(),
             endpoint,
@@ -840,27 +901,40 @@ fn aggregate_for_endpoint(
             invalid_task_cluster_count,
             mean_task_effect: ExactHierarchicalEffect::checked_mean(&effects)?,
         };
-        concept_recipes.entry((domain, family, concept)).or_default().push(detail.clone());
+        concept_recipes
+            .entry((domain, family, concept))
+            .or_default()
+            .push(detail.clone());
         recipe_details.push(detail);
     }
 
     let mut concept_details = Vec::with_capacity(concept_recipes.len());
-    let mut concept_effects_by_stratum: BTreeMap<
-        (String, String),
-        Vec<ExactHierarchicalEffect>,
-    > = BTreeMap::new();
+    let mut concept_effects_by_stratum: BTreeMap<(String, String), Vec<ExactHierarchicalEffect>> =
+        BTreeMap::new();
     let mut concept_counts_by_stratum: BTreeMap<(String, String), ConceptCounts> = BTreeMap::new();
 
     for ((domain, family, concept), mut recipes) in concept_recipes {
-        recipes.sort_by(|left, right| left.recipe_template_digest.cmp(&right.recipe_template_digest));
-        let task_cluster_count = recipes.iter().map(|recipe| recipe.task_cluster_count).sum::<usize>();
-        let valid_task_cluster_count = recipes.iter().map(|recipe| recipe.valid_task_cluster_count).sum::<usize>();
-        let invalid_task_cluster_count = task_cluster_count.saturating_sub(valid_task_cluster_count);
-        let valid_recipe_effects = recipes.iter()
+        recipes.sort_by(|left, right| {
+            left.recipe_template_digest
+                .cmp(&right.recipe_template_digest)
+        });
+        let task_cluster_count = recipes
+            .iter()
+            .map(|recipe| recipe.task_cluster_count)
+            .sum::<usize>();
+        let valid_task_cluster_count = recipes
+            .iter()
+            .map(|recipe| recipe.valid_task_cluster_count)
+            .sum::<usize>();
+        let invalid_task_cluster_count =
+            task_cluster_count.saturating_sub(valid_task_cluster_count);
+        let valid_recipe_effects = recipes
+            .iter()
             .filter_map(|recipe| recipe.mean_task_effect.clone())
             .collect::<Vec<_>>();
         let valid_recipe_template_count = valid_recipe_effects.len();
-        let invalid_recipe_template_count = recipes.len().saturating_sub(valid_recipe_template_count);
+        let invalid_recipe_template_count =
+            recipes.len().saturating_sub(valid_recipe_template_count);
         let mean_recipe_effect = ExactHierarchicalEffect::checked_mean(&valid_recipe_effects)?;
         let detail = HierarchicalConceptEffect {
             domain_id: domain.clone(),
@@ -876,20 +950,32 @@ fn aggregate_for_endpoint(
             mean_recipe_effect: mean_recipe_effect.clone(),
         };
         if let Some(effect) = mean_recipe_effect {
-            concept_effects_by_stratum.entry((domain.clone(), family.clone())).or_default().push(effect);
+            concept_effects_by_stratum
+                .entry((domain.clone(), family.clone()))
+                .or_default()
+                .push(effect);
         }
-        let counts = concept_counts_by_stratum.entry((domain, family)).or_default();
+        let counts = concept_counts_by_stratum
+            .entry((domain, family))
+            .or_default();
         counts.total_concepts = counts.total_concepts.checked_add(1).ok_or_else(|| {
             HierarchicalInferenceError::ArithmeticOverflow("concept count overflow".into())
         })?;
         if mean_recipe_effect.is_some() {
             counts.valid_concepts = counts.valid_concepts.checked_add(1).ok_or_else(|| {
-                HierarchicalInferenceError::ArithmeticOverflow("valid concept count overflow".into())
+                HierarchicalInferenceError::ArithmeticOverflow(
+                    "valid concept count overflow".into(),
+                )
             })?;
         } else {
-            counts.concepts_without_valid_recipes = counts.concepts_without_valid_recipes.checked_add(1).ok_or_else(|| {
-                HierarchicalInferenceError::ArithmeticOverflow("invalid concept count overflow".into())
-            })?;
+            counts.concepts_without_valid_recipes = counts
+                .concepts_without_valid_recipes
+                .checked_add(1)
+                .ok_or_else(|| {
+                    HierarchicalInferenceError::ArithmeticOverflow(
+                        "invalid concept count overflow".into(),
+                    )
+                })?;
         }
         concept_details.push(detail);
     }
@@ -898,27 +984,46 @@ fn aggregate_for_endpoint(
     for domain in domains {
         for family in families {
             let key = (domain.clone(), family.clone());
-            let counts = concept_counts_by_stratum.get(&key).cloned().unwrap_or_default();
-            let effects = concept_effects_by_stratum.get(&key).cloned().unwrap_or_default();
+            let counts = concept_counts_by_stratum
+                .get(&key)
+                .cloned()
+                .unwrap_or_default();
+            let effects = concept_effects_by_stratum
+                .get(&key)
+                .cloned()
+                .unwrap_or_default();
             let mut candidate_wins = 0usize;
             let mut reference_wins = 0usize;
             let mut tied = 0usize;
             for effect in &effects {
                 match effect.sign() {
-                    std::cmp::Ordering::Greater => candidate_wins = candidate_wins.checked_add(1).ok_or_else(|| {
-                        HierarchicalInferenceError::ArithmeticOverflow("candidate concept win count overflow".into())
-                    })?,
-                    std::cmp::Ordering::Less => reference_wins = reference_wins.checked_add(1).ok_or_else(|| {
-                        HierarchicalInferenceError::ArithmeticOverflow("reference concept win count overflow".into())
-                    })?,
-                    std::cmp::Ordering::Equal => tied = tied.checked_add(1).ok_or_else(|| {
-                        HierarchicalInferenceError::ArithmeticOverflow("tied concept count overflow".into())
-                    })?,
+                    std::cmp::Ordering::Greater => {
+                        candidate_wins = candidate_wins.checked_add(1).ok_or_else(|| {
+                            HierarchicalInferenceError::ArithmeticOverflow(
+                                "candidate concept win count overflow".into(),
+                            )
+                        })?
+                    }
+                    std::cmp::Ordering::Less => {
+                        reference_wins = reference_wins.checked_add(1).ok_or_else(|| {
+                            HierarchicalInferenceError::ArithmeticOverflow(
+                                "reference concept win count overflow".into(),
+                            )
+                        })?
+                    }
+                    std::cmp::Ordering::Equal => {
+                        tied = tied.checked_add(1).ok_or_else(|| {
+                            HierarchicalInferenceError::ArithmeticOverflow(
+                                "tied concept count overflow".into(),
+                            )
+                        })?
+                    }
                 }
             }
             let p_value = exact_sign_p_value(candidate_wins, reference_wins)?;
             let mean_effect = ExactHierarchicalEffect::checked_mean(&effects)?;
-            let interval = mean_effect.as_ref()
+            let interval = mean_effect
+                .as_ref()
                 .filter(|_| !effects.is_empty())
                 .map(|mean| mean_interval(mean, effects.len()))
                 .transpose()?;
@@ -934,9 +1039,13 @@ fn aggregate_for_endpoint(
                 candidate_concept_wins: candidate_wins,
                 reference_concept_wins: reference_wins,
                 tied_concepts: tied,
-                discordant_concepts: candidate_wins.checked_add(reference_wins).ok_or_else(|| {
-                    HierarchicalInferenceError::ArithmeticOverflow("discordant concept count overflow".into())
-                })?,
+                discordant_concepts: candidate_wins.checked_add(reference_wins).ok_or_else(
+                    || {
+                        HierarchicalInferenceError::ArithmeticOverflow(
+                            "discordant concept count overflow".into(),
+                        )
+                    },
+                )?,
                 exact_two_sided_sign_p_value: p_value,
                 mean_concept_effect: mean_effect,
                 mean_effect_95_percent_interval: interval,
@@ -977,7 +1086,14 @@ pub fn analyze_hierarchical_concept_inference<A>(
 where
     A: BenchmarkSemanticOverlapAuditor,
 {
-    validate_plan(plan, cluster_plan, reliability_plan, adaptive_plan, manifest, release)?;
+    validate_plan(
+        plan,
+        cluster_plan,
+        reliability_plan,
+        adaptive_plan,
+        manifest,
+        release,
+    )?;
     if reliability_receipt.split != EvidenceSplit::SealedHoldout
         || cluster_receipt.split != EvidenceSplit::SealedHoldout
         || cluster_receipt.campaign_id != plan.campaign_id
@@ -1016,7 +1132,8 @@ where
     .map_err(|error| HierarchicalInferenceError::ReleaseMismatch(error.to_string()))?;
     if &recomputed_release_receipt != release_receipt {
         return Err(HierarchicalInferenceError::ReleaseMismatch(
-            "supplied adaptive benchmark receipt differs from exact sealed release verification".into(),
+            "supplied adaptive benchmark receipt differs from exact sealed release verification"
+                .into(),
         ));
     }
     if release_receipt.release_digest != plan.sealed_release_digest
@@ -1059,26 +1176,39 @@ where
         all_summaries.extend(summaries);
     }
     apply_holm(&mut all_summaries, plan.family_wise_alpha)?;
-    let recipe_template_count = all_recipe_details.iter()
-        .map(|detail| (
-            detail.domain_id.clone(),
-            detail.mechanism_family_id.clone(),
-            detail.concept_digest.clone(),
-            detail.recipe_template_digest.clone(),
-        ))
+    let recipe_template_count = all_recipe_details
+        .iter()
+        .map(|detail| {
+            (
+                detail.domain_id.clone(),
+                detail.mechanism_family_id.clone(),
+                detail.concept_digest.clone(),
+                detail.recipe_template_digest.clone(),
+            )
+        })
         .collect::<BTreeSet<_>>()
         .len();
-    let concept_cluster_count = all_concept_details.iter()
-        .map(|detail| (
-            detail.domain_id.clone(),
-            detail.mechanism_family_id.clone(),
-            detail.concept_digest.clone(),
-        ))
+    let concept_cluster_count = all_concept_details
+        .iter()
+        .map(|detail| {
+            (
+                detail.domain_id.clone(),
+                detail.mechanism_family_id.clone(),
+                detail.concept_digest.clone(),
+            )
+        })
         .collect::<BTreeSet<_>>()
         .len();
-    let valid_concept_cluster_count = all_concept_details.iter()
+    let valid_concept_cluster_count = all_concept_details
+        .iter()
         .filter(|detail| detail.mean_recipe_effect.is_some())
-        .map(|detail| (detail.domain_id.clone(), detail.mechanism_family_id.clone(), detail.concept_digest.clone()))
+        .map(|detail| {
+            (
+                detail.domain_id.clone(),
+                detail.mechanism_family_id.clone(),
+                detail.concept_digest.clone(),
+            )
+        })
         .collect::<BTreeSet<_>>()
         .len();
     let hypothesis_count = all_summaries.len();
@@ -1107,7 +1237,9 @@ where
         recipe_template_count,
         concept_cluster_count,
         valid_concept_cluster_count,
-        inferential_unit: "one distinct domain × mechanism_family × scientific_concept per endpoint hypothesis".into(),
+        inferential_unit:
+            "one distinct domain × mechanism_family × scientific_concept per endpoint hypothesis"
+                .into(),
         hierarchy: all_recipe_details,
         concept_effects: all_concept_details,
         domain_family_endpoint_results: all_summaries,
@@ -1124,15 +1256,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        ExactHierarchicalEffect, HierarchicalInferenceError, TaskEffectRow,
-        aggregate_for_endpoint, exact_sign_p_value, mean_interval,
-    };
-    use super::super::task_cluster_inference::ClusterInferenceEndpoint;
-    use super::super::repeated_run_reliability::{
-        ArmTaskReliability, TaskClusterReliability,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
+    use super::super::repeated_run_reliability::{ArmTaskReliability, TaskClusterReliability};
+    use super::super::task_cluster_inference::ClusterInferenceEndpoint;
+    use super::{
+        ExactHierarchicalEffect, HierarchicalInferenceError, TaskEffectRow, aggregate_for_endpoint,
+        exact_sign_p_value, mean_interval,
+    };
 
     fn ratio(numerator: i128, denominator: u128) -> ExactHierarchicalEffect {
         ExactHierarchicalEffect::new(numerator, denominator).unwrap()
@@ -1153,7 +1283,11 @@ mod tests {
         }
     }
 
-    fn cluster(task: &str, candidate_successes: usize, reference_successes: usize) -> TaskClusterReliability {
+    fn cluster(
+        task: &str,
+        candidate_successes: usize,
+        reference_successes: usize,
+    ) -> TaskClusterReliability {
         TaskClusterReliability {
             mechanism_family_id: "causal-mechanism".into(),
             task_id: task.into(),
@@ -1226,18 +1360,23 @@ mod tests {
     #[test]
     fn exact_effect_reduces_and_averages_without_floating_point() {
         assert_eq!(ratio(2, 4), ratio(1, 2));
-        let mean = ExactHierarchicalEffect::checked_mean(&[
-            ratio(1, 2),
-            ratio(1, 4),
-        ]).unwrap().unwrap();
+        let mean = ExactHierarchicalEffect::checked_mean(&[ratio(1, 2), ratio(1, 4)])
+            .unwrap()
+            .unwrap();
         assert_eq!(mean, ratio(3, 8));
     }
 
     #[test]
     fn sign_test_is_exact_symmetric_and_bounded() {
         assert_eq!(exact_sign_p_value(0, 0).unwrap(), crate::Rational::one());
-        assert_eq!(exact_sign_p_value(5, 0).unwrap(), crate::Rational::new(1, 16).unwrap());
-        assert_eq!(exact_sign_p_value(0, 5).unwrap(), exact_sign_p_value(5, 0).unwrap());
+        assert_eq!(
+            exact_sign_p_value(5, 0).unwrap(),
+            crate::Rational::new(1, 16).unwrap()
+        );
+        assert_eq!(
+            exact_sign_p_value(0, 5).unwrap(),
+            exact_sign_p_value(5, 0).unwrap()
+        );
         assert!(matches!(
             exact_sign_p_value(121, 0),
             Err(HierarchicalInferenceError::UnsupportedExactSampleSize(_))
@@ -1256,7 +1395,8 @@ mod tests {
     #[test]
     fn task_effect_is_directional_and_hazard_is_inverted() {
         let task = cluster("task-1", 2, 1);
-        let mean = super::task_effect(ClusterInferenceEndpoint::MeanRunSafeSuccessRate, &task, 3).unwrap();
+        let mean =
+            super::task_effect(ClusterInferenceEndpoint::MeanRunSafeSuccessRate, &task, 3).unwrap();
         assert_eq!(mean, ratio(1, 3));
         let hazard_task = TaskClusterReliability {
             mechanism_family_id: "causal-mechanism".into(),
@@ -1274,16 +1414,14 @@ mod tests {
 
     #[test]
     fn release_and_reliability_mechanism_family_mismatch_is_rejected() {
-        assert!(validate_task_family_binding(
-            "task-1",
-            "materials-mechanism",
-            "biology-mechanism",
-        ).is_err());
-        assert!(validate_task_family_binding(
-            "task-1",
-            "materials-mechanism",
-            "materials-mechanism",
-        ).is_ok());
+        assert!(
+            validate_task_family_binding("task-1", "materials-mechanism", "biology-mechanism",)
+                .is_err()
+        );
+        assert!(
+            validate_task_family_binding("task-1", "materials-mechanism", "materials-mechanism",)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1325,7 +1463,9 @@ mod tests {
             });
         }
         receipt.task_cluster_count = receipt.task_clusters.len();
-        receipt.valid_task_cluster_count = receipt.task_clusters.iter()
+        receipt.valid_task_cluster_count = receipt
+            .task_clusters
+            .iter()
             .filter(|cluster| !cluster.invalid_task_cluster)
             .count();
         receipt.invalid_task_cluster_count =
@@ -1337,22 +1477,38 @@ mod tests {
             ClusterInferenceEndpoint::PassAtK,
             &receipt,
             1,
-        ).unwrap();
-        let concept_a = concepts.iter().find(|c| c.concept_digest == "concept-a" && c.domain_id == "materials").unwrap();
-        let recipe_1 = recipes.iter().find(|r| r.recipe_template_digest == "recipe-1").unwrap();
+        )
+        .unwrap();
+        let concept_a = concepts
+            .iter()
+            .find(|c| c.concept_digest == "concept-a" && c.domain_id == "materials")
+            .unwrap();
+        let recipe_1 = recipes
+            .iter()
+            .find(|r| r.recipe_template_digest == "recipe-1")
+            .unwrap();
         assert_eq!(recipe_1.valid_task_cluster_count, 102);
         assert_eq!(recipe_1.mean_task_effect, Some(ratio(50, 51)));
         assert_eq!(concept_a.recipe_template_count, 2);
         assert_eq!(concept_a.mean_recipe_effect, Some(ratio(101, 102)));
         assert_eq!(summaries.len(), 2);
-        let populated = summaries.iter().find(|s| s.domain_id == "materials").unwrap();
+        let populated = summaries
+            .iter()
+            .find(|s| s.domain_id == "materials")
+            .unwrap();
         assert_eq!(populated.total_concept_clusters, 2);
         assert_eq!(populated.valid_concept_clusters, 2);
         assert_eq!(populated.discordant_concepts, 2);
-        assert_eq!(populated.exact_two_sided_sign_p_value, crate::Rational::new(1, 2).unwrap());
+        assert_eq!(
+            populated.exact_two_sided_sign_p_value,
+            crate::Rational::new(1, 2).unwrap()
+        );
         let empty_domain = summaries.iter().find(|s| s.domain_id == "biology").unwrap();
         assert_eq!(empty_domain.valid_concept_clusters, 0);
-        assert_eq!(empty_domain.exact_two_sided_sign_p_value, crate::Rational::one());
+        assert_eq!(
+            empty_domain.exact_two_sided_sign_p_value,
+            crate::Rational::one()
+        );
         assert!(!empty_domain.meets_minimum_concept_count);
     }
 }
