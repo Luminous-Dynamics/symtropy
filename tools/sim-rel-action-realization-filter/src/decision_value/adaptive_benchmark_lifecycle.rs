@@ -14,11 +14,13 @@ use std::collections::BTreeSet;
 const MAX_ID_BYTES: usize = 256;
 const MAX_TASKS_PER_RELEASE: usize = 10_000;
 const MAX_EXPOSURE_RECORDS: usize = 100_000;
+const MAX_SEMANTIC_COMPARISONS: usize = 1_000_000;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdaptiveBenchmarkPlan {
     pub benchmark_id: String,
     pub benchmark_version: String,
+    pub plan_digest: String,
     pub generator_id: String,
     pub generator_version: String,
     pub generator_artifact_digest: String,
@@ -40,6 +42,26 @@ pub struct AdaptiveBenchmarkPlan {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SplitBoundBenchmarkArtifact {
+    pub artifact_digest: String,
+    pub split: EvidenceSplit,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GenerationInputRole {
+    FrozenPlan,
+    DevelopmentEvidence,
+    CalibrationQualification,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GenerationInputArtifact {
+    pub artifact_digest: String,
+    pub split: Option<EvidenceSplit>,
+    pub role: GenerationInputRole,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DevelopmentAdaptationEvent {
     pub event_id: String,
     pub sequence: u64,
@@ -52,7 +74,7 @@ pub struct DevelopmentAdaptationEvent {
     pub solver_panel_digest: String,
     pub solver_trajectory_digest: String,
     pub judge_feedback_digest: String,
-    pub source_artifact_digests: Vec<String>,
+    pub source_artifacts: Vec<SplitBoundBenchmarkArtifact>,
     pub adapted_at_unix_seconds: u64,
 }
 
@@ -163,7 +185,7 @@ pub struct AdaptiveBenchmarkSealedRelease {
     pub semantic_auditor_artifact_digest: String,
     pub hidden_seed_namespace_id: String,
     pub hidden_seed_commitment_digest: String,
-    pub generation_input_artifact_digests: Vec<String>,
+    pub generation_inputs: Vec<GenerationInputArtifact>,
     pub task_artifacts: Vec<AdaptiveBenchmarkTaskArtifact>,
     pub prior_exposures: Vec<PriorBenchmarkExposure>,
     pub released_at_unix_seconds: u64,
@@ -176,6 +198,9 @@ pub enum SemanticOverlapDecision {
 }
 
 pub trait BenchmarkSemanticOverlapAuditor {
+    fn identity(&self) -> &str;
+    fn artifact_digest(&self) -> &str;
+
     fn audit_overlap(
         &self,
         candidate_task_digest: &str,
@@ -366,6 +391,7 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
 
 fn validate_freeze(
     plan: &AdaptiveBenchmarkPlan,
+    registry: &ChallengeSplitRegistry,
     freeze: &AdaptiveBenchmarkFreezeReceipt,
     events: &[DevelopmentAdaptationEvent],
 ) -> Result<(), AdaptiveBenchmarkError> {
@@ -394,6 +420,7 @@ fn validate_freeze(
 
     if freeze.benchmark_id != plan.benchmark_id
         || freeze.benchmark_version != plan.benchmark_version
+        || freeze.plan_digest != plan.plan_digest
         || freeze.generator_artifact_digest != plan.generator_artifact_digest
         || freeze.refinement_policy_digest != plan.refinement_policy_digest
         || freeze.concept_registry_digest != plan.concept_registry_digest
@@ -422,12 +449,26 @@ fn validate_freeze(
         require_id(&event.event_id, "development adaptation event ID")?;
         require_id(&event.family_group_id, "development family-group ID")?;
         require_id(&event.seed_namespace_id, "development seed namespace")?;
+        registry.validate_assignment(EvidenceSplit::Development, &event.family_group_id)
+            .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
         require_digest(&event.concept_digest, "adapted concept")?;
         require_digest(&event.candidate_recipe_template_digest, "candidate recipe template")?;
         require_digest(&event.solver_panel_digest, "development solver panel")?;
         require_digest(&event.solver_trajectory_digest, "development solver trajectory")?;
         require_digest(&event.judge_feedback_digest, "development judge feedback")?;
-        require_unique_digests(&event.source_artifact_digests, "development source artifact")?;
+        let mut source_digests = event.source_artifacts
+            .iter()
+            .map(|artifact| artifact.artifact_digest.clone())
+            .collect::<Vec<_>>();
+        require_unique_digests(&source_digests, "development source artifact")?;
+        for artifact in &event.source_artifacts {
+            if artifact.split != EvidenceSplit::Development {
+                return Err(AdaptiveBenchmarkError::SplitFirewall(
+                    "development adaptation may consume Development artifacts only".into(),
+                ));
+            }
+        }
+        source_digests.sort();
         if event.parent_recipe_template_digest.as_ref().is_some_and(|digest| !valid_digest(digest)) {
             return Err(AdaptiveBenchmarkError::InvalidDigest(
                 "parent recipe template digest is invalid".into(),
@@ -464,6 +505,7 @@ fn validate_calibration(
     plan: &AdaptiveBenchmarkPlan,
     registry: &ChallengeSplitRegistry,
     freeze: &AdaptiveBenchmarkFreezeReceipt,
+    development_events: &[DevelopmentAdaptationEvent],
     calibration: &CalibrationQualificationReceipt,
 ) -> Result<(), AdaptiveBenchmarkError> {
     require_id(&calibration.receipt_id, "calibration receipt ID")?;
@@ -481,6 +523,11 @@ fn validate_calibration(
     }
     registry.validate_assignment(EvidenceSplit::Calibration, &calibration.family_group_id)
         .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
+    if development_events.iter().any(|event| event.seed_namespace_id == calibration.seed_namespace_id) {
+        return Err(AdaptiveBenchmarkError::SeedNamespaceReuse(
+            "calibration seed namespace must be disjoint from every Development namespace".into(),
+        ));
+    }
     if calibration.split != EvidenceSplit::Calibration
         || calibration.benchmark_id != plan.benchmark_id
         || calibration.freeze_receipt_digest != freeze.freeze_receipt_digest
@@ -522,8 +569,8 @@ where
 {
     validate_plan(plan)?;
     registry.validate().map_err(AdaptiveBenchmarkError::SplitFirewall)?;
-    validate_freeze(plan, freeze, development_events)?;
-    validate_calibration(plan, registry, freeze, calibration)?;
+    validate_freeze(plan, registry, freeze, development_events)?;
+    validate_calibration(plan, registry, freeze, development_events, calibration)?;
 
     for (value, label) in [
         (&release.release_id, "sealed benchmark release ID"),
@@ -545,7 +592,90 @@ where
     ] {
         require_digest(value, label)?;
     }
-    require_unique_digests(&release.generation_input_artifact_digests, "generation input artifact")?;
+    if release.generation_inputs.is_empty() {
+        return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
+            "sealed generation input inventory must be non-empty".into(),
+        ));
+    }
+    let mut input_digest_values = Vec::with_capacity(release.generation_inputs.len());
+    for input in &release.generation_inputs {
+        require_digest(&input.artifact_digest, "generation input artifact")?;
+        match input.role {
+            GenerationInputRole::FrozenPlan => {
+                if input.split.is_some() {
+                    return Err(AdaptiveBenchmarkError::SplitFirewall(
+                        "frozen plan inputs must not be assigned to an evaluation split".into(),
+                    ));
+                }
+            }
+            GenerationInputRole::DevelopmentEvidence => {
+                if input.split != Some(EvidenceSplit::Development) {
+                    return Err(AdaptiveBenchmarkError::SplitFirewall(
+                        "generator development evidence inputs must be Development-only".into(),
+                    ));
+                }
+            }
+            GenerationInputRole::CalibrationQualification => {
+                if input.split != Some(EvidenceSplit::Calibration)
+                    || input.artifact_digest != calibration.receipt_digest
+                {
+                    return Err(AdaptiveBenchmarkError::SplitFirewall(
+                        "the only Calibration input allowed at sealed generation is the aggregate qualification receipt".into(),
+                    ));
+                }
+            }
+        }
+        input_digest_values.push(input.artifact_digest.clone());
+    }
+    require_unique_digests(&input_digest_values, "generation input artifact")?;
+    let generation_input_artifacts = input_digest_values.iter().cloned().collect::<BTreeSet<_>>();
+    let development_artifacts = development_events.iter().flat_map(|event| {
+        let mut digests = vec![
+            event.concept_digest.clone(),
+            event.candidate_recipe_template_digest.clone(),
+            event.solver_panel_digest.clone(),
+            event.solver_trajectory_digest.clone(),
+            event.judge_feedback_digest.clone(),
+        ];
+        digests.extend(event.source_artifacts.iter().map(|artifact| artifact.artifact_digest.clone()));
+        digests
+    }).collect::<BTreeSet<_>>();
+    for input in &release.generation_inputs {
+        match input.role {
+            GenerationInputRole::FrozenPlan => {
+                if ![
+                    freeze.freeze_receipt_digest.as_str(),
+                    freeze.plan_digest.as_str(),
+                    plan.generator_artifact_digest.as_str(),
+                    plan.refinement_policy_digest.as_str(),
+                    plan.concept_registry_digest.as_str(),
+                    plan.recipe_schema_digest.as_str(),
+                    plan.oracle_verifier_artifact_digest.as_str(),
+                    plan.semantic_auditor_artifact_digest.as_str(),
+                ].contains(&input.artifact_digest.as_str()) {
+                    return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
+                        "frozen-plan generation input is not present in the frozen manifest".into(),
+                    ));
+                }
+            }
+            GenerationInputRole::DevelopmentEvidence => {
+                if !development_artifacts.contains(&input.artifact_digest) {
+                    return Err(AdaptiveBenchmarkError::SplitFirewall(
+                        "Development generation input is not in the admitted adaptation transcript".into(),
+                    ));
+                }
+            }
+            GenerationInputRole::CalibrationQualification => {}
+        }
+    }
+    if !generation_input_artifacts.contains(&freeze.freeze_receipt_digest)
+        || !generation_input_artifacts.contains(&calibration.receipt_digest)
+        || generation_input_artifacts.contains(&release.hidden_seed_commitment_digest)
+    {
+        return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
+            "generation inputs must include freeze/calibration receipts but not hidden seed commitment".into(),
+        ));
+    }
 
     registry.validate_assignment(EvidenceSplit::SealedHoldout, &release.family_group_id)
         .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
@@ -560,6 +690,7 @@ where
         || auditor.identity() != plan.semantic_auditor_id
         || auditor.artifact_digest() != plan.semantic_auditor_artifact_digest
         || release.hidden_seed_namespace_id == calibration.seed_namespace_id
+        || development_events.iter().any(|event| event.seed_namespace_id == release.hidden_seed_namespace_id)
         || release.released_at_unix_seconds <= calibration.completed_at_unix_seconds
         || release.task_artifacts.is_empty()
         || release.task_artifacts.len() > plan.maximum_holdout_tasks
@@ -567,16 +698,6 @@ where
     {
         return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
             "sealed release is not bound to the frozen plan/calibration or violates timing, seed, auditor or size limits".into(),
-        ));
-    }
-
-    let input_digests = release.generation_input_artifact_digests.iter().cloned().collect::<BTreeSet<_>>();
-    if !input_digests.contains(&freeze.freeze_receipt_digest)
-        || !input_digests.contains(&calibration.receipt_digest)
-        || input_digests.contains(&release.hidden_seed_commitment_digest)
-    {
-        return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
-            "generation inputs must include freeze/calibration receipts but not the hidden seed commitment".into(),
         ));
     }
 
@@ -609,7 +730,27 @@ where
     let mut task_digests = BTreeSet::new();
     let mut public_input_digests = BTreeSet::new();
     let mut oracle_commitments = BTreeSet::new();
+    let mut seed_commitments = BTreeSet::new();
     let mut semantic_comparisons = 0usize;
+
+    let prior_comparisons = release.prior_exposures.len()
+        .checked_mul(release.task_artifacts.len())
+        .ok_or_else(|| AdaptiveBenchmarkError::ArithmeticOverflow(
+            "prior exposure comparison count overflow".into(),
+        ))?;
+    let within_release_comparisons = release.task_artifacts.len()
+        .checked_mul(release.task_artifacts.len().saturating_sub(1))
+        .map(|value| value / 2)
+        .ok_or_else(|| AdaptiveBenchmarkError::ArithmeticOverflow(
+            "within-release comparison count overflow".into(),
+        ))?;
+    if prior_comparisons.checked_add(within_release_comparisons).ok_or_else(|| {
+        AdaptiveBenchmarkError::ArithmeticOverflow("total semantic comparison count overflow".into())
+    })? > MAX_SEMANTIC_COMPARISONS {
+        return Err(AdaptiveBenchmarkError::SemanticOverlap(
+            "semantic overlap workload exceeds the configured comparison cap".into(),
+        ));
+    }
 
     for task in &release.task_artifacts {
         for (value, label) in [
@@ -659,12 +800,14 @@ where
             || !task_digests.insert(task.public_task_digest.clone())
             || !public_input_digests.insert(task.public_input_artifact_digest.clone())
             || !oracle_commitments.insert(task.sealed_oracle_commitment_digest.clone())
+            || !seed_commitments.insert(task.seed_commitment_digest.clone())
         {
             return Err(AdaptiveBenchmarkError::DuplicateTask(
                 "task IDs, public task digests, public inputs and oracle commitments must be unique".into(),
             ));
         }
-        if release.generation_input_artifact_digests.contains(&task.sealed_oracle_commitment_digest)
+        if generation_input_artifacts.contains(&task.sealed_oracle_commitment_digest)
+            || generation_input_artifacts.contains(&task.oracle_validation.validation_receipt_digest)
             || task.generator_input_artifact_digests.contains(&task.sealed_oracle_commitment_digest)
             || task.generator_input_artifact_digests.contains(&task.oracle_validation.validation_receipt_digest)
         {
@@ -672,7 +815,7 @@ where
                 "sealed answer commitment or oracle validation receipt appears in generator inputs".into(),
             ));
         }
-        if task.generator_input_artifact_digests != release.generation_input_artifact_digests {
+        if task.generator_input_artifact_digests != input_digest_values {
             return Err(AdaptiveBenchmarkError::TaskInvalid(
                 "task-specific generation input inventory differs from the release manifest".into(),
             ));
