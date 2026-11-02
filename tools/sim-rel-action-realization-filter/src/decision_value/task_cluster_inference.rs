@@ -512,9 +512,11 @@ fn exact_cluster_sign_test_p_value(
     let tail_count = candidate_wins.min(reference_wins);
     let mut tail_sum = 0u128;
     for index in 0..=tail_count {
-        tail_sum = tail_sum.checked_add(binomial_coefficient(discordant, index)?).ok_or_else(|| {
-            ClusterInferenceError::ArithmeticOverflow("exact sign-test tail overflow".into())
-        })?;
+        tail_sum = tail_sum
+            .checked_add(binomial_coefficient(discordant, index)?)
+            .ok_or_else(|| {
+                ClusterInferenceError::ArithmeticOverflow("exact sign-test tail overflow".into())
+            })?;
     }
     let denominator = 1u128.checked_shl(discordant as u32).ok_or_else(|| {
         ClusterInferenceError::UnsupportedExactSampleSize(
