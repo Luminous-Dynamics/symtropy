@@ -2988,3 +2988,114 @@ fn nary_separator_join_reclassifies_parent_cells_on_final_intersections() {
 
     assert!(verify_nary_separator_composition(&sources, &composed));
 }
+
+
+#[test]
+fn sticking_separator_interval_partition_preserves_strict_boundary_and_excluded_cells() {
+    let message = StickingLeafMessage {
+        self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(2.0, 1.0, 1.0)),
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(-1.5, 0.125, 0.0),
+        friction_coefficient: 0.5,
+    };
+
+    let strict_root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(0.875, -0.5, -0.125),
+        SVector::<f64, 3>::new(1.125, -0.375, 0.125),
+    )
+    .unwrap();
+    let strict = message
+        .partition_separator_box(&strict_root, 4, 64)
+        .unwrap();
+    assert!(strict.coverage_preserved);
+    assert!(strict.classification_complete);
+    assert_eq!(strict.cells.len(), 1);
+    assert_eq!(
+        strict.cells[0].classification,
+        StickingBoxClassification::StrictlySticking
+    );
+    assert!(message.verify_box_cover(&strict_root, &strict.cells));
+
+    let outside_root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 1.625, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.625, 0.0),
+    )
+    .unwrap();
+    let outside = message
+        .partition_separator_box(&outside_root, 4, 64)
+        .unwrap();
+    assert!(outside.coverage_preserved);
+    assert!(outside.classification_complete);
+    assert_eq!(
+        outside.cells[0].classification,
+        StickingBoxClassification::OutsideStrictStickingDomain
+    );
+
+    let boundary_root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, 1.5, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.5, 0.0),
+    )
+    .unwrap();
+    let boundary = message
+        .partition_separator_box(&boundary_root, 4, 64)
+        .unwrap();
+    assert!(boundary.coverage_preserved);
+    assert!(!boundary.classification_complete);
+    assert_eq!(
+        boundary.cells[0].classification,
+        StickingBoxClassification::BoundaryOrInconclusive
+    );
+
+    let crossing_root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(0.875, -0.5, -0.125),
+        SVector::<f64, 3>::new(1.125, 1.625, 0.125),
+    )
+    .unwrap();
+    let crossing = message
+        .partition_separator_box(&crossing_root, 5, 128)
+        .unwrap();
+    assert!(crossing.coverage_preserved);
+    assert!(!crossing.classification_complete);
+    assert!(crossing.cells.iter().any(|cell| {
+        cell.classification == StickingBoxClassification::StrictlySticking
+    }));
+    assert!(crossing.cells.iter().any(|cell| {
+        cell.classification == StickingBoxClassification::OutsideStrictStickingDomain
+    }));
+    assert!(crossing.cells.iter().any(|cell| {
+        cell.classification == StickingBoxClassification::BoundaryOrInconclusive
+    }));
+}
+
+#[test]
+fn sticking_separator_partition_retains_node_budget_frontier_and_rejects_a_gap() {
+    let message = StickingLeafMessage {
+        self_operator: Matrix3::from_diagonal(&SVector::<f64, 3>::new(2.0, 1.0, 1.0)),
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(-1.5, 0.125, 0.0),
+        friction_coefficient: 0.5,
+    };
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(0.875, -0.5, -0.125),
+        SVector::<f64, 3>::new(1.125, 1.625, 0.125),
+    )
+    .unwrap();
+    let partition = message.partition_separator_box(&root, 8, 1).unwrap();
+
+    assert!(partition.coverage_preserved);
+    assert!(partition.node_budget_exhausted);
+    assert!(!partition.classification_complete);
+    assert_eq!(partition.cells.len(), 2);
+    assert!(
+        partition
+            .cells
+            .iter()
+            .all(|cell| cell.classification == StickingBoxClassification::BoundaryOrInconclusive)
+    );
+    assert!(message.verify_box_cover(&root, &partition.cells));
+
+    let mut missing_child = partition.cells.clone();
+    missing_child.pop();
+    assert!(!message.verify_box_cover(&root, &missing_child));
+    assert!(message.partition_separator_box(&root, 8, 0).is_err());
+}
