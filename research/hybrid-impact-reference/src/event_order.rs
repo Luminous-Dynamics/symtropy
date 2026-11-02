@@ -316,3 +316,295 @@ mod tests {
         );
     }
 }
+
+
+/// One directed event-order edge. Edge direction is always before -> after.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventOrderEdge {
+    pub before_event_id: String,
+    pub after_event_id: String,
+}
+
+/// One unresolved pair retained by the partial-order graph.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnresolvedEventPair {
+    pub event_a_id: String,
+    pub event_b_id: String,
+    pub relation: EventOrderRelation,
+}
+
+/// A deterministic partial-order view over one finite event set.
+///
+/// Proven edges are derived only from certified disjoint enclosures.
+/// Estimated edges are kept separate and are never included in the
+/// proof-grade graph. Every unresolved/overlapping pair is retained.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventOrderGraph {
+    pub event_ids: Vec<String>,
+    pub proven_before_edges: Vec<EventOrderEdge>,
+    pub estimated_before_edges: Vec<EventOrderEdge>,
+    pub unresolved_pairs: Vec<UnresolvedEventPair>,
+}
+
+/// Errors while building a bounded event-order graph.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventOrderGraphError {
+    TooManyEvents,
+    DuplicateEventIdentity,
+    InvalidPair(EventOrderError),
+    ProvenOrderCycle,
+}
+
+/// Maximum number of event records accepted by the reference graph builder.
+pub const MAX_EVENT_ORDER_GRAPH_EVENTS: usize = 256;
+
+/// Build a deterministic pairwise partial-order graph.
+///
+/// The input is sorted by event ID before evaluation. This makes graph
+/// serialization independent of caller insertion order. The worst-case
+/// pair count is bounded by MAX_EVENT_ORDER_GRAPH_EVENTS.
+pub fn build_event_order_graph(
+    records: &[EventTimeRecord],
+) -> Result<EventOrderGraph, EventOrderGraphError> {
+    if records.len() > MAX_EVENT_ORDER_GRAPH_EVENTS {
+        return Err(EventOrderGraphError::TooManyEvents);
+    }
+
+    let mut ordered = records.to_vec();
+    ordered.sort_by(|a, b| a.event_id.cmp(&b.event_id));
+    for pair in ordered.windows(2) {
+        if pair[0].event_id == pair[1].event_id {
+            return Err(EventOrderGraphError::DuplicateEventIdentity);
+        }
+    }
+
+    let mut graph = EventOrderGraph {
+        event_ids: ordered.iter().map(|record| record.event_id.clone()).collect(),
+        proven_before_edges: Vec::new(),
+        estimated_before_edges: Vec::new(),
+        unresolved_pairs: Vec::new(),
+    };
+
+    for i in 0..ordered.len() {
+        for j in (i + 1)..ordered.len() {
+            let a = &ordered[i];
+            let b = &ordered[j];
+            let relation =
+                compare_event_order(a, b).map_err(EventOrderGraphError::InvalidPair)?;
+            match relation {
+                EventOrderRelation::ProvenBefore => {
+                    graph.proven_before_edges.push(EventOrderEdge {
+                        before_event_id: a.event_id.clone(),
+                        after_event_id: b.event_id.clone(),
+                    });
+                }
+                EventOrderRelation::ProvenAfter => {
+                    graph.proven_before_edges.push(EventOrderEdge {
+                        before_event_id: b.event_id.clone(),
+                        after_event_id: a.event_id.clone(),
+                    });
+                }
+                EventOrderRelation::EstimatedBefore => {
+                    graph.estimated_before_edges.push(EventOrderEdge {
+                        before_event_id: a.event_id.clone(),
+                        after_event_id: b.event_id.clone(),
+                    });
+                }
+                EventOrderRelation::EstimatedAfter => {
+                    graph.estimated_before_edges.push(EventOrderEdge {
+                        before_event_id: b.event_id.clone(),
+                        after_event_id: a.event_id.clone(),
+                    });
+                }
+                EventOrderRelation::UnresolvedOverlap
+                | EventOrderRelation::EstimatedOverlap => {
+                    graph.unresolved_pairs.push(UnresolvedEventPair {
+                        event_a_id: a.event_id.clone(),
+                        event_b_id: b.event_id.clone(),
+                        relation,
+                    });
+                }
+            }
+        }
+    }
+
+    if has_cycle(&graph.event_ids, &graph.proven_before_edges) {
+        return Err(EventOrderGraphError::ProvenOrderCycle);
+    }
+
+    Ok(graph)
+}
+
+fn has_cycle(event_ids: &[String], edges: &[EventOrderEdge]) -> bool {
+    use std::collections::{BTreeMap, VecDeque};
+
+    let mut indegree: BTreeMap<&str, usize> =
+        event_ids.iter().map(|id| (id.as_str(), 0)).collect();
+    let mut outgoing: BTreeMap<&str, Vec<&str>> =
+        event_ids.iter().map(|id| (id.as_str(), Vec::new())).collect();
+
+    for edge in edges {
+        let Some(value) = indegree.get_mut(edge.after_event_id.as_str()) else {
+            return true;
+        };
+        *value += 1;
+        let Some(neighbours) = outgoing.get_mut(edge.before_event_id.as_str()) else {
+            return true;
+        };
+        neighbours.push(edge.after_event_id.as_str());
+    }
+
+    let mut ready = VecDeque::new();
+    for (id, degree) in &indegree {
+        if *degree == 0 {
+            ready.push_back(*id);
+        }
+    }
+
+    let mut visited = 0usize;
+    while let Some(id) = ready.pop_front() {
+        visited += 1;
+        if let Some(neighbours) = outgoing.get(id) {
+            for neighbour in neighbours {
+                let Some(degree) = indegree.get_mut(neighbour) else {
+                    return true;
+                };
+                *degree -= 1;
+                if *degree == 0 {
+                    ready.push_back(neighbour);
+                }
+            }
+        }
+    }
+    visited != event_ids.len()
+}
+
+#[cfg(test)]
+mod graph_tests {
+    use super::*;
+
+    fn record(id: &str, lower: f64, upper: f64, grade: EventTimeEvidence) -> EventTimeRecord {
+        EventTimeRecord {
+            event_id: id.into(),
+            time_basis_id: "sim-seconds-v1".into(),
+            evidence_reference: format!("receipt-{id}"),
+            lower_time: lower,
+            upper_time: upper,
+            evidence: grade,
+        }
+    }
+
+    #[test]
+    fn graph_separates_proven_estimated_and_unresolved_relations() {
+        let records = vec![
+            record("a", 0.0, 0.1, EventTimeEvidence::CertifiedEnclosure),
+            record("b", 0.2, 0.3, EventTimeEvidence::CertifiedEnclosure),
+            record("c", 0.25, 0.4, EventTimeEvidence::NumericalEstimate),
+            record("d", 0.5, 0.6, EventTimeEvidence::NumericalEstimate),
+        ];
+        let graph = build_event_order_graph(&records).expect("valid graph");
+
+        assert_eq!(graph.event_ids, vec!["a", "b", "c", "d"]);
+        assert_eq!(
+            graph.proven_before_edges,
+            vec![EventOrderEdge {
+                before_event_id: "a".into(),
+                after_event_id: "b".into(),
+            }]
+        );
+        assert_eq!(
+            graph.estimated_before_edges,
+            vec![
+                EventOrderEdge {
+                    before_event_id: "a".into(),
+                    after_event_id: "c".into(),
+                },
+                EventOrderEdge {
+                    before_event_id: "a".into(),
+                    after_event_id: "d".into(),
+                },
+                EventOrderEdge {
+                    before_event_id: "b".into(),
+                    after_event_id: "d".into(),
+                },
+                EventOrderEdge {
+                    before_event_id: "c".into(),
+                    after_event_id: "d".into(),
+                },
+            ]
+        );
+        assert_eq!(
+            graph.unresolved_pairs,
+            vec![UnresolvedEventPair {
+                event_a_id: "b".into(),
+                event_b_id: "c".into(),
+                relation: EventOrderRelation::EstimatedOverlap,
+            }]
+        );
+    }
+
+    #[test]
+    fn graph_is_input_order_invariant() {
+        let a = record("a", 0.0, 0.1, EventTimeEvidence::CertifiedEnclosure);
+        let b = record("b", 0.2, 0.3, EventTimeEvidence::CertifiedEnclosure);
+        let c = record("c", 0.25, 0.4, EventTimeEvidence::NumericalEstimate);
+        let forward = build_event_order_graph(&[a.clone(), b.clone(), c.clone()]).unwrap();
+        let reverse = build_event_order_graph(&[c, b, a]).unwrap();
+
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn graph_rejects_duplicate_event_ids() {
+        let a = record("same", 0.0, 0.1, EventTimeEvidence::CertifiedEnclosure);
+        let b = record("same", 0.2, 0.3, EventTimeEvidence::CertifiedEnclosure);
+        assert_eq!(
+            build_event_order_graph(&[a, b]),
+            Err(EventOrderGraphError::DuplicateEventIdentity)
+        );
+    }
+
+    #[test]
+    fn graph_preserves_singletons_as_unresolved_not_simultaneous() {
+        let a = record("a", 1.0, 1.0, EventTimeEvidence::CertifiedEnclosure);
+        let b = record("b", 1.0, 1.0, EventTimeEvidence::CertifiedEnclosure);
+        let graph = build_event_order_graph(&[a, b]).unwrap();
+
+        assert!(graph.proven_before_edges.is_empty());
+        assert!(graph.estimated_before_edges.is_empty());
+        assert_eq!(graph.unresolved_pairs.len(), 1);
+        assert_eq!(
+            graph.unresolved_pairs[0].relation,
+            EventOrderRelation::UnresolvedOverlap
+        );
+    }
+
+    #[test]
+    fn graph_rejects_oversized_input_before_pair_allocation() {
+        let records = (0..=MAX_EVENT_ORDER_GRAPH_EVENTS)
+            .map(|i| {
+                record(
+                    &format!("event-{i}"),
+                    i as f64,
+                    i as f64 + 0.1,
+                    EventTimeEvidence::CertifiedEnclosure,
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            build_event_order_graph(&records),
+            Err(EventOrderGraphError::TooManyEvents)
+        );
+    }
+
+    #[test]
+    fn proof_grade_interval_relations_are_acyclic() {
+        let records = vec![
+            record("a", 0.0, 0.1, EventTimeEvidence::CertifiedEnclosure),
+            record("b", 0.2, 0.3, EventTimeEvidence::CertifiedEnclosure),
+            record("c", 0.4, 0.5, EventTimeEvidence::CertifiedEnclosure),
+        ];
+        let graph = build_event_order_graph(&records).expect("strictly ordered graph");
+        assert!(!has_cycle(&graph.event_ids, &graph.proven_before_edges));
+    }
+}
