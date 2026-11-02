@@ -572,6 +572,29 @@ mod tests {
     }
 
     #[test]
+    fn profile_valid_through_exact_service_finish_is_accepted() {
+        let mut lock = profile();
+        lock.valid_through_tick = Some(110);
+        let request = request(
+            "exact-finish",
+            "p1",
+            100,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let result = schedule_lock(
+            &lock,
+            &[request],
+            100,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
+
+        assert_eq!(result.scheduled.len(), 1);
+        assert_eq!(result.scheduled[0].finish_tick, 110);
+    }
+
+    #[test]
     fn priority_is_re_evaluated_when_lock_becomes_available() {
         let mut lock = profile();
         lock.availability = vec![TimeInterval { start_tick: 100, end_tick: 500 }];
