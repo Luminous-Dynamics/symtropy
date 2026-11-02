@@ -1,0 +1,10 @@
+[package]
+name = "symtropy-neural-adapter-core"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Dependency-free admission contracts for bounded embodied neural sensorimotor adapters."
+
+[lib]
+path = "src/lib.rs"
