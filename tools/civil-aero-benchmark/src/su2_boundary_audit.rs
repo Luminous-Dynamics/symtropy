@@ -287,8 +287,9 @@ fn parse_config(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
         } else {
             Some((line_number, line.to_owned()))
         };
-        if let Some((source_line, record)) = complete {
-            if let Some((raw_key, raw_value)) = record.split_once('=') {
+        if let Some((source_line, record)) = complete
+            && let Some((raw_key, raw_value)) = record.split_once('=')
+        {
                 let key = raw_key.trim();
                 if key.is_empty()
                     || values
@@ -299,7 +300,6 @@ fn parse_config(bytes: &[u8]) -> Result<BTreeMap<String, String>, String> {
                         "SU2 config has an empty or duplicate key at line {source_line}"
                     ));
                 }
-            }
         }
     }
     if let Some((line, _)) = pending {
