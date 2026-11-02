@@ -118,8 +118,7 @@ pub fn derive_cutter_wear_rate(
         return Err(MetricError::RadiusIncreased);
     }
 
-    let loss = interval.start_radial_radius_micrometres
-        - interval.end_radial_radius_micrometres;
+    let loss = interval.start_radial_radius_micrometres - interval.end_radial_radius_micrometres;
     let lower_loss = loss.saturating_sub(interval.expanded_loss_uncertainty_micrometres);
     let upper_loss = loss
         .checked_add(interval.expanded_loss_uncertainty_micrometres)
@@ -167,8 +166,22 @@ mod tests {
     fn hand_calculates_penetration_and_separate_energy_boundaries() {
         let metrics = derive_excavation_metrics(&segment()).unwrap();
         assert!((metrics.penetration_millimetres_per_revolution - 11.0).abs() < 1e-12);
-        assert!((metrics.mechanical_specific_excavation_energy_kwh_per_m3.unwrap() - 6.0).abs() < 1e-12);
-        assert!((metrics.whole_site_electrical_energy_kwh_per_accepted_m3.unwrap() - 12.5).abs() < 1e-12);
+        assert!(
+            (metrics
+                .mechanical_specific_excavation_energy_kwh_per_m3
+                .unwrap()
+                - 6.0)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (metrics
+                .whole_site_electrical_energy_kwh_per_accepted_m3
+                .unwrap()
+                - 12.5)
+                .abs()
+                < 1e-12
+        );
         assert!((metrics.accepted_volume_fraction - 0.8).abs() < 1e-12);
     }
 
@@ -177,7 +190,10 @@ mod tests {
         let mut s = segment();
         s.whole_site_electrical_energy_watt_hours = None;
         let m = derive_excavation_metrics(&s).unwrap();
-        assert_eq!(m.mechanical_specific_excavation_energy_kwh_per_m3, Some(6.0));
+        assert_eq!(
+            m.mechanical_specific_excavation_energy_kwh_per_m3,
+            Some(6.0)
+        );
         assert_eq!(m.whole_site_electrical_energy_kwh_per_accepted_m3, None);
     }
 
@@ -195,28 +211,40 @@ mod tests {
     fn zero_revolutions_are_rejected() {
         let mut s = segment();
         s.cutterhead_revolutions = 0;
-        assert_eq!(derive_excavation_metrics(&s), Err(MetricError::ZeroRevolutions));
+        assert_eq!(
+            derive_excavation_metrics(&s),
+            Err(MetricError::ZeroRevolutions)
+        );
     }
 
     #[test]
     fn zero_excavated_volume_is_rejected() {
         let mut s = segment();
         s.excavated_volume_litres = 0;
-        assert_eq!(derive_excavation_metrics(&s), Err(MetricError::ZeroExcavatedVolume));
+        assert_eq!(
+            derive_excavation_metrics(&s),
+            Err(MetricError::ZeroExcavatedVolume)
+        );
     }
 
     #[test]
     fn zero_accepted_volume_is_rejected_for_accepted_energy_intensity() {
         let mut s = segment();
         s.accepted_excavation_volume_litres = 0;
-        assert_eq!(derive_excavation_metrics(&s), Err(MetricError::ZeroAcceptedVolume));
+        assert_eq!(
+            derive_excavation_metrics(&s),
+            Err(MetricError::ZeroAcceptedVolume)
+        );
     }
 
     #[test]
     fn blank_segment_id_is_rejected() {
         let mut s = segment();
         s.segment_id = " ".into();
-        assert_eq!(derive_excavation_metrics(&s), Err(MetricError::InvalidIdentity));
+        assert_eq!(
+            derive_excavation_metrics(&s),
+            Err(MetricError::InvalidIdentity)
+        );
     }
 
     #[test]
@@ -241,7 +269,10 @@ mod tests {
     fn same_inspection_cannot_define_an_interval() {
         let mut w = wear();
         w.end_inspection_id = w.start_inspection_id.clone();
-        assert_eq!(derive_cutter_wear_rate(&w), Err(MetricError::InspectionIdentityInvalid));
+        assert_eq!(
+            derive_cutter_wear_rate(&w),
+            Err(MetricError::InspectionIdentityInvalid)
+        );
     }
 
     #[test]
@@ -258,7 +289,10 @@ mod tests {
     fn increased_radius_requires_review_of_identity_or_measurement() {
         let mut w = wear();
         w.end_radial_radius_micrometres = 18_010;
-        assert_eq!(derive_cutter_wear_rate(&w), Err(MetricError::RadiusIncreased));
+        assert_eq!(
+            derive_cutter_wear_rate(&w),
+            Err(MetricError::RadiusIncreased)
+        );
     }
 
     #[test]
@@ -267,6 +301,9 @@ mod tests {
         w.start_radial_radius_micrometres = u64::MAX;
         w.end_radial_radius_micrometres = 0;
         w.expanded_loss_uncertainty_micrometres = 1;
-        assert_eq!(derive_cutter_wear_rate(&w), Err(MetricError::ArithmeticOverflow));
+        assert_eq!(
+            derive_cutter_wear_rate(&w),
+            Err(MetricError::ArithmeticOverflow)
+        );
     }
 }
