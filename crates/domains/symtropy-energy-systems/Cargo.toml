@@ -1,0 +1,11 @@
+[package]
+name = "symtropy-energy-systems"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic, evidence-bounded energy conversion and generator bookkeeping primitives."
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
