@@ -465,12 +465,6 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         Su2WindowConvergenceProtocol::Disabled
     };
 
-    if time_domain && matches!(window, Su2WindowConvergenceProtocol::Disabled) {
-        return Err(
-            "TIME_DOMAIN=YES requires an explicit, supported WINDOW_CAUCHY_CRIT=YES protocol for this admission path"
-                .to_owned(),
-        );
-    }
     let convergence_protocol = Su2ConvergenceProtocol {
         time_domain,
         steady_fields,
