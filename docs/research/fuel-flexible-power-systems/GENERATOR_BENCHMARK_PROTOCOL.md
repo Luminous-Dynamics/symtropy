@@ -228,6 +228,31 @@ Proposed staged research gates:
 
 These are programme targets, not claims about achievable engine performance. A candidate that fails the threshold is still a useful result if it exposes the mass, cost, efficiency or emissions cost of modularity.
 
+### 7.1 Fuel-flexibility qualification matrix
+
+For each exact hardware configuration and fuel batch, record a qualification matrix. Do not collapse the matrix to a fuel count.
+
+| Dimension | Minimum evidence |
+|---|---|
+| Fuel envelope | Batch composition / property ranges, source, sample provenance, uncertainty and acceptance/rejection limits |
+| Configuration | Exact engine / combustion head / injector / fuel train / aftertreatment / control calibration identity |
+| Starting and load map | Cold/hot start, minimum stable load, full map and transient points |
+| Emissions | Regulated pollutants and fuel-specific slip products over the applicable duty cycle |
+| Materials | Seals, hoses, injectors, lubricity, oxidation, corrosion and deposit compatibility |
+| Switching | Purge/flush procedure, cross-contamination, transition fuel, time, load interruption and safe fallback |
+| Durability | Inspection interval, degradation, service hours and maintenance burden |
+| Safety / approval | Fuel-specific hazard review, site controls, market/jurisdiction receipts and qualification scope |
+
+Publish a flexibility vector:
+- **Validated Fuel Envelope Coverage:** proportion of a preregistered, rights-cleared batch distribution inside an independently reviewed physical operating envelope;
+- **Robust FFER:** median, fifth percentile and worst matched-duty-cycle FFER across actual tested batches;
+- **Fuel Transition Reliability:** transition success fraction and confidence interval, transition time, fuel used and unserved service;
+- **Flexibility Overhead:** incremental capital cost, mass, volume, parasitic energy, maintenance and spares;
+- **Fuel Supply Resilience:** service under dated, provenance-backed regional supply-disruption scenarios;
+- **Compliance Envelope:** exact configuration, fuel and jurisdiction-specific approval evidence.
+
+Unknown, literature-only, vendor-target or planned-pilot entries do not count as physically validated coverage. This keeps Mainspring's standard product fuel literature, the USAF pilot's planned ammonia/syngas tests, Capstone's described hydrogen blends and future Luminous tests distinguishable.
+
 ## 8. Emissions and lifecycle boundary
 
 Keep the following separate:
