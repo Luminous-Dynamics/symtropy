@@ -24,7 +24,7 @@ use crate::su2_verified_run_bundle::{
     Su2VerifiedRunBundleInputs, create_su2_verified_run_bundle,
 };
 
-pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
+pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.2.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
     "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
 pub const SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE: f64 = 1.0e-10;
