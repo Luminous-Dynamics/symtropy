@@ -651,9 +651,9 @@ impl std::error::Error for MatchedServiceError {}
 mod tests {
     use super::*;
     use crate::{
-        BatchBoundDutyCycle, BatchDutyCycleSegment, Efficiency, EvidenceClass, EvidenceReference,
-        FuelBatch, FuelFamily, FuelFlowObservation, FuelProperty, GeneratorModel,
-        LowerHeatingValueJPerKg, MassFlowKgPerSecond, TimeWindow, Watts, EngineModel,
+        BatchBoundDutyCycle, BatchDutyCycleSegment, Efficiency, EngineModel, EvidenceClass,
+        EvidenceReference, FuelBatch, FuelFamily, FuelFlowObservation, FuelProperty, GeneratorModel,
+        LowerHeatingValueJPerKg, MassFlowKgPerSecond, TimeWindow, Watts,
     };
 
     fn evidence(id: &str) -> EvidenceReference {
@@ -741,7 +741,7 @@ mod tests {
     }
 
     #[test]
-    fn matched_service_ffer_rewards_lower_fuel_use_not_surplus_generation() {
+    fn matched_service_ffer_compares_fuel_input_for_identical_service() {
         let reference = cycle([0.01, 0.005], 0.45);
         let candidate = cycle([0.009, 0.0045], 0.50);
         let demand = profile([10_800_000.0, 2_735_400.0]);
@@ -762,6 +762,33 @@ mod tests {
         assert!((comparison.ffer() - (32_250_000.0 / 29_025_000.0)).abs() < 1e-12);
         assert!(comparison.candidate_surplus_energy_j().abs() < 1e-6);
         assert!(comparison.reference_surplus_energy_j().abs() < 1e-6);
+    }
+
+    #[test]
+    fn surplus_generation_is_reported_but_never_credited_as_service() {
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.009, 0.0045], 0.45);
+        let demand = profile([9_685_440.0, 2_456_760.0]);
+
+        let comparison = compare_matched_service(
+            &demand,
+            "reference",
+            &reference,
+            "candidate",
+            &candidate,
+            tolerance(),
+        )
+        .unwrap();
+
+        assert!(
+            (comparison.common_matched_service_energy_j() - 12_142_200.0).abs() < 1e-6
+        );
+        assert!(comparison.reference_surplus_energy_j() > 1_390_000.0);
+        assert!(comparison.candidate_surplus_energy_j().abs() < 1e-6);
+        assert!(
+            comparison.common_matched_service_energy_j()
+                <= comparison.required_service_energy_j()
+        );
     }
 
     #[test]
