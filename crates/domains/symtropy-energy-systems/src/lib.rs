@@ -40,9 +40,9 @@ pub use matched_service::{
 pub use service_contract::{
     DeliveredServiceSegment, DeliveredServiceTrace, InputEnergyBasis, InputEnergyComparison,
     InputEnergyRecord, PropulsionWorkStage, ServiceBoundary, ServiceContractError,
-    ServiceDeliveryTolerance, ServiceInterface, TypedServiceComparison,
-    TypedServiceComparisonSegment, TypedServiceDemandContract, TypedServiceDemandSegment,
-    compare_delivered_service,
+    ServiceDeliveryTolerance, ServiceInterface, ServiceOutputEvidence,
+    ServiceOutputEvidenceClass, TypedServiceComparison, TypedServiceComparisonSegment,
+    TypedServiceDemandContract, TypedServiceDemandSegment, compare_delivered_service,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
