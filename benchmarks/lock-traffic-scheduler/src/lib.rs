@@ -549,6 +549,129 @@ mod tests {
         schedule_lock(&profile(), requests, 0, policy).unwrap()
     }
 
+    #[derive(Clone, Copy)]
+    struct OracleState {
+        current_tick: u64,
+        last_direction: Option<Direction>,
+        served: u64,
+    }
+
+    /// Exact maximum served count for tiny fixtures, by exhaustive request-order
+    /// enumeration. This intentionally does not call schedule_lock, choose_candidate
+    /// or find_slot: the slot search is independently expressed over each window.
+    fn exhaustive_max_served(
+        profile: &LockScheduleProfile,
+        requests: &[PassageRequest],
+        planning_tick: u64,
+    ) -> u64 {
+        assert!(requests.len() < 64, "tiny oracle uses a u64 subset mask");
+
+        fn visit(
+            profile: &LockScheduleProfile,
+            requests: &[PassageRequest],
+            remaining: u64,
+            state: OracleState,
+            best: &mut u64,
+        ) {
+            if remaining == 0 {
+                *best = (*best).max(state.served);
+                return;
+            }
+            if state.served + u64::from(remaining.count_ones()) <= *best {
+                return;
+            }
+
+            for index in 0..requests.len() {
+                let bit = 1_u64 << index;
+                if remaining & bit == 0 {
+                    continue;
+                }
+
+                let request = &requests[index];
+                let next_remaining = remaining & !bit;
+                let eligible = request.eligibility == PassageEligibility::Qualified
+                    && !request.qualification_reference.trim().is_empty()
+                    && !request.authorization_reference.trim().is_empty()
+                    && request.service_duration_ticks > 0;
+                if !eligible {
+                    visit(profile, requests, next_remaining, state, best);
+                    continue;
+                }
+
+                let switch_ticks = if state
+                    .last_direction
+                    .is_some_and(|direction| direction != request.direction)
+                {
+                    profile.direction_switch_ticks
+                } else {
+                    0
+                };
+                let earliest = state
+                    .current_tick
+                    .max(request.arrival_tick)
+                    .max(request.earliest_start_tick);
+                let Some(occupied_duration) =
+                    switch_ticks.checked_add(request.service_duration_ticks)
+                else {
+                    visit(profile, requests, next_remaining, state, best);
+                    continue;
+                };
+
+                let mut earliest_slot = None;
+                for window in &profile.availability {
+                    let candidate_start = earliest.max(window.start_tick);
+                    let Some(candidate_finish) = candidate_start.checked_add(occupied_duration)
+                    else {
+                        continue;
+                    };
+                    if candidate_start < window.end_tick
+                        && candidate_finish <= window.end_tick
+                        && earliest_slot.is_none_or(|(start, _)| candidate_start < start)
+                    {
+                        earliest_slot = Some((candidate_start, candidate_finish));
+                    }
+                }
+
+                let mut next_state = state;
+                if let Some((reserved_start, _)) = earliest_slot {
+                    let Some(service_start) = reserved_start.checked_add(switch_ticks) else {
+                        visit(profile, requests, next_remaining, state, best);
+                        continue;
+                    };
+                    let Some(finish) =
+                        service_start.checked_add(request.service_duration_ticks)
+                    else {
+                        visit(profile, requests, next_remaining, state, best);
+                        continue;
+                    };
+                    let waiting = service_start.saturating_sub(request.arrival_tick);
+                    let profile_covers_slot = profile
+                        .valid_through_tick
+                        .is_some_and(|valid_through| finish <= valid_through);
+                    if profile_covers_slot
+                        && service_start <= request.latest_start_tick
+                        && waiting <= request.maximum_wait_ticks
+                    {
+                        next_state.current_tick = finish;
+                        next_state.last_direction = Some(request.direction);
+                        next_state.served = next_state.served.saturating_add(1);
+                    }
+                }
+                visit(profile, requests, next_remaining, next_state, best);
+            }
+        }
+
+        let initial = OracleState {
+            current_tick: planning_tick,
+            last_direction: None,
+            served: 0,
+        };
+        let mut best = 0;
+        let mask = (1_u64 << requests.len()) - 1;
+        visit(profile, requests, mask, initial, &mut best);
+        best
+    }
+
     #[test]
     fn lock_profile_must_remain_valid_through_service_completion() {
         let mut lock = profile();
@@ -623,59 +746,75 @@ mod tests {
                 ServiceClass::EssentialPassenger,
             )
         };
+        let requests = [long_older, short_deadline];
 
         let fcfs = schedule_lock(
             &lock,
-            &[long_older.clone(), short_deadline.clone()],
+            &requests,
             0,
             SchedulingPolicy::FirstComeFirstServed,
         )
         .unwrap();
+        let oracle_best_served = exhaustive_max_served(&lock, &requests, 0);
+
         assert_eq!(fcfs.metrics.served_count, 1);
         assert_eq!(
             fcfs.unscheduled[0].reason,
             UnscheduledReason::LatestStartExceeded
         );
-
-        // Independent two-permutation oracle for this deliberately tiny,
-        // single-window, same-direction instance. Either candidate order must
-        // meet each request's start deadline and the common availability bound.
-        let short_start = short_deadline
-            .arrival_tick
-            .max(short_deadline.earliest_start_tick);
-        let finish_if_short_first = short_start + short_deadline.service_duration_ticks;
-        let long_after_short_start = finish_if_short_first;
-        let finish_if_long_after_short =
-            long_after_short_start + long_older.service_duration_ticks;
-        let short_then_long_is_feasible =
-            short_start <= short_deadline.latest_start_tick
-                && long_after_short_start <= long_older.latest_start_tick
-                && finish_if_long_after_short <= lock.availability[0].end_tick;
-
-        let long_first_start = long_older
-            .arrival_tick
-            .max(long_older.earliest_start_tick);
-        let long_first_finish = long_first_start + long_older.service_duration_ticks;
-        let short_after_long_start = long_first_finish.max(short_deadline.arrival_tick);
-        let long_then_short_is_feasible =
-            long_first_start <= long_older.latest_start_tick
-                && short_after_long_start <= short_deadline.latest_start_tick
-                && short_after_long_start + short_deadline.service_duration_ticks
-                    <= lock.availability[0].end_tick;
-
-        let oracle_best_served = [
-            short_then_long_is_feasible,
-            long_then_short_is_feasible,
-        ]
-        .into_iter()
-        .map(|feasible| if feasible { 2_u64 } else { 0_u64 })
-        .max()
-        .unwrap_or(0);
-
-        assert!(short_then_long_is_feasible);
-        assert!(!long_then_short_is_feasible);
         assert_eq!(oracle_best_served, 2);
         assert_eq!(oracle_best_served - fcfs.metrics.served_count, 1);
+    }
+
+    #[test]
+    fn exhaustive_oracle_is_independent_of_input_permutation() {
+        let lock = profile();
+        let requests = vec![
+            PassageRequest {
+                service_duration_ticks: 35,
+                latest_start_tick: 35,
+                maximum_wait_ticks: 35,
+                ..request(
+                    "freight-long",
+                    "p1",
+                    0,
+                    Direction::Upstream,
+                    ServiceClass::OrdinaryFreight,
+                )
+            },
+            PassageRequest {
+                service_duration_ticks: 10,
+                latest_start_tick: 15,
+                maximum_wait_ticks: 15,
+                ..request(
+                    "passenger-short",
+                    "p2",
+                    1,
+                    Direction::Downstream,
+                    ServiceClass::EssentialPassenger,
+                )
+            },
+            request(
+                "emergency-later",
+                "p3",
+                4,
+                Direction::Upstream,
+                ServiceClass::Emergency,
+            ),
+            request(
+                "recreation",
+                "p4",
+                20,
+                Direction::Downstream,
+                ServiceClass::Recreational,
+            ),
+        ];
+        let expected = exhaustive_max_served(&lock, &requests, 0);
+        let mut permuted = requests.clone();
+        permuted.reverse();
+
+        assert_eq!(exhaustive_max_served(&lock, &permuted, 0), expected);
+        assert!(expected <= requests.len() as u64);
     }
 
     #[test]
