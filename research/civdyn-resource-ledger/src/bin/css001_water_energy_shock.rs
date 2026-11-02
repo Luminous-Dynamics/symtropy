@@ -235,15 +235,15 @@ fn main() {
         "scenario=CSS-001; epistemic_class=synthetic_benchmark; geography=abstract_two_region"
     );
     println!(
-        "tick,policy,region,water_coverage,energy_coverage,food_coverage,unmet_water_m3,unmet_energy_kwh,unmet_food_kg,closing_water_m3,closing_energy_kwh,closing_food_kg,ledger_residual_max"
+        "tick,policy,region,water_coverage,energy_coverage,food_coverage,unmet_water_m3,unmet_energy_kwh,unmet_food_kg,closing_water_m3,closing_energy_kwh,closing_food_kg,residual_water_m3,residual_energy_kwh,residual_food_kg"
     );
     for policy in Policy::ALL {
         let result = simulate(policy);
         for report in &result.reports {
             for region in &report.regions {
-                let residual = region.ledger.conservation_residual().max_abs();
+                let residual = region.ledger.conservation_residual();
                 println!(
-                    "{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.3},{:.3},{:.3},{:.12}",
+                    "{},{},{},{},{},{},{:.6},{:.6},{:.6},{:.3},{:.3},{:.3},{:.12},{:.12},{:.12}",
                     report.tick,
                     result.policy.name(),
                     region.region_id,
@@ -256,7 +256,9 @@ fn main() {
                     region.closing_stock.water_m3,
                     region.closing_stock.energy_kwh,
                     region.closing_stock.food_kg,
-                    residual,
+                    residual.water_m3,
+                    residual.energy_kwh,
+                    residual.food_kg,
                 );
             }
         }
