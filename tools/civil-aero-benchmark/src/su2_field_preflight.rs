@@ -34,7 +34,6 @@ pub enum Su2WindowConvergenceProtocol {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2ConvergenceProtocol {
     pub time_domain: bool,
-    pub time_domain: bool,
     pub steady_fields: Vec<String>,
     pub steady_start_iteration: Option<u64>,
     pub steady_residual_min_log10: Option<String>,
