@@ -84,6 +84,17 @@
           "source_internal_conflict_count": 1,
           "source_pdf_sha256": null,
           "table_image_sha256": null
+        },
+        {
+          "artifact_id": "HIST001-DERIVED-TABLES-2-3",
+          "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/research/civbench-v0-2026-11/docs/research/cases/HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.json",
+          "schema_uri": "https://github.com/Luminous-Dynamics/symtropy/blob/research/civbench-v0-2026-11/docs/research/cases/HIST_001_TABLES_2_3_TRANSCRIPTION_V0_1.schema.json",
+          "artifact_type": "published_derived_estimates_and_proxy_event_summary",
+          "status": "transcribed_not_independently_reviewed",
+          "table_2_record_count": 5,
+          "table_3_record_count": 11,
+          "source_pdf_sha256": null,
+          "notes": "Table 2 population values are author-derived estimates using 50 people per homestead and a 50-year duration assumption; Table 3 is a baobab proxy event summary, not a continuous rainfall series."
         }
       ],
       "data_access": {
