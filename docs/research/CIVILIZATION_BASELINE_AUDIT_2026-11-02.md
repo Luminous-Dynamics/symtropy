@@ -92,6 +92,17 @@ The module embeds 12 global data points for 1970–2024 (population, temperature
 
 The APE calculation uses a fallback that assigns 0.0 error whenever the observed value is zero or near zero. Thus a non-zero prediction against a zero observed baseline—such as the first temperature anomaly point—can be recorded as zero error. This needs a regression test and a metric redesign before the report is used as evidence of historical fit.
 
+### Temperature anomaly baseline mismatch
+
+A deeper source/model audit found a second problem. The multiworld simulator's `ClimateModel::global_temp_anomaly` is explicitly defined relative to pre-industrial conditions and initialized from its own cumulative-emissions approximation. NASA GISTEMP v4's standard downloadable LOTI tables are anomalies relative to the 1951–1980 mean. NASA's FAQ describes an additional adjustment to compare with 1850–1900 (approximately +0.19°C as of January 2025), but this is a reference-period transform, not a reason to silently add a fixed offset to an unidentified hard-coded series. The exact data product, version, extraction, and baseline transform need to be pinned and reviewed.
+
+Sources:
+- NASA GISTEMP v4 data: https://data.giss.nasa.gov/gistemp/data_v4.html
+- NASA GISTEMP FAQ: https://data.giss.nasa.gov/gistemp/faq/
+- NASA GMSTA page: https://data.giss.nasa.gov/gistemp/gmsta/
+
+The code changes in parent PR #3820 therefore withhold the temperature score from both the historical runner and the calibration objective until a baseline-compatible data snapshot and transformation receipt exist. The old separate decarbonization-rate and ocean-lag optimizer knobs were also not connected to the model-owned `ClimateModel`; those pseudo-controls have been removed rather than presented as physical parameter calibration. The calibrator now optimizes only three demographic parameters it actually changes, and scores population plus the climate model's own emissions output.
+
 ### Invalid cross-metric aggregation
 
 The report averages metric-specific MAPE values into one “overall MAPE”, despite comparing different variables and units. MAPE is unstable or undefined near zero and can conceal errors for sign-changing series. A single pooled MAPE is not a defensible global score.
