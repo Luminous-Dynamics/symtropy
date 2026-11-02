@@ -163,8 +163,7 @@ pub fn bisect_first_impact(
 
     let bracket_width_s = upper - lower;
     let estimated_event_time_s = lower + 0.5 * bracket_width_s;
-    let final_position =
-        free_flight_position(parameters, estimated_event_time_s)?;
+    let final_position = free_flight_position(parameters, estimated_event_time_s)?;
 
     Ok(ImpactLocalization {
         lower_time_s: lower,
@@ -196,9 +195,8 @@ mod tests {
     fn bisection_converges_to_analytic_first_impact() {
         let parameters = fixture();
         let analytic = first_impact(parameters).expect("analytic reference");
-        let result =
-            bisect_first_impact(parameters, 0.0, 2.0, 1.0e-10, 1.0e-10, 128)
-                .expect("valid bracket");
+        let result = bisect_first_impact(parameters, 0.0, 2.0, 1.0e-10, 1.0e-10, 128)
+            .expect("valid bracket");
 
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(result.iterations > 0);
@@ -211,9 +209,8 @@ mod tests {
     #[test]
     fn event_exactly_at_upper_step_boundary_is_retained_in_bracket() {
         let parameters = fixture();
-        let result =
-            bisect_first_impact(parameters, 0.5, 1.0, 1.0e-12, 1.0e-12, 128)
-                .expect("upper endpoint is impact");
+        let result = bisect_first_impact(parameters, 0.5, 1.0, 1.0e-12, 1.0e-12, 128)
+            .expect("upper endpoint is impact");
 
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(result.lower_time_s <= 1.0);
@@ -222,9 +219,8 @@ mod tests {
 
     #[test]
     fn event_at_lower_boundary_is_reported_without_duplicate_bisection() {
-        let result =
-            bisect_first_impact(fixture(), 1.0, 1.5, 1.0e-12, 1.0e-12, 128)
-                .expect("the lower endpoint is exactly the event");
+        let result = bisect_first_impact(fixture(), 1.0, 1.5, 1.0e-12, 1.0e-12, 128)
+            .expect("the lower endpoint is exactly the event");
 
         assert_eq!(result.status, LocalizationStatus::EventAtLowerBoundary);
         assert_eq!(result.estimated_event_time_s, 1.0);
@@ -237,9 +233,8 @@ mod tests {
         let mut parameters = fixture();
         parameters.initial_height_m = 1.000_000_1;
         let analytic = first_impact(parameters).expect("analytic reference");
-        let result =
-            bisect_first_impact(parameters, 1.0, 1.1, 1.0e-10, 1.0e-10, 128)
-                .expect("crossing is in the second step");
+        let result = bisect_first_impact(parameters, 1.0, 1.1, 1.0e-10, 1.0e-10, 128)
+            .expect("crossing is in the second step");
 
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(result.estimated_event_time_s > 1.0);
