@@ -485,3 +485,13 @@ Two additional machine-readable benchmark packs are maintained with schemas:
 - [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) and [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json): seven test groups and 24 cases covering P/Q, load steps, black start, islanding, multi-vendor interactions, protection/cyber and DC-bus service. Acceptance thresholds remain unset until the specific standard edition, utility agreement and mission boundary are frozen.
 
 These packs make the benchmark plans executable and machine-auditable without turning synthetic arithmetic or literature tests into product qualification.
+
+
+The cross-topology service contract fixture pack is [TYPED_SERVICE_CONTRACT_FIXTURES_2026-11-03.json](data/TYPED_SERVICE_CONTRACT_FIXTURES_2026-11-03.json), validated against [TYPED_SERVICE_CONTRACT_SCHEMA_2026-11-03.json](data/TYPED_SERVICE_CONTRACT_SCHEMA_2026-11-03.json). It exercises:
+- engine-generator versus linear-generator on a matched net-AC boundary and common fuel-LHV basis;
+- microturbine-rectifier versus battery at a matched regulated-DC bus, with no invalid fuel-LHV versus stored-electricity efficiency ratio;
+- diesel propulsion versus battery-electric propulsion at a propulsor-work boundary, also retaining distinct input-energy bases;
+- explicit AC/DC boundary mismatch rejection;
+- under-delivered service rejection.
+
+These synthetic fixtures validate contracts and accounting only. They are not physical product results or lifecycle-energy comparisons.
