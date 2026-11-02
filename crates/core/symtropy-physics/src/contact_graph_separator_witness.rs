@@ -695,18 +695,18 @@ impl SeparatingLeafMessage {
                 continue;
             }
 
-            if depth < max_depth {
-                if let Some((_, _, left, right)) = self.split_box(&current_box) {
-                    let mut left_lineage = lineage.clone();
-                    left_lineage.push(0);
-                    let mut right_lineage = lineage;
-                    right_lineage.push(1);
-                    // Stack is LIFO: right is pushed first so the left branch
-                    // is processed first deterministically.
-                    stack.push((right, depth + 1, right_lineage));
-                    stack.push((left, depth + 1, left_lineage));
-                    continue;
-                }
+            if depth < max_depth
+                && let Some((_, _, left, right)) = self.split_box(&current_box)
+            {
+                let mut left_lineage = lineage.clone();
+                left_lineage.push(0);
+                let mut right_lineage = lineage;
+                right_lineage.push(1);
+                // Stack is LIFO: right is pushed first so the left branch
+                // is processed first deterministically.
+                stack.push((right, depth + 1, right_lineage));
+                stack.push((left, depth + 1, left_lineage));
+                continue;
             }
 
             cells.push(SeparatorBoxCell {
