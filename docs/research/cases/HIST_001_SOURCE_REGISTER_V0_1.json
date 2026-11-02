@@ -1,0 +1,290 @@
+{
+  "schema": "https://schemas.luminousdynamics.org/civbench/historical-source-register/0.1",
+  "schema_version": "0.1.0",
+  "case_id": "HIST-001",
+  "case_title": "Shashe-Limpopo and Mapungubwe-Great Zimbabwe regional network",
+  "status": "metadata_only_not_ingested",
+  "created_at": "2026-11-02",
+  "scope": {
+    "geographic": "Shashe-Limpopo confluence and related southern African Iron Age sites",
+    "temporal": {
+      "start": "AD 900",
+      "end": "AD 1600",
+      "certainty": "working_case_envelope_not_a_single_occupation_interval"
+    },
+    "spatial_uncertainty": "Site coordinates, survey coverage, and historic landscape boundaries have not yet been ingested."
+  },
+  "epistemic_rules": {
+    "source_metadata_is_not_a_source_snapshot": true,
+    "publisher_abstract_is_not_raw_measurement_data": true,
+    "no_claim_is_promoted_to_observation_until_exact_context_or_table_is_ingested": true,
+    "archaeological_absence_is_not_demographic_extinction": true,
+    "artifact_style_or_presence_is_not_proof_of_direct_trade": true,
+    "chronology_is_interval_or_probability_distribution_not_forced_to_a_single_year": true,
+    "source_independence_defaults_to_unknown": true
+  },
+  "sources": [
+    {
+      "source_id": "HIST001-SRC-AMS-2021",
+      "source_type": "peer_reviewed_research_letter",
+      "citation": {
+        "authors": ["Thomas N. Huffman", "Stephan Woodborne"],
+        "title": "New AMS dates for the Middle Iron Age in the Mapungubwe landscape",
+        "journal": "South African Journal of Science",
+        "volume": "117",
+        "issue": "3-4",
+        "publication_year": 2021,
+        "doi": "10.17159/sajs.2021/8980"
+      },
+      "source_uri": "https://doi.org/10.17159/sajs.2021/8980",
+      "publisher_metadata_uri": "https://journals.co.za/doi/10.17159/sajs.2021/8980",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "not_yet_verified_for_data_reuse",
+        "notes": "Verify article and underlying dating-table permissions before redistributing extracted data."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Metadata and abstract reviewed; exact publisher bytes, tables, and supplementary materials have not been captured."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-AMS-001",
+          "statement": "The article reports more than 500 Middle Iron Age sites in the Limpopo Valley, broadly dated AD 900-1320, and 15 new AMS dates from 11 archaeological sites.",
+          "evidence_class": "secondary_synthesis_of_archaeological_records",
+          "source_locator": "abstract",
+          "measurement_data_ingested": false,
+          "uncertainty_requirements": [
+            "individual sample identifier",
+            "material and context",
+            "laboratory code",
+            "measured radiocarbon age and uncertainty",
+            "calibration curve and version",
+            "calibrated probability distribution",
+            "alternative calibration interpretations"
+          ],
+          "claim_ceiling": "A published summary of site and dating coverage; not an imported site census or an independently reconstructed chronology."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-MIDDLE-IRON-AGE-CHRONOLOGY",
+        "independence": "unknown",
+        "notes": "Underlying site dates may overlap with other published chronologies; establish sample/context and citation lineage before treating as independent."
+      }
+    },
+    {
+      "source_id": "HIST001-SRC-BEADS-2023",
+      "source_type": "open_access_peer_reviewed_article",
+      "citation": {
+        "authors": ["Michelle Mouton", "Alexander Antonites"],
+        "title": "Shell disc beads and the development of class-based society at the K2-Mapungubwe settlement complex (South Africa)",
+        "journal": "Archaeological and Anthropological Sciences",
+        "volume": "15",
+        "article_number": "34",
+        "publication_date": "2023-02-28",
+        "doi": "10.1007/s12520-023-01735-2"
+      },
+      "source_uri": "https://doi.org/10.1007/s12520-023-01735-2",
+      "publisher_uri": "https://link.springer.com/article/10.1007/s12520-023-01735-2",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "open_access_cc_by_4_0_article_text",
+        "notes": "Check figure, image, and third-party material credit lines individually before reusing assets."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Publisher article and abstract reviewed; no complete source snapshot or bead-level table has been ingested."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-BEADS-001",
+          "statement": "The study analysed 6,172 shell disc beads from phases II-IV and from higher-status and lower-status areas of the K2-Mapungubwe settlement complex.",
+          "evidence_class": "published_assemblage_analysis",
+          "source_locator": "section: The K2-Mapungubwe shell disc bead sample",
+          "measurement_data_ingested": false,
+          "subsample_counts_reported_by_source": {
+            "K2": 2488,
+            "Mapungubwe_Hill_elite_area": 1112,
+            "Mapungubwe_Southern_Terrace_lower_status_area": 2572
+          },
+          "sampling_limitations_reported_by_source": [
+            "Only excavated material retaining site, context, or other provenience information was sampled.",
+            "Provenience information was often lacking for much of the early excavation material."
+          ],
+          "claim_ceiling": "The paper reports its analysed sample and sample-selection rule; the sample is not a census of all beads or all past activity."
+        },
+        {
+          "claim_id": "HIST001-CLAIM-BEADS-002",
+          "statement": "The paper reports temporal and spatial differences in bead assemblages, including a greater prevalence of Achatina beads in earlier phases and ostrich eggshell bead dominance after approximately AD 1220.",
+          "evidence_class": "published_assemblage_interpretation",
+          "source_locator": "abstract and results",
+          "measurement_data_ingested": false,
+          "alternative_explanations_to_preserve": [
+            "access to raw-material sources",
+            "chronology and phase composition",
+            "production practice",
+            "exchange and redistribution",
+            "differential access and social organization",
+            "excavation and preservation bias"
+          ],
+          "claim_ceiling": "Assemblage pattern and the authors' interpretation; not direct proof of a particular trade route, institution, or individual status."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-K2-MAPUNGUBWE-BEADS",
+        "independence": "unknown",
+        "notes": "Excavation contexts cite earlier work by Eloff, Meyer, Jones and others. Preserve those source lineages before treating this analysis as independent evidence for the same contexts."
+      }
+    },
+    {
+      "source_id": "HIST001-SRC-GZ-BAYES-2013",
+      "source_type": "peer_reviewed_chronological_analysis",
+      "citation": {
+        "authors": ["Shadreck Chirikure", "Mark Pollard", "Munyaradzi Manyanga", "Foreman Bandama"],
+        "title": "A Bayesian chronology for Great Zimbabwe: re-threading the sequence of a vandalised monument",
+        "journal": "Antiquity",
+        "volume": "87",
+        "issue": "337",
+        "publication_date": "2013-09",
+        "pages": "854-872",
+        "doi": "10.1017/S0003598X00049516"
+      },
+      "source_uri": "https://doi.org/10.1017/S0003598X00049516",
+      "publisher_uri": "https://www.cambridge.org/core/journals/antiquity/article/abs/bayesian-chronology-for-great-zimbabwe-rethreading-the-sequence-of-a-vandalised-monument/0BFAF99EA338FB35BE0056D50BD8BF65",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "publisher_terms_to_be_verified",
+        "notes": "Metadata and abstract only; obtain permission or use licensed data for full text, tables, and figures."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Publisher abstract and metadata reviewed; radiocarbon observations, stratigraphic relations, imports, priors, and posterior outputs have not been ingested."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-GZ-BAYES-001",
+          "statement": "The study combines available radiocarbon dates with limited stratigraphic information and datable imports into a Bayesian chronology.",
+          "evidence_class": "published_method_description",
+          "source_locator": "abstract",
+          "measurement_data_ingested": false,
+          "required_model_metadata": [
+            "dated context identity",
+            "laboratory measurement and uncertainty",
+            "calibration curve and version",
+            "stratigraphic constraints",
+            "import dating assumptions",
+            "prior definitions",
+            "posterior distributions",
+            "model alternatives and sensitivity"
+          ]
+        },
+        {
+          "claim_id": "HIST001-CLAIM-GZ-BAYES-002",
+          "statement": "The authors place the likely start of Great Zimbabwe stone-wall construction around the end of the 12th or beginning of the 13th century, with a peak in the 14th and 15th centuries, and conclude that Great Zimbabwe occupation overlapped with Mapungubwe.",
+          "evidence_class": "published_bayesian_chronological_interpretation",
+          "source_locator": "abstract and conclusion",
+          "measurement_data_ingested": false,
+          "claim_ceiling": "A published probabilistic chronology and interpretation; do not convert broad intervals into exact year-level facts or a universal successor relation."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-GREAT-ZIMBABWE-CHRONOLOGY",
+        "independence": "unknown",
+        "notes": "The analysis reuses earlier radiocarbon, stratigraphic, and imported-object evidence. Resolve shared contexts and dating datasets before cross-paper evidence aggregation."
+      }
+    },
+    {
+      "source_id": "HIST001-SRC-FORAGER-FARMER-2011",
+      "source_type": "peer_reviewed_project_gallery_article",
+      "citation": {
+        "author": "Tim Forssman",
+        "title": "Contesting space: contact between foragers and farmers in the Mapungubwe cultural landscape, South Africa",
+        "journal": "Antiquity Project Gallery",
+        "volume": "85",
+        "issue": "328",
+        "publication_date": "2011-06",
+        "doi": "10.15184/S2978855200901938"
+      },
+      "source_uri": "https://doi.org/10.15184/S2978855200901938",
+      "publisher_uri": "https://www.cambridge.org/core/journals/antiquity-project-gallery/article/contesting-space-contact-between-foragers-and-farmers-in-the-mapungubwe-cultural-landscape-south-africa/9F992B87FFEFE5824006203089B43581",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "publisher_terms_to_be_verified",
+        "notes": "Metadata and article page reviewed; check publisher terms before redistributing content or images."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Article page and reported survey summary reviewed; site-level lithic records and dated contexts have not been ingested."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-FORAGER-FARMER-001",
+          "statement": "The article reports a survey over approximately 160 square kilometres and identifies two broad lithic assemblage types, with possible interaction between foragers and farming communities.",
+          "evidence_class": "published_survey_interpretation",
+          "source_locator": "survey description and conclusion",
+          "measurement_data_ingested": false,
+          "uncertainties": [
+            "temporal relationship between some assemblage types is unresolved",
+            "the interpretation that toolkit differences reflect interaction is presented as possible, not certain",
+            "the article reports foragers disappearing from the archaeological record around the end of the Mapungubwe phase; this is not evidence of population extinction"
+          ],
+          "claim_ceiling": "A survey and interpretation of lithic assemblages; not proof that a living population disappeared or was assimilated."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-FORAGER-LITHIC-SURVEY",
+        "independence": "unknown",
+        "notes": "The article discusses and cites Van Doornum's earlier survey and chronology work. Preserve those source relationships."
+      }
+    },
+    {
+      "source_id": "HIST001-SRC-GZ-INDIAN-OCEAN-PROJECT",
+      "source_type": "university_research_project_summary",
+      "citation": {
+        "institution": "University of Cambridge, Department of Archaeology",
+        "title": "Archaeological science and globalisation: Great Zimbabwe",
+        "publication_date": null
+      },
+      "source_uri": "https://www.arch.cam.ac.uk/research/projects/recently-completed-projects/archaeological-science-and-globalisation-great",
+      "retrieved_at": "2026-11-02",
+      "license": {
+        "status": "website_terms_to_be_verified",
+        "notes": "This is a project summary, not a substitute for the underlying archaeometallurgical publications or artifact datasets."
+      },
+      "snapshot": {
+        "content_sha256": null,
+        "status": "not_ingested",
+        "reason": "Project summary reviewed; crucible and metal-object measurements have not been ingested."
+      },
+      "reported_claims": [
+        {
+          "claim_id": "HIST001-CLAIM-GZ-EXCHANGE-001",
+          "statement": "The project describes Great Zimbabwe as connected directly and indirectly with Indian Ocean Rim regions, with gold, iron, ivory and other commodities supplied outward and tin bronzes, brasses, glass beads and ceramics received.",
+          "evidence_class": "institutional_research_summary",
+          "source_locator": "project overview",
+          "measurement_data_ingested": false,
+          "claim_ceiling": "A research-project summary of exchange and archaeometallurgical questions; not direct proof that a specific artifact followed a direct route or that two named actors traded directly."
+        }
+      ],
+      "source_family": {
+        "id": "HIST001-FAMILY-GREAT-ZIMBABWE-EXCHANGE",
+        "independence": "unknown",
+        "notes": "Underlying archaeometallurgical publications, excavations, object contexts, and material-provenance analyses must be located and linked before quantitative exchange-network modelling."
+      }
+    }
+  ],
+  "next_ingestion_steps": [
+    "Acquire lawful source snapshots and exact table/figure/context locators for the five sources.",
+    "Capture SHA-256 digests of the exact bytes and preserve the retrieval receipt and license decision.",
+    "Extract individual AMS measurements and calibration distributions from the 2021 chronology paper.",
+    "Extract bead counts by phase, bead material, excavation unit, and status/context from the 2023 article; preserve sample-selection rules and missing provenience.",
+    "Extract Great Zimbabwe date/context records and Bayesian model assumptions from the 2013 study or its openly reusable dataset if available.",
+    "Convert the forager/farmer survey into site/context-level records while preserving unresolved temporal relationships.",
+    "Locate primary archaeometallurgical publications behind the Cambridge project summary before treating exchange claims as measured evidence.",
+    "Keep source independence unknown until common upstream contexts, datasets, and cited evidence are resolved."
+  ]
+}
