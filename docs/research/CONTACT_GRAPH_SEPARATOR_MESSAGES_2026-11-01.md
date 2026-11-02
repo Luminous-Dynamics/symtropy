@@ -265,3 +265,28 @@ The result has three classifications:
 The first tests use a frozen multiple-solution single-contact fixture, verify that the adapter preserves every sliding candidate returned by the reference, re-evaluate the full local \(q_L+B^Tp_S+Ap_L\) velocity, and check candidate KKT residuals, friction violation and energy. A separate nonzero-\(B\) case verifies the exact transpose-coupling convention \(B^Tp_S\); a sticking-only point must not be mislabeled as sliding.
 
 **Claim boundary:** pointwise candidate adaptation only. The current candidate ordinal is local provenance, not a stable branch identity. No interval root-box certification or branch completeness is claimed. The next step is to attach exact quartic root isolating intervals / certified branch IDs and partition separator boxes across sliding-root birth/death, root collisions, \(\tau=0\), grazing and projective events before composing the message with the heterogeneous n-ary join.
+
+
+## Sliding quartic coefficient families over separator boxes — 2026-11-02
+
+[Issue #3339](https://github.com/Luminous-Dynamics/symtropy/issues/3339) adds the first interval-family component for the sliding response message.
+
+For a separator impulse box \(P_S\), the local effective free velocity is the affine family
+
+\[
+q_L^{\mathrm{eff}}(P_S)=q_L+B^TP_S.
+\]
+
+The sliding half-angle quartic coefficients are affine in the effective free-velocity components \(q_n,q_1,q_2\). The new evaluator encloses those three components and all five ascending quartic coefficients with the existing outward interval operations. It also encloses the sufficient normal coupling guard
+
+\[
+a-\mu\sqrt{d_1^2+d_2^2}.
+\]
+
+The result carries two independent chart classifications:
+- UniformQuartic / MayDropDegree, according to whether the leading coefficient interval excludes zero;
+- UniformlyRegular / MayBeSingular, according to whether the normal coupling guard is strictly positive.
+
+The only current claim is CoefficientFamilyOnly. An interval coefficient enclosure is not a parameter-family Sturm proof; it cannot report the number of real roots or certify branch completeness. Boxes where the leading coefficient may vanish must retain the lower-degree/projective chart, and boxes whose normal guard may vanish must retain the singular normal-response stratum.
+
+The tests cover point boxes against the existing quartic reference, nonzero separator coupling across box corners and interior samples, a leading-coefficient zero crossing, and a zero normal-coupling guard. This is the sound input layer for subsequent root-family certification, not a substitute for it.
