@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod independent_verify;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -30,6 +31,10 @@ pub use duty_cycle::{
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use independent_verify::{
+    EnergyVerificationCheck, EnergyVerificationError, EnergyVerificationReport,
+    EnergyVerificationTolerance, verify_batch_bound_duty_cycle,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
@@ -213,6 +218,10 @@ impl EngineModel {
         Self { brake_efficiency }
     }
 
+    pub const fn brake_efficiency(self) -> Efficiency {
+        self.brake_efficiency
+    }
+
     pub fn convert(self, chemical_input_power: Watts) -> EngineResult {
         let brake_power = chemical_input_power.get() * self.brake_efficiency.get();
         EngineResult {
@@ -246,6 +255,14 @@ impl GeneratorModel {
             electrical_efficiency,
             auxiliary_load,
         }
+    }
+
+    pub const fn electrical_efficiency(self) -> Efficiency {
+        self.electrical_efficiency
+    }
+
+    pub const fn auxiliary_load(self) -> Watts {
+        self.auxiliary_load
     }
 
     pub fn convert(self, shaft_power: Watts) -> Result<GeneratorResult, ModelError> {
