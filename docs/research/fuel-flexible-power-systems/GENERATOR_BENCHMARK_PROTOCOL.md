@@ -114,6 +114,8 @@ Sources: Mainspring product page and 2.5 MW datasheet; CEC-500-2024-037 final re
 
 A reference engine map must be measured or sourced with traceable evidence. If no valid map or topology-specific performance dataset exists, the model must mark the operating point unknown and refuse quantitative ranking.
 
+Use the versioned competitor evidence register and schema: [COMPETITOR_BENCHMARKS_2026-11-02.json](data/COMPETITOR_BENCHMARKS_2026-11-02.json) and [COMPETITOR_BENCHMARK_SCHEMA_2026-11-02.json](data/COMPETITOR_BENCHMARK_SCHEMA_2026-11-02.json). The dataset records source, evidence class, boundary and comparison limitations per claim; it is not a substitute for a controlled product test report.
+
 ## 5. Test matrix
 
 ### 5.1 Steady-state engine / set map
