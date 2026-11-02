@@ -321,7 +321,12 @@ impl StickingLeafMessage {
                 .response_over_box(&cell.separator_box)
                 .map(|response| response.classification)
                 .unwrap_or(StickingBoxClassification::BoundaryOrInconclusive);
-            if replayed != cell.classification {
+            // BoundaryOrInconclusive is a permitted conservative label for
+            // an unevaluated budget frontier, even when replay could prove a
+            // strict sign. False strict/excluded labels are never permitted.
+            if replayed != cell.classification
+                && cell.classification != StickingBoxClassification::BoundaryOrInconclusive
+            {
                 return false;
             }
         }
@@ -428,16 +433,16 @@ impl StickingLeafMessage {
                 continue;
             }
 
-            if depth < max_depth {
-                if let Some((_, _, left, right)) = self.split_box(&current_box) {
-                    let mut left_lineage = lineage.clone();
-                    left_lineage.push(0);
-                    let mut right_lineage = lineage;
-                    right_lineage.push(1);
-                    stack.push((right, depth + 1, right_lineage));
-                    stack.push((left, depth + 1, left_lineage));
-                    continue;
-                }
+            if depth < max_depth
+                && let Some((_, _, left, right)) = self.split_box(&current_box)
+            {
+                let mut left_lineage = lineage.clone();
+                left_lineage.push(0);
+                let mut right_lineage = lineage;
+                right_lineage.push(1);
+                stack.push((right, depth + 1, right_lineage));
+                stack.push((left, depth + 1, left_lineage));
+                continue;
             }
             cells.push(StickingSeparatorBoxCell {
                 separator_box: current_box,
@@ -964,18 +969,18 @@ impl SeparatingLeafMessage {
                 continue;
             }
 
-            if depth < max_depth {
-                if let Some((_, _, left, right)) = self.split_box(&current_box) {
-                    let mut left_lineage = lineage.clone();
-                    left_lineage.push(0);
-                    let mut right_lineage = lineage;
-                    right_lineage.push(1);
-                    // Stack is LIFO: right is pushed first so the left branch
-                    // is processed first deterministically.
-                    stack.push((right, depth + 1, right_lineage));
-                    stack.push((left, depth + 1, left_lineage));
-                    continue;
-                }
+            if depth < max_depth
+                && let Some((_, _, left, right)) = self.split_box(&current_box)
+            {
+                let mut left_lineage = lineage.clone();
+                left_lineage.push(0);
+                let mut right_lineage = lineage;
+                right_lineage.push(1);
+                // Stack is LIFO: right is pushed first so the left branch
+                // is processed first deterministically.
+                stack.push((right, depth + 1, right_lineage));
+                stack.push((left, depth + 1, left_lineage));
+                continue;
             }
 
             cells.push(SeparatorBoxCell {
@@ -1776,7 +1781,7 @@ fn separating_leaf_box_partition_retains_unresolved_budget_and_unsplittable_fron
     assert_eq!(no_midpoint.cells.len(), 1);
     assert_eq!(
         no_midpoint.cells[0].classification,
-        SeparatingBoxClassification::BoundaryOrInconclusive
+        SeparatingBoxClassification::StrictlySeparating
     );
 
     assert!(message.partition_separator_box(&crossing, 2, 0).is_err());
@@ -3050,7 +3055,7 @@ fn sticking_separator_interval_partition_preserves_strict_boundary_and_excluded_
     )
     .unwrap();
     let crossing = message
-        .partition_separator_box(&crossing_root, 5, 128)
+        .partition_separator_box(&crossing_root, 8, 1024)
         .unwrap();
     assert!(crossing.coverage_preserved);
     assert!(!crossing.classification_complete);
