@@ -79,18 +79,11 @@ fn finite_or_overflow(value: f64) -> Result<f64, ImpactError> {
     }
 }
 
-/// Compute the exact-formula first-impact solution for constant gravity.
+/// Validate only the physical input domain for the first-impact model.
 ///
-/// Free flight follows y(t) = h + v0*t - 0.5*g*t^2. The positive impact
-/// time uses a cancellation-resistant expression when the initial velocity
-/// points toward the plane. The incoming velocity is computed from the
-/// analytic discriminant rather than by subtracting nearly equal values.
-///
-/// The energy ledger uses zero gravitational potential at the impact plane:
-/// E_initial = 0.5*m*v0^2 + m*g*h.
-/// D_impact = 0.5*m*(1-e^2)*v_minus^2.
-///
-/// The returned energy residual is E_initial - K_post - D_impact.
+/// This function deliberately does not compute the closed-form impact time or
+/// any derived trajectory result, so numerical event-location baselines can
+/// share model validation without depending on the analytical oracle.
 pub(crate) fn validate_impact_parameters(
     parameters: ImpactParameters,
 ) -> Result<(), ImpactError> {
