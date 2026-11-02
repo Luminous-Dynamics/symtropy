@@ -20,6 +20,9 @@ pub struct EventTimeRecord {
     pub event_id: String,
     /// Identifier for the common physical time coordinate/basis.
     pub time_basis_id: String,
+    /// Stable reference to the external interval-evidence receipt. This module
+    /// requires traceability but does not authenticate or verify the receipt.
+    pub evidence_reference: String,
     pub lower_time: f64,
     pub upper_time: f64,
     pub evidence: EventTimeEvidence,
@@ -47,6 +50,7 @@ pub enum EventOrderRelation {
 pub enum EventOrderError {
     EmptyEventIdentity,
     EmptyTimeBasisIdentity,
+    EmptyEvidenceReference,
     SameEventComparedWithItself,
     IncompatibleTimeBases,
     NonFiniteTimeBound,
@@ -62,6 +66,9 @@ fn validate_record(record: &EventTimeRecord) -> Result<(), EventOrderError> {
     if record.time_basis_id.trim().is_empty() {
         return Err(EventOrderError::EmptyTimeBasisIdentity);
     }
+    if record.evidence_reference.trim().is_empty() {
+        return Err(EventOrderError::EmptyEvidenceReference);
+    }
     if !record.lower_time.is_finite() || !record.upper_time.is_finite() {
         return Err(EventOrderError::NonFiniteTimeBound);
     }
@@ -75,6 +82,10 @@ fn validate_record(record: &EventTimeRecord) -> Result<(), EventOrderError> {
 }
 
 /// Compare event A with event B without inventing a total order.
+///
+/// The caller must authenticate/verify any receipt referenced by a
+/// CertifiedEnclosure record before calling this function. This module checks
+/// receipt-reference presence for traceability but does not authenticate it.
 ///
 /// Strict disjointness is required for any order relation:
 ///
@@ -140,6 +151,7 @@ mod tests {
         EventTimeRecord {
             event_id: id.into(),
             time_basis_id: "simulation-seconds-v1".into(),
+            evidence_reference: format!("fixture-receipt-{id}"),
             lower_time,
             upper_time,
             evidence,
@@ -270,6 +282,18 @@ mod tests {
         assert_eq!(
             compare_event_order(&non_finite, &valid),
             Err(EventOrderError::NonFiniteTimeBound)
+        );
+    }
+
+    #[test]
+    fn rejects_missing_interval_evidence_reference() {
+        let mut a = event("impact-a", 1.0, 1.1, EventTimeEvidence::CertifiedEnclosure);
+        let b = event("impact-b", 1.2, 1.3, EventTimeEvidence::CertifiedEnclosure);
+        a.evidence_reference.clear();
+
+        assert_eq!(
+            compare_event_order(&a, &b),
+            Err(EventOrderError::EmptyEvidenceReference)
         );
     }
 
