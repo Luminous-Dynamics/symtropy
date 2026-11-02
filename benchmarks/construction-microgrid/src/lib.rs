@@ -93,8 +93,6 @@ pub enum PortfolioDisposition {
     FullyServed,
     CriticalLoadUnserved,
     FlexibleLoadUnserved,
-    UnknownReviewRequired,
-    EvidenceInconsistent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,6 +120,14 @@ pub struct IntervalBalance {
     pub emissions_grams: Option<u64>,
 }
 
+/// Exact load-energy / accepted-output ratio. Consumers may display a decimal,
+/// but the evaluator retains the integer numerator and denominator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AcceptedOutputEnergyIntensity {
+    pub load_energy_wh: u64,
+    pub accepted_output_units: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortfolioEvaluation {
     pub disposition: PortfolioDisposition,
@@ -136,8 +142,9 @@ pub struct PortfolioEvaluation {
     pub total_variable_cost_microcurrency: Option<u64>,
     /// None means at least one used source lacked an emissions factor.
     pub total_emissions_grams: Option<u64>,
-    /// Accepted-output denominator is missing if any interval omitted it.
-    pub energy_wh_per_accepted_output_unit: Option<u64>,
+    /// Delivered site-load energy divided by accepted output, not generator input.
+    /// None means at least one interval omitted its accepted-output measurement.
+    pub load_energy_intensity: Option<AcceptedOutputEnergyIntensity>,
 }
 
 #[must_use]
@@ -462,8 +469,11 @@ pub fn evaluate_portfolio(input: &PortfolioInput) -> Result<PortfolioEvaluation,
     } else {
         PortfolioDisposition::FullyServed
     };
-    let energy_wh_per_accepted_output_unit = if accepted_units_known && accepted_units_total > 0 {
-        Some(total_demand / accepted_units_total)
+    let load_energy_intensity = if accepted_units_known && accepted_units_total > 0 {
+        Some(AcceptedOutputEnergyIntensity {
+            load_energy_wh: total_demand,
+            accepted_output_units: accepted_units_total,
+        })
     } else {
         None
     };
@@ -479,7 +489,7 @@ pub fn evaluate_portfolio(input: &PortfolioInput) -> Result<PortfolioEvaluation,
         total_battery_loss_wh: total_battery_loss,
         total_variable_cost_microcurrency: total_cost,
         total_emissions_grams: total_emissions,
-        energy_wh_per_accepted_output_unit,
+        load_energy_intensity,
     })
 }
 
@@ -621,6 +631,7 @@ mod tests {
     fn renewable_surplus_charges_battery_and_reconciles_curtailment() {
         let mut b = battery();
         b.initial_state_of_charge_wh = 8_000;
+        b.maximum_charge_power_w = 2_000;
         let r = evaluate_portfolio(&input(
             vec![load("t0", 2_000, 2_000)],
             vec![source("pv", SourceKind::RenewableGeneration, 0, 6_000, 6_000)],
@@ -772,13 +783,19 @@ mod tests {
     }
 
     #[test]
-    fn energy_per_accepted_output_is_reported_only_with_complete_denominator() {
+    fn exact_load_energy_ratio_is_reported_only_with_complete_denominator() {
         let r = evaluate_portfolio(&input(
             vec![load("t0", 10_000, 5_000)],
             vec![source("grid", SourceKind::GridImport, 0, 10_000, 10_000)],
             None,
         )).unwrap();
-        assert_eq!(r.energy_wh_per_accepted_output_unit, Some(100));
+        assert_eq!(
+            r.load_energy_intensity,
+            Some(AcceptedOutputEnergyIntensity {
+                load_energy_wh: 10_000,
+                accepted_output_units: 100,
+            })
+        );
     }
 
     #[test]
@@ -790,7 +807,7 @@ mod tests {
             vec![source("grid", SourceKind::GridImport, 0, 10_000, 10_000)],
             None,
         )).unwrap();
-        assert_eq!(r.energy_wh_per_accepted_output_unit, None);
+        assert_eq!(r.load_energy_intensity, None);
     }
 
     #[test]
