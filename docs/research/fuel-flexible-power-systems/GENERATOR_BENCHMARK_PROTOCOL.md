@@ -69,7 +69,7 @@ Minimum comparison set:
 2. Same-set HVO/renewable-diesel compatibility configuration where the manufacturer and fuel specification permit it.
 3. A separate natural-gas/biomethane dual-fuel engine-generator only after its gas train, pilot-fuel fraction, ventilation, leak detection, shutdown and safety case are established.
 4. **Mainspring linear generator** as the closest same-scale multi-fuel comparator. Its product materials report 250 kW modules, 46% net-AC LHV electrical efficiency on natural gas/biogas, <1.5 ppm NOx, 0–100% output range and a standard 2.5 MW block made from ten 250 kW units. Preserve the vendor's measurement footnotes and uncertainty; do not treat them as independent head-to-head results.
-5. **Capstone C200S microturbine** as another same-scale distributed-generation comparator; its current product material reports 200 kW and 33% LHV electrical efficiency, with gaseous-fuel variants. Verify the exact net/gross boundary and rated conditions in the controlled datasheet.
+5. **Capstone Energy+ C200 / C250 microturbines** as same-scale comparators. Its FY2026 SEC filing confirms the C200 200 kW platform and describes natural gas, renewable biogas, landfill gas, wastewater methane, sour/low-BTU gas and up to 30% hydrogen blends in product literature. The C250 250 kW platform has completed test runs but is still advancing through commercialization. The filing reports approximately 33% simple-cycle efficiency, but the cited passage does not specify net/gross boundary, LHV/HHV basis or correction conditions; do not admit it as a matched net-AC ranking number without the controlled datasheet/test report.
 6. Fuel-cell generator where fuel supply, storage, reformer/stack/inverter parasitics, load response, lifetime, replacement and cost data are credible.
 7. Battery-electric storage/inverter supply for the same load trace where a credible grid/charging source is available.
 
@@ -293,7 +293,8 @@ No candidate is called "better than SOTA" without a matched rating, duty cycle, 
 - Mainspring announcement of its U.S. Air Force pilot (4 March 2026): https://www.mainspringenergy.com/news/mainspring-energy-awarded-u-s-air-force-pilot-project-for-multi-fuel-resilient-power-generation-at-travis-air-force-base
 - Mainspring / AEP up-to-1.6 GW agreement (13 October 2026): https://www.mainspringenergy.com/news/mainspring-energy-signs-landmark-1-6-gw-agreement-with-aep-for-reliable-affordable-power-capacity
 - ASME Performance Test Codes catalogue (PTC 50 listed for Fuel Cell Power Systems Performance): https://www.asme.org/codes-standards/publications-information/performance-test-codes
-- Capstone C200S 200 kW microturbine: https://www.capstoneenergyplus.com/products/capstone-microturbines/c200s
+- Capstone Energy+ FY2026 Form 10-K: https://www.sec.gov/Archives/edgar/data/1009759/000110465926077817/cgeh-20260331x10k.htm
+- Capstone FY2025 Form 10-K: https://www.sec.gov/Archives/edgar/data/1009759/000155837025008930/cgeh-20250331x10k.htm
 - South African National Environmental Management: Air Quality Act, 2004: https://www.gov.za/documents/national-environment-management-air-quality-act
 - South African listed-activities notice and amendments: https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-listed-activities-and
 - Consolidated listed-activities text (screening reference; verify operative Gazette): https://www.saflii.org/za/legis/consol_reg/loawriaewhomhasdeoteihscececoch2046.pdf
