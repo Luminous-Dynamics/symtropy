@@ -243,3 +243,25 @@ The first executable component is a coverage-preserving interval partitioner for
 The new tests cover strictly sticking boxes, boxes strictly outside the sticking disk domain, an exact disk boundary, a mixed box that must retain strict/interior/excluded/boundary cells, zero node-budget rejection, node-budget frontiers, and a deleted-child coverage negative control.
 
 **Claim boundary:** this is a sticking-leaf partition primitive. It is not yet a common heterogeneous n-ary message join, not a sliding-leaf polynomial message, and not a complete contact-island solver. The subsequent join will use a typed regime tag and reclassify every local response on the final tuple intersection.
+
+
+## Sliding-leaf candidate message adapter — 2026-11-02
+
+[Issue #3333](https://github.com/Luminous-Dynamics/symtropy/issues/3333) adds the next local response type after separating and sticking messages.
+
+For a leaf with self-block \(A\), separator coupling \(B\), free velocity \(q_L\), and separator impulse \(p_S\), the local solver sees
+
+\[
+q_L^{\mathrm{eff}}=q_L+B^Tp_S.
+\]
+
+The test-only SlidingLeafMessage adapter calls the existing coupled single-contact quartic reference on \((A,q_L^{\mathrm{eff}},\mu_L)\). It retains every candidate classified as sliding, preserving the originating point-solver candidate ordinal, candidate fields, all five quartic coefficients, all considered real direction angles, solver status, and the effective free velocity. It also records how many admissible candidates belonged to other regimes.
+
+The result has three classifications:
+- CandidateSetNeedsCertification: one or more sliding candidates were returned, but they remain numerical candidates until exact/interval root identity is attached.
+- NoSlidingCandidateInNumericalSet: the point enumerator returned no sliding candidate; this is not a global interval exclusion over a separator domain.
+- Inconclusive: the point enumerator did not completely classify its numerical problem.
+
+The first tests use a frozen multiple-solution single-contact fixture, verify that the adapter preserves every sliding candidate returned by the reference, re-evaluate the full local \(q_L+B^Tp_S+Ap_L\) velocity, and check candidate KKT residuals, friction violation and energy. A separate nonzero-\(B\) case verifies the exact transpose-coupling convention \(B^Tp_S\); a sticking-only point must not be mislabeled as sliding.
+
+**Claim boundary:** pointwise candidate adaptation only. The current candidate ordinal is local provenance, not a stable branch identity. No interval root-box certification or branch completeness is claimed. The next step is to attach exact quartic root isolating intervals / certified branch IDs and partition separator boxes across sliding-root birth/death, root collisions, \(\tau=0\), grazing and projective events before composing the message with the heterogeneous n-ary join.
