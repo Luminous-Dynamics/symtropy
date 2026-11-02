@@ -300,4 +300,48 @@ mod tests {
             Err(SaltationError::InvalidTransversalityThreshold)
         );
     }
+    #[test]
+    fn saltation_transforms_covariantly_under_length_and_time_unit_changes() {
+        let base = point_impact_saltation(-2.0, 2.0, 0.5, 0.0)
+            .expect("base transversal impact");
+        let length_scale = 100.0;
+        let time_scale = 10.0;
+        let velocity_scale = length_scale / time_scale;
+        let transformed = point_impact_saltation(
+            base.pre_impact_velocity_m_s * velocity_scale,
+            base.gravity_m_s2 * length_scale / (time_scale * time_scale),
+            base.restitution,
+            0.0,
+        )
+        .expect("transformed transversal impact");
+
+        let state_velocity_to_length_ratio = time_scale / length_scale;
+        close(
+            transformed.saltation_matrix[0][0],
+            base.saltation_matrix[0][0],
+            1.0e-14,
+        );
+        close(
+            transformed.saltation_matrix[0][1],
+            base.saltation_matrix[0][1],
+            1.0e-14,
+        );
+        close(
+            transformed.saltation_matrix[1][0],
+            state_velocity_to_length_ratio * base.saltation_matrix[1][0],
+            1.0e-14,
+        );
+        close(
+            transformed.saltation_matrix[1][1],
+            base.saltation_matrix[1][1],
+            1.0e-14,
+        );
+        close(
+            transformed.event_time_derivative_wrt_height_s_per_m,
+            state_velocity_to_length_ratio
+                * base.event_time_derivative_wrt_height_s_per_m,
+            1.0e-14,
+        );
+    }
+
 }
