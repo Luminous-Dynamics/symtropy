@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-resource-ledger"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Deterministic resource stock-flow ledger baseline for socio-ecological civilization simulation"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "water-energy-shock-demo"
+path = "src/main.rs"
+
+[dependencies]
