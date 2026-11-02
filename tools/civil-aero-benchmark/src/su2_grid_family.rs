@@ -27,7 +27,7 @@ pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
     "h=sqrt(total_linear_2d_cell_area/number_of_2d_volume_cells)";
 pub const SU2_GRID_DOMAIN_AREA_RELATIVE_TOLERANCE: f64 = 1.0e-10;
-pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_caller_spacing_not_full_cfd_admission_or_experimental_validation";
+pub const SU2_GRID_FAMILY_EVIDENCE_LEVEL: &str = "individually_replayed_su2_run_lineages_and_terminal_monitor_derived_gci_with_mesh_derived_2d_area_spacing_not_full_cfd_admission_or_experimental_validation";
 
 #[derive(Debug, Clone)]
 pub struct Su2GridFamilyMember {
