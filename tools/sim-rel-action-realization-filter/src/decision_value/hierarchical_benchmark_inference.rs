@@ -227,7 +227,6 @@ struct ConceptCounts {
     candidate_wins: usize,
     reference_wins: usize,
     ties: usize,
-    effect_sum: Option<ExactHierarchicalEffect>,
 }
 
 fn valid_id(value: &str) -> bool {
@@ -666,7 +665,7 @@ fn build_task_rows(
     release: &AdaptiveBenchmarkSealedRelease,
 ) -> Result<Vec<TaskEffectRow>, HierarchicalInferenceError> {
     if reliability_receipt.split != EvidenceSplit::SealedHoldout
-        || reliability_receipt.sealed_holdout_only == false
+        || !reliability_receipt.sealed_holdout_only
         || reliability_receipt.task_cluster_count != reliability_receipt.task_clusters.len()
         || reliability_receipt.task_cluster_count != release.task_artifacts.len()
         || reliability_receipt.repetitions_per_task != reliability_plan.repetitions_per_task
@@ -755,7 +754,6 @@ fn aggregate_for_endpoint(
     endpoint: ClusterInferenceEndpoint,
     reliability_receipt: &RepeatedRunReliabilityReceipt,
     minimum_concepts: usize,
-    alpha: Rational,
 ) -> Result<(
     Vec<HierarchicalRecipeEffect>,
     Vec<HierarchicalConceptEffect>,
@@ -923,7 +921,6 @@ fn aggregate_for_endpoint(
     // domain × family × endpoint grid, not separately within one endpoint.
     recipe_details.shrink_to_fit();
     concept_details.shrink_to_fit();
-    let _ = alpha;
     Ok((recipe_details, concept_details, summaries))
 }
 
@@ -956,8 +953,8 @@ where
         || cluster_receipt.campaign_id != plan.campaign_id
         || cluster_receipt.group_id != plan.group_id
         || cluster_receipt.source_reliability_analysis_id != reliability_plan.analysis_id
-        || cluster_receipt.repeated_runs_not_counted_as_independent_samples == false
-        || cluster_receipt.cluster_level_pairing_preserved == false
+        || !cluster_receipt.repeated_runs_not_counted_as_independent_samples
+        || !cluster_receipt.cluster_level_pairing_preserved
     {
         return Err(HierarchicalInferenceError::NonSealedEvidence(
             "source cluster inference receipt is not the expected sealed paired analysis".into(),
@@ -1026,7 +1023,6 @@ where
             *endpoint,
             reliability_receipt,
             plan.minimum_valid_concepts_per_domain_family,
-            plan.family_wise_alpha,
         )?;
         all_recipe_details.extend(recipes);
         all_concept_details.extend(concepts);
@@ -1282,7 +1278,6 @@ mod tests {
             ClusterInferenceEndpoint::PassAtK,
             &receipt,
             1,
-            crate::Rational::new(5, 100).unwrap(),
         ).unwrap();
         let concept_a = concepts.iter().find(|c| c.concept_digest == "concept-a" && c.domain_id == "materials").unwrap();
         let recipe_1 = recipes.iter().find(|r| r.recipe_template_digest == "recipe-1").unwrap();
