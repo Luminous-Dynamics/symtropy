@@ -1021,7 +1021,63 @@ printf 'synthetic solver stdout\n'
         assert!((report.gci_report.triplets[0].extrapolated_value - 0.02).abs() < 1.0e-10);
         assert_eq!(report_to_csv(&report).lines().count(), 4);
         assert_eq!(gci_report_to_csv(&report).lines().count(), 2);
-        verify_su2_grid_family_report(&study, &report).expect("independent lineage replay");
+        verify_su2_grid_family_report(&study, &report).expect("independent run-bundle replay");
+
+        let member = &study.members[0];
+        let bundle_inputs = Su2VerifiedRunBundleInputs {
+            dry_run_directory: &member.dry_run_directory,
+            production_run_directory: &member.run_directory,
+            field_preflight: &member.field_preflight,
+            boundary_audit: &member.boundary_audit,
+            history: &member.history,
+            convergence_screen: &member.convergence_screen,
+            input_bindings: &member.input_bindings,
+            additional_output_paths: &member.additional_output_paths,
+            lineage_binding: &member.lineage_binding,
+        };
+        let bundle = create_su2_verified_run_bundle(&bundle_inputs)
+            .expect("compose dry-run and production run evidence");
+        crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(
+            &bundle_inputs,
+            &bundle,
+        )
+        .expect("replay complete SU2 run bundle");
+        assert_eq!(bundle.resource_evidence.unknown_measurement_count(), 4);
+        assert_eq!(
+            bundle.resource_evidence_sha256.len(),
+            64,
+            "resource evidence has a canonical digest"
+        );
+        assert_eq!(report.members[0].verified_run_bundle_sha256, bundle.bundle_sha256);
+
+        let mut wrong_dry_run = study.clone();
+        wrong_dry_run.members[0].dry_run_directory =
+            wrong_dry_run.members[1].dry_run_directory.clone();
+        assert!(
+            evaluate_su2_grid_family_study(&wrong_dry_run)
+                .expect_err("another grid's dry-run receipt must be rejected")
+                .contains("replayed SU2 field preflight differs")
+        );
+
+        let mut altered_boundary = study.clone();
+        altered_boundary.members[0].boundary_audit.assignments[0].marker =
+            "not-the-mesh-marker".to_owned();
+        assert!(
+            evaluate_su2_grid_family_study(&altered_boundary)
+                .expect_err("mutated boundary assignment must be rejected")
+                .contains("replayed SU2 boundary audit differs")
+        );
+
+        let mut altered_preflight = study.clone();
+        altered_preflight.members[0]
+            .field_preflight
+            .available_history_fields
+            .retain(|field| field != "CL");
+        assert!(
+            evaluate_su2_grid_family_study(&altered_preflight)
+                .expect_err("omitted discovered history field must be rejected")
+                .contains("replayed SU2 field preflight differs")
+        );
 
         let mut reordered = study.clone();
         reordered.members.swap(0, 1);
