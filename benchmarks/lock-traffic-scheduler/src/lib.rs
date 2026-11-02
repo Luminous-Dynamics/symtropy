@@ -103,6 +103,8 @@ pub enum UnscheduledReason {
 pub struct ScheduledPassage {
     pub request_id: String,
     pub participant_id: String,
+    pub arrival_tick: u64,
+    pub earliest_start_tick: u64,
     pub vessel_id: String,
     pub direction: Direction,
     pub service_class: ServiceClass,
@@ -128,6 +130,12 @@ pub struct SchedulingMetrics {
     pub total_lock_service_ticks: u128,
     pub total_direction_switch_ticks: u128,
     pub direction_switch_count: u64,
+    /// Pairwise inversions among served requests relative to
+    /// (arrival_tick, earliest_start_tick, request_id) order.
+    pub arrival_order_pair_count: u128,
+    pub arrival_order_inversion_count: u128,
+    /// Floor(inversions / pairs * 1_000_000); zero when fewer than two were served.
+    pub arrival_order_inversion_rate_ppm: u32,
     pub participant_wait_totals: Vec<(String, u128)>,
     pub service_class_wait_totals: Vec<(ServiceClass, u128)>,
 }
@@ -489,6 +497,8 @@ pub fn schedule_lock(
         scheduled.push(ScheduledPassage {
             request_id: request.request_id.clone(),
             participant_id: request.participant_id.clone(),
+            arrival_tick: request.arrival_tick,
+            earliest_start_tick: request.earliest_start_tick,
             vessel_id: request.vessel_id.clone(),
             direction: request.direction,
             service_class: request.service_class,
@@ -505,6 +515,45 @@ pub fn schedule_lock(
     metrics.unscheduled_count = u64::try_from(unscheduled.len())
         .map_err(|_| SchedulerError::ArithmeticOverflow)?;
     scheduled.sort_by_key(|slot| (slot.service_start_tick, slot.request_id.as_str()));
+
+    let served = u128::try_from(scheduled.len())
+        .map_err(|_| SchedulerError::ArithmeticOverflow)?;
+    metrics.arrival_order_pair_count = served
+        .checked_mul(served.saturating_sub(1))
+        .and_then(|pairs| pairs.checked_div(2))
+        .ok_or(SchedulerError::ArithmeticOverflow)?;
+    for left_index in 0..scheduled.len() {
+        for right_index in left_index + 1..scheduled.len() {
+            let left = &scheduled[left_index];
+            let right = &scheduled[right_index];
+            let left_arrival_key = (
+                left.arrival_tick,
+                left.earliest_start_tick,
+                left.request_id.as_str(),
+            );
+            let right_arrival_key = (
+                right.arrival_tick,
+                right.earliest_start_tick,
+                right.request_id.as_str(),
+            );
+            if left_arrival_key > right_arrival_key {
+                metrics.arrival_order_inversion_count = metrics
+                    .arrival_order_inversion_count
+                    .checked_add(1)
+                    .ok_or(SchedulerError::ArithmeticOverflow)?;
+            }
+        }
+    }
+    if metrics.arrival_order_pair_count > 0 {
+        let scaled = metrics
+            .arrival_order_inversion_count
+            .checked_mul(1_000_000)
+            .ok_or(SchedulerError::ArithmeticOverflow)?
+            / metrics.arrival_order_pair_count;
+        metrics.arrival_order_inversion_rate_ppm =
+            u32::try_from(scaled).map_err(|_| SchedulerError::ArithmeticOverflow)?;
+    }
+
     unscheduled.sort_by(|left, right| left.request_id.cmp(&right.request_id));
 
     Ok(ScheduleResult { policy, scheduled, unscheduled, metrics })
@@ -886,6 +935,39 @@ mod tests {
         assert_eq!(result.scheduled[2].request_id, "b-long-downstream");
         assert_eq!(result.scheduled[2].service_start_tick, 10);
         assert!(result.unscheduled.is_empty());
+    }
+
+    #[test]
+    fn priority_inversion_is_reported_with_its_served_pair_denominator() {
+        let older = request(
+            "older-freight",
+            "p1",
+            0,
+            Direction::Upstream,
+            ServiceClass::OrdinaryFreight,
+        );
+        let newer_emergency = request(
+            "newer-emergency",
+            "p2",
+            1,
+            Direction::Upstream,
+            ServiceClass::Emergency,
+        );
+
+        let result = schedule_lock(
+            &profile(),
+            &[older, newer_emergency],
+            1,
+            SchedulingPolicy::PriorityWithAging {
+                aging_threshold_ticks: 100,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.scheduled[0].request_id, "newer-emergency");
+        assert_eq!(result.metrics.arrival_order_pair_count, 1);
+        assert_eq!(result.metrics.arrival_order_inversion_count, 1);
+        assert_eq!(result.metrics.arrival_order_inversion_rate_ppm, 1_000_000);
     }
 
     #[test]
