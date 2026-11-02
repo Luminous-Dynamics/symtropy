@@ -444,7 +444,9 @@ impl OutwardInterval {
     /// bound to the known mathematical domain [0, +inf).
     fn outward_sqrt_nonnegative(self) -> Result<Self, &'static str> {
         if !self.lower.is_finite() || !self.upper.is_finite() || self.upper < 0.0 {
-            return Err("interval square root requires a finite enclosure intersecting the nonnegative domain");
+            return Err(
+                "interval square root requires a finite enclosure intersecting the nonnegative domain",
+            );
         }
         let lower = self.lower.max(0.0).sqrt().next_down().max(0.0);
         let upper = self.upper.sqrt().next_up();
