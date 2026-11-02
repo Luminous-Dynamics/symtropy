@@ -261,6 +261,8 @@ mod tests {
         assert_eq!(sapkal.overlap_ticks, 6);
         assert_eq!(sapkal.denominator_ticks, 4);
         assert_ne!(natvar.value, sapkal.value);
+        assert_eq!(natvar.value, 6.0 / 14.0);
+        assert_eq!(sapkal.value, 1.5, "Sapkal v2 result must not be clamped");
     }
 
     #[test]
@@ -362,7 +364,7 @@ mod tests {
             .expect("third"),
         ];
         let (_, median) = median_tcs(&scores).expect("median");
-        assert!(median.is_finite());
+        assert!((median - (6.0 / 14.0)).abs() < 1e-12);
     }
 
     #[test]
@@ -380,7 +382,8 @@ mod tests {
             .expect("second"),
         ];
         let (_, median) = median_tcs(&scores).expect("median");
-        assert!(median.is_finite());
+        let expected = (0.0 + (18.0 / 22.0)) / 2.0;
+        assert!((median - expected).abs() < 1e-12);
     }
 
     #[test]
