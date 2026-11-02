@@ -62,16 +62,41 @@ Do not compare an engine BTE result against a net AC generator-set efficiency re
 
 ## 4. Baseline and candidate families
 
+The benchmark must compare **conversion topologies**, not only different fuels inside one reciprocating engine.
+
 Minimum comparison set:
-1. Current production diesel generator set of similar rating and application class.
+1. Current production diesel reciprocating engine-generator of similar net-AC rating and application class.
 2. Same-set HVO/renewable-diesel compatibility configuration where the manufacturer and fuel specification permit it.
-3. A separate natural-gas/biomethane dual-fuel candidate only after its gas train, pilot-fuel fraction, ventilation, leak detection, shutdown and safety case are established.
-4. Battery-electric storage/inverter supply for the same load trace where a credible grid/charging source is available.
-5. Optional fuel-cell generator only when fuel supply, storage, parasitics, operating life and cost data are credible.
+3. A separate natural-gas/biomethane dual-fuel engine-generator only after its gas train, pilot-fuel fraction, ventilation, leak detection, shutdown and safety case are established.
+4. **Mainspring linear generator** as the closest same-scale multi-fuel comparator. Its product materials report 250 kW modules, 46% net-AC LHV electrical efficiency on natural gas/biogas, <1.5 ppm NOx, 0–100% output range and a standard 2.5 MW block made from ten 250 kW units. Preserve the vendor's measurement footnotes and uncertainty; do not treat them as independent head-to-head results.
+5. **Capstone C200S microturbine** as another same-scale distributed-generation comparator; its current product material reports 200 kW and 33% LHV electrical efficiency, with gaseous-fuel variants. Verify the exact net/gross boundary and rated conditions in the controlled datasheet.
+6. Fuel-cell generator where fuel supply, storage, reformer/stack/inverter parasitics, load response, lifetime, replacement and cost data are credible.
+7. Battery-electric storage/inverter supply for the same load trace where a credible grid/charging source is available.
 
-Biodiesel, methanol, hydrogen and ammonia are separate fuel/configuration studies. No implicit drop-in or instant fuel-switch assumption is permitted.
+Biodiesel, methanol, hydrogen and ammonia are separate fuel/configuration studies. No implicit drop-in or instant fuel-switch assumption is permitted. The Air Force's March 2026 Mainspring pilot includes ammonia and syngas in its planned test set; this is a test programme, not evidence that the standard commercial product has already qualified those fuels.
 
-A reference engine map must be measured or sourced with traceable evidence. If no valid map exists, the model must mark the operating point unknown and refuse quantitative ranking.
+### 4.1 Mainspring linear-generator evidence classes
+
+Keep at least three distinct evidence records:
+
+- **Manufacturer current product specification:** 250 kW module / 2.5 MW standard block; 46% net AC LHV on natural gas and biogas; 0–100% output; <1.5 ppm NOx. The datasheet says its efficiency was measured according to ASME PTC 50 at 15°C and 1 atm, with 1% assumed inverter and line losses included. The same datasheet states "unit weight 22 tons"; its unit/package basis must be clarified before power-density calculations.
+- **CEC-sponsored early pilot report:** 230 kW beta unit operated at a grocery site for nine months; 41.5% net AC efficiency and >40% across the reported building load range; a third-party source test reported 1.6 ppm NOx, 0.8 ppm CO and 8.4 ppm VOC. The report was prepared by Mainspring and includes a CEC disclaimer; third-party status is specifically stated for the emissions test. Do not label the whole report an independent comparative certification.
+- **U.S. Air Force 2026 prototype pilot:** 250 kW test programme to gather fuel efficiency, power, consumption and emissions data on natural gas, biomethane, syngas, ammonia, propane and hydrogen. Do not treat planned test fuels as completed qualifications or publish results until the programme releases them.
+
+Mainspring also reports >1.5 million core run hours and an AEP agreement for up to 1.6 GW with a first 190 MW tranche announced for delivery beginning in 2027. Core-hours are not automatically single-unit elapsed hours, MTBF or system availability; a sales agreement is not installed or independently measured fleet capacity.
+
+**Test-method caution:** Mainspring states that product efficiency was measured under ASME PTC 50. ASME's public PTC catalogue identifies PTC 50 as Fuel Cell Power Systems Performance. Obtain the actual test report and a documented scope/applicability explanation before treating this as a directly comparable generator-set test. Do not silently substitute PTC 50 for ISO 8528 or another test code.
+
+### 4.2 Fair comparison rules across topologies
+
+- Compare at the same net electrical terminal, with the same included auxiliaries, voltage/frequency, power factor, reserve and load profile.
+- Compare net AC efficiency on a common LHV basis; preserve HHV conversions and fuel properties.
+- Report output range, step-load response, start/stop, ramp rates, low-load performance and parasitic loads separately.
+- Include mass, volume, skid footprint, foundation, ventilation, fuel conditioning, noise, heat rejection, cooling-water use and site requirements.
+- Distinguish vendor specifications, manufacturer-authored demonstration reports, third-party measurement, independent validation, regulatory certification and field-operation data.
+- A linear generator does not have a conventional crankshaft / alternator chain; a fuel cell has a DC stack and inverter chain. Model each topology explicitly rather than forcing all outputs through an engine-brake-power field.
+
+A reference engine map must be measured or sourced with traceable evidence. If no valid map or topology-specific performance dataset exists, the model must mark the operating point unknown and refuse quantitative ranking.
 
 ## 5. Test matrix
 
