@@ -516,6 +516,42 @@ pub fn evaluate_claim_admission(
 }
 
 /// Replay a claim decision from its original request and source assertions.
+fn kinds_csv(kinds: &[EvidenceKind]) -> String {
+    kinds.iter().map(|kind| kind.as_str()).collect::<Vec<_>>().join(";")
+}
+
+fn csv_escape(value: &str) -> String {
+    format!("\\\"{}\\\"", value.replace('"', "\\\"\\\""))
+}
+
+pub const CLAIM_ADMISSION_CSV_HEADER: &str =
+    "schema,claim_id,claim_class,consequence,scope_sha256,policy_sha256,evidence_manifest_sha256,required_evidence,verified_evidence,unknown_evidence,missing_evidence,failed_evidence,status,evidence_level,decision_sha256";
+
+pub fn report_to_csv(decision: &ClaimDecision) -> String {
+    let fields = [
+        decision.schema.clone(),
+        decision.claim_id.clone(),
+        decision.claim_class.as_str().to_owned(),
+        decision.consequence.as_str().to_owned(),
+        decision.scope_sha256.clone(),
+        decision.policy_sha256.clone(),
+        decision.evidence_manifest_sha256.clone(),
+        kinds_csv(&decision.required_evidence),
+        kinds_csv(&decision.verified_evidence),
+        kinds_csv(&decision.unknown_evidence),
+        kinds_csv(&decision.missing_evidence),
+        kinds_csv(&decision.failed_evidence),
+        decision.status.as_str().to_owned(),
+        decision.evidence_level.clone(),
+        decision.decision_sha256.clone(),
+    ];
+    format!(
+        "{}\\n{}\\n",
+        CLAIM_ADMISSION_CSV_HEADER,
+        fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
+    )
+}
+
 pub fn verify_claim_admission(
     request: &ClaimRequest,
     evidence: &[ScopedEvidence],
@@ -737,6 +773,22 @@ mod tests {
             .expect("changed supplemental reason");
         assert_ne!(first.evidence_manifest_sha256, third.evidence_manifest_sha256);
         assert_eq!(first.status, third.status);
+    }
+
+    #[test]
+    fn claim_decision_csv_exports_policy_scope_and_evidence_manifest_digests() {
+        let request = request(
+            ClaimClass::ExploratoryDesignRanking,
+            DecisionConsequence::Exploratory,
+        );
+        let evidence = all_verified(&request);
+        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertion set");
+        let csv = report_to_csv(&decision);
+        assert_eq!(csv.lines().count(), 2);
+        assert!(csv.contains(&decision.policy_sha256));
+        assert!(csv.contains(&decision.evidence_manifest_sha256));
+        assert!(csv.contains(&decision.decision_sha256));
+        assert!(csv.contains(ClaimDecisionStatus::AdmittedWithinDeclaredScope.as_str()));
     }
 
     #[test]
