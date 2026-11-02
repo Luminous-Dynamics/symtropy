@@ -531,12 +531,275 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
+    use crate::external_solver::{ExternalSolverRequest, StagedInputSpec, execute_external_solver};
+    use crate::integrity::sha256_file;
+    use crate::su2_convergence_screen::{
+        ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
+        screen_su2_history,
+    };
+    use crate::su2_history::{
+        Su2HistoryField, Su2HistorySchema, import_su2_history,
+    };
+    use crate::su2_run_binding::{
+        Su2RunInputBindings, bind_su2_run_lineage,
+    };
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::Duration;
+
+    fn temporary_root() -> PathBuf {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "su2-grid-family-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&path).expect("create test root");
+        path
+    }
+
+    fn stage_spec(
+        source_path: &Path,
+        relative_path: &str,
+        source_reference: &str,
+    ) -> StagedInputSpec {
+        let bytes = fs::read(source_path).expect("read staged fixture");
+        StagedInputSpec {
+            source_path: source_path.to_path_buf(),
+            relative_path: relative_path.to_owned(),
+            expected_byte_length: bytes.len() as u64,
+            expected_sha256: sha256_hex(&bytes).expect("hash staged fixture"),
+            source_reference: source_reference.to_owned(),
+        }
+    }
+
+    fn build_fixture_study(root: &Path) -> Su2GridFamilyStudy {
+        let shared = root.join("shared");
+        fs::create_dir_all(&shared).expect("create shared inputs");
+        let config = shared.join("config.cfg");
+        let geometry = shared.join("geometry.dat");
+        fs::write(
+            &config,
+            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\n",
+        )
+        .expect("write physics config");
+        fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
+
+        let executable = shared.join("fake-su2-cfd");
+        let solver = r#"#!/bin/sh
+set -eu
+printf '"Iteration","CL","CD","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
+printf '0,0.42310,%s,-1,-1\n' "$GRID_CD" >> history.csv
+printf '10,0.42310,%s,-2,-2\n' "$GRID_CD" >> history.csv
+printf '20,0.42310,%s,-6.0,-6.0\n' "$GRID_CD" >> history.csv
+printf '30,0.42310,%s,-6.4,-6.4\n' "$GRID_CD" >> history.csv
+printf '40,0.42310,%s,-6.8,-6.8\n' "$GRID_CD" >> history.csv
+printf '50,0.42310,%s,-7.2,-7.2\n' "$GRID_CD" >> history.csv
+printf '60,0.42310,%s,-7.6,-7.6\n' "$GRID_CD" >> history.csv
+printf '70,0.42310,%s,-8.0,-8.0\n' "$GRID_CD" >> history.csv
+printf 'synthetic force output; not CFD evidence\n' > forces.dat
+printf 'synthetic solver stdout\n'
+"#;
+        fs::write(&executable, solver).expect("write fake solver");
+        let mut permissions = fs::metadata(&executable).expect("solver metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable, permissions).expect("make solver executable");
+
+        let history_schema = Su2HistorySchema {
+            history_relative_path: "history.csv".to_owned(),
+            expected_header: vec![
+                "Iteration".to_owned(),
+                "CL".to_owned(),
+                "CD".to_owned(),
+                "RMS_DENSITY".to_owned(),
+                "RMS_MOMENTUM-X".to_owned(),
+            ],
+            iteration_column: "Iteration".to_owned(),
+            numeric_fields: vec![
+                Su2HistoryField {
+                    column: "CL".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "CD".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "RMS_DENSITY".to_owned(),
+                    unit: "log10(residual)".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "RMS_MOMENTUM-X".to_owned(),
+                    unit: "log10(residual)".to_owned(),
+                },
+            ],
+            minimum_rows: 8,
+        };
+        let criteria = ConvergenceCriteria {
+            residuals: ["RMS_DENSITY", "RMS_MOMENTUM-X"]
+                .into_iter()
+                .map(|column| ResidualCriterion {
+                    column: column.to_owned(),
+                    unit: "log10(residual)".to_owned(),
+                    terminal_window_rows: 6,
+                    acceptance: ResidualAcceptance::Log10 {
+                        maximum_final_log10_residual: -8.0,
+                        minimum_log10_reduction: 6.0,
+                        maximum_terminal_span_log10: 2.0,
+                    },
+                })
+                .collect(),
+            monitors: ["CL", "CD"]
+                .into_iter()
+                .map(|column| MonitorCriterion {
+                    column: column.to_owned(),
+                    unit: "dimensionless".to_owned(),
+                    trailing_window_rows: 6,
+                    maximum_absolute_range: 0.0004,
+                    maximum_absolute_mean_drift: 0.0003,
+                    maximum_absolute_slope_per_1000_iterations: 0.02,
+                })
+                .collect(),
+        };
+        let input_bindings = Su2RunInputBindings {
+            physics_configuration_path: "config.cfg".to_owned(),
+            geometry_path: "geometry.dat".to_owned(),
+            mesh_path: "mesh.su2".to_owned(),
+        };
+
+        let spacings = [4.0_f64, 2.0, 1.0];
+        let mut members = Vec::new();
+        for (index, spacing) in spacings.into_iter().enumerate() {
+            let level = u32::try_from(index + 1).expect("three levels fit u32");
+            let mesh = shared.join(format!("mesh-{level}.su2"));
+            let extent = 1.0 / f64::from(level);
+            let mesh_text = format!(
+                "NDIME= 2\nNELEM= 2\n5 0 1 2\n5 0 2 3\nNPOIN= 4\n0.0 0.0\n{extent} 0.0\n{extent} {extent}\n0.0 {extent}\nNMARK= 1\nMARKER_TAG= wall\nMARKER_ELEMS= 4\n3 0 1\n3 1 2\n3 2 3\n3 3 0\n"
+            );
+            fs::write(&mesh, mesh_text).expect("write grid mesh");
+            let run_directory = root.join(format!("run-{level}"));
+            let drag = 0.02 + 0.008 * spacing.powi(2);
+            let request = ExternalSolverRequest {
+                run_id: format!("su2-grid-run-{level}"),
+                solver_id: "SU2_CFD".to_owned(),
+                solver_version_claim: "synthetic-ci-fixture-not-a-SU2-version".to_owned(),
+                executable_path: executable.clone(),
+                run_directory: run_directory.clone(),
+                arguments: vec!["-f".to_owned(), "config.cfg".to_owned()],
+                environment: BTreeMap::from([("GRID_CD".to_owned(), format!("{drag:.12}"))]),
+                staged_inputs: vec![
+                    stage_spec(&config, "config.cfg", "synthetic-fixed-physics-config"),
+                    stage_spec(&geometry, "geometry.dat", "synthetic-fixed-geometry"),
+                    stage_spec(&mesh, "mesh.su2", "synthetic-grid-mesh"),
+                ],
+                expected_outputs: vec!["history.csv".to_owned(), "forces.dat".to_owned()],
+                timeout: Duration::from_secs(2),
+                max_log_bytes_per_stream: 16 * 1024,
+            };
+            let receipt = execute_external_solver(&request).expect("execute fake solver");
+            assert!(receipt.is_process_success());
+            assert_eq!(
+                receipt.executable_sha256,
+                sha256_file(&executable).expect("hash fixture executable")
+            );
+
+            let history =
+                import_su2_history(&run_directory, &history_schema).expect("import SU2 history");
+            let screen =
+                screen_su2_history(&history, &criteria).expect("screen history");
+            assert_eq!(screen.status, "declared_thresholds_met");
+            let additional_output_paths = vec!["forces.dat".to_owned()];
+            let binding = bind_su2_run_lineage(
+                &run_directory,
+                &history,
+                &screen,
+                &input_bindings,
+                &additional_output_paths,
+            )
+            .expect("bind complete run lineage");
+            members.push(Su2GridFamilyMember {
+                grid_id: format!("grid-{level}"),
+                grid_level: level,
+                characteristic_spacing: spacing,
+                run_directory,
+                history,
+                convergence_screen: screen,
+                input_bindings: input_bindings.clone(),
+                additional_output_paths,
+                lineage_binding: binding,
+            });
+        }
+
+        Su2GridFamilyStudy {
+            study_id: "synthetic-3-grid-study".to_owned(),
+            case_id: "synthetic-OAT15A-M0.73-Re3M-alpha1.50-periodic".to_owned(),
+            protocol_manifest_sha256: sha256_hex(b"synthetic protocol fixture").expect("protocol digest"),
+            quantity: "section drag coefficient".to_owned(),
+            quantity_field: "CD".to_owned(),
+            quantity_unit: "dimensionless".to_owned(),
+            source_reference: "synthetic fake-solver known answer".to_owned(),
+            spacing_definition: "explicit synthetic characteristic spacing".to_owned(),
+            grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
+            safety_factor: 3.0,
+            members,
+        }
+    }
+
+    #[test]
+    fn lineage_bound_three_grid_study_derives_quantity_and_replays_gci() {
+        let root = temporary_root();
+        let study = build_fixture_study(&root);
+        let report = evaluate_su2_grid_family_study(&study).expect("lineage-bound GCI study");
+        assert_eq!(report.members.len(), 3);
+        assert_eq!(report.gci_report.triplets.len(), 1);
+        assert!((report.members[0].quantity_value - 0.148).abs() < 1.0e-11);
+        assert!((report.members[1].quantity_value - 0.052).abs() < 1.0e-11);
+        assert!((report.members[2].quantity_value - 0.028).abs() < 1.0e-11);
+        assert!((report.gci_report.triplets[0].observed_order - 2.0).abs() < 1.0e-10);
+        assert!((report.gci_report.triplets[0].extrapolated_value - 0.02).abs() < 1.0e-10);
+        assert_eq!(report_to_csv(&report).lines().count(), 4);
+        assert_eq!(gci_report_to_csv(&report).lines().count(), 2);
+        verify_su2_grid_family_report(&study, &report).expect("independent lineage replay");
+
+        let mut reordered = study.clone();
+        reordered.members.swap(0, 1);
+        assert!(
+            evaluate_su2_grid_family_study(&reordered)
+                .expect_err("non-refining run order rejected")
+                .contains("coarse-to-fine")
+        );
+        fs::remove_dir_all(root).expect("remove synthetic study artifacts");
+    }
 
     #[test]
     fn rejects_incomplete_or_inconsistent_family_identity() {
+        let study = Su2GridFamilyStudy {
+            study_id: "study".to_owned(),
+            case_id: "case".to_owned(),
+            protocol_manifest_sha256: "0".repeat(64),
+            quantity: "drag".to_owned(),
+            quantity_field: "CD".to_owned(),
+            quantity_unit: "dimensionless".to_owned(),
+            source_reference: "synthetic fixture".to_owned(),
+            spacing_definition: "synthetic volume-based characteristic spacing".to_owned(),
+            grid_family_kind: GridFamilyKind::UnstructuredOrHybrid,
+            safety_factor: 3.0,
+            members: Vec::new(),
+        };
+        assert!(
+            evaluate_su2_grid_family_study(&study)
+                .expect_err("empty family rejected")
+                .contains("at least three")
+        );
+    }
+}
+
         let study = Su2GridFamilyStudy {
             study_id: "study".to_owned(),
             case_id: "case".to_owned(),
