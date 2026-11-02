@@ -3384,3 +3384,313 @@ mod sliding_leaf_candidate_message_tests {
         );
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SlidingQuarticDegreeClassification {
+    UniformQuartic,
+    MayDropDegree,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SlidingNormalResponseClassification {
+    UniformlyRegular,
+    MayBeSingular,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SlidingQuarticFamilyClaim {
+    CoefficientFamilyOnly,
+}
+
+#[derive(Clone, Debug)]
+struct SlidingQuarticCoefficientFamily {
+    effective_free_velocity: [OutwardInterval; 3],
+    /// Coefficients in ascending powers of t = tan(theta/2).
+    coefficients: [OutwardInterval; 5],
+    normal_coupling_guard: OutwardInterval,
+    degree_classification: SlidingQuarticDegreeClassification,
+    normal_classification: SlidingNormalResponseClassification,
+    claim: SlidingQuarticFamilyClaim,
+}
+
+impl SlidingLeafMessage {
+    /// Enclose the complete direction-quartic coefficient family over a
+    /// separator box. This does not isolate or count roots.
+    #[allow(clippy::needless_range_loop)]
+    fn coefficient_family_over_box(
+        &self,
+        separator_box: &SeparatorImpulseBox,
+    ) -> Result<SlidingQuarticCoefficientFamily, &'static str> {
+        if !self
+            .self_operator
+            .iter()
+            .chain(self.separator_coupling.iter())
+            .chain(self.free_velocity.iter())
+            .all(|value| value.is_finite())
+            || !self.friction_coefficient.is_finite()
+            || self.friction_coefficient < 0.0
+        {
+            return Err("sliding quartic family contains invalid or non-finite data");
+        }
+        if self.self_operator != self.self_operator.transpose() {
+            return Err("sliding quartic self-block must be exactly symmetric");
+        }
+        if self.self_operator.cholesky().is_none() {
+            return Err("sliding quartic self-block must be positive definite");
+        }
+
+        let mut effective_free_velocity = [OutwardInterval::point(0.0)?; 3];
+        for (component, effective_velocity) in effective_free_velocity.iter_mut().enumerate() {
+            let mut value = OutwardInterval::point(self.free_velocity[component])?;
+            for (separator_axis, (lower, upper)) in separator_box
+                .lower
+                .iter()
+                .zip(separator_box.upper.iter())
+                .enumerate()
+            {
+                let coefficient =
+                    OutwardInterval::point(self.separator_coupling[(separator_axis, component)])?;
+                let coordinate = OutwardInterval::from_bounds(*lower, *upper)?;
+                value = value.outward_add(coefficient.outward_mul(coordinate)?)?;
+            }
+            *effective_velocity = value;
+        }
+
+        let point = OutwardInterval::point;
+        let add = |left: OutwardInterval, right: OutwardInterval| left.outward_add(right);
+        let sub = |left: OutwardInterval, right: OutwardInterval| left.outward_sub(right);
+        let scale =
+            |coefficient: f64, value: OutwardInterval| -> Result<OutwardInterval, &'static str> {
+                point(coefficient)?.outward_mul(value)
+            };
+
+        let a = self.self_operator[(0, 0)];
+        let d1 = self.self_operator[(0, 1)];
+        let d2 = self.self_operator[(0, 2)];
+        let a11 = self.self_operator[(1, 1)];
+        let a12 = self.self_operator[(1, 2)];
+        let a22 = self.self_operator[(2, 2)];
+        let mu = self.friction_coefficient;
+        let qn = effective_free_velocity[0];
+        let q1 = effective_free_velocity[1];
+        let q2 = effective_free_velocity[2];
+
+        let mu_qn = scale(mu, qn)?;
+        let mu_q1 = scale(mu, q1)?;
+        let mu_q2 = scale(mu, q2)?;
+
+        // These are the exact algebraic coefficients of sliding_quartic(),
+        // evaluated with outward interval operations over the full q-family.
+        let c0 = add(
+            add(scale(a12, mu_qn)?, scale(a, q2)?)?,
+            sub(scale(-d2, qn)?, scale(d1, mu_q2)?)?,
+        )?;
+        let c1 = add(
+            add(
+                add(
+                    add(scale(-2.0 * a11, mu_qn)?, scale(2.0 * a22, mu_qn)?)?,
+                    scale(-2.0 * a, q1)?,
+                )?,
+                add(scale(2.0 * d1, qn)?, scale(2.0 * d1, mu_q1)?)?,
+            )?,
+            scale(-2.0 * d2, mu_q2)?,
+        )?;
+        let c2 = add(
+            add(scale(-6.0 * a12, mu_qn)?, scale(2.0 * d1, mu_q2)?)?,
+            scale(4.0 * d2, mu_q1)?,
+        )?;
+        let c3 = add(
+            add(
+                add(
+                    add(scale(2.0 * a11, mu_qn)?, scale(-2.0 * a22, mu_qn)?)?,
+                    scale(-2.0 * a, q1)?,
+                )?,
+                add(scale(2.0 * d1, qn)?, scale(-2.0 * d1, mu_q1)?)?,
+            )?,
+            scale(2.0 * d2, mu_q2)?,
+        )?;
+        let c4 = add(
+            add(scale(a12, mu_qn)?, scale(-a, q2)?)?,
+            sub(scale(d2, qn)?, scale(d1, mu_q2)?)?,
+        )?;
+
+        let d1_squared = point(d1)?.outward_square()?;
+        let d2_squared = point(d2)?.outward_square()?;
+        let tangent_coupling_norm = d1_squared
+            .outward_add(d2_squared)?
+            .outward_sqrt_nonnegative()?;
+        let normal_coupling_guard = sub(point(a)?, scale(mu, tangent_coupling_norm)?)?;
+
+        let degree_classification = if c4.lower > 0.0 || c4.upper < 0.0 {
+            SlidingQuarticDegreeClassification::UniformQuartic
+        } else {
+            SlidingQuarticDegreeClassification::MayDropDegree
+        };
+        let normal_classification = if normal_coupling_guard.lower > 0.0 {
+            SlidingNormalResponseClassification::UniformlyRegular
+        } else {
+            SlidingNormalResponseClassification::MayBeSingular
+        };
+
+        Ok(SlidingQuarticCoefficientFamily {
+            effective_free_velocity,
+            coefficients: [c0, c1, c2, c3, c4],
+            normal_coupling_guard,
+            degree_classification,
+            normal_classification,
+            claim: SlidingQuarticFamilyClaim::CoefficientFamilyOnly,
+        })
+    }
+}
+
+#[cfg(test)]
+mod sliding_quartic_coefficient_family_tests {
+    use super::*;
+
+    fn contains(interval: OutwardInterval, value: f64) -> bool {
+        interval.lower <= value && value <= interval.upper
+    }
+
+    fn point_box(point: SVector<f64, 3>) -> SeparatorImpulseBox {
+        SeparatorImpulseBox::new(point, point).unwrap()
+    }
+
+    fn direct_quartic(
+        message: &SlidingLeafMessage,
+        separator_impulse: &SVector<f64, 3>,
+    ) -> [f64; 5] {
+        let q = message.free_velocity + message.separator_coupling.transpose() * separator_impulse;
+        solve_coupled_signorini_coulomb(
+            &message.self_operator,
+            &q,
+            message.friction_coefficient,
+            1.0e-12,
+        )
+        .unwrap()
+        .sliding_quartic
+    }
+
+    #[test]
+    fn point_separator_box_encloses_the_direct_quartic_coefficients() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::new(3.0, 0.4, -0.2, 0.4, 2.0, 0.5, -0.2, 0.5, 1.5),
+            separator_coupling: Matrix3::new(0.1, -0.05, 0.0, 0.0, 0.08, 0.02, -0.03, 0.0, 0.04),
+            free_velocity: SVector::<f64, 3>::new(-0.8, -2.5, 0.9),
+            friction_coefficient: 0.37,
+        };
+        let separator_impulse = SVector::<f64, 3>::new(0.2, -0.1, 0.3);
+        let family = message
+            .coefficient_family_over_box(&point_box(separator_impulse))
+            .unwrap();
+        let direct = direct_quartic(&message, &separator_impulse);
+
+        for (interval, value) in family.coefficients.iter().zip(direct) {
+            assert!(contains(*interval, value));
+        }
+        assert_eq!(
+            family.degree_classification,
+            SlidingQuarticDegreeClassification::UniformQuartic
+        );
+        assert_eq!(
+            family.normal_classification,
+            SlidingNormalResponseClassification::UniformlyRegular
+        );
+        assert_eq!(
+            family.claim,
+            SlidingQuarticFamilyClaim::CoefficientFamilyOnly
+        );
+    }
+
+    #[test]
+    fn coupled_separator_box_encloses_corners_and_interior_quartics() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::new(2.0, 0.2, -0.1, 0.2, 1.5, 0.15, -0.1, 0.15, 1.2),
+            separator_coupling: Matrix3::new(
+                0.1, 0.02, -0.03, -0.04, 0.08, 0.01, 0.02, -0.01, 0.06,
+            ),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 0.7, -0.4),
+            friction_coefficient: 0.6,
+        };
+        let root = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(-0.5, -0.25, -0.75),
+            SVector::<f64, 3>::new(0.5, 0.25, 0.75),
+        )
+        .unwrap();
+        let family = message.coefficient_family_over_box(&root).unwrap();
+
+        for x in [-0.5, 0.5, 0.0] {
+            for y in [-0.25, 0.25, 0.0] {
+                for z in [-0.75, 0.75, 0.0] {
+                    let point = SVector::<f64, 3>::new(x, y, z);
+                    let q = message.free_velocity + message.separator_coupling.transpose() * point;
+                    for (interval, value) in family.effective_free_velocity.iter().zip(q.iter()) {
+                        assert!(contains(*interval, *value));
+                    }
+                    let direct = direct_quartic(&message, &point);
+                    for (interval, value) in family.coefficients.iter().zip(direct) {
+                        assert!(contains(*interval, value));
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn leading_coefficient_crossing_zero_is_marked_as_degree_loss() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::identity(),
+            separator_coupling: Matrix3::new(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
+            friction_coefficient: 0.5,
+        };
+        let box_domain = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        )
+        .unwrap();
+        let family = message.coefficient_family_over_box(&box_domain).unwrap();
+        assert!(contains(family.coefficients[4], 0.0));
+        assert_eq!(
+            family.degree_classification,
+            SlidingQuarticDegreeClassification::MayDropDegree
+        );
+        assert_eq!(
+            family.claim,
+            SlidingQuarticFamilyClaim::CoefficientFamilyOnly
+        );
+    }
+
+    #[test]
+    fn normal_coupling_guard_crossing_zero_is_never_declared_regular() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::new(1.0, 0.8, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 1.0),
+            separator_coupling: Matrix3::zeros(),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
+            friction_coefficient: 1.25,
+        };
+        let family = message
+            .coefficient_family_over_box(&point_box(SVector::<f64, 3>::zeros()))
+            .unwrap();
+        assert!(contains(family.normal_coupling_guard, 0.0));
+        assert_eq!(
+            family.normal_classification,
+            SlidingNormalResponseClassification::MayBeSingular
+        );
+    }
+
+    #[test]
+    fn coefficient_family_rejects_non_spd_and_invalid_friction() {
+        let mut message = SlidingLeafMessage {
+            self_operator: Matrix3::new(1.0, 2.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 1.0),
+            separator_coupling: Matrix3::zeros(),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 1.0, 0.0),
+            friction_coefficient: 0.5,
+        };
+        let root = point_box(SVector::<f64, 3>::zeros());
+        assert!(message.coefficient_family_over_box(&root).is_err());
+
+        message.self_operator = Matrix3::identity();
+        message.friction_coefficient = -0.1;
+        assert!(message.coefficient_family_over_box(&root).is_err());
+    }
+}
