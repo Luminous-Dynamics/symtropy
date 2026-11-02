@@ -170,9 +170,8 @@ pub fn verify_thermal_causal_execution_bridge<C>(
 where
     C: ThermalEvidenceCommitmentVerifier,
 {
-    verify_finite_thermal_challenge_from_recipe(challenge, recipe, split_registry).map_err(
-        |reason| fail(ThermalBridgeStage::ChallengeReplay, reason),
-    )?;
+    verify_finite_thermal_challenge_from_recipe(challenge, recipe, split_registry)
+        .map_err(|reason| fail(ThermalBridgeStage::ChallengeReplay, reason))?;
     let causal_audit = audit_causal_execution_bundle(causal).map_err(|error| {
         fail(
             ThermalBridgeStage::CausalExecution,
@@ -285,8 +284,7 @@ where
     }
 
     if physical_binding.transition_event_id != causal.physical_transition.event_id
-        || causal.physical_transition.parent_actuator_event_id
-            != causal.actuator_readback.event_id
+        || causal.physical_transition.parent_actuator_event_id != causal.actuator_readback.event_id
         || physical_binding.pre_state_temperature != first.temperature_before
         || physical_binding.post_state_temperature != last.temperature_after
     {
@@ -323,8 +321,7 @@ where
         || physical_binding.sensor_calibration_receipt_id
             != causal.sensor_acquisition.calibration_receipt_id
         || physical_binding.raw_sample_digest != causal.sensor_acquisition.raw_sample_digest
-        || physical_binding.measured_post_state_temperature
-            != last.measured_temperature_after
+        || physical_binding.measured_post_state_temperature != last.measured_temperature_after
     {
         return Err(fail(
             ThermalBridgeStage::SensorAcquisition,
@@ -381,15 +378,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        SUPPORTED_MODEL_VERSION, ThermalEvidenceCommitmentVerifier,
-        ThermalPhysicalReadbackBinding, verify_thermal_causal_execution_bridge,
-    };
     use super::super::causal_execution::{
         AcknowledgementState, ActuatorReadback, CausalExecutionBundle, CommandIntent,
-        DecisionEvidence, DispatchReceipt, DispatchState, DeviceAcknowledgement,
-        InferenceEvidence, PhysicalTransitionEvidence, SensorAcquisition,
-        UncertainTimestamp,
+        DecisionEvidence, DeviceAcknowledgement, DispatchReceipt, DispatchState, InferenceEvidence,
+        PhysicalTransitionEvidence, SensorAcquisition, UncertainTimestamp,
     };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::finite_physical_challenge::{
@@ -397,6 +389,10 @@ mod tests {
         generate_finite_thermal_challenge,
     };
     use super::super::scientific_challenge::ChallengeSplitRegistry;
+    use super::{
+        SUPPORTED_MODEL_VERSION, ThermalEvidenceCommitmentVerifier, ThermalPhysicalReadbackBinding,
+        verify_thermal_causal_execution_bridge,
+    };
     use crate::Rational;
 
     struct TestCommitments;
@@ -408,11 +404,12 @@ mod tests {
             model_version: &str,
             temperature: Rational,
         ) -> Result<bool, String> {
-            Ok(digest == format!(
-                "test-state:{model_version}:{}:{}",
-                temperature.numerator(),
-                temperature.denominator()
-            ))
+            Ok(digest
+                == format!(
+                    "test-state:{model_version}:{}:{}",
+                    temperature.numerator(),
+                    temperature.denominator()
+                ))
         }
 
         fn verify_sensor_sample_commitment(
@@ -422,11 +419,12 @@ mod tests {
             calibration_receipt_id: &str,
             temperature_readback: Rational,
         ) -> Result<bool, String> {
-            Ok(digest == format!(
-                "test-sample:{instrument_id}:{calibration_receipt_id}:{}:{}",
-                temperature_readback.numerator(),
-                temperature_readback.denominator()
-            ))
+            Ok(digest
+                == format!(
+                    "test-sample:{instrument_id}:{calibration_receipt_id}:{}:{}",
+                    temperature_readback.numerator(),
+                    temperature_readback.denominator()
+                ))
         }
     }
 
@@ -504,10 +502,13 @@ mod tests {
         let pre = binding.pre_state_temperature;
         let post = binding.post_state_temperature;
         let first = challenge.sealed_oracle.episode.steps.first().unwrap();
-        let commanded_milliwatts = challenge.public_task.commanded_power
+        let commanded_milliwatts = challenge
+            .public_task
+            .commanded_power
             .checked_mul(Rational::from_u64(1_000))
             .unwrap();
-        let realized_milliwatts = first.realized_power
+        let realized_milliwatts = first
+            .realized_power
             .checked_mul(Rational::from_u64(1_000))
             .unwrap();
         assert_eq!(commanded_milliwatts.denominator(), 1);
@@ -639,28 +640,32 @@ mod tests {
         let challenge = make_challenge(&recipe);
         let mut causal = make_causal(&challenge);
         causal.command.requested_value = 101_000;
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &make_binding(&challenge),
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &make_binding(&challenge),
+                &TestCommitments,
+            )
+            .is_err()
+        );
 
         causal = make_causal(&challenge);
         causal.actuator_readback.measured_value = 80_000;
         causal.actuator_readback.measurement_uncertainty = 100;
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &make_binding(&challenge),
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &make_binding(&challenge),
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -669,29 +674,36 @@ mod tests {
         let challenge = make_challenge(&recipe);
         let causal = make_causal(&challenge);
         let mut binding = make_binding(&challenge);
-        binding.post_state_temperature = binding.post_state_temperature.checked_add(q(1, 1)).unwrap();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &binding,
-            &TestCommitments,
-        )
-        .is_err());
+        binding.post_state_temperature =
+            binding.post_state_temperature.checked_add(q(1, 1)).unwrap();
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &binding,
+                &TestCommitments,
+            )
+            .is_err()
+        );
 
         let mut binding = make_binding(&challenge);
-        binding.measured_post_state_temperature =
-            binding.measured_post_state_temperature.checked_add(q(1, 1)).unwrap();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &binding,
-            &TestCommitments,
-        )
-        .is_err());
+        binding.measured_post_state_temperature = binding
+            .measured_post_state_temperature
+            .checked_add(q(1, 1))
+            .unwrap();
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &binding,
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -702,15 +714,17 @@ mod tests {
         causal.acknowledgement.state = AcknowledgementState::Absent;
         causal.acknowledgement.echoed_value = None;
         causal.dispatch.state = DispatchState::Unknown;
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &make_binding(&challenge),
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &make_binding(&challenge),
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -721,17 +735,24 @@ mod tests {
         recipe.actuator_delivery_fraction_grid = vec![q(1, 1)];
         recipe.safe_temperature_grid = vec![q(75, 1)];
         let challenge = make_challenge(&recipe);
-        assert!(!challenge.sealed_oracle.episode.remained_within_safe_envelope);
+        assert!(
+            !challenge
+                .sealed_oracle
+                .episode
+                .remained_within_safe_envelope
+        );
         let causal = make_causal(&challenge);
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &make_binding(&challenge),
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &make_binding(&challenge),
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -740,40 +761,46 @@ mod tests {
         let challenge = make_challenge(&recipe);
         let mut causal = make_causal(&challenge);
         causal.command.command_id = "other-command".into();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &make_binding(&challenge),
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &make_binding(&challenge),
+                &TestCommitments,
+            )
+            .is_err()
+        );
 
         causal = make_causal(&challenge);
         let mut binding = make_binding(&challenge);
         binding.model_version = "other-model".into();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &binding,
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &binding,
+                &TestCommitments,
+            )
+            .is_err()
+        );
 
         let causal = make_causal(&challenge);
         let mut binding = make_binding(&challenge);
         binding.sensor_event_id = "other-sensor-event".into();
-        assert!(verify_thermal_causal_execution_bridge(
-            &challenge,
-            &recipe,
-            &registry(),
-            &causal,
-            &binding,
-            &TestCommitments,
-        )
-        .is_err());
+        assert!(
+            verify_thermal_causal_execution_bridge(
+                &challenge,
+                &recipe,
+                &registry(),
+                &causal,
+                &binding,
+                &TestCommitments,
+            )
+            .is_err()
+        );
     }
 }
