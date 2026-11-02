@@ -87,6 +87,22 @@ impl EvidenceReference {
         })
     }
 
+    pub fn source_id(&self) -> &str {
+        &self.source_id
+    }
+
+    pub fn source_uri(&self) -> &str {
+        &self.source_uri
+    }
+
+    pub fn method(&self) -> &str {
+        &self.method
+    }
+
+    pub fn observed_at(&self) -> &str {
+        &self.observed_at
+    }
+
     pub fn evidence_class(&self) -> EvidenceClass {
         self.evidence_class
     }
