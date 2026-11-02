@@ -183,7 +183,7 @@ fn parse_steady_native_criteria(
         let (line, status) = matching[0];
         results.push(Su2NativeCriterionResult {
             configured_field: configured.clone(),
-            reported_field: if line.contains(&cauchy_field) {
+            reported_field: if line.contains(cauchy_field.as_str()) {
                 cauchy_field
             } else {
                 configured.clone()
