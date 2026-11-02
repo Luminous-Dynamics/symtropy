@@ -3075,64 +3075,66 @@ mod double_sliding_direction_oracle {
 
         // One 2x6 matrix per root box. Every entry is an exact rational
         // interval obtained by the implicit equation dt/dq = -G_t^-1 G_q.
-        let branch_sensitivities: [[[RationalInterval; 2]; 6]; 2] =
-            std::array::from_fn(|branch| {
-                let certificate = certify_exact_double_slide_root_box(
-                    &base,
-                    centers[branch].clone(),
-                    radius.clone(),
-                    FRICTION_NUMERATORS,
-                    COMMON_DENOMINATOR,
-                )
-                .expect("each physical double-slide branch has a Krawczyk certificate");
-                let domain = &certificate.domain;
-                let equations = [
-                    &base.tangential_equation_1,
-                    &base.tangential_equation_2,
-                ];
-                let jacobian = [
-                    [
-                        equations[0].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[0].partial_t2().evaluate_interval(&domain[0], &domain[1]),
-                    ],
-                    [
-                        equations[1].partial_t1().evaluate_interval(&domain[0], &domain[1]),
-                        equations[1].partial_t2().evaluate_interval(&domain[0], &domain[1]),
-                    ],
-                ];
-                let determinant = jacobian[0][0]
-                    .mul(&jacobian[1][1])
-                    .sub(&jacobian[0][1].mul(&jacobian[1][0]));
-                assert!(
-                    determinant.excludes_zero(),
-                    "the branch Jacobian must remain nonsingular on its certified box"
-                );
+        let branch_sensitivities: [[[RationalInterval; 2]; 6]; 2] = std::array::from_fn(|branch| {
+            let certificate = certify_exact_double_slide_root_box(
+                &base,
+                centers[branch].clone(),
+                radius.clone(),
+                FRICTION_NUMERATORS,
+                COMMON_DENOMINATOR,
+            )
+            .expect("each physical double-slide branch has a Krawczyk certificate");
+            let domain = &certificate.domain;
+            let equations = [&base.tangential_equation_1, &base.tangential_equation_2];
+            let jacobian = [
+                [
+                    equations[0]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[0]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+                [
+                    equations[1]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[1]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+            ];
+            let determinant = jacobian[0][0]
+                .mul(&jacobian[1][1])
+                .sub(&jacobian[0][1].mul(&jacobian[1][0]));
+            assert!(
+                determinant.excludes_zero(),
+                "the branch Jacobian must remain nonsingular on its certified box"
+            );
 
-                std::array::from_fn(|coordinate| {
-                    let parameter_derivative = [
-                        direction_equations[coordinate][0]
-                            .evaluate_interval(&domain[0], &domain[1]),
-                        direction_equations[coordinate][1]
-                            .evaluate_interval(&domain[0], &domain[1]),
-                    ];
-                    let dt1_numerator = jacobian[1][1]
-                        .mul(&parameter_derivative[0])
-                        .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
-                        .neg();
-                    let dt2_numerator = jacobian[0][0]
-                        .mul(&parameter_derivative[1])
-                        .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
-                        .neg();
-                    [
-                        dt1_numerator
-                            .div(&determinant)
-                            .expect("nonsingular interval Jacobian gives dt1/dq enclosure"),
-                        dt2_numerator
-                            .div(&determinant)
-                            .expect("nonsingular interval Jacobian gives dt2/dq enclosure"),
-                    ]
-                })
-            });
+            std::array::from_fn(|coordinate| {
+                let parameter_derivative = [
+                    direction_equations[coordinate][0].evaluate_interval(&domain[0], &domain[1]),
+                    direction_equations[coordinate][1].evaluate_interval(&domain[0], &domain[1]),
+                ];
+                let dt1_numerator = jacobian[1][1]
+                    .mul(&parameter_derivative[0])
+                    .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
+                    .neg();
+                let dt2_numerator = jacobian[0][0]
+                    .mul(&parameter_derivative[1])
+                    .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
+                    .neg();
+                [
+                    dt1_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt1/dq enclosure"),
+                    dt2_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt2/dq enclosure"),
+                ]
+            })
+        });
 
         // Every free-velocity coordinate changes both direction parameters
         // strictly on both certified branches. The nearby roots have opposite
