@@ -2132,3 +2132,531 @@ fn sticking_leaf_message_refuses_disk_boundary_and_invalid_self_blocks() {
             .is_err()
     );
 }
+
+#[derive(Clone, Copy)]
+struct NarySeparatorPartitionSource<'a> {
+    source_id: u64,
+    message: &'a SeparatingLeafMessage,
+    partition: &'a SeparatorBoxPartition,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct NaryComposedSeparatorBoxCell {
+    separator_box: SeparatorImpulseBox,
+    source_classifications: Vec<SeparatingBoxClassification>,
+    source_lineages: Vec<Vec<u8>>,
+    classification: ComposedSeparatorClassification,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct NaryComposedSeparatorBoxPartition {
+    root_box: SeparatorImpulseBox,
+    source_ids: Vec<u64>,
+    cells: Vec<NaryComposedSeparatorBoxCell>,
+    candidate_combinations: usize,
+    empty_intersections: usize,
+    coverage_preserved: bool,
+    classification_complete: bool,
+}
+
+#[derive(Clone)]
+struct NaryPartialSeparatorCell {
+    separator_box: SeparatorImpulseBox,
+    source_classifications: Vec<SeparatingBoxClassification>,
+    source_lineages: Vec<Vec<u8>>,
+}
+
+fn nary_cartesian_product_size(sizes: &[usize]) -> Option<usize> {
+    sizes
+        .iter()
+        .try_fold(1_usize, |product, size| product.checked_mul(*size))
+}
+
+fn nary_composed_classification(
+    classifications: &[SeparatingBoxClassification],
+) -> ComposedSeparatorClassification {
+    if classifications.contains(&SeparatingBoxClassification::SignoriniViolation) {
+        ComposedSeparatorClassification::LocalHypothesisExcluded
+    } else if classifications
+        .iter()
+        .all(|classification| *classification == SeparatingBoxClassification::StrictlySeparating)
+    {
+        ComposedSeparatorClassification::AllLocalHypothesesStrict
+    } else {
+        ComposedSeparatorClassification::BoundaryOrInconclusive
+    }
+}
+
+fn canonical_nary_sources<'a>(
+    sources: &'a [NarySeparatorPartitionSource<'a>],
+) -> Result<Vec<NarySeparatorPartitionSource<'a>>, &'static str> {
+    if sources.len() < 2 {
+        return Err("n-ary separator composition requires at least two sources");
+    }
+    let mut ordered = sources.to_vec();
+    ordered.sort_by_key(|source| source.source_id);
+    if ordered
+        .windows(2)
+        .any(|pair| pair[0].source_id == pair[1].source_id)
+    {
+        return Err("n-ary separator sources must have unique stable identities");
+    }
+
+    let root = &ordered[0].partition.root_box;
+    for source in &ordered {
+        if source.partition.root_box != *root {
+            return Err("n-ary separator sources do not share an identical root domain");
+        }
+        if !source.partition.coverage_preserved
+            || !source
+                .message
+                .verify_box_cover(&source.partition.root_box, &source.partition.cells)
+        {
+            return Err("n-ary source partition failed independent coverage verification");
+        }
+    }
+    Ok(ordered)
+}
+
+/// Incremental n-ary join. Every partial cell retains the complete source
+/// lineage tuple; geometrically equal intersections are never deduplicated.
+fn compose_nary_separator_partitions(
+    sources: &[NarySeparatorPartitionSource<'_>],
+) -> Result<NaryComposedSeparatorBoxPartition, &'static str> {
+    let ordered = canonical_nary_sources(sources)?;
+    let root_box = ordered[0].partition.root_box.clone();
+    let source_ids = ordered
+        .iter()
+        .map(|source| source.source_id)
+        .collect::<Vec<_>>();
+    let source_sizes = ordered
+        .iter()
+        .map(|source| source.partition.cells.len())
+        .collect::<Vec<_>>();
+    let candidate_combinations = nary_cartesian_product_size(&source_sizes)
+        .ok_or("n-ary separator Cartesian product size overflowed")?;
+    if candidate_combinations == 0 {
+        return Err("n-ary separator source partition is empty");
+    }
+
+    let mut partials = vec![NaryPartialSeparatorCell {
+        separator_box: root_box.clone(),
+        source_classifications: Vec::with_capacity(ordered.len()),
+        source_lineages: Vec::with_capacity(ordered.len()),
+    }];
+
+    for source in &ordered {
+        let mut next = Vec::new();
+        for partial in &partials {
+            for source_cell in &source.partition.cells {
+                let Some(intersection) = partial
+                    .separator_box
+                    .intersection(&source_cell.separator_box)
+                else {
+                    continue;
+                };
+                let mut source_classifications = partial.source_classifications.clone();
+                source_classifications.push(source_cell.classification);
+                let mut source_lineages = partial.source_lineages.clone();
+                source_lineages.push(source_cell.lineage.clone());
+                next.push(NaryPartialSeparatorCell {
+                    separator_box: intersection,
+                    source_classifications,
+                    source_lineages,
+                });
+            }
+        }
+        partials = next;
+        if partials.is_empty() {
+            break;
+        }
+    }
+
+    let mut cells = partials
+        .into_iter()
+        .map(|partial| NaryComposedSeparatorBoxCell {
+            classification: nary_composed_classification(&partial.source_classifications),
+            separator_box: partial.separator_box,
+            source_classifications: partial.source_classifications,
+            source_lineages: partial.source_lineages,
+        })
+        .collect::<Vec<_>>();
+    cells.sort_by(|left, right| left.source_lineages.cmp(&right.source_lineages));
+    let empty_intersections = candidate_combinations
+        .checked_sub(cells.len())
+        .ok_or("n-ary output has more cells than Cartesian source tuples")?;
+
+    let mut result = NaryComposedSeparatorBoxPartition {
+        root_box,
+        source_ids,
+        cells,
+        candidate_combinations,
+        empty_intersections,
+        coverage_preserved: false,
+        classification_complete: false,
+    };
+    result.coverage_preserved = verify_nary_separator_composition(&ordered, &result);
+    if !result.coverage_preserved {
+        return Err(
+            "n-ary separator composition failed independent tuple/intersection verification",
+        );
+    }
+    result.classification_complete = result
+        .cells
+        .iter()
+        .all(|cell| cell.classification != ComposedSeparatorClassification::BoundaryOrInconclusive);
+    Ok(result)
+}
+
+/// Independent verifier: enumerate the full Cartesian source tuple with an
+/// explicit stack, intersect each tuple directly from the source cells, and
+/// compare the complete lineage-keyed map with the producer output.
+fn verify_nary_separator_composition(
+    ordered_sources: &[NarySeparatorPartitionSource<'_>],
+    composed: &NaryComposedSeparatorBoxPartition,
+) -> bool {
+    let Ok(canonical) = canonical_nary_sources(ordered_sources) else {
+        return false;
+    };
+    if canonical.len() != ordered_sources.len() {
+        return false;
+    }
+    let root_box = &canonical[0].partition.root_box;
+    if composed.root_box != *root_box {
+        return false;
+    }
+    let expected_source_ids = canonical
+        .iter()
+        .map(|source| source.source_id)
+        .collect::<Vec<_>>();
+    if composed.source_ids != expected_source_ids {
+        return false;
+    }
+
+    let sizes = canonical
+        .iter()
+        .map(|source| source.partition.cells.len())
+        .collect::<Vec<_>>();
+    let Some(candidate_combinations) = nary_cartesian_product_size(&sizes) else {
+        return false;
+    };
+    if composed.candidate_combinations != candidate_combinations {
+        return false;
+    }
+
+    let mut expected =
+        std::collections::BTreeMap::<Vec<Vec<u8>>, NaryComposedSeparatorBoxCell>::new();
+    let mut empty_intersections = 0_usize;
+    let mut stack = vec![(
+        0_usize,
+        Some(root_box.clone()),
+        Vec::<SeparatingBoxClassification>::with_capacity(canonical.len()),
+        Vec::<Vec<u8>>::with_capacity(canonical.len()),
+    )];
+
+    while let Some((source_index, geometry, classifications, lineages)) = stack.pop() {
+        if source_index == canonical.len() {
+            if let Some(separator_box) = geometry {
+                let key = lineages.clone();
+                let cell = NaryComposedSeparatorBoxCell {
+                    separator_box,
+                    classification: nary_composed_classification(&classifications),
+                    source_classifications: classifications,
+                    source_lineages: lineages,
+                };
+                if expected.insert(key, cell).is_some() {
+                    return false;
+                }
+            } else {
+                let Some(next) = empty_intersections.checked_add(1) else {
+                    return false;
+                };
+                empty_intersections = next;
+            }
+            continue;
+        }
+
+        for source_cell in &canonical[source_index].partition.cells {
+            let next_geometry = match &geometry {
+                Some(current) => current.intersection(&source_cell.separator_box),
+                None => None,
+            };
+            let mut next_classifications = classifications.clone();
+            next_classifications.push(source_cell.classification);
+            let mut next_lineages = lineages.clone();
+            next_lineages.push(source_cell.lineage.clone());
+            stack.push((
+                source_index + 1,
+                next_geometry,
+                next_classifications,
+                next_lineages,
+            ));
+        }
+    }
+
+    let Some(accounted_combinations) = expected.len().checked_add(empty_intersections) else {
+        return false;
+    };
+    if empty_intersections != composed.empty_intersections
+        || expected.len() != composed.cells.len()
+        || accounted_combinations != candidate_combinations
+    {
+        return false;
+    }
+
+    let mut observed = std::collections::BTreeSet::<Vec<Vec<u8>>>::new();
+    for cell in &composed.cells {
+        if cell.source_lineages.len() != canonical.len()
+            || cell.source_classifications.len() != canonical.len()
+            || !observed.insert(cell.source_lineages.clone())
+        {
+            return false;
+        }
+        let Some(expected_cell) = expected.get(&cell.source_lineages) else {
+            return false;
+        };
+        if cell != expected_cell {
+            return false;
+        }
+    }
+    observed.len() == expected.len()
+}
+
+fn make_nary_separating_source(
+    source_id: u64,
+    axis: usize,
+    free_normal_velocity: f64,
+    coupling: f64,
+    root_box: &SeparatorImpulseBox,
+    max_depth: usize,
+) -> Result<(u64, SeparatingLeafMessage, SeparatorBoxPartition), &'static str> {
+    if axis >= 3 {
+        return Err("separator source axis is out of range");
+    }
+    let mut separator_coupling = Matrix3::zeros();
+    separator_coupling[(axis, 0)] = coupling;
+    let message = SeparatingLeafMessage {
+        separator_coupling,
+        free_velocity: SVector::<f64, 3>::new(free_normal_velocity, 0.0, 0.0),
+    };
+    let partition = message.partition_separator_box(root_box, max_depth, 256)?;
+    Ok((source_id, message, partition))
+}
+
+#[test]
+fn nary_separator_join_preserves_all_three_and_six_source_lineage_tuples() {
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+        SVector::<f64, 3>::new(3.0, 3.0, 3.0),
+    )
+    .unwrap();
+    let owned = [
+        make_nary_separating_source(37, 0, 0.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(11, 0, 1.0, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(23, 1, 0.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(41, 2, -0.5, 1.0, &root, 4).unwrap(),
+        make_nary_separating_source(53, 1, 1.5, -0.5, &root, 4).unwrap(),
+        make_nary_separating_source(61, 2, 0.5, -0.5, &root, 4).unwrap(),
+    ];
+
+    let three_sources = [37_u64, 11, 23]
+        .into_iter()
+        .map(|id| {
+            let source = owned.iter().find(|source| source.0 == id).unwrap();
+            NarySeparatorPartitionSource {
+                source_id: source.0,
+                message: &source.1,
+                partition: &source.2,
+            }
+        })
+        .collect::<Vec<_>>();
+    let three = compose_nary_separator_partitions(&three_sources).unwrap();
+    assert_eq!(three.source_ids, vec![11, 23, 37]);
+    let three_product = nary_cartesian_product_size(
+        &three_sources
+            .iter()
+            .map(|source| source.partition.cells.len())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(three.candidate_combinations, three_product);
+    assert!(three.empty_intersections > 0);
+    assert_eq!(
+        three.empty_intersections + three.cells.len(),
+        three.candidate_combinations
+    );
+    assert!(three.coverage_preserved);
+    assert!(verify_nary_separator_composition(&three_sources, &three));
+
+    let six_sources = owned
+        .iter()
+        .map(|source| NarySeparatorPartitionSource {
+            source_id: source.0,
+            message: &source.1,
+            partition: &source.2,
+        })
+        .collect::<Vec<_>>();
+    let six = compose_nary_separator_partitions(&six_sources).unwrap();
+    assert_eq!(six.source_ids, vec![11, 23, 37, 41, 53, 61]);
+    let six_product = nary_cartesian_product_size(
+        &six_sources
+            .iter()
+            .map(|source| source.partition.cells.len())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    assert_eq!(six.candidate_combinations, six_product);
+    assert!(six.empty_intersections > 0);
+    assert_eq!(
+        six.empty_intersections + six.cells.len(),
+        six.candidate_combinations
+    );
+    assert!(six.coverage_preserved);
+    assert!(verify_nary_separator_composition(&six_sources, &six));
+
+    assert!(six.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::LocalHypothesisExcluded
+    }));
+    assert!(six.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::AllLocalHypothesesStrict
+    }));
+    assert!(six.cells.iter().any(|cell| {
+        cell.classification == ComposedSeparatorClassification::BoundaryOrInconclusive
+    }));
+}
+
+#[test]
+fn nary_separator_join_is_invariant_to_source_enumeration_order() {
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+        SVector::<f64, 3>::new(3.0, 3.0, 3.0),
+    )
+    .unwrap();
+    let owned = [
+        make_nary_separating_source(3, 0, 0.5, -0.5, &root, 2).unwrap(),
+        make_nary_separating_source(1, 1, -0.5, 1.0, &root, 2).unwrap(),
+        make_nary_separating_source(2, 2, 1.0, -0.5, &root, 2).unwrap(),
+    ];
+    let order_a = [0_usize, 1, 2];
+    let order_b = [2_usize, 0, 1];
+    let make_sources = |order: &[usize]| {
+        order
+            .iter()
+            .map(|index| {
+                let source = &owned[*index];
+                NarySeparatorPartitionSource {
+                    source_id: source.0,
+                    message: &source.1,
+                    partition: &source.2,
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let a_sources = make_sources(&order_a);
+    let b_sources = make_sources(&order_b);
+    let a = compose_nary_separator_partitions(&a_sources).unwrap();
+    let b = compose_nary_separator_partitions(&b_sources).unwrap();
+    assert_eq!(a, b);
+}
+
+#[test]
+fn nary_separator_join_rejects_missing_duplicate_and_relabelled_tuple_cells() {
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+        SVector::<f64, 3>::new(3.0, 3.0, 3.0),
+    )
+    .unwrap();
+    let owned = [
+        make_nary_separating_source(1, 0, 0.5, -0.5, &root, 2).unwrap(),
+        make_nary_separating_source(2, 1, 0.5, -0.5, &root, 2).unwrap(),
+        make_nary_separating_source(3, 2, 0.5, -0.5, &root, 2).unwrap(),
+    ];
+    let sources = owned
+        .iter()
+        .map(|source| NarySeparatorPartitionSource {
+            source_id: source.0,
+            message: &source.1,
+            partition: &source.2,
+        })
+        .collect::<Vec<_>>();
+    let joined = compose_nary_separator_partitions(&sources).unwrap();
+    assert!(verify_nary_separator_composition(&sources, &joined));
+
+    let duplicate_identity = [
+        sources[0],
+        NarySeparatorPartitionSource {
+            source_id: sources[0].source_id,
+            message: sources[1].message,
+            partition: sources[1].partition,
+        },
+    ];
+    assert!(compose_nary_separator_partitions(&duplicate_identity).is_err());
+
+    let mut missing = joined.clone();
+    missing.cells.pop();
+    assert!(!verify_nary_separator_composition(&sources, &missing));
+
+    let mut duplicated = joined.clone();
+    duplicated.cells.push(duplicated.cells[0].clone());
+    assert!(!verify_nary_separator_composition(&sources, &duplicated));
+
+    let mut relabelled = joined.clone();
+    relabelled.cells[0].source_lineages[0].push(1);
+    assert!(!verify_nary_separator_composition(&sources, &relabelled));
+
+    let mut changed_label = joined.clone();
+    changed_label.cells[0].source_classifications[0] =
+        SeparatingBoxClassification::SignoriniViolation;
+    assert!(!verify_nary_separator_composition(&sources, &changed_label));
+
+    let mut changed_geometry = joined;
+    changed_geometry.cells[0].separator_box.lower[0] += 0.125;
+    assert!(!verify_nary_separator_composition(
+        &sources,
+        &changed_geometry
+    ));
+}
+
+#[test]
+fn nary_separator_join_keeps_lineage_distinct_cells_with_equal_geometry() {
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(-1.0, -1.0, -1.0),
+        SVector::<f64, 3>::new(3.0, 3.0, 3.0),
+    )
+    .unwrap();
+    let owned = [
+        make_nary_separating_source(1, 0, 0.5, -0.5, &root, 1).unwrap(),
+        make_nary_separating_source(2, 0, 0.5, -0.5, &root, 1).unwrap(),
+        make_nary_separating_source(3, 1, 0.5, -0.5, &root, 1).unwrap(),
+    ];
+    let sources = owned
+        .iter()
+        .map(|source| NarySeparatorPartitionSource {
+            source_id: source.0,
+            message: &source.1,
+            partition: &source.2,
+        })
+        .collect::<Vec<_>>();
+    let joined = compose_nary_separator_partitions(&sources).unwrap();
+
+    let duplicate_geometry = joined
+        .cells
+        .iter()
+        .filter(|cell| cell.separator_box.lower[0] == 1.0 && cell.separator_box.upper[0] == 1.0)
+        .collect::<Vec<_>>();
+    assert!(duplicate_geometry.len() >= 2);
+    let distinct_lineages = duplicate_geometry
+        .iter()
+        .map(|cell| cell.source_lineages.clone())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(distinct_lineages.len(), duplicate_geometry.len());
+    assert!(verify_nary_separator_composition(&sources, &joined));
+}
+
+#[test]
+fn nary_separator_cartesian_count_uses_checked_multiplication() {
+    assert_eq!(nary_cartesian_product_size(&[2, 3, 5, 7]), Some(210));
+    assert_eq!(nary_cartesian_product_size(&[usize::MAX, 2]), None);
+    assert_eq!(nary_cartesian_product_size(&[]), Some(1));
+}
