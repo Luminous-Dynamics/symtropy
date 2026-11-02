@@ -497,7 +497,7 @@ fn verify_branch_artifacts(
     for (digest, expected_identity) in &expected_snapshots {
         let path = snapshot_dir.join(format!("{digest}.json"));
         let bytes = fs::read(&path).map_err(|error| format!("cannot read snapshot artifact {}: {error}", path.display()))?;
-        if sha256(&bytes) != *digest {
+        if sha256(&bytes).as_str() != digest {
             return Err(format!("snapshot artifact SHA-256 does not match its filename: {}", path.display()));
         }
         let artifact: StateSnapshotArtifact = serde_json::from_slice(&bytes)
@@ -514,7 +514,7 @@ fn verify_branch_artifacts(
             || artifact.evidence_class != artifact_evidence_class
             || artifact.synthetic_state_payload.trim().is_empty()
             || artifact.claim_ceiling.trim().is_empty()
-            || observed_identity != *expected_identity
+            || &observed_identity != expected_identity
         {
             return Err(format!("snapshot artifact metadata/identity mismatch: {}", path.display()));
         }
@@ -1238,7 +1238,7 @@ mod tests {
 
     #[test]
     fn branch_artifact_verifier_rejects_hash_valid_but_misbound_snapshot_identity() {
-        let (_, mut branches, _) = fixture_inputs();
+        let (_, branches, _) = fixture_inputs();
         let (root, mut branches) = write_artifact_fixture(branches);
         let old_digest = branches[0].state_snapshot_sha256.clone();
         let old_path = root.join("snapshots").join(format!("{old_digest}.json"));
@@ -1246,7 +1246,7 @@ mod tests {
             serde_json::from_slice(&fs::read(&old_path).unwrap()).unwrap();
         artifact.family_id = "different-family".into();
         let mut bytes = serde_json::to_vec_pretty(&artifact).unwrap();
-        bytes.push(b'\\n');
+        bytes.push(b'\n');
         let new_digest = sha256(&bytes);
         fs::write(root.join("snapshots").join(format!("{new_digest}.json")), bytes).unwrap();
         fs::remove_file(old_path).unwrap();
