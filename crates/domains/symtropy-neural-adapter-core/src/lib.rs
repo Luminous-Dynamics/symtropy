@@ -233,7 +233,7 @@ pub enum ReasonCode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationFailure {
-    pub reasons: Vec<ReasonCode>,
+    reasons: Vec<ReasonCode>,
 }
 
 impl ValidationFailure {
@@ -241,6 +241,11 @@ impl ValidationFailure {
         reasons.sort_unstable();
         reasons.dedup();
         Self { reasons }
+    }
+
+    /// Returns the canonically sorted, duplicate-free reason codes.
+    pub fn reasons(&self) -> &[ReasonCode] {
+        &self.reasons
     }
 
     pub fn contains(&self, reason: ReasonCode) -> bool {
