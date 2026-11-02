@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/south-africa-grid-emission-factors-0.1.0.json",
+  "title": "South Africa Official Grid Emission Factors",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "jurisdiction",
+    "reporting_year",
+    "publication_date",
+    "publication_reference",
+    "source",
+    "unit_conventions",
+    "factors",
+    "supporting_factors",
+    "historical_comparison",
+    "modelling_rules",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "official_location_based_grid_emission_factors"
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "jurisdiction": {
+      "const": "South Africa"
+    },
+    "reporting_year": {
+      "type": "integer"
+    },
+    "publication_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "publication_reference": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "unit_conventions": {
+      "type": "object",
+      "required": [
+        "source_unit",
+        "normalized_unit",
+        "conversion",
+        "gwp_basis",
+        "location_based"
+      ],
+      "additionalProperties": true
+    },
+    "factors": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/factor"
+      }
+    },
+    "supporting_factors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/supporting_factor"
+      }
+    },
+    "historical_comparison": {
+      "type": "object",
+      "required": [
+        "values_tco2e_per_mwh",
+        "interpretation",
+        "source_location"
+      ],
+      "additionalProperties": true
+    },
+    "modelling_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "title",
+        "publisher",
+        "uri",
+        "evidence_class",
+        "published_at",
+        "retrieved_at"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "landing_page": {
+          "type": "string",
+          "format": "uri"
+        },
+        "evidence_class": {
+          "const": "official_government_notice_and_report"
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "factor": {
+      "type": "object",
+      "required": [
+        "factor_id",
+        "name",
+        "value_tco2e_per_mwh",
+        "value_kgco2e_per_kwh",
+        "measurement_boundary",
+        "intended_use",
+        "excluded_or_caveats",
+        "source_location",
+        "evidence_class"
+      ],
+      "properties": {
+        "factor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value_tco2e_per_mwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "value_kgco2e_per_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "measurement_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intended_use": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_or_caveats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_location": {
+          "type": "string"
+        },
+        "evidence_class": {
+          "const": "official_reported_factor"
+        }
+      },
+      "additionalProperties": false
+    },
+    "supporting_factor": {
+      "type": "object",
+      "required": [
+        "factor_id",
+        "name",
+        "value_tco2e_per_mwh",
+        "value_kgco2e_per_kwh",
+        "boundary",
+        "use",
+        "source_location",
+        "evidence_class"
+      ],
+      "properties": {
+        "factor_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "value_tco2e_per_mwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "value_kgco2e_per_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "use": {
+          "type": "string"
+        },
+        "source_location": {
+          "type": "string"
+        },
+        "evidence_class": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
