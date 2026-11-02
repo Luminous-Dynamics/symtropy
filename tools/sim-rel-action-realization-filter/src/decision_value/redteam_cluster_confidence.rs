@@ -17,6 +17,7 @@ const FAMILY_COUNT: usize = 12;
 const METRICS_PER_FAMILY: usize = 3;
 const INTERVAL_SCALE: u32 = 1_000_000;
 const MAX_SCENARIOS: usize = 100_000;
+const MAX_BINOMIAL_CLUSTERS: usize = 1_000_000;
 const MAX_BETA_ITERATIONS: usize = 512;
 const MAX_QUANTILE_ITERATIONS: usize = 128;
 const BETA_EPSILON: f64 = 3.0e-14;
@@ -94,8 +95,8 @@ pub struct RedTeamClusterConfidenceReceipt {
     pub familywise_alpha_numerator: u64,
     pub familywise_alpha_denominator: u64,
     pub source_campaign_empirical_gates_passed: bool,
-    pub attack_clusters_are_author_generator_pairs: bool,
-    pub clean_control_clusters_are_author_generator_pairs: bool,
+    pub attack_clusters_are_author_generator_connected_components: bool,
+    pub clean_control_clusters_are_author_generator_connected_components: bool,
     pub repeated_scenarios_not_counted_as_independent_clusters: bool,
     pub incomplete_or_no_success_attack_clusters_remain_visible: bool,
     pub intervals_are_two_sided_clopper_pearson: bool,
@@ -144,8 +145,7 @@ impl std::error::Error for ClusterConfidenceError {}
 struct ClusterKey {
     family: ThreatFamily,
     is_attack: bool,
-    author_identity: String,
-    generator_digest: String,
+    component_id: usize,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -171,6 +171,27 @@ struct FamilyClusterAccumulator {
     eligible_clean_cluster_count: usize,
     incomplete_clean_cluster_count: usize,
     clean_passing_cluster_count: usize,
+}
+
+fn find_root(parents: &mut [usize], node: usize) -> usize {
+    if parents[node] != node {
+        let root = find_root(parents, parents[node]);
+        parents[node] = root;
+    }
+    parents[node]
+}
+
+fn union_components(parents: &mut [usize], left: usize, right: usize) {
+    let left_root = find_root(parents, left);
+    let right_root = find_root(parents, right);
+    if left_root != right_root {
+        let (root, child) = if left_root < right_root {
+            (left_root, right_root)
+        } else {
+            (right_root, left_root)
+        };
+        parents[child] = root;
+    }
 }
 
 fn require_id(value: &str, label: &str) -> Result<(), ClusterConfidenceError> {
@@ -469,18 +490,55 @@ fn aggregate_clusters(
             ));
         }
     }
-    let mut clusters: BTreeMap<ClusterKey, ClusterAccumulator> = BTreeMap::new();
+
+    // Build a bipartite graph for each family × scenario kind. Scenarios are
+    // dependent whenever they share either an author or a generator digest.
+    // The inferential unit is a connected component, not a raw author×generator
+    // edge/pair. This prevents a shared author or generator from manufacturing n.
+    let mut node_ids = BTreeMap::<(ThreatFamily, bool, bool, String), usize>::new();
+    let mut parents = Vec::<usize>::new();
+    let mut scenario_nodes = Vec::with_capacity(scenarios.len());
+
     for scenario in scenarios {
+        let is_attack = scenario.kind == ScenarioKind::Attack;
+        let author_key = (
+            scenario.family,
+            is_attack,
+            true,
+            scenario.author_identity.clone(),
+        );
+        let generator_key = (
+            scenario.family,
+            is_attack,
+            false,
+            scenario.generator_digest.clone(),
+        );
+        let author_node = *node_ids.entry(author_key).or_insert_with(|| {
+            let node = parents.len();
+            parents.push(node);
+            node
+        });
+        let generator_node = *node_ids.entry(generator_key).or_insert_with(|| {
+            let node = parents.len();
+            parents.push(node);
+            node
+        });
+        union_components(&mut parents, author_node, generator_node);
+        scenario_nodes.push((author_node, is_attack));
+    }
+
+    let mut clusters: BTreeMap<ClusterKey, ClusterAccumulator> = BTreeMap::new();
+    for (scenario, (author_node, is_attack)) in scenarios.iter().zip(scenario_nodes) {
         let trial = trial_by_scenario.get(scenario.scenario_id.as_str()).ok_or_else(|| {
             ClusterConfidenceError::ScenarioTrialMismatch(
                 "scenario has no matching trial during cluster aggregation".into(),
             )
         })?;
+        let component_id = find_root(&mut parents, author_node);
         let key = ClusterKey {
             family: scenario.family,
-            is_attack: scenario.kind == ScenarioKind::Attack,
-            author_identity: scenario.author_identity.clone(),
-            generator_digest: scenario.generator_digest.clone(),
+            is_attack,
+            component_id,
         };
         let cluster = clusters.entry(key).or_default();
         cluster.scenario_count = cluster.scenario_count.checked_add(1).ok_or_else(|| {
@@ -491,24 +549,38 @@ fn aggregate_clusters(
                 ClusterConfidenceError::ArithmeticOverflow("cluster incomplete count overflow".into())
             })?;
         }
-        if scenario.kind == ScenarioKind::Attack {
+        if is_attack {
             if trial.exploit_succeeded {
-                cluster.successful_exploit_count += 1;
+                cluster.successful_exploit_count = cluster.successful_exploit_count.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("cluster successful exploit count overflow".into())
+                })?;
                 if trial.detector_alerted && trial.correctly_attributed_to_family {
-                    cluster.correctly_detected_exploit_count += 1;
+                    cluster.correctly_detected_exploit_count = cluster.correctly_detected_exploit_count.checked_add(1).ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow("cluster detected exploit count overflow".into())
+                    })?;
                 }
                 if trial.contained_before_exposure && !trial.leak_occurred {
-                    cluster.contained_exploit_count += 1;
+                    cluster.contained_exploit_count = cluster.contained_exploit_count.checked_add(1).ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow("cluster contained exploit count overflow".into())
+                    })?;
                 }
                 if trial.leak_occurred {
-                    cluster.leaked_exploit_count += 1;
+                    cluster.leaked_exploit_count = cluster.leaked_exploit_count.checked_add(1).ok_or_else(|| {
+                        ClusterConfidenceError::ArithmeticOverflow("cluster leaked exploit count overflow".into())
+                    })?;
                 }
             }
         } else if trial.detector_alerted {
-            cluster.clean_alert_count += 1;
+            cluster.clean_alert_count = cluster.clean_alert_count.checked_add(1).ok_or_else(|| {
+                ClusterConfidenceError::ArithmeticOverflow("cluster clean alert count overflow".into())
+            })?;
         }
     }
-    if trial_by_scenario.len() != scenarios.len() {
+    if trial_by_scenario.len() != scenarios.len()
+        || trial_by_scenario.keys().any(|scenario_id| {
+            !scenarios.iter().any(|scenario| scenario.scenario_id == *scenario_id)
+        })
+    {
         return Err(ClusterConfidenceError::ScenarioTrialMismatch(
             "trial and scenario ID sets differ".into(),
         ));
@@ -534,39 +606,58 @@ fn aggregate_clusters(
             ClusterConfidenceError::ScenarioTrialMismatch("cluster family is unregistered".into())
         })?;
         if key.is_attack {
-            result.attack_clusters += 1;
+            result.attack_clusters = result.attack_clusters.checked_add(1).ok_or_else(|| {
+                ClusterConfidenceError::ArithmeticOverflow("attack cluster count overflow".into())
+            })?;
             if cluster.incomplete_count > 0 {
-                result.incomplete_attack_clusters += 1;
+                result.incomplete_attack_clusters = result.incomplete_attack_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("incomplete attack cluster count overflow".into())
+                })?;
                 continue;
             }
             if cluster.successful_exploit_count < plan.minimum_successful_exploits_per_attack_cluster {
-                result.no_success_attack_clusters += 1;
+                result.no_success_attack_clusters = result.no_success_attack_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("no-success attack cluster count overflow".into())
+                })?;
                 continue;
             }
-            result.eligible_attack_clusters += 1;
+            result.eligible_attack_clusters = result.eligible_attack_clusters.checked_add(1).ok_or_else(|| {
+                ClusterConfidenceError::ArithmeticOverflow("eligible attack cluster count overflow".into())
+            })?;
             if cluster.correctly_detected_exploit_count == cluster.successful_exploit_count {
-                result.detection_passing_clusters += 1;
+                result.detection_passing_clusters = result.detection_passing_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("detection-passing cluster count overflow".into())
+                })?;
             }
             if cluster.contained_exploit_count == cluster.successful_exploit_count
                 && cluster.leaked_exploit_count == 0
             {
-                result.containment_passing_clusters += 1;
+                result.containment_passing_clusters = result.containment_passing_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("containment-passing cluster count overflow".into())
+                })?;
             }
         } else {
-            result.clean_clusters += 1;
+            result.clean_clusters = result.clean_clusters.checked_add(1).ok_or_else(|| {
+                ClusterConfidenceError::ArithmeticOverflow("clean cluster count overflow".into())
+            })?;
             if cluster.incomplete_count > 0 {
-                result.incomplete_clean_clusters += 1;
+                result.incomplete_clean_clusters = result.incomplete_clean_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("incomplete clean cluster count overflow".into())
+                })?;
                 continue;
             }
-            result.eligible_clean_clusters += 1;
+            result.eligible_clean_clusters = result.eligible_clean_clusters.checked_add(1).ok_or_else(|| {
+                ClusterConfidenceError::ArithmeticOverflow("eligible clean cluster count overflow".into())
+            })?;
             if cluster.clean_alert_count == 0 {
-                result.clean_passing_clusters += 1;
+                result.clean_passing_clusters = result.clean_passing_clusters.checked_add(1).ok_or_else(|| {
+                    ClusterConfidenceError::ArithmeticOverflow("clean-passing cluster count overflow".into())
+                })?;
             }
         }
     }
     Ok(results)
 }
-
 pub fn analyze_redteam_cluster_confidence(
     plan: &RedTeamClusterConfidencePlan,
     source_plan: &AdversarialRedTeamPlan,
@@ -703,8 +794,8 @@ pub fn analyze_redteam_cluster_confidence(
         familywise_alpha_numerator: plan.familywise_alpha_numerator,
         familywise_alpha_denominator: plan.familywise_alpha_denominator,
         source_campaign_empirical_gates_passed: source_receipt.campaign_integrity_passed,
-        attack_clusters_are_author_generator_pairs: true,
-        clean_control_clusters_are_author_generator_pairs: true,
+        attack_clusters_are_author_generator_connected_components: true,
+        clean_control_clusters_are_author_generator_connected_components: true,
         repeated_scenarios_not_counted_as_independent_clusters: true,
         incomplete_or_no_success_attack_clusters_remain_visible: true,
         intervals_are_two_sided_clopper_pearson: true,
@@ -962,6 +1053,30 @@ mod tests {
         let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
         assert_eq!(family.attack_clusters, 2);
         assert_eq!(family.no_success_attack_clusters, 1);
+        assert_eq!(family.eligible_attack_clusters, 1);
+    }
+
+    #[test]
+    fn shared_author_or_generator_merges_attack_edges_into_one_component() {
+        let (mut scenarios, mut trials) = scenarios_and_trials();
+        // For the first family, connect author-0/gen-D6 to the original
+        // author-0/gen-D5 edge. The existing author-1/gen-D6 edge then joins
+        // the same connected component through generator D6.
+        let mut extra_scenario = scenarios[0].clone();
+        extra_scenario.scenario_id = "shared-author-bridge".into();
+        extra_scenario.scenario_digest =
+            "sha256:9999999999999999999999999999999999999999999999999999999999999999".into();
+        extra_scenario.generator_digest = D6.into();
+        let mut extra_trial = trials[0].clone();
+        extra_trial.scenario_id = extra_scenario.scenario_id.clone();
+        extra_trial.trial_id = "shared-author-bridge-trial".into();
+        scenarios.push(extra_scenario);
+        trials.push(extra_trial);
+
+        let plan = confidence_plan();
+        let counts = aggregate_clusters(&plan, &scenarios, &trials).unwrap();
+        let family = counts.get(&ThreatFamily::SearchTimeMetadataLeakage).unwrap();
+        assert_eq!(family.attack_clusters, 1);
         assert_eq!(family.eligible_attack_clusters, 1);
     }
 
