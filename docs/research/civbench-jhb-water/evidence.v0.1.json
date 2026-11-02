@@ -1,0 +1,345 @@
+{
+  "schema_version": "civbench.jhb_water_evidence.v0.1",
+  "compiled_at": "2026-11-02",
+  "retrieved_at": "2026-11-02",
+  "claim_ceiling": "public_source_evidence_register_only_not_hydraulic_calibration_or_policy_impact",
+  "sources": [
+    {
+      "source_id": "DWS_NODROP_RELEASE_2023",
+      "publisher": "South African Department of Water and Sanitation",
+      "title": "Water and Sanitation releases 2023 full Blue Drop Report",
+      "published_at": "2023-12-05",
+      "url": "https://www.gov.za/news/media-statements/water-and-sanitation-releases-2023-full-blue-drop-report-05-dec-2023",
+      "source_class": "official_government_release",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Release summary reports national NRW changing from 37% in 2014 to 47% in 2023. Full report should be retrieved before reproducing detailed definitions or municipal tables."
+    },
+    {
+      "source_id": "GOVZA_JOBURG_JOINT_STATEMENT_2024",
+      "publisher": "South African Government; joint statement by DWS, Gauteng Office of the Premier, City of Johannesburg and Rand Water",
+      "title": "Water and Sanitation, Gauteng Office of the Premier, City of Johannesburg and Rand Water on water challenges in Johannesburg",
+      "published_at": "2024-11-11",
+      "url": "https://www.gov.za/news/media-statements/water-and-sanitation-gauteng-office-premier-city-johannesburg-and-rand-water",
+      "source_class": "official_joint_statement",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Describes the IVRS-to-Rand Water-to-municipal-reservoir-to-customer supply chain, demand near available bulk supply, and a 35% Johannesburg 'water losses' figure attributed to the 2023 No Drop report. The statement does not reproduce the full metric definition."
+    },
+    {
+      "source_id": "PRESIDENCY_GAUTENG_WATER_TASK_TEAM_2026",
+      "publisher": "The Presidency of the Republic of South Africa",
+      "title": "Deputy President Paul Mashatile convenes Water Task Team on intervention to stabilise Gauteng water supply",
+      "published_at": "2026-02-13",
+      "url": "https://www.presidency.gov.za/deputy-president-paul-mashatile-convenes-water-task-team-intervention-stabilise-gauteng-water",
+      "source_class": "official_government_statement",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Reports municipal systems, particularly Johannesburg, remaining under pressure and uses the phrase 'water losses averaging 33%'. The precise denominator, utility scope and accounting definition are not supplied in the statement."
+    },
+    {
+      "source_id": "DWS_IVRS_STORAGE_2026_09",
+      "publisher": "South African Department of Water and Sanitation",
+      "title": "Water and Sanitation on significant improvement in water storage across the Integrated Vaal River System",
+      "published_at": "2026-09-28",
+      "url": "https://www.gov.za/news/media-statements/water-and-sanitation-significant-improvement-water-storage-across-integrated",
+      "source_class": "official_government_statement",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Reports IVRS aggregate storage moving from 96.7% in the prior week to 99.7% in the current week. This is an upstream multi-reservoir system indicator, not Johannesburg municipal reservoir level or household continuity."
+    },
+    {
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "publisher": "SAnews / Government Communication and Information System",
+      "title": "Gauteng adopts plan to cut high water losses",
+      "published_at": "2026-10-27",
+      "url": "https://www.sanews.gov.za/south-africa/gauteng-adopts-plan-cut-high-water-losses",
+      "source_class": "official_government_news_reporting_ministerial_remarks",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Reports ministerial remarks: Johannesburg NRW about 49%, including physical losses of 26%; also gives national and sector policy targets. Report does not state the underlying measurement period or reproduce the underlying water-balance worksheet."
+    },
+    {
+      "source_id": "JOBURG_WATER_SYSTEMS_STATEMENT_2026_10",
+      "publisher": "Johannesburg Water",
+      "title": "Johannesburg Water implements urgent interventions to stabilise severely constrained systems",
+      "published_at": "2026-10-29",
+      "url": "https://www.johannesburgwater.co.za/blog/2026/10/29/johannesburg-water-implements-urgent-interventions-to-stabilise-severely-constrained-systems/",
+      "source_class": "official_utility_operational_statement",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Reports high demand and excessive draw-off limiting reservoir and tower recovery, low pressure, intermittent supply and prolonged outages across named supply systems. It describes network reconfiguration, targeted throttling, leak detection and repairs as interventions; it is not an independently audited outcome evaluation."
+    },
+    {
+      "source_id": "AWWA_WATER_LOSS_CONTROL",
+      "publisher": "American Water Works Association",
+      "title": "Water Loss Control",
+      "published_at": null,
+      "url": "https://www.awwa.org/resource/water-loss-control/",
+      "source_class": "industry_methodology",
+      "content_digest_status": "not_snapshotted",
+      "notes": "AWWA describes its M36 Water Audits and Loss Control Program and Water Audit Software; its page reports Water Audit Software v6.1 released in 2025 with carbon calculations and carbon balance."
+    },
+    {
+      "source_id": "WORLDBANK_IWA_NEWIBNET_2025",
+      "publisher": "World Bank / International Water Association NewIBNET",
+      "title": "Data Pioneers in Water Utilities - Bangkok",
+      "published_at": "2025",
+      "url": "https://connect4impact.worldbank.org/bangkok_initiative",
+      "source_class": "industry_benchmarking_framework",
+      "content_digest_status": "not_snapshotted",
+      "notes": "Describes 15 utility KPIs including coverage, continuity, 24/7 supply, NRW percentage and litres per connection per hour, metering, water quality, complaints resolved and operation-cost coverage."
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "OBS_DWS_NRW_NATIONAL_2014",
+      "source_id": "DWS_NODROP_RELEASE_2023",
+      "metric_code": "non_revenue_water_share",
+      "value": 37,
+      "unit": "percent",
+      "geography": "South Africa",
+      "system_boundary": "national_water_services_authorities",
+      "observation_period": "2014",
+      "publication_date": "2023-12-05",
+      "evidence_status": "reported_historical_measure",
+      "denominator": "not_reproduced_in_release_summary",
+      "definition_status": "metric_named_as_nrw",
+      "comparability_group": "national_nrw_only"
+    },
+    {
+      "observation_id": "OBS_DWS_NRW_NATIONAL_2023",
+      "source_id": "DWS_NODROP_RELEASE_2023",
+      "metric_code": "non_revenue_water_share",
+      "value": 47,
+      "unit": "percent",
+      "geography": "South Africa",
+      "system_boundary": "national_water_services_authorities",
+      "observation_period": "2023",
+      "publication_date": "2023-12-05",
+      "evidence_status": "reported_historical_measure",
+      "denominator": "not_reproduced_in_release_summary",
+      "definition_status": "metric_named_as_nrw",
+      "comparability_group": "national_nrw_only"
+    },
+    {
+      "observation_id": "OBS_JHB_WATER_LOSSES_2023_UNTYPED",
+      "source_id": "GOVZA_JOBURG_JOINT_STATEMENT_2024",
+      "metric_code": "reported_water_losses_untyped",
+      "value": 35,
+      "unit": "percent",
+      "geography": "City of Johannesburg",
+      "system_boundary": "municipal_water_distribution_system_unspecified",
+      "observation_period": "2023_report_reference",
+      "publication_date": "2024-11-11",
+      "evidence_status": "reported_historical_measure",
+      "denominator": "not_reproduced_in_joint_statement",
+      "definition_status": "source_says_water_losses_but_does_not_restate_full_definition",
+      "comparability_group": "untyped_water_loss_not_comparable_without_full_source"
+    },
+    {
+      "observation_id": "OBS_GAUTENG_WATER_LOSSES_2026_FEB_UNTYPED",
+      "source_id": "PRESIDENCY_GAUTENG_WATER_TASK_TEAM_2026",
+      "metric_code": "reported_water_losses_untyped",
+      "value": 33,
+      "unit": "percent",
+      "geography": "Gauteng_municipal_systems_particularly_City_of_Johannesburg",
+      "system_boundary": "scope_and_aggregation_not_fully_specified",
+      "observation_period": "late_January_to_February_2026_context",
+      "publication_date": "2026-02-13",
+      "evidence_status": "reported_estimate",
+      "denominator": "not stated",
+      "definition_status": "source_says_water_losses_averaging_33_percent",
+      "comparability_group": "untyped_water_loss_not_comparable_without_full_source"
+    },
+    {
+      "observation_id": "OBS_JHB_NRW_2026_OCT",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "non_revenue_water_share",
+      "value": 49,
+      "unit": "percent",
+      "geography": "City of Johannesburg",
+      "system_boundary": "municipal_water_services_system",
+      "observation_period": null,
+      "publication_date": "2026-10-27",
+      "evidence_status": "minister_reported_estimate",
+      "denominator": "not stated_in_article",
+      "definition_status": "explicitly_named_nrw_but_underlying_water_balance_not_included",
+      "comparability_group": "johannesburg_nrw_reported_estimates"
+    },
+    {
+      "observation_id": "OBS_JHB_PHYSICAL_LOSSES_2026_OCT",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "physical_water_losses_share",
+      "value": 26,
+      "unit": "percent",
+      "geography": "City of Johannesburg",
+      "system_boundary": "municipal_water_services_system",
+      "observation_period": null,
+      "publication_date": "2026-10-27",
+      "evidence_status": "minister_reported_estimate",
+      "denominator": "not stated_in_article",
+      "definition_status": "reported_as_component_included_within_johannesburg_nrw",
+      "comparability_group": "johannesburg_physical_losses_reported_estimates"
+    },
+    {
+      "observation_id": "OBS_IVRS_STORAGE_PREVIOUS_WEEK_2026_SEP",
+      "source_id": "DWS_IVRS_STORAGE_2026_09",
+      "metric_code": "aggregate_reservoir_storage_relative_to_full_supply_level",
+      "value": 96.7,
+      "unit": "percent",
+      "geography": "Integrated_Vaal_River_System",
+      "system_boundary": "multi_reservoir_bulk_water_resource_system",
+      "observation_period": "week_before_2026-09-28",
+      "publication_date": "2026-09-28",
+      "evidence_status": "officially_reported_operational_indicator",
+      "denominator": "system_defined_full_storage_reference",
+      "definition_status": "aggregate_storage_indicator_not_municipal_supply",
+      "comparability_group": "ivrs_storage_weekly"
+    },
+    {
+      "observation_id": "OBS_IVRS_STORAGE_2026_SEP",
+      "source_id": "DWS_IVRS_STORAGE_2026_09",
+      "metric_code": "aggregate_reservoir_storage_relative_to_full_supply_level",
+      "value": 99.7,
+      "unit": "percent",
+      "geography": "Integrated_Vaal_River_System",
+      "system_boundary": "multi_reservoir_bulk_water_resource_system",
+      "observation_period": "week_of_2026-09-28",
+      "publication_date": "2026-09-28",
+      "evidence_status": "officially_reported_operational_indicator",
+      "denominator": "system_defined_full_storage_reference",
+      "definition_status": "aggregate_storage_indicator_not_municipal_supply",
+      "comparability_group": "ivrs_storage_weekly"
+    },
+    {
+      "observation_id": "OBS_JOBURG_WATER_CONSTRAINTS_2026_OCT29",
+      "source_id": "JOBURG_WATER_SYSTEMS_STATEMENT_2026_10",
+      "metric_code": "distribution_service_status",
+      "value": "severely_constrained",
+      "unit": "categorical",
+      "geography": "multiple_named_johannesburg_supply_systems",
+      "system_boundary": "municipal_reservoir_tower_and_distribution_systems",
+      "observation_period": "2026-10-29_statement",
+      "publication_date": "2026-10-29",
+      "evidence_status": "official_utility_operational_statement",
+      "denominator": null,
+      "definition_status": "qualitative_operational_status_not_a_population_weighted_continuity_measure",
+      "comparability_group": "qualitative_operational_service_status"
+    }
+  ],
+  "relationships": [
+    {
+      "relationship": "subset_of",
+      "subject_observation_id": "OBS_JHB_PHYSICAL_LOSSES_2026_OCT",
+      "object_observation_id": "OBS_JHB_NRW_2026_OCT",
+      "interpretation": "physical_losses_are_reported_as_included_within_nrw; do_not_add_26_to_49"
+    },
+    {
+      "relationship": "different_system_boundary",
+      "subject_observation_id": "OBS_IVRS_STORAGE_2026_SEP",
+      "object_observation_id": "OBS_JOBURG_WATER_CONSTRAINTS_2026_OCT29",
+      "interpretation": "upstream_bulk_system_storage_and_municipal_distribution_service_are_distinct; high_ivrs_storage_does_not_imply_household_continuity"
+    }
+  ],
+  "targets": [
+    {
+      "target_id": "TARGET_NATIONAL_NRW_BELOW_25_BY_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "non_revenue_water_share",
+      "operator": "less_than",
+      "value": 25,
+      "unit": "percent",
+      "geography": "South Africa",
+      "target_date": "2035",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_URBAN_SMART_METERING_80_BY_2032",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "urban_household_smart_meter_coverage",
+      "operator": "at_least",
+      "value": 80,
+      "unit": "percent",
+      "geography": "urban_households_in_South_Africa",
+      "target_date": "2032",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_HIGH_RISK_ASSET_RENEWAL_10_ANNUALLY",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "high_risk_ageing_asset_renewal",
+      "operator": "at_least",
+      "value": 10,
+      "unit": "percent_per_year",
+      "geography": "Water_Services_Authorities",
+      "target_date": "annual",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_EOL_ASSET_REPLACEMENT_30_BY_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "end_of_life_pipeline_pump_process_unit_replacement",
+      "operator": "at_least",
+      "value": 30,
+      "unit": "percent",
+      "geography": "Water_Services_Authorities",
+      "target_date": "2035",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_WATER_INFRA_INVESTMENT_075_GDP_BY_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "water_services_infrastructure_investment_share_of_gdp",
+      "operator": "at_least",
+      "value": 0.75,
+      "unit": "percent_of_gdp",
+      "geography": "South Africa",
+      "target_date": "2035",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_SCHOOLS_CLINICS_SAFE_WATER_SANITATION_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "schools_clinics_adequate_safe_water_sanitation_coverage",
+      "operator": "all",
+      "value": 100,
+      "unit": "percent",
+      "geography": "South Africa",
+      "target_date": "2035",
+      "status": "policy_target",
+      "notes": "The article phrases this as all schools and clinics; the 100% representation is a normalized interpretation."
+    },
+    {
+      "target_id": "TARGET_FREE_BASIC_WATER_SANITATION_POLICY_ALL_WSAS_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "free_basic_water_sanitation_policy_implementation",
+      "operator": "all",
+      "value": 100,
+      "unit": "percent_of_water_services_authorities",
+      "geography": "South Africa",
+      "target_date": "2035",
+      "status": "policy_target"
+    },
+    {
+      "target_id": "TARGET_SANS241_COMPLIANCE_100_BY_2035",
+      "source_id": "SANEWS_GAUTENG_WATER_FRAMEWORK_2026",
+      "metric_code": "sans_241_potable_water_compliance",
+      "operator": "at_least",
+      "value": 100,
+      "unit": "percent",
+      "geography": "South Africa",
+      "target_date": "2035",
+      "status": "policy_target"
+    }
+  ],
+  "comparability_rules": [
+    "Do not compare percentages unless metric definition, numerator, denominator, system boundary, geography, observation period and data-quality grade are compatible.",
+    "Physical water losses are a component of non-revenue water where explicitly defined as such; do not add them to NRW.",
+    "The 2023 Johannesburg 35% 'water losses' figure and the February 2026 33% 'water losses' figure remain untyped until their underlying water-balance definitions are retrieved.",
+    "The October 2026 49% NRW and 26% physical-loss figures are minister-reported estimates; the underlying audit workbook and measurement period are not included in the news article.",
+    "IVRS reservoir storage is an upstream resource-state observation and cannot be used as a proxy for municipal distribution reliability or household service continuity.",
+    "Policy targets are not observations or achieved outcomes.",
+    "Planned or in-progress interventions are not verified completion or measured impact.",
+    "Missing source data is unknown, not zero."
+  ],
+  "benchmark_alignment": {
+    "awwa": "Use AWWA M36 / Water Audit Software concepts as the water-audit and loss-control baseline; do not claim to replace AWWA.",
+    "newibnet": "Map utility KPIs to NewIBNET indicators including continuity, 24/7 supply, NRW percent, NRW per connection per hour, metering, water quality and complaints resolved.",
+    "civbench_extension": "Add typed multi-layer evidence, physical stock-flow, service continuity, quality, equity, maintenance, recovery, institutional dependency, and long-run feedback without collapsing outcomes into one score."
+  }
+}
