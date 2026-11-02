@@ -711,6 +711,34 @@ mod tests {
         assert_eq!(family.reference_pass_at_k_tasks, 1);
         assert_eq!(family.reference_pass_every_k_tasks, 0);
         assert_eq!(
+            family.candidate_pass_at_k_rate,
+            Some(super::ExactRunRate {
+                numerator: 2,
+                denominator: 2
+            })
+        );
+        assert_eq!(
+            family.candidate_pass_every_k_rate,
+            Some(super::ExactRunRate {
+                numerator: 1,
+                denominator: 2
+            })
+        );
+        assert_eq!(
+            family.reference_pass_at_k_rate,
+            Some(super::ExactRunRate {
+                numerator: 1,
+                denominator: 2
+            })
+        );
+        assert_eq!(
+            family.reference_pass_every_k_rate,
+            Some(super::ExactRunRate {
+                numerator: 0,
+                denominator: 2
+            })
+        );
+        assert_eq!(
             family.candidate_run_safe_success_rate,
             Some(super::ExactRunRate {
                 numerator: 4,
