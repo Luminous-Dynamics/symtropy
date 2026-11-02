@@ -3423,30 +3423,28 @@ impl SlidingLeafMessage {
         {
             return Err("sliding quartic family contains invalid or non-finite data");
         }
-        for row in 0..3 {
-            for column in 0..3 {
-                if self.self_operator[(row, column)] != self.self_operator[(column, row)] {
-                    return Err("sliding quartic self-block must be exactly symmetric");
-                }
-            }
+        if self.self_operator != self.self_operator.transpose() {
+            return Err("sliding quartic self-block must be exactly symmetric");
         }
         if self.self_operator.cholesky().is_none() {
             return Err("sliding quartic self-block must be positive definite");
         }
 
         let mut effective_free_velocity = [OutwardInterval::point(0.0)?; 3];
-        for component in 0..3 {
+        for (component, effective_velocity) in effective_free_velocity.iter_mut().enumerate() {
             let mut value = OutwardInterval::point(self.free_velocity[component])?;
-            for separator_axis in 0..3 {
+            for (separator_axis, (lower, upper)) in separator_box
+                .lower
+                .iter()
+                .zip(separator_box.upper.iter())
+                .enumerate()
+            {
                 let coefficient =
                     OutwardInterval::point(self.separator_coupling[(separator_axis, component)])?;
-                let coordinate = OutwardInterval::from_bounds(
-                    separator_box.lower[separator_axis],
-                    separator_box.upper[separator_axis],
-                )?;
+                let coordinate = OutwardInterval::from_bounds(*lower, *upper)?;
                 value = value.outward_add(coefficient.outward_mul(coordinate)?)?;
             }
-            effective_free_velocity[component] = value;
+            *effective_velocity = value;
         }
 
         let point = OutwardInterval::point;
