@@ -1265,8 +1265,20 @@ mod tests {
             ServiceClass::OrdinaryFreight,
         );
         req.latest_start_tick = 5;
+        let mut lock = profile();
+        lock.availability = vec![TimeInterval {
+            start_tick: 10,
+            end_tick: 1_000,
+        }];
+        let result = schedule_lock(
+            &lock,
+            &[req],
+            0,
+            SchedulingPolicy::FirstComeFirstServed,
+        )
+        .unwrap();
         assert_eq!(
-            run(&[req], SchedulingPolicy::FirstComeFirstServed).unscheduled[0].reason,
+            result.unscheduled[0].reason,
             UnscheduledReason::LatestStartExceeded
         );
     }
