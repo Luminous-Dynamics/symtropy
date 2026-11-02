@@ -98,6 +98,26 @@ def scheduler_signal_message(full_log: str) -> str | None:
     return None
 
 
+def self_test_scheduler_signal_classifier() -> None:
+    successful_window_log = (
+        "Interrupt signal (15) received, saving files and exiting.\n"
+        "----------------------------- Solver Exit -------------------------------\n"
+        "All windowed time-averaged convergence criteria are fullfilled.\n"
+    )
+    require(
+        scheduler_signal_message(successful_window_log)
+        == "Interrupt signal (15) received, saving files and exiting.",
+        "scheduler signal before a successful window banner was not detected",
+    )
+    malformed = "Interrupt signal (fifteen) received, saving files and exiting."
+    try:
+        scheduler_signal_message(malformed)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("malformed scheduler signal output was not rejected")
+
+
 def termination_evidence(
     production_dir: Path,
     preflight: dict[str, str],
@@ -432,6 +452,7 @@ def receipt(run_directory: Path) -> dict[str, str]:
 
 
 def main() -> int:
+    self_test_scheduler_signal_classifier()
     if len(sys.argv) != 10:
         raise ValueError(
             "usage: verify-su2-run-bundle-independent.py DRY_RUN_DIR PRODUCTION_DIR "
