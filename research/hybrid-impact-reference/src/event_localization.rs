@@ -26,6 +26,8 @@ pub enum LocalizationError {
 pub enum LocalizationStatus {
     /// Both declared time-bracket width and guard-residual tolerances were met.
     Converged,
+    /// The caller's lower endpoint is exactly on the event; do not process it twice.
+    EventAtLowerBoundary,
     /// The iteration budget ended before both tolerances were met.
     IterationLimit,
     /// Adjacent representable floating-point times prevented further bisection.
@@ -51,6 +53,10 @@ pub struct ImpactLocalization {
 }
 
 /// Evaluate the exact free-flight position from the initial condition.
+fn is_zero(value: f64) -> bool {
+    value.to_bits() & 0x7fff_ffff_ffff_ffff == 0
+}
+
 fn free_flight_position(
     parameters: ImpactParameters,
     time_s: f64,
@@ -110,7 +116,18 @@ pub fn bisect_first_impact(
 
     let lower_position = free_flight_position(parameters, lower_time_s)?;
     let upper_position = free_flight_position(parameters, upper_time_s)?;
-    if lower_position <= 0.0 || upper_position > 0.0 {
+    if is_zero(lower_position) {
+        return Ok(ImpactLocalization {
+            lower_time_s,
+            upper_time_s: lower_time_s,
+            estimated_event_time_s: lower_time_s,
+            absolute_guard_residual_m: 0.0,
+            bracket_width_s: 0.0,
+            iterations: 0,
+            status: LocalizationStatus::EventAtLowerBoundary,
+        });
+    }
+    if lower_position < 0.0 || upper_position > 0.0 {
         return Err(LocalizationError::NoDownwardCrossingInBracket);
     }
 
@@ -201,6 +218,18 @@ mod tests {
         assert_eq!(result.status, LocalizationStatus::Converged);
         assert!(result.lower_time_s <= 1.0);
         assert_eq!(result.upper_time_s, 1.0);
+    }
+
+    #[test]
+    fn event_at_lower_boundary_is_reported_without_duplicate_bisection() {
+        let result =
+            bisect_first_impact(fixture(), 1.0, 1.5, 1.0e-12, 1.0e-12, 128)
+                .expect("the lower endpoint is exactly the event");
+
+        assert_eq!(result.status, LocalizationStatus::EventAtLowerBoundary);
+        assert_eq!(result.estimated_event_time_s, 1.0);
+        assert_eq!(result.iterations, 0);
+        assert_eq!(result.bracket_width_s, 0.0);
     }
 
     #[test]
