@@ -12,9 +12,9 @@ from pathlib import Path
 
 SCHEMA = "su2-verified-run-bundle/0.2.0"
 EVIDENCE = (
-    "replayed_dry_run_multi_field_protocol_and_native_solver_termination_classification_"
-    "bound_to_production_history_screen_and_inputs_unsigned_wall_time_only_other_"
-    "resources_unknown_not_grid_independent_or_experimentally_validated"
+    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_every_saved_"
+    "unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_"
+    "unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated"
 )
 TERMINATION_SCHEMA = "su2-native-termination-evidence/0.1.0"
 TERMINATION_EVIDENCE = (
@@ -199,6 +199,182 @@ def termination_evidence(
     return classification, digest
 
 
+def unsteady_inner_screen_evidence(
+    production_dir: Path,
+    raw_history_path: Path,
+    preflight: dict[str, str],
+    history_import_rows: list[dict[str, str]],
+    screen_rows: list[dict[str, str]],
+    receipt_row: dict[str, str],
+    bundle: dict[str, str],
+) -> str:
+    if preflight["time_domain"] != "YES":
+        require(not screen_rows, "steady run unexpectedly contains unsteady inner-screen rows")
+        require(not bundle["unsteady_inner_screen_sha256"],
+                "steady bundle unexpectedly contains an unsteady inner-screen digest")
+        return ""
+
+    schema = "su2-unsteady-inner-step-screen/0.1.0"
+    evidence = (
+        "receipt_and_history_bound_every_contiguous_saved_time_iter_checked_against_"
+        "explicit_log10_residual_threshold_residual_fields_only_not_inner_solver_native_"
+        "iteration_trace_or_temporal_grid_independent_or_experimentally_validated"
+    )
+    require(history_import_rows, "unsteady history import is empty")
+    imported_first = history_import_rows[0]
+    require(imported_first["iteration_column"] == "TIME_ITER",
+            "unsteady imported history must use TIME_ITER")
+    require(imported_first["runner_receipt_sha256"] == receipt_row["receipt_sha256"],
+            "unsteady imported history receipt mismatch")
+    require(imported_first["executable_sha256"] == receipt_row["executable_sha256"],
+            "unsteady imported history executable mismatch")
+    require(imported_first["history_sha256"] == bundle["history_sha256"],
+            "unsteady imported history artifact mismatch")
+    require(imported_first["import_sha256"] == bundle["history_import_sha256"],
+            "unsteady imported history digest mismatch")
+
+    unit_by_field: dict[str, str] = {}
+    for key in imported_first:
+        if key.endswith("]") and " [" in key:
+            column, unit = key.rsplit(" [", 1)
+            unit_by_field[column] = unit[:-1]
+    require(unit_by_field.get("INNER_ITER") == "iterations",
+            "unsteady import must include INNER_ITER [iterations]")
+    raw_rows = read_rows(raw_history_path)
+    require(len(raw_rows) >= 2, "unsteady raw history needs at least two saved time steps")
+    raw_headers = set(raw_rows[0])
+    require({"TIME_ITER", "INNER_ITER"} <= raw_headers,
+            "unsteady raw history is missing TIME_ITER or INNER_ITER")
+
+    fields = preflight["steady_convergence_fields"].split(";")
+    require(fields and all(fields), "unsteady CONV_FIELD is empty")
+    threshold_text = preflight["steady_residual_min_log10"]
+    require(threshold_text, "unsteady inner screen requires explicit CONV_RESIDUAL_MINVAL")
+    threshold = float(threshold_text)
+    require(math.isfinite(threshold), "unsteady inner residual threshold is non-finite")
+    time_iterations: list[int] = []
+    inner_iterations: list[int] = []
+    for row in raw_rows:
+        time_value = float(row["TIME_ITER"])
+        inner_value = float(row["INNER_ITER"])
+        require(time_value.is_integer() and time_value >= 0,
+                "TIME_ITER must be a non-negative integer")
+        require(inner_value.is_integer() and inner_value >= 1,
+                "INNER_ITER must be a positive integer")
+        time_iterations.append(int(time_value))
+        inner_iterations.append(int(inner_value))
+    require(all(
+        right == left + 1 for left, right in zip(time_iterations, time_iterations[1:])
+    ), "unsteady raw history has a TIME_ITER gap")
+    require(all(value == len(raw_rows[0]) for value in [len(raw_rows[0])]),
+            "unreachable history width sentinel")
+
+    canonical = bytearray()
+    screen_status = "all_contiguous_saved_time_steps_passed_inner_residual_thresholds"
+    report_fields = []
+    for field in fields:
+        expected_unit = (
+            "log10(relative residual)" if field.startswith("REL_RMS_")
+            else "log10(residual)" if field.startswith("RMS_")
+            else None
+        )
+        require(expected_unit is not None,
+                f"unsteady inner screen supports residual fields only; unsupported {field}")
+        require(unit_by_field.get(field) == expected_unit,
+                f"unsteady import unit mismatch for {field}")
+        require(field in raw_headers, f"unsteady raw history is missing {field}")
+        values = [float(row[field]) for row in raw_rows]
+        require(all(math.isfinite(value) for value in values),
+                f"unsteady residual {field} contains a non-finite value")
+        maximum = max(values)
+        worst_index = values.index(maximum)
+        failed = sum(value > threshold for value in values)
+        require(failed == 0,
+                f"unsteady residual {field} exceeded threshold in {failed} saved time steps")
+        report_fields.append({
+            "field": field,
+            "unit": expected_unit,
+            "threshold_log10": threshold,
+            "maximum_observed_log10": maximum,
+            "worst_time_iteration": time_iterations[worst_index],
+            "failed_time_step_count": failed,
+        })
+
+    # Verify the independently exported per-field screen rows before reconstructing its digest.
+    require(len(screen_rows) == len(report_fields),
+            "unsteady inner-screen field row count mismatch")
+    common_fields = (
+        "schema", "run_id", "solver_id", "runner_receipt_sha256", "executable_sha256",
+        "history_sha256", "history_import_sha256", "preflight_sha256",
+        "time_iteration_column", "inner_iteration_column", "first_time_iteration",
+        "last_time_iteration", "contiguous_time_step_count", "status", "screen_sha256",
+        "evidence_level",
+    )
+    expected_common = {
+        "schema": schema,
+        "run_id": receipt_row["run_id"],
+        "solver_id": receipt_row["solver_id"],
+        "runner_receipt_sha256": receipt_row["receipt_sha256"],
+        "executable_sha256": receipt_row["executable_sha256"],
+        "history_sha256": bundle["history_sha256"],
+        "history_import_sha256": bundle["history_import_sha256"],
+        "preflight_sha256": bundle["field_preflight_sha256"],
+        "time_iteration_column": "TIME_ITER",
+        "inner_iteration_column": "INNER_ITER",
+        "first_time_iteration": str(time_iterations[0]),
+        "last_time_iteration": str(time_iterations[-1]),
+        "contiguous_time_step_count": str(len(raw_rows)),
+        "status": screen_status,
+        "evidence_level": evidence,
+    }
+    for index, (row, expected) in enumerate(zip(screen_rows, report_fields)):
+        for key in common_fields:
+            require(row[key] == expected_common[key], f"unsteady screen row {index} has wrong {key}")
+        require(row["field"] == expected["field"], "unsteady screen field ordering mismatch")
+        require(row["unit"] == expected["unit"], "unsteady screen unit mismatch")
+        require(float(row["threshold_log10"]) == expected["threshold_log10"],
+                "unsteady screen threshold mismatch")
+        require(float(row["maximum_observed_log10"]) == expected["maximum_observed_log10"],
+                "unsteady screen maximum residual mismatch")
+        require(int(row["worst_time_iteration"]) == expected["worst_time_iteration"],
+                "unsteady screen worst time iteration mismatch")
+        require(int(row["failed_time_step_count"]) == 0,
+                "unsteady screen reports a failed time step")
+
+    for value in (
+        schema,
+        receipt_row["run_id"],
+        receipt_row["solver_id"],
+        receipt_row["receipt_sha256"],
+        receipt_row["executable_sha256"],
+        bundle["history_sha256"],
+        bundle["history_import_sha256"],
+        bundle["field_preflight_sha256"],
+        "TIME_ITER",
+        "INNER_ITER",
+        screen_status,
+        evidence,
+    ):
+        add_string(canonical, value)
+    add_u64(canonical, time_iterations[0])
+    add_u64(canonical, time_iterations[-1])
+    add_u64(canonical, len(raw_rows))
+    add_u64(canonical, len(report_fields))
+    for row in report_fields:
+        add_string(canonical, row["field"])
+        add_string(canonical, row["unit"])
+        canonical.extend(struct.pack("<d", row["threshold_log10"]))
+        canonical.extend(struct.pack("<d", row["maximum_observed_log10"]))
+        add_u64(canonical, row["worst_time_iteration"])
+        add_u64(canonical, row["failed_time_step_count"])
+    digest = hashlib.sha256(canonical).hexdigest()
+    require(all(row["screen_sha256"] == digest for row in screen_rows),
+            "unsteady inner-screen canonical digest mismatch")
+    require(bundle["unsteady_inner_screen_sha256"] == digest,
+            "run-bundle unsteady inner-screen digest mismatch")
+    return digest
+
+
 def receipt(run_directory: Path) -> dict[str, str]:
     rows = read_rows(run_directory / "runner_receipt.csv")
     require(len(rows) == 1, f"{run_directory}: expected one process receipt")
@@ -214,10 +390,11 @@ def receipt(run_directory: Path) -> dict[str, str]:
 
 
 def main() -> int:
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         raise ValueError(
             "usage: verify-su2-run-bundle-independent.py DRY_RUN_DIR PRODUCTION_DIR "
-            "BUNDLE.csv PREFLIGHT.csv BOUNDARY.csv HISTORY.csv SCREEN.csv LINEAGE.csv"
+            "BUNDLE.csv PREFLIGHT.csv BOUNDARY.csv HISTORY.csv SCREEN.csv LINEAGE.csv "
+            "UNSTEADY_INNER_SCREEN.csv"
         )
     dry_dir, production_dir = Path(sys.argv[1]), Path(sys.argv[2])
     bundle_rows = read_rows(Path(sys.argv[3]))
@@ -226,6 +403,7 @@ def main() -> int:
     history_rows = read_rows(Path(sys.argv[6]))
     screen_rows = read_rows(Path(sys.argv[7]))
     lineage_rows = read_rows(Path(sys.argv[8]))
+    unsteady_inner_rows = read_rows(Path(sys.argv[9]))
     require(len(bundle_rows) == 1, "expected one run-bundle report row")
     require(len(preflight_rows) == 1, "expected one field-preflight report row")
     require(boundary_rows, "boundary audit report is empty")
@@ -333,6 +511,15 @@ def main() -> int:
             "preflight configuration differs from production bundle")
     require(bundle["mesh_sha256"] == preflight["mesh_sha256"],
             "preflight mesh differs from production bundle")
+    inner_digest = unsteady_inner_screen_evidence(
+        production_dir,
+        raw_path,
+        preflight,
+        history_rows,
+        unsteady_inner_rows,
+        production_receipt,
+        bundle,
+    )
 
     # The only measured resource currently available is wall time in the process receipt.
     require(bundle["wall_time_status"] == "measured", "wall time must be receipt-derived")
@@ -364,7 +551,7 @@ def main() -> int:
         "physics_configuration_sha256", "geometry_sha256", "mesh_sha256",
         "field_preflight_sha256", "boundary_audit_sha256", "history_sha256",
         "history_import_sha256", "convergence_screen_sha256", "lineage_binding_sha256",
-        "termination_classification", "termination_sha256",
+        "termination_classification", "termination_sha256", "unsteady_inner_screen_sha256",
         "resource_evidence_sha256", "status", "evidence_level",
     ):
         add_string(canonical, bundle[field])
@@ -376,8 +563,8 @@ def main() -> int:
     print(
         "independent_su2_verified_run_bundle_oracle=pass "
         "dry_run=pass production=pass preflight=pass boundary=pass history=pass screen=pass "
-        "lineage=pass exact_input_bytes=pass measured_resources=1 unknown_resources=4 "
-        f"bundle_sha256={digest}"
+        f"lineage=pass exact_input_bytes=pass unsteady_inner={'pass' if inner_digest else 'not_applicable'} "
+        f"measured_resources=1 unknown_resources=4 bundle_sha256={digest}"
     )
     return 0
 
