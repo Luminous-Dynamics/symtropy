@@ -810,12 +810,15 @@ fi
 printf '"TIME_ITER","INNER_ITER","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
 printf '10,5,0.42310,%s,%s,0.42310,-8.2,-1\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf '11,5,0.42310,%s,%s,0.42310,-8.3,-2\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '12,5,0.42310,%s,%s,0.42310,-8.4,-6.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '13,5,0.42310,%s,%s,0.42310,-8.5,-6.4\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '14,5,0.42310,%s,%s,0.42310,-8.6,-6.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '15,5,0.42310,%s,%s,0.42310,-8.7,-7.2\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '16,5,0.42310,%s,%s,0.42310,-8.8,-7.6\n' "$GRID_CD" "$GRID_CD" >> history.csv
-printf '17,5,0.42310,%s,%s,0.42310,-8.9,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '12,5,0.42310,%s,%s,0.42310,-8.4,-3\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '13,5,0.42310,%s,%s,0.42310,-8.5,-4\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '14,5,0.42310,%s,%s,0.42310,-8.6,-5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '15,5,0.42310,%s,%s,0.42310,-8.7,-6\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '16,5,0.42310,%s,%s,0.42310,-8.8,-6.5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '17,5,0.42310,%s,%s,0.42310,-8.9,-7.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '18,5,0.42310,%s,%s,0.42310,-9.0,-7.5\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '19,5,0.42310,%s,%s,0.42310,-9.1,-7.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '20,5,0.42310,%s,%s,0.42310,-9.2,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
 printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
@@ -1094,7 +1097,7 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
             &member.history,
         )
         .expect("all saved time steps satisfy the inner residual threshold");
-        assert_eq!(inner_screen.contiguous_time_step_count, 8);
+        assert_eq!(inner_screen.contiguous_time_step_count, 11);
         assert_eq!(inner_screen.fields[0].field, "RMS_DENSITY");
         assert_eq!(inner_screen.fields[0].failed_time_step_count, 0);
         let mut failing_inner_history = member.history.clone();
