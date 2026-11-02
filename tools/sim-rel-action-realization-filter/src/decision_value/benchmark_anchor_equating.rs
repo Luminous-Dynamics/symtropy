@@ -417,6 +417,11 @@ impl ExactLinkRatio {
     }
 
     fn compare(&self, other: &Self) -> Result<std::cmp::Ordering, AnchorEquatingError> {
+        if self.denominator == 0 || other.denominator == 0 {
+            return Err(AnchorEquatingError::InvalidRatio(
+                "ratio denominator must be positive".into(),
+            ));
+        }
         let left = self.numerator.checked_mul(i128::try_from(other.denominator).map_err(|_| {
             AnchorEquatingError::ArithmeticOverflow("ratio comparison denominator exceeds i128".into())
         })?).ok_or_else(|| {
