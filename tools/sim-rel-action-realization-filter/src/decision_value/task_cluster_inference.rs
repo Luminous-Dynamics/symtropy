@@ -322,10 +322,10 @@ fn validate_plan(
         || source_receipt.reference_arm_id != source_plan.reference_arm_id
         || source_receipt.candidate_arm_id != source_plan.candidate_arm_id
         || source_receipt.repetitions_per_task != source_plan.repetitions_per_task
-        || source_receipt.sealed_holdout_only == false
-        || source_receipt.pass_at_k_is_not_pass_every_k == false
-        || source_receipt.repeated_runs_not_counted_as_independent_task_samples == false
-        || source_receipt.exact_manifest_and_resource_matching == false
+        || !source_receipt.sealed_holdout_only
+        || !source_receipt.pass_at_k_is_not_pass_every_k
+        || !source_receipt.repeated_runs_not_counted_as_independent_task_samples
+        || !source_receipt.exact_manifest_and_resource_matching
     {
         return Err(ClusterInferenceError::ClusterReceipt(
             "source repeated-run receipt does not match its registered plan or assurance flags"
@@ -1333,7 +1333,7 @@ mod tests {
             exact_cluster_sign_test_p_value(0, 5).unwrap(),
             exact_cluster_sign_test_p_value(5, 0).unwrap()
         );
-        assert_eq!(exact_cluster_sign_test_p_value(121, 0).is_err(), true);
+        assert!(exact_cluster_sign_test_p_value(121, 0).is_err());
     }
 
     #[test]
@@ -1417,6 +1417,13 @@ mod tests {
         let result = analyze(&plan, &source, &receipt(clusters())).unwrap();
         assert!(result.abstention_is_descriptive_only);
         assert_eq!(result.endpoint_count, 4);
+        let abstention = result.family_abstention_descriptive.iter()
+            .find(|family| family.mechanism_family_id == "sensor-drift")
+            .unwrap();
+        assert_eq!(abstention.candidate_clusters_with_any_abstention, 1);
+        assert_eq!(abstention.reference_clusters_with_any_abstention, 1);
+        assert_eq!(abstention.candidate_abstention_runs, 1);
+        assert_eq!(abstention.reference_abstention_runs, 1);
     }
 
     #[test]
