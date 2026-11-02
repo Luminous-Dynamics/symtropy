@@ -371,6 +371,246 @@ pub fn inspect_su2_mesh(bytes: &[u8]) -> Result<Su2MeshSummary, String> {
     })
 }
 
+
+/// Mesh-derived characteristic spacing for a linear 2D triangle/quadrilateral SU2 grid.
+///
+/// The coordinate unit is supplied by the caller and is not inferred from SU2 ASCII mesh bytes.
+/// For this explicitly scoped definition, h = sqrt(total cell area / volume-cell count).
+/// Unsupported dimensions and cell types fail closed; this is not an anisotropy or mesh-quality
+/// metric. Cell-area coefficient of variation is retained to expose gross nonuniformity.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Su2MeshSpacing2d {
+    pub schema: &'static str,
+    pub mesh_byte_length: u64,
+    pub mesh_sha256: String,
+    pub coordinate_unit: String,
+    pub cell_count: u64,
+    pub total_cell_area: f64,
+    pub mean_cell_area: f64,
+    pub minimum_cell_area: f64,
+    pub maximum_cell_area: f64,
+    pub cell_area_coefficient_of_variation: f64,
+    pub characteristic_spacing: f64,
+    pub evidence_level: &'static str,
+}
+
+pub const SU2_MESH_SPACING_2D_SCHEMA: &str = "su2-mesh-spacing-2d/0.1.0";
+pub const SU2_MESH_SPACING_2D_EVIDENCE_LEVEL: &str =
+    "derived_from_exact_2d_linear_triangle_quad_mesh_bytes_not_mesh_quality_or_cfd_validation";
+
+/// Derive h from exact native mesh cell areas, without accepting a caller-entered spacing.
+///
+/// Only two-dimensional linear triangles (VTK type 5) and quadrilaterals (VTK type 9) are
+/// accepted. Coordinates must form a finite, indexed point table. The coordinate unit is an
+/// explicit declaration; the numerical metric itself is calculated directly from mesh bytes.
+pub fn derive_su2_characteristic_spacing_2d(
+    bytes: &[u8],
+    coordinate_unit: &str,
+) -> Result<Su2MeshSpacing2d, String> {
+    if coordinate_unit.trim().is_empty() {
+        return Err("mesh coordinate unit must be declared".to_owned());
+    }
+    let summary = inspect_su2_mesh(bytes)?;
+    if summary.dimension != 2 {
+        return Err(format!(
+            "mesh-derived area spacing is restricted to 2D; got {}D",
+            summary.dimension
+        ));
+    }
+    if summary
+        .volume_element_type_counts
+        .keys()
+        .any(|kind| !matches!(kind, 5 | 9))
+    {
+        return Err("mesh-derived spacing supports only linear triangles and quadrilaterals".to_owned());
+    }
+
+    let text = std::str::from_utf8(bytes)
+        .map_err(|error| format!("SU2 mesh is not UTF-8: {error}"))?;
+    let lines = text
+        .lines()
+        .enumerate()
+        .map(|(index, line)| (index + 1, line.trim_end_matches('\r')))
+        .collect::<Vec<_>>();
+    let mut cursor = 0;
+    let (dimension_line, dimension_record) = next_nonempty(&lines, &mut cursor, "NDIME")?;
+    let dimension = dimension_record
+        .strip_prefix("NDIME=")
+        .ok_or_else(|| format!("line {dimension_line}: expected NDIME="))?
+        .trim()
+        .parse::<u8>()
+        .map_err(|error| format!("line {dimension_line}: invalid NDIME: {error}"))?;
+    if dimension != 2 {
+        return Err("mesh-derived characteristic spacing requires NDIME=2".to_owned());
+    }
+
+    let mut point_coordinates: Option<Vec<Option<[f64; 2]>>> = None;
+    let mut volume_cells = Vec::<(usize, u8, Vec<u64>)>::new();
+    let mut saw_elements = false;
+    let mut saw_markers = false;
+    while cursor < lines.len() {
+        let (line_number, line) = next_nonempty(&lines, &mut cursor, "mesh section")?;
+        if line.starts_with("NELEM=") {
+            if saw_elements {
+                return Err(format!("line {line_number}: duplicate NELEM section"));
+            }
+            saw_elements = true;
+            let count = parse_key_count(line_number, line, "NELEM=", false)?;
+            for _ in 0..count {
+                let (element_line, record) =
+                    next_nonempty(&lines, &mut cursor, "volume element connectivity")?;
+                let (kind, nodes) = parse_element_type(
+                    element_line,
+                    record,
+                    2,
+                    false,
+                    Some(summary.point_count),
+                )?;
+                if !matches!(kind, 5 | 9) {
+                    return Err(format!(
+                        "line {element_line}: spacing derivation supports only triangles/quads; got type {kind}"
+                    ));
+                }
+                volume_cells.push((element_line, kind, nodes));
+            }
+        } else if line.starts_with("NPOIN=") {
+            if point_coordinates.is_some() {
+                return Err(format!("line {line_number}: duplicate NPOIN section"));
+            }
+            let count = parse_key_count(line_number, line, "NPOIN=", false)?;
+            let count_usize = usize::try_from(count)
+                .map_err(|error| format!("NPOIN count does not fit memory index: {error}"))?;
+            let mut points = vec![None; count_usize];
+            for sequential_index in 0..count_usize {
+                let (point_line, record) =
+                    next_nonempty(&lines, &mut cursor, "point coordinate record")?;
+                let fields = record.split_whitespace().collect::<Vec<_>>();
+                if fields.len() != 2 && fields.len() != 3 {
+                    return Err(format!(
+                        "line {point_line}: expected two coordinates and optional point index"
+                    ));
+                }
+                let x = fields[0].parse::<f64>()
+                    .map_err(|error| format!("line {point_line}: invalid x coordinate: {error}"))?;
+                let y = fields[1].parse::<f64>()
+                    .map_err(|error| format!("line {point_line}: invalid y coordinate: {error}"))?;
+                if !x.is_finite() || !y.is_finite() {
+                    return Err(format!("line {point_line}: coordinates must be finite"));
+                }
+                let point_index = if fields.len() == 3 {
+                    fields[2].parse::<usize>()
+                        .map_err(|error| format!("line {point_line}: invalid point index: {error}"))?
+                } else {
+                    sequential_index
+                };
+                if point_index >= points.len() {
+                    return Err(format!("line {point_line}: point index is outside NPOIN"));
+                }
+                if points[point_index].replace([x, y]).is_some() {
+                    return Err(format!("line {point_line}: duplicate point index {point_index}"));
+                }
+            }
+            point_coordinates = Some(points);
+        } else if line.starts_with("NMARK=") {
+            if saw_markers {
+                return Err(format!("line {line_number}: duplicate NMARK section"));
+            }
+            saw_markers = true;
+            let marker_count = parse_key_count(line_number, line, "NMARK=", true)?;
+            for _ in 0..marker_count {
+                let (tag_line, tag_record) = next_nonempty(&lines, &mut cursor, "MARKER_TAG")?;
+                if !tag_record.starts_with("MARKER_TAG=") {
+                    return Err(format!("line {tag_line}: expected MARKER_TAG="));
+                }
+                let (count_line, count_record) = next_nonempty(&lines, &mut cursor, "MARKER_ELEMS")?;
+                let boundary_count = parse_key_count(count_line, count_record, "MARKER_ELEMS=", false)?;
+                for _ in 0..boundary_count {
+                    let (boundary_line, record) =
+                        next_nonempty(&lines, &mut cursor, "marker element connectivity")?;
+                    parse_element_type(boundary_line, record, 2, true, Some(summary.point_count))?;
+                }
+            }
+        } else {
+            return Err(format!("line {line_number}: unsupported mesh record in spacing derivation: {line}"));
+        }
+    }
+
+    if !saw_elements {
+        return Err("mesh spacing derivation did not find NELEM".to_owned());
+    }
+    let points = point_coordinates
+        .ok_or_else(|| "mesh spacing derivation did not find NPOIN".to_owned())?;
+    if points.iter().any(Option::is_none) {
+        return Err("mesh point table contains an unfilled point index".to_owned());
+    }
+    if volume_cells.len() != summary.volume_element_count as usize {
+        return Err("parsed cell count differs from native mesh summary".to_owned());
+    }
+
+    let mut areas = Vec::with_capacity(volume_cells.len());
+    for (line_number, kind, nodes) in volume_cells {
+        let coordinates = nodes
+            .iter()
+            .map(|index| {
+                points
+                    .get(*index as usize)
+                    .and_then(|point| *point)
+                    .ok_or_else(|| format!("line {line_number}: cell references missing point {index}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let area = if kind == 5 {
+            let [a, b, c] = [coordinates[0], coordinates[1], coordinates[2]];
+            ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])).abs() * 0.5
+        } else {
+            let mut twice_area = 0.0;
+            for index in 0..4 {
+                let current = coordinates[index];
+                let next = coordinates[(index + 1) % 4];
+                twice_area += current[0] * next[1] - next[0] * current[1];
+            }
+            twice_area.abs() * 0.5
+        };
+        if !area.is_finite() || area <= 1.0e-18 {
+            return Err(format!("line {line_number}: cell has zero or non-finite area"));
+        }
+        areas.push(area);
+    }
+
+    let count = areas.len() as f64;
+    let mut total = 0.0;
+    let mut compensation = 0.0;
+    for area in &areas {
+        let adjusted = *area - compensation;
+        let next = total + adjusted;
+        compensation = (next - total) - adjusted;
+        total = next;
+    }
+    let mean = total / count;
+    let mut squared_deviation = 0.0;
+    for area in &areas {
+        squared_deviation += (*area - mean).powi(2);
+    }
+    let standard_deviation = (squared_deviation / count).sqrt();
+    let spacing = mean.sqrt();
+    if !total.is_finite() || !mean.is_finite() || !spacing.is_finite() || spacing <= 0.0 {
+        return Err("mesh-derived characteristic spacing is non-finite or non-positive".to_owned());
+    }
+    Ok(Su2MeshSpacing2d {
+        schema: SU2_MESH_SPACING_2D_SCHEMA,
+        mesh_byte_length: bytes.len() as u64,
+        mesh_sha256: sha256_hex(bytes)?,
+        coordinate_unit: coordinate_unit.to_owned(),
+        cell_count: areas.len() as u64,
+        total_cell_area: total,
+        mean_cell_area: mean,
+        minimum_cell_area: areas.iter().copied().fold(f64::INFINITY, f64::min),
+        maximum_cell_area: areas.iter().copied().fold(0.0, f64::max),
+        cell_area_coefficient_of_variation: standard_deviation / mean,
+        characteristic_spacing: spacing,
+        evidence_level: SU2_MESH_SPACING_2D_EVIDENCE_LEVEL,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
