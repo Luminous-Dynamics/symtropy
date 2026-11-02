@@ -453,3 +453,14 @@ The first three statuses require a numeric value; the latter four require a miss
 A paired treatment-minus-control difference is defined only when both arms have valid numeric values. If either side is missing, the paired delta is indeterminate for that metric; retain each arm's value/status and report missingness by scenario, metric, stratum and policy. Do not fill, drop or average away missing results without a separately pre-registered missing-data analysis.
 
 This contract is necessary for service and water-balance comparisons: "no measured interruption" is not the same claim as "interruption not measured"; "zero physical loss" is not the same claim as "physical loss model unsupported"; and a withheld group outcome must not silently improve the reported worst-group result.
+
+
+## 19. Evidence-class parity for paired effects
+
+A numeric value is not automatically comparable merely because both arms contain numbers. In v0.1, a paired treatment-minus-control delta is numeric only when **both arms have the same evidence status**: observed with observed, derived with derived, or modelled with modelled.
+
+Observed-vs-modelled, observed-vs-derived and other cross-status comparisons are explicitly marked `evidence_status_mismatch` and produce no numeric delta. Missing control, missing treatment, both missing and evidence-status mismatch are distinct states. Do not silently promote a modelled result to an observation, demote an observation to a model output, or create a mixed-evidence delta that hides the distinction.
+
+A cross-status comparison may be added only through a separately named, versioned, preregistered bridge that defines the relationship, validation evidence, uncertainty propagation and decision purpose. A general conversion factor or post-hoc weighting is not sufficient.
+
+This makes the default paired estimate conservative: same scenario block, same exogenous shocks, same initial state, same topology/model family/time grid/horizon, permitted treatment-only differences, and same metric evidence class. If the two arms do not meet those conditions, the outcome is indeterminate for that comparison rather than a misleading numeric improvement.
