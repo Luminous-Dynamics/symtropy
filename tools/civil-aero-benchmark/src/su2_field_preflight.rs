@@ -629,6 +629,22 @@ mod tests {
     }
 
     #[test]
+    fn parses_su2_backslash_continued_history_output_lists() {
+        let configuration = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, \\\n  RMS_RES, \\\n  AERO_COEFF)\n",
+        )
+        .expect("valid continued configuration");
+        assert_eq!(
+            configuration.history_output_selectors,
+            vec!["ITER", "RMS_RES", "AERO_COEFF"]
+        );
+        let incomplete = parse_configuration(
+            b"SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, \\\n",
+        );
+        assert!(incomplete.expect_err("unterminated continuation rejected").contains("unterminated"));
+    }
+
+    #[test]
     fn rejects_unknown_convergence_field_and_missing_history_field() {
         let root = root();
         let unknown = fixture_run(&root.join("unknown"), "RMS_NOT_A_FIELD", INVENTORY);
