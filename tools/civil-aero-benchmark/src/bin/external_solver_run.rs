@@ -43,11 +43,12 @@ fn run() -> Result<bool, String> {
     }
     if options.solver_id == "SU2_CFD_DRY_RUN" {
         if !options.outputs.is_empty() {
-            return Err("SU2_CFD_DRY_RUN must use a process-only receipt with no expected outputs".to_owned());
+            return Err(
+                "SU2_CFD_DRY_RUN must use a process-only receipt with no expected outputs"
+                    .to_owned(),
+            );
         }
-        if options.solver_arguments.len() != 2
-            || options.solver_arguments[0] != "-d"
-        {
+        if options.solver_arguments.len() != 2 || options.solver_arguments[0] != "-d" {
             return Err("SU2_CFD_DRY_RUN requires exactly: -- -d CONFIG_PATH".to_owned());
         }
     } else if options.outputs.is_empty() {
