@@ -1006,6 +1006,43 @@ mod tests {
     }
 
     #[test]
+    fn clopper_pearson_matches_independent_reference_vectors() {
+        let middle = clopper_pearson_interval(5, 10, 0.05).unwrap();
+        assert_eq!(middle.lower_bound_ppm, 187_086);
+        assert_eq!(middle.upper_bound_ppm, 812_914);
+
+        let all_success = clopper_pearson_interval(10, 10, 0.05).unwrap();
+        assert_eq!(all_success.lower_bound_ppm, 691_502);
+        assert_eq!(all_success.upper_bound_ppm, 1_000_000);
+
+        let all_failure = clopper_pearson_interval(0, 10, 0.05).unwrap();
+        assert_eq!(all_failure.lower_bound_ppm, 0);
+        assert_eq!(all_failure.upper_bound_ppm, 308_498);
+    }
+
+    #[test]
+    fn binomial_cluster_limit_and_invalid_denominators_fail_closed() {
+        assert!(clopper_pearson_interval(1, 0, 0.05).is_err());
+        assert!(clopper_pearson_interval(2, 1, 0.05).is_err());
+        assert!(clopper_pearson_interval(1, 1_000_001, 0.05).is_err());
+        assert!(clopper_pearson_interval(1, 1, 0.0).is_err());
+        assert!(clopper_pearson_interval(1, 1, 1.0).is_err());
+    }
+
+    #[test]
+    fn interval_lower_bound_is_monotone_in_success_count_for_fixed_n() {
+        let intervals = (0..=20)
+            .map(|successes| clopper_pearson_interval(successes, 20, 0.05).unwrap())
+            .collect::<Vec<_>>();
+        assert!(intervals.windows(2).all(|pair|
+            pair[0].lower_bound_ppm <= pair[1].lower_bound_ppm
+        ));
+        assert!(intervals.windows(2).all(|pair|
+            pair[0].upper_bound_ppm <= pair[1].upper_bound_ppm
+        ));
+    }
+
+    #[test]
     fn cluster_grouping_does_not_count_scenario_variants_as_independent_units() {
         let (scenarios, trials) = scenarios_and_trials();
         let mut plan = confidence_plan();
