@@ -524,7 +524,7 @@ pub fn observations_to_csv(observations: &[EvidenceObservation]) -> String {
     ];
     let mut rows = observations.iter().collect::<Vec<_>>();
     rows.sort_by_key(|observation| observation.gate);
-    let mut output = format!("{}\\n", header.join(","));
+    let mut output = format!("{}\n", header.join(","));
     for observation in rows {
         let values = [
             observation.gate.as_str(),
@@ -540,7 +540,7 @@ pub fn observations_to_csv(observations: &[EvidenceObservation]) -> String {
                 .collect::<Vec<_>>()
                 .join(","),
         );
-        output.push('\\n');
+        output.push('\n');
     }
     output
 }
