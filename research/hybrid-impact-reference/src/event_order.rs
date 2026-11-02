@@ -608,4 +608,26 @@ mod graph_tests {
         let graph = build_event_order_graph(&records).expect("strictly ordered graph");
         assert!(!has_cycle(&graph.event_ids, &graph.proven_before_edges));
     }
+    #[test]
+    fn graph_cycle_checker_rejects_a_corrupted_three_event_cycle() {
+        let ids = vec!["a".to_string(), "b".to_string(), "c".to_string()];
+        let edges = vec![
+            EventOrderEdge {
+                before_event_id: "a".into(),
+                after_event_id: "b".into(),
+            },
+            EventOrderEdge {
+                before_event_id: "b".into(),
+                after_event_id: "c".into(),
+            },
+            EventOrderEdge {
+                before_event_id: "c".into(),
+                after_event_id: "a".into(),
+            },
+        ];
+
+        assert!(has_cycle(&ids, &edges));
+    }
+
+
 }
