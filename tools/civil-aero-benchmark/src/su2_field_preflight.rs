@@ -238,16 +238,17 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
             continue;
         }
         let line_number = index + 1;
-        if let Some((start_line, accumulated)) = logical.as_mut() {
+        if let Some((start_line, mut accumulated)) = logical.take() {
             let continuation = content.strip_suffix('\\');
             let fragment = continuation.unwrap_or(content).trim();
             if !fragment.is_empty() {
                 accumulated.push(' ');
                 accumulated.push_str(fragment);
             }
-            if continuation.is_none() {
-                let complete = logical.take().expect("logical config line exists").1;
-                insert_config_option(&mut values, &complete, *start_line)?;
+            if continuation.is_some() {
+                logical = Some((start_line, accumulated));
+            } else {
+                insert_config_option(&mut values, &accumulated, start_line)?;
             }
             continue;
         }
@@ -257,7 +258,7 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         }
         insert_config_option(&mut values, content, line_number)?;
     }
-    if let Some((start_line, accumulated)) = logical {
+    if let Some((start_line, _)) = logical {
         return Err(format!(
             "SU2 config line {start_line}: unterminated line continuation"
         ));
