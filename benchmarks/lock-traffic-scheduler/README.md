@@ -21,7 +21,7 @@ cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.to
 - A temporarily infeasible request remains pending while another feasible passage can change the direction-switch state; provisional deadline/slot failures become final only when no further passage can advance the schedule.
 - Lock-profile currentness must cover the complete reserved service interval; a slot extending beyond profile validity is not scheduled.
 - Exact integer-tick schedule and deterministic tie-breaking.
-- Reports service wait, worst wait, lock busy ticks, direction switches, unscheduled reason by request.
+- Reports service wait, worst wait, lock busy ticks, direction switches, unscheduled reason by request, and pairwise arrival-order inversion count/rate among served requests (with the served-pair denominator).
 
 This is not a multi-vessel chamber packing, multi-lock/multi-chamber route planner, MILP/max-plus implementation, real-time vessel arrival predictor or navigation authority. It is a first reproducible baseline for comparison against those methods.
 
