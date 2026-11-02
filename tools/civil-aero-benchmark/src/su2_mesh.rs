@@ -498,7 +498,8 @@ pub fn derive_su2_characteristic_spacing_2d(
                     return Err(format!("line {point_line}: coordinates must be finite"));
                 }
                 let point_index = if fields.len() == 3 {
-                    fields[2].parse::<usize>()
+                    fields[2]
+                        .parse::<usize>()
                         .map_err(|error| format!("line {point_line}: invalid point index: {error}"))?
                 } else {
                     sequential_index
@@ -552,8 +553,11 @@ pub fn derive_su2_characteristic_spacing_2d(
         let coordinates = nodes
             .iter()
             .map(|index| {
+                let index = usize::try_from(*index).map_err(|error| {
+                    format!("line {line_number}: node index does not fit memory index: {error}")
+                })?;
                 points
-                    .get(*index as usize)
+                    .get(index)
                     .and_then(|point| *point)
                     .ok_or_else(|| format!("line {line_number}: cell references missing point {index}"))
             })
