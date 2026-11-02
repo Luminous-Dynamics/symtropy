@@ -245,9 +245,7 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
                 .collect();
             let events_injected_but_not_yet_observable = cases
                 .iter()
-                .filter(|case| {
-                    case.injection_tick <= tick && case.observable_tick > tick
-                })
+                .filter(|case| case.injection_tick <= tick && case.observable_tick > tick)
                 .map(|case| case.case_id.clone())
                 .collect();
             EvaluatorTick {
@@ -376,25 +374,45 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
             ));
         }
         if case.injection_tick > 100_000 || case.observable_tick > 100_000 {
-            errors.push(format!("{}: timeline tick exceeds bounded audit horizon", case.case_id));
+            errors.push(format!(
+                "{}: timeline tick exceeds bounded audit horizon",
+                case.case_id
+            ));
         }
-        if case.affected_resources.iter().any(|item| item.trim().is_empty())
-            || case.affected_tasks.iter().any(|item| item.trim().is_empty())
+        if case
+            .affected_resources
+            .iter()
+            .any(|item| item.trim().is_empty())
+            || case
+                .affected_tasks
+                .iter()
+                .any(|item| item.trim().is_empty())
             || case.invalidates.iter().any(|item| item.trim().is_empty())
-            || case.recovery_evidence.iter().any(|item| item.trim().is_empty())
-            || case.required_invariants.iter().any(|item| item.trim().is_empty())
+            || case
+                .recovery_evidence
+                .iter()
+                .any(|item| item.trim().is_empty())
+            || case
+                .required_invariants
+                .iter()
+                .any(|item| item.trim().is_empty())
         {
             errors.push(format!(
                 "{}: disturbance references must not contain empty IDs",
                 case.case_id
             ));
         }
-        maximum_tick = maximum_tick.max(case.observable_tick).max(case.injection_tick);
+        maximum_tick = maximum_tick
+            .max(case.observable_tick)
+            .max(case.injection_tick);
     }
 
     for kind in DisturbanceKind::ALL {
         if !event_kinds.contains(&kind) {
-            errors.push(format!("required v0.1 disturbance kind is missing: {}", kind.as_str()));
+            errors.push(format!(
+                "required v0.1 disturbance kind is missing: {}",
+                kind.as_str()
+            ));
         }
     }
     if event_kinds.len() != DisturbanceKind::ALL.len() {
@@ -439,36 +457,40 @@ mod tests {
         let policy_tick_three = &report.policy_timeline[3];
         let policy_tick_four = &report.policy_timeline[4];
 
-        assert!(evaluator_tick_two
-            .injected_event_ids
-            .iter()
-            .any(|item| item == "R-008"));
-        assert!(evaluator_tick_two
-            .events_injected_but_not_yet_observable
-            .iter()
-            .any(|item| item == "R-008"));
-        assert!(!policy_tick_three
-            .visible_event_ids
-            .iter()
-            .any(|item| item == "R-008"));
-        assert!(policy_tick_four
-            .visible_event_ids
-            .iter()
-            .any(|item| item == "R-008"));
-        assert!(policy_tick_four
-            .newly_observed_events
-            .iter()
-            .any(|item| {
-                item.case_id == "R-008"
-                    && item.observed_at_tick == 4
-                    && item.event == "workface_geometry_revision_changed"
-            }));
+        assert!(
+            evaluator_tick_two
+                .injected_event_ids
+                .iter()
+                .any(|item| item == "R-008")
+        );
+        assert!(
+            evaluator_tick_two
+                .events_injected_but_not_yet_observable
+                .iter()
+                .any(|item| item == "R-008")
+        );
+        assert!(
+            !policy_tick_three
+                .visible_event_ids
+                .iter()
+                .any(|item| item == "R-008")
+        );
+        assert!(
+            policy_tick_four
+                .visible_event_ids
+                .iter()
+                .any(|item| item == "R-008")
+        );
+        assert!(policy_tick_four.newly_observed_events.iter().any(|item| {
+            item.case_id == "R-008"
+                && item.observed_at_tick == 4
+                && item.event == "workface_geometry_revision_changed"
+        }));
     }
 
     #[test]
     fn unknown_disturbance_kind_is_rejected() {
-        let mut candidate: serde_json::Value =
-            serde_json::from_str(EMBEDDED_FIXTURE).unwrap();
+        let mut candidate: serde_json::Value = serde_json::from_str(EMBEDDED_FIXTURE).unwrap();
         candidate["disturbance_cases"][0]["event"] =
             serde_json::Value::String("unknown_event_kind".to_string());
         let bytes = serde_json::to_vec(&candidate).unwrap();
