@@ -168,7 +168,10 @@ impl ExactRedTeamRate {
         if denominator == 0 || numerator > denominator {
             return None;
         }
-        Some(Self { numerator, denominator })
+        Some(Self {
+            numerator,
+            denominator,
+        })
     }
 
     fn meets_minimum_percent(&self, minimum_percent: u8) -> bool {
@@ -323,7 +326,9 @@ fn valid_digest(value: &str) -> bool {
         return false;
     };
     hex.len() == 64
-        && hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn require_digest(value: &str, label: &str) -> Result<(), RedTeamError> {
@@ -342,23 +347,38 @@ fn validate_plan(plan: &AdversarialRedTeamPlan) -> Result<(), RedTeamError> {
         (&plan.benchmark_id, "benchmark ID"),
         (&plan.benchmark_version, "benchmark version"),
         (&plan.sealed_release_id, "sealed release ID"),
-        (&plan.source_hierarchical_analysis_id, "source hierarchy analysis ID"),
+        (
+            &plan.source_hierarchical_analysis_id,
+            "source hierarchy analysis ID",
+        ),
         (&plan.attack_operator_identity, "attack operator identity"),
         (&plan.detector_owner_identity, "detector owner identity"),
-        (&plan.independent_verifier_identity, "independent verifier identity"),
+        (
+            &plan.independent_verifier_identity,
+            "independent verifier identity",
+        ),
     ] {
         require_id(value, label)?;
     }
     for (value, label) in [
         (&plan.sealed_release_digest, "sealed release"),
-        (&plan.source_hierarchical_analysis_digest, "source hierarchy"),
-        (&plan.source_pre_registration_digest, "source preregistration"),
+        (
+            &plan.source_hierarchical_analysis_digest,
+            "source hierarchy",
+        ),
+        (
+            &plan.source_pre_registration_digest,
+            "source preregistration",
+        ),
         (&plan.plan_digest, "red-team plan"),
         (&plan.threat_model_digest, "threat model"),
         (&plan.attack_catalog_digest, "attack catalog"),
         (&plan.detector_artifact_digest, "detector artifact"),
         (&plan.attack_harness_digest, "attack harness"),
-        (&plan.independent_verifier_artifact_digest, "independent verifier artifact"),
+        (
+            &plan.independent_verifier_artifact_digest,
+            "independent verifier artifact",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -367,7 +387,8 @@ fn validate_plan(plan: &AdversarialRedTeamPlan) -> Result<(), RedTeamError> {
         || plan.detector_owner_identity == plan.independent_verifier_identity
     {
         return Err(RedTeamError::IdentityCollision(
-            "attack operator, detector owner and independent verifier must be distinct identities".into(),
+            "attack operator, detector owner and independent verifier must be distinct identities"
+                .into(),
         ));
     }
     if plan.family_requirements.len() != ThreatFamily::ALL.len()
@@ -412,7 +433,11 @@ fn validate_plan(plan: &AdversarialRedTeamPlan) -> Result<(), RedTeamError> {
             "threat family registry is incomplete or contains an unknown family".into(),
         ));
     }
-    if !plan.family_requirements.iter().any(|requirement| requirement.critical) {
+    if !plan
+        .family_requirements
+        .iter()
+        .any(|requirement| requirement.critical)
+    {
         return Err(RedTeamError::ThreatRegistry(
             "at least one threat family must be declared critical".into(),
         ));
@@ -497,7 +522,10 @@ fn validate_scenarios(
                 scenario.scenario_id
             )));
         }
-        if result.insert(scenario.scenario_id.clone(), scenario).is_some() {
+        if result
+            .insert(scenario.scenario_id.clone(), scenario)
+            .is_some()
+        {
             return Err(RedTeamError::ScenarioCatalog(format!(
                 "duplicate scenario ID {}",
                 scenario.scenario_id
@@ -508,16 +536,23 @@ fn validate_scenarios(
     for scenario in scenarios {
         let counts = expected_family_counts.entry(scenario.family).or_default();
         match scenario.kind {
-            ScenarioKind::Attack => counts.0 = counts.0.checked_add(1).ok_or_else(|| {
-                RedTeamError::ArithmeticOverflow("attack scenario count overflow".into())
-            })?,
-            ScenarioKind::CleanNegativeControl => counts.1 = counts.1.checked_add(1).ok_or_else(|| {
-                RedTeamError::ArithmeticOverflow("clean control count overflow".into())
-            })?,
+            ScenarioKind::Attack => {
+                counts.0 = counts.0.checked_add(1).ok_or_else(|| {
+                    RedTeamError::ArithmeticOverflow("attack scenario count overflow".into())
+                })?
+            }
+            ScenarioKind::CleanNegativeControl => {
+                counts.1 = counts.1.checked_add(1).ok_or_else(|| {
+                    RedTeamError::ArithmeticOverflow("clean control count overflow".into())
+                })?
+            }
         }
     }
     for requirement in &plan.family_requirements {
-        let (attacks, controls) = expected_family_counts.get(&requirement.family).copied().unwrap_or_default();
+        let (attacks, controls) = expected_family_counts
+            .get(&requirement.family)
+            .copied()
+            .unwrap_or_default();
         if attacks < requirement.minimum_attack_scenarios
             || controls < requirement.minimum_clean_controls
         {
@@ -542,7 +577,9 @@ fn validate_trial_resource_measurements(
             trial.trial_id
         )));
     }
-    let expected = plan.resource_channels.iter()
+    let expected = plan
+        .resource_channels
+        .iter()
         .map(|channel| (channel.channel_id.as_str(), channel.unit.as_str()))
         .collect::<BTreeSet<_>>();
     let mut seen = BTreeSet::new();
@@ -618,7 +655,10 @@ pub fn evaluate_adversarial_redteam_campaign(
         require_digest(&trial.execution_receipt_digest, "attack execution receipt")?;
         require_digest(&trial.detector_artifact_digest, "trial detector artifact")?;
         require_digest(&trial.attack_harness_digest, "trial attack harness")?;
-        require_digest(&trial.independent_verifier_artifact_digest, "trial independent verifier")?;
+        require_digest(
+            &trial.independent_verifier_artifact_digest,
+            "trial independent verifier",
+        )?;
         if !seen_trial_ids.insert(trial.trial_id.clone())
             || !seen_scenarios.insert(trial.scenario_id.clone())
         {
@@ -637,7 +677,8 @@ pub fn evaluate_adversarial_redteam_campaign(
             || trial.independent_verifier_identity != plan.independent_verifier_identity
             || trial.detector_artifact_digest != plan.detector_artifact_digest
             || trial.attack_harness_digest != plan.attack_harness_digest
-            || trial.independent_verifier_artifact_digest != plan.independent_verifier_artifact_digest
+            || trial.independent_verifier_artifact_digest
+                != plan.independent_verifier_artifact_digest
         {
             return Err(RedTeamError::IdentityCollision(format!(
                 "trial {} does not bind the preregistered operator/detector/verifier identities",
@@ -650,8 +691,12 @@ pub fn evaluate_adversarial_redteam_campaign(
             ScenarioKind::Attack => {
                 accumulator.attacks += 1;
                 total_attack_count += 1;
-                accumulator.attack_authors.insert(scenario.author_identity.clone());
-                accumulator.attack_generators.insert(scenario.generator_digest.clone());
+                accumulator
+                    .attack_authors
+                    .insert(scenario.author_identity.clone());
+                accumulator
+                    .attack_generators
+                    .insert(scenario.generator_digest.clone());
                 if trial.leak_occurred && !trial.exploit_succeeded {
                     return Err(RedTeamError::TrialEvidence(
                         "leak occurrence without a successful exploit is inconsistent".into(),
@@ -690,10 +735,14 @@ pub fn evaluate_adversarial_redteam_campaign(
             ScenarioKind::CleanNegativeControl => {
                 accumulator.controls += 1;
                 total_control_count += 1;
-                accumulator.clean_authors.insert(scenario.author_identity.clone());
-                if trial.exploit_succeeded || trial.contained_before_exposure || trial.leak_occurred {
+                accumulator
+                    .clean_authors
+                    .insert(scenario.author_identity.clone());
+                if trial.exploit_succeeded || trial.contained_before_exposure || trial.leak_occurred
+                {
                     return Err(RedTeamError::TrialEvidence(
-                        "clean negative control cannot report exploit, containment or leakage".into(),
+                        "clean negative control cannot report exploit, containment or leakage"
+                            .into(),
                     ));
                 }
                 if trial.detector_alerted || trial.correctly_attributed_to_family {
@@ -705,7 +754,11 @@ pub fn evaluate_adversarial_redteam_campaign(
             accumulator.completed += 1;
             completed_trial_count += 1;
         } else {
-            if trial.exploit_succeeded || trial.detector_alerted || trial.contained_before_exposure || trial.leak_occurred {
+            if trial.exploit_succeeded
+                || trial.detector_alerted
+                || trial.contained_before_exposure
+                || trial.leak_occurred
+            {
                 return Err(RedTeamError::TrialEvidence(
                     "incomplete trial cannot claim exploit, detector, containment or leakage outcomes".into(),
                 ));
@@ -714,7 +767,8 @@ pub fn evaluate_adversarial_redteam_campaign(
             incomplete_trial_count += 1;
         }
         for measurement in resources {
-            let total = all_resources.entry((scenario.family, measurement.channel_id.clone()))
+            let total = all_resources
+                .entry((scenario.family, measurement.channel_id.clone()))
                 .or_insert_with(|| (measurement.unit.clone(), 0, 0));
             if total.0 != measurement.unit {
                 return Err(RedTeamError::ResourceAccounting(
@@ -737,7 +791,10 @@ pub fn evaluate_adversarial_redteam_campaign(
     let mut resource_summaries = Vec::new();
     for requirement in &plan.family_requirements {
         let accumulator = accumulators.remove(&requirement.family).unwrap_or_default();
-        let recall = rate(accumulator.correctly_detected_exploits, accumulator.successful_exploits);
+        let recall = rate(
+            accumulator.correctly_detected_exploits,
+            accumulator.successful_exploits,
+        );
         let false_positive = rate(accumulator.clean_alerts, accumulator.controls);
         let escape = rate(accumulator.uncontained, accumulator.successful_exploits);
         let exploit_success_rate = rate(accumulator.successful_exploits, accumulator.attacks);
@@ -748,12 +805,15 @@ pub fn evaluate_adversarial_redteam_campaign(
             && accumulator.attack_generators.len() >= requirement.minimum_generator_variants
             && accumulator.clean_authors.len() >= requirement.minimum_clean_control_authors
             && accumulator.incomplete == 0;
-        let detection_gate_passed = recall.as_ref()
-            .is_some_and(|value| value.meets_minimum_percent(requirement.minimum_correct_detection_percent));
-        let false_positive_gate_passed = false_positive.as_ref()
-            .is_some_and(|value| value.meets_maximum_percent(requirement.maximum_false_positive_percent));
-        let containment_gate_passed = escape.as_ref()
-            .is_some_and(|value| value.meets_maximum_percent(requirement.maximum_uncontained_exploit_percent));
+        let detection_gate_passed = recall.as_ref().is_some_and(|value| {
+            value.meets_minimum_percent(requirement.minimum_correct_detection_percent)
+        });
+        let false_positive_gate_passed = false_positive.as_ref().is_some_and(|value| {
+            value.meets_maximum_percent(requirement.maximum_false_positive_percent)
+        });
+        let containment_gate_passed = escape.as_ref().is_some_and(|value| {
+            value.meets_maximum_percent(requirement.maximum_uncontained_exploit_percent)
+        });
         let family_integrity_passed = sample_floor_passed
             && detection_gate_passed
             && false_positive_gate_passed
@@ -771,9 +831,13 @@ pub fn evaluate_adversarial_redteam_campaign(
                 scenario_count,
                 total_amount,
                 mean_amount_per_scenario_numerator: total_amount,
-                mean_amount_per_scenario_denominator: u128::try_from(scenario_count).map_err(|_| {
-                    RedTeamError::ArithmeticOverflow("resource scenario count exceeds u128".into())
-                })?,
+                mean_amount_per_scenario_denominator: u128::try_from(scenario_count).map_err(
+                    |_| {
+                        RedTeamError::ArithmeticOverflow(
+                            "resource scenario count exceeds u128".into(),
+                        )
+                    },
+                )?,
             });
         }
         family_results.push(ThreatFamilyRedTeamResult {
@@ -807,23 +871,32 @@ pub fn evaluate_adversarial_redteam_campaign(
             family_integrity_passed,
         });
     }
-    let all_critical_families_passed = family_results.iter()
+    let all_critical_families_passed = family_results
+        .iter()
         .filter(|result| result.critical)
         .all(|result| result.family_integrity_passed);
-    let all_family_gates_passed = family_results.iter().all(|result| result.family_integrity_passed);
+    let all_family_gates_passed = family_results
+        .iter()
+        .all(|result| result.family_integrity_passed);
     let all_scenarios_used_once = seen_scenarios.len() == scenario_map.len();
     let all_trials_complete = incomplete_trial_count == 0 && completed_trial_count == trials.len();
-    let no_development_exposure = scenarios.iter().all(|scenario| !scenario.development_exposed);
+    let no_development_exposure = scenarios
+        .iter()
+        .all(|scenario| !scenario.development_exposed);
     let independent_roles_separated = plan.attack_operator_identity != plan.detector_owner_identity
         && plan.attack_operator_identity != plan.independent_verifier_identity
         && plan.detector_owner_identity != plan.independent_verifier_identity;
     let resource_accounting_complete = resource_summaries.iter().all(|summary| {
-        summary.scenario_count == scenarios.iter()
-            .filter(|scenario| scenario.family == summary.family)
-            .count()
+        summary.scenario_count
+            == scenarios
+                .iter()
+                .filter(|scenario| scenario.family == summary.family)
+                .count()
     });
     let all_required_families_covered = family_results.len() == ThreatFamily::ALL.len()
-        && family_results.iter().all(|result| result.sample_floor_passed);
+        && family_results
+            .iter()
+            .all(|result| result.sample_floor_passed);
     let campaign_integrity_passed = all_required_families_covered
         && all_scenarios_used_once
         && all_trials_complete
@@ -879,14 +952,13 @@ pub fn evaluate_adversarial_redteam_campaign(
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        AdversarialBenchmarkSource, AdversarialRedTeamPlan, AdversarialScenario,
-        AdversarialTrial, RedTeamResourceChannel, RedTeamResourceMeasurement,
-        ScenarioKind, ThreatFamily, ThreatFamilyRequirement,
-        evaluate_adversarial_redteam_campaign,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::matched_benchmark::BenchmarkScope;
+    use super::{
+        AdversarialBenchmarkSource, AdversarialRedTeamPlan, AdversarialScenario, AdversarialTrial,
+        RedTeamResourceChannel, RedTeamResourceMeasurement, ScenarioKind, ThreatFamily,
+        ThreatFamilyRequirement, evaluate_adversarial_redteam_campaign,
+    };
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const D2: &str = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -915,22 +987,31 @@ mod tests {
             detector_owner_identity: "detector-owner".into(),
             independent_verifier_identity: "independent-verifier".into(),
             scope: BenchmarkScope::FullScientificCampaign,
-            family_requirements: ThreatFamily::ALL.into_iter().map(|family| ThreatFamilyRequirement {
-                family,
-                critical: true,
-                minimum_attack_scenarios: 2,
-                minimum_clean_controls: 1,
-                minimum_successful_exploits: 1,
-                minimum_attack_authors: 2,
-                minimum_generator_variants: 2,
-                minimum_clean_control_authors: 1,
-                minimum_correct_detection_percent: 100,
-                maximum_false_positive_percent: 0,
-                maximum_uncontained_exploit_percent: 0,
-            }).collect(),
+            family_requirements: ThreatFamily::ALL
+                .into_iter()
+                .map(|family| ThreatFamilyRequirement {
+                    family,
+                    critical: true,
+                    minimum_attack_scenarios: 2,
+                    minimum_clean_controls: 1,
+                    minimum_successful_exploits: 1,
+                    minimum_attack_authors: 2,
+                    minimum_generator_variants: 2,
+                    minimum_clean_control_authors: 1,
+                    minimum_correct_detection_percent: 100,
+                    maximum_false_positive_percent: 0,
+                    maximum_uncontained_exploit_percent: 0,
+                })
+                .collect(),
             resource_channels: vec![
-                RedTeamResourceChannel { channel_id: "wall-ms".into(), unit: "ms".into() },
-                RedTeamResourceChannel { channel_id: "tool-calls".into(), unit: "calls".into() },
+                RedTeamResourceChannel {
+                    channel_id: "wall-ms".into(),
+                    unit: "ms".into(),
+                },
+                RedTeamResourceChannel {
+                    channel_id: "tool-calls".into(),
+                    unit: "calls".into(),
+                },
             ],
         }
     }
@@ -952,16 +1033,23 @@ mod tests {
 
     fn scenario(index: usize, kind: ScenarioKind, variant: usize) -> AdversarialScenario {
         let family = ThreatFamily::ALL[index];
-        let artifact_ordinal = index * 3 + match kind {
-            ScenarioKind::Attack => variant + 1,
-            ScenarioKind::CleanNegativeControl => 3,
-        };
+        let artifact_ordinal = index * 3
+            + match kind {
+                ScenarioKind::Attack => variant + 1,
+                ScenarioKind::CleanNegativeControl => 3,
+            };
         let author = match kind {
             ScenarioKind::Attack => format!("attack-author-{index}-{variant}"),
             ScenarioKind::CleanNegativeControl => format!("control-author-{index}"),
         };
         AdversarialScenario {
-            scenario_id: format!("{family:?}-{}-{variant}", match kind { ScenarioKind::Attack => "attack", ScenarioKind::CleanNegativeControl => "clean" }),
+            scenario_id: format!(
+                "{family:?}-{}-{variant}",
+                match kind {
+                    ScenarioKind::Attack => "attack",
+                    ScenarioKind::CleanNegativeControl => "clean",
+                }
+            ),
             family,
             kind,
             scenario_digest: format!("sha256:{artifact_ordinal:064x}"),
@@ -1024,7 +1112,8 @@ mod tests {
     #[test]
     fn complete_campaign_separates_attack_recall_false_positives_and_containment() {
         let (scenarios, trials) = campaign();
-        let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(receipt.campaign_integrity_passed);
         assert!(receipt.empirical_rates_only);
         assert!(!receipt.confidence_intervals_computed);
@@ -1035,19 +1124,44 @@ mod tests {
         assert_eq!(receipt.successful_exploit_count, 24);
         assert_eq!(receipt.leaked_exploit_count, 0);
         let family = &receipt.family_results[0];
-        assert_eq!(family.successful_exploit_detection_recall.as_ref().unwrap().numerator, 1);
-        assert_eq!(family.clean_control_false_positive_rate.as_ref().unwrap().numerator, 0);
-        assert_eq!(family.successful_exploit_escape_rate.as_ref().unwrap().numerator, 0);
+        assert_eq!(
+            family
+                .successful_exploit_detection_recall
+                .as_ref()
+                .unwrap()
+                .numerator,
+            1
+        );
+        assert_eq!(
+            family
+                .clean_control_false_positive_rate
+                .as_ref()
+                .unwrap()
+                .numerator,
+            0
+        );
+        assert_eq!(
+            family
+                .successful_exploit_escape_rate
+                .as_ref()
+                .unwrap()
+                .numerator,
+            0
+        );
     }
 
     #[test]
     fn detector_miss_fails_family_recall_even_when_exploit_is_contained() {
         let (scenarios, mut trials) = campaign();
         let attack_id = &scenarios[0].scenario_id;
-        let trial = trials.iter_mut().find(|trial| &trial.scenario_id == attack_id).unwrap();
+        let trial = trials
+            .iter_mut()
+            .find(|trial| &trial.scenario_id == attack_id)
+            .unwrap();
         trial.detector_alerted = false;
         trial.correctly_attributed_to_family = false;
-        let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(!receipt.campaign_integrity_passed);
         assert!(!receipt.family_results[0].detection_gate_passed);
     }
@@ -1056,8 +1170,13 @@ mod tests {
     fn false_positive_on_clean_control_fails_specificity_gate() {
         let (scenarios, mut trials) = campaign();
         let clean_id = &scenarios[2].scenario_id;
-        trials.iter_mut().find(|trial| &trial.scenario_id == clean_id).unwrap().detector_alerted = true;
-        let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
+        trials
+            .iter_mut()
+            .find(|trial| &trial.scenario_id == clean_id)
+            .unwrap()
+            .detector_alerted = true;
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(!receipt.campaign_integrity_passed);
         assert_eq!(receipt.family_results[0].clean_control_alert_count, 1);
         assert!(!receipt.family_results[0].false_positive_gate_passed);
@@ -1067,10 +1186,14 @@ mod tests {
     fn detected_after_leak_is_not_containment() {
         let (scenarios, mut trials) = campaign();
         let attack_id = &scenarios[0].scenario_id;
-        let trial = trials.iter_mut().find(|trial| &trial.scenario_id == attack_id).unwrap();
+        let trial = trials
+            .iter_mut()
+            .find(|trial| &trial.scenario_id == attack_id)
+            .unwrap();
         trial.leak_occurred = true;
         trial.contained_before_exposure = false;
-        let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert_eq!(receipt.leaked_exploit_count, 1);
         assert_eq!(receipt.family_results[0].uncontained_exploit_count, 1);
         assert!(!receipt.campaign_integrity_passed);
@@ -1080,41 +1203,49 @@ mod tests {
     fn development_exposed_attack_recipe_is_rejected() {
         let (mut scenarios, trials) = campaign();
         scenarios[0].development_exposed = true;
-        assert!(evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err()
+        );
     }
 
     #[test]
     fn missing_trial_or_duplicate_trial_cannot_shrink_denominator() {
         let (scenarios, mut trials) = campaign();
         trials.pop();
-        assert!(evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err()
+        );
         let (scenarios, mut trials) = campaign();
         trials[1].trial_id = trials[0].trial_id.clone();
-        assert!(evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err()
+        );
     }
 
     #[test]
     fn duplicate_scenario_artifacts_cannot_inflate_independent_attack_coverage() {
         let (mut scenarios, trials) = campaign();
         scenarios[1].scenario_digest = scenarios[0].scenario_digest.clone();
-        assert!(evaluate_adversarial_redteam_campaign(
-            &plan(), &source(), &scenarios, &trials
-        ).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err()
+        );
     }
 
     #[test]
     fn fewer_than_two_independent_attack_authors_or_generators_rejects() {
         let (mut scenarios, trials) = campaign();
         scenarios[1].author_identity = scenarios[0].author_identity.clone();
-        assert!(!evaluate_adversarial_redteam_campaign(
-            &plan(), &source(), &scenarios, &trials
-        ).unwrap().family_results[0].sample_floor_passed);
+        assert!(
+            !evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials)
+                .unwrap()
+                .family_results[0]
+                .sample_floor_passed
+        );
 
         let (mut scenarios, trials) = campaign();
         scenarios[1].generator_digest = scenarios[0].generator_digest.clone();
-        let receipt = evaluate_adversarial_redteam_campaign(
-            &plan(), &source(), &scenarios, &trials
-        ).unwrap();
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert!(!receipt.family_results[0].sample_floor_passed);
         assert!(!receipt.campaign_integrity_passed);
     }
@@ -1124,14 +1255,18 @@ mod tests {
         let (scenarios, trials) = campaign();
         let mut plan = plan();
         plan.independent_verifier_identity = plan.detector_owner_identity.clone();
-        assert!(evaluate_adversarial_redteam_campaign(&plan, &source(), &scenarios, &trials).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan, &source(), &scenarios, &trials).is_err()
+        );
     }
 
     #[test]
     fn missing_metered_resource_channel_rejects_cost_integrity_claim() {
         let (scenarios, mut trials) = campaign();
         trials[0].resource_measurements.pop();
-        assert!(evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err());
+        assert!(
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).is_err()
+        );
     }
 
     #[test]
@@ -1142,7 +1277,8 @@ mod tests {
         trials[0].detector_alerted = false;
         trials[0].correctly_attributed_to_family = false;
         trials[0].contained_before_exposure = false;
-        let receipt = evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
+        let receipt =
+            evaluate_adversarial_redteam_campaign(&plan(), &source(), &scenarios, &trials).unwrap();
         assert_eq!(receipt.incomplete_trial_count, 1);
         assert!(!receipt.all_trials_complete);
         assert!(!receipt.campaign_integrity_passed);
