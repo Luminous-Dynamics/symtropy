@@ -637,6 +637,43 @@ mod tests {
     }
 
     #[test]
+    fn derives_characteristic_spacing_from_exact_2d_cell_areas() {
+        let triangles = derive_su2_characteristic_spacing_2d(SQUARE_2D.as_bytes(), "m")
+            .expect("2D triangular cell-area spacing");
+        assert_eq!(triangles.cell_count, 2);
+        assert!((triangles.total_cell_area - 1.0).abs() < 1.0e-14);
+        assert!((triangles.mean_cell_area - 0.5).abs() < 1.0e-14);
+        assert!((triangles.characteristic_spacing - 0.5_f64.sqrt()).abs() < 1.0e-14);
+        assert!(triangles.cell_area_coefficient_of_variation < 1.0e-14);
+
+        let quad = "NDIME= 2\nNELEM= 1\n9 0 1 2 3\nNPOIN= 4\n0 0\n1 0\n1 1\n0 1\nNMARK= 1\nMARKER_TAG= wall\nMARKER_ELEMS= 4\n3 0 1\n3 1 2\n3 2 3\n3 3 0\n";
+        let quadrilaterals = derive_su2_characteristic_spacing_2d(quad.as_bytes(), "m")
+            .expect("2D quadrilateral cell-area spacing");
+        assert_eq!(quadrilaterals.cell_count, 1);
+        assert!((quadrilaterals.total_cell_area - 1.0).abs() < 1.0e-14);
+        assert!((quadrilaterals.characteristic_spacing - 1.0).abs() < 1.0e-14);
+
+        let three_dimensional =
+            "NDIME= 3\nNPOIN= 4\n0 0 0\n1 0 0\n0 1 0\n0 0 1\nNELEM= 1\n10 0 1 2 3\nNMARK= 0\n";
+        assert!(
+            derive_su2_characteristic_spacing_2d(three_dimensional.as_bytes(), "m")
+                .expect_err("3D mesh must not use 2D area spacing")
+                .contains("restricted to 2D")
+        );
+    }
+
+    #[test]
+    fn rejects_degenerate_cells_and_missing_coordinate_units() {
+        let degenerate = "NDIME= 2\nNELEM= 1\n5 0 1 2\nNPOIN= 3\n0 0\n1 0\n2 0\nNMARK= 0\n";
+        assert!(
+            derive_su2_characteristic_spacing_2d(degenerate.as_bytes(), "m")
+                .expect_err("zero-area cell rejected")
+                .contains("zero or non-finite area")
+        );
+        assert!(derive_su2_characteristic_spacing_2d(SQUARE_2D.as_bytes(), " ").is_err());
+    }
+
+    #[test]
     fn parses_optional_legacy_point_and_element_indices() {
         let mesh = "NDIME= 2\nNPOIN= 3\n0 0 10\n1 0 11\n0 1 12\nNELEM= 1\n5 0 1 2 99\nNMARK= 0\n";
         let summary = inspect_su2_mesh(mesh.as_bytes()).expect("legacy index mesh");
