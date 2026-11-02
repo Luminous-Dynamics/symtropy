@@ -49,7 +49,7 @@
     },
     "synthetic_state_payload": {
       "type": "string",
-      "pattern": "^SYNTHETIC_STATE_ONLY\\\\|.+"
+      "pattern": "^SYNTHETIC_STATE_ONLY\\|.+"
     },
     "claim_ceiling": {
       "const": "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation"
