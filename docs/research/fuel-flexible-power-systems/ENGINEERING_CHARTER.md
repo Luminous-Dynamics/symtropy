@@ -475,3 +475,13 @@ It records two new 2026 peer-reviewed, vessel-specific system studies:
 - Zincir & Arslanoglu, *Next Energy* 13 (October 2026), DOI 10.1016/j.nxener.2026.101068: well-to-wake LCA/LCC using real operational data from a 6,177-GT Mediterranean/Black Sea general-cargo vessel. The paper reports e-methanol as the largest GHG-reduction pathway (76.2% vs MDO), hydrogen at 45.7%, e-ammonia at 32.4%; hydrogen's lifecycle cost ~2.7× LNG and tank volume ~3.7× MDO for equal propulsion energy, with estimated 6.8% cargo-deadweight displacement on that vessel.
 
 These results must remain tied to their vessel, route, functional unit, energy conversion model and lifecycle assumptions. They reinforce the central thesis: **no fuel wins independently of conversion topology, storage, route, payload, electricity/fuel pathway and stakeholder objective**. Do not apply one study's ranking or tank-volume penalty to another vessel.
+
+
+## 20. Reproducible matched-service and grid-resilience benchmark packs
+
+Two additional machine-readable benchmark packs are maintained with schemas:
+
+- [MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json](data/MATCHED_SERVICE_FFER_FIXTURES_2026-11-03.json) and [schema](data/MATCHED_SERVICE_FFER_SCHEMA_2026-11-03.json): four synthetic FFER scenarios (two valid comparisons; surplus excluded; under-delivery rejected; excessive tolerance rejected). The input-to-output arithmetic has been independently recomputed. These are software oracle fixtures, not physical performance evidence.
+- [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) and [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json): seven test groups and 24 cases covering P/Q, load steps, black start, islanding, multi-vendor interactions, protection/cyber and DC-bus service. Acceptance thresholds remain unset until the specific standard edition, utility agreement and mission boundary are frozen.
+
+These packs make the benchmark plans executable and machine-auditable without turning synthetic arithmetic or literature tests into product qualification.
