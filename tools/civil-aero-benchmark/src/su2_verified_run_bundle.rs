@@ -22,9 +22,9 @@ use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
 
-pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.2.0";
+pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.3.0";
 pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str =
-    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
+    "replayed_dry_run_multi_field_protocol_native_solver_termination_and_scheduler_signal_guard_and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
 
 /// A resource value is either grounded in a named measurement source or explicitly unavailable.
 /// In particular, unknown resource telemetry is never encoded as zero.
