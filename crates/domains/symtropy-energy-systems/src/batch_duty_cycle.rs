@@ -26,7 +26,9 @@ pub struct TimeWindow {
 
 impl TimeWindow {
     pub fn new(start_unix_seconds: i64, end_unix_seconds: i64) -> Result<Self, BatchDutyCycleError> {
-        if end_unix_seconds <= start_unix_seconds {
+        if end_unix_seconds <= start_unix_seconds
+            || end_unix_seconds.checked_sub(start_unix_seconds).is_none()
+        {
             return Err(BatchDutyCycleError::InvalidTimeWindow {
                 start_unix_seconds,
                 end_unix_seconds,
@@ -607,7 +609,7 @@ mod tests {
         assert_eq!(
             result.segment_results()[0]
                 .evaluation()
-                .fuel_flow()
+                .fuel_mass_flow()
                 .evidence()
                 .source_id(),
             "LAB-FLOW-001"
@@ -729,10 +731,8 @@ mod tests {
 
     #[test]
     fn rejects_invalid_uncertainty_before_integrating() {
-        let invalid: Result<
-            FuelProperty<MassFlowKgPerSecond>,
-            FuelRecordError,
-        > = FuelProperty::new(
+        let invalid: Result<FuelProperty<MassFlowKgPerSecond>, FuelRecordError> =
+            FuelProperty::new(
             MassFlowKgPerSecond::new(0.01).unwrap(),
             Some(-0.1),
             evidence("LAB-FLOW-BAD"),
