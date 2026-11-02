@@ -168,8 +168,12 @@ def main() -> int:
     ignored_names = set(ignored)
     require(not (spec_names & ignored_names), "option classified as both boundary and non-boundary")
     for key in config_values:
-        if key.startswith("MARKER_"):
+        if key.startswith("MARKER_") or key == "GEO_MARKER":
             require(key in spec_names or key in ignored_names, f"unclassified config marker option {key}")
+    for name in ignored:
+        if name in config_values:
+            for marker in parse_parenthesized(config_values[name], name):
+                require(marker in markers, f"non-boundary option {name} references missing mesh marker {marker}")
 
     assigned: dict[str, tuple[str, int, int]] = {}
     for name, width, positions in specs:
