@@ -451,20 +451,6 @@ pub fn evaluate_conversion(
         reasons.push(ConversionReason::VolumeMeasurementFromFuture);
         inconsistent = true;
     } else if evaluation_tick - request.wet_volume.observed_at_tick > maximum_measurement_age_ticks {
-        reasons.push(ConversionReason::VolumeEvidenceUnknown);
-        unknown = true;
-    }
-    if request.wet_density.observed_at_tick > evaluation_tick {
-        reasons.push(ConversionReason::DensityMeasurementFromFuture);
-        inconsistent = true;
-    } else if evaluation_tick - request.wet_density.observed_at_tick > maximum_measurement_age_ticks {
-        reasons.push(ConversionReason::DensityEvidenceUnknown);
-        unknown = true;
-    }
-    if request.wet_volume.observed_at_tick > evaluation_tick {
-        reasons.push(ConversionReason::VolumeMeasurementFromFuture);
-        inconsistent = true;
-    } else if evaluation_tick - request.wet_volume.observed_at_tick > maximum_measurement_age_ticks {
         reasons.push(ConversionReason::VolumeMeasurementStale);
         unknown = true;
     }
