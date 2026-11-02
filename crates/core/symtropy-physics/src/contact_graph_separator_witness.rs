@@ -217,7 +217,7 @@ impl StickingLeafMessage {
         let tangent_norm = impulse_bounds[1]
             .outward_square()?
             .outward_add(impulse_bounds[2].outward_square()?)?
-            .outward_sqrt()?;
+            .outward_sqrt_nonnegative()?;
         let disk_margin_bounds = friction_radius.outward_sub(tangent_norm)?;
 
         let classification = if normal_load.upper <= 0.0 || disk_margin_bounds.upper < 0.0 {
@@ -438,11 +438,15 @@ impl OutwardInterval {
         Ok(Self { lower, upper })
     }
 
-    fn outward_sqrt(self) -> Result<Self, &'static str> {
-        if self.lower < 0.0 || !self.lower.is_finite() || !self.upper.is_finite() {
-            return Err("interval square root requires finite nonnegative bounds");
+    /// Square-root an exact nonnegative quantity whose outward interval
+    /// enclosure may have a tiny negative lower endpoint from rounding.
+    /// A wholly negative enclosure is invalid; otherwise clamp only the lower
+    /// bound to the known mathematical domain [0, +inf).
+    fn outward_sqrt_nonnegative(self) -> Result<Self, &'static str> {
+        if !self.lower.is_finite() || !self.upper.is_finite() || self.upper < 0.0 {
+            return Err("interval square root requires a finite enclosure intersecting the nonnegative domain");
         }
-        let lower = self.lower.sqrt().next_down().max(0.0);
+        let lower = self.lower.max(0.0).sqrt().next_down().max(0.0);
         let upper = self.upper.sqrt().next_up();
         if !lower.is_finite() || !upper.is_finite() {
             return Err("outward interval square root reached a non-finite endpoint");
