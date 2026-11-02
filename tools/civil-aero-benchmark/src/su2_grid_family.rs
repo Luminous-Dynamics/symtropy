@@ -16,10 +16,10 @@ use crate::grid_convergence::{
 use crate::integrity::sha256_hex;
 use crate::su2_convergence_screen::{ConvergenceScreen, verify_convergence_screen};
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
+use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d};
 use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
-use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d};
 
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.1.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
@@ -397,10 +397,8 @@ pub fn evaluate_su2_grid_family_study(
         }
         let mesh_bytes = fs::read(member.run_directory.join(&member.input_bindings.mesh_path))
             .map_err(|error| format!("cannot read staged mesh for {}: {error}", member.grid_id))?;
-        let mesh_spacing = derive_su2_characteristic_spacing_2d(
-            &mesh_bytes,
-            &study.mesh_coordinate_unit,
-        )?;
+        let mesh_spacing =
+            derive_su2_characteristic_spacing_2d(&mesh_bytes, &study.mesh_coordinate_unit)?;
         if mesh_spacing.mesh_byte_length != binding.mesh.byte_length
             || mesh_spacing.mesh_sha256 != binding.mesh.sha256
         {
@@ -460,7 +458,8 @@ pub fn evaluate_su2_grid_family_study(
             mesh_mean_cell_area: mesh_spacing.mean_cell_area,
             mesh_minimum_cell_area: mesh_spacing.minimum_cell_area,
             mesh_maximum_cell_area: mesh_spacing.maximum_cell_area,
-            mesh_cell_area_coefficient_of_variation: mesh_spacing.cell_area_coefficient_of_variation,
+            mesh_cell_area_coefficient_of_variation: mesh_spacing
+                .cell_area_coefficient_of_variation,
             quantity_value,
             terminal_rows_used: terminal_rows,
             mesh_sha256: binding.mesh.sha256.clone(),
@@ -786,7 +785,8 @@ printf 'synthetic solver stdout\n'
             let level = u32::try_from(index + 1).expect("three levels fit u32");
             let mesh = shared.join(format!("mesh-{level}.su2"));
             let divisions = [1_usize, 2, 4][index];
-            let divisions_f64 = f64::from(u32::try_from(divisions).expect("fixture divisions fit u32"));
+            let divisions_f64 =
+                f64::from(u32::try_from(divisions).expect("fixture divisions fit u32"));
             let expected_spacing = (1.0 / (2.0 * divisions_f64.powi(2))).sqrt();
             let mesh_text = unit_square_triangular_mesh(divisions);
             fs::write(&mesh, mesh_text).expect("write grid mesh");
