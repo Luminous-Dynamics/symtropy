@@ -11,7 +11,9 @@
 
 use core::fmt;
 
-const CONSERVATION_ABSOLUTE_TOLERANCE: f64 = 1e-9;
+const WATER_CONSERVATION_ABSOLUTE_TOLERANCE_M3: f64 = 1e-9;
+const ENERGY_CONSERVATION_ABSOLUTE_TOLERANCE_KWH: f64 = 1e-9;
+const FOOD_CONSERVATION_ABSOLUTE_TOLERANCE_KG: f64 = 1e-9;
 const CONSERVATION_RELATIVE_TOLERANCE: f64 = 1e-10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -238,14 +240,13 @@ impl RegionLedger {
     pub fn is_conserved(self) -> bool {
         let residual = self.conservation_residual();
 
-        fn component_is_conserved(residual: f64, values: [f64; 6]) -> bool {
-            let scale = values
-                .into_iter()
-                .map(f64::abs)
-                .fold(1.0_f64, f64::max);
-            residual.abs()
-                <= CONSERVATION_ABSOLUTE_TOLERANCE
-                    + CONSERVATION_RELATIVE_TOLERANCE * scale
+        fn component_is_conserved(
+            residual: f64,
+            values: [f64; 6],
+            absolute_tolerance: f64,
+        ) -> bool {
+            let scale = values.into_iter().map(f64::abs).fold(1.0_f64, f64::max);
+            residual.abs() <= absolute_tolerance + CONSERVATION_RELATIVE_TOLERANCE * scale
         }
 
         component_is_conserved(
@@ -258,6 +259,7 @@ impl RegionLedger {
                 self.served_essential_demand.water_m3,
                 self.ending.water_m3,
             ],
+            WATER_CONSERVATION_ABSOLUTE_TOLERANCE_M3,
         ) && component_is_conserved(
             residual.energy_kwh,
             [
@@ -268,6 +270,7 @@ impl RegionLedger {
                 self.served_essential_demand.energy_kwh,
                 self.ending.energy_kwh,
             ],
+            ENERGY_CONSERVATION_ABSOLUTE_TOLERANCE_KWH,
         ) && component_is_conserved(
             residual.food_kg,
             [
@@ -278,6 +281,7 @@ impl RegionLedger {
                 self.served_essential_demand.food_kg,
                 self.ending.food_kg,
             ],
+            FOOD_CONSERVATION_ABSOLUTE_TOLERANCE_KG,
         )
     }
 }
