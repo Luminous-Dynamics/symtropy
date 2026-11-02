@@ -35,7 +35,7 @@ fn run() -> Result<(), String> {
         report.solver_family,
         report.configured_convergence_field,
         report.convergence_protocol.steady_fields.join(";"),
-        match report.convergence_protocol.window {
+        match &report.convergence_protocol.window {
             civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => "NO".to_owned(),
             civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. } => "YES".to_owned(),
         },
