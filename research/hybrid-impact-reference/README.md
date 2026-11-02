@@ -104,3 +104,26 @@ downward trajectory, explicit iteration exhaustion and invalid-bracket
 rejection. A later event-capturing or adaptive integrator should use the same
 metric separation, not treat a robust bisection reference as an engine-wide
 event-handling solution.
+
+
+## Partial event-order relation
+
+The event-order module compares two event-time intervals in a shared time basis.
+For certified enclosures, it proves A before B only when A's upper bound is
+strictly less than B's lower bound; the reverse applies for B before A. All
+overlaps and touching endpoints remain unresolved.
+
+The evidence grade is explicit:
+- Certified enclosures can produce PROVEN_BEFORE or PROVEN_AFTER.
+- Numerical estimates can produce only ESTIMATED_BEFORE or ESTIMATED_AFTER.
+- Overlapping certified intervals produce UNRESOLVED_OVERLAP.
+- Overlapping numerical estimates produce ESTIMATED_OVERLAP.
+
+Even identical certified singleton intervals do not produce a simultaneous
+impact claim from this pairwise API. Simultaneity needs an independent joint
+event/contact certificate that binds all guards, a common state/time, the
+joint impact law and its admissible solution set.
+
+This avoids epsilon-based timestamp merging, callback-order assumptions and
+false simultaneity from rounded f64 values. The comparison rejects empty event
+IDs, incompatible time bases, invalid intervals and non-finite endpoints.
