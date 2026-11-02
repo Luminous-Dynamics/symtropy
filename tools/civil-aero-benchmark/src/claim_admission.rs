@@ -69,6 +69,7 @@ pub enum EvidenceKind {
     StatisticalSamplingAssessment,
     ModelUncertaintyAssessment,
     ExperimentalValidation,
+    MultivariateValidation,
     ValidationUncertaintyBudget,
     StructuralVerification,
     StructuralValidation,
@@ -101,6 +102,7 @@ impl EvidenceKind {
             Self::StatisticalSamplingAssessment => "statistical_sampling_assessment",
             Self::ModelUncertaintyAssessment => "model_uncertainty_assessment",
             Self::ExperimentalValidation => "experimental_validation",
+            Self::MultivariateValidation => "multivariate_validation",
             Self::ValidationUncertaintyBudget => "validation_uncertainty_budget",
             Self::StructuralVerification => "structural_verification",
             Self::StructuralValidation => "structural_validation",
@@ -248,6 +250,7 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
                 E::StatisticalSamplingAssessment,
                 E::ModelUncertaintyAssessment,
                 E::ExperimentalValidation,
+                E::MultivariateValidation,
                 E::ValidationUncertaintyBudget,
             ]);
         }
@@ -271,6 +274,7 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
                 E::StructuralValidation,
                 E::AeroelasticCouplingConvergence,
                 E::FlutterValidation,
+                E::MultivariateValidation,
                 E::ModelUncertaintyAssessment,
                 E::ValidationUncertaintyBudget,
             ]);
@@ -297,6 +301,7 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
                 E::ConservationAudit,
                 E::StatisticalSamplingAssessment,
                 E::ExperimentalValidation,
+                E::MultivariateValidation,
                 E::ValidationUncertaintyBudget,
                 E::StructuralVerification,
                 E::StructuralValidation,
@@ -321,6 +326,9 @@ fn required_for(request: &ClaimRequest) -> BTreeSet<EvidenceKind> {
         required.insert(E::IndependentReview);
         required.insert(E::CalibrationEvidence);
         required.insert(E::ModelUncertaintyAssessment);
+    }
+    if request.consequence == DecisionConsequence::SafetyCritical {
+        required.insert(E::MultivariateValidation);
     }
     required
 }
@@ -733,6 +741,27 @@ mod tests {
             ClaimDecisionStatus::RejectedFailedOrMismatchedEvidence
         );
         assert!(decision.failed_evidence.contains(&EvidenceKind::ExperimentalValidation));
+    }
+
+    #[test]
+    fn multivariate_validation_is_required_for_unsteady_aeroelastic_and_safety_critical_claims() {
+        let unsteady = request(
+            ClaimClass::UnsteadyAerodynamicPrediction,
+            DecisionConsequence::Engineering,
+        );
+        assert!(required_for(&unsteady).contains(&EvidenceKind::MultivariateValidation));
+
+        let aeroelastic = request(
+            ClaimClass::AeroelasticStabilityPrediction,
+            DecisionConsequence::Engineering,
+        );
+        assert!(required_for(&aeroelastic).contains(&EvidenceKind::MultivariateValidation));
+
+        let safety = request(
+            ClaimClass::AerodynamicPrediction,
+            DecisionConsequence::SafetyCritical,
+        );
+        assert!(required_for(&safety).contains(&EvidenceKind::MultivariateValidation));
     }
 
     #[test]
