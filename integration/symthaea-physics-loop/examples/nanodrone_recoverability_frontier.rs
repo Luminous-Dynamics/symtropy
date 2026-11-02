@@ -1195,6 +1195,51 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_artifact_schemas_reject_unknown_fields() {
+        let mut snapshot = serde_json::to_value(StateSnapshotArtifact {
+            schema_version: "symtropy-nanodrone-state-snapshot-v0.1".into(),
+            evidence_class: "synthetic_fixture".into(),
+            family_id: "family-a".into(),
+            flight_id: "flight-a".into(),
+            rollout_start_id: "start-1".into(),
+            regime: "nominal".into(),
+            checkpoint_time_s: 1.0,
+            training_seed: 101,
+            synthetic_state_payload: "SYNTHETIC_STATE_ONLY|test".into(),
+            claim_ceiling: "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation".into(),
+        }).unwrap();
+        snapshot.as_object_mut().unwrap().insert("restore_attested".into(), serde_json::Value::Bool(true));
+        assert!(serde_json::from_value::<StateSnapshotArtifact>(snapshot).is_err());
+
+        let mut tape = serde_json::to_value(DisturbanceTapeArtifact {
+            schema_version: "symtropy-nanodrone-exogenous-tape-v0.1".into(),
+            evidence_class: "synthetic_fixture".into(),
+            family_id: "family-a".into(),
+            flight_id: "flight-a".into(),
+            rollout_start_id: "start-1".into(),
+            regime: "nominal".into(),
+            checkpoint_time_s: 1.0,
+            training_seed: 101,
+            branch_seed: 11,
+            synthetic_disturbance_payload: "SYNTHETIC_TAPE_ONLY|test".into(),
+            claim_ceiling: "fixture_byte_integrity_only_no_simulator_origin_or_rng_state_attestation".into(),
+        }).unwrap();
+        tape.as_object_mut().unwrap().insert("rng_seed_attested".into(), serde_json::Value::Bool(true));
+        assert!(serde_json::from_value::<DisturbanceTapeArtifact>(tape).is_err());
+    }
+
+    #[test]
+    fn synthetic_v0_1_artifacts_cannot_be_relabelled_as_simulation_or_real_flight() {
+        let (_, branches, _) = fixture_inputs();
+        let (root, branches) = write_artifact_fixture(branches);
+        assert!(verify_branch_artifacts(&root, &branches, "simulation")
+            .unwrap_err().contains("synthetic-fixture-only"));
+        assert!(verify_branch_artifacts(&root, &branches, "real-flight")
+            .unwrap_err().contains("synthetic-fixture-only"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn content_addressed_branch_artifacts_verify_bytes_and_pairing_inventory() {
         let (_, branches, _) = fixture_inputs();
         let (root, branches) = write_artifact_fixture(branches);
