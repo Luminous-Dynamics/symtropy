@@ -13,6 +13,7 @@ pub mod experiment_ordering;
 pub mod finite_horizon;
 pub mod ledger_transition_oracle;
 pub mod matched_benchmark;
+pub mod preregistered_analysis;
 pub mod robust_finite_horizon;
 pub mod scientific_challenge;
 pub mod sequential_conformal;
