@@ -3694,3 +3694,215 @@ mod sliding_quartic_coefficient_family_tests {
         assert!(message.coefficient_family_over_box(&root).is_err());
     }
 }
+
+impl SlidingLeafMessage {
+    /// Enclose each quartic coefficient as an affine function of the original
+    /// separator variables, preserving correlation lost by first boxing q_eff.
+    ///
+    /// For fixed A and mu, c_k = alpha_k^T q_eff and
+    /// q_eff = q_leaf + B^T p_separator, hence
+    /// c_k(p_separator) = alpha_k^T q_leaf + (B alpha_k)^T p_separator.
+    /// The range of this affine form over an axis-aligned box is computed
+    /// directly with outward arithmetic.
+    fn affine_coefficient_ranges_over_box(
+        &self,
+        separator_box: &SeparatorImpulseBox,
+    ) -> Result<[OutwardInterval; 5], &'static str> {
+        // Reuse the checked input/chart contract; the returned natural
+        // intervals are intentionally not used for the affine range itself.
+        let _natural = self.coefficient_family_over_box(separator_box)?;
+
+        let point = OutwardInterval::point;
+        let add = |left: OutwardInterval, right: OutwardInterval| left.outward_add(right);
+        let sub = |left: OutwardInterval, right: OutwardInterval| left.outward_sub(right);
+        let scale =
+            |coefficient: f64, value: OutwardInterval| -> Result<OutwardInterval, &'static str> {
+                point(coefficient)?.outward_mul(value)
+            };
+
+        let a = point(self.self_operator[(0, 0)])?;
+        let d1 = point(self.self_operator[(0, 1)])?;
+        let d2 = point(self.self_operator[(0, 2)])?;
+        let a11 = point(self.self_operator[(1, 1)])?;
+        let a12 = point(self.self_operator[(1, 2)])?;
+        let a22 = point(self.self_operator[(2, 2)])?;
+        let mu = self.friction_coefficient;
+        let zero = point(0.0)?;
+
+        // c_k = alpha_k^T q_eff, with interval alpha coefficients enclosing
+        // every exact product/sum of the represented binary64 model inputs.
+        let mu_a12 = scale(mu, a12)?;
+        let mu_d1 = scale(mu, d1)?;
+        let mu_d2 = scale(mu, d2)?;
+        let mu_a11 = scale(mu, a11)?;
+        let mu_a22 = scale(mu, a22)?;
+
+        let alpha = [
+            [sub(mu_a12, d2)?, zero, sub(a, mu_d1)?],
+            [
+                add(scale(2.0, d1)?, scale(2.0, sub(mu_a22, mu_a11)?)?)?,
+                scale(2.0, sub(mu_d1, a)?)?,
+                scale(-2.0, mu_d2)?,
+            ],
+            [scale(-6.0, mu_a12)?, scale(4.0, mu_d2)?, scale(2.0, mu_d1)?],
+            [
+                add(scale(2.0, d1)?, scale(2.0, sub(mu_a11, mu_a22)?)?)?,
+                scale(-2.0, add(a, mu_d1)?)?,
+                scale(2.0, mu_d2)?,
+            ],
+            [add(mu_a12, d2)?, zero, scale(-1.0, add(a, mu_d1)?)?],
+        ];
+
+        let mut ranges = [point(0.0)?; 5];
+        for (coefficient_index, alpha_row) in alpha.iter().enumerate() {
+            let mut constant = point(0.0)?;
+            for (component, alpha_component) in alpha_row.iter().enumerate() {
+                constant = constant.outward_add(
+                    alpha_component.outward_mul(point(self.free_velocity[component])?)?,
+                )?;
+            }
+
+            let mut range = constant;
+            for (separator_axis, (lower, upper)) in separator_box
+                .lower
+                .iter()
+                .zip(separator_box.upper.iter())
+                .enumerate()
+            {
+                let mut gradient = point(0.0)?;
+                for (component, alpha_component) in alpha_row.iter().enumerate() {
+                    gradient = gradient.outward_add(alpha_component.outward_mul(point(
+                        self.separator_coupling[(separator_axis, component)],
+                    )?)?)?;
+                }
+                let coordinate = OutwardInterval::from_bounds(*lower, *upper)?;
+                range = range.outward_add(gradient.outward_mul(coordinate)?)?;
+            }
+            ranges[coefficient_index] = range;
+        }
+        Ok(ranges)
+    }
+}
+
+#[cfg(test)]
+mod sliding_affine_coefficient_range_tests {
+    use super::*;
+
+    fn contains(interval: OutwardInterval, value: f64) -> bool {
+        interval.lower <= value && value <= interval.upper
+    }
+
+    fn width(interval: OutwardInterval) -> f64 {
+        interval.upper - interval.lower
+    }
+
+    fn direct_coefficients(
+        message: &SlidingLeafMessage,
+        separator_impulse: &SVector<f64, 3>,
+    ) -> [f64; 5] {
+        let effective =
+            message.free_velocity + message.separator_coupling.transpose() * separator_impulse;
+        solve_coupled_signorini_coulomb(
+            &message.self_operator,
+            &effective,
+            message.friction_coefficient,
+            1.0e-12,
+        )
+        .unwrap()
+        .sliding_quartic
+    }
+
+    #[test]
+    fn affine_pushforward_is_tighter_when_separator_variables_are_correlated() {
+        // q_n and q_2 are the same separator coordinate. Since c_4 = q_n - q_2
+        // for this A/mu choice, the exact coefficient is identically zero.
+        // Natural interval evaluation first boxes q_n and q_2 independently
+        // and therefore loses that dependency.
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::new(1.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0),
+            separator_coupling: Matrix3::new(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            free_velocity: SVector::<f64, 3>::zeros(),
+            friction_coefficient: 0.5,
+        };
+        let root = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        )
+        .unwrap();
+
+        let natural = message.coefficient_family_over_box(&root).unwrap();
+        let affine = message.affine_coefficient_ranges_over_box(&root).unwrap();
+
+        assert!(natural.coefficients[4].lower < -1.0);
+        assert!(natural.coefficients[4].upper > 1.0);
+        assert!(contains(affine[4], 0.0));
+        assert!(width(affine[4]) < 1.0e-12);
+        assert!(
+            width(affine[4]) < width(natural.coefficients[4]) * 1.0e-9,
+            "affine pushforward must materially reduce dependency inflation"
+        );
+    }
+
+    #[test]
+    fn affine_ranges_contain_every_corner_and_interior_quartic() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::new(2.0, 0.2, -0.1, 0.2, 1.5, 0.15, -0.1, 0.15, 1.2),
+            separator_coupling: Matrix3::new(
+                0.1, 0.02, -0.03, -0.04, 0.08, 0.01, 0.02, -0.01, 0.06,
+            ),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 0.7, -0.4),
+            friction_coefficient: 0.6,
+        };
+        let root = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(-0.5, -0.25, -0.75),
+            SVector::<f64, 3>::new(0.5, 0.25, 0.75),
+        )
+        .unwrap();
+        let natural = message.coefficient_family_over_box(&root).unwrap();
+        let affine = message.affine_coefficient_ranges_over_box(&root).unwrap();
+
+        for x in [-0.5, 0.5, 0.0] {
+            for y in [-0.25, 0.25, 0.0] {
+                for z in [-0.75, 0.75, 0.0] {
+                    let point = SVector::<f64, 3>::new(x, y, z);
+                    let direct = direct_coefficients(&message, &point);
+                    for ((affine_range, natural_range), direct_value) in affine
+                        .iter()
+                        .zip(natural.coefficients.iter())
+                        .zip(direct.iter())
+                    {
+                        assert!(contains(*affine_range, *direct_value));
+                        assert!(contains(*natural_range, *direct_value));
+                    }
+                }
+            }
+        }
+
+        for (index, (affine_range, natural_range)) in
+            affine.iter().zip(natural.coefficients.iter()).enumerate()
+        {
+            assert!(
+                width(*affine_range) <= width(*natural_range) + 1.0e-12,
+                "affine range must not be wider at coefficient {index}"
+            );
+        }
+    }
+
+    #[test]
+    fn affine_pushforward_retains_true_degree_loss() {
+        let message = SlidingLeafMessage {
+            self_operator: Matrix3::identity(),
+            separator_coupling: Matrix3::new(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            free_velocity: SVector::<f64, 3>::new(-1.0, 0.5, 0.0),
+            friction_coefficient: 0.5,
+        };
+        let root = SeparatorImpulseBox::new(
+            SVector::<f64, 3>::new(-1.0, 0.0, 0.0),
+            SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+        )
+        .unwrap();
+        let affine = message.affine_coefficient_ranges_over_box(&root).unwrap();
+        assert!(contains(affine[4], 0.0));
+        assert!(affine[4].lower < 0.0 && affine[4].upper > 0.0);
+    }
+}
