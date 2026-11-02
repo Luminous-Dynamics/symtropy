@@ -37,7 +37,6 @@ impl ProfileKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SensorKind {
-    Position,
     OperationalState,
     Draft,
     Displacement,
@@ -229,8 +228,6 @@ impl DredgeTelemetryValidator {
             || !nonempty(&self.profile.plant_id)
             || !nonempty(&self.profile.configuration_revision)
             || !nonempty(&self.profile.reference_datum)
-            || !nonempty(&self.profile.instrumentation_plan_id)
-            || !nonempty(&self.profile.instrumentation_plan_revision)
         {
             reasons.push(TelemetryReason::InvalidProfileIdentity);
             inconsistent = true;
@@ -241,6 +238,8 @@ impl DredgeTelemetryValidator {
         }
         if !rules_valid(&self.profile.required_sensors)
             || !rules_valid(&self.profile.optional_sensors)
+            || self.profile.required_sensors.iter().any(|rule| !rule.required_by_profile)
+            || self.profile.optional_sensors.iter().any(|rule| rule.required_by_profile)
             || self.profile.required_sensors.iter().any(|required| {
                 self.profile.optional_sensors.iter().any(|optional| optional.kind == required.kind)
             })
@@ -343,8 +342,8 @@ impl DredgeTelemetryValidator {
                     reasons.push(TelemetryReason::PositionDatumMismatch);
                     inconsistent = true;
                 }
-                if position.latitude_microdegrees.abs() > 90_000_000
-                    || position.longitude_microdegrees.abs() > 180_000_000
+                if position.latitude_microdegrees.unsigned_abs() > 90_000_000
+                    || position.longitude_microdegrees.unsigned_abs() > 180_000_000
                 {
                     reasons.push(TelemetryReason::PositionOutsideRange);
                     inconsistent = true;
@@ -447,7 +446,6 @@ impl DredgeTelemetryValidator {
                 Some(ScowLoadGeometry::Mounded | ScowLoadGeometry::UnevenSettling) => {
                     reasons.push(TelemetryReason::ScowVolumeEstimateUnreliable);
                     scow_volume_supported = false;
-                    missing_optional.push(SensorKind::BinVolume);
                 }
                 Some(ScowLoadGeometry::SelfLevelled) => {}
             }
@@ -522,7 +520,6 @@ mod tests {
         let (required_sensors, optional_sensors) = match kind {
             ProfileKind::PipelineStandard => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::OperationalState, "state-code", true),
                     rule(SensorKind::SlurryDensity, "kg-m3", true),
                     rule(SensorKind::SlurryVelocity, "m-s", true),
@@ -531,7 +528,6 @@ mod tests {
             ),
             ProfileKind::PipelineSmallBusiness => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::OperationalState, "state-code", true),
                 ],
                 vec![
@@ -541,7 +537,6 @@ mod tests {
             ),
             ProfileKind::ScowMonitoring => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::Draft, "mm", true),
                     rule(SensorKind::Displacement, "kg", true),
                 ],
@@ -549,7 +544,6 @@ mod tests {
             ),
             ProfileKind::ScowUllage => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::Draft, "mm", true),
                     rule(SensorKind::Displacement, "kg", true),
                     rule(SensorKind::BinUllage, "mm", true),
@@ -559,14 +553,12 @@ mod tests {
             ),
             ProfileKind::Hopper => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::OperationalState, "state-code", true),
                 ],
                 vec![],
             ),
             ProfileKind::Mechanical => (
                 vec![
-                    rule(SensorKind::Position, "position-fix", true),
                     rule(SensorKind::OperationalState, "state-code", true),
                 ],
                 vec![],
@@ -613,9 +605,7 @@ mod tests {
         let p = profile(kind);
         let mut sensor_readings = Vec::new();
         for rule in &p.required_sensors {
-            if rule.kind != SensorKind::Position {
-                sensor_readings.push(reading(rule.kind, &rule.unit_id, 1_000));
-            }
+            sensor_readings.push(reading(rule.kind, &rule.unit_id, 1_000));
         }
         DredgeTelemetryRecord {
             event_id: "event-1".into(),
@@ -694,7 +684,8 @@ mod tests {
         let mut rec = record(ProfileKind::ScowUllage);
         rec.scow_load_geometry = Some(ScowLoadGeometry::Mounded);
         let r = v.validate(&rec);
-        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedWithMissingOptionalFields);
+        assert_eq!(r.disposition, TelemetryDisposition::TelemetryAcceptedAsObservation);
+        assert!(r.reasons.contains(&TelemetryReason::ScowVolumeEstimateUnreliable));
         assert!(!r.scow_volume_interpretation_supported);
     }
 
@@ -750,6 +741,17 @@ mod tests {
         let mut rec = record(ProfileKind::PipelineStandard);
         rec.sensor_readings.retain(|s| s.kind != SensorKind::SlurryDensity);
         assert_eq!(v.validate(&rec).disposition, TelemetryDisposition::UnknownReviewRequired);
+    }
+
+    #[test]
+    fn required_and_optional_rule_flags_must_agree_with_their_lists() {
+        let mut p = profile(ProfileKind::PipelineStandard);
+        p.required_sensors[0].required_by_profile = false;
+        let mut v = DredgeTelemetryValidator::new(p);
+        assert_eq!(
+            v.validate(&record(ProfileKind::PipelineStandard)).disposition,
+            TelemetryDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -900,7 +902,7 @@ mod tests {
         p.instrumentation_plan_revision = String::new();
         let mut v = DredgeTelemetryValidator::new(p);
         let r = v.validate(&record(ProfileKind::PipelineStandard));
-        assert_eq!(r.disposition, TelemetryDisposition::EvidenceInconsistent);
+        assert_eq!(r.disposition, TelemetryDisposition::UnknownReviewRequired);
     }
 
     #[test]
