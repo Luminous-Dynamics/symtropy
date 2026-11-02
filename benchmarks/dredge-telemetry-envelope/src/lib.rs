@@ -172,10 +172,15 @@ fn profile_shape_valid(profile: &DredgePlantProfile) -> bool {
     if required.keys().any(|kind| optional.contains_key(kind)) {
         return false;
     }
-    profile.required_sensors.iter().chain(&profile.optional_sensors).all(|rule| {
-        nonempty(&rule.unit_id)
-            && rule.minimum_milliunits <= rule.maximum_milliunits
-    }) && profile.position_rule.as_ref().is_some_and(|rule| nonempty(&rule.expected_crs))
+    profile
+        .required_sensors
+        .iter()
+        .chain(&profile.optional_sensors)
+        .all(|rule| nonempty(&rule.unit_id) && rule.minimum_milliunits <= rule.maximum_milliunits)
+        && profile
+            .position_rule
+            .as_ref()
+            .is_some_and(|rule| nonempty(&rule.expected_crs))
 }
 
 fn validate_sensor(
@@ -360,7 +365,9 @@ pub fn validate_telemetry(
             inconsistent = true;
             continue;
         }
-        let rule = required.get(&reading.kind).or_else(|| optional.get(&reading.kind));
+        let rule = required
+            .get(&reading.kind)
+            .or_else(|| optional.get(&reading.kind));
         let Some(rule) = rule else {
             reasons.push(TelemetryReason::UnknownSensorKind);
             unknown = true;
@@ -385,8 +392,12 @@ pub fn validate_telemetry(
     }
 
     if let Some(rule) = &profile.position_rule {
-        let (bad, review) =
-            validate_position(record.position.as_ref(), rule, evaluation_tick, &mut reasons);
+        let (bad, review) = validate_position(
+            record.position.as_ref(),
+            rule,
+            evaluation_tick,
+            &mut reasons,
+        );
         inconsistent |= bad;
         unknown |= review;
     }
@@ -398,12 +409,19 @@ pub fn validate_telemetry(
     }
 
     if !inconsistent && !unsupported {
-        next_cursor.event_digests.insert(record.event_id.clone(), record.payload_digest.clone());
-        next_cursor.event_records.insert(record.event_id.clone(), record.clone());
-        next_cursor.sequence_owners.insert(record.sequence, record.event_id.clone());
-        while next_cursor.sequence_owners.contains_key(
-            &next_cursor.contiguous_sequence.saturating_add(1),
-        ) {
+        next_cursor
+            .event_digests
+            .insert(record.event_id.clone(), record.payload_digest.clone());
+        next_cursor
+            .event_records
+            .insert(record.event_id.clone(), record.clone());
+        next_cursor
+            .sequence_owners
+            .insert(record.sequence, record.event_id.clone());
+        while next_cursor
+            .sequence_owners
+            .contains_key(&next_cursor.contiguous_sequence.saturating_add(1))
+        {
             next_cursor.contiguous_sequence = next_cursor.contiguous_sequence.saturating_add(1);
         }
     }
@@ -420,7 +438,11 @@ pub fn validate_telemetry(
         TelemetryDisposition::TelemetryAcceptedAsObservation
     };
 
-    TelemetryValidation { disposition, reasons, next_cursor }
+    TelemetryValidation {
+        disposition,
+        reasons,
+        next_cursor,
+    }
 }
 
 #[cfg(test)]
@@ -440,24 +462,42 @@ mod tests {
     fn profile(kind: PlantProfileKind) -> DredgePlantProfile {
         let (required_sensors, optional_sensors) = match kind {
             PlantProfileKind::Hopper => (
-                vec![rule(SensorKind::Draft, "mm"), rule(SensorKind::Displacement, "kg")],
+                vec![
+                    rule(SensorKind::Draft, "mm"),
+                    rule(SensorKind::Displacement, "kg"),
+                ],
                 vec![rule(SensorKind::HopperLoad, "kg")],
             ),
             PlantProfileKind::Mechanical => (
-                vec![rule(SensorKind::BucketPosition, "mm"), rule(SensorKind::BucketState, "state")],
+                vec![
+                    rule(SensorKind::BucketPosition, "mm"),
+                    rule(SensorKind::BucketState, "state"),
+                ],
                 vec![rule(SensorKind::Draft, "mm")],
             ),
             PlantProfileKind::PipelineStandard => (
-                vec![rule(SensorKind::SlurryDensity, "kg_m3"), rule(SensorKind::SlurryVelocity, "mm_s")],
+                vec![
+                    rule(SensorKind::SlurryDensity, "kg_m3"),
+                    rule(SensorKind::SlurryVelocity, "mm_s"),
+                ],
                 vec![rule(SensorKind::PumpState, "state")],
             ),
             PlantProfileKind::PipelineSmallBusiness => (
                 vec![rule(SensorKind::PumpState, "state")],
-                vec![rule(SensorKind::SlurryDensity, "kg_m3"), rule(SensorKind::SlurryVelocity, "mm_s")],
+                vec![
+                    rule(SensorKind::SlurryDensity, "kg_m3"),
+                    rule(SensorKind::SlurryVelocity, "mm_s"),
+                ],
             ),
             PlantProfileKind::ScowMonitoring => (
-                vec![rule(SensorKind::Draft, "mm"), rule(SensorKind::Displacement, "kg")],
-                vec![rule(SensorKind::BinUllage, "mm"), rule(SensorKind::BinVolume, "litre")],
+                vec![
+                    rule(SensorKind::Draft, "mm"),
+                    rule(SensorKind::Displacement, "kg"),
+                ],
+                vec![
+                    rule(SensorKind::BinUllage, "mm"),
+                    rule(SensorKind::BinVolume, "litre"),
+                ],
             ),
             PlantProfileKind::ScowUllage => (
                 vec![
@@ -528,7 +568,9 @@ mod tests {
                     sensor(SensorKind::SlurryDensity, "kg_m3"),
                     sensor(SensorKind::SlurryVelocity, "mm_s"),
                 ],
-                PlantProfileKind::PipelineSmallBusiness => vec![sensor(SensorKind::PumpState, "state")],
+                PlantProfileKind::PipelineSmallBusiness => {
+                    vec![sensor(SensorKind::PumpState, "state")]
+                }
                 PlantProfileKind::ScowMonitoring => vec![
                     sensor(SensorKind::Draft, "mm"),
                     sensor(SensorKind::Displacement, "kg"),
@@ -665,7 +707,11 @@ mod tests {
             result.disposition,
             TelemetryDisposition::TelemetryAcceptedWithMissingOptionalFields
         );
-        assert!(result.reasons.contains(&TelemetryReason::MissingOptionalSensor));
+        assert!(
+            result
+                .reasons
+                .contains(&TelemetryReason::MissingOptionalSensor)
+        );
     }
 
     #[test]
@@ -696,8 +742,15 @@ mod tests {
         p.valid_through_tick = None;
         let r = record(PlantProfileKind::Hopper);
         let result = evaluate(&p, &r, &TelemetryCursor::default());
-        assert_eq!(result.disposition, TelemetryDisposition::UnknownReviewRequired);
-        assert!(result.reasons.contains(&TelemetryReason::ProfileCurrentnessUnknown));
+        assert_eq!(
+            result.disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
+        assert!(
+            result
+                .reasons
+                .contains(&TelemetryReason::ProfileCurrentnessUnknown)
+        );
     }
 
     #[test]
@@ -816,7 +869,10 @@ mod tests {
         let r = record(PlantProfileKind::Hopper);
         let first = evaluate(&p, &r, &TelemetryCursor::default());
         let replay = evaluate(&p, &r, &first.next_cursor);
-        assert_eq!(replay.disposition, TelemetryDisposition::DuplicateExactReplay);
+        assert_eq!(
+            replay.disposition,
+            TelemetryDisposition::DuplicateExactReplay
+        );
         assert_eq!(replay.next_cursor, first.next_cursor);
     }
 
@@ -870,7 +926,10 @@ mod tests {
         gap.sequence = 3;
         gap.payload_digest = "sha256:3".into();
         let result = evaluate(&p, &gap, &first.next_cursor);
-        assert_eq!(result.disposition, TelemetryDisposition::UnknownReviewRequired);
+        assert_eq!(
+            result.disposition,
+            TelemetryDisposition::UnknownReviewRequired
+        );
         assert_eq!(result.next_cursor.contiguous_sequence, 1);
         assert!(result.reasons.contains(&TelemetryReason::SequenceGap));
     }
@@ -878,7 +937,11 @@ mod tests {
     #[test]
     fn filling_sequence_gap_advances_contiguous_cursor() {
         let p = profile(PlantProfileKind::Hopper);
-        let first = evaluate(&p, &record(PlantProfileKind::Hopper), &TelemetryCursor::default());
+        let first = evaluate(
+            &p,
+            &record(PlantProfileKind::Hopper),
+            &TelemetryCursor::default(),
+        );
         let mut gap = record(PlantProfileKind::Hopper);
         gap.event_id = "event-3".into();
         gap.sequence = 3;
@@ -895,7 +958,11 @@ mod tests {
     #[test]
     fn out_of_order_sequence_is_rejected() {
         let p = profile(PlantProfileKind::Hopper);
-        let first = evaluate(&p, &record(PlantProfileKind::Hopper), &TelemetryCursor::default());
+        let first = evaluate(
+            &p,
+            &record(PlantProfileKind::Hopper),
+            &TelemetryCursor::default(),
+        );
         let mut older = record(PlantProfileKind::Hopper);
         older.event_id = "event-old".into();
         older.sequence = 0;
