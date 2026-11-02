@@ -1436,14 +1436,14 @@ mod tests {
     fn rejects_seed_namespace_reuse_recipe_mutation_and_unsolvable_tasks() {
         let events = vec![event(0, D2)];
         let freeze = freeze(&events);
-        let mut calibration = calibration();
-        calibration.seed_namespace_id = "holdout-seeds".into();
+        let mut changed_calibration = calibration();
+        changed_calibration.seed_namespace_id = "holdout-seeds".into();
         assert!(
             verify(
                 &plan(),
                 &events,
                 &freeze,
-                &calibration,
+                &changed_calibration,
                 &release(vec![task("task-1", "a")]),
                 &NoSemanticOverlap
             )
