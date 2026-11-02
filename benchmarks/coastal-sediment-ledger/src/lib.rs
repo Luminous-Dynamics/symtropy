@@ -196,7 +196,7 @@ impl Ledger {
 fn endpoint_invalid(value: &Endpoint) -> bool {
     match value { Endpoint::Boundary(id) | Endpoint::Store(id) => id.trim().is_empty() }
 }
-fn checked_sum(values: impl Iterator<Item = u64>) -> Result<u64, LedgerError> {
+fn checked_sum(mut values: impl Iterator<Item = u64>) -> Result<u64, LedgerError> {
     values.try_fold(0_u64, |sum, value| sum.checked_add(value).ok_or(LedgerError::ArithmeticOverflow))
 }
 
