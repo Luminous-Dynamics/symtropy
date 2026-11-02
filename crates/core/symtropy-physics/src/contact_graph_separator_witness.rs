@@ -990,8 +990,8 @@ fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundar
     // K=diag(1/4,-1/4,-1/4). This whole box has positive normal load
     // and remains strictly inside the Coulomb disk.
     let strict_box = SeparatorImpulseBox::new(
-        SVector::<f64, 3>::new(0.9, -0.55, -0.05),
-        SVector::<f64, 3>::new(1.1, -0.45, 0.05),
+        SVector::<f64, 3>::new(0.875, -0.5, -0.125),
+        SVector::<f64, 3>::new(1.125, -0.375, 0.125),
     )
     .unwrap();
     let strict = message.response_over_box(&strict_box).unwrap();
@@ -999,9 +999,9 @@ fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundar
         strict.classification,
         StickingBoxClassification::StrictlySticking
     );
-    assert!(strict.impulse_bounds[0].lower > 0.97);
-    assert!(strict.impulse_bounds[0].upper < 1.03);
-    assert!(strict.disk_margin_bounds.lower > 0.45);
+    assert!(strict.impulse_bounds[0].lower > 0.96);
+    assert!(strict.impulse_bounds[0].upper < 1.04);
+    assert!(strict.disk_margin_bounds.lower > 0.43);
     assert!(strict.local_residual_bounds.iter().all(|bound| bound.contains_zero()));
 
     // Exact boundary: lambda=1, j_t=(-1/2,0), mu=1/2.
@@ -1020,8 +1020,8 @@ fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundar
 
     // The entire box is beyond the disk boundary while the normal load is 1.
     let outside_box = SeparatorImpulseBox::new(
-        SVector::<f64, 3>::new(1.0, 1.6, 0.0),
-        SVector::<f64, 3>::new(1.0, 1.6, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.625, 0.0),
+        SVector::<f64, 3>::new(1.0, 1.625, 0.0),
     )
     .unwrap();
     let outside = message.response_over_box(&outside_box).unwrap();
@@ -1033,8 +1033,8 @@ fn sticking_leaf_interval_message_certifies_strict_boxes_and_abstains_at_boundar
 
     // The normal-load interval crosses zero; it cannot be certified strict.
     let normal_boundary_box = SeparatorImpulseBox::new(
-        SVector::<f64, 3>::new(-3.1, -0.5, 0.0),
-        SVector::<f64, 3>::new(-2.9, -0.5, 0.0),
+        SVector::<f64, 3>::new(-3.125, -0.5, 0.0),
+        SVector::<f64, 3>::new(-2.875, -0.5, 0.0),
     )
     .unwrap();
     let normal_boundary = message.response_over_box(&normal_boundary_box).unwrap();
