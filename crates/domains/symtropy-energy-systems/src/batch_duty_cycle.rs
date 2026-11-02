@@ -618,6 +618,18 @@ mod tests {
         );
         assert_eq!(
             result.segment_results()[0]
+                .fuel_flow_observation()
+                .fuel_batch_id(),
+            "BATCH-001"
+        );
+        assert_eq!(
+            result.segment_results()[0]
+                .fuel_flow_observation()
+                .time_window(),
+            TimeWindow::new(0, 60).unwrap()
+        );
+        assert_eq!(
+            result.segment_results()[0]
                 .evaluation()
                 .fuel_mass_flow()
                 .evidence()
