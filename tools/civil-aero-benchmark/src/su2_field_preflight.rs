@@ -16,8 +16,7 @@ use crate::integrity::sha256_hex;
 use crate::su2_mesh::inspect_su2_mesh;
 
 pub const SU2_FIELD_PREFLIGHT_SCHEMA: &str = "su2-field-preflight/0.1.0";
-pub const SU2_FIELD_PREFLIGHT_EVIDENCE_LEVEL: &str =
-    "receipt_bound_su2_dry_run_field_discovery_and_config_presence_only_not_history_convergence_or_validation";
+pub const SU2_FIELD_PREFLIGHT_EVIDENCE_LEVEL: &str = "receipt_bound_su2_dry_run_field_discovery_and_config_presence_only_not_history_convergence_or_validation";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2FieldPreflightReport {
@@ -88,7 +87,9 @@ fn validate_relative_path(value: &str) -> Result<PathBuf, String> {
             .components()
             .any(|component| !matches!(component, Component::Normal(_)))
     {
-        return Err("preflight artifact path must contain only normal run-relative components".to_owned());
+        return Err(
+            "preflight artifact path must contain only normal run-relative components".to_owned(),
+        );
     }
     Ok(path.to_path_buf())
 }
@@ -102,7 +103,9 @@ fn staged_input<'a>(
         .staged_inputs
         .iter()
         .find(|input| input.relative_path == relative_path)
-        .ok_or_else(|| format!("preflight input {relative_path} is not staged in the process receipt"))
+        .ok_or_else(|| {
+            format!("preflight input {relative_path} is not staged in the process receipt")
+        })
 }
 
 fn decode_hex(value: &str, field: &str) -> Result<String, String> {
@@ -127,7 +130,10 @@ fn parse_key_values(input: &str, label: &str) -> Result<BTreeMap<String, String>
             .split_once('=')
             .ok_or_else(|| format!("{label} line {} is not key=value", index + 1))?;
         if key.is_empty() || values.insert(key.to_owned(), value.to_owned()).is_some() {
-            return Err(format!("{label} has an empty or duplicate key on line {}", index + 1));
+            return Err(format!(
+                "{label} has an empty or duplicate key on line {}",
+                index + 1
+            ));
         }
     }
     Ok(values)
@@ -215,7 +221,10 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         };
         let key = raw_key.trim();
         if matches!(key, "SOLVER" | "CONV_FIELD" | "HISTORY_OUTPUT") {
-            if values.insert(key.to_owned(), raw_value.trim().to_owned()).is_some() {
+            if values
+                .insert(key.to_owned(), raw_value.trim().to_owned())
+                .is_some()
+            {
                 return Err(format!("SU2 config line {} duplicates {key}", index + 1));
             }
         }
@@ -231,11 +240,12 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
     if convergence_field.is_empty() || convergence_field.contains(',') {
         return Err("CONV_FIELD must declare exactly one non-empty field name".to_owned());
     }
-    let history_output_selectors = strip_list_syntax(parse_config_value(&values, "HISTORY_OUTPUT")?)
-        .split(',')
-        .map(|value| value.trim().trim_matches('"').to_owned())
-        .filter(|value| !value.is_empty())
-        .collect::<Vec<_>>();
+    let history_output_selectors =
+        strip_list_syntax(parse_config_value(&values, "HISTORY_OUTPUT")?)
+            .split(',')
+            .map(|value| value.trim().trim_matches('"').to_owned())
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>();
     if history_output_selectors.is_empty() {
         return Err("HISTORY_OUTPUT must declare at least one field or group selector".to_owned());
     }
@@ -292,7 +302,9 @@ fn extract_available_history_fields(output: &str) -> Result<Vec<String>, String>
         }
     }
     if tokens.is_empty() {
-        return Err("SU2 dry-run screen/history fields section contained no field tokens".to_owned());
+        return Err(
+            "SU2 dry-run screen/history fields section contained no field tokens".to_owned(),
+        );
     }
     Ok(tokens.into_iter().collect())
 }
@@ -377,7 +389,9 @@ pub fn audit_su2_field_preflight(
 
     let receipt = read_external_solver_receipt(run_directory)?;
     if receipt.solver_id != "SU2_CFD_DRY_RUN" || !receipt.is_process_success() {
-        return Err("SU2 field preflight requires a successful SU2_CFD_DRY_RUN process receipt".to_owned());
+        return Err(
+            "SU2 field preflight requires a successful SU2_CFD_DRY_RUN process receipt".to_owned(),
+        );
     }
     verify_external_solver_receipt(run_directory, &receipt)?;
     let root = fs::canonicalize(run_directory)
@@ -413,7 +427,10 @@ pub fn audit_su2_field_preflight(
     let combined_text = String::from_utf8(combined)
         .map_err(|error| format!("SU2 dry-run output is not valid UTF-8: {error}"))?;
     let available_history_fields = extract_available_history_fields(&combined_text)?;
-    let available = available_history_fields.iter().cloned().collect::<BTreeSet<_>>();
+    let available = available_history_fields
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     if !available.contains(&config.convergence_field) {
         return Err(format!(
             "CONV_FIELD {} is not present in the exact solver/configuration dry-run field inventory; SU2 may ignore it and disable convergence checking",
@@ -570,7 +587,10 @@ mod tests {
             ],
         )
         .expect("field preflight passes");
-        assert_eq!(report.status, "required_fields_available_and_conv_field_recognized");
+        assert_eq!(
+            report.status,
+            "required_fields_available_and_conv_field_recognized"
+        );
         assert_eq!(report.available_history_fields.len(), 6);
         assert_eq!(report.required_history_fields.len(), 4);
         fs::remove_dir_all(root).expect("remove test fixture");
