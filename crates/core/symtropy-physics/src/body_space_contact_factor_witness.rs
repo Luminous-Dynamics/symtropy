@@ -338,8 +338,9 @@ mod tests {
 
         // Enumerate all 64 vertices of alpha in [-1,1]^6. Every vertex has
         // the same body wrench/velocity, all four local laws remain strictly
-        // sticking, and the energy is invariant. Convexity of the four
-        // Coulomb cones then certifies the whole six-dimensional cube.
+        // sticking, and the energy is invariant. The exact SOC slack checks
+        // below plus concavity of n-||t|| certify a uniform margin of at least
+        // 43 throughout the entire six-dimensional cube.
         let mut minimum_disk_margins = [i128::MAX; 4];
         let mut minimum_normal_impulses = [i128::MAX; 4];
         for corner in 0_u8..64 {
@@ -374,6 +375,20 @@ mod tests {
                 let disk_margin = normal * normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
                 assert!(normal > 0);
                 assert!(disk_margin > 0);
+
+                // Prove a uniform SOC slack of at least 43 over the entire
+                // six-dimensional coefficient cube. At every cube vertex,
+                // n-43 > ||t|| is checked exactly by a positive shifted normal
+                // and a squared integer inequality. The function n(alpha)-
+                // ||t(alpha)|| is concave, so its minimum over the cube is
+                // bounded below by its minimum over the vertices.
+                const UNIFORM_SOC_SLACK_LOWER_BOUND: i128 = 43;
+                let shifted_normal = normal - UNIFORM_SOC_SLACK_LOWER_BOUND;
+                assert!(shifted_normal > 0);
+                assert!(
+                    shifted_normal * shifted_normal > tangent_1 * tangent_1 + tangent_2 * tangent_2,
+                    "every fibre-cube vertex must exceed the exact SOC slack lower bound"
+                );
                 minimum_normal_impulses[contact] = minimum_normal_impulses[contact].min(normal);
                 minimum_disk_margins[contact] = minimum_disk_margins[contact].min(disk_margin);
             }
