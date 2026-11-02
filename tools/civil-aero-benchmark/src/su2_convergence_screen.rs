@@ -795,7 +795,7 @@ pub fn screen_to_csv(screen: &ConvergenceScreen) -> String {
 
 fn optional(value: Option<f64>) -> String {
     value
-        .map(|number| format!("{number:.17}"))
+        .map(|number| number.to_string())
         .unwrap_or_default()
 }
 
