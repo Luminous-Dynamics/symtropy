@@ -51,6 +51,8 @@ pub enum MetrologyReportFormat {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetrologyReportReference {
     pub format: MetrologyReportFormat,
+    /// Exact identifier, e.g. ISO 23952:2020 or a source-native standard ID.
+    pub format_id: String,
     /// QIF 3.0 for ISO 23952:2020; source-declared version for other formats.
     pub format_version: String,
     /// Digest of the exact schema package used to interpret the report.
@@ -248,7 +250,8 @@ pub fn evaluate_dimension(
         reasons.push(ComponentReason::DatumMismatch);
         inconsistent = true;
     }
-    if measurement.report_reference.format_version.trim().is_empty()
+    if measurement.report_reference.format_id.trim().is_empty()
+        || measurement.report_reference.format_version.trim().is_empty()
         || measurement.report_reference.document_reference.trim().is_empty()
         || measurement.report_reference.native_result_id.trim().is_empty()
     {
@@ -547,6 +550,7 @@ mod tests {
             evidence_state: MeasurementEvidenceState::Current,
             report_reference: MetrologyReportReference {
                 format: MetrologyReportFormat::QifIso23952_2020,
+                format_id: "ISO 23952:2020".into(),
                 format_version: "3.0".into(),
                 schema_sha256:
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
@@ -878,6 +882,16 @@ mod tests {
         assert_eq!(
             evaluate(&c, &r, &different_design).disposition,
             ComponentDisposition::EvidenceInconsistent
+        );
+    }
+
+    #[test]
+    fn metrology_report_requires_a_native_format_identifier() {
+        let mut m = measurement();
+        m.report_reference.format_id.clear();
+        assert_eq!(
+            evaluate(&component(), &requirement(), &m).disposition,
+            ComponentDisposition::UnknownReviewRequired
         );
     }
 
