@@ -188,7 +188,10 @@
         "well_to_service_energy_intensity": 1.1111111111111112,
         "well_to_service_ghg_intensity": 1.0666666666666667,
         "lifecycle_cost": null,
-        "uncertainty_status": "partial"
+        "uncertainty_status": "partial",
+        "energy_unit": "kWh",
+        "ghg_unit": "kgCO2e",
+        "cost_unit": "USD"
       },
       "expected_result": "pass",
       "oracle": {
@@ -354,7 +357,10 @@
         "well_to_service_energy_intensity": null,
         "well_to_service_ghg_intensity": null,
         "lifecycle_cost": null,
-        "uncertainty_status": "unknown"
+        "uncertainty_status": "unknown",
+        "energy_unit": "kWh",
+        "ghg_unit": "kgCO2e",
+        "cost_unit": "USD"
       },
       "expected_result": "reject",
       "oracle": {
@@ -408,6 +414,19 @@
           "source_evidence_ids": [
             "SYNTHETIC-SOC"
           ]
+        },
+        {
+          "node_id": "net-ac",
+          "carrier_type": "net_ac",
+          "energy_quantity": 1,
+          "energy_unit": "kWh",
+          "basis": "useful_service",
+          "geography": "site-ac-pcc",
+          "period": "synthetic",
+          "gwp_basis": null,
+          "source_evidence_ids": [
+            "SYNTHETIC-SERVICE"
+          ]
         }
       ],
       "transformations": [
@@ -418,9 +437,9 @@
             "fuel"
           ],
           "output_node_ids": [
-            "service"
+            "net-ac"
           ],
-          "energy_loss_quantity": 99,
+          "energy_loss_quantity": 96.4,
           "energy_loss_unit": "MJ",
           "process_emissions_kgco2e": null,
           "emissions_factor_ids": [],
@@ -433,7 +452,35 @@
           "uncertainty_status": "modelled",
           "allocation_method": "none",
           "allocation_reference": null,
-          "metadata": {}
+          "metadata": {
+            "input_energy_basis": "LHV"
+          }
+        },
+        {
+          "transformation_id": "battery-conversion",
+          "technology": "synthetic-battery-inverter",
+          "input_node_ids": [
+            "battery"
+          ],
+          "output_node_ids": [
+            "net-ac"
+          ],
+          "energy_loss_quantity": 96.4,
+          "energy_loss_unit": "MJ",
+          "process_emissions_kgco2e": null,
+          "emissions_factor_ids": [],
+          "method_id": "synthetic",
+          "geography": "synthetic",
+          "period": "synthetic",
+          "evidence_ids": [
+            "SYNTHETIC-SOC"
+          ],
+          "uncertainty_status": "modelled",
+          "allocation_method": "none",
+          "allocation_reference": null,
+          "metadata": {
+            "input_energy_basis": "stored_energy"
+          }
         }
       ],
       "accounting_boundaries": {
@@ -484,14 +531,17 @@
         "well_to_service_energy_intensity": null,
         "well_to_service_ghg_intensity": null,
         "lifecycle_cost": null,
-        "uncertainty_status": "unknown"
+        "uncertainty_status": "unknown",
+        "energy_unit": "kWh",
+        "ghg_unit": "kgCO2e",
+        "cost_unit": "USD"
       },
       "expected_result": "reject",
       "oracle": {
         "expected_error": "IncomparableInputEnergyBases",
         "reference_basis": "LHV",
         "candidate_basis": "stored_energy",
-        "interpretation": "Fuel LHV and stored electrical energy cannot be treated as the same primary-energy basis."
+        "interpretation": "Both alternatives are represented at the same net-AC service output, but fuel LHV and stored electrical energy are different input-energy bases and must not be converted into one efficiency ratio."
       }
     }
   ]
