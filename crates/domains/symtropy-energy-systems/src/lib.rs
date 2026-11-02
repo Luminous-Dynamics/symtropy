@@ -10,9 +10,11 @@
 use core::fmt;
 use serde::Serialize;
 
+mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
 
+pub use batch_evaluation::{evaluate_fuel_batch, FuelBatchEvaluation};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
@@ -157,7 +159,7 @@ impl Efficiency {
 /// Fuel identity, batch provenance, composition, uncertainty and lifecycle
 /// factors belong in the versioned evidence/input schema layered above this
 /// minimal arithmetic primitive. They are never inferred here.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct FuelInput {
     mass_flow: MassFlowKgPerSecond,
     lower_heating_value: LowerHeatingValueJPerKg,
@@ -192,7 +194,7 @@ impl FuelInput {
 ///
 /// This is a declared map point / scenario parameter, not a predictive engine
 /// model and not a fuel-specific calibration.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct EngineModel {
     brake_efficiency: Efficiency,
 }
@@ -212,7 +214,7 @@ impl EngineModel {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct EngineResult {
     pub chemical_input_power: Watts,
     pub brake_power: Watts,
@@ -223,7 +225,7 @@ pub struct EngineResult {
 
 /// A steady-state generator conversion factor and explicitly supplied
 /// electrical auxiliary load.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct GeneratorModel {
     electrical_efficiency: Efficiency,
     auxiliary_load: Watts,
@@ -256,7 +258,7 @@ impl GeneratorModel {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct GeneratorResult {
     pub shaft_power: Watts,
     pub gross_electrical_power: Watts,
@@ -269,7 +271,7 @@ pub struct GeneratorResult {
 ///
 /// The balance is:
 /// chemical input = engine rejection + generator loss + auxiliaries + net AC.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct EnergyBalance {
     pub chemical_input_power: Watts,
     pub engine_rejected_power: Watts,
@@ -313,7 +315,7 @@ impl EnergyBalance {
 }
 
 /// Result for one steady-state bookkeeping point.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct PowerSystemResult {
     pub engine: EngineResult,
     pub generator: GeneratorResult,
