@@ -13,6 +13,7 @@ cargo clippy --locked --manifest-path benchmarks/construction-power-envelope/Car
 
 - Piecewise-constant real-power load intervals in watts and seconds.
 - Critical and flexible load separated; firm supply serves critical load first, then flexible load.
+- Reports a conservative upper bound on critical-unserved interval time (the full interval when any critical energy is unserved); it does not infer exact within-interval interruption timing.
 - Optional battery represented by discharge power (W), usable stored energy (W·s), minimum reserve, and discharge efficiency.
 - The battery is dispatched greedily against each interval's deficit; no future-information optimizer is used.
 - Exact energy integration uses integer watt-seconds; no floating-point energy rounding.
