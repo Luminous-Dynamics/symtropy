@@ -8,7 +8,7 @@
 //! It is an analytic point-mass reference, not a chatter regularization policy
 //! or a multi-contact impact solver.
 
-use super::{first_impact, finite_or_overflow, ImpactError, ImpactParameters};
+use super::{ImpactError, ImpactParameters, finite_or_overflow, first_impact};
 
 /// Mathematical regime of the ideal repeated-bounce sequence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
