@@ -21,6 +21,88 @@ pub enum EvidenceClass {
     SyntheticFixture,
 }
 
+/// Reported terminal state of the numerical solver, captured before output
+/// post-processing. `Unknown` must never be treated as successful completion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SolverTermination {
+    Completed,
+    MaximumStepsReached,
+    EventTerminated,
+    NumericalFailure,
+    Unknown,
+}
+
+/// Audit receipt for a solver's *raw* saved trajectory, before replacement,
+/// clipping, smoothing, or other sanitization. Counts and digest must be
+/// computed from the actual solver output, not from the transformed array.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawTrajectoryAudit {
+    pub termination: SolverTermination,
+    pub requested_time_points: usize,
+    pub returned_time_points: usize,
+    pub state_dimension: usize,
+    pub raw_scalar_values: usize,
+    pub raw_non_finite_values: usize,
+    pub non_finite_replacements: usize,
+    pub clipped_values: usize,
+    pub raw_state_digest: String,
+}
+
+/// Fail-closed outcome for a trajectory proposed as an unmodified numerical
+/// result for biological scoring.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RawTrajectoryRejection {
+    SolverDidNotComplete,
+    InvalidRequestedTimeGrid,
+    IncompleteSavedTimeGrid,
+    InvalidStateDimension,
+    InvalidRawScalarCount,
+    NonFiniteRawState,
+    NonFiniteValuesWereReplaced,
+    ValuesWereClipped,
+    MissingRawStateDigest,
+}
+
+impl RawTrajectoryAudit {
+    /// Accept only a complete, dimensionally declared and unmodified raw
+    /// trajectory. A caller may still preserve/review rejected data, but must
+    /// not promote a sanitized array to an unmodified solver result.
+    pub fn validate_unmodified(&self) -> Result<(), RawTrajectoryRejection> {
+        if self.termination != SolverTermination::Completed {
+            return Err(RawTrajectoryRejection::SolverDidNotComplete);
+        }
+        if self.requested_time_points == 0 {
+            return Err(RawTrajectoryRejection::InvalidRequestedTimeGrid);
+        }
+        if self.returned_time_points != self.requested_time_points {
+            return Err(RawTrajectoryRejection::IncompleteSavedTimeGrid);
+        }
+        if self.state_dimension == 0 {
+            return Err(RawTrajectoryRejection::InvalidStateDimension);
+        }
+        let expected_scalars = self
+            .requested_time_points
+            .checked_mul(self.state_dimension)
+            .ok_or(RawTrajectoryRejection::InvalidRawScalarCount)?;
+        if self.raw_scalar_values != expected_scalars {
+            return Err(RawTrajectoryRejection::InvalidRawScalarCount);
+        }
+        if self.raw_non_finite_values != 0 {
+            return Err(RawTrajectoryRejection::NonFiniteRawState);
+        }
+        if self.non_finite_replacements != 0 {
+            return Err(RawTrajectoryRejection::NonFiniteValuesWereReplaced);
+        }
+        if self.clipped_values != 0 {
+            return Err(RawTrajectoryRejection::ValuesWereClipped);
+        }
+        if self.raw_state_digest.trim().is_empty() {
+            return Err(RawTrajectoryRejection::MissingRawStateDigest);
+        }
+        Ok(())
+    }
+}
+
 /// Strength of claim permitted by the supplied observation provenance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceClaim {
@@ -955,6 +1037,81 @@ mod tests {
                 standard_deviation: sigma,
             })
             .collect()
+    }
+
+
+    fn valid_raw_audit() -> RawTrajectoryAudit {
+        RawTrajectoryAudit {
+            termination: SolverTermination::Completed,
+            requested_time_points: 2001,
+            returned_time_points: 2001,
+            state_dimension: 4604,
+            raw_scalar_values: 2001 * 4604,
+            raw_non_finite_values: 0,
+            non_finite_replacements: 0,
+            clipped_values: 0,
+            raw_state_digest: "blake3:raw-state-digest".to_string(),
+        }
+    }
+
+    #[test]
+    fn raw_trajectory_requires_complete_solver_termination_and_full_save_grid() {
+        let mut audit = valid_raw_audit();
+        assert!(audit.validate_unmodified().is_ok());
+
+        audit.termination = SolverTermination::MaximumStepsReached;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::SolverDidNotComplete)
+        );
+
+        audit = valid_raw_audit();
+        audit.returned_time_points -= 1;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::IncompleteSavedTimeGrid)
+        );
+    }
+
+    #[test]
+    fn raw_trajectory_rejects_non_finite_replacement_and_clipping() {
+        let mut audit = valid_raw_audit();
+        audit.raw_non_finite_values = 1;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::NonFiniteRawState)
+        );
+
+        audit = valid_raw_audit();
+        audit.non_finite_replacements = 1;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::NonFiniteValuesWereReplaced)
+        );
+
+        audit = valid_raw_audit();
+        audit.clipped_values = 1;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::ValuesWereClipped)
+        );
+    }
+
+    #[test]
+    fn raw_trajectory_requires_dimension_consistent_scalar_count_and_digest() {
+        let mut audit = valid_raw_audit();
+        audit.raw_scalar_values -= 1;
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::InvalidRawScalarCount)
+        );
+
+        audit = valid_raw_audit();
+        audit.raw_state_digest.clear();
+        assert_eq!(
+            audit.validate_unmodified(),
+            Err(RawTrajectoryRejection::MissingRawStateDigest)
+        );
     }
 
     #[test]
