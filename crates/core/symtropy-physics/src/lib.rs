@@ -24,8 +24,6 @@ pub mod contact_frame;
 pub mod coupled_friction;
 #[cfg(test)]
 mod coupled_friction_two_contact_witness;
-#[cfg(test)]
-mod robust_contact_descent_witness;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
@@ -39,6 +37,8 @@ pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
+#[cfg(test)]
+mod robust_contact_descent_witness;
 pub mod support_map;
 pub mod world;
 
