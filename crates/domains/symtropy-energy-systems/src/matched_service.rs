@@ -148,7 +148,7 @@ impl ServiceTolerance {
         if !absolute_energy_j.is_finite()
             || absolute_energy_j < 0.0
             || !relative_fraction.is_finite()
-            || relative_fraction < 0.0
+            || !(0.0..=1.0).contains(&relative_fraction)
         {
             return Err(MatchedServiceError::InvalidTolerance {
                 absolute_energy_j,
@@ -413,6 +413,13 @@ pub fn compare_matched_service(
 
         let required = demand.required_net_ac_energy_j();
         let allowed = tolerance.allowed_energy_j(required);
+        if required > 0.0 && (!allowed.is_finite() || allowed >= required) {
+            return Err(MatchedServiceError::ToleranceExceedsDemand {
+                index,
+                required_energy_j: required,
+                allowed_deficit_energy_j: allowed,
+            });
+        }
         let reference_deficit = (required - reference_generated).max(0.0);
         let candidate_deficit = (required - candidate_generated).max(0.0);
 
@@ -550,6 +557,11 @@ pub enum MatchedServiceError {
         deficit_energy_j: f64,
         allowed_deficit_energy_j: f64,
     },
+    ToleranceExceedsDemand {
+        index: usize,
+        required_energy_j: f64,
+        allowed_deficit_energy_j: f64,
+    },
     ZeroMatchedService,
     InvalidDerivedEfficiency {
         reference: f64,
@@ -631,6 +643,14 @@ impl fmt::Display for MatchedServiceError {
             } => write!(
                 f,
                 "{system} failed service segment {index}: required={required_energy_j} J, generated={generated_energy_j} J, deficit={deficit_energy_j} J, allowed={allowed_deficit_energy_j} J"
+            ),
+            Self::ToleranceExceedsDemand {
+                index,
+                required_energy_j,
+                allowed_deficit_energy_j,
+            } => write!(
+                f,
+                "tolerance cannot consume the whole service request at segment {index}: required={required_energy_j} J, allowed={allowed_deficit_energy_j} J"
             ),
             Self::ZeroMatchedService => write!(f, "matched useful service must be positive"),
             Self::InvalidDerivedEfficiency {
@@ -884,6 +904,26 @@ mod tests {
 
         assert!(comparison.candidate_unserved_energy_j() > 0.0);
         assert!(comparison.common_matched_service_energy_j() < demand.total_required_energy_j());
+    }
+
+    #[test]
+    fn rejects_tolerance_that_can_hide_a_complete_service_failure() {
+        let reference = cycle([0.01, 0.005], 0.45);
+        let candidate = cycle([0.0, 0.0], 0.50);
+        let demand = profile([10_800_000.0, 2_735_400.0]);
+
+        let tolerance = ServiceTolerance::new(20_000_000.0, 0.0).unwrap();
+        assert!(matches!(
+            compare_matched_service(
+                &demand,
+                "reference",
+                &reference,
+                "candidate",
+                &candidate,
+                tolerance
+            ),
+            Err(MatchedServiceError::ToleranceExceedsDemand { .. })
+        ));
     }
 
     #[test]
