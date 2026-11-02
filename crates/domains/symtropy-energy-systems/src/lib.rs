@@ -10,10 +10,15 @@
 use core::fmt;
 use serde::Serialize;
 
+mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
 
+pub use batch_duty_cycle::{
+    BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
+    BatchDutyCycleSegment, BatchDutyCycleSegmentResult, FuelFlowObservation, TimeWindow,
+};
 pub use batch_evaluation::{evaluate_fuel_batch, FuelBatchEvaluation};
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
