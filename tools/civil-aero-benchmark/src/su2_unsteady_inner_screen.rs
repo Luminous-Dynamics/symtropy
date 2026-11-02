@@ -126,9 +126,39 @@ pub fn screen_su2_unsteady_inner_convergence(
     if fields[inner_index].unit != "iterations" {
         return Err("INNER_ITER must have the declared unit 'iterations'".to_owned());
     }
+    let (window_start_iter, convergence_start_iter, cauchy_elements) =
+        match &protocol.window {
+            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+                window_start_iter,
+                convergence_start_iter,
+                cauchy_elements,
+                ..
+            } => (*window_start_iter, *convergence_start_iter, *cauchy_elements),
+            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => {
+                return Err(
+                    "unsteady inner-step screen requires an enabled windowed convergence protocol"
+                        .to_owned(),
+                );
+            }
+        };
     let points = history.points();
     if points.len() < 2 {
         return Err("unsteady inner-step screen requires at least two TIME_ITER records".to_owned());
+    }
+    let first_time_iteration = points.first().expect("non-empty points").iteration;
+    let last_time_iteration = points.last().expect("non-empty points").iteration;
+    if first_time_iteration > window_start_iter {
+        return Err(format!(
+            "unsteady history begins at TIME_ITER {first_time_iteration} after WINDOW_START_ITER {window_start_iter}"
+        ));
+    }
+    let required_terminal_iteration = window_start_iter
+        .checked_add(convergence_start_iter.max(cauchy_elements))
+        .ok_or_else(|| "window convergence iteration range overflowed".to_owned())?;
+    if last_time_iteration < required_terminal_iteration {
+        return Err(format!(
+            "unsteady history ends at TIME_ITER {last_time_iteration} before the configured window convergence period ends at {required_terminal_iteration}"
+        ));
     }
 
     for pair in points.windows(2) {
@@ -238,8 +268,8 @@ pub fn screen_su2_unsteady_inner_convergence(
         preflight_sha256: preflight.preflight_sha256.clone(),
         time_iteration_column: history.iteration_column.clone(),
         inner_iteration_column: "INNER_ITER".to_owned(),
-        first_time_iteration: points.first().expect("non-empty points").iteration,
-        last_time_iteration: points.last().expect("non-empty points").iteration,
+        first_time_iteration,
+        last_time_iteration,
         contiguous_time_step_count: points.len(),
         fields: results,
         status: "all_contiguous_saved_time_steps_passed_inner_residual_thresholds".to_owned(),
