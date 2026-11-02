@@ -517,7 +517,11 @@ pub fn schedule_lock(
 
     metrics.unscheduled_count =
         u64::try_from(unscheduled.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?;
-    scheduled.sort_by_key(|slot| (slot.service_start_tick, slot.request_id.as_str()));
+    scheduled.sort_by(|left, right| {
+        left.service_start_tick
+            .cmp(&right.service_start_tick)
+            .then_with(|| left.request_id.cmp(&right.request_id))
+    });
 
     let served = u128::try_from(scheduled.len()).map_err(|_| SchedulerError::ArithmeticOverflow)?;
     metrics.arrival_order_pair_count = served
