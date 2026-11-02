@@ -1,0 +1,347 @@
+# Neural Sensorimotor Adapter V0
+
+**Status:** architecture / benchmark contract only. No executable neural-to-body integration is claimed.
+
+**Parent work:** [ANIMA-NEURO-001 / Symtropy #3313](https://github.com/Luminous-Dynamics/symtropy/issues/3313)
+
+**Related contracts and implementation:**
+- [ANIMA / embodied agent architecture #1176](https://github.com/Luminous-Dynamics/symtropy/issues/1176)
+- [Causal fauna contracts PR #244](https://github.com/Luminous-Dynamics/symtropy/pull/244)
+- [Living World Observatory PR #245](https://github.com/Luminous-Dynamics/symtropy/pull/245)
+- [Non-omniscient fauna perception oracle #249](https://github.com/Luminous-Dynamics/symtropy/issues/249)
+- [Animal observation/replay programme #2128](https://github.com/Luminous-Dynamics/symtropy/issues/2128)
+- [Animal observation and replay implementation candidate PR #2145](https://github.com/Luminous-Dynamics/symtropy/pull/2145)
+- [Symthaea perturbation-grounded connectome dynamics #9522](https://github.com/Luminous-Dynamics/symthaea/issues/9522)
+- [Symthaea task/state-conditioned connectome reduction #9549](https://github.com/Luminous-Dynamics/symthaea/issues/9549)
+- [Symthaea synthetic C. elegans graph correction #9902](https://github.com/Luminous-Dynamics/symthaea/issues/9902)
+
+---
+
+## 1. Purpose and claim ceiling
+
+Define a narrow, provider-neutral interface through which a versioned neural circuit model can participate in an embodied animal's sensorimotor loop.
+
+The intended change is not "add a neural network to animation." The intended causal system is:
+
+`physical/ecological event
+→ signal emission
+→ propagation / attenuation / noise
+→ receptor
+→ bounded percept
+→ neural input encoding
+→ circuit dynamics
+→ motor-unit / muscle activation proposal
+→ action arbitration
+→ body and physics response
+→ proprioceptive / interoceptive feedback
+→ next neural step`
+
+A neural model may be biologically grounded, connectome-constrained, phenomenological, learned, or synthetic. These categories must be explicit. A biologically named circuit is not automatically source-verified, functionally calibrated or behaviourally validated.
+
+This document is an architecture hypothesis and test contract. It does not report a biological, causal, gameplay or performance result.
+
+## 2. Existing authority boundaries
+
+This adapter composes existing Symtropy systems; it must not become another animal simulator.
+
+| Concern | Existing authority |
+|---|---|
+| Environmental truth, physical events and contact | Living World / physics |
+| Signal emission and propagation | Basin / environmental signal systems |
+| Non-omniscient sensing and percept provenance | Fauna perception |
+| Persistent individual identity, bounded memory and beliefs | ANIMA |
+| Homeostatic state and ecological consequences | Existing life-simulation authorities |
+| Body topology, joints, muscles and contact | Animal body-plan / locomotion / physics |
+| Neural circuit model and its state | Qualified Symthaea/provider adapter |
+| Presentation and animation | One-way presentation layer |
+| Empirical dataset scope, rights and splits | Animal observation / replay contracts |
+
+A neural controller must not:
+- query arbitrary world truth or hidden entities;
+- infer a percept from renderer visibility, animation, decals or camera state;
+- mutate canonical position, velocity, terrain, injury, physiology, relationships or ecology;
+- bypass body affordances, action arbitration, collision/contact or physical constraints;
+- write directly to animation transforms;
+- erase future-bearing state when fidelity changes.
+
+ANIMA is a persistent agency and world-simulation abstraction, not a claim that one software subsystem maps one-to-one onto an anatomical brain. A circuit model may own a declared local control scope; ANIMA retains its existing world-state, memory, relationship and action-authority contracts.
+
+## 3. Causal controller architecture
+
+### 3.1 Inputs
+
+A controller receives two classes of input:
+
+1. **Externally sensed signals:** only qualified receptor/percept outputs derived from the existing signal-emission and propagation chain.
+2. **Self-sensed body state:** proprioceptive and interoceptive channels such as joint angle, muscle stretch, load, contact, balance error, fatigue, thermal state and energy availability.
+
+Each input must declare:
+- semantic channel and receptor identity;
+- unit, coordinate frame, scale and valid range;
+- source/tick/freshness and provenance;
+- whether it is observed, derived, estimated or synthetic;
+- uncertainty or confidence semantics;
+- the exact mapping/version digest.
+
+No hidden world-state field is an admissible neural input.
+
+### 3.2 Typed records
+
+The product interface should eventually provide equivalents of:
+
+**NeuralModelDescriptor**
+- organism/taxon, sex and life-stage scope, where known;
+- model family and claim ceiling (synthetic, phenomenological, connectome-constrained, perturbation-calibrated, behaviourally validated);
+- source structural-connectome identity;
+- effective-coupling / perturbation dataset identity;
+- dynamics and solver versions;
+- sensor, proprioceptor, motor-neuron, muscle and body mapping digests;
+- supported tasks, states and known unsupported conditions.
+
+**NeuralObservationFrame**
+- fixed-tick, ordered input channels;
+- explicit units, ranges and frames;
+- source provenance/freshness for external signals;
+- sensor self-observation identity for body-derived channels;
+- no untyped "world snapshot" or omniscient blackboard.
+
+**ModulatoryContext**
+- bounded internal pressures supplied by ANIMA and physiological authorities (energy, hydration, fatigue, thermal stress, injury-related limitations, arousal or learned expectation);
+- explicit semantic distinction between a drive, a belief, an observed signal and an instruction;
+- no direct joint transform, hidden predator identity or unobserved resource location.
+
+**CircuitState**
+- exact model/version binding;
+- deterministic initialization and reset semantics;
+- state-before/state-after digest;
+- checkpoint/replay policy;
+- explicit solver/timestep and numerical precision.
+
+**MotorProposal**
+- finite, normalized motor-unit or muscle activation proposals, reflex requests or declared effector-space signals;
+- known body-region / effector mapping;
+- bounded activation, rate of change and validity horizon;
+- model provenance and confidence/abstention;
+- no direct canonical world transform or unrestricted torque/force authority.
+
+**NeuralStepReceipt**
+- exact model, code, config, solver, input frame, circuit state, output and scenario digests;
+- deterministic run identity and tick;
+- explicit status: valid, abstained, unsupported, stale, invalid or failed;
+- enough detail to reproduce and audit a controller decision.
+
+These are semantic requirements, not frozen Rust type names. Keep the first implementation small and dependency-light.
+
+### 3.3 Outputs and execution
+
+The neural model emits a bounded proposal. Existing deterministic arbitration checks:
+- whether the proposal is valid and fresh;
+- whether the requested effector exists on this body plan;
+- whether the action is supported by current affordances and physiology;
+- whether it conflicts with other current obligations or safety constraints;
+- whether the physics/body solver can realize it.
+
+Only the physics/body authority commits resulting motion. A motor proposal is not proof that movement occurred.
+
+### 3.4 Feedback
+
+After physical integration, the body produces new receptor signals:
+- joint position/velocity;
+- contact force and slip;
+- limb loading and support state;
+- muscle/tendon stretch where represented;
+- balance and orientation error;
+- fatigue/energy/thermal changes.
+
+These become the next neural observation frame. Do not replace this feedback with the previous requested movement; use the actual realized body state.
+
+## 4. Distributed local control and supervisory cognition
+
+A useful architectural hypothesis comes from the 2026 adult female Drosophila brain-and-nerve-cord connectome. The reported organization includes local sensory-to-effector feedback loops linked by ascending and descending behaviour-centric modules, with learning/navigation regions supervising them.
+
+That supports investigating a layered controller:
+- fast local feedback for posture, limb loading and reflexes;
+- mid-level coordination for gait phase, turning, feeding, grooming or escape;
+- slower supervisory processes for navigation, learning, goals and context;
+- ANIMA's persistent memory, needs, uncertainty and relationships as world-level agent state that can modulate and interpret action without bypassing physical authority.
+
+This is an architectural inspiration derived from fly-specific evidence, not a universal brain blueprint. Worm, fly, deer, horse, dog and robot controllers require separate evidence and mappings. Do not transplant fly circuitry into another taxon by analogy alone.
+
+Reference: Bates et al. (2026), *Distributed control circuits across a brain-and-cord connectome*, https://www.nature.com/articles/s41586-026-10735-w
+
+## 5. Model evidence layers must remain separate
+
+A model descriptor and its receipts must distinguish:
+
+1. **Structural connectome:** observed neuron identities and anatomical connections.
+2. **Effective coupling:** measured response to perturbation, including multi-hop, neuromodulatory or extrasynaptic effects.
+3. **Neural dynamics:** equations, parameter fitting, time constants, state and solver.
+4. **Sensorimotor mapping:** how receptor channels and motor outputs map to the body.
+5. **Body/environment model:** morphology, muscle mechanics, contact and substrate.
+6. **Behavioural evidence:** held-out trajectories, tasks, perturbations and individual variation.
+
+Do not write an effective coupling as an anatomical synapse. Do not treat a fitted model weight as a measured synaptic efficacy. Do not infer a physical body response from a neural output alone.
+
+Symthaea's current legacy C. elegans module is a seeded synthetic 279-entry topology fixture, not a source-verified connectome. It is not an admissible biological input to this adapter. See Symthaea #9902 and its documentation-correction candidate PR #9903.
+
+## 6. Validation ladder and staged vertical slices
+
+### Stage A — interface/oracle tests (can proceed before the perception gate)
+
+Use synthetic fixtures only to qualify:
+- unit/range validation and overflow handling;
+- stable input ordering and canonical digests;
+- no-world-truth input boundary;
+- deterministic fixed-step replay;
+- circuit-state reset/checkpoint behavior;
+- invalid/stale/unsupported/abstention behavior;
+- motor proposal bounds and body-effector mismatch rejection;
+- physics authority cannot be mutated through adapter outputs.
+
+Synthetic qualification does not establish animal biology.
+
+### Stage B — C. elegans scientific control
+
+Use C. elegans first because it offers tractable neural and whole-body modeling references. Pin an exact, rights-cleared 302-neuron dataset/release and keep structural anatomy, perturbation/effective coupling, dynamics, motor layer, body model and sensory mapping separate.
+
+Target a small chemotaxis arena with:
+- odor concentration and gradients;
+- receptor sampling and temporal sensing;
+- locomotion, reversals and turns;
+- body/substrate contact and proprioception;
+- held-out field geometry, initial states and perturbation targets.
+
+Compare to:
+- BAAIWorm's brain/body/environment model;
+- the exact versioned 2026 Worm-whisperer preprint/code configuration;
+- a simple scripted/utility controller;
+- a connectome-constrained dynamics baseline;
+- a hybrid controller.
+
+Retain critical negative controls, especially sensory-only input, shuffled topology, no odor/no valid receptor, disabled proprioception, motor/muscle stimulation leakage and out-of-scope field geometry. Do not optimize a published failure away without recording that the evaluated model has changed.
+
+Reference implementations:
+- BAAIWorm (2024): https://www.nature.com/articles/s43588-024-00738-w
+- C. elegans signal propagation atlas (2023): https://www.nature.com/articles/s41586-023-06683-4
+- Worm-whisperer (2026 preprint/code): https://doi.org/10.64898/2026.09.06.749731 and https://github.com/kairess/worm-whisperer
+
+### Stage C — Drosophila sensorimotor circuit
+
+Use NeuroMechFly v2 / FlyGym as the neuromechanical comparator. The 2026 FlyGym 2.x rewrite materially changes its API and performance, so exact version, solver and hardware must be pinned for each comparison.
+
+Start with a single source-supported circuit and task (for example walking feedback, head stabilization, visual following or odor navigation). Use the whole connectome only where required by the declared question; do not run a full 100k+ neuron model for every game animal and every frame.
+
+Relevant references:
+- NeuroMechFly v2 paper: https://www.nature.com/articles/s41592-024-02497-y
+- FlyGym project / version history: https://github.com/NeLy-EPFL/flygym
+- Adult female whole-brain connectome: https://www.nature.com/articles/s41586-024-07558-y
+- Brain-and-nerve-cord connectome: https://www.nature.com/articles/s41586-026-10735-w
+- FlyLite 2026 preprint on task/state-specific compression: https://doi.org/10.64898/2026.09.19.752860
+
+### Stage D — deer / visible game wildlife
+
+A deer is a useful gameplay vertical slice, but no validated deer connectome controller is claimed here.
+
+Use the existing evidence-aware hybrid:
+- sourced body and locomotor profile;
+- non-omniscient sensing, occlusion and uncertainty;
+- ANIMA homeostatic drives and persistent individual history;
+- physical balance, contact, slip and fatigue;
+- social information transferred only through observable signals;
+- scripted/utility mechanisms clearly labelled where biological circuit evidence is unavailable.
+
+A deer should orient, freeze, investigate, resume feeding, flee or rejoin a group based on available evidence, body condition, memory and affordances. A fixed player-distance threshold or hidden `herd_alert` flag is not an acceptable causal explanation.
+
+## 7. Baselines and comparison discipline
+
+For each task, use the same body, physics settings, initial conditions, sensor access, observations, split, time horizon, hardware and declared compute budget.
+
+Compare:
+1. scripted state machine / behaviour tree;
+2. utility arbitration + classical reflex/PID control;
+3. learned recurrent policy / RL controller;
+4. connectome-constrained dynamical controller;
+5. hybrid ANIMA + connectome/local-reflex controller;
+6. published task-specific reference, where a meaningful reproduction is possible.
+
+A comparator is not interchangeable merely because it produces a similar animation. Record all differences in body, sensors, model capacity, training budget, solver and hardware. Do not claim SOTA from visual demos or non-matched results.
+
+## 8. Benchmark metrics and proposed targets
+
+These are proposed targets. They are not achieved results or universal biological thresholds.
+
+### Structural and provenance integrity
+- 100% of source-backed nodes/edges resolve to the pinned artifact or remain explicitly unknown.
+- Zero fabricated anatomical edges in source-backed models.
+- Zero synthetic-to-biological promotion.
+- Exact source, parser, model, code, solver, scenario and split digests.
+
+### Neural response
+- Held-out response sign, amplitude, latency and trajectory error with uncertainty.
+- Report direct-edge, multi-hop, perturbation/effective and extrasynaptic components separately.
+- Split by specimen, intervention target, stimulus, state and study wherever data permit.
+- Reproduce a pinned published baseline before claiming improvement.
+
+### Locomotion and embodiment
+- Trajectory-distribution distance, path efficiency, speed/acceleration, turning curvature, gait phase/frequency, posture, contact timing and recovery.
+- Task success and failure rates with confidence intervals.
+- Zero non-finite forces/activations and zero invalid joint states; collision/contact tolerances must be pinned to the solver.
+- Test slip, uneven terrain, fatigue, sensory noise, occlusion and body-parameter variation.
+
+### Causal tests
+- Preregistered circuit ablation/perturbation predicts the direction and timescale of behavioural change on held-out cases.
+- Include shuffled-wiring, polarity/weight permutation, sensor disconnection and motor-access leakage controls.
+- Zero hard-gate false acceptance on the frozen synthetic oracle.
+
+### Generalization and individual variation
+- Hold out environment geometry, field conditions, start states, body parameters, individuals and (only where justified) species/life stages.
+- Same species and stimulus may yield a distribution of plausible outcomes; report individual-history sensitivity.
+- Unsupported cross-taxon transfer remains `INDETERMINATE`, not a pooled pass.
+
+### Runtime and fidelity
+- Report p50/p95/p99 controller, body/physics and perception cost separately, plus memory and energy.
+- Pin target hardware and scene load before comparison.
+- Gameplay objective: keep total frame time within 16.67 ms for a declared 60 Hz scene at the reference hardware; report measured near/mid/far animal counts rather than promising a headcount in advance.
+- Stretch research target: preserve at least 95% of a preregistered held-out behaviour score with a 10× reduction in controller compute for the mid-field tier, without violating any hard gate. This target must be tested, not assumed attainable.
+
+### Human-visible believability
+Keep:
+- Q0 static contract/type evidence;
+- Q1 exact deterministic execution;
+- Q2 differential/invariance tests;
+- Q3 empirical/causal behaviour;
+- Q4 presentation legibility;
+- Q5 blind human/player evaluation
+
+as different claims. Good animation is not evidence of correct neural dynamics; a validated neural model is not automatically readable or enjoyable.
+
+## 9. Multi-fidelity controller strategy
+
+- **Near / research:** detailed neural dynamics for selected animals, full body/contact mechanics and high-rate feedback.
+- **Mid-field:** distilled/reduced circuit controllers qualified against full-model behaviour on held-out tasks, network states and perturbations.
+- **Far-field:** ecological/population aggregates for distant animals, preserving future-bearing identity/history/physiology and deterministic re-entry.
+
+Compression must be task- and state-conditioned. FlyLite demonstrates why average-task preservation or weak-edge pruning alone is insufficient: circuit functions can collapse differently by task and activity state. A compressed model is a task-bounded surrogate, not a more correct biological connectome.
+
+Fidelity changes may not erase learned fear, memory-relevant history, injuries, relationships, territory or any state that changes future behaviour.
+
+## 10. Promotion gates and dependencies
+
+- Keep this document, synthetic fixtures and interface design moving now.
+- Do not begin production perception/memory integration before #249's existing exact-head oracle prerequisite is satisfied by a reviewed executable-green successor.
+- Do not treat the draft #2145 animal profile/observation/replay implementation as qualified until exact-head format, compile, tests and Clippy evidence all pass.
+- Do not use Symthaea's current synthetic 279-node graph as biological controller input.
+- Python research implementations may be comparators, but no production Python runtime dependency is introduced.
+- Queued, skipped, stale, cancelled or wrong-head checks are not PASS.
+- No live-animal experiment, intervention or data collection is authorized by this contract.
+
+## 11. Non-goals
+
+- A universal neural controller for all taxa.
+- A full detailed connectome for every in-scene animal.
+- A deer connectome claim.
+- Direct neural output to renderer/animation transforms.
+- Hidden-world omniscience or second canonical world state.
+- Autonomous veterinary, wildlife-management or conservation actions.
+- Bulk dataset scraping or redistribution outside exact licensed scope.
+- A SOTA claim before same-task, same-budget, held-out comparative evidence.
