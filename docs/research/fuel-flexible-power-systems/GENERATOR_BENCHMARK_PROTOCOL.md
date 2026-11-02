@@ -244,6 +244,26 @@ Report gCO2e per net kWh for generators, then use actual energy-chain and vehicl
 
 For each pathway record LHV/HHV basis, GWP time horizon/source, allocation method, electricity mix and year, upstream boundaries, leakage assumptions and uncertainty. A fuel label such as "renewable", "green" or "low-carbon" is not lifecycle evidence.
 
+### 8.1 Marine fuel storage, payload and range
+
+A marine propulsion comparison must include the fuel containment system, not only the fuel's neat LHV or engine efficiency. Use [MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json](data/MARINE_FUEL_STORAGE_REFERENCES_2026-11-02.json) for source-attributed screening values.
+
+The referenced 2026 study reports tank-included volumetric energy density: MGO 10.1 MWh/m³; methanol 4.4; LNG/bio-LNG 3.1; liquid ammonia 2.9; liquid hydrogen 1.3. For equal stored LHV energy these correspond to approximately 2.30×, 3.26×, 3.48× and 7.77× the MGO tank-system volume, respectively. Its tank-included gravimetric values are also retained in the dataset.
+
+Do not apply these factors as universal ship-design multipliers. The tank type, design pressure, temperature, insulation, containment, fill limit and safety clearances are study-specific. MARAD's 2022 guide separately estimates ammonia tank volume at ~4.1× MGO, while a 2023 Nordic report gives ammonia at 7.2 MJ/L for a 20-bar tank. Keep these distinct source assumptions rather than averaging them.
+
+For each route and vessel, report:
+- usable fuel energy at the declared reserve policy;
+- tank internal volume and complete tank-system mass;
+- fuel mass, tank mass and tank-system footprint;
+- displacement and lost cargo payload;
+- range/endurance at the matched route and speed/load profile;
+- bunker availability, time, frequency and terminal compatibility;
+- fuel conditioning, ventilation, thermal management, leak/toxicity/fire containment and maintenance access;
+- lifecycle GHG per delivered tonne-nautical-mile.
+
+A battery is not a fuel: compare usable electrical storage energy, charge source, state-of-charge window, round-trip loss, power limit, degradation and pack mass/volume separately. A vessel comparison must use delivered cargo work; tank-volume ratios alone are not a ship feasibility or safety result.
+
 ## 9. Measurement quality and statistical design
 
 - Use a competent testing/calibration laboratory and record the accreditation scope where required.
