@@ -29,6 +29,8 @@ pub struct EnergyVerificationTolerance {
     relative_power: f64,
     absolute_energy_j: f64,
     relative_energy: f64,
+    absolute_mass_kg: f64,
+    relative_mass: f64,
 }
 
 impl EnergyVerificationTolerance {
@@ -37,12 +39,16 @@ impl EnergyVerificationTolerance {
         relative_power: f64,
         absolute_energy_j: f64,
         relative_energy: f64,
+        absolute_mass_kg: f64,
+        relative_mass: f64,
     ) -> Result<Self, EnergyVerificationError> {
         for (name, value) in [
             ("absolute power tolerance", absolute_power_w),
             ("relative power tolerance", relative_power),
             ("absolute energy tolerance", absolute_energy_j),
             ("relative energy tolerance", relative_energy),
+            ("absolute mass tolerance", absolute_mass_kg),
+            ("relative mass tolerance", relative_mass),
         ] {
             if !value.is_finite() || value < 0.0 {
                 return Err(EnergyVerificationError::InvalidTolerance { name, value });
@@ -54,6 +60,8 @@ impl EnergyVerificationTolerance {
             relative_power,
             absolute_energy_j,
             relative_energy,
+            absolute_mass_kg,
+            relative_mass,
         })
     }
 
@@ -63,6 +71,10 @@ impl EnergyVerificationTolerance {
 
     fn allowed_energy_error(self, expected: f64) -> f64 {
         self.absolute_energy_j.max(self.relative_energy * expected.abs())
+    }
+
+    fn allowed_mass_error(self, expected: f64) -> f64 {
+        self.absolute_mass_kg.max(self.relative_mass * expected.abs())
     }
 }
 
@@ -327,21 +339,19 @@ pub fn verify_batch_bound_duty_cycle(
         }
     }
 
-    push_check(
-        &mut checks,
-        None,
-        "total duration",
-        duration_seconds as f64,
-        result.total_duration_seconds() as f64,
-        tolerance.allowed_energy_error(duration_seconds as f64),
-    )?;
+    if duration_seconds != result.total_duration_seconds() {
+        return Err(EnergyVerificationError::DurationMismatch {
+            expected_seconds: duration_seconds,
+            observed_seconds: result.total_duration_seconds(),
+        });
+    }
     push_check(
         &mut checks,
         None,
         "total fuel mass",
         fuel_mass_kg,
         result.total_fuel_mass_kg(),
-        tolerance.allowed_energy_error(fuel_mass_kg),
+        tolerance.allowed_mass_error(fuel_mass_kg),
     )?;
     push_check(
         &mut checks,
@@ -470,6 +480,10 @@ pub enum EnergyVerificationError {
         duration_seconds: i64,
     },
     DurationOverflow,
+    DurationMismatch {
+        expected_seconds: i64,
+        observed_seconds: i64,
+    },
     MissingEvidenceIdentity {
         segment_id: String,
     },
@@ -501,6 +515,13 @@ impl fmt::Display for EnergyVerificationError {
                 "segment {segment_id} has invalid duration {duration_seconds} seconds"
             ),
             Self::DurationOverflow => write!(f, "total verification duration overflowed"),
+            Self::DurationMismatch {
+                expected_seconds,
+                observed_seconds,
+            } => write!(
+                f,
+                "integrated duration mismatch: expected {expected_seconds} seconds, observed {observed_seconds}"
+            ),
             Self::MissingEvidenceIdentity { segment_id } => {
                 write!(f, "segment {segment_id} has incomplete batch/flow evidence identity")
             }
@@ -607,7 +628,7 @@ mod tests {
     }
 
     fn tolerance() -> EnergyVerificationTolerance {
-        EnergyVerificationTolerance::new(1e-9, 1e-12, 1e-6, 1e-12).unwrap()
+        EnergyVerificationTolerance::new(1e-9, 1e-12, 1e-6, 1e-12, 1e-12, 1e-12).unwrap()
     }
 
     #[test]
@@ -617,7 +638,7 @@ mod tests {
 
         assert!(report.passed(), "{:?}", report.failed_checks().collect::<Vec<_>>());
         assert_eq!(report.segment_count(), 2);
-        assert_eq!(report.check_count(), 25);
+        assert_eq!(report.check_count(), 24);
         assert_eq!(report.batch_ids(), &["BATCH-1", "BATCH-2"]);
         assert_eq!(report.flow_evidence_ids(), &["FLOW-SEG-1", "FLOW-SEG-2"]);
     }
@@ -626,15 +647,24 @@ mod tests {
     fn detects_tolerance_that_is_too_strict_for_quantized_results() {
         let result = cycle();
         let strict =
-            EnergyVerificationTolerance::new(0.0, 0.0, 0.0, 0.0).unwrap();
+            EnergyVerificationTolerance::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0).unwrap();
         let report = verify_batch_bound_duty_cycle(&result, strict).unwrap();
         assert!(report.passed());
     }
 
     #[test]
     fn rejects_non_finite_or_negative_verifier_tolerance() {
-        assert!(EnergyVerificationTolerance::new(-1.0, 0.0, 0.0, 0.0).is_err());
-        assert!(EnergyVerificationTolerance::new(0.0, f64::NAN, 0.0, 0.0).is_err());
-        assert!(EnergyVerificationTolerance::new(0.0, 0.0, 0.0, f64::INFINITY).is_err());
+        assert!(
+            EnergyVerificationTolerance::new(-1.0, 0.0, 0.0, 0.0, 0.0, 0.0).is_err()
+        );
+        assert!(
+            EnergyVerificationTolerance::new(0.0, f64::NAN, 0.0, 0.0, 0.0, 0.0).is_err()
+        );
+        assert!(
+            EnergyVerificationTolerance::new(0.0, 0.0, 0.0, 0.0, -1.0, 0.0).is_err()
+        );
+        assert!(
+            EnergyVerificationTolerance::new(0.0, 0.0, 0.0, 0.0, 0.0, f64::INFINITY).is_err()
+        );
     }
 }
