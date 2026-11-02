@@ -176,12 +176,16 @@ mod tests {
     fn evaluation_retains_batch_and_flow_provenance() {
         let batch = fuel_batch();
         let (engine, generator) = models();
-        let evaluation = evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator)
-            .unwrap();
+        let evaluation =
+            evaluate_fuel_batch(&batch, flow(Some(0.0001)), engine, generator).unwrap();
 
         assert_eq!(evaluation.fuel_batch().batch_id(), "DIESEL-BATCH-001");
         assert_eq!(
-            evaluation.fuel_batch().lower_heating_value().evidence().source_id(),
+            evaluation
+                .fuel_batch()
+                .lower_heating_value()
+                .evidence()
+                .source_id(),
             "LAB-LHV-001"
         );
         assert_eq!(
@@ -189,8 +193,7 @@ mod tests {
             "LAB-FLOW-001"
         );
         assert!(
-            (evaluation.result().generator.net_electrical_power.get() - 180_000.0).abs()
-                < 1e-9
+            (evaluation.result().generator.net_electrical_power.get() - 180_000.0).abs() < 1e-9
         );
     }
 
