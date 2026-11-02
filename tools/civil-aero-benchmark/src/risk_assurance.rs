@@ -777,11 +777,11 @@ mod tests {
         );
         let mut observations = passing_observations(&context);
         observations.push(EvidenceObservation {
-            gate: EvidenceGate::PhysicalConfirmation,
-            status: EvidenceStatus::Unknown,
-            source_reference: String::new(),
-            source_sha256: String::new(),
-            rationale: "physical coupon evidence has not been generated".to_owned(),
+            gate: EvidenceGate::CoupledDisciplineConsistency,
+            status: EvidenceStatus::Passed,
+            source_reference: "supplemental-coupled-discipline-report".to_owned(),
+            source_sha256: "b".repeat(64),
+            rationale: String::new(),
         });
         let report = evaluate_claim_assurance(&context, &observations)
             .expect("evaluate evidence policy");
