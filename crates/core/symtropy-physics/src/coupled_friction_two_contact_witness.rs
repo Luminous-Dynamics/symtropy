@@ -2746,8 +2746,7 @@ mod double_sliding_direction_oracle {
         );
     }
 
-    fn asymmetric_dyadic_double_slide_polynomials() -> ExactDoubleSlidePolynomials {
-        const SCALE: i128 = 1_048_576;
+    fn asymmetric_dyadic_double_slide_inputs() -> ([[i128; 6]; 6], [i128; 6]) {
         let flattened_w = [
             380_770_i128,
             -33_295,
@@ -2796,6 +2795,12 @@ mod double_sliding_direction_oracle {
             7_075_809,
             1_695_813,
         ];
+        (w, q)
+    }
+
+    fn asymmetric_dyadic_double_slide_polynomials() -> ExactDoubleSlidePolynomials {
+        const SCALE: i128 = 1_048_576;
+        let (w, q) = asymmetric_dyadic_double_slide_inputs();
         build_exact_double_slide_polynomials(w, q, [1_956_059, 380_758], SCALE)
     }
 
@@ -2962,6 +2967,199 @@ mod double_sliding_direction_oracle {
 
         assert!(sensitivities[0].1.lower > sensitivities[1].1.upper);
         assert!(sensitivities[0].2.lower > sensitivities[1].2.upper);
+    }
+
+    #[test]
+    fn both_certified_double_slide_branches_have_full_six_coordinate_input_sensitivity_maps() {
+        const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
+        const COMMON_DENOMINATOR: i128 = 1_048_576;
+
+        let (w, q) = asymmetric_dyadic_double_slide_inputs();
+        let base =
+            build_exact_double_slide_polynomials(w, q, FRICTION_NUMERATORS, COMMON_DENOMINATOR);
+
+        // The exact direction equations are affine in all six free-velocity
+        // numerators. Form each exact partial derivative as G(q+e_i)-G(q),
+        // then falsify the affine contract with doubled and mixed increments.
+        let direction_equations: [[BivariateIntegerPolynomial; 2]; 6] =
+            std::array::from_fn(|coordinate| {
+                let mut shifted_q = q;
+                shifted_q[coordinate] = shifted_q[coordinate]
+                    .checked_add(1)
+                    .expect("unit input perturbation fits i128");
+                let shifted = build_exact_double_slide_polynomials(
+                    w,
+                    shifted_q,
+                    FRICTION_NUMERATORS,
+                    COMMON_DENOMINATOR,
+                );
+                [
+                    shifted
+                        .tangential_equation_1
+                        .sub(base.tangential_equation_1),
+                    shifted
+                        .tangential_equation_2
+                        .sub(base.tangential_equation_2),
+                ]
+            });
+
+        for coordinate in 0..6 {
+            let mut twice_q = q;
+            twice_q[coordinate] = twice_q[coordinate]
+                .checked_add(2)
+                .expect("two-unit input perturbation fits i128");
+            let twice = build_exact_double_slide_polynomials(
+                w,
+                twice_q,
+                FRICTION_NUMERATORS,
+                COMMON_DENOMINATOR,
+            );
+            assert_eq!(
+                twice.tangential_equation_1,
+                base.tangential_equation_1
+                    .add(direction_equations[coordinate][0].scale(2)),
+                "G1 must be exactly affine in q[{coordinate}]"
+            );
+            assert_eq!(
+                twice.tangential_equation_2,
+                base.tangential_equation_2
+                    .add(direction_equations[coordinate][1].scale(2)),
+                "G2 must be exactly affine in q[{coordinate}]"
+            );
+        }
+        for left in 0..6 {
+            for right in (left + 1)..6 {
+                let mut mixed_q = q;
+                mixed_q[left] += 1;
+                mixed_q[right] += 1;
+                let mixed = build_exact_double_slide_polynomials(
+                    w,
+                    mixed_q,
+                    FRICTION_NUMERATORS,
+                    COMMON_DENOMINATOR,
+                );
+                assert_eq!(
+                    mixed.tangential_equation_1,
+                    base.tangential_equation_1
+                        .add(direction_equations[left][0])
+                        .add(direction_equations[right][0]),
+                    "G1 must have no mixed q[{left}]/q[{right}] term"
+                );
+                assert_eq!(
+                    mixed.tangential_equation_2,
+                    base.tangential_equation_2
+                        .add(direction_equations[left][1])
+                        .add(direction_equations[right][1]),
+                    "G2 must have no mixed q[{left}]/q[{right}] term"
+                );
+            }
+        }
+
+        let denominator = BigInt::from(1_000_000_000_000_000_i128);
+        let centers = [
+            [
+                BigRational::new(
+                    BigInt::from(2_044_412_562_120_879_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-233_602_787_384_141_i128), denominator.clone()),
+            ],
+            [
+                BigRational::new(
+                    BigInt::from(2_054_286_197_054_429_i128),
+                    denominator.clone(),
+                ),
+                BigRational::new(BigInt::from(-227_603_740_377_268_i128), denominator),
+            ],
+        ];
+        let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
+
+        // One 2x6 matrix per root box. Every entry is an exact rational
+        // interval obtained by the implicit equation dt/dq = -G_t^-1 G_q.
+        let branch_sensitivities: [[[RationalInterval; 2]; 6]; 2] = std::array::from_fn(|branch| {
+            let certificate = certify_exact_double_slide_root_box(
+                &base,
+                centers[branch].clone(),
+                radius.clone(),
+                FRICTION_NUMERATORS,
+                COMMON_DENOMINATOR,
+            )
+            .expect("each physical double-slide branch has a Krawczyk certificate");
+            let domain = &certificate.domain;
+            let equations = [&base.tangential_equation_1, &base.tangential_equation_2];
+            let jacobian = [
+                [
+                    equations[0]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[0]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+                [
+                    equations[1]
+                        .partial_t1()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                    equations[1]
+                        .partial_t2()
+                        .evaluate_interval(&domain[0], &domain[1]),
+                ],
+            ];
+            let determinant = jacobian[0][0]
+                .mul(&jacobian[1][1])
+                .sub(&jacobian[0][1].mul(&jacobian[1][0]));
+            assert!(
+                determinant.excludes_zero(),
+                "the branch Jacobian must remain nonsingular on its certified box"
+            );
+
+            std::array::from_fn(|coordinate| {
+                let parameter_derivative = [
+                    direction_equations[coordinate][0].evaluate_interval(&domain[0], &domain[1]),
+                    direction_equations[coordinate][1].evaluate_interval(&domain[0], &domain[1]),
+                ];
+                let dt1_numerator = jacobian[1][1]
+                    .mul(&parameter_derivative[0])
+                    .sub(&jacobian[0][1].mul(&parameter_derivative[1]))
+                    .neg();
+                let dt2_numerator = jacobian[0][0]
+                    .mul(&parameter_derivative[1])
+                    .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
+                    .neg();
+                [
+                    dt1_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt1/dq enclosure"),
+                    dt2_numerator
+                        .div(&determinant)
+                        .expect("nonsingular interval Jacobian gives dt2/dq enclosure"),
+                ]
+            })
+        });
+
+        // Every free-velocity coordinate changes both direction parameters
+        // strictly on both certified branches. The nearby roots have opposite
+        // local orientation in every column, so averaging their sensitivities
+        // would erase real branch structure. Derivatives are with respect to
+        // the exact integer q numerators; physical-q derivatives are scaled by
+        // the positive common denominator, leaving these signs unchanged.
+        for (coordinate, (branch_a, branch_b)) in branch_sensitivities[0]
+            .iter()
+            .zip(branch_sensitivities[1].iter())
+            .enumerate()
+        {
+            for (sensitivity_a, sensitivity_b) in branch_a.iter().zip(branch_b.iter()) {
+                if coordinate == 0 {
+                    assert!(sensitivity_a.is_strictly_negative());
+                    assert!(sensitivity_b.is_strictly_positive());
+                    assert!(sensitivity_a.upper < sensitivity_b.lower);
+                } else {
+                    assert!(sensitivity_a.is_strictly_positive());
+                    assert!(sensitivity_b.is_strictly_negative());
+                    assert!(sensitivity_b.upper < sensitivity_a.lower);
+                }
+            }
+        }
     }
 
     fn trim_big_integer_polynomial_vector(coefficients: &mut Vec<BigIntegerPolynomial>) {
