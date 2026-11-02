@@ -2524,3 +2524,127 @@ fn nary_separator_cartesian_count_uses_checked_multiplication() {
     assert_eq!(nary_cartesian_product_size(&[usize::MAX, 2]), None);
     assert_eq!(nary_cartesian_product_size(&[]), Some(1));
 }
+
+
+#[test]
+fn nary_separator_join_reclassifies_parent_boundary_on_final_intersections() {
+    let root = SeparatorImpulseBox::new(
+        SVector::<f64, 3>::new(1.0, -0.5, -0.5),
+        SVector::<f64, 3>::new(5.0, 0.5, 0.5),
+    )
+    .unwrap();
+    let transition_message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.0, 0.0)),
+        free_velocity: SVector::<f64, 3>::new(1.125, 0.0, 0.0),
+    };
+    let coarse = transition_message.partition_separator_box(&root, 1, 32).unwrap();
+    let refined = transition_message.partition_separator_box(&root, 3, 128).unwrap();
+
+    // The coarse left parent spans [1,3] and is boundary/inconclusive.
+    assert_eq!(
+        coarse
+            .cells
+            .iter()
+            .find(|cell| cell.lineage == vec![0])
+            .unwrap()
+            .classification,
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+
+    // A third source is strictly separating throughout the shared domain.
+    let constant_message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::zeros(),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.0, 0.0),
+    };
+    let constant = constant_message.partition_separator_box(&root, 1, 16).unwrap();
+
+    let sources = [
+        NarySeparatorPartitionSource {
+            source_id: 10,
+            message: &transition_message,
+            partition: &coarse,
+        },
+        NarySeparatorPartitionSource {
+            source_id: 20,
+            message: &transition_message,
+            partition: &refined,
+        },
+        NarySeparatorPartitionSource {
+            source_id: 30,
+            message: &constant_message,
+            partition: &constant,
+        },
+    ];
+    let composed = compose_nary_separator_partitions(&sources).unwrap();
+
+    // Coarse parent [1,3] intersects refined strict box [1,2].
+    // Reclassification on the final intersection upgrades source 10
+    // from boundary to strict; all three local hypotheses are now strict.
+    let strict = composed
+        .cells
+        .iter()
+        .find(|cell| {
+            cell.source_lineages[0] == vec![0]
+                && cell.source_lineages[1] == vec![0, 0]
+        })
+        .expect("strict parent/fine-cell intersection must be retained");
+    assert!(strict.separator_box.upper[0] <= 2.0);
+    assert_eq!(
+        strict.source_classifications,
+        vec![
+            SeparatingBoxClassification::StrictlySeparating,
+            SeparatingBoxClassification::StrictlySeparating,
+            SeparatingBoxClassification::StrictlySeparating,
+        ]
+    );
+    assert_eq!(
+        strict.classification,
+        ComposedSeparatorClassification::AllLocalHypothesesStrict
+    );
+
+    // The same coarse boundary parent intersects a refined box wholly beyond
+    // the transition, so both source messages strictly defeat separation.
+    let excluded = composed
+        .cells
+        .iter()
+        .find(|cell| {
+            cell.source_lineages[0] == vec![0]
+                && cell.source_lineages[1] == vec![0, 1, 1]
+        })
+        .expect("excluded parent/fine-cell intersection must be retained");
+    assert!(excluded.separator_box.lower[0] >= 2.5);
+    assert_eq!(
+        excluded.source_classifications[0],
+        SeparatingBoxClassification::SignoriniViolation
+    );
+    assert_eq!(
+        excluded.source_classifications[1],
+        SeparatingBoxClassification::SignoriniViolation
+    );
+    assert_eq!(
+        excluded.classification,
+        ComposedSeparatorClassification::LocalHypothesisExcluded
+    );
+
+    // The interval that still straddles the transition remains unresolved.
+    let boundary = composed
+        .cells
+        .iter()
+        .find(|cell| {
+            cell.source_lineages[0] == vec![0]
+                && cell.source_lineages[1] == vec![0, 1, 0]
+        })
+        .expect("transition-crossing intersection must be retained");
+    assert!(boundary.separator_box.lower[0] < 2.25);
+    assert!(boundary.separator_box.upper[0] > 2.25);
+    assert_eq!(
+        boundary.source_classifications[0],
+        SeparatingBoxClassification::BoundaryOrInconclusive
+    );
+    assert_eq!(
+        boundary.classification,
+        ComposedSeparatorClassification::BoundaryOrInconclusive
+    );
+
+    assert!(verify_nary_separator_composition(&sources, &composed));
+}
