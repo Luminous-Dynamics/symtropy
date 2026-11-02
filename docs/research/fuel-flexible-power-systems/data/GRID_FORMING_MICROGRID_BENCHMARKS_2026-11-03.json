@@ -1,0 +1,578 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "luminous.grid-forming-microgrid-test-matrix.2026-11-03",
+  "status": "research_test_matrix_not_certification",
+  "accessed_at": "2026-11-03",
+  "intended_use": "Reusable HIL and physical-test planning matrix for grid-forming converter and microgrid systems. Exact acceptance thresholds must be set by the selected published standard, interconnection agreement and mission specification.",
+  "comparison_policy": [
+    "A topology may claim only the operating modes it has actually tested.",
+    "Grid-following behavior does not establish grid-forming capability.",
+    "Black-start requires starting from a declared dead-bus state without external grid supply, including required auxiliaries.",
+    "A component pass does not establish microgrid-controller, protection or system-level pass.",
+    "Simulation/HIL results must be labelled as such and kept separate from physical hardware test receipts.",
+    "No universal voltage, frequency, ROCOF, THD or recovery limits are invented by this catalogue.",
+    "All test thresholds must cite the applicable standard edition, utility interconnection agreement or mission acceptance criteria.",
+    "Record waveform sample rates, instrument calibration, measurement point, configuration SHA and uncertainty."
+  ],
+  "sources": [
+    {
+      "source_id": "NREL_GFM_91714_2024",
+      "title": "Performance Evaluation of a Single-Phase Grid-Forming Inverter Through Hardware Experiments",
+      "publication_id": "NREL/PR-5D00-91714",
+      "published_at": "2024-10-22",
+      "uri": "https://www.nrel.gov/docs/fy25osti/91714.pdf",
+      "evidence_class": "national_laboratory_hardware_test_protocol",
+      "notes": "Research test protocol and example inverter results. Its scenario matrix is a reproducible test-design reference, not universal standards acceptance limits."
+    },
+    {
+      "source_id": "NREL_BLACK_START",
+      "title": "Black Start research",
+      "publisher": "National Laboratory of the Rockies (formerly NREL)",
+      "uri": "https://www.nrel.gov/grid/black-start",
+      "evidence_class": "national_laboratory_research",
+      "notes": "Black start definition and inverter-based resource research context. Confirm current organization name and page wording before external reuse."
+    },
+    {
+      "source_id": "IEEE_2030_7_2017",
+      "title": "IEEE Std 2030.7-2017 — Specification of Microgrid Controllers",
+      "uri": "https://standards.ieee.org/ieee/2030.7/5941/",
+      "evidence_class": "published_standard_reference",
+      "status": "published_edition"
+    },
+    {
+      "source_id": "IEEE_P2030_7",
+      "title": "IEEE P2030.7 — revision project",
+      "uri": "https://standards.ieee.org/ieee/2030.7/12022/",
+      "evidence_class": "active_standard_revision_project",
+      "status": "active_project_not_published_replacement"
+    },
+    {
+      "source_id": "IEEE_2030_8_2018",
+      "title": "IEEE Std 2030.8-2018 — Testing of Microgrid Controllers",
+      "uri": "https://standards.ieee.org/ieee/2030.8/6169/",
+      "evidence_class": "published_standard_reference",
+      "status": "published_edition"
+    },
+    {
+      "source_id": "IEEE_P2030_8",
+      "title": "IEEE P2030.8 — revision project",
+      "uri": "https://standards.ieee.org/ieee/2030.8/12543/",
+      "evidence_class": "active_standard_revision_project",
+      "status": "active_project_not_published_replacement"
+    },
+    {
+      "source_id": "IEEE_2030_12_2025",
+      "title": "IEEE Std 2030.12-2025 — Guide for Design of Microgrid Protection Systems",
+      "uri": "https://standards.ieee.org/ieee/2030.12/7398/",
+      "evidence_class": "published_standard_reference",
+      "status": "published_edition"
+    },
+    {
+      "source_id": "IEEE_P3710_1",
+      "title": "IEEE P3710.1 — DC distribution systems for data centres, 300–1500 V",
+      "uri": "https://standards.ieee.org/ieee/3710.1/12521/",
+      "evidence_class": "active_standard_project",
+      "status": "active_project_not_published_standard"
+    },
+    {
+      "source_id": "OCP_DC_DISTRIBUTION",
+      "title": "Open Compute Project Data Center Facility Power Distribution",
+      "uri": "https://www.opencompute.org/projects/data-center-facility/power-distribution/",
+      "evidence_class": "open_industry_specification_and_white_paper_workstream",
+      "notes": "LVDC architecture, energy storage, protection, hot-swap and sequencing work. Not a statutory standard."
+    },
+    {
+      "source_id": "IEA_STATE_OF_ENERGY_INNOVATION_2026",
+      "title": "The State of Energy Innovation 2026",
+      "uri": "https://www.iea.org/reports/the-state-of-energy-innovation-2026",
+      "evidence_class": "international_agency_research_review",
+      "notes": "Grid-forming inverter development, deployments and interoperability/standards maturity."
+    }
+  ],
+  "test_groups": [
+    {
+      "group_id": "GFM-STEADY-001",
+      "name": "Steady-state P/Q and regulation",
+      "purpose": "Characterize grid-forming source output and regulation across the declared load and power-factor envelope.",
+      "source_ids": [
+        "NREL_GFM_91714_2024",
+        "IEEE_2030_7_2017"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-STEADY-PF-01",
+          "name": "unity power factor load sweep",
+          "load_percent": [
+            5,
+            10,
+            25,
+            50,
+            75,
+            100
+          ],
+          "power_factor": 1,
+          "power_factor_sign": "unity",
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_rms",
+            "frequency",
+            "THD",
+            "auxiliary_power"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-STEADY-PF-02",
+          "name": "lagging power factor load sweep",
+          "load_percent": [
+            5,
+            10,
+            25,
+            50,
+            75,
+            100
+          ],
+          "power_factor": 0.8,
+          "power_factor_sign": "lagging",
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_rms",
+            "frequency",
+            "current",
+            "THD",
+            "temperature"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-STEADY-PF-03",
+          "name": "leading power factor load sweep",
+          "load_percent": [
+            5,
+            10,
+            25,
+            50,
+            75,
+            100
+          ],
+          "power_factor": 0.8,
+          "power_factor_sign": "leading",
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_rms",
+            "frequency",
+            "current",
+            "THD",
+            "temperature"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-TRANSIENT-001",
+      "name": "Load steps, overload and source disturbances",
+      "purpose": "Measure voltage/frequency stability, recovery, current limiting and transient service continuity.",
+      "source_ids": [
+        "NREL_GFM_91714_2024"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-STEP-01",
+          "name": "0 to 50 percent rated load",
+          "step_from_percent": 0,
+          "step_to_percent": 50,
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_waveform",
+            "frequency",
+            "current",
+            "recovery_time",
+            "unserved_energy"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-STEP-02",
+          "name": "50 to 100 percent rated load",
+          "step_from_percent": 50,
+          "step_to_percent": 100,
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_waveform",
+            "frequency",
+            "current",
+            "recovery_time",
+            "unserved_energy"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-STEP-03",
+          "name": "0 to 100 percent rated load",
+          "step_from_percent": 0,
+          "step_to_percent": 100,
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage_waveform",
+            "frequency",
+            "current",
+            "recovery_time",
+            "unserved_energy"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-OVERLOAD-01",
+          "name": "150 percent overload research case",
+          "overload_percent": 150,
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "current",
+            "voltage",
+            "frequency",
+            "trip_time",
+            "thermal_state"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "NREL study matrix example; do not infer that every product must support 150 percent."
+        },
+        {
+          "test_id": "GFM-SOURCE-LOSS-01",
+          "name": "loss of parallel generator or largest source",
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "P",
+            "Q",
+            "voltage",
+            "frequency",
+            "ROCOF",
+            "critical_load_service",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-BLACKSTART-001",
+      "name": "Black start and staged load restoration",
+      "purpose": "Prove the system can energize a defined dead bus and restore critical loads with all required auxiliaries included.",
+      "source_ids": [
+        "NREL_GFM_91714_2024",
+        "NREL_BLACK_START"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-BS-01",
+          "name": "dead bus energization",
+          "test_type": "physical_required_for_product_claim",
+          "preconditions": [
+            "utility/grid isolated",
+            "declared starting energy available on site",
+            "all required auxiliaries within declared boundary",
+            "protection and emergency stop active"
+          ],
+          "measured_channels": [
+            "start_energy",
+            "time_to_voltage",
+            "time_to_critical_load",
+            "voltage_waveform",
+            "frequency",
+            "inrush_current",
+            "failed_start_count"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-BS-02",
+          "name": "transformer energization / magnetizing inrush",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "inrush_current",
+            "voltage_nadir",
+            "frequency_nadir",
+            "recovery_time",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-BS-03",
+          "name": "staged critical load pickup",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "load_pickup_fraction",
+            "restoration_timeline",
+            "unserved_energy",
+            "voltage",
+            "frequency",
+            "reserve_margin"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-ISLAND-001",
+      "name": "Islanding, synchronization and reconnection",
+      "purpose": "Prove controlled transitions and stable standalone operation.",
+      "source_ids": [
+        "NREL_GFM_91714_2024",
+        "IEEE_2030_8_2018"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-ISLAND-01",
+          "name": "planned islanding",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "transition_time",
+            "unserved_energy",
+            "voltage",
+            "frequency",
+            "ROCOF",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-ISLAND-02",
+          "name": "unplanned islanding / point-of-connection loss",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "transition_time",
+            "unserved_energy",
+            "voltage",
+            "frequency",
+            "ROCOF",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-ISLAND-03",
+          "name": "synchronization and reconnection",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "phase_angle_difference",
+            "voltage_difference",
+            "frequency_difference",
+            "sync_time",
+            "reclose_transient",
+            "breaker_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-MULTI-001",
+      "name": "Multi-asset / multi-vendor interactions",
+      "purpose": "Expose oscillations, circulating currents and controller interactions that single-device tests miss.",
+      "source_ids": [
+        "IEA_STATE_OF_ENERGY_INNOVATION_2026",
+        "IEEE_2030_8_2018"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-MULTI-01",
+          "name": "synchronous generator plus grid-forming inverter",
+          "test_type": "HIL_required",
+          "measured_channels": [
+            "P_share_error",
+            "Q_share_error",
+            "circulating_current",
+            "voltage",
+            "frequency",
+            "oscillation_modes"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-MULTI-02",
+          "name": "grid-forming plus grid-following converters",
+          "test_type": "HIL_required",
+          "measured_channels": [
+            "P_share_error",
+            "Q_share_error",
+            "impedance_interaction",
+            "harmonics",
+            "oscillation_modes"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-MULTI-03",
+          "name": "multiple grid-forming converters with heterogeneous vendors",
+          "test_type": "HIL_required",
+          "measured_channels": [
+            "P_share_error",
+            "Q_share_error",
+            "circulating_current",
+            "stability_margin",
+            "communication_fault_response"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-PROTECTION-001",
+      "name": "Protection and degraded-control behavior",
+      "purpose": "Validate coordination when inverter fault current is limited and remote controls fail.",
+      "source_ids": [
+        "IEEE_2030_12_2025",
+        "IEEE_P3710_1"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-PROT-01",
+          "name": "grid-connected and islanded protection coordination",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "fault_current",
+            "fault_direction",
+            "relay_trip_time",
+            "selectivity",
+            "false_trip_count",
+            "missed_trip_count"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-PROT-02",
+          "name": "low fault-current inverter source",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "fault_current_peak",
+            "fault_current_duration",
+            "relay_sensitivity",
+            "breaker_trip",
+            "protection_coordination"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "GFM-CYBER-01",
+          "name": "lost communications / stale or replayed control command",
+          "test_type": "HIL_required",
+          "measured_channels": [
+            "local_protection_state",
+            "command_age",
+            "authentication_result",
+            "safe_fallback_time",
+            "unauthorized_switching_count"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "DC-BUS-001",
+      "name": "DC-native bus service interface",
+      "purpose": "Test customer-load delivery at the declared DC bus rather than forcing all systems through an AC terminal.",
+      "source_ids": [
+        "IEEE_P3710_1",
+        "OCP_DC_DISTRIBUTION"
+      ],
+      "cases": [
+        {
+          "test_id": "DC-BUS-01",
+          "name": "DC bus steady-state regulation and ripple",
+          "test_type": "HIL_or_physical",
+          "measured_channels": [
+            "bus_voltage",
+            "bus_current",
+            "DC_power",
+            "ripple",
+            "insulation_state",
+            "auxiliary_power"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "DC-BUS-02",
+          "name": "DC fault detection, selective isolation and restore",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "fault_current",
+            "fault_detection_time",
+            "isolation_time",
+            "adjacent_bus_sag",
+            "restore_time",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "DC-BUS-03",
+          "name": "pre-charge, hot-swap and source transition",
+          "test_type": "HIL_then_physical",
+          "measured_channels": [
+            "inrush_current",
+            "precharge_time",
+            "bus_sag",
+            "contactor_events",
+            "unserved_energy"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        }
+      ]
+    }
+  ],
+  "result_receipt_required": [
+    "test_case_id and profile version",
+    "topology / hardware / firmware / control configuration digest",
+    "grid / load / source impedance and point-of-connection definition",
+    "HIL or physical test evidence class",
+    "instrument calibration IDs and measurement uncertainty",
+    "raw waveform digests and test procedure revision",
+    "acceptance threshold source and exact edition/agreement",
+    "per-channel result and failure modes",
+    "independent reviewer and claim ceiling"
+  ],
+  "non_claims": [
+    "This matrix does not set universal performance thresholds.",
+    "It is not a substitute for licensed IEEE standards, local utility interconnection requirements or competent protection engineering.",
+    "A HIL/simulation pass is not a physical product qualification.",
+    "No equipment is authorized for energized construction or operation by this dataset."
+  ]
+}
