@@ -63,7 +63,9 @@ pub struct MetricFailure {
 
 impl MetricFailure {
     fn new(reason: ReasonCode) -> Self {
-        Self { reasons: vec![reason] }
+        Self {
+            reasons: vec![reason],
+        }
     }
 
     fn from_reasons(mut reasons: Vec<ReasonCode>) -> Self {
@@ -90,7 +92,10 @@ pub fn tripod_coordination_strength(
     intervals: [SwingInterval; 3],
     metric_id: TcsMetricId,
 ) -> Result<TcsScore, MetricFailure> {
-    if intervals.iter().any(|interval| interval.end_tick <= interval.start_tick) {
+    if intervals
+        .iter()
+        .any(|interval| interval.end_tick <= interval.start_tick)
+    {
         return Err(MetricFailure::new(ReasonCode::InvalidSwingInterval));
     }
 
@@ -176,10 +181,7 @@ pub fn median_tcs(scores: &[TcsScore]) -> Result<(TcsMetricId, f64), MetricFailu
 /// phase-estimation method, sampling interval and preprocessing must be bound
 /// separately in the experiment manifest. It must not be substituted for a
 /// paper-specific PLV implementation without confirming formula equivalence.
-pub fn phase_vector_strength(
-    phase_a: &[f64],
-    phase_b: &[f64],
-) -> Result<f64, MetricFailure> {
+pub fn phase_vector_strength(phase_a: &[f64], phase_b: &[f64]) -> Result<f64, MetricFailure> {
     if phase_a.is_empty() || phase_b.is_empty() {
         return Err(MetricFailure::new(ReasonCode::EmptyPhaseSeries));
     }
@@ -224,7 +226,10 @@ mod tests {
     use super::*;
 
     fn swing(start_tick: u64, end_tick: u64) -> SwingInterval {
-        SwingInterval { start_tick, end_tick }
+        SwingInterval {
+            start_tick,
+            end_tick,
+        }
     }
 
     #[test]
@@ -252,8 +257,8 @@ mod tests {
     #[test]
     fn natvar_and_sapkal_definitions_keep_distinct_denominators() {
         let intervals = [swing(0, 10), swing(2, 12), swing(4, 14)];
-        let natvar = tripod_coordination_strength(intervals, TcsMetricId::NatVar2024)
-            .expect("NatVar score");
+        let natvar =
+            tripod_coordination_strength(intervals, TcsMetricId::NatVar2024).expect("NatVar score");
         let sapkal = tripod_coordination_strength(intervals, TcsMetricId::Sapkal2026V2)
             .expect("Sapkal score");
         assert_eq!(natvar.overlap_ticks, 6);
@@ -336,7 +341,11 @@ mod tests {
     fn tcs_handles_large_tick_values_without_integer_overflow() {
         let base = u64::MAX - 100;
         let score = tripod_coordination_strength(
-            [swing(base, base + 20), swing(base + 5, base + 25), swing(base + 10, base + 30)],
+            [
+                swing(base, base + 20),
+                swing(base + 5, base + 25),
+                swing(base + 10, base + 30),
+            ],
             TcsMetricId::NatVar2024,
         )
         .expect("bounded tick differences");
@@ -437,15 +446,15 @@ mod tests {
 
     #[test]
     fn phase_vector_strength_rejects_length_mismatch() {
-        let error = phase_vector_strength(&[0.0, 1.0], &[0.0])
-            .expect_err("different phase lengths");
+        let error =
+            phase_vector_strength(&[0.0, 1.0], &[0.0]).expect_err("different phase lengths");
         assert!(error.contains(ReasonCode::PhaseLengthMismatch));
     }
 
     #[test]
     fn phase_vector_strength_rejects_non_finite_phase() {
-        let error = phase_vector_strength(&[0.0, f64::NAN], &[0.0, 1.0])
-            .expect_err("non-finite phase");
+        let error =
+            phase_vector_strength(&[0.0, f64::NAN], &[0.0, 1.0]).expect_err("non-finite phase");
         assert!(error.contains(ReasonCode::NonFinitePhase));
     }
 
