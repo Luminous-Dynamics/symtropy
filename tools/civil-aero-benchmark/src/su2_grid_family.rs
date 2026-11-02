@@ -780,7 +780,7 @@ mod tests {
         let geometry = shared.join("geometry.dat");
         fs::write(
             &config,
-            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
+            "SOLVER= NAVIER_STOKES\nCONV_FIELD= RMS_DENSITY\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\nTIME_DOMAIN= YES\nWINDOW_CAUCHY_CRIT= YES\nCONV_WINDOW_FIELD= (TAVG_DRAG, TAVG_LIFT)\nWINDOW_START_ITER= 10\nCONV_WINDOW_STARTITER= 10\nCONV_WINDOW_CAUCHY_ELEMS= 6\nCONV_WINDOW_CAUCHY_EPS= 1E-3\nWINDOW_FUNCTION= SQUARE\nMESH_FILENAME= mesh.su2\nMARKER_HEATFLUX= (wall, 0.0)\nMARKER_MONITORING= (wall)\n",
         )
         .expect("write physics config");
         fs::write(&geometry, "synthetic fixed geometry identity\n").expect("write geometry");
@@ -789,20 +789,20 @@ mod tests {
         let solver = r#"#!/bin/sh
 set -eu
 if [ "${1:-}" = "-d" ]; then
-  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
+  printf '%s\n' 'Available screen/history output fields for the current configuration:' 'Iteration' 'CL' 'CD' 'TAVG_DRAG' 'TAVG_LIFT' 'RMS_DENSITY' 'RMS_MOMENTUM-X'
   exit 0
 fi
-printf '"Iteration","CL","CD","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
-printf '0,0.42310,%s,-1,-1\n' "$GRID_CD" >> history.csv
-printf '10,0.42310,%s,-2,-2\n' "$GRID_CD" >> history.csv
-printf '20,0.42310,%s,-6.0,-6.0\n' "$GRID_CD" >> history.csv
-printf '30,0.42310,%s,-6.4,-6.4\n' "$GRID_CD" >> history.csv
-printf '40,0.42310,%s,-6.8,-6.8\n' "$GRID_CD" >> history.csv
-printf '50,0.42310,%s,-7.2,-7.2\n' "$GRID_CD" >> history.csv
-printf '60,0.42310,%s,-7.6,-7.6\n' "$GRID_CD" >> history.csv
-printf '70,0.42310,%s,-8.0,-8.0\n' "$GRID_CD" >> history.csv
+printf '"Iteration","CL","CD","TAVG_DRAG","TAVG_LIFT","RMS_DENSITY","RMS_MOMENTUM-X"\n' > history.csv
+printf '0,0.42310,%s,%s,0.42310,-1,-1\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '10,0.42310,%s,%s,0.42310,-2,-2\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '20,0.42310,%s,%s,0.42310,-6.0,-6.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '30,0.42310,%s,%s,0.42310,-6.4,-6.4\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '40,0.42310,%s,%s,0.42310,-6.8,-6.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '50,0.42310,%s,%s,0.42310,-7.2,-7.2\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '60,0.42310,%s,%s,0.42310,-7.6,-7.6\n' "$GRID_CD" "$GRID_CD" >> history.csv
+printf '70,0.42310,%s,%s,0.42310,-8.0,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
-printf 'synthetic solver stdout\n'
+printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
@@ -817,6 +817,8 @@ printf 'synthetic solver stdout\n'
                 "Iteration".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
                 "RMS_DENSITY".to_owned(),
                 "RMS_MOMENTUM-X".to_owned(),
             ],
@@ -828,6 +830,14 @@ printf 'synthetic solver stdout\n'
                 },
                 Su2HistoryField {
                     column: "CD".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "TAVG_DRAG".to_owned(),
+                    unit: "dimensionless".to_owned(),
+                },
+                Su2HistoryField {
+                    column: "TAVG_LIFT".to_owned(),
                     unit: "dimensionless".to_owned(),
                 },
                 Su2HistoryField {
@@ -855,7 +865,7 @@ printf 'synthetic solver stdout\n'
                     },
                 })
                 .collect(),
-            monitors: ["CL", "CD"]
+            monitors: ["CL", "CD", "TAVG_DRAG", "TAVG_LIFT"]
                 .into_iter()
                 .map(|column| MonitorCriterion {
                     column: column.to_owned(),
@@ -907,6 +917,8 @@ printf 'synthetic solver stdout\n'
                 "Iteration".to_owned(),
                 "CL".to_owned(),
                 "CD".to_owned(),
+                "TAVG_DRAG".to_owned(),
+                "TAVG_LIFT".to_owned(),
                 "RMS_DENSITY".to_owned(),
                 "RMS_MOMENTUM-X".to_owned(),
             ];
@@ -1035,8 +1047,21 @@ printf 'synthetic solver stdout\n'
             additional_output_paths: &member.additional_output_paths,
             lineage_binding: &member.lineage_binding,
         };
+        assert!(matches!(
+            &member.field_preflight.convergence_protocol.window,
+            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+                fields,
+                window_start_iter: 10,
+                convergence_start_iter: 10,
+                cauchy_elements: 6,
+                cauchy_epsilon,
+                window_function,
+            } if fields == &vec!["TAVG_DRAG".to_owned(), "TAVG_LIFT".to_owned()]
+                && cauchy_epsilon == "1E-3"
+                && window_function == "SQUARE"
+        ));
         let bundle = create_su2_verified_run_bundle(&bundle_inputs)
-            .expect("compose dry-run and production run evidence");
+            .expect("compose steady and time-window dry-run and production run evidence");
         crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(
             &bundle_inputs,
             &bundle,
@@ -1080,6 +1105,25 @@ printf 'synthetic solver stdout\n'
                 crate::su2_run_binding::binding_to_csv(&member.lineage_binding),
             )
             .expect("write production lineage");
+            let preflight_oracle = std::process::Command::new("python3")
+                .arg(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/scripts/verify-su2-field-preflight-independent.py"
+                ))
+                .arg(&member.dry_run_directory)
+                .arg(&preflight_csv)
+                .output()
+                .expect("execute independent SU2 multi-mode preflight oracle");
+            assert!(
+                preflight_oracle.status.success(),
+                "independent preflight oracle failed: {}",
+                String::from_utf8_lossy(&preflight_oracle.stderr)
+            );
+            assert!(
+                String::from_utf8_lossy(&preflight_oracle.stdout)
+                    .contains("window_enabled=True")
+            );
+
             let oracle = std::process::Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),

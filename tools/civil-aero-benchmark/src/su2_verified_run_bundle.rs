@@ -22,9 +22,9 @@ use crate::su2_run_binding::{
     Su2RunInputBindings, Su2RunLineageBinding, verify_su2_run_lineage_binding,
 };
 
-pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.1.0";
+pub const SU2_VERIFIED_RUN_BUNDLE_SCHEMA: &str = "su2-verified-run-bundle/0.2.0";
 pub const SU2_VERIFIED_RUN_BUNDLE_EVIDENCE_LEVEL: &str =
-    "replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
+    "replayed_dry_run_multi_field_protocol_and_native_solver_termination_classification_bound_to_production_history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated";
 
 /// A resource value is either grounded in a named measurement source or explicitly unavailable.
 /// In particular, unknown resource telemetry is never encoded as zero.
@@ -164,6 +164,8 @@ pub struct Su2VerifiedRunBundleReport {
     pub history_import_sha256: String,
     pub convergence_screen_sha256: String,
     pub lineage_binding_sha256: String,
+    pub termination_classification: String,
+    pub termination_sha256: String,
     pub resource_evidence: Su2ResourceEvidence,
     pub resource_evidence_sha256: String,
     pub status: String,
@@ -248,6 +250,8 @@ fn canonical_bytes(report: &Su2VerifiedRunBundleReport) -> Vec<u8> {
         report.history_import_sha256.as_str(),
         report.convergence_screen_sha256.as_str(),
         report.lineage_binding_sha256.as_str(),
+        report.termination_classification.as_str(),
+        report.termination_sha256.as_str(),
         report.resource_evidence_sha256.as_str(),
         report.status.as_str(),
         report.evidence_level.as_str(),
@@ -265,6 +269,7 @@ fn is_sha256(value: &str) -> bool {
 fn validate_preflight_covers_history(
     preflight: &Su2FieldPreflightReport,
     history: &Su2HistoryReport,
+    screen: &ConvergenceScreen,
 ) -> Result<(), String> {
     let mut imported = BTreeSet::new();
     imported.insert(history.iteration_column.as_str());
@@ -295,6 +300,47 @@ fn validate_preflight_covers_history(
             "field preflight does not discover every field consumed by the history importer"
                 .to_owned(),
         );
+    }
+
+    let mut active_convergence_fields = preflight
+        .convergence_protocol
+        .steady_fields
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let mut window_fields = BTreeSet::new();
+    if let crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+        fields,
+        ..
+    } = &preflight.convergence_protocol.window
+    {
+        window_fields.extend(fields.iter().map(String::as_str));
+        active_convergence_fields.extend(window_fields.iter().copied());
+    }
+    for field in active_convergence_fields {
+        if !imported.contains(field) || !required.contains(field) {
+            return Err(format!(
+                "configured SU2 convergence field {field} is not required and imported from production history"
+            ));
+        }
+        let criterion = screen.results.iter().find(|row| row.column == field);
+        let Some(criterion) = criterion else {
+            return Err(format!(
+                "configured SU2 convergence field {field} has no independent post-run screen criterion"
+            ));
+        };
+        if criterion.status != crate::su2_convergence_screen::CriterionStatus::Passed {
+            return Err(format!(
+                "configured SU2 convergence field {field} did not pass its independent post-run screen"
+            ));
+        }
+        if window_fields.contains(field)
+            && criterion.kind != "monitor_terminal_range_mean_drift_and_slope"
+        {
+            return Err(format!(
+                "time-window field {field} must have an independent terminal monitor-stability screen"
+            ));
+        }
     }
     Ok(())
 }
@@ -340,12 +386,22 @@ pub fn create_su2_verified_run_bundle(
         inputs.additional_output_paths,
         lineage,
     )?;
-    validate_preflight_covers_history(preflight, history)?;
+    validate_preflight_covers_history(preflight, history, screen)?;
 
     let dry_run_receipt = read_external_solver_receipt(inputs.dry_run_directory)?;
     verify_external_solver_receipt(inputs.dry_run_directory, &dry_run_receipt)?;
     let production_receipt = read_external_solver_receipt(inputs.production_run_directory)?;
     verify_external_solver_receipt(inputs.production_run_directory, &production_receipt)?;
+    let termination = crate::su2_termination::classify_su2_termination(
+        inputs.production_run_directory,
+        preflight,
+    )?;
+    if !termination.is_converged_for_protocol() {
+        return Err(format!(
+            "native SU2 termination is not converged for the declared protocol: {}",
+            termination.classification
+        ));
+    }
 
     if dry_run_receipt.solver_id != "SU2_CFD_DRY_RUN"
         || !dry_run_receipt.is_process_success()
@@ -390,8 +446,29 @@ pub fn create_su2_verified_run_bundle(
         || history.runner_receipt_sha256() != production_receipt.receipt_sha256
         || history.executable_sha256() != production_receipt.executable_sha256
         || screen.runner_receipt_sha256 != production_receipt.receipt_sha256
+        || termination.runner_receipt_sha256 != production_receipt.receipt_sha256
+        || termination.run_id != production_receipt.run_id
+        || termination.executable_sha256 != production_receipt.executable_sha256
     {
-        return Err("production receipt, history, screen and lineage identities differ".to_owned());
+        return Err("production receipt, history, screen, termination and lineage identities differ".to_owned());
+    }
+    let expected_termination_mode = match (
+        preflight.convergence_protocol.time_domain,
+        &preflight.convergence_protocol.window,
+    ) {
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => "steady",
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            "time_window"
+        }
+        (true, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled) => {
+            "unsteady_no_window"
+        }
+        (false, crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. }) => {
+            return Err("time-window convergence is incompatible with TIME_DOMAIN=NO".to_owned());
+        }
+    };
+    if termination.mode != expected_termination_mode {
+        return Err("native solver termination mode differs from declared convergence protocol".to_owned());
     }
     if screen.status != "declared_thresholds_met"
         || screen.failed_count != 0
@@ -428,6 +505,8 @@ pub fn create_su2_verified_run_bundle(
         history_import_sha256: history.import_sha256().to_owned(),
         convergence_screen_sha256: screen.screen_sha256.clone(),
         lineage_binding_sha256: lineage.binding_sha256.clone(),
+        termination_classification: termination.classification.clone(),
+        termination_sha256: termination.termination_sha256.clone(),
         resource_evidence,
         resource_evidence_sha256,
         status: "run_identity_preflight_boundary_history_and_declared_screen_replayed".to_owned(),
@@ -517,6 +596,8 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         report.history_import_sha256.clone(),
         report.convergence_screen_sha256.clone(),
         report.lineage_binding_sha256.clone(),
+        report.termination_classification.clone(),
+        report.termination_sha256.clone(),
     ];
     for measure in measures {
         fields.extend([measure.0, measure.1, measure.2, measure.3, measure.4]);
@@ -533,6 +614,7 @@ pub fn report_to_csv(report: &Su2VerifiedRunBundleReport) -> String {
         "physics_configuration_sha256", "geometry_sha256", "mesh_sha256",
         "field_preflight_sha256", "boundary_audit_sha256", "history_sha256",
         "history_import_sha256", "convergence_screen_sha256", "lineage_binding_sha256",
+        "termination_classification", "termination_sha256",
         "wall_time_status", "wall_time_value", "wall_time_unit", "wall_time_method", "wall_time_source_uncertainty",
         "cpu_status", "cpu_value", "cpu_unit", "cpu_method", "cpu_source_uncertainty",
         "peak_memory_status", "peak_memory_value", "peak_memory_unit", "peak_memory_method", "peak_memory_source_uncertainty",
