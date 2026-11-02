@@ -38,7 +38,6 @@ pub struct ExcavationMetrics {
     pub accepted_volume_fraction: f64,
 }
 
-#[must_use]
 pub fn derive_excavation_metrics(
     segment: &ExcavationSegment,
 ) -> Result<ExcavationMetrics, MetricError> {
@@ -100,7 +99,6 @@ pub struct CutterWearRate {
     pub radial_loss_micrometres: u64,
 }
 
-#[must_use]
 pub fn derive_cutter_wear_rate(
     interval: &CutterWearInterval,
 ) -> Result<CutterWearRate, MetricError> {
