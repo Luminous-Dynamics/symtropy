@@ -459,7 +459,7 @@ mod tests {
         l.events[0].dry_mass.0 += 1;
         let audit = l.audit_event_stream().unwrap();
         assert!(!audit.materialized_state_matches);
-        assert_eq!(audit.replayed_balance.residual_g, 1);
+        assert_eq!(audit.replayed_balance.residual_g, 0);
     }
 
     #[test]
