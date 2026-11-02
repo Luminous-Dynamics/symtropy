@@ -382,6 +382,14 @@ Add a separate application profile, not an uncorrected universal derating factor
 
 A South African scenario may not be populated with guessed local fuel prices, grid emission factors or environmental averages. Use dated sources and preserve unknowns.
 
+For electricity consumption, the DFFE published the **South Africa 2024 Grid Emission Factors Report** as Government Notice 7891 on 11 September 2026. The versioned [data register](data/SOUTH_AFRICA_GRID_EMISSION_FACTORS_2024_PUBLISHED_2026-09-11.json) and [schema](data/SOUTH_AFRICA_GRID_EMISSION_FACTORS_SCHEMA_2026-11-03.json) preserve the four distinct boundaries:
+- NGGEF 0.960 tCO2e/MWh: national end-user consumption / location-based Scope 2 factor;
+- DGGEF 0.994 tCO2e/MWh: domestic generation boundary, not the customer consumption factor and not a fuel-specific onsite engine factor;
+- TLGEF 0.021 and DLGEF 0.071 tCO2e/MWh: transmission/distribution loss factors for the applicable Scope 3 boundary. For a distribution-fed facility, DFFE says both apply; a directly transmission-fed facility has a different boundary.
+- DFFE's residual imported-electricity factor is 0.244 tCO2e/MWh after excluding South Africa, HCB and LEC hydro generation; it is not a general substitute for NGGEF.
+
+The report uses 2024 calendar-year data, was published in 2026, and states an approximately two-year data lag. Do not present it as a real-time 2026 grid signal or forecast. It applies IPCC Second Assessment Report GWPs in its calculation. Do not add T&D factors twice or use them for onsite self-generation where DFFE says those losses are negligible.
+
 **National listed-activity screening note (2026-11-02):** the consolidated NEMA: Air Quality Act listed-activities text identifies Subcategory 1.5 as liquid- and gas-fuel stationary reciprocating engines used for electricity generation, with an application threshold of at least 10 MW thermal input per unit (LHV basis). This is a heat-input threshold, not electrical output. The provisional 50–250 kWe demonstrator is expected to be materially smaller, but do not infer a blanket exemption from this note. Verify the currently operative Gazette/consolidated notice, any provincial MEC-listed activities, municipal air-quality requirements, site-specific approvals, fuel storage and fire requirements, electrical installation rules, occupational safety and noise obligations with the relevant authorities before procurement or operation. A threshold screen does not confer operating permission.
 
 ## 11. Decision outputs
