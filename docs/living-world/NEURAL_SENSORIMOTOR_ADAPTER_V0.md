@@ -284,6 +284,34 @@ Do not force one universal three-neuron core across every dataset. The published
 
 The reproduction should also retain the paper's separate evidence classes: DNg100 model screening and intensity prediction, DNg100 stimulation experiments in headless flies, and DNb08 optogenetic confirmation are different observations and must not be pooled.
 
+### Central/peripheral coordination comparator: preserve the preprint boundary
+
+Sapkal et al., *Central versus peripheral neural control of a coordinated walking pattern in Drosophila*, bioRxiv 2026.04.29.721658 v2 (preprint), DOI https://doi.org/10.64898/2026.04.29.721658, reports evidence for local CPG modules in each leg, proprioceptive/load feedback shaping intra-leg stepping, and central coupling plus proprioceptive and descending inputs modulating inter-leg coordination. In tested conditions, substrate contact and proprioceptive feedback help restore stronger coordination; co-stimulation of DNg100 with other descending neurons changes stepping frequency.
+
+This is a complementary preprint comparator, not a peer-reviewed result and not a replication of Pugliese et al. Its proposed five-neuron kinematics-guided motif must not be assumed to be identical to, nested within, or an updated name for Pugliese's three-neuron E1/E2/I1 rhythm core. Verify exact source cell IDs and edges before making any correspondence claim.
+
+This study suggests an additional controlled matrix:
+- reduced proprioceptive feedback versus intact feedback;
+- no substrate/contact versus substrate/contact;
+- DNg100 alone versus separately declared DNg97/DNg75/MDN or co-stimulation conditions;
+- per-leg local phase/frequency versus inter-leg coordination (phase-locking value and tripod coordination strength);
+- contact/load feedback contribution to intra-leg step-cycle shape.
+
+Preserve each study's exact genotype, sensory-deprivation protocol, contact condition, cell identity, connectome snapshot, sample size, stimulus and analysis. No direct code reproduction is assumed; the preprint states code will be made available after publication.
+
+### Existing industry baseline: CPG + rules + sensory feedback already exists
+
+NeuroMechFly v2 is already a strong baseline and prevents a false novelty claim. Its 2024 paper and documentation expose:
+- a coupled-oscillator CPG controller that can synchronize to a tripod gait;
+- a decentralized, local rule-based controller;
+- a hybrid CPG plus sensory-feedback controller that corrects stumbling/overstretch and is more robust on complex terrain;
+- mechanosensory access to joint angles, actuator forces and contact forces;
+- higher-level vision/olfaction/RL navigation and connectome-constrained visual processing.
+
+Therefore, "CPG plus proprioception" is not the differentiator by itself. Symtropy's research claim should be tested as the incremental value of **source-grounded connectome-constrained circuit dynamics + persistent ANIMA individual state + real body/contact feedback**, compared against NeuroMechFly's hand-designed CPG/rule/hybrid, learned recurrent and utility/PID baselines under matched observations, bodies, physics, tasks, hardware and compute.
+
+FlyGym 2.0 was rewritten in March/April 2026 and reports roughly 10× CPU and 250–300× GPU simulation speedups depending on the official page/release. Pin the exact v2 API/release; it is not backward compatible with v1. Treat its throughput as a measured reference, not a promise Symtropy will exceed it.
+
 ### Calibration and identifiability: do not fit behaviour alone
 
 Two 2026 preprints reinforce an important methodological constraint:
