@@ -90,7 +90,6 @@ fn add_total(total: &mut u128, value: u128) -> Result<(), PowerError> {
 /// Firm supply serves critical loads first, then flexible loads. A battery covers
 /// the remaining deficit subject to both inverter power and remaining stored energy
 /// above reserve. No future intervals are consulted.
-#[must_use]
 pub fn evaluate_campaign(
     loads: &[LoadInterval],
     supplies: &[SupplyInterval],
