@@ -406,3 +406,29 @@ The same study reports tank-included gravimetric energy densities: MGO 10.1 MWh/
 These are **study-specific tank-system references**, not universal tank design properties. [MARAD's December 2024 Energy Efficiency and Alternative Fuels Technical Guide](https://www.maritime.dot.gov/sites/marad.dot.gov/files/2025-03/Energy%20Eff.%20and%20Alt.%20Fuels%20Technical%20Guide%20-%202024.pdf) separately estimates tank volume at ~7.6× MGO for liquid hydrogen, ~4× for ammonia and ~2.3× for methanol; it gives ammonia volumetric LHV of 12.7 MJ/L. The older MARAD 2022 guide reports ~4.1× MGO for ammonia, while a Nordic technology report gives 7.2 MJ/L for ammonia in a 20-bar tank. These assumptions must remain separate rather than being averaged because tank pressure, temperature, insulation, containment and reference boundaries differ.
 
 For maritime design, fuel choice affects cargo capacity, endurance, hull arrangement, tank mass, bunker frequency, safety spacing and port compatibility. Optimize delivered tonne-nautical-mile and retained payload, not engine efficiency alone. The reference data exclude some vessel-specific structure, piping, ventilation, bunkering and safety systems; detailed naval architecture and hazard engineering remain required.
+
+
+## 17. Fuel flexibility is a validated operating envelope, not a fuel count
+
+A fuel counts as supported only for an exact hardware configuration and evidenced operating envelope. A label such as "hydrogen capable", "multi-fuel" or "biodiesel compatible" is not sufficient.
+
+For every fuel/configuration pair, freeze:
+- batch-property ranges and composition, with source, units and uncertainty;
+- exact conditioning/storage train and engine/combustion hardware;
+- cold/hot start behavior, load map and minimum stable load;
+- emissions across the applicable duty cycle;
+- material, seal, lubricity, oxidation and corrosion compatibility;
+- transient response and derating;
+- transition procedure, purge/flush requirements, cross-contamination and transition fuel use;
+- durability / inspection interval and maintenance burden;
+- safety case, fuel supply availability and certification scope.
+
+Report a **flexibility vector**, never one opaque scalar:
+1. **Validated Fuel Envelope Coverage:** fraction of a preregistered, rights-cleared fuel-batch distribution inside a physically tested and independently reviewed operating envelope. Report by fuel, batch property and supply region. Uncharacterized batches do not count as supported.
+2. **Robust FFER:** median, 5th percentile and worst validated matched-duty-cycle efficiency retention across tested batches, with uncertainty. Do not report only a mean.
+3. **Fuel Transition Reliability:** successful safe transitions / attempts, confidence interval, transition time, unserved power and transition fuel use. Do not assume instantaneous switching.
+4. **Flexibility Overhead:** incremental capital cost, mass, volume, parasitic energy, maintenance hours and spare-parts burden versus the best fuel-specific reference.
+5. **Fuel Supply Resilience:** service hours/days under frozen regional supply-disruption scenarios, using dated/provenanced availability evidence.
+6. **Compliance Envelope:** configuration- and jurisdiction-specific emissions/safety/approval receipts. Planned fuel testing remains planned, not qualified.
+
+A candidate advances only if it expands validated coverage or reduces flexibility overhead without degrading useful service, emissions, safety, durability or lifecycle performance.
