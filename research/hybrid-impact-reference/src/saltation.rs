@@ -103,9 +103,7 @@ pub fn point_impact_saltation(
     if !(0.0..=1.0).contains(&restitution) {
         return Err(SaltationError::RestitutionOutOfRange);
     }
-    if !finite(minimum_transversality_speed_m_s)
-        || minimum_transversality_speed_m_s < 0.0
-    {
+    if !finite(minimum_transversality_speed_m_s) || minimum_transversality_speed_m_s < 0.0 {
         return Err(SaltationError::InvalidTransversalityThreshold);
     }
 
@@ -117,8 +115,7 @@ pub fn point_impact_saltation(
         return Err(SaltationError::NonIncomingVelocity);
     }
 
-    let post_impact_velocity_m_s =
-        finite_or_error(-restitution * pre_impact_velocity_m_s)?;
+    let post_impact_velocity_m_s = finite_or_error(-restitution * pre_impact_velocity_m_s)?;
     let post_impact_mode = if is_zero_restitution(restitution) {
         PostImpactMode::PersistentContact
     } else {
@@ -302,8 +299,7 @@ mod tests {
     }
     #[test]
     fn saltation_transforms_covariantly_under_length_and_time_unit_changes() {
-        let base = point_impact_saltation(-2.0, 2.0, 0.5, 0.0)
-            .expect("base transversal impact");
+        let base = point_impact_saltation(-2.0, 2.0, 0.5, 0.0).expect("base transversal impact");
         let length_scale = 100.0;
         let time_scale = 10.0;
         let velocity_scale = length_scale / time_scale;
@@ -343,5 +339,4 @@ mod tests {
             1.0e-14,
         );
     }
-
 }
