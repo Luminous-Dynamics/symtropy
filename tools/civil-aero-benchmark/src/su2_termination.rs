@@ -15,12 +15,14 @@ use crate::su2_field_preflight::{
     Su2FieldPreflightReport, Su2WindowConvergenceProtocol,
 };
 
-pub const SU2_TERMINATION_SCHEMA: &str = "su2-native-termination-evidence/0.1.0";
+pub const SU2_TERMINATION_SCHEMA: &str = "su2-native-termination-evidence/0.2.0";
 pub const SU2_TERMINATION_EVIDENCE_LEVEL: &str =
-    "receipt_bound_su2_solver_exit_reason_and_native_criterion_summary_from_exact_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
+    "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
 
 const INTERRUPTED: &str =
     "Interrupt signal received, exiting before the convergence criteria were satisfied.";
+const SIGNAL_INTERRUPT_PREFIX: &str = "Interrupt signal (";
+const SIGNAL_INTERRUPT_SUFFIX: &str = ") received, saving files and exiting.";
 const STEADY_SUCCESS: &str = "All convergence criteria satisfied.";
 const WINDOW_SUCCESS: &str =
     "All windowed time-averaged convergence criteria are fullfilled.";
@@ -207,6 +209,50 @@ fn exit_section(text: &str) -> Result<&str, String> {
     Ok(&text[positions[0]..])
 }
 
+/// Detect the signal-handler line from the complete receipt-bound log, not only the
+/// later Solver Exit section. SU2 prints this line before its driver-specific exit summary.
+fn signal_interrupt_message(full_log: &str) -> Result<Option<String>, String> {
+    for raw_line in full_log.lines() {
+        let line = raw_line.trim();
+        if let Some(signal_text) = line.strip_prefix(SIGNAL_INTERRUPT_PREFIX) {
+            let Some((signal_number, trailing)) = signal_text.split_once(SIGNAL_INTERRUPT_SUFFIX) else {
+                return Err("SU2 signal-handler output has an unrecognized termination message".to_owned());
+            };
+            if signal_number.is_empty()
+                || !signal_number.bytes().all(|byte| byte.is_ascii_digit())
+                || !trailing.trim().is_empty()
+            {
+                return Err("SU2 signal-handler output has an invalid signal number or trailing text".to_owned());
+            }
+            return Ok(Some(line.to_owned()));
+        }
+    }
+    Ok(None)
+}
+
+fn classify_full_log(
+    full_log: &str,
+    exit_summary: &str,
+    protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
+) -> Result<(String, String, Vec<Su2NativeCriterionResult>, Vec<String>), String> {
+    if let Some(signal_message) = signal_interrupt_message(full_log)? {
+        let mode = if !protocol.time_domain {
+            "steady"
+        } else if matches!(&protocol.window, Su2WindowConvergenceProtocol::Enabled { .. }) {
+            "time_window"
+        } else {
+            "unsteady_no_window"
+        };
+        return Ok((
+            mode.to_owned(),
+            "interrupted".to_owned(),
+            Vec::new(),
+            vec![signal_message],
+        ));
+    }
+    classify_exit_section(exit_summary, protocol)
+}
+
 fn classify_exit_section(
     section: &str,
     protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
@@ -353,7 +399,7 @@ pub fn classify_su2_termination(
     }
 
     let (mode, classification, native_criteria, terminal_messages) =
-        classify_exit_section(section, &preflight.convergence_protocol)?;
+        classify_full_log(&combined, section, &preflight.convergence_protocol)?;
 
 
     let mut report = Su2TerminationReport {
@@ -506,6 +552,62 @@ mod tests {
         assert_eq!(classification, "unsupported_unsteady_termination_protocol");
         assert!(criteria.is_empty());
         assert!(messages.is_empty());
+    }
+
+    #[test]
+    fn scheduler_sigterm_before_window_success_is_always_interrupted() {
+        let full_log = concat!(
+            "SU2 startup output\\n",
+            "Interrupt signal (15) received, saving files and exiting.\\n",
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\\n",
+            "-------------------------------------------------------------------------\\n",
+        );
+        let section = exit_section(full_log).expect("find Solver Exit section");
+        let (_, classification, criteria, messages) =
+            classify_full_log(full_log, section, &window_protocol())
+                .expect("classify scheduler signal");
+        assert_eq!(classification, "interrupted");
+        assert!(criteria.is_empty());
+        assert_eq!(
+            messages,
+            vec!["Interrupt signal (15) received, saving files and exiting."]
+        );
+    }
+
+    #[test]
+    fn malformed_scheduler_signal_output_is_not_ignored() {
+        let full_log = concat!(
+            "Interrupt signal (fifteen) received, saving files and exiting.\\n",
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\\n",
+            "-------------------------------------------------------------------------\\n",
+        );
+        let section = exit_section(full_log).expect("find Solver Exit section");
+        assert!(
+            classify_full_log(full_log, section, &window_protocol())
+                .expect_err("malformed signal output must reject")
+                .contains("invalid signal number")
+        );
+    }
+
+    #[test]
+    fn steady_signal_handler_line_before_exit_section_overrides_success() {
+        let full_log = concat!(
+            "Interrupt signal (15) received, saving files and exiting.\\n",
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All convergence criteria satisfied.\\n",
+            "| Convergence Field | Value | Criterion | Converged |\\n",
+            "| CAUCHY_DRAG | 1.0e-12 | < 1.0e-10 | Yes |\\n",
+            "| RMS_DENSITY | -9.0 | < -8.0 | Yes |\\n",
+            "-------------------------------------------------------------------------\\n",
+        );
+        let section = exit_section(full_log).expect("find Solver Exit section");
+        let (_, classification, criteria, _) =
+            classify_full_log(full_log, section, &steady_protocol())
+                .expect("classify scheduler signal");
+        assert_eq!(classification, "interrupted");
+        assert!(criteria.is_empty());
     }
 
     #[test]
