@@ -127,6 +127,94 @@ impl StickingLeafMessage {
     }
 }
 
+/// A leaf restricted to the strict separating regime p_leaf = 0.
+#[derive(Clone, Debug)]
+struct SeparatingLeafMessage {
+    /// B in the block partition W = [[C, B], [B^T, A]].
+    separator_coupling: Matrix3<f64>,
+    free_velocity: SVector<f64, 3>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SeparatingLeafClassification {
+    /// p_n = 0 and u_n is strictly positive beyond the declared tolerance.
+    StrictlySeparating,
+    /// p_n = 0 and u_n is zero or indistinguishable from zero at this tolerance.
+    /// This is a boundary stratum, not a strict separating branch.
+    BoundaryWithinTolerance,
+    /// p_n = 0 but u_n is strictly negative: this separating regime is invalid.
+    SignoriniViolation,
+}
+
+#[derive(Clone, Debug)]
+struct SeparatingLeafResponse {
+    impulse: SVector<f64, 3>,
+    post_velocity: SVector<f64, 3>,
+    classification: SeparatingLeafClassification,
+    normal_velocity_margin: f64,
+}
+
+impl SeparatingLeafMessage {
+    /// A strict separating leaf has p_leaf = 0, so it contributes no
+    /// separator impulse, no Schur fill, and no free-velocity correction.
+    fn schur_terms(&self) -> Result<(Matrix3<f64>, SVector<f64, 3>), &'static str> {
+        if !self
+            .separator_coupling
+            .iter()
+            .all(|value| value.is_finite())
+            || !self.free_velocity.iter().all(|value| value.is_finite())
+        {
+            return Err("separating leaf message contains invalid or non-finite data");
+        }
+        Ok((Matrix3::zeros(), SVector::<f64, 3>::zeros()))
+    }
+
+    /// Evaluate the separating response at one separator impulse.
+    ///
+    /// The local post-contact velocity is u_L = q_L + B^T p_S because
+    /// p_L=0. Its normal component determines whether this regime is strict,
+    /// boundary-only, or violates Signorini. Tangential velocity is retained
+    /// for the original-system replay, but the zero-radius Coulomb disk forces
+    /// the tangential impulse to zero.
+    fn response_at(
+        &self,
+        separator_impulse: &SVector<f64, 3>,
+        tolerance: f64,
+    ) -> Result<SeparatingLeafResponse, &'static str> {
+        if !tolerance.is_finite()
+            || tolerance <= 0.0
+            || !separator_impulse.iter().all(|value| value.is_finite())
+        {
+            return Err("separating leaf response received invalid or non-finite input");
+        }
+        let (operator_contribution, free_velocity_contribution) = self.schur_terms()?;
+        debug_assert_eq!(operator_contribution, Matrix3::zeros());
+        debug_assert_eq!(free_velocity_contribution, SVector::<f64, 3>::zeros());
+
+        let post_velocity =
+            self.free_velocity + self.separator_coupling.transpose() * separator_impulse;
+        let velocity_scale = (self.free_velocity.norm()
+            + self.separator_coupling.norm() * separator_impulse.norm())
+        .max(f64::MIN_POSITIVE);
+        let normal_tolerance = tolerance * velocity_scale * 500.0;
+        let normal_velocity = post_velocity[0];
+        let classification = if normal_velocity > normal_tolerance {
+            SeparatingLeafClassification::StrictlySeparating
+        } else if normal_velocity < -normal_tolerance {
+            SeparatingLeafClassification::SignoriniViolation
+        } else {
+            SeparatingLeafClassification::BoundaryWithinTolerance
+        };
+
+        Ok(SeparatingLeafResponse {
+            impulse: SVector::<f64, 3>::zeros(),
+            post_velocity,
+            classification,
+            normal_velocity_margin: normal_velocity,
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 struct StarCandidate {
     impulse: Vector9,
@@ -139,11 +227,7 @@ struct StarCandidate {
     leaf_disk_margins: [f64; 2],
 }
 
-fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
-    // Four translational bodies A/B/C/D, each with mass 2 I. The three
-    // contacts are (B,C), (A,B), and (C,D), so contact 0 is the separator
-    // and contacts 1/2 are leaves. Shared-body Jacobian support creates the
-    // two separator/leaf blocks; the leaf-to-leaf block is structurally zero.
+fn star_contact_jacobian() -> Jacobian9x12 {
     let mut jacobian = Jacobian9x12::zeros();
     for axis in 0..3 {
         // Separator contact 0: v_B - v_C.
@@ -156,7 +240,15 @@ fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
         jacobian[(axis + 6, axis + 6)] = 1.0;
         jacobian[(axis + 6, axis + 9)] = -1.0;
     }
+    jacobian
+}
 
+fn star_body_generated_fixture(first_leaf_tangent: f64) -> (Matrix9, Vector9) {
+    // Four translational bodies A/B/C/D, each with mass 2 I. The three
+    // contacts are (B,C), (A,B), and (C,D), so contact 0 is the separator
+    // and contacts 1/2 are leaves. Shared-body Jacobian support creates the
+    // two separator/leaf blocks; the leaf-to-leaf block is structurally zero.
+    let jacobian = star_contact_jacobian();
     let inverse_mass = Matrix12::identity() * 0.5;
     let w = jacobian * inverse_mass * jacobian.transpose();
     let free_body_velocity = Vector12::from_row_slice(&[
@@ -457,6 +549,166 @@ fn sticking_leaf_message_returns_affine_schur_terms_and_a_local_admissibility_re
     );
     assert!((reduced_q[0] + 0.375).abs() < 1.0e-12);
     assert!((reduced_q[1] + 0.03125).abs() < 1.0e-12);
+}
+
+#[test]
+fn separating_leaf_message_preserves_strict_boundary_and_signorini_strata() {
+    let message = SeparatingLeafMessage {
+        separator_coupling: Matrix3::from_diagonal(&SVector::<f64, 3>::new(-0.5, 0.25, 0.25)),
+        free_velocity: SVector::<f64, 3>::new(1.0, 0.125, -0.25),
+    };
+    let separator_inside = SVector::<f64, 3>::new(1.0, -0.5, 0.0);
+    let strict = message.response_at(&separator_inside, TOLERANCE).unwrap();
+    assert_eq!(
+        strict.classification,
+        SeparatingLeafClassification::StrictlySeparating
+    );
+    assert!((strict.normal_velocity_margin - 0.5).abs() < 1.0e-12);
+    assert_eq!(strict.impulse, SVector::<f64, 3>::zeros());
+    assert!((strict.post_velocity[1] - 0.0).abs() < 1.0e-12);
+    assert!((strict.post_velocity[2] + 0.25).abs() < 1.0e-12);
+
+    // Moving the separator normal impulse to 2 reaches u_n=0 exactly.
+    // The contact remains complementarity-admissible, but is not a strict
+    // separating branch and must be retained as a boundary stratum.
+    let separator_boundary = SVector::<f64, 3>::new(2.0, -0.5, 0.0);
+    let boundary = message.response_at(&separator_boundary, TOLERANCE).unwrap();
+    assert_eq!(
+        boundary.classification,
+        SeparatingLeafClassification::BoundaryWithinTolerance
+    );
+    assert!(boundary.normal_velocity_margin.abs() <= 1.0e-12);
+    assert_eq!(boundary.impulse, SVector::<f64, 3>::zeros());
+
+    // Beyond the boundary, p_n=0 yields a strict Signorini violation.
+    let separator_outside = SVector::<f64, 3>::new(3.0, -0.5, 0.0);
+    let outside = message.response_at(&separator_outside, TOLERANCE).unwrap();
+    assert_eq!(
+        outside.classification,
+        SeparatingLeafClassification::SignoriniViolation
+    );
+    assert!(outside.normal_velocity_margin < -0.49);
+    assert_eq!(outside.impulse, SVector::<f64, 3>::zeros());
+
+    let (schur_operator, schur_free_velocity) = message.schur_terms().unwrap();
+    assert_eq!(schur_operator, Matrix3::zeros());
+    assert_eq!(schur_free_velocity, SVector::<f64, 3>::zeros());
+
+    assert!(message.response_at(&separator_inside, 0.0).is_err());
+    assert!(
+        message
+            .response_at(&SVector::<f64, 3>::new(f64::NAN, 0.0, 0.0), TOLERANCE)
+            .is_err()
+    );
+}
+
+#[test]
+fn one_sticking_and_one_separating_leaf_reduce_to_sliding_separator() {
+    // Four-body chain A-B-C-D, with v_A=(-1/2,-1/4,0),
+    // v_B=(0,0,0), v_C=(0,-1,0), v_D=(-1,-1,0).
+    // Derive both W and q from the same body-level J/M/v_free construction.
+    let jacobian = star_contact_jacobian();
+    let inverse_mass = Matrix12::identity() * 0.5;
+    let w = jacobian * inverse_mass * jacobian.transpose();
+    let free_body_velocity = Vector12::from_row_slice(&[
+        -0.5, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, -1.0, 0.0,
+    ]);
+    let q = jacobian * free_body_velocity;
+
+    let block = |row_offset: usize, column_offset: usize| {
+        Matrix3::from_fn(|row, column| w[(row + row_offset, column + column_offset)])
+    };
+    let vector = |offset: usize| SVector::<f64, 3>::new(q[offset], q[offset + 1], q[offset + 2]);
+    let separator_block = block(0, 0);
+
+    let sticking = StickingLeafMessage {
+        self_operator: block(3, 3),
+        separator_coupling: block(0, 3),
+        free_velocity: vector(3),
+        friction_coefficient: FRICTION,
+    };
+    let separating = SeparatingLeafMessage {
+        separator_coupling: block(0, 6),
+        free_velocity: vector(6),
+    };
+
+    // The sticking leaf contributes its Schur terms. The separating leaf
+    // contributes exactly zero because its impulse is identically zero.
+    let (sticking_w, sticking_q) = sticking.schur_terms().unwrap();
+    let (separating_w, separating_q) = separating.schur_terms().unwrap();
+    let effective_operator = separator_block - sticking_w - separating_w;
+    let effective_free_velocity = vector(0) - sticking_q - separating_q;
+    assert!((effective_operator - Matrix3::identity() * 0.75).norm() < 1.0e-12);
+    assert!((effective_free_velocity - SVector::<f64, 3>::new(-0.25, 0.875, 0.0)).norm() < 1.0e-12);
+
+    let reduced = solve_coupled_signorini_coulomb(
+        &effective_operator,
+        &effective_free_velocity,
+        FRICTION,
+        TOLERANCE,
+    )
+    .unwrap();
+    assert_eq!(reduced.candidates.len(), 1);
+    let separator = &reduced.candidates[0];
+    assert_eq!(separator.regime, CoupledCoulombRegime::Sliding);
+    assert!((separator.impulse[0] - (1.0 / 3.0)).abs() < 1.0e-9);
+    assert!((separator.impulse[1] + (1.0 / 6.0)).abs() < 1.0e-9);
+
+    let sticking_response = sticking
+        .response_at(&separator.impulse, TOLERANCE)
+        .unwrap()
+        .expect("leaf 1 remains strictly sticking");
+    let separating_response = separating
+        .response_at(&separator.impulse, TOLERANCE)
+        .unwrap();
+    assert_eq!(
+        separating_response.classification,
+        SeparatingLeafClassification::StrictlySeparating
+    );
+    assert!((separating_response.normal_velocity_margin - (5.0 / 6.0)).abs() < 1.0e-9);
+
+    let impulse = Vector9::from_row_slice(&[
+        separator.impulse[0],
+        separator.impulse[1],
+        separator.impulse[2],
+        sticking_response.impulse[0],
+        sticking_response.impulse[1],
+        sticking_response.impulse[2],
+        separating_response.impulse[0],
+        separating_response.impulse[1],
+        separating_response.impulse[2],
+    ]);
+    let post_velocity = q + w * impulse;
+
+    // Replay the complete original 9D contact equations and every local law.
+    assert!(post_velocity.fixed_rows::<3>(3).norm() < 1.0e-9);
+    let body_impulse = jacobian.transpose() * impulse;
+    let post_body_velocity = free_body_velocity + inverse_mass * body_impulse;
+    let body_reconstructed_velocity = jacobian * post_body_velocity;
+    assert!((body_reconstructed_velocity - post_velocity).norm() < 1.0e-12);
+    assert!(impulse[3] > 0.0);
+    assert!(FRICTION * impulse[3] - impulse.fixed_rows::<2>(4).norm() > 0.15);
+    assert!(impulse.fixed_rows::<3>(6).norm() < 1.0e-12);
+    assert!(post_velocity[6] > 0.8);
+    assert!((post_velocity[7] - (1.0 / 12.0)).abs() < 1.0e-9);
+    assert!(post_velocity[8].abs() < 1.0e-9);
+    assert!(impulse[7].abs() < 1.0e-12);
+    assert!(impulse[8].abs() < 1.0e-12);
+
+    let separator_tau = separator.disk_multiplier;
+    assert!(separator_tau > 0.0);
+    assert!(post_velocity[0].abs() < 1.0e-9);
+    let separator_kkt =
+        post_velocity.fixed_rows::<2>(1) + separator_tau * separator.impulse.fixed_rows::<2>(1);
+    assert!(separator_kkt.norm() < 1.0e-9);
+    assert!(
+        (FRICTION * separator.impulse[0] - separator.impulse.fixed_rows::<2>(1).norm()).abs()
+            < 1.0e-9
+    );
+
+    let energy = impulse.dot(&q) + 0.5 * impulse.dot(&(w * impulse));
+    assert!((energy + (1.0 / 3.0)).abs() < 1.0e-9);
+    assert!(energy < 0.0);
 }
 
 #[test]

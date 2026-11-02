@@ -82,3 +82,35 @@ A separate message-level unit test uses non-identity A and non-isotropic B, chec
 ## Claims not yet established
 
 This does not establish a treewidth complexity theorem, an arbitrary-N contact solver, global branch completeness, a continuous-time trajectory certificate, or a performance win over production engines. Dense graphs and large separators may be slower than global solving. The current witness only demonstrates one body-generated star branch and its pointwise sticking-leaf messages.
+
+
+## Separating-leaf response message — 2026-11-02
+
+The next test-only increment [#3286](https://github.com/Luminous-Dynamics/symtropy/pull/3286) adds a regime-conditioned separating response:
+
+```text
+p_L = 0
+u_L(p_S) = q_L + B^T p_S
+```
+
+The message has exactly zero Schur operator and zero free-velocity correction because its impulse is identically zero. It still retains the full local post-velocity, including tangential components. The zero-radius Coulomb disk forces the tangential impulse to zero; tangential velocity need not vanish.
+
+A typed pointwise classification distinguishes:
+
+- `StrictlySeparating`: the normal velocity is positive beyond the declared tolerance;
+- `BoundaryWithinTolerance`: the normal velocity is zero or cannot be separated from zero at the pointwise tolerance; this is not a strict branch;
+- `SignoriniViolation`: the zero-impulse hypothesis produces strictly negative normal velocity.
+
+A Signorini violation only rejects the separating message at that separator impulse. It does not establish that the full island has no solution; another local regime or another separator branch may remain admissible.
+
+The new mixed-regime fixture derives J, M^-1, W and q from the same four-body chain and body free-velocity vector. One leaf is strictly sticking (the affine message above), one leaf is strictly separating (zero impulse), and the separator is strictly sliding. It replays the original 9x9 contact equations, then independently reconstructs body post-velocity as
+
+[
+v^+=v^-+M^{-1}J^Tp
+]
+
+and checks (Jv^+) against the contact-space velocity. The frozen energy change is (-1/3).
+
+### Important limitation
+
+This remains a floating-point point-query prototype. The tolerance-based boundary label is not an interval proof. The next sound extension is a box classifier that returns strict separation only when the entire interval enclosure of (u_n) is positive, Signorini violation only when the entire enclosure is negative, and boundary/inconclusive when it intersects zero. A box touching zero must not be promoted to a strict regime.
