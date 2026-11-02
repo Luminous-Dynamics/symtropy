@@ -323,10 +323,7 @@ fn require_unique_ids(values: &[String], label: &str) -> Result<(), AdaptiveBenc
     Ok(())
 }
 
-fn require_unique_digests(
-    values: &[String],
-    label: &str,
-) -> Result<(), AdaptiveBenchmarkError> {
+fn require_unique_digests(values: &[String], label: &str) -> Result<(), AdaptiveBenchmarkError> {
     let mut seen = BTreeSet::new();
     for value in values {
         require_digest(value, label)?;
@@ -357,8 +354,14 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
         (&plan.refinement_policy_digest, "refinement policy"),
         (&plan.concept_registry_digest, "concept registry"),
         (&plan.recipe_schema_digest, "recipe schema"),
-        (&plan.oracle_verifier_artifact_digest, "oracle verifier artifact"),
-        (&plan.semantic_auditor_artifact_digest, "semantic auditor artifact"),
+        (
+            &plan.oracle_verifier_artifact_digest,
+            "oracle verifier artifact",
+        ),
+        (
+            &plan.semantic_auditor_artifact_digest,
+            "semantic auditor artifact",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -375,7 +378,10 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
     }
     require_unique_ids(&plan.allowed_domains, "allowed domain ID")?;
     require_unique_ids(&plan.allowed_modalities, "allowed modality ID")?;
-    require_unique_ids(&plan.allowed_reasoning_profiles, "allowed reasoning profile ID")?;
+    require_unique_ids(
+        &plan.allowed_reasoning_profiles,
+        "allowed reasoning profile ID",
+    )?;
     if plan.allowed_domains.is_empty()
         || plan.allowed_modalities.is_empty()
         || plan.allowed_reasoning_profiles.is_empty()
@@ -405,18 +411,30 @@ fn validate_freeze(
     for (value, label) in [
         (&freeze.freeze_receipt_digest, "freeze receipt"),
         (&freeze.plan_digest, "frozen plan"),
-        (&freeze.adaptation_transcript_digest, "adaptation transcript"),
+        (
+            &freeze.adaptation_transcript_digest,
+            "adaptation transcript",
+        ),
         (&freeze.generator_artifact_digest, "frozen generator"),
         (&freeze.refinement_policy_digest, "frozen refinement policy"),
         (&freeze.concept_registry_digest, "frozen concept registry"),
         (&freeze.recipe_schema_digest, "frozen recipe schema"),
-        (&freeze.oracle_verifier_artifact_digest, "frozen oracle verifier"),
-        (&freeze.semantic_auditor_artifact_digest, "frozen semantic auditor"),
+        (
+            &freeze.oracle_verifier_artifact_digest,
+            "frozen oracle verifier",
+        ),
+        (
+            &freeze.semantic_auditor_artifact_digest,
+            "frozen semantic auditor",
+        ),
     ] {
         require_digest(value, label)?;
     }
     require_unique_digests(&freeze.frozen_concept_digests, "frozen concept digest")?;
-    require_unique_digests(&freeze.frozen_recipe_template_digests, "frozen recipe template digest")?;
+    require_unique_digests(
+        &freeze.frozen_recipe_template_digests,
+        "frozen recipe template digest",
+    )?;
 
     if freeze.benchmark_id != plan.benchmark_id
         || freeze.benchmark_version != plan.benchmark_version
@@ -449,14 +467,22 @@ fn validate_freeze(
         require_id(&event.event_id, "development adaptation event ID")?;
         require_id(&event.family_group_id, "development family-group ID")?;
         require_id(&event.seed_namespace_id, "development seed namespace")?;
-        registry.validate_assignment(EvidenceSplit::Development, &event.family_group_id)
+        registry
+            .validate_assignment(EvidenceSplit::Development, &event.family_group_id)
             .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
         require_digest(&event.concept_digest, "adapted concept")?;
-        require_digest(&event.candidate_recipe_template_digest, "candidate recipe template")?;
+        require_digest(
+            &event.candidate_recipe_template_digest,
+            "candidate recipe template",
+        )?;
         require_digest(&event.solver_panel_digest, "development solver panel")?;
-        require_digest(&event.solver_trajectory_digest, "development solver trajectory")?;
+        require_digest(
+            &event.solver_trajectory_digest,
+            "development solver trajectory",
+        )?;
         require_digest(&event.judge_feedback_digest, "development judge feedback")?;
-        let mut source_digests = event.source_artifacts
+        let mut source_digests = event
+            .source_artifacts
             .iter()
             .map(|artifact| artifact.artifact_digest.clone())
             .collect::<Vec<_>>();
@@ -469,7 +495,11 @@ fn validate_freeze(
             }
         }
         source_digests.sort();
-        if event.parent_recipe_template_digest.as_ref().is_some_and(|digest| !valid_digest(digest)) {
+        if event
+            .parent_recipe_template_digest
+            .as_ref()
+            .is_some_and(|digest| !valid_digest(digest))
+        {
             return Err(AdaptiveBenchmarkError::InvalidDigest(
                 "parent recipe template digest is invalid".into(),
             ));
@@ -490,12 +520,21 @@ fn validate_freeze(
         concepts.insert(event.concept_digest.clone());
     }
     if !prior_recipe_digests.is_subset(
-        &freeze.frozen_recipe_template_digests.iter().cloned().collect::<BTreeSet<_>>()
+        &freeze
+            .frozen_recipe_template_digests
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>(),
     ) || !concepts.is_subset(
-        &freeze.frozen_concept_digests.iter().cloned().collect::<BTreeSet<_>>()
+        &freeze
+            .frozen_concept_digests
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>(),
     ) {
         return Err(AdaptiveBenchmarkError::FreezeMismatch(
-            "freeze registry omits a concept or recipe produced in the development transcript".into(),
+            "freeze registry omits a concept or recipe produced in the development transcript"
+                .into(),
         ));
     }
     Ok(())
@@ -514,16 +553,32 @@ fn validate_calibration(
     require_id(&calibration.seed_namespace_id, "calibration seed namespace")?;
     for (value, label) in [
         (&calibration.receipt_digest, "calibration receipt"),
-        (&calibration.freeze_receipt_digest, "calibration freeze receipt"),
-        (&calibration.generator_artifact_digest, "calibration generator"),
-        (&calibration.oracle_verifier_artifact_digest, "calibration verifier"),
-        (&calibration.seed_commitment_digest, "calibration seed commitment"),
+        (
+            &calibration.freeze_receipt_digest,
+            "calibration freeze receipt",
+        ),
+        (
+            &calibration.generator_artifact_digest,
+            "calibration generator",
+        ),
+        (
+            &calibration.oracle_verifier_artifact_digest,
+            "calibration verifier",
+        ),
+        (
+            &calibration.seed_commitment_digest,
+            "calibration seed commitment",
+        ),
     ] {
         require_digest(value, label)?;
     }
-    registry.validate_assignment(EvidenceSplit::Calibration, &calibration.family_group_id)
+    registry
+        .validate_assignment(EvidenceSplit::Calibration, &calibration.family_group_id)
         .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
-    if development_events.iter().any(|event| event.seed_namespace_id == calibration.seed_namespace_id) {
+    if development_events
+        .iter()
+        .any(|event| event.seed_namespace_id == calibration.seed_namespace_id)
+    {
         return Err(AdaptiveBenchmarkError::SeedNamespaceReuse(
             "calibration seed namespace must be disjoint from every Development namespace".into(),
         ));
@@ -568,7 +623,9 @@ where
     A: BenchmarkSemanticOverlapAuditor,
 {
     validate_plan(plan)?;
-    registry.validate().map_err(AdaptiveBenchmarkError::SplitFirewall)?;
+    registry
+        .validate()
+        .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
     validate_freeze(plan, registry, freeze, development_events)?;
     validate_calibration(plan, registry, freeze, development_events, calibration)?;
 
@@ -578,17 +635,29 @@ where
         (&release.benchmark_version, "sealed benchmark version"),
         (&release.family_group_id, "sealed release family-group ID"),
         (&release.semantic_auditor_id, "release semantic auditor ID"),
-        (&release.hidden_seed_namespace_id, "sealed hidden seed namespace"),
+        (
+            &release.hidden_seed_namespace_id,
+            "sealed hidden seed namespace",
+        ),
     ] {
         require_id(value, label)?;
     }
     for (value, label) in [
         (&release.release_digest, "sealed release digest"),
         (&release.freeze_receipt_digest, "release freeze receipt"),
-        (&release.calibration_receipt_digest, "release calibration receipt"),
+        (
+            &release.calibration_receipt_digest,
+            "release calibration receipt",
+        ),
         (&release.generator_artifact_digest, "release generator"),
-        (&release.semantic_auditor_artifact_digest, "release semantic auditor"),
-        (&release.hidden_seed_commitment_digest, "hidden seed commitment"),
+        (
+            &release.semantic_auditor_artifact_digest,
+            "release semantic auditor",
+        ),
+        (
+            &release.hidden_seed_commitment_digest,
+            "hidden seed commitment",
+        ),
     ] {
         require_digest(value, label)?;
     }
@@ -629,17 +698,25 @@ where
     }
     require_unique_digests(&input_digest_values, "generation input artifact")?;
     let generation_input_artifacts = input_digest_values.iter().cloned().collect::<BTreeSet<_>>();
-    let development_artifacts = development_events.iter().flat_map(|event| {
-        let mut digests = vec![
-            event.concept_digest.clone(),
-            event.candidate_recipe_template_digest.clone(),
-            event.solver_panel_digest.clone(),
-            event.solver_trajectory_digest.clone(),
-            event.judge_feedback_digest.clone(),
-        ];
-        digests.extend(event.source_artifacts.iter().map(|artifact| artifact.artifact_digest.clone()));
-        digests
-    }).collect::<BTreeSet<_>>();
+    let development_artifacts = development_events
+        .iter()
+        .flat_map(|event| {
+            let mut digests = vec![
+                event.concept_digest.clone(),
+                event.candidate_recipe_template_digest.clone(),
+                event.solver_panel_digest.clone(),
+                event.solver_trajectory_digest.clone(),
+                event.judge_feedback_digest.clone(),
+            ];
+            digests.extend(
+                event
+                    .source_artifacts
+                    .iter()
+                    .map(|artifact| artifact.artifact_digest.clone()),
+            );
+            digests
+        })
+        .collect::<BTreeSet<_>>();
     for input in &release.generation_inputs {
         match input.role {
             GenerationInputRole::FrozenPlan => {
@@ -652,7 +729,9 @@ where
                     plan.recipe_schema_digest.as_str(),
                     plan.oracle_verifier_artifact_digest.as_str(),
                     plan.semantic_auditor_artifact_digest.as_str(),
-                ].contains(&input.artifact_digest.as_str()) {
+                ]
+                .contains(&input.artifact_digest.as_str())
+                {
                     return Err(AdaptiveBenchmarkError::SealedReleaseInvalid(
                         "frozen-plan generation input is not present in the frozen manifest".into(),
                     ));
@@ -661,7 +740,8 @@ where
             GenerationInputRole::DevelopmentEvidence => {
                 if !development_artifacts.contains(&input.artifact_digest) {
                     return Err(AdaptiveBenchmarkError::SplitFirewall(
-                        "Development generation input is not in the admitted adaptation transcript".into(),
+                        "Development generation input is not in the admitted adaptation transcript"
+                            .into(),
                     ));
                 }
             }
@@ -677,7 +757,8 @@ where
         ));
     }
 
-    registry.validate_assignment(EvidenceSplit::SealedHoldout, &release.family_group_id)
+    registry
+        .validate_assignment(EvidenceSplit::SealedHoldout, &release.family_group_id)
         .map_err(AdaptiveBenchmarkError::SplitFirewall)?;
     if release.split != EvidenceSplit::SealedHoldout
         || release.benchmark_id != plan.benchmark_id
@@ -690,7 +771,9 @@ where
         || auditor.identity() != plan.semantic_auditor_id
         || auditor.artifact_digest() != plan.semantic_auditor_artifact_digest
         || release.hidden_seed_namespace_id == calibration.seed_namespace_id
-        || development_events.iter().any(|event| event.seed_namespace_id == release.hidden_seed_namespace_id)
+        || development_events
+            .iter()
+            .any(|event| event.seed_namespace_id == release.hidden_seed_namespace_id)
         || release.released_at_unix_seconds <= calibration.completed_at_unix_seconds
         || release.task_artifacts.is_empty()
         || release.task_artifacts.len() > plan.maximum_holdout_tasks
@@ -708,7 +791,10 @@ where
         require_id(&exposure.benchmark_release_id, "prior release ID")?;
         require_id(&exposure.exposed_agent_id, "exposed agent ID")?;
         require_id(&exposure.exposed_agent_version, "exposed agent version")?;
-        require_digest(&exposure.task_public_digest, "previously exposed public task")?;
+        require_digest(
+            &exposure.task_public_digest,
+            "previously exposed public task",
+        )?;
         require_digest(&exposure.prompt_or_scaffold_digest, "prior prompt/scaffold")?;
         if exposure.exposed_at_unix_seconds == 0
             || exposure.exposed_at_unix_seconds >= release.released_at_unix_seconds
@@ -721,11 +807,31 @@ where
         previously_exposed_task_digests.insert(exposure.task_public_digest.clone());
     }
 
-    let frozen_concepts = freeze.frozen_concept_digests.iter().cloned().collect::<BTreeSet<_>>();
-    let frozen_recipes = freeze.frozen_recipe_template_digests.iter().cloned().collect::<BTreeSet<_>>();
-    let allowed_domains = plan.allowed_domains.iter().cloned().collect::<BTreeSet<_>>();
-    let allowed_modalities = plan.allowed_modalities.iter().cloned().collect::<BTreeSet<_>>();
-    let allowed_reasoning = plan.allowed_reasoning_profiles.iter().cloned().collect::<BTreeSet<_>>();
+    let frozen_concepts = freeze
+        .frozen_concept_digests
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let frozen_recipes = freeze
+        .frozen_recipe_template_digests
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let allowed_domains = plan
+        .allowed_domains
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let allowed_modalities = plan
+        .allowed_modalities
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let allowed_reasoning = plan
+        .allowed_reasoning_profiles
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let mut task_ids = BTreeSet::new();
     let mut task_digests = BTreeSet::new();
     let mut public_input_digests = BTreeSet::new();
@@ -733,20 +839,34 @@ where
     let mut seed_commitments = BTreeSet::new();
     let mut semantic_comparisons = 0usize;
 
-    let prior_comparisons = release.prior_exposures.len()
+    let prior_comparisons = release
+        .prior_exposures
+        .len()
         .checked_mul(release.task_artifacts.len())
-        .ok_or_else(|| AdaptiveBenchmarkError::ArithmeticOverflow(
-            "prior exposure comparison count overflow".into(),
-        ))?;
-    let within_release_comparisons = release.task_artifacts.len()
+        .ok_or_else(|| {
+            AdaptiveBenchmarkError::ArithmeticOverflow(
+                "prior exposure comparison count overflow".into(),
+            )
+        })?;
+    let within_release_comparisons = release
+        .task_artifacts
+        .len()
         .checked_mul(release.task_artifacts.len().saturating_sub(1))
         .map(|value| value / 2)
-        .ok_or_else(|| AdaptiveBenchmarkError::ArithmeticOverflow(
-            "within-release comparison count overflow".into(),
-        ))?;
-    if prior_comparisons.checked_add(within_release_comparisons).ok_or_else(|| {
-        AdaptiveBenchmarkError::ArithmeticOverflow("total semantic comparison count overflow".into())
-    })? > MAX_SEMANTIC_COMPARISONS {
+        .ok_or_else(|| {
+            AdaptiveBenchmarkError::ArithmeticOverflow(
+                "within-release comparison count overflow".into(),
+            )
+        })?;
+    if prior_comparisons
+        .checked_add(within_release_comparisons)
+        .ok_or_else(|| {
+            AdaptiveBenchmarkError::ArithmeticOverflow(
+                "total semantic comparison count overflow".into(),
+            )
+        })?
+        > MAX_SEMANTIC_COMPARISONS
+    {
         return Err(AdaptiveBenchmarkError::SemanticOverlap(
             "semantic overlap workload exceeds the configured comparison cap".into(),
         ));
@@ -769,11 +889,17 @@ where
             (&task.concept_digest, "sealed task concept"),
             (&task.recipe_template_digest, "sealed task recipe template"),
             (&task.recipe_instance_digest, "sealed task recipe instance"),
-            (&task.generator_artifact_digest, "sealed task generator artifact"),
+            (
+                &task.generator_artifact_digest,
+                "sealed task generator artifact",
+            ),
             (&task.seed_commitment_digest, "sealed task seed commitment"),
             (&task.public_task_digest, "sealed public task"),
             (&task.public_input_artifact_digest, "sealed public input"),
-            (&task.sealed_oracle_commitment_digest, "sealed oracle commitment"),
+            (
+                &task.sealed_oracle_commitment_digest,
+                "sealed oracle commitment",
+            ),
         ] {
             require_digest(value, label)?;
         }
@@ -807,12 +933,18 @@ where
             ));
         }
         if generation_input_artifacts.contains(&task.sealed_oracle_commitment_digest)
-            || generation_input_artifacts.contains(&task.oracle_validation.validation_receipt_digest)
-            || task.generator_input_artifact_digests.contains(&task.sealed_oracle_commitment_digest)
-            || task.generator_input_artifact_digests.contains(&task.oracle_validation.validation_receipt_digest)
+            || generation_input_artifacts
+                .contains(&task.oracle_validation.validation_receipt_digest)
+            || task
+                .generator_input_artifact_digests
+                .contains(&task.sealed_oracle_commitment_digest)
+            || task
+                .generator_input_artifact_digests
+                .contains(&task.oracle_validation.validation_receipt_digest)
         {
             return Err(AdaptiveBenchmarkError::AnswerLeakage(
-                "sealed answer commitment or oracle validation receipt appears in generator inputs".into(),
+                "sealed answer commitment or oracle validation receipt appears in generator inputs"
+                    .into(),
             ));
         }
         if task.generator_input_artifact_digests != input_digest_values {
@@ -820,7 +952,10 @@ where
                 "task-specific generation input inventory differs from the release manifest".into(),
             ));
         }
-        require_unique_digests(&task.generator_input_artifact_digests, "task generator input")?;
+        require_unique_digests(
+            &task.generator_input_artifact_digests,
+            "task generator input",
+        )?;
 
         let validation = &task.oracle_validation;
         if validation.verifier_id != plan.oracle_verifier_id
@@ -853,7 +988,9 @@ where
                 .audit_overlap(&task.public_task_digest, prior_digest)
                 .map_err(AdaptiveBenchmarkError::ProviderFailure)?;
             semantic_comparisons = semantic_comparisons.checked_add(1).ok_or_else(|| {
-                AdaptiveBenchmarkError::ArithmeticOverflow("semantic comparison count overflow".into())
+                AdaptiveBenchmarkError::ArithmeticOverflow(
+                    "semantic comparison count overflow".into(),
+                )
             })?;
             if decision == SemanticOverlapDecision::PotentialNearDuplicate {
                 return Err(AdaptiveBenchmarkError::SemanticOverlap(format!(
@@ -870,7 +1007,9 @@ where
                 .audit_overlap(&left.public_task_digest, &right.public_task_digest)
                 .map_err(AdaptiveBenchmarkError::ProviderFailure)?;
             semantic_comparisons = semantic_comparisons.checked_add(1).ok_or_else(|| {
-                AdaptiveBenchmarkError::ArithmeticOverflow("semantic comparison count overflow".into())
+                AdaptiveBenchmarkError::ArithmeticOverflow(
+                    "semantic comparison count overflow".into(),
+                )
             })?;
             if decision == SemanticOverlapDecision::PotentialNearDuplicate {
                 return Err(AdaptiveBenchmarkError::SemanticOverlap(format!(
@@ -908,17 +1047,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        AdaptiveBenchmarkFreezeReceipt, AdaptiveBenchmarkPlan,
-        AdaptiveBenchmarkSealedRelease, AdaptiveBenchmarkTaskArtifact,
-        BenchmarkSemanticOverlapAuditor, CalibrationQualificationReceipt,
-        DevelopmentAdaptationEvent, GenerationInputArtifact, GenerationInputRole,
-        IndependentOracleValidationReceipt, PriorBenchmarkExposure,
-        SemanticOverlapDecision, SplitBoundBenchmarkArtifact,
-        verify_adaptive_benchmark_release,
-    };
     use super::super::counterexample_ledger::EvidenceSplit;
     use super::super::scientific_challenge::ChallengeSplitRegistry;
+    use super::{
+        AdaptiveBenchmarkFreezeReceipt, AdaptiveBenchmarkPlan, AdaptiveBenchmarkSealedRelease,
+        AdaptiveBenchmarkTaskArtifact, BenchmarkSemanticOverlapAuditor,
+        CalibrationQualificationReceipt, DevelopmentAdaptationEvent, GenerationInputArtifact,
+        GenerationInputRole, IndependentOracleValidationReceipt, PriorBenchmarkExposure,
+        SemanticOverlapDecision, SplitBoundBenchmarkArtifact, verify_adaptive_benchmark_release,
+    };
 
     const D1: &str = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const D2: &str = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -1040,7 +1177,10 @@ mod tests {
             oracle_verifier_artifact_digest: D5.into(),
             semantic_auditor_artifact_digest: D4.into(),
             frozen_concept_digests: vec![D3.into()],
-            frozen_recipe_template_digests: events.iter().map(|event| event.candidate_recipe_template_digest.clone()).collect(),
+            frozen_recipe_template_digests: events
+                .iter()
+                .map(|event| event.candidate_recipe_template_digest.clone())
+                .collect(),
             adaptation_event_count: events.len(),
             frozen_at_unix_seconds: 500,
         }
@@ -1160,14 +1300,30 @@ mod tests {
         release: &AdaptiveBenchmarkSealedRelease,
         auditor: &impl BenchmarkSemanticOverlapAuditor,
     ) -> Result<super::AdaptiveBenchmarkLifecycleReceipt, super::AdaptiveBenchmarkError> {
-        verify_adaptive_benchmark_release(plan, &registry(), events, freeze, calibration, release, auditor)
+        verify_adaptive_benchmark_release(
+            plan,
+            &registry(),
+            events,
+            freeze,
+            calibration,
+            release,
+            auditor,
+        )
     }
 
     #[test]
     fn accepts_frozen_split_firewalled_release_with_independent_verifier_and_auditor() {
         let events = vec![event(0, D2)];
         let freeze = freeze(&events);
-        let receipt = verify(&plan(), &events, &freeze, &calibration(), &release(vec![task("task-1", "a")]), &NoSemanticOverlap).unwrap();
+        let receipt = verify(
+            &plan(),
+            &events,
+            &freeze,
+            &calibration(),
+            &release(vec![task("task-1", "a")]),
+            &NoSemanticOverlap,
+        )
+        .unwrap();
         assert!(receipt.split_firewall_passed);
         assert!(receipt.generator_verifier_independent);
         assert!(receipt.generator_semantic_auditor_independent);
@@ -1181,11 +1337,31 @@ mod tests {
         let events = vec![event(0, D2)];
         let mut leaked = events.clone();
         leaked[0].split = EvidenceSplit::Calibration;
-        assert!(verify(&plan(), &leaked, &freeze(&events), &calibration(), &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &leaked,
+                &freeze(&events),
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut late = events.clone();
         late[0].adapted_at_unix_seconds = 600;
-        assert!(verify(&plan(), &late, &freeze(&events), &calibration(), &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &late,
+                &freeze(&events),
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1194,11 +1370,31 @@ mod tests {
         let freeze = freeze(&events);
         let mut bad_calibration = calibration();
         bad_calibration.quality_gate_passed = false;
-        assert!(verify(&plan(), &events, &freeze, &bad_calibration, &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &bad_calibration,
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut bad_calibration = calibration();
         bad_calibration.freeze_receipt_digest = D4.into();
-        assert!(verify(&plan(), &events, &freeze, &bad_calibration, &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &bad_calibration,
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1206,12 +1402,34 @@ mod tests {
         let events = vec![event(0, D2)];
         let freeze = freeze(&events);
         let mut leaked = release(vec![task("task-1", "a")]);
-        leaked.task_artifacts[0].generator_input_artifact_digests.push(D3.into());
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &leaked, &NoSemanticOverlap).is_err());
+        leaked.task_artifacts[0]
+            .generator_input_artifact_digests
+            .push(D3.into());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &leaked,
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut plan = plan();
         plan.oracle_verifier_id = plan.generator_id.clone();
-        assert!(verify(&plan, &events, &freeze, &calibration(), &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan,
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1220,15 +1438,45 @@ mod tests {
         let freeze = freeze(&events);
         let mut calibration = calibration();
         calibration.seed_namespace_id = "holdout-seeds".into();
-        assert!(verify(&plan(), &events, &freeze, &calibration, &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration,
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut changed_task = task("task-1", "a");
         changed_task.recipe_template_digest = D4.into();
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &release(vec![changed_task]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![changed_task]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut changed_task = task("task-1", "a");
         changed_task.oracle_validation.solvable = false;
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &release(vec![changed_task]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![changed_task]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1237,10 +1485,30 @@ mod tests {
         let freeze = freeze(&events);
         let mut exact = release(vec![task("task-1", "a")]);
         exact.prior_exposures[0].task_public_digest = D1.into();
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &exact, &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &exact,
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let near = release(vec![task("task-1", "a")]);
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &near, &AlwaysNearDuplicate).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &near,
+                &AlwaysNearDuplicate
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -1249,10 +1517,31 @@ mod tests {
         let freeze = freeze(&events);
         let mut changed_task = task("task-1", "a");
         changed_task.oracle_validation.verifier_artifact_digest = D1.into();
-        assert!(verify(&plan(), &events, &freeze, &calibration(), &release(vec![changed_task]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![changed_task]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut changed_registry = registry();
         changed_registry.sealed_holdout_group_ids.clear();
-        assert!(verify_adaptive_benchmark_release(&plan(), &changed_registry, &events, &freeze, &calibration(), &release(vec![task("task-1", "a")]), &NoSemanticOverlap).is_err());
+        assert!(
+            verify_adaptive_benchmark_release(
+                &plan(),
+                &changed_registry,
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 }
