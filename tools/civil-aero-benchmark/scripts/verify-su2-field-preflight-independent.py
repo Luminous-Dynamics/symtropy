@@ -221,8 +221,8 @@ def main() -> int:
     window_mode = config_values["WINDOW_CAUCHY_CRIT"].strip().strip('"').upper()
     require(window_mode in {"YES", "NO", "TRUE", "FALSE"}, "WINDOW_CAUCHY_CRIT invalid")
     window_enabled = window_mode in {"YES", "TRUE"}
-    require(window_enabled == time_domain,
-            "this preflight supports steady mode or explicit time-window convergence only")
+    require(not window_enabled or time_domain,
+            "WINDOW_CAUCHY_CRIT=YES requires TIME_DOMAIN=YES")
     require(report["window_cauchy_enabled"] == ("YES" if window_enabled else "NO"),
             "window convergence enablement mismatch")
     window_fields: list[str] = []
