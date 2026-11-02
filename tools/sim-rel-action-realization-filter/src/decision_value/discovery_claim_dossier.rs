@@ -164,7 +164,7 @@ pub enum PriorArtScopeResult {
     PriorArtSearchInconclusive,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum StrongestReplicationResult {
     None,
     SameArtifactReplay,
@@ -1002,27 +1002,27 @@ mod tests {
 
     #[test]
     fn requires_sealed_evidence_and_consistent_independent_prior_art_reviews() {
-        let mut dossier = dossier(
+        let mut changed = dossier(
             PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
             vec![independent_replication(ReplicationOutcome::Replicated)],
         );
-        dossier.source_evidence.evidence_split = EvidenceSplit::Development;
-        assert!(verify_discovery_claim_dossier(&dossier).is_err());
+        changed.source_evidence.evidence_split = EvidenceSplit::Development;
+        assert!(verify_discovery_claim_dossier(&changed).is_err());
 
-        let mut dossier = dossier(
+        let mut changed = dossier(
             PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
             vec![independent_replication(ReplicationOutcome::Replicated)],
         );
-        dossier.prior_art.adjudications[1].reviewer_id =
-            dossier.prior_art.adjudications[0].reviewer_id.clone();
-        assert!(verify_discovery_claim_dossier(&dossier).is_err());
+        changed.prior_art.adjudications[1].reviewer_id =
+            changed.prior_art.adjudications[0].reviewer_id.clone();
+        assert!(verify_discovery_claim_dossier(&changed).is_err());
 
-        let mut dossier = dossier(
+        let mut changed = dossier(
             PriorArtAdjudicationOutcome::NoRelevantPriorArtWithinCorpus,
             vec![independent_replication(ReplicationOutcome::Replicated)],
         );
-        dossier.prior_art.adjudications[1].outcome = PriorArtAdjudicationOutcome::RelevantPriorArt;
-        let result = verify_discovery_claim_dossier(&dossier).unwrap();
+        changed.prior_art.adjudications[1].outcome = PriorArtAdjudicationOutcome::RelevantPriorArt;
+        let result = verify_discovery_claim_dossier(&changed).unwrap();
         assert_eq!(
             result.prior_art_scope_result,
             PriorArtScopeResult::PriorArtSearchInconclusive
