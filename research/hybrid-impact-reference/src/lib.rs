@@ -64,6 +64,8 @@ pub enum ImpactError {
 }
 
 pub mod bounce_sequence;
+pub mod event_localization;
+pub mod event_order;
 
 fn finite(value: f64) -> bool {
     value.is_finite()
@@ -75,6 +77,42 @@ fn finite_or_overflow(value: f64) -> Result<f64, ImpactError> {
     } else {
         Err(ImpactError::NumericalOverflow)
     }
+}
+
+/// Validate only the physical input domain for the first-impact model.
+///
+/// This function deliberately does not compute the closed-form impact time or
+/// any derived trajectory result, so numerical event-location baselines can
+/// share model validation without depending on the analytical oracle.
+pub(crate) fn validate_impact_parameters(parameters: ImpactParameters) -> Result<(), ImpactError> {
+    if !finite(parameters.mass_kg) {
+        return Err(ImpactError::NonFiniteMass);
+    }
+    if parameters.mass_kg <= 0.0 {
+        return Err(ImpactError::NonPositiveMass);
+    }
+    if !finite(parameters.gravity_m_s2) {
+        return Err(ImpactError::NonFiniteGravity);
+    }
+    if parameters.gravity_m_s2 <= 0.0 {
+        return Err(ImpactError::NonPositiveGravity);
+    }
+    if !finite(parameters.initial_height_m) {
+        return Err(ImpactError::NonFiniteInitialHeight);
+    }
+    if parameters.initial_height_m <= 0.0 {
+        return Err(ImpactError::NonPositiveInitialHeight);
+    }
+    if !finite(parameters.initial_velocity_m_s) {
+        return Err(ImpactError::NonFiniteInitialVelocity);
+    }
+    if !finite(parameters.restitution) {
+        return Err(ImpactError::NonFiniteRestitution);
+    }
+    if !(0.0..=1.0).contains(&parameters.restitution) {
+        return Err(ImpactError::RestitutionOutOfRange);
+    }
+    Ok(())
 }
 
 /// Compute the exact-formula first-impact solution for constant gravity.
@@ -90,6 +128,7 @@ fn finite_or_overflow(value: f64) -> Result<f64, ImpactError> {
 ///
 /// The returned energy residual is E_initial - K_post - D_impact.
 pub fn first_impact(parameters: ImpactParameters) -> Result<FirstImpact, ImpactError> {
+    validate_impact_parameters(parameters)?;
     let ImpactParameters {
         mass_kg: mass,
         gravity_m_s2: gravity,
@@ -97,34 +136,6 @@ pub fn first_impact(parameters: ImpactParameters) -> Result<FirstImpact, ImpactE
         initial_velocity_m_s: initial_velocity,
         restitution,
     } = parameters;
-
-    if !finite(mass) {
-        return Err(ImpactError::NonFiniteMass);
-    }
-    if mass <= 0.0 {
-        return Err(ImpactError::NonPositiveMass);
-    }
-    if !finite(gravity) {
-        return Err(ImpactError::NonFiniteGravity);
-    }
-    if gravity <= 0.0 {
-        return Err(ImpactError::NonPositiveGravity);
-    }
-    if !finite(height) {
-        return Err(ImpactError::NonFiniteInitialHeight);
-    }
-    if height <= 0.0 {
-        return Err(ImpactError::NonPositiveInitialHeight);
-    }
-    if !finite(initial_velocity) {
-        return Err(ImpactError::NonFiniteInitialVelocity);
-    }
-    if !finite(restitution) {
-        return Err(ImpactError::NonFiniteRestitution);
-    }
-    if !(0.0..=1.0).contains(&restitution) {
-        return Err(ImpactError::RestitutionOutOfRange);
-    }
 
     let velocity_squared = finite_or_overflow(initial_velocity * initial_velocity)?;
     let twice_gh = finite_or_overflow(2.0 * gravity * height)?;

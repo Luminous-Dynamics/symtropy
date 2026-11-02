@@ -78,3 +78,77 @@ This analytic Zeno classification does not choose a physically appropriate
 post-Zeno continuation. Real systems may require compliance, deformation,
 surface roughness, velocity-dependent restitution or another richer model;
 that continuation is a separate modeling decision.
+
+
+## Bracketed event-localization baseline
+
+The event-localization module implements a separate bisection lane for the
+constant-gravity point-mass guard y=0. The caller supplies a bracket [t_lo,
+t_hi] where y(t_lo)>0 and y(t_hi)<=0. Since the free-flight parabola with a
+positive initial height and positive gravity has exactly one positive root,
+the interval contains the first downward impact.
+
+The locator does not use the closed-form impact time internally. It reports:
+
+- final time bracket and midpoint estimate;
+- absolute guard residual at the midpoint;
+- bracket width and iteration count;
+- CONVERGED, EVENT_AT_LOWER_BOUNDARY, ITERATION_LIMIT, or
+  TIME_RESOLUTION_EXHAUSTED status.
+
+The numerical lane is compared to the closed-form first-impact solution in
+tests and in the event-localization benchmark. It includes an exact step-end
+event at either bracket boundary, just-before and just-after step-boundary
+controls, an initially
+downward trajectory, explicit iteration exhaustion and invalid-bracket
+rejection. A later event-capturing or adaptive integrator should use the same
+metric separation, not treat a robust bisection reference as an engine-wide
+event-handling solution.
+
+
+## Partial event-order relation
+
+The event-order module compares two event-time intervals in a shared time basis.
+For certified enclosures, it proves A before B only when A's upper bound is
+strictly less than B's lower bound; the reverse applies for B before A. All
+overlaps and touching endpoints remain unresolved.
+
+The evidence grade is explicit:
+- Certified enclosures can produce PROVEN_BEFORE or PROVEN_AFTER.
+- Numerical estimates can produce only ESTIMATED_BEFORE or ESTIMATED_AFTER.
+- Overlapping certified intervals produce UNRESOLVED_OVERLAP.
+- Overlapping numerical estimates produce ESTIMATED_OVERLAP.
+
+Even identical certified singleton intervals do not produce a simultaneous
+impact claim from this pairwise API. Simultaneity needs an independent joint
+event/contact certificate that binds all guards, a common state/time, the
+joint impact law and its admissible solution set.
+
+This avoids epsilon-based timestamp merging, callback-order assumptions and
+false simultaneity from rounded f64 values. The comparison rejects empty event
+IDs, incompatible time bases, invalid intervals and non-finite endpoints.
+
+
+The comparator requires a non-empty external evidence reference on every event
+record. It does not authenticate that receipt itself: callers must verify the
+receipt and only set CertifiedEnclosure after that independent verification.
+A numerical bracket from the bisection locator remains NumericalEstimate until
+a separate sound interval method establishes a certified enclosure.
+
+
+## Deterministic partial event-order graph
+
+The event-order reference can build a bounded graph over a finite event set
+(up to 256 records). Event IDs are sorted canonically before pairwise
+classification, so graph output is independent of caller insertion order.
+
+It separates:
+- proof-grade order edges from disjoint certified enclosures;
+- estimate-only order edges from disjoint numerical intervals;
+- unresolved/estimated-overlap pairs, which remain explicit.
+
+Only proof-grade edges enter the proof-order DAG; a cycle is a typed error.
+The graph does not invent a total order or treat overlapping/singleton-equal
+times as simultaneous. The graph cap bounds the O(n²) pairwise classification
+cost. A later joint-event certificate must establish simultaneity and joint
+reset semantics independently.
