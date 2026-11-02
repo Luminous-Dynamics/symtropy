@@ -59,6 +59,13 @@ pub struct MassBalance {
     pub balanced: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EventReplayAudit {
+    pub event_count: usize,
+    pub replayed_balance: MassBalance,
+    pub materialized_state_matches: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Ledger {
     lots: BTreeMap<String, SedimentLot>,
@@ -161,6 +168,74 @@ impl Ledger {
         })
     }
 
+    /// Replay the event stream from empty stores and compare it with cached state.
+    ///
+    /// This is a second accounting path, not a cryptographic proof or third-party audit.
+    pub fn audit_event_stream(&self) -> Result<EventReplayAudit, LedgerError> {
+        let mut replay_inventory: BTreeMap<(String, String), u64> = BTreeMap::new();
+        let mut replay_in = BTreeMap::<String, u64>::new();
+        let mut replay_out = BTreeMap::<String, u64>::new();
+        let mut replay_ids = BTreeSet::new();
+
+        for event in &self.events {
+            if event.event_id.trim().is_empty() || event.lot_id.trim().is_empty()
+                || endpoint_invalid(&event.from) || endpoint_invalid(&event.to)
+            { return Err(LedgerError::InvalidIdentifier); }
+            if !replay_ids.insert(event.event_id.clone()) {
+                return Err(LedgerError::DuplicateEvent);
+            }
+            if event.dry_mass.0 == 0 { return Err(LedgerError::ZeroMass); }
+            if event.from == event.to { return Err(LedgerError::SameEndpoint); }
+            if matches!(&event.from, Endpoint::Boundary(_))
+                && matches!(&event.to, Endpoint::Boundary(_))
+            { return Err(LedgerError::BoundaryToBoundary); }
+            if !self.lots.contains_key(&event.lot_id) { return Err(LedgerError::UnknownLot); }
+
+            let amount = event.dry_mass.0;
+            match &event.from {
+                Endpoint::Boundary(_) => add_checked(&mut replay_in, event.lot_id.clone(), amount)?,
+                Endpoint::Store(store) => {
+                    let key = (event.lot_id.clone(), store.clone());
+                    let available = replay_inventory.get(&key).copied().unwrap_or(0);
+                    if available < amount { return Err(LedgerError::InsufficientInventory); }
+                    replay_inventory.insert(key, available - amount);
+                }
+            }
+            match &event.to {
+                Endpoint::Boundary(_) => add_checked(&mut replay_out, event.lot_id.clone(), amount)?,
+                Endpoint::Store(store) => {
+                    let key = (event.lot_id.clone(), store.clone());
+                    let current = replay_inventory.get(&key).copied().unwrap_or(0);
+                    let next = current.checked_add(amount).ok_or(LedgerError::ArithmeticOverflow)?;
+                    replay_inventory.insert(key, next);
+                }
+            }
+        }
+
+        let inflow = checked_sum(replay_in.values().copied())?;
+        let outflow = checked_sum(replay_out.values().copied())?;
+        let stock = checked_sum(replay_inventory.values().copied())?;
+        let accounted = outflow.checked_add(stock).ok_or(LedgerError::ArithmeticOverflow)?;
+        let residual = i128::from(inflow) - i128::from(accounted);
+        let balance = MassBalance {
+            external_inflow_g: inflow,
+            external_outflow_g: outflow,
+            internal_stock_g: stock,
+            residual_g: residual,
+            balanced: residual == 0,
+        };
+        let materialized_state_matches = replay_inventory == self.inventory_g
+            && replay_in == self.external_in_g
+            && replay_out == self.external_out_g
+            && replay_ids == self.event_ids;
+
+        Ok(EventReplayAudit {
+            event_count: self.events.len(),
+            replayed_balance: balance,
+            materialized_state_matches,
+        })
+    }
+
     /// Narrow synthetic placement check. It is not a permit or environmental approval.
     pub fn assess_placement(&self, lot_id: &str, rule: &PlacementRule, evidence: &SuitabilityEvidence)
         -> PlacementDecision
@@ -195,6 +270,16 @@ impl Ledger {
 
 fn endpoint_invalid(value: &Endpoint) -> bool {
     match value { Endpoint::Boundary(id) | Endpoint::Store(id) => id.trim().is_empty() }
+}
+fn add_checked(
+    map: &mut BTreeMap<String, u64>,
+    key: String,
+    amount: u64,
+) -> Result<(), LedgerError> {
+    let current = map.get(&key).copied().unwrap_or(0);
+    let next = current.checked_add(amount).ok_or(LedgerError::ArithmeticOverflow)?;
+    map.insert(key, next);
+    Ok(())
 }
 fn checked_sum(mut values: impl Iterator<Item = u64>) -> Result<u64, LedgerError> {
     values.try_fold(0_u64, |sum, value| sum.checked_add(value).ok_or(LedgerError::ArithmeticOverflow))
@@ -357,6 +442,24 @@ mod tests {
             evidence_id: "lab-contaminated".into(), state: SuitabilityState::Compatible };
         assert_eq!(l.assess_placement("contaminated", &rule, &contaminated_evidence),
             PlacementDecision::Rejected(PlacementReason::CharacterizationNotCompatible));
+    }
+
+    #[test]
+    fn event_replay_reconciles_materialized_inventory() {
+        let l = ledger();
+        let audit = l.audit_event_stream().unwrap();
+        assert_eq!(audit.event_count, 1);
+        assert!(audit.materialized_state_matches);
+        assert!(audit.replayed_balance.balanced);
+    }
+
+    #[test]
+    fn tampered_event_stream_is_detected_by_independent_replay() {
+        let mut l = ledger();
+        l.events[0].dry_mass.0 += 1;
+        let audit = l.audit_event_stream().unwrap();
+        assert!(!audit.materialized_state_matches);
+        assert_eq!(audit.replayed_balance.residual_g, 1);
     }
 
     #[test]
