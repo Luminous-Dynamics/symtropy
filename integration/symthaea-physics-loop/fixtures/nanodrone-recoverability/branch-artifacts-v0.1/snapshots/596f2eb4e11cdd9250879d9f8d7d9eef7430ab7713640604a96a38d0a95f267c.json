@@ -1,0 +1,12 @@
+{
+  "schema_version": "symtropy-nanodrone-state-snapshot-v0.1",
+  "evidence_class": "synthetic_fixture",
+  "family_id": "family-a",
+  "flight_id": "flight-a",
+  "rollout_start_id": "start-1",
+  "regime": "nominal",
+  "checkpoint_time_s": 3,
+  "training_seed": 101,
+  "synthetic_state_payload": "SYNTHETIC_STATE_ONLY|family-a|flight-a|start-1|nominal|3.0|101",
+  "claim_ceiling": "fixture_byte_integrity_only_no_simulator_origin_or_restore_attestation"
+}
