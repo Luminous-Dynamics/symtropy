@@ -41,6 +41,29 @@ Thus the oracle executes, but it does not run B0/B1/B2 planning policies or simu
 
 CI must run on the exact head before Rust execution is considered verified; queued or missing checks are not passes.
 
+## Event-time audit
+
+A second executable binary constructs two separate projections from the 13-case
+disturbance manifest:
+
+- **Evaluator timeline:** the evaluator can see injected events and mark those
+  whose observation time has not arrived yet.
+- **Policy-visible timeline:** a policy sees only event IDs and typed event
+  details at or after each event's declared `observable_tick`. Injection time
+  is intentionally omitted from newly observed policy events.
+
+Run it from the repository root:
+
+```sh
+cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml --bin event-timeline-audit -- docs/research/civ-infra-resilience/fixtures/fleet-resilience-v0.1.json
+```
+
+The binary enforces the complete 13-kind v0.1 disturbance vocabulary, rejects
+observation-before-injection and duplicate case IDs, and reports the frozen
+boundary totals: three delayed observations, four total delay ticks, maximum
+delay two, and an eight-tick timeline. It does not run B0/B1/B2 or simulate
+recovery; its report explicitly says zero policy runs.
+
 ## First recovery-policy microcase
 
 A separate binary now executes one frozen synthetic robot-loss rollout and compares three lanes:
