@@ -165,7 +165,7 @@ Report the measurement boundary, test procedure, fuel properties, ambient condit
 |---|---|---|
 | Brake thermal efficiency | Brake work / fuel LHV input; gross/net convention declared | Match the same-class fuel-specific reference before claiming a viable shared core |
 | Net electrical efficiency | Net AC output / fuel LHV input, including auxiliaries | Match or exceed the same-class reference at weighted operating points |
-| Fuel Flexibility Efficiency Retention (FFER) | Shared-architecture efficiency / optimized fuel-specific reference, at matched points | Stage the internal target: ≥0.90 feasibility, ≥0.95 strong platform target, ≥0.97 stretch; report every point, weighting basis and uncertainty |
+| Fuel Flexibility Efficiency Retention (FFER) | Integrated net AC efficiency on the matched frozen duty cycle / fuel-specific reference | Stage the internal target: ≥0.90 feasibility, ≥0.95 strong platform target, ≥0.97 stretch; require matched useful output and report each segment and uncertainty |
 | Transient performance | Load acceptance, settling time, frequency/voltage excursions, smoke/knock/combustion stability | Meet generator/OEM power-quality and application requirements |
 | Fuel-quality robustness | Performance and fault response across characterized fuel-property distributions | No unsafe state; bounded derating and detectable rejection outside validated envelope |
 | Regulated emissions | NOx, PM/PN, CO, THC/CH4, NH3 slip and N2O where relevant | Meet the target market's applicable limits with measurement uncertainty included |
