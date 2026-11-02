@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn rejects_out_of_range_nodes_unknown_element_types_nonfinite_coordinates_and_duplicate_markers()
-    {
+     {
         let out_of_range = "NDIME= 2\nNELEM= 1\n5 0 1 4\nNPOIN= 3\n0 0\n1 0\n0 1\nNMARK= 0\n";
         assert!(inspect_su2_mesh(out_of_range.as_bytes()).is_err());
         let unknown_type = "NDIME= 2\nNPOIN= 3\n0 0\n1 0\n0 1\nNELEM= 1\n77 0 1 2\nNMARK= 0\n";
