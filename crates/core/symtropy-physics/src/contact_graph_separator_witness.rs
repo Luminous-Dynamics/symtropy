@@ -1667,11 +1667,7 @@ fn separator_message_composition_retains_equal_geometry_with_distinct_branch_lin
 #[test]
 fn separator_partition_skips_adjacent_primary_axis_and_splits_secondary_axis() {
     let message = SeparatingLeafMessage {
-        separator_coupling: Matrix3::new(
-            -0.5, 0.0, 0.0,
-            -0.25, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-        ),
+        separator_coupling: Matrix3::new(-0.5, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0),
         free_velocity: SVector::<f64, 3>::new(0.5, 0.0, 0.0),
     };
     let adjacent_upper = f64::from_bits(1.0_f64.to_bits() + 1);
@@ -1686,15 +1682,20 @@ fn separator_partition_skips_adjacent_primary_axis_and_splits_secondary_axis() {
     assert!(!partition.classification_complete);
     assert!(partition.cells.len() > 1);
     assert!(partition.cells.iter().all(|cell| {
-        cell.separator_box.lower[0] == root.lower[0]
-            && cell.separator_box.upper[0] == root.upper[0]
+        cell.separator_box.lower[0] == root.lower[0] && cell.separator_box.upper[0] == root.upper[0]
     }));
-    assert!(partition.cells.iter().any(|cell| {
-        cell.classification == SeparatingBoxClassification::StrictlySeparating
-    }));
-    assert!(partition.cells.iter().any(|cell| {
-        cell.classification == SeparatingBoxClassification::SignoriniViolation
-    }));
+    assert!(
+        partition
+            .cells
+            .iter()
+            .any(|cell| { cell.classification == SeparatingBoxClassification::StrictlySeparating })
+    );
+    assert!(
+        partition
+            .cells
+            .iter()
+            .any(|cell| { cell.classification == SeparatingBoxClassification::SignoriniViolation })
+    );
     assert!(partition.cells.iter().any(|cell| {
         cell.classification == SeparatingBoxClassification::BoundaryOrInconclusive
     }));
