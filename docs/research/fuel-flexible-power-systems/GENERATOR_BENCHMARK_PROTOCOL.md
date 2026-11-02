@@ -326,6 +326,15 @@ For each route and vessel, report:
 
 A battery is not a fuel: compare usable electrical storage energy, charge source, state-of-charge window, round-trip loss, power limit, degradation and pack mass/volume separately. A vessel comparison must use delivered cargo work; tank-volume ratios alone are not a ship feasibility or safety result.
 
+### 8.2 Dynamic marine powertrain comparison references (2026)
+
+The screening register [MARINE_POWERTRAIN_LITERATURE_BASELINES_2026-11-03.json](data/MARINE_POWERTRAIN_LITERATURE_BASELINES_2026-11-03.json) with schema [MARINE_POWERTRAIN_LITERATURE_SCHEMA_2026-11-03.json](data/MARINE_POWERTRAIN_LITERATURE_SCHEMA_2026-11-03.json) records:
+
+- A dynamic deep-sea container-ship study (Elkafas & Lazakis, *Energy Conversion and Management*, 15 October 2026) finds that direct-H2 PEMFC gives the best reported energy/lifecycle-GHG result while e-ammonia dual-fuel is most attractive on annual cost under the study's assumptions. It models onboard ammonia cracking and methanol reforming explicitly; those processors reduce PEMFC efficiency by 3.4–5 and 8.3–9.4 percentage points respectively versus direct hydrogen.
+- A separate 6,177-GT Mediterranean/Black Sea general-cargo vessel study (Zincir & Arslanoglu, *Next Energy*, October 2026) reports different trade-offs: e-methanol produces the greatest GHG reduction in its studied pathways (76.2% vs MDO), while hydrogen has strong environmental performance but approximately 2.7× the lifecycle cost of LNG and requires ~3.7× MDO tank volume for equal propulsion energy, displacing an estimated 6.8% of the vessel's cargo deadweight.
+
+The studies are not directly rankable against one another: one uses a deep-sea container-ship profile and multi-criteria retrofit analysis; the other uses a specific 6,177-GT general cargo vessel and GREET/OpenLCA/EF 3.0 lifecycle/cost methods. Preserve their functional units and vessel boundaries. These are peer-reviewed literature benchmarks, not supplier quotations or physical measurements from Luminous hardware.
+
 ## 9. Measurement quality and statistical design
 
 - Use a competent testing/calibration laboratory and record the accreditation scope where required.
