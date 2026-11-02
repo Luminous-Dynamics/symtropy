@@ -77,6 +77,17 @@ The existing Sol-Atlas work already covers EPANET reference validation (#139), w
 
 CivBench's additional research question is whether utility and physical-resource metrics can be connected to institutional mechanisms: maintenance capacity, procurement and repair workflows, provider dependency, access equity, appeals, capture, recovery and long-run feedback. These dimensions must remain disaggregated rather than being collapsed into a single utility, welfare or liberation score.
 
+## Leak-localisation research references
+
+The source register also records four 2026 peer-reviewed references relevant to the separate leak-detection/localisation benchmark lane:
+
+- A May 2026 EPANET/WNTR Net3 benchmark with 47,000+ simulated scenarios; >95% binary detection and roughly 75–77% ensemble-ML Top-1 localisation.
+- An October 2026 systematic review/benchmark reporting 96.1% time-transformer detection accuracy, 88.5% GGNN localisation within 300m, and a 1D-CNN autoencoder with 92.6% accuracy / 3.5ms inference.
+- An October 2026 transient simulation-to-experiment study whose expanded 40-scenario test reports direct-test classification 30.0% versus 62.5% after transfer, and location MAE 18.44m versus 6.57m.
+- A 2026 systematic review of 90 studies highlighting inconsistent datasets/splits/metrics and the need for standardised evaluation, uncertainty and interpretability.
+
+These results are not a single comparable leaderboard. Net3 Top-1 pipe/node localization, distance-within-300m localization and transient experimental transfer are different tasks and sensing modalities. See the detailed protocol discussion in `INDUSTRY_CROSSWALK_V0_1.md` and the exact references in `evidence.v0.1.json`. Use Sol-Atlas #174 for the operative held-out topology and field-transfer protocol; do not create a competing leak-localisation benchmark.
+
 ## Next evidence work
 
 1. Snapshot and hash the DWS reports and Johannesburg Water annual report under their reuse terms; record retrieval date and exact PDF bytes.
