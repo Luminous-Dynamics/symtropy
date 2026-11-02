@@ -177,7 +177,6 @@ pub fn evaluate_passage(
     let mut inconsistent = false;
     let mut unknown = false;
     let mut blocked = false;
-    let mut unsupported = false;
 
     if !nonempty(&lock.lock_id) || !nonempty(&lock.revision) || !nonempty(&lock.datum_id) {
         reasons.push(PassageReason::InvalidLockIdentity);
@@ -192,14 +191,20 @@ pub fn evaluate_passage(
         inconsistent = true;
     }
 
+    let mut lock_profile_usable = true;
+    let mut vessel_evidence_usable = true;
+    let mut water_evidence_usable = true;
+
     match lock.valid_through_tick {
         None => {
             reasons.push(PassageReason::LockCurrentnessUnknown);
             unknown = true;
+            lock_profile_usable = false;
         }
         Some(expiry) if expiry < evaluation_tick => {
             reasons.push(PassageReason::LockProfileExpired);
             unknown = true;
+            lock_profile_usable = false;
         }
         Some(_) => {}
     }
@@ -207,10 +212,12 @@ pub fn evaluate_passage(
     if water.lock_id != lock.lock_id || water.lock_revision != lock.revision {
         reasons.push(PassageReason::WaterObservationLockMismatch);
         inconsistent = true;
+        water_evidence_usable = false;
     }
     if water.datum_id != lock.datum_id {
         reasons.push(PassageReason::DatumMismatch);
         inconsistent = true;
+        water_evidence_usable = false;
     }
 
     if !calibration_status(
@@ -219,6 +226,7 @@ pub fn evaluate_passage(
         &mut reasons,
     ) {
         unknown = true;
+        vessel_evidence_usable = false;
     }
     if !calibration_status(
         water.calibration_valid_through_tick,
@@ -226,27 +234,39 @@ pub fn evaluate_passage(
         &mut reasons,
     ) {
         unknown = true;
+        water_evidence_usable = false;
     }
 
-    for (observed, label) in [
-        (vessel.observed_at_tick, 0_u8),
-        (water.observed_at_tick, 1_u8),
-    ] {
+    for observed in [vessel.observed_at_tick, water.observed_at_tick] {
         if observed > evaluation_tick {
             reasons.push(PassageReason::MeasurementFromFuture);
             inconsistent = true;
+            if observed == vessel.observed_at_tick {
+                vessel_evidence_usable = false;
+            }
+            if observed == water.observed_at_tick {
+                water_evidence_usable = false;
+            }
         } else if evaluation_tick - observed > maximum_measurement_age_ticks {
-            let _ = label;
             reasons.push(PassageReason::MeasurementStale);
             unknown = true;
+            if observed == vessel.observed_at_tick {
+                vessel_evidence_usable = false;
+            }
+            if observed == water.observed_at_tick {
+                water_evidence_usable = false;
+            }
         }
     }
 
-    for state in [vessel.evidence_state, water.evidence_state] {
-        let (bad, review) = evidence_status(state, &mut reasons);
-        inconsistent |= bad;
-        unknown |= review;
-    }
+    let (vessel_bad, vessel_review) = evidence_status(vessel.evidence_state, &mut reasons);
+    inconsistent |= vessel_bad;
+    unknown |= vessel_review;
+    vessel_evidence_usable &= !vessel_bad && !vessel_review;
+    let (water_bad, water_review) = evidence_status(water.evidence_state, &mut reasons);
+    inconsistent |= water_bad;
+    unknown |= water_review;
+    water_evidence_usable &= !water_bad && !water_review;
 
     let required_length = u128::from(vessel.length_mm)
         + u128::from(lock.required_end_clearance_mm);
@@ -255,15 +275,19 @@ pub fn evaluate_passage(
     let required_depth = u128::from(vessel.draft_mm)
         + u128::from(lock.required_under_keel_clearance_mm);
 
-    if required_length > u128::from(lock.usable_length_mm) {
-        reasons.push(PassageReason::LengthClearanceExceeded);
-        blocked = true;
+    if lock_profile_usable && vessel_evidence_usable {
+        if required_length > u128::from(lock.usable_length_mm) {
+            reasons.push(PassageReason::LengthClearanceExceeded);
+            blocked = true;
+        }
+        if required_beam > u128::from(lock.usable_beam_mm) {
+            reasons.push(PassageReason::BeamClearanceExceeded);
+            blocked = true;
+        }
     }
-    if required_beam > u128::from(lock.usable_beam_mm) {
-        reasons.push(PassageReason::BeamClearanceExceeded);
-        blocked = true;
-    }
-    if required_depth > u128::from(water.available_depth_mm) {
+    if lock_profile_usable && vessel_evidence_usable && water_evidence_usable
+        && required_depth > u128::from(water.available_depth_mm)
+    {
         reasons.push(PassageReason::UnderKeelClearanceExceeded);
         blocked = true;
     }
@@ -293,9 +317,7 @@ pub fn evaluate_passage(
 
     let disposition = if inconsistent {
         PassageDisposition::EvidenceInconsistent
-    } else if unsupported {
-        PassageDisposition::UnsupportedOperatingProfile
-    } else if blocked {
+    }    } else if blocked {
         PassageDisposition::BlockedByHardConstraint
     } else if unknown {
         PassageDisposition::UnknownReviewRequired
@@ -345,6 +367,9 @@ pub enum WaterCycleDisposition {
 pub enum WaterCycleReason {
     InvalidCycleIdentity,
     InvalidTimeSupport,
+    LockProfileCurrentnessUnknown,
+    LockProfileExpired,
+    CycleStale,
     LockIdentityMismatch,
     LockProfileRevisionMismatch,
     MissingWaterBoundaryMeasurement,
@@ -382,6 +407,7 @@ pub fn evaluate_water_cycle(
     record: &WaterCycleRecord,
     cursor: &WaterCycleCursor,
     evaluation_tick: u64,
+    maximum_cycle_age_ticks: u64,
 ) -> WaterCycleResult {
     let mut next_cursor = cursor.clone();
     let mut reasons = Vec::new();
@@ -421,6 +447,24 @@ pub fn evaluate_water_cycle(
     if record.support.end_tick > evaluation_tick {
         reasons.push(WaterCycleReason::InvalidTimeSupport);
         inconsistent = true;
+    } else if evaluation_tick - record.support.end_tick > maximum_cycle_age_ticks {
+        reasons.push(WaterCycleReason::CycleStale);
+        unknown = true;
+    }
+
+    let mut lock_profile_usable = true;
+    match lock.valid_through_tick {
+        None => {
+            reasons.push(WaterCycleReason::LockProfileCurrentnessUnknown);
+            lock_profile_usable = false;
+            unknown = true;
+        }
+        Some(expiry) if expiry < evaluation_tick => {
+            reasons.push(WaterCycleReason::LockProfileExpired);
+            lock_profile_usable = false;
+            unknown = true;
+        }
+        Some(_) => {}
     }
 
     let values = [
@@ -437,25 +481,30 @@ pub fn evaluate_water_cycle(
         unknown = true;
     }
 
-    if record.opening_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
-        || record.closing_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
-    {
-        reasons.push(WaterCycleReason::StorageCapacityExceeded);
-        inconsistent = true;
-    }
-
-    match record.evidence_state {
-        EvidenceState::Current => {}
+    let record_evidence_usable = match record.evidence_state {
+        EvidenceState::Current => true,
         EvidenceState::Unknown => {
             reasons.push(WaterCycleReason::EvidenceUnknown);
             unknown = true;
+            false
         }
         EvidenceState::Disputed => {
             reasons.push(WaterCycleReason::EvidenceDisputed);
             unknown = true;
+            false
         }
         EvidenceState::Revoked => {
             reasons.push(WaterCycleReason::EvidenceRevoked);
+            inconsistent = true;
+            false
+        }
+    };
+
+    if lock_profile_usable && record_evidence_usable {
+        if record.opening_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
+            || record.closing_system_storage_ml.is_some_and(|v| v > lock.total_storage_capacity_ml)
+        {
+            reasons.push(WaterCycleReason::StorageCapacityExceeded);
             inconsistent = true;
         }
     }
@@ -494,10 +543,12 @@ pub fn evaluate_water_cycle(
         _ => None,
     };
 
-    if let Some(value) = residual {
-        if value.unsigned_abs() > u128::from(lock.water_balance_tolerance_ml) {
-            reasons.push(WaterCycleReason::WaterBalanceOutsideTolerance);
-            inconsistent = true;
+    if lock_profile_usable && record_evidence_usable {
+        if let Some(value) = residual {
+            if value.unsigned_abs() > u128::from(lock.water_balance_tolerance_ml) {
+                reasons.push(WaterCycleReason::WaterBalanceOutsideTolerance);
+                inconsistent = true;
+            }
         }
     }
 
@@ -600,7 +651,7 @@ mod tests {
     }
 
     fn cycle_eval(record: &WaterCycleRecord, cursor: &WaterCycleCursor) -> WaterCycleResult {
-        evaluate_water_cycle(&lock(), record, cursor, 120)
+        evaluate_water_cycle(&lock(), record, cursor, 120, 20)
     }
 
     #[test]
@@ -779,6 +830,35 @@ mod tests {
     }
 
     #[test]
+    fn stale_vessel_and_depth_evidence_cannot_be_used_to_block_or_allow() {
+        let mut v = vessel();
+        let mut w = water();
+        v.observed_at_tick = 80;
+        w.observed_at_tick = 80;
+        v.length_mm = 500_000;
+        w.available_depth_mm = 0;
+        let result = evaluate_passage(
+            &lock(), &v, &w, LockAssetStatus::Available, OperatorApproval::Approved, 100, 10
+        );
+        assert_eq!(result.disposition, PassageDisposition::UnknownReviewRequired);
+        assert!(!result.reasons.contains(&PassageReason::LengthClearanceExceeded));
+        assert!(!result.reasons.contains(&PassageReason::UnderKeelClearanceExceeded));
+    }
+
+    #[test]
+    fn stale_lock_profile_does_not_authorize_dimension_comparison() {
+        let mut l = lock();
+        l.valid_through_tick = Some(99);
+        let mut v = vessel();
+        v.length_mm = 500_000;
+        let result = evaluate_passage(
+            &l, &v, &water(), LockAssetStatus::Available, OperatorApproval::Approved, 100, 10
+        );
+        assert_eq!(result.disposition, PassageDisposition::UnknownReviewRequired);
+        assert!(!result.reasons.contains(&PassageReason::LengthClearanceExceeded));
+    }
+
+    #[test]
     fn water_cycle_balances_chamber_and_basin_storage() {
         let r = cycle_eval(&cycle(), &WaterCycleCursor::default());
         assert_eq!(r.disposition, WaterCycleDisposition::BalancedForSyntheticCycle);
@@ -946,7 +1026,7 @@ mod tests {
         let mut record = cycle();
         record.support.end_tick = 130;
         assert_eq!(
-            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120).disposition,
+            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20).disposition,
             WaterCycleDisposition::EvidenceInconsistent
         );
     }
@@ -959,6 +1039,48 @@ mod tests {
         assert_eq!(replay.disposition, WaterCycleDisposition::DuplicateExactReplay);
         assert_eq!(replay.residual_ml, first.residual_ml);
         assert_eq!(replay.next_cursor, first.next_cursor);
+    }
+
+    #[test]
+    fn stale_cycle_evidence_requires_review() {
+        let mut record = cycle();
+        record.support = TimeInterval { start_tick: 50, end_tick: 60 };
+        assert_eq!(
+            evaluate_water_cycle(&lock(), &record, &WaterCycleCursor::default(), 120, 20).disposition,
+            WaterCycleDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn unknown_cycle_evidence_does_not_turn_residual_into_a_definitive_failure() {
+        let mut record = cycle();
+        record.inflow_from_upper_pound_ml = Some(10_000);
+        record.evidence_state = EvidenceState::Unknown;
+        assert_eq!(
+            cycle_eval(&record, &WaterCycleCursor::default()).disposition,
+            WaterCycleDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn expired_lock_profile_requires_cycle_review() {
+        let mut l = lock();
+        l.valid_through_tick = Some(119);
+        assert_eq!(
+            evaluate_water_cycle(&l, &cycle(), &WaterCycleCursor::default(), 120, 20).disposition,
+            WaterCycleDisposition::UnknownReviewRequired
+        );
+    }
+
+    #[test]
+    fn invalid_lock_profile_capacity_is_not_used_when_cycle_evidence_is_unknown() {
+        let mut record = cycle();
+        record.closing_system_storage_ml = Some(60_000_000_000);
+        record.evidence_state = EvidenceState::Unknown;
+        assert_eq!(
+            cycle_eval(&record, &WaterCycleCursor::default()).disposition,
+            WaterCycleDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
