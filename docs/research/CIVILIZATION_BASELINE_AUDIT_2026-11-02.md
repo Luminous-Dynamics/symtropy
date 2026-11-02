@@ -90,18 +90,18 @@ The module embeds 12 global data points for 1970–2024 (population, temperature
 
 ### Zero-baseline scoring defect
 
-The APE calculation uses a fallback that assigns 0.0 error whenever the observed value is zero or near zero. Thus a non-zero prediction against a zero observed baseline—such as the first temperature anomaly point—can be recorded as zero error. This needs a regression test and a metric redesign before the report is used as evidence of historical fit.
+The APE calculation uses a fallback that assigns 0.0 error whenever the observed value is zero or near zero. Thus a non-zero prediction against a zero observed baseline can be recorded as zero error. Parent PR #3820 replaces the score with native-unit errors and a pointwise relative-error diagnostic that is unavailable around zero.
 
 ### Temperature anomaly baseline mismatch
 
-A deeper source/model audit found a second problem. The multiworld simulator's `ClimateModel::global_temp_anomaly` is explicitly defined relative to pre-industrial conditions and initialized from its own cumulative-emissions approximation. NASA GISTEMP v4's standard downloadable LOTI tables are anomalies relative to the 1951–1980 mean. NASA's FAQ describes an additional adjustment to compare with 1850–1900 (approximately +0.19°C as of January 2025), but this is a reference-period transform, not a reason to silently add a fixed offset to an unidentified hard-coded series. The exact data product, version, extraction, and baseline transform need to be pinned and reviewed.
+The climate model's `ClimateModel::global_temp_anomaly` is documented as an anomaly above pre-industrial conditions. NASA GISTEMP v4 standard downloadable LOTI tables express anomalies relative to 1951–1980. NASA's FAQ describes a reference-period adjustment (about +0.19°C as of January 2025), but that is not an adequate substitute for a pinned data product and reproducible transform. The legacy series in `validation.rs` has no immutable source snapshot or transformation receipt. Parent PR #3820 therefore withholds temperature scoring and temperature-based calibration until a baseline-compatible dataset is ingested.
 
 Sources:
-- NASA GISTEMP v4 data: https://data.giss.nasa.gov/gistemp/data_v4.html
-- NASA GISTEMP FAQ: https://data.giss.nasa.gov/gistemp/faq/
-- NASA GMSTA page: https://data.giss.nasa.gov/gistemp/gmsta/
+- https://data.giss.nasa.gov/gistemp/data_v4.html
+- https://data.giss.nasa.gov/gistemp/faq/
+- https://data.giss.nasa.gov/gistemp/gmsta/
 
-The code changes in parent PR #3820 therefore withhold the temperature score from both the historical runner and the calibration objective until a baseline-compatible data snapshot and transformation receipt exist. The old separate decarbonization-rate and ocean-lag optimizer knobs were also not connected to the model-owned `ClimateModel`; those pseudo-controls have been removed rather than presented as physical parameter calibration. The calibrator now optimizes only three demographic parameters it actually changes, and scores population plus the climate model's own emissions output.
+The calibrator also contained separate decarbonization-rate and ocean-lag knobs which did not drive the simulator-owned `ClimateModel`; they generated an alternative emissions/temperature curve outside the authoritative climate state. Those pseudo-controls are removed in parent PR #3820. The revised optimizer only adjusts three demographic parameters that it actually mutates and evaluates population plus the authoritative climate model's emissions output.
 
 ### Invalid cross-metric aggregation
 
