@@ -379,7 +379,10 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
         ));
     }
     require_unique_ids(&plan.allowed_domains, "allowed domain ID")?;
-    require_unique_ids(&plan.allowed_mechanism_families, "allowed mechanism family ID")?;
+    require_unique_ids(
+        &plan.allowed_mechanism_families,
+        "allowed mechanism family ID",
+    )?;
     require_unique_ids(&plan.allowed_modalities, "allowed modality ID")?;
     require_unique_ids(
         &plan.allowed_reasoning_profiles,
@@ -1619,17 +1622,31 @@ mod tests {
         let freeze = freeze(&events);
         let mut changed_task = task("task-1", "a");
         changed_task.mechanism_family_id = "unregistered-mechanism".into();
-        assert!(verify(
-            &plan(), &events, &freeze, &calibration(),
-            &release(vec![changed_task]), &NoSemanticOverlap
-        ).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![changed_task]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut changed_plan = plan();
         changed_plan.allowed_mechanism_families.clear();
-        assert!(verify(
-            &changed_plan, &events, &freeze, &calibration(),
-            &release(vec![task("task-1", "a")]), &NoSemanticOverlap
-        ).is_err());
+        assert!(
+            verify(
+                &changed_plan,
+                &events,
+                &freeze,
+                &calibration(),
+                &release(vec![task("task-1", "a")]),
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
