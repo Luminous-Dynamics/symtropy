@@ -768,6 +768,10 @@ mod tests {
         candidate.safe_success = false;
         candidate.task_completed = true;
         candidate.hazard_observed = true;
+        let abstaining = trials[2].candidate.as_mut().unwrap();
+        abstaining.safe_success = false;
+        abstaining.task_completed = false;
+        abstaining.abstained = true;
         let receipt = summarize_repeated_run_reliability(
             &plan(EvidenceSplit::SealedHoldout),
             &manifest(EvidenceSplit::SealedHoldout),
@@ -779,7 +783,9 @@ mod tests {
         assert_eq!(candidate.completion_count, 3);
         assert_eq!(candidate.safe_success_count, 2);
         assert!(candidate.any_hazard);
-        assert!(!candidate.any_abstention);
+        assert_eq!(candidate.hazard_count, 1);
+        assert!(candidate.any_abstention);
+        assert_eq!(candidate.abstention_count, 1);
     }
 
     #[test]
