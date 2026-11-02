@@ -270,7 +270,11 @@ impl EnergyBalance {
     }
 
     /// Check closure using caller-declared absolute and relative tolerances.
-    pub fn is_closed(self, absolute_tolerance_w: f64, relative_tolerance: f64) -> Result<bool, ModelError> {
+    pub fn is_closed(
+        self,
+        absolute_tolerance_w: f64,
+        relative_tolerance: f64,
+    ) -> Result<bool, ModelError> {
         if !absolute_tolerance_w.is_finite()
             || absolute_tolerance_w < 0.0
             || !relative_tolerance.is_finite()
@@ -360,7 +364,9 @@ mod tests {
         assert!((result.engine.brake_power.get() - 193_500.0).abs() < 1e-9);
         assert!((result.generator.gross_electrical_power.get() - 185_760.0).abs() < 1e-9);
         assert!((result.generator.net_electrical_power.get() - 180_000.0).abs() < 1e-9);
-        assert!((result.net_electrical_efficiency().unwrap() - (180_000.0 / 430_000.0)).abs() < 1e-12);
+        let expected_efficiency = 180_000.0 / 430_000.0;
+        let actual_efficiency = result.net_electrical_efficiency().unwrap();
+        assert!((actual_efficiency - expected_efficiency).abs() < 1e-12);
     }
 
     #[test]
