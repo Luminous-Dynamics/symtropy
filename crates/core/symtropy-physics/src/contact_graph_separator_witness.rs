@@ -1620,6 +1620,24 @@ fn separator_message_composition_preserves_strict_boundary_and_excluded_cells() 
         &dropped
     ));
 
+    let mut falsely_complete = composed.clone();
+    falsely_complete.classification_complete = true;
+    assert!(!left_message.verify_composed_partition(
+        &left_partition,
+        &right_message,
+        &right_partition,
+        &falsely_complete
+    ));
+
+    let mut false_coverage = composed.clone();
+    false_coverage.coverage_preserved = false;
+    assert!(!left_message.verify_composed_partition(
+        &left_partition,
+        &right_message,
+        &right_partition,
+        &false_coverage
+    ));
+
     let mismatched_root = SeparatorImpulseBox::new(
         SVector::<f64, 3>::new(1.0, -0.5, -0.5),
         SVector::<f64, 3>::new(4.0, 0.5, 0.5),
