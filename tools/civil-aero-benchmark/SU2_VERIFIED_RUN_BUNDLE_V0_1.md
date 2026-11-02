@@ -11,7 +11,7 @@ The bundle is deliberately a composition layer. It does not replace SU2, infer m
 Each production run must have:
 
 1. One successful `SU2_CFD_DRY_RUN` receipt created by invoking the same executable bytes with exactly `-d CONFIG_PATH`.
-2. A field-preflight report replayed from that dry-run directory.
+2. A field-preflight report replayed from that dry-run directory. The v0.2 preflight records every `CONV_FIELD`, the explicit `WINDOW_CAUCHY_CRIT` mode, and (when enabled) all `CONV_WINDOW_FIELD` values and their window settings. See [`SU2_CONVERGENCE_PROTOCOL_V0_2.md`](./SU2_CONVERGENCE_PROTOCOL_V0_2.md).
 3. A boundary-marker audit replayed from that same dry-run directory.
 4. One successful `SU2_CFD` production receipt.
 5. One raw-history import bound to the production receipt and exact history output bytes.
@@ -33,6 +33,8 @@ The bundle builder replays the reports from the original run directories. It rej
 - Every history column consumed by the importer was both required and discovered by the preflight.
 - The production history, convergence screen and lineage all reference the exact production receipt and history bytes.
 - Every declared convergence criterion passes. An empty, failed or insufficient criterion set cannot be promoted.
+- Every active `CONV_FIELD` and `CONV_WINDOW_FIELD` is both imported from production history and covered by a passing independent post-run screen.
+- Every time-window field has a terminal monitor-stability screen; a residual-only pass cannot stand in for a `TAVG_*` field.
 - The lineage binding identifies a valid production geometry digest.
 
 The geometry is production-bound because the dry-run field and boundary checks need the configuration and mesh, but do not themselves authenticate the geometry file. Its identity is taken from the production run's staged-input receipt.
