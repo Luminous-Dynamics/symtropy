@@ -150,7 +150,10 @@ pub fn evaluate_dimension(
         || requirement.datum_id.trim().is_empty()
         || requirement.unit_id.trim().is_empty()
         || requirement.accepted_method_ids.is_empty()
-        || requirement.accepted_method_ids.iter().any(|id| id.trim().is_empty())
+        || requirement
+            .accepted_method_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
     {
         reasons.push(ComponentReason::InvalidRequirement);
         inconsistent = true;
@@ -192,7 +195,10 @@ pub fn evaluate_dimension(
         reasons.push(ComponentReason::MeasurementSpecificationMismatch);
         inconsistent = true;
     }
-    if !requirement.accepted_method_ids.contains(&measurement.method_id) {
+    if !requirement
+        .accepted_method_ids
+        .contains(&measurement.method_id)
+    {
         reasons.push(ComponentReason::UnsupportedMeasurementMethod);
         unsupported = true;
     }
@@ -421,7 +427,10 @@ pub fn evaluate_assembly(
         AssemblyDisposition::AcceptedForSyntheticAssembly
     };
 
-    AssemblyQualificationResult { disposition, reasons }
+    AssemblyQualificationResult {
+        disposition,
+        reasons,
+    }
 }
 
 #[cfg(test)]
@@ -875,7 +884,9 @@ mod tests {
     #[test]
     fn duplicate_required_member_is_inconsistent() {
         let mut requirement = assembly_requirement();
-        requirement.required_members.push(requirement.required_members[0].clone());
+        requirement
+            .required_members
+            .push(requirement.required_members[0].clone());
         assert_eq!(
             evaluate_assembly(&requirement, &assembly_members()).disposition,
             AssemblyDisposition::EvidenceInconsistent
