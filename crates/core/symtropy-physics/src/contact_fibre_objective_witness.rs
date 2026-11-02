@@ -182,6 +182,25 @@ mod tests {
             assert_eq!(scatter(&jacobian, &direction), [0_i128; 6]);
         }
 
+        let expected_body_impulse = scatter(&jacobian, &BASE_IMPULSE);
+        assert_eq!(expected_body_impulse, [0, 0, 200, 50, -200, 0]);
+
+        // Every linear generalized body-impulse observable c=J e_a is constant
+        // on the full allocation fibre, not only the selected z-axis example.
+        for body_axis in 0..6 {
+            let body_observable: Objective =
+                std::array::from_fn(|row| jacobian[row][body_axis]);
+            let expected = expected_body_impulse[body_axis];
+            assert_eq!(
+                objective_range_on_fibre(&body_observable, &BASE_IMPULSE, &NULL_BASIS),
+                [expected, expected]
+            );
+            assert!(objective_is_fibre_invariant(
+                &body_observable,
+                &NULL_BASIS
+            ));
+        }
+
         // The total normal impulse is the z-linear-momentum observable:
         // c = J e_z. It depends only on J^T p and is invariant on the fibre.
         let vertical_body_observable: Objective =
@@ -216,13 +235,29 @@ mod tests {
         // Exhaust all 64 vertices and independently recover both objective
         // ranges. Also prove every equivalent allocation produces the same
         // generalized body impulse.
-        let expected_body_impulse = scatter(&jacobian, &BASE_IMPULSE);
-        assert_eq!(expected_body_impulse, [0, 0, 200, 50, -200, 0]);
         let mut observed_vertical = [i128::MAX, i128::MIN];
+        let mut minimum_normal_impulses = [i128::MAX; 4];
+        let mut minimum_disk_margins = [i128::MAX; 4];
         let mut observed_first_normal = [i128::MAX, i128::MIN];
         for corner in 0_u8..64 {
             let candidate = build_candidate(corner, BASE_IMPULSE, &NULL_BASIS);
             assert_eq!(scatter(&jacobian, &candidate), expected_body_impulse);
+
+            // Each point in this exact compact fibre cube is physically
+            // admissible as a strictly sticking impulse at mu=1.
+            for contact in 0..4 {
+                let offset = contact * 3;
+                let normal = candidate[offset];
+                let tangent_1 = candidate[offset + 1];
+                let tangent_2 = candidate[offset + 2];
+                let disk_margin = normal * normal - tangent_1 * tangent_1 - tangent_2 * tangent_2;
+                assert!(normal > 0);
+                assert!(disk_margin > 0);
+                minimum_normal_impulses[contact] =
+                    minimum_normal_impulses[contact].min(normal);
+                minimum_disk_margins[contact] =
+                    minimum_disk_margins[contact].min(disk_margin);
+            }
 
             let vertical_value = dot(&vertical_body_observable, &candidate);
             observed_vertical[0] = observed_vertical[0].min(vertical_value);
@@ -234,6 +269,8 @@ mod tests {
         }
         assert_eq!(observed_vertical, [200, 200]);
         assert_eq!(observed_first_normal, [48, 52]);
+        assert_eq!(minimum_normal_impulses, [48, 49, 50, 49]);
+        assert_eq!(minimum_disk_margins, [2_287, 2_384, 2_498, 2_399]);
     }
 
     #[test]
