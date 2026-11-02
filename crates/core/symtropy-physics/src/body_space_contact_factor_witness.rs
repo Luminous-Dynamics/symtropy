@@ -162,8 +162,7 @@ mod tests {
         [0, -1, -1, 0, 1, 0, 0, 0, 0, 0, 0, 1],
     ];
 
-    const FOUR_CONTACT_POINTS: [[i128; 3]; 4] =
-        [[1, 0, -1], [0, 1, -1], [1, 1, -1], [2, -1, -1]];
+    const FOUR_CONTACT_POINTS: [[i128; 3]; 4] = [[1, 0, -1], [0, 1, -1], [1, 1, -1], [2, -1, -1]];
 
     fn four_contact_jacobian() -> [[i128; 6]; 12] {
         let mut jacobian = [[0_i128; 6]; 12];
@@ -171,8 +170,7 @@ mod tests {
             for (axis_index, axis) in CONTACT_FRAME_AXES.iter().copied().enumerate() {
                 let moment = cross(point, axis);
                 let row = contact * 3 + axis_index;
-                jacobian[row] =
-                    [axis[0], axis[1], axis[2], moment[0], moment[1], moment[2]];
+                jacobian[row] = [axis[0], axis[1], axis[2], moment[0], moment[1], moment[2]];
             }
         }
         jacobian
@@ -204,10 +202,7 @@ mod tests {
         delassus
     }
 
-    fn four_contact_scatter(
-        jacobian: &[[i128; 6]; 12],
-        impulses: &[i128; 12],
-    ) -> [i128; 6] {
+    fn four_contact_scatter(jacobian: &[[i128; 6]; 12], impulses: &[i128; 12]) -> [i128; 6] {
         let mut body_wrench = [0_i128; 6];
         for (row, impulse) in jacobian.iter().zip(impulses.iter()) {
             for (axis, coefficient) in row.iter().enumerate() {
@@ -217,10 +212,7 @@ mod tests {
         body_wrench
     }
 
-    fn four_contact_gather(
-        jacobian: &[[i128; 6]; 12],
-        body_velocity: &[i128; 6],
-    ) -> [i128; 12] {
+    fn four_contact_gather(jacobian: &[[i128; 6]; 12], body_velocity: &[i128; 6]) -> [i128; 12] {
         std::array::from_fn(|contact| {
             jacobian[contact]
                 .iter()
@@ -230,10 +222,7 @@ mod tests {
         })
     }
 
-    fn four_contact_apply(
-        delassus: &[[i128; 12]; 12],
-        impulses: &[i128; 12],
-    ) -> [i128; 12] {
+    fn four_contact_apply(delassus: &[[i128; 12]; 12], impulses: &[i128; 12]) -> [i128; 12] {
         std::array::from_fn(|row| {
             delassus[row]
                 .iter()
@@ -271,14 +260,14 @@ mod tests {
                 let block_norm_squared: i128 = (0..3)
                     .flat_map(|left_axis| {
                         (0..3).map(move |right_axis| {
-                            delassus[left_contact * 3 + left_axis]
-                                [right_contact * 3 + right_axis]
+                            delassus[left_contact * 3 + left_axis][right_contact * 3 + right_axis]
                                 .pow(2)
                         })
                     })
                     .sum();
                 assert_eq!(
-                    block_norm_squared, expected_block_norms[left_contact][right_contact]
+                    block_norm_squared,
+                    expected_block_norms[left_contact][right_contact]
                 );
             }
         }
@@ -300,10 +289,7 @@ mod tests {
                 four_contact_scatter(&jacobian, &null_direction),
                 [0_i128; 6]
             );
-            assert_eq!(
-                four_contact_apply(&delassus, &null_direction),
-                [0_i128; 12]
-            );
+            assert_eq!(four_contact_apply(&delassus, &null_direction), [0_i128; 12]);
         }
 
         // Verify matrix-free scatter/body solve/gather against W for all
@@ -384,8 +370,7 @@ mod tests {
                 assert!(normal > 0);
                 assert!(disk_margin > 0);
                 minimum_normal_impulses[contact] = minimum_normal_impulses[contact].min(normal);
-                minimum_disk_margins[contact] =
-                    minimum_disk_margins[contact].min(disk_margin);
+                minimum_disk_margins[contact] = minimum_disk_margins[contact].min(disk_margin);
             }
 
             let twice_energy: i128 = candidate
