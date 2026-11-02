@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/marine-fuel-storage-0.1.0.json",
+  "title": "Luminous Marine Fuel Storage Reference Dataset",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "accessed_at",
+    "intended_use",
+    "comparison_policy",
+    "sources",
+    "records",
+    "cross_source_checks",
+    "design_implications"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_policy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "cross_source_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fuel_id",
+          "source_id",
+          "note"
+        ],
+        "properties": {
+          "fuel_id": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "estimated_tank_volume_multiple_vs_mgo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "storage_energy_density_mj_per_liter": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "volumetric_fuel_lhv_mj_per_liter": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "basis": {
+            "type": "string"
+          },
+          "storage_assumption": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "design_implications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": [
+        "source_id",
+        "title",
+        "uri",
+        "evidence_class",
+        "accessed_at",
+        "source_notes"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "evidence_class": {
+          "enum": [
+            "peer_reviewed_literature",
+            "government_technical_guide",
+            "technical_project_report"
+          ]
+        },
+        "accessed_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "record": {
+      "type": "object",
+      "required": [
+        "fuel_id",
+        "label",
+        "carrier_type",
+        "tank_included_gravimetric_energy_density_mwh_per_tonne",
+        "tank_included_volumetric_energy_density_mwh_per_cubic_meter",
+        "source_id",
+        "evidence_class",
+        "uncertainty",
+        "interpretation"
+      ],
+      "properties": {
+        "fuel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "carrier_type": {
+          "enum": [
+            "liquid_fuel",
+            "cryogenic_liquid_fuel",
+            "pressurized_or_refrigerated_liquid_fuel",
+            "electrical_storage"
+          ]
+        },
+        "lhv_mwh_per_tonne": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "tank_included_gravimetric_energy_density_mwh_per_tonne": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "tank_included_volumetric_energy_density_mwh_per_cubic_meter": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "relative_tank_included_volume_per_delivered_energy_vs_mgo": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "storage_conditions_as_modelled": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "peer_reviewed_literature",
+            "government_technical_guide",
+            "technical_project_report"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "number",
+            "object",
+            "null"
+          ]
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "carrier_type": {
+                "const": "electrical_storage"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "relative_tank_included_volume_per_delivered_energy_vs_mgo": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
