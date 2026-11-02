@@ -7,6 +7,7 @@
 pub mod adaptive_benchmark_lifecycle;
 pub mod anytime_paired_evidence;
 pub mod approximate_blackwell;
+pub mod benchmark_anchor_equating;
 pub mod blackwell_transfer;
 pub mod causal_execution;
 pub mod causal_thermal_bridge;
