@@ -252,6 +252,14 @@ def unsteady_inner_screen_evidence(
     require(threshold_text, "unsteady inner screen requires explicit CONV_RESIDUAL_MINVAL")
     threshold = float(threshold_text)
     require(math.isfinite(threshold), "unsteady inner residual threshold is non-finite")
+    require(preflight["window_cauchy_enabled"] == "YES",
+            "unsteady inner screen requires enabled time-window convergence")
+    window_start = int(preflight["window_start_iter"])
+    convergence_start = int(preflight["window_convergence_start_iter"])
+    window_elements = int(preflight["window_cauchy_elements"])
+    require(window_elements > 0, "window Cauchy element count must be positive")
+    required_terminal_iteration = window_start + max(convergence_start, window_elements)
+
     time_iterations: list[int] = []
     inner_iterations: list[int] = []
     for row in raw_rows:
@@ -266,6 +274,10 @@ def unsteady_inner_screen_evidence(
     require(all(
         right == left + 1 for left, right in zip(time_iterations, time_iterations[1:])
     ), "unsteady raw history has a TIME_ITER gap")
+    require(time_iterations[0] <= window_start,
+            "unsteady history begins after WINDOW_START_ITER")
+    require(time_iterations[-1] >= required_terminal_iteration,
+            "unsteady history ends before the configured window convergence period")
 
     canonical = bytearray()
     screen_status = "all_contiguous_saved_time_steps_passed_inner_residual_thresholds"
