@@ -55,7 +55,7 @@ def parse_manifest(path: Path) -> dict[str, str]:
 
 
 def main() -> int:
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         raise ValueError(
             "usage: verify-su2-run-lineage-independent.py RUN_DIR HISTORY_IMPORT_CSV SCREEN_CSV LINEAGE_CSV MESH_SUMMARY_CSV"
         )
@@ -169,9 +169,6 @@ def main() -> int:
         ("mesh_boundary_element_count", "boundary_element_count"),
     ):
         require(common[binding_name] == mesh_summary[summary_name], f"mesh summary {binding_name} mismatch")
-    mesh_summary_digest = hashlib.sha256(
-        Path(sys.argv[5]).read_bytes()
-    ).hexdigest()
     # The summary CSV is a single deterministic row and the source mesh digest is included within it.
     require(mesh_summary["mesh_sha256"] == fixed["mesh"]["artifact_sha256"], "parsed mesh summary source digest mismatch")
     require(
