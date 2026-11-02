@@ -207,6 +207,7 @@ pub fn verify_batch_bound_duty_cycle(
         let flow = evaluation.fuel_mass_flow();
         let flow_observation = segment.fuel_flow_observation();
         let flow_evidence = flow.evidence();
+        let lhv_evidence = fuel_batch.lower_heating_value().evidence();
 
         if flow_observation.fuel_batch_id() != fuel_batch.batch_id() {
             return Err(EnergyVerificationError::FlowBindingMismatch {
@@ -232,6 +233,10 @@ pub fn verify_batch_bound_duty_cycle(
             || flow_evidence.source_uri().trim().is_empty()
             || flow_evidence.method().trim().is_empty()
             || flow_evidence.observed_at().trim().is_empty()
+            || lhv_evidence.source_id().trim().is_empty()
+            || lhv_evidence.source_uri().trim().is_empty()
+            || lhv_evidence.method().trim().is_empty()
+            || lhv_evidence.observed_at().trim().is_empty()
         {
             return Err(EnergyVerificationError::MissingEvidenceIdentity { segment_id });
         }
