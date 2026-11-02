@@ -70,7 +70,8 @@ impl DomainExposure {
 pub enum AnalysisRegime {
     Steady,
     UnsteadyDualTime,
-    UnsteadyTimeAccurate,
+    PeriodicStatistical,
+    TransientEndpoint,
     CoupledTransient,
 }
 
@@ -79,7 +80,8 @@ impl AnalysisRegime {
         match self {
             Self::Steady => "steady",
             Self::UnsteadyDualTime => "unsteady_dual_time",
-            Self::UnsteadyTimeAccurate => "unsteady_time_accurate",
+            Self::PeriodicStatistical => "periodic_statistical",
+            Self::TransientEndpoint => "transient_endpoint",
             Self::CoupledTransient => "coupled_transient",
         }
     }
@@ -286,10 +288,13 @@ pub fn required_evidence_gates(context: &RiskContext) -> Vec<EvidenceGate> {
             EvidenceGate::PerTimeStepInnerConvergence,
             EvidenceGate::StatisticalWindowConvergence,
         ]),
-        AnalysisRegime::UnsteadyTimeAccurate => gates.extend([
+        AnalysisRegime::PeriodicStatistical => gates.extend([
             EvidenceGate::TemporalResolution,
             EvidenceGate::StatisticalWindowConvergence,
         ]),
+        AnalysisRegime::TransientEndpoint => {
+            gates.push(EvidenceGate::TemporalResolution);
+        }
         AnalysisRegime::CoupledTransient => gates.extend([
             EvidenceGate::TemporalResolution,
             EvidenceGate::CoupledDisciplineConsistency,
@@ -627,6 +632,20 @@ mod tests {
         ] {
             assert!(gates.contains(&gate), "missing required gate {}", gate.as_str());
         }
+    }
+
+    #[test]
+    fn transient_endpoint_requires_temporal_resolution_not_statistical_window() {
+        let context = context(
+            ModelInfluence::Moderate,
+            DecisionConsequence::Moderate,
+            DomainExposure::InDomain,
+            AnalysisRegime::TransientEndpoint,
+        );
+        let gates = required_evidence_gates(&context);
+        assert!(gates.contains(&EvidenceGate::TemporalResolution));
+        assert!(!gates.contains(&EvidenceGate::StatisticalWindowConvergence));
+        assert!(!gates.contains(&EvidenceGate::PerTimeStepInnerConvergence));
     }
 
     #[test]
