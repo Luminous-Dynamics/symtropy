@@ -1386,27 +1386,57 @@ mod tests {
             split: Some(EvidenceSplit::SealedHoldout),
             role: GenerationInputRole::DevelopmentEvidence,
         });
-        sealed_leak.task_artifacts[0].generator_input_artifact_digests.push(D7.into());
-        assert!(verify(
-            &plan(), &events, &freeze, &calibration(), &sealed_leak, &NoSemanticOverlap
-        ).is_err());
+        sealed_leak.task_artifacts[0]
+            .generator_input_artifact_digests
+            .push(D7.into());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &sealed_leak,
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut unadmitted_development = release(vec![task("task-1", "a")]);
-        unadmitted_development.generation_inputs.push(GenerationInputArtifact {
-            artifact_digest: D7.into(),
-            split: Some(EvidenceSplit::Development),
-            role: GenerationInputRole::DevelopmentEvidence,
-        });
-        unadmitted_development.task_artifacts[0].generator_input_artifact_digests.push(D7.into());
-        assert!(verify(
-            &plan(), &events, &freeze, &calibration(), &unadmitted_development, &NoSemanticOverlap
-        ).is_err());
+        unadmitted_development
+            .generation_inputs
+            .push(GenerationInputArtifact {
+                artifact_digest: D7.into(),
+                split: Some(EvidenceSplit::Development),
+                role: GenerationInputRole::DevelopmentEvidence,
+            });
+        unadmitted_development.task_artifacts[0]
+            .generator_input_artifact_digests
+            .push(D7.into());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &unadmitted_development,
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
 
         let mut misclassified_calibration = release(vec![task("task-1", "a")]);
         misclassified_calibration.generation_inputs[2].split = Some(EvidenceSplit::Development);
-        assert!(verify(
-            &plan(), &events, &freeze, &calibration(), &misclassified_calibration, &NoSemanticOverlap
-        ).is_err());
+        assert!(
+            verify(
+                &plan(),
+                &events,
+                &freeze,
+                &calibration(),
+                &misclassified_calibration,
+                &NoSemanticOverlap
+            )
+            .is_err()
+        );
     }
 
     #[test]
