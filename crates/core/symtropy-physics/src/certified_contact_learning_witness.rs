@@ -82,8 +82,28 @@ mod tests {
             }
         }
 
-        // Check the two exact sum-of-squares factorizations on a frozen
-        // integer control set. The identities hold algebraically for every x.
+        // Exact Gram factors establish the two matrix identities for every
+        // x in R^4, rather than relying only on a finite numerical sample.
+        let lower_factors: [[i128; 4]; 2] = [[1, 0, 1, 0], [0, 1, 0, 1]];
+        let upper_factors: [[i128; 4]; 2] = [[1, 0, -1, 0], [0, 1, 0, -1]];
+        for row in 0..4 {
+            for column in 0..4 {
+                let lower_gram: i128 = lower_factors
+                    .iter()
+                    .map(|factor| factor[row] * factor[column])
+                    .sum();
+                let upper_gram: i128 = upper_factors
+                    .iter()
+                    .map(|factor| factor[row] * factor[column])
+                    .sum();
+                let identity = if row == column { 1_i128 } else { 0_i128 };
+                assert_eq!(H_NUM[row][column] - 9 * identity, lower_gram);
+                assert_eq!(11 * identity - H_NUM[row][column], upper_gram);
+            }
+        }
+
+        // Retain additional integer-vector controls as a metamorphic check
+        // against accidental changes to the frozen coupled Hessian.
         let controls: [Vector4; 6] = [
             [1, 0, 0, 0],
             [0, 1, 0, 0],
