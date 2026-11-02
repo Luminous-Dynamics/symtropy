@@ -328,9 +328,7 @@ fn product(a: u64, b: u64, c: u16) -> Result<u128, ConversionReason> {
         .ok_or(ConversionReason::ArithmeticOverflow)
 }
 
-fn derive_interval(
-    request: &ConversionRequest,
-) -> Result<DryMassIntervalGrams, ConversionReason> {
+fn derive_interval(request: &ConversionRequest) -> Result<DryMassIntervalGrams, ConversionReason> {
     let low = product(
         request.wet_volume.lower_microlitres,
         request.wet_density.lower_milli_kg_per_m3,
@@ -345,7 +343,11 @@ fn derive_interval(
     let lower_grams = low / PRODUCT_UNITS_PER_GRAM;
     let quotient = high / PRODUCT_UNITS_PER_GRAM;
     let upper_grams = quotient
-        .checked_add(if high % PRODUCT_UNITS_PER_GRAM == 0 { 0 } else { 1 })
+        .checked_add(if high % PRODUCT_UNITS_PER_GRAM == 0 {
+            0
+        } else {
+            1
+        })
         .ok_or(ConversionReason::ArithmeticOverflow)?;
 
     Ok(DryMassIntervalGrams {
@@ -450,21 +452,25 @@ pub fn evaluate_conversion(
     if request.wet_volume.observed_at_tick > evaluation_tick {
         reasons.push(ConversionReason::VolumeMeasurementFromFuture);
         inconsistent = true;
-    } else if evaluation_tick - request.wet_volume.observed_at_tick > maximum_measurement_age_ticks {
+    } else if evaluation_tick - request.wet_volume.observed_at_tick > maximum_measurement_age_ticks
+    {
         reasons.push(ConversionReason::VolumeMeasurementStale);
         unknown = true;
     }
     if request.wet_density.observed_at_tick > evaluation_tick {
         reasons.push(ConversionReason::DensityMeasurementFromFuture);
         inconsistent = true;
-    } else if evaluation_tick - request.wet_density.observed_at_tick > maximum_measurement_age_ticks {
+    } else if evaluation_tick - request.wet_density.observed_at_tick > maximum_measurement_age_ticks
+    {
         reasons.push(ConversionReason::DensityMeasurementStale);
         unknown = true;
     }
     if request.solids_fraction.sampled_at_tick > evaluation_tick {
         reasons.push(ConversionReason::FractionSampleFromFuture);
         inconsistent = true;
-    } else if evaluation_tick - request.solids_fraction.sampled_at_tick > maximum_measurement_age_ticks {
+    } else if evaluation_tick - request.solids_fraction.sampled_at_tick
+        > maximum_measurement_age_ticks
+    {
         reasons.push(ConversionReason::FractionSampleStale);
         unknown = true;
     }
@@ -546,7 +552,10 @@ mod tests {
     use super::*;
 
     fn support() -> TimeInterval {
-        TimeInterval { start_tick: 100, end_tick: 200 }
+        TimeInterval {
+            start_tick: 100,
+            end_tick: 200,
+        }
     }
 
     fn request() -> ConversionRequest {
@@ -616,10 +625,17 @@ mod tests {
     #[test]
     fn exact_fixed_point_calculation_returns_three_hundred_kilograms() {
         let result = eval(&request(), &ConversionCursor::default());
-        assert_eq!(result.disposition, ConversionDisposition::AcceptedAsBoundedSyntheticObservation);
-        assert_eq!(result.dry_mass_interval, Some(DryMassIntervalGrams {
-            lower_grams: 300_000, upper_grams: 300_000
-        }));
+        assert_eq!(
+            result.disposition,
+            ConversionDisposition::AcceptedAsBoundedSyntheticObservation
+        );
+        assert_eq!(
+            result.dry_mass_interval,
+            Some(DryMassIntervalGrams {
+                lower_grams: 300_000,
+                upper_grams: 300_000
+            })
+        );
     }
 
     #[test]
@@ -631,8 +647,13 @@ mod tests {
         req.wet_density.upper_milli_kg_per_m3 = 1_300_000;
         req.solids_fraction.lower_permille = 200;
         req.solids_fraction.upper_permille = 300;
-        assert_eq!(eval(&req, &ConversionCursor::default()).dry_mass_interval,
-            Some(DryMassIntervalGrams { lower_grams: 198_000, upper_grams: 429_000 }));
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).dry_mass_interval,
+            Some(DryMassIntervalGrams {
+                lower_grams: 198_000,
+                upper_grams: 429_000
+            })
+        );
     }
 
     #[test]
@@ -648,16 +669,23 @@ mod tests {
         let mut req = request();
         req.solids_fraction.lower_permille = 0;
         req.solids_fraction.upper_permille = 0;
-        assert_eq!(eval(&req, &ConversionCursor::default()).dry_mass_interval,
-            Some(DryMassIntervalGrams { lower_grams: 0, upper_grams: 0 }));
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).dry_mass_interval,
+            Some(DryMassIntervalGrams {
+                lower_grams: 0,
+                upper_grams: 0
+            })
+        );
     }
 
     #[test]
     fn fraction_above_one_thousand_permille_is_inconsistent() {
         let mut req = request();
         req.solids_fraction.upper_permille = 1_001;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -665,8 +693,10 @@ mod tests {
         let mut req = request();
         req.wet_density.lower_milli_kg_per_m3 = 0;
         req.wet_density.upper_milli_kg_per_m3 = 0;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -674,7 +704,10 @@ mod tests {
         let mut req = request();
         req.wet_density.lower_milli_kg_per_m3 = 0;
         let result = eval(&req, &ConversionCursor::default());
-        assert_eq!(result.disposition, ConversionDisposition::AcceptedAsBoundedSyntheticObservation);
+        assert_eq!(
+            result.disposition,
+            ConversionDisposition::AcceptedAsBoundedSyntheticObservation
+        );
         assert_eq!(result.dry_mass_interval.unwrap().lower_grams, 0);
     }
 
@@ -683,32 +716,40 @@ mod tests {
         let mut req = request();
         req.wet_volume.lower_microlitres = 101;
         req.wet_volume.upper_microlitres = 100;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn unsupported_volume_unit_does_not_convert() {
         let mut req = request();
         req.wet_volume.unit = WetVolumeUnit::CubicMetre;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnsupportedMeasurementBasis);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnsupportedMeasurementBasis
+        );
     }
 
     #[test]
     fn unsupported_density_unit_does_not_convert() {
         let mut req = request();
         req.wet_density.unit = DensityUnit::GramPerLitre;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnsupportedMeasurementBasis);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnsupportedMeasurementBasis
+        );
     }
 
     #[test]
     fn solids_volume_fraction_is_not_treated_as_mass_fraction() {
         let mut req = request();
         req.solids_fraction.basis = FractionBasis::SolidsVolumeFraction;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnsupportedMeasurementBasis);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnsupportedMeasurementBasis
+        );
     }
 
     #[test]
@@ -716,7 +757,10 @@ mod tests {
         let mut req = request();
         req.wet_density.evidence_state = EvidenceState::Unknown;
         let result = eval(&req, &ConversionCursor::default());
-        assert_eq!(result.disposition, ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            result.disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
         assert!(result.dry_mass_interval.is_none());
     }
 
@@ -724,80 +768,100 @@ mod tests {
     fn missing_fraction_evidence_does_not_create_mass() {
         let mut req = request();
         req.solids_fraction.evidence_state = EvidenceState::Unknown;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
     fn lot_mismatch_is_inconsistent() {
         let mut req = request();
         req.solids_fraction.material_lot_id = "other-lot".into();
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn plant_mismatch_is_inconsistent() {
         let mut req = request();
         req.wet_density.plant_id = "other-plant".into();
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn spatial_scope_mismatch_is_inconsistent() {
         let mut req = request();
         req.wet_density.spatial_scope_id = "other-cell".into();
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn support_mismatch_is_inconsistent() {
         let mut req = request();
         req.wet_density.support.end_tick = 190;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn sample_outside_support_is_inconsistent() {
         let mut req = request();
         req.solids_fraction.sampled_at_tick = 99;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn nonrepresentative_sample_requires_review() {
         let mut req = request();
         req.solids_fraction.representative_for_declared_support = false;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
     fn expired_volume_calibration_requires_review() {
         let mut req = request();
         req.wet_volume.calibration_valid_through_tick = Some(159);
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
     fn unknown_density_calibration_requires_review() {
         let mut req = request();
         req.wet_density.calibration_valid_through_tick = None;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
     fn expired_fraction_sample_requires_review() {
         let mut req = request();
         req.solids_fraction.valid_through_tick = Some(159);
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -854,24 +918,30 @@ mod tests {
     fn future_measurement_is_inconsistent() {
         let mut req = request();
         req.wet_volume.observed_at_tick = 161;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn revoked_lab_evidence_is_inconsistent() {
         let mut req = request();
         req.solids_fraction.evidence_state = EvidenceState::Revoked;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn disputed_density_requires_review() {
         let mut req = request();
         req.wet_density.evidence_state = EvidenceState::Disputed;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::UnknownReviewRequired);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::UnknownReviewRequired
+        );
     }
 
     #[test]
@@ -879,7 +949,10 @@ mod tests {
         let req = request();
         let first = eval(&req, &ConversionCursor::default());
         let replay = eval(&req, &first.next_cursor);
-        assert_eq!(replay.disposition, ConversionDisposition::DuplicateExactReplay);
+        assert_eq!(
+            replay.disposition,
+            ConversionDisposition::DuplicateExactReplay
+        );
         assert_eq!(replay.dry_mass_interval, first.dry_mass_interval);
         assert_eq!(replay.next_cursor, first.next_cursor);
     }
@@ -890,8 +963,10 @@ mod tests {
         let first = eval(&req, &ConversionCursor::default());
         let mut changed = req;
         changed.wet_volume.upper_microlitres += 1;
-        assert_eq!(eval(&changed, &first.next_cursor).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&changed, &first.next_cursor).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
@@ -901,7 +976,10 @@ mod tests {
         req.wet_density.upper_milli_kg_per_m3 = u64::MAX;
         req.solids_fraction.upper_permille = 1_000;
         let result = eval(&req, &ConversionCursor::default());
-        assert_eq!(result.disposition, ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            result.disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
         assert!(result.dry_mass_interval.is_none());
     }
 
@@ -909,24 +987,30 @@ mod tests {
     fn invalid_support_is_inconsistent() {
         let mut req = request();
         req.manifest.support.end_tick = req.manifest.support.start_tick;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn telemetry_profile_revision_mismatch_is_inconsistent() {
         let mut req = request();
         req.wet_volume.telemetry_profile_revision = "stale-profile".into();
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
     fn volume_observation_outside_support_is_inconsistent() {
         let mut req = request();
         req.wet_volume.observed_at_tick = 99;
-        assert_eq!(eval(&req, &ConversionCursor::default()).disposition,
-            ConversionDisposition::EvidenceInconsistent);
+        assert_eq!(
+            eval(&req, &ConversionCursor::default()).disposition,
+            ConversionDisposition::EvidenceInconsistent
+        );
     }
 
     #[test]
