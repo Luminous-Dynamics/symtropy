@@ -12,9 +12,9 @@ from pathlib import Path
 
 SCHEMA = "su2-verified-run-bundle/0.1.0"
 EVIDENCE = (
-    "replayed_dry_run_field_preflight_and_boundary_audit_bound_to_production_receipt_"
-    "history_screen_and_inputs_unsigned_wall_time_only_other_resources_unknown_"
-    "not_grid_independent_or_experimentally_validated"
+    "replayed_dry_run_multi_field_steady_and_time_window_protocol_and_boundary_audit_"
+    "bound_to_production_history_screen_and_inputs_unsigned_wall_time_only_other_"
+    "resources_unknown_not_grid_independent_or_experimentally_validated"
 )
 
 
