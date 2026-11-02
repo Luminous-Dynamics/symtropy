@@ -371,8 +371,10 @@ impl World {
                 let available = (working[from].get(resource) - reserve_floor).max(0.0);
                 let amount = request.amount.get(resource).min(available);
 
-                working[from].set(resource, working[from].get(resource) - amount);
-                working[to].set(resource, working[to].get(resource) + amount);
+                let from_after = working[from].get(resource) - amount;
+                let to_after = working[to].get(resource) + amount;
+                working[from].set(resource, from_after);
+                working[to].set(resource, to_after);
                 delivered.set(resource, amount);
             }
 
