@@ -23,6 +23,8 @@ A risk context contains four explicit dimensions:
 
 The policy deliberately avoids collapsing these into a caller-selected weighted score. The AssuranceTier is a deterministic, monotone mapping from categorical inputs. Raising model influence, consequence or domain exposure cannot lower the required tier.
 
+This monotonicity is a property of the declared categorical policy, not proof that the risk category itself was assigned correctly. Risk classification needs a named decision owner, rationale and review appropriate to the application.
+
 The current mapping is a proposed engineering policy, not a normative threshold. It should be reviewed with domain experts before being used to gate real aircraft release decisions.
 
 ## Assurance tiers and minimum evidence
@@ -64,17 +66,20 @@ Each observation records:
 
 - A typed gate identifier.
 - Passed, Failed, or Unknown.
-- An immutable source reference.
-- SHA-256 of the exact evidence artifact for every passing gate.
+- A caller-reported source reference.
+- A caller-reported SHA-256 of the evidence artifact for every passing gate.
 - A rationale for failed or unknown evidence.
 
-Admission requires exactly one passing observation for every required gate. Missing, duplicate, failed or unknown required gates prevent admission. A passing observation without a source reference and a 64-character SHA-256 is rejected.
+**Important boundary:** this policy module validates the shape and consistency of the observation record and binds the supplied references and digests into a deterministic assessment. It does not open those artifacts, authenticate the source, or independently replay the evidence. An integration must first call the appropriate verifier (for example, the SU2 run-bundle replay, grid-family replay, experimental calibration verifier or physical metrology review) and only then construct a Passed observation. The source verifiers remain the authority for their evidence objects.
 
-The output means only:
+Admission requires exactly one passing observation for every required gate. Missing, duplicate, failed or unknown required gates prevent policy-profile satisfaction. A passing observation without a source reference and a 64-character SHA-256 is rejected. The separate Python oracle recomputes the categorical policy, required gates, blockers and canonical digest; it does not verify the underlying CFD or experimental files.
 
-    admitted_under_declared_risk_profile
+The output statuses mean only:
 
-It does not mean true, safe, certified, flight-worthy, or experimentally validated beyond the gates that were actually required and passed. The report preserves its required-gate list, passed-gate list, blockers and deterministic replay digest.
+    policy_profile_satisfied_by_declared_observations
+    policy_profile_withheld_required_observations_missing_failed_or_unknown
+
+Neither means true, safe, certified, flight-worthy, or experimentally validated. The report preserves required gates, passed gates, supplemental observations, blockers and a deterministic policy-assessment digest.
 
 ## Interaction with value of information
 
