@@ -343,11 +343,11 @@ pub fn validate_telemetry(
         reasons.push(TelemetryReason::DuplicateEventChangedPayload);
         inconsistent = true;
     }
-    if let Some(existing_event) = cursor.sequence_owners.get(&record.sequence) {
-        if existing_event != &record.event_id {
-            reasons.push(TelemetryReason::SequenceCollision);
-            inconsistent = true;
-        }
+    if let Some(existing_event) = cursor.sequence_owners.get(&record.sequence)
+        && existing_event != &record.event_id
+    {
+        reasons.push(TelemetryReason::SequenceCollision);
+        inconsistent = true;
     }
     if record.sequence <= cursor.contiguous_sequence
         && !cursor.sequence_owners.contains_key(&record.sequence)
