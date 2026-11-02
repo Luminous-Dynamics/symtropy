@@ -391,7 +391,8 @@
       "not_applicable"
     ],
     "missing_value_behavior": "no_zero_fill",
-    "paired_difference": "only_defined_when_both_arms_have_valid_numeric_values_otherwise_indeterminate",
-    "worst_group_service_ppm_max": 1000000
+    "paired_difference": "defined_only_when_both_arms_have_valid_numeric_values_with_exactly_the_same_evidence_status; otherwise delta is indeterminate with explicit missingness or evidence_status_mismatch",
+    "worst_group_service_ppm_max": 1000000,
+    "cross_status_comparison": "disallowed_by_default; requires a separately named, versioned, preregistered and validated bridge"
   }
 }
