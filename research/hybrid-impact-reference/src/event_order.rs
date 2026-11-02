@@ -197,8 +197,18 @@ mod tests {
 
     #[test]
     fn identical_certified_singletons_do_not_prove_simultaneity() {
-        let a = event("impact-a", 1.25, 1.25, EventTimeEvidence::CertifiedEnclosure);
-        let b = event("impact-b", 1.25, 1.25, EventTimeEvidence::CertifiedEnclosure);
+        let a = event(
+            "impact-a",
+            1.25,
+            1.25,
+            EventTimeEvidence::CertifiedEnclosure,
+        );
+        let b = event(
+            "impact-b",
+            1.25,
+            1.25,
+            EventTimeEvidence::CertifiedEnclosure,
+        );
 
         assert_eq!(
             compare_event_order(&a, &b),
