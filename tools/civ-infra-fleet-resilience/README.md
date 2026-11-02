@@ -1,6 +1,6 @@
 # CIV-INFRA Fleet Resilience Manifest and Tiny Schedule Oracle
 
-A standalone Rust tool for validating the v0.1 synthetic fleet-resilience scenario manifest and exhaustively solving three deliberately tiny, static scheduling instances. Its virtual edition-2024 workspace explicitly pins Cargo resolver 3. It is isolated from the production workspace and has no network or device-control path.
+A standalone Rust tool for validating the v0.1 synthetic fleet-resilience scenario manifest and exhaustively solving three deliberately tiny, static scheduling instances. Its edition-2024 package workspace explicitly pins Cargo resolver 3. It is isolated from the production workspace and has no network or device-control path.
 
 From the repository root:
 
