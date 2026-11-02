@@ -282,7 +282,7 @@ impl SeparatingLeafMessage {
     ) -> Result<SeparatingBoxResponse, &'static str> {
         self.schur_terms()?;
         let mut post_velocity_bounds = [OutwardInterval::point(0.0)?; 3];
-        for component in 0..3 {
+        for (component, post_velocity_bound) in post_velocity_bounds.iter_mut().enumerate() {
             let mut velocity = OutwardInterval::point(self.free_velocity[component])?;
             for separator_axis in 0..3 {
                 let coefficient =
@@ -293,7 +293,7 @@ impl SeparatingLeafMessage {
                 )?;
                 velocity = velocity.outward_add(coefficient.outward_mul(separator_coordinate)?)?;
             }
-            post_velocity_bounds[component] = velocity;
+            *post_velocity_bound = velocity;
         }
 
         let normal = post_velocity_bounds[0];
