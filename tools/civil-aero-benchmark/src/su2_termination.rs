@@ -493,6 +493,22 @@ mod tests {
     }
 
     #[test]
+    fn unsteady_endpoint_without_window_protocol_is_never_classified_as_converged() {
+        let mut protocol = window_protocol();
+        protocol.window = Su2WindowConvergenceProtocol::Disabled;
+        let section = concat!(
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "Maximum time reached (MAX_TIME = 2.0s).\\n",
+        );
+        let (mode, classification, criteria, messages) =
+            classify_exit_section(section, &protocol).expect("classify unsupported unsteady endpoint");
+        assert_eq!(mode, "unsteady_no_window");
+        assert_eq!(classification, "unsupported_unsteady_termination_protocol");
+        assert!(criteria.is_empty());
+        assert!(messages.is_empty());
+    }
+
+    #[test]
     fn time_window_success_uses_distinct_native_exit_message_and_all_window_fields() {
         let section = concat!(
             "----------------------------- Solver Exit -------------------------------\n",
