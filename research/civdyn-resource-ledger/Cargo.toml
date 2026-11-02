@@ -15,4 +15,8 @@ path = "src/lib.rs"
 name = "water-energy-shock-demo"
 path = "src/main.rs"
 
+[[bin]]
+name = "css001-water-energy-shock"
+path = "src/bin/css001_water_energy_shock.rs"
+
 [dependencies]
