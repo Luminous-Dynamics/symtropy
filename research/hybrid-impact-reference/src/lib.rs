@@ -58,7 +58,12 @@ pub enum ImpactError {
     NonFiniteRestitution,
     RestitutionOutOfRange,
     NumericalOverflow,
+    InvalidImpactNumber,
+    NoFurtherImpactAfterRest,
+    TimeResolutionExhausted,
 }
+
+pub mod bounce_sequence;
 
 fn finite(value: f64) -> bool {
     value.is_finite()
