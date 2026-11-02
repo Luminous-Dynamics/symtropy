@@ -34,6 +34,7 @@ pub struct AdaptiveBenchmarkPlan {
     pub semantic_auditor_version: String,
     pub semantic_auditor_artifact_digest: String,
     pub allowed_domains: Vec<String>,
+    pub allowed_mechanism_families: Vec<String>,
     pub allowed_modalities: Vec<String>,
     pub allowed_reasoning_profiles: Vec<String>,
     pub minimum_calibration_tasks: usize,
@@ -141,6 +142,7 @@ pub struct AdaptiveBenchmarkTaskArtifact {
     pub recipe_template_digest: String,
     pub recipe_instance_digest: String,
     pub family_group_id: String,
+    pub mechanism_family_id: String,
     pub split: EvidenceSplit,
     pub domain_id: String,
     pub modality_id: String,
@@ -377,6 +379,7 @@ fn validate_plan(plan: &AdaptiveBenchmarkPlan) -> Result<(), AdaptiveBenchmarkEr
         ));
     }
     require_unique_ids(&plan.allowed_domains, "allowed domain ID")?;
+    require_unique_ids(&plan.allowed_mechanism_families, "allowed mechanism family ID")?;
     require_unique_ids(&plan.allowed_modalities, "allowed modality ID")?;
     require_unique_ids(
         &plan.allowed_reasoning_profiles,
@@ -877,6 +880,7 @@ where
         for (value, label) in [
             (&task.task_id, "sealed task ID"),
             (&task.family_group_id, "sealed task family-group ID"),
+            (&task.mechanism_family_id, "sealed task mechanism-family ID"),
             (&task.domain_id, "sealed task domain"),
             (&task.modality_id, "sealed task modality"),
             (&task.reasoning_profile_id, "sealed task reasoning profile"),
@@ -906,6 +910,7 @@ where
         }
         if task.split != EvidenceSplit::SealedHoldout
             || task.family_group_id != release.family_group_id
+            || !allowed_mechanism_families.contains(&task.mechanism_family_id)
             || task.generator_id != plan.generator_id
             || task.generator_version != plan.generator_version
             || task.generator_artifact_digest != plan.generator_artifact_digest
@@ -1130,6 +1135,7 @@ mod tests {
             semantic_auditor_version: "v1".into(),
             semantic_auditor_artifact_digest: D4.into(),
             allowed_domains: vec!["materials-science".into(), "biology".into()],
+            allowed_mechanism_families: vec!["causal-mechanism".into()],
             allowed_modalities: vec!["tabular".into(), "sensor-time-series".into()],
             allowed_reasoning_profiles: vec!["causal".into(), "decision-aware".into()],
             minimum_calibration_tasks: 2,
@@ -1224,6 +1230,7 @@ mod tests {
             recipe_template_digest: D2.into(),
             recipe_instance_digest: D4.into(),
             family_group_id: "holdout-a".into(),
+            mechanism_family_id: "causal-mechanism".into(),
             split: EvidenceSplit::SealedHoldout,
             domain_id: "materials-science".into(),
             modality_id: "tabular".into(),
@@ -1604,6 +1611,25 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn rejects_unregistered_mechanism_family_or_task_family_mutation() {
+        let events = vec![event(0, D2)];
+        let freeze = freeze(&events);
+        let mut changed_task = task("task-1", "a");
+        changed_task.mechanism_family_id = "unregistered-mechanism".into();
+        assert!(verify(
+            &plan(), &events, &freeze, &calibration(),
+            &release(vec![changed_task]), &NoSemanticOverlap
+        ).is_err());
+
+        let mut changed_plan = plan();
+        changed_plan.allowed_mechanism_families.clear();
+        assert!(verify(
+            &changed_plan, &events, &freeze, &calibration(),
+            &release(vec![task("task-1", "a")]), &NoSemanticOverlap
+        ).is_err());
     }
 
     #[test]
