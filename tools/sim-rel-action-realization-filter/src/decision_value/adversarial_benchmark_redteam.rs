@@ -1088,9 +1088,9 @@ mod tests {
     fn fewer_than_two_independent_attack_authors_or_generators_rejects() {
         let (mut scenarios, trials) = campaign();
         scenarios[1].author_identity = scenarios[0].author_identity.clone();
-        assert!(evaluate_adversarial_redteam_campaign(
+        assert!(!evaluate_adversarial_redteam_campaign(
             &plan(), &source(), &scenarios, &trials
-        ).unwrap().family_results[0].sample_floor_passed == false);
+        ).unwrap().family_results[0].sample_floor_passed);
 
         let (mut scenarios, trials) = campaign();
         scenarios[1].generator_digest = scenarios[0].generator_digest.clone();
