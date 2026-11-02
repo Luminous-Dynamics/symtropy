@@ -1036,7 +1036,7 @@ printf 'synthetic solver stdout\n'
         let bundle = create_su2_verified_run_bundle(&bundle_inputs)
             .expect("compose dry-run and production run evidence");
         crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(&bundle_inputs, &bundle)
-        .expect("replay complete SU2 run bundle");
+            .expect("replay complete SU2 run bundle");
         assert_eq!(bundle.resource_evidence.unknown_measurement_count(), 4);
         assert_eq!(
             bundle.resource_evidence_sha256.len(),
