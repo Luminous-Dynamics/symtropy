@@ -136,20 +136,14 @@ pub fn point_impact_saltation(
     // the first column receives the event-time correction.
     let reset_times_pre_field = [0.0, restitution * gravity_m_s2];
     let jump_correction_0 = finite_or_error(
-        (post_event_vector_field[0] - reset_times_pre_field[0])
-            / pre_impact_velocity_m_s,
+        (post_event_vector_field[0] - reset_times_pre_field[0]) / pre_impact_velocity_m_s,
     )?;
     let jump_correction_1 = finite_or_error(
-        (post_event_vector_field[1] - reset_times_pre_field[1])
-            / pre_impact_velocity_m_s,
+        (post_event_vector_field[1] - reset_times_pre_field[1]) / pre_impact_velocity_m_s,
     )?;
 
-    let saltation_matrix = [
-        [jump_correction_0, 0.0],
-        [jump_correction_1, -restitution],
-    ];
-    let event_time_derivative_wrt_height_s_per_m =
-        finite_or_error(-1.0 / pre_impact_velocity_m_s)?;
+    let saltation_matrix = [[jump_correction_0, 0.0], [jump_correction_1, -restitution]];
+    let event_time_derivative_wrt_height_s_per_m = finite_or_error(-1.0 / pre_impact_velocity_m_s)?;
 
     Ok(PointImpactSaltation {
         pre_impact_velocity_m_s,
@@ -238,8 +232,7 @@ mod tests {
 
         // Positive height perturbation delays the guard crossing. The derivative
         // is one-sided because negative initial height is outside the domain.
-        let height_perturbed =
-            post_event_terminal_state(epsilon, -2.0, 2.0, 0.5, terminal_time);
+        let height_perturbed = post_event_terminal_state(epsilon, -2.0, 2.0, 0.5, terminal_time);
         let height_column = [
             (height_perturbed[0] - base[0]) / epsilon,
             (height_perturbed[1] - base[1]) / epsilon,
@@ -247,8 +240,7 @@ mod tests {
 
         // A velocity perturbation retains the event at t=0, so central
         // differences independently check the reset derivative / second column.
-        let velocity_plus =
-            post_event_terminal_state(0.0, -2.0 + epsilon, 2.0, 0.5, terminal_time);
+        let velocity_plus = post_event_terminal_state(0.0, -2.0 + epsilon, 2.0, 0.5, terminal_time);
         let velocity_minus =
             post_event_terminal_state(0.0, -2.0 - epsilon, 2.0, 0.5, terminal_time);
         let velocity_column = [
@@ -259,13 +251,11 @@ mod tests {
         // Propagate the saltation map from the event to the terminal time:
         // Phi(T) = [[1, T], [0, 1]] for the constant-gravity variational flow.
         let expected_height_column = [
-            map.saltation_matrix[0][0]
-                + terminal_time * map.saltation_matrix[1][0],
+            map.saltation_matrix[0][0] + terminal_time * map.saltation_matrix[1][0],
             map.saltation_matrix[1][0],
         ];
         let expected_velocity_column = [
-            map.saltation_matrix[0][1]
-                + terminal_time * map.saltation_matrix[1][1],
+            map.saltation_matrix[0][1] + terminal_time * map.saltation_matrix[1][1],
             map.saltation_matrix[1][1],
         ];
 
