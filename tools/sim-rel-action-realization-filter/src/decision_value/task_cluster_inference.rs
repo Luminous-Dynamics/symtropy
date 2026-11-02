@@ -543,7 +543,10 @@ fn exact_cluster_sign_test_p_value(
         .map_err(ClusterInferenceError::ArithmeticOverflow)
 }
 
-fn exact_run_rate(successes: usize, total: usize) -> Option<super::repeated_run_reliability::ExactRunRate> {
+fn exact_run_rate(
+    successes: usize,
+    total: usize,
+) -> Option<super::repeated_run_reliability::ExactRunRate> {
     (total > 0).then_some(super::repeated_run_reliability::ExactRunRate {
         numerator: successes,
         denominator: total,
@@ -592,28 +595,82 @@ fn validate_family_summary(
         }
         checked_count_add(&mut valid_clusters, 1, "valid task cluster")?;
         let candidate = cluster.candidate.as_ref().ok_or_else(|| {
-            ClusterInferenceError::InvalidCluster("valid task cluster lacks candidate metrics".into())
+            ClusterInferenceError::InvalidCluster(
+                "valid task cluster lacks candidate metrics".into(),
+            )
         })?;
         let reference = cluster.reference.as_ref().ok_or_else(|| {
-            ClusterInferenceError::InvalidCluster("valid task cluster lacks reference metrics".into())
+            ClusterInferenceError::InvalidCluster(
+                "valid task cluster lacks reference metrics".into(),
+            )
         })?;
-        checked_count_add(&mut candidate_pass_at_k, usize::from(candidate.pass_at_k), "candidate pass@k")?;
-        checked_count_add(&mut reference_pass_at_k, usize::from(reference.pass_at_k), "reference pass@k")?;
-        checked_count_add(&mut candidate_pass_every_k, usize::from(candidate.pass_every_k), "candidate pass^k")?;
-        checked_count_add(&mut reference_pass_every_k, usize::from(reference.pass_every_k), "reference pass^k")?;
-        checked_count_add(&mut candidate_safe_successes, candidate.safe_success_count, "candidate safe successes")?;
-        checked_count_add(&mut reference_safe_successes, reference.safe_success_count, "reference safe successes")?;
-        checked_count_add(&mut candidate_any_hazard, usize::from(candidate.any_hazard), "candidate any-hazard clusters")?;
-        checked_count_add(&mut reference_any_hazard, usize::from(reference.any_hazard), "reference any-hazard clusters")?;
-        checked_count_add(&mut candidate_any_abstention, usize::from(candidate.any_abstention), "candidate any-abstention clusters")?;
-        checked_count_add(&mut reference_any_abstention, usize::from(reference.any_abstention), "reference any-abstention clusters")?;
-        checked_count_add(&mut candidate_abstention_runs, candidate.abstention_count, "candidate abstention runs")?;
-        checked_count_add(&mut reference_abstention_runs, reference.abstention_count, "reference abstention runs")?;
+        checked_count_add(
+            &mut candidate_pass_at_k,
+            usize::from(candidate.pass_at_k),
+            "candidate pass@k",
+        )?;
+        checked_count_add(
+            &mut reference_pass_at_k,
+            usize::from(reference.pass_at_k),
+            "reference pass@k",
+        )?;
+        checked_count_add(
+            &mut candidate_pass_every_k,
+            usize::from(candidate.pass_every_k),
+            "candidate pass^k",
+        )?;
+        checked_count_add(
+            &mut reference_pass_every_k,
+            usize::from(reference.pass_every_k),
+            "reference pass^k",
+        )?;
+        checked_count_add(
+            &mut candidate_safe_successes,
+            candidate.safe_success_count,
+            "candidate safe successes",
+        )?;
+        checked_count_add(
+            &mut reference_safe_successes,
+            reference.safe_success_count,
+            "reference safe successes",
+        )?;
+        checked_count_add(
+            &mut candidate_any_hazard,
+            usize::from(candidate.any_hazard),
+            "candidate any-hazard clusters",
+        )?;
+        checked_count_add(
+            &mut reference_any_hazard,
+            usize::from(reference.any_hazard),
+            "reference any-hazard clusters",
+        )?;
+        checked_count_add(
+            &mut candidate_any_abstention,
+            usize::from(candidate.any_abstention),
+            "candidate any-abstention clusters",
+        )?;
+        checked_count_add(
+            &mut reference_any_abstention,
+            usize::from(reference.any_abstention),
+            "reference any-abstention clusters",
+        )?;
+        checked_count_add(
+            &mut candidate_abstention_runs,
+            candidate.abstention_count,
+            "candidate abstention runs",
+        )?;
+        checked_count_add(
+            &mut reference_abstention_runs,
+            reference.abstention_count,
+            "reference abstention runs",
+        )?;
     }
 
-    let total_valid_run_pairs = valid_clusters.checked_mul(repetitions_per_task).ok_or_else(|| {
-        ClusterInferenceError::ArithmeticOverflow("valid run-pair aggregate overflow".into())
-    })?;
+    let total_valid_run_pairs = valid_clusters
+        .checked_mul(repetitions_per_task)
+        .ok_or_else(|| {
+            ClusterInferenceError::ArithmeticOverflow("valid run-pair aggregate overflow".into())
+        })?;
     let meets_minimum = valid_clusters >= minimum_clusters;
     if summary.valid_task_clusters != valid_clusters
         || summary.invalid_task_clusters_excluded != invalid_clusters
@@ -625,13 +682,17 @@ fn validate_family_summary(
         || summary.reference_pass_at_k_rate != exact_run_rate(reference_pass_at_k, valid_clusters)
         || summary.candidate_pass_every_k_tasks != candidate_pass_every_k
         || summary.reference_pass_every_k_tasks != reference_pass_every_k
-        || summary.candidate_pass_every_k_rate != exact_run_rate(candidate_pass_every_k, valid_clusters)
-        || summary.reference_pass_every_k_rate != exact_run_rate(reference_pass_every_k, valid_clusters)
+        || summary.candidate_pass_every_k_rate
+            != exact_run_rate(candidate_pass_every_k, valid_clusters)
+        || summary.reference_pass_every_k_rate
+            != exact_run_rate(reference_pass_every_k, valid_clusters)
         || summary.candidate_run_safe_successes != candidate_safe_successes
         || summary.reference_run_safe_successes != reference_safe_successes
         || summary.total_valid_run_pairs != total_valid_run_pairs
-        || summary.candidate_run_safe_success_rate != exact_run_rate(candidate_safe_successes, total_valid_run_pairs)
-        || summary.reference_run_safe_success_rate != exact_run_rate(reference_safe_successes, total_valid_run_pairs)
+        || summary.candidate_run_safe_success_rate
+            != exact_run_rate(candidate_safe_successes, total_valid_run_pairs)
+        || summary.reference_run_safe_success_rate
+            != exact_run_rate(reference_safe_successes, total_valid_run_pairs)
         || summary.candidate_any_hazard_tasks != candidate_any_hazard
         || summary.reference_any_hazard_tasks != reference_any_hazard
         || summary.candidate_any_abstention_tasks != candidate_any_abstention
