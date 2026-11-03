@@ -131,6 +131,36 @@
       "git_blob_sha": "72a159b3eb5ff40ca4bc75ac8632b90bb3153dcc",
       "fixture_family": "inspection-results-with-external-references",
       "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/Plans/planWithWorkInstructions.QIF",
+      "git_blob_sha": "9a08795f80f7bd41c249c97c201261c0e3057a41",
+      "fixture_family": "inspection-plan-with-work-instructions",
+      "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/Results/QIF_Results_Sample.QIF",
+      "git_blob_sha": "486286e37baff4b11809e71dc023cb7bc84b8abf",
+      "fixture_family": "measurement-results",
+      "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/Results/mitutoyo_results_serialized_pass_fail_sample.QIF",
+      "git_blob_sha": "eb9cb82b06bc714d4ea48df8a4a81deb0c929ef4",
+      "fixture_family": "instrument-originated-pass-fail-results",
+      "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/Rules/featureRules1.QIF",
+      "git_blob_sha": "eb3c85cb468b5ca3895212de9c545b9c731aa3d7",
+      "fixture_family": "feature-rules",
+      "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/ExternalReferencesAndQPIds/Exploded_Results2.QIF",
+      "git_blob_sha": "d20ed043b8ebf992f115c2cfbebc9c7f764d7ae0",
+      "fixture_family": "external-reference-results",
+      "expected_qif_version": "3.0.0"
     }
   ],
   "normative_distribution": {
@@ -139,5 +169,6 @@
     "signature_profile": "The selected XMLDSIG schema is a QIF-namespace-adjusted community binding variant; signature semantics are not qualified by this lane.",
     "full_qif_rule_checks": false
   },
-  "expected_schema_file_count": 22
+  "expected_schema_file_count": 22,
+  "expected_positive_fixture_count": 7
 }
