@@ -138,6 +138,8 @@
     "max_message_jitter_ms": null,
     "max_message_age_ms": null,
     "security_artifact_sha256": null,
-    "freshness_mechanism": "UNKNOWN"
+    "freshness_mechanism": "UNKNOWN",
+    "control_deadline_ms": null,
+    "max_accepted_command_age_ms": null
   }
 }
