@@ -52,7 +52,7 @@ pub fn hemispherical_electrode_impedance(
     }
 
     let omega_epsilon = 2.0 * PI * frequency_hz * medium.permittivity_f_per_m();
-    let sigma = medium.conductivity_s_per_m;
+    let sigma = medium.conductivity_s_per_m();
     let denominator = 2.0 * PI * radius_m * (sigma * sigma + omega_epsilon * omega_epsilon);
     if !omega_epsilon.is_finite() || !denominator.is_finite() || denominator <= 0.0 {
         return Err(ModelError::InvalidDerivedValue);
