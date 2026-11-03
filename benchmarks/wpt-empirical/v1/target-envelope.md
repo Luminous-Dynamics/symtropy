@@ -119,3 +119,36 @@ Use the patent as a source of hypotheses, not a validation target. Compare bulk-
 6. Build independent analytic and solver verification cases for IPT/CPT couplers, MQS relays, optical paths and Earth–ionosphere propagation.
 
 **Claim ceiling:** these are proposed research targets and qualification gates. They are not achieved results, regulatory certification, SOTA claims or proof of Tesla's hypotheses.
+
+## 7. Newly clarified industry service boundary and design frontier
+
+### Dynamic roadway: compare service energy, not only instantaneous power
+
+The Purdue–INDOT testbed is reported to deliver 50–190 kW at up to 65 mph, with efficiencies approaching 85% in the Purdue report. INDOT's current project page clarifies the measured efficiency boundary as roadway-inverter DC bus to vehicle DC bus at rated power, not utility-mains-to-battery. It also states that instantaneous power from an energized transmitter is not reduced by vehicle speed; speed changes dwell time over each coil and therefore the integrated energy received over a roadway length. Non-equipped vehicles do not energize the transmitters, and only authorized equipped receivers can trigger the test system. (Purdue report DOI 10.5703/1288284318633; INDOT DWPT project page.)
+
+This yields a stricter dynamic benchmark:
+- instantaneous delivered power per occupied energized segment (kW);
+- integrated energy delivered to the vehicle per metre / kilometre (kWh/km);
+- traction energy demand over the same spatial interval;
+- battery state-of-charge change and net battery power;
+- segment-to-segment energy continuity and transition dead-zone;
+- activation latency, false activation, missed activation, inter-vehicle isolation and safe de-energized state;
+- speed, receiver dwell time, pad pitch, vertical/lateral offset, tire/suspension motion and road/weather conditions.
+
+The target that the vehicle should maintain state of charge on the energized corridor is a service-level objective, not proof that the battery is being charged. At steady cruising, much of the received power may go directly to the drivetrain with near-zero net battery power. Report these separately.
+
+### Static pad co-design: Pareto frontier, not efficiency alone
+
+Riekerk et al. explicitly optimize trade-offs among pad area-related power density, efficiency, insulation constraints, winding current density and misalignment tolerance; their published abstract describes critical pad regions susceptible to insulation failure. The benchmark should therefore report separate objectives and hard constraints:
+- source-to-load or DC-to-DC efficiency at a declared boundary;
+- transmitter and receiver area and the precise area denominator used for areal power density;
+- useful load power, mass and thermal rise;
+- winding current-density distribution and insulation electric-field stress;
+- misalignment and gap robustness;
+- field-exposure assessment under applicable guidance.
+
+Do not infer a safe design from a low external stray-field scalar, and do not promote the reported 13.86 μT into a compliance conclusion without probe geometry, averaging, measurement/model provenance and the applicable assessment method.
+
+### Standards revision control
+
+IEEE now lists P63184 as an Active PAR approved 10 September 2025 that will supersede the published IEC/IEEE 63184:2025 edition. The project is a revision-in-progress, not a published replacement standard. The benchmark must bind a compliance assessment to the actually used edition and the authority's adoption; it must not treat the PAR as normative. Also preserve the wording discrepancy between IEEE's overview (stationary and dynamic, with a 1 kHz–30 MHz summary) and the IEC formal scope/title (stationary, 3 kHz–30 MHz). See the source-catalogue revision watch and [IEEE project record](https://standards.ieee.org/ieee/63184/12249/).
