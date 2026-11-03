@@ -88,6 +88,20 @@ Report these separately:
 
 A metric is unavailable when its source measurement is unavailable; do not substitute zero or infer energy from wall time. The current Symtropy run bundle measures wall time only and marks the other resource quantities unknown, so it cannot yet support a full compute/energy efficiency claim.
 
+## Terminology clarification: admission is not independent validation
+
+The existing `policy_benchmark` v0.1 scorecard consumes `CandidateObservation.feasible` and an admission receipt supplied by the orchestration caller. Its evidence level is explicitly `caller_bound_admission_receipt_scorecard_not_solver_validation`. Its `validated_hypervolume` field therefore means *admission-receipt-qualified feasible hypervolume under the benchmark's declared policy*, not independently falsified feasibility, ASME V&V 20 validation, experimental validation, or airworthiness evidence.
+
+The separate [policy falsification audit v0.1](./AERO_FALSE_FEASIBILITY_AUDIT_V0_1.md) consumes an exact frame of all admitted candidates and a separate independent-adjudication ledger. It reports:
+- a lower bound: known falsified-infeasible candidates / all admitted candidates;
+- a worst-case upper bound: (known falsified + inconclusive + unassessed) / all admitted candidates;
+- a resolved-only false-feasible fraction, explicitly conditional and potentially selection-biased.
+
+A complete census must adjudicate every admitted candidate. A probability sample or targeted challenge set must bind its sampling frame, selection plan and selection receipt, and unresolved candidates remain in the upper bound. This module does not authenticate verifier independence or prove statistical representativeness.
+
+Until independent adjudication is linked, describe the existing scorecard as an admission-qualified optimization scorecard. Reserve “experimentally validated feasible hypervolume” for a separate scope-matched validation workflow with independent measurement evidence and uncertainty.
+
+
 ## Primary outcome metrics
 
 1. **Validated feasible hypervolume**: compute only from candidates that pass declared feasibility and the relevant numerical/validation gates.
