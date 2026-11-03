@@ -691,7 +691,6 @@ mod tests {
         screen_su2_history,
     };
     use crate::su2_field_preflight::audit_su2_field_preflight;
-    };
     use crate::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
     use crate::su2_run_binding::bind_su2_run_lineage;
     use std::collections::BTreeMap;
