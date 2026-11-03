@@ -207,6 +207,66 @@ fn validate_dimension<const D: usize>() -> usize {
     failures
 }
 
+
+/// Integrate a deliberately marginal or unstable oscillator through the real
+/// PhysicsWorld path. The state norm is nondimensionalized as
+/// sqrt(|x|^2 + |v/omega|^2).
+fn run_boundary_trajectory(dt: f64, steps: usize) -> f64 {
+    let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+    let body_handle = world.add_sphere(Point::<2>::new([1.0, 0.0]), SPHERE_RADIUS, MASS);
+    {
+        let body = world.body_mut(body_handle).expect("body inserted above");
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+    }
+
+    for _ in 0..steps {
+        let position = world
+            .body(body_handle)
+            .expect("body remains in world")
+            .transform
+            .translation
+            .0;
+        let force = position * (-MASS * OMEGA.powi(2));
+        world
+            .body_mut(body_handle)
+            .expect("body remains in world")
+            .apply_force(force);
+        world.step(dt);
+    }
+
+    let body = world.body(body_handle).expect("body remains in world");
+    (body.transform.translation.0.norm_squared()
+        + body.linear_velocity.norm_squared() / OMEGA.powi(2))
+        .sqrt()
+}
+
+fn validate_unstable_trajectories() -> usize {
+    let initial_norm = 1.0_f64;
+    let cases = [
+        ("at_boundary", 2.0 / OMEGA),
+        ("above_boundary", 2.05 / OMEGA),
+    ];
+    let mut failures = 0usize;
+    for (name, dt) in cases {
+        let final_norm = run_boundary_trajectory(dt, 8);
+        let pass = final_norm.is_finite() && final_norm > initial_norm * 10.0;
+        println!(
+            "trajectory_stability,{name},{:.17},{:.17},{}",
+            dt,
+            final_norm,
+            if pass { "PASS" } else { "FAIL" }
+        );
+        if !pass {
+            failures += 1;
+            eprintln!(
+                "trajectory_stability,{name}: final norm {final_norm} did not demonstrate the expected growth"
+            );
+        }
+    }
+    failures
+}
+
 fn validate_stability_boundary() -> usize {
     let just_below = (2.0 - 1.0e-9) / OMEGA;
     let boundary = 2.0 / OMEGA;
@@ -239,6 +299,7 @@ fn main() {
     );
 
     let failures = validate_stability_boundary()
+        + validate_unstable_trajectories()
         + validate_dimension::<2>()
         + validate_dimension::<3>()
         + validate_dimension::<4>()
