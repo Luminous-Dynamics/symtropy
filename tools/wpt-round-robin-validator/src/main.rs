@@ -225,6 +225,7 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "operating_mode",
             "installation_type",
             "rated_apparent_power_va",
+            "vehicle_category",
         ],
         "conditions",
         &mut errors,
@@ -1151,6 +1152,39 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     }
                 }
 
+
+                if document_id == "ISO 5474-4" && edition == "2025"
+                    && applicability == "NORMATIVE_REQUIREMENT"
+                {
+                    let mode = string_at(manifest, &["conditions", "operating_mode"]);
+                    let direction = string_at(manifest, &["conditions", "direction"]);
+                    let vehicle_category = string_at(manifest, &["conditions", "vehicle_category"]);
+                    if mode != Some("STATIC") {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO 5474-4:2025 normative use excludes DYNAMIC operation"
+                        ));
+                    }
+                    if direction != Some("GRID_TO_VEHICLE") {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO 5474-4:2025 normative use excludes reverse WPT"
+                        ));
+                    }
+                    if !matches!(vehicle_category, Some("PASSENGER_CAR" | "LIGHT_COMMERCIAL")) {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO 5474-4:2025 normative use is limited to PASSENGER_CAR or LIGHT_COMMERCIAL"
+                        ));
+                    }
+                    if records.iter().any(|other| {
+                        string_at(other, &["document_id"]) == Some("IEC PAS 61980-4")
+                            && string_at(other, &["edition"]) == Some("2025")
+                            && string_at(other, &["applicability"]) == Some("NORMATIVE_REQUIREMENT")
+                    }) {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO 5474-4:2025 explicitly excludes pairing its EV devices with IEC 61980-4 supply devices"
+                        ));
+                    }
+                }
+
                 if document_id == "IEC PAS 61980-4" && edition == "2025"
                     && applicability == "NORMATIVE_REQUIREMENT"
                     && string_at(manifest, &["conditions", "operating_mode"]) != Some("STATIC")
@@ -1707,6 +1741,7 @@ mod tests {
         manifest["system"]["concurrent_resonant_networks_allowed"] = json!(false);
         manifest["conditions"]["operating_mode"] = json!("STATIC");
         manifest["conditions"]["installation_type"] = json!("SURFACE_MOUNTED");
+        manifest["conditions"]["vehicle_category"] = json!("PASSENGER_CAR");
         manifest["motion_profile"]["profile_id"] = json!("STATIC-KNOWN-TRUTH-NO-ROUTE");
 
         manifest["conditions"]["rated_apparent_power_va"] = json!(12_100.0);
@@ -2008,6 +2043,7 @@ mod tests {
             "operating_mode",
             "installation_type",
             "rated_apparent_power_va",
+            "vehicle_category",
         ]
         .iter()
         .map(|s| s.to_string())
@@ -2527,6 +2563,52 @@ mod tests {
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("does not specify bidirectional power transfer")));
+    }
+
+
+    #[test]
+    fn rejects_iso_5474_4_normative_claim_for_reverse_wpt() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("ISO 5474-4");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        manifest["conditions"]["direction"] = json!("VEHICLE_TO_GRID");
+        manifest["conditions"]["vehicle_category"] = json!("PASSENGER_CAR");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("excludes reverse WPT")));
+    }
+
+    #[test]
+    fn rejects_iso_5474_4_normative_claim_for_heavy_duty_vehicle() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("ISO 5474-4");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        manifest["conditions"]["vehicle_category"] = json!("HEAVY_DUTY");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("limited to PASSENGER_CAR or LIGHT_COMMERCIAL")));
+    }
+
+    #[test]
+    fn rejects_iso_5474_4_normative_claim_with_iec_pas_61980_4_supply() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("ISO 5474-4");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        manifest["standards_basis"].as_array_mut().unwrap().push(json!({
+            "document_id":"IEC PAS 61980-4",
+            "edition":"2025",
+            "applicability":"NORMATIVE_REQUIREMENT",
+            "scope_statement":"Synthetic high-power supply reference",
+            "provisions_tested":[],
+            "compliance_claim":"NO_CLAIM",
+            "evidence_sha256":null,
+            "issuing_body":null,
+            "certificate_id":null,
+            "notes":"Synthetic test only."
+        }));
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("excludes pairing its EV devices")));
     }
 
     #[test]
