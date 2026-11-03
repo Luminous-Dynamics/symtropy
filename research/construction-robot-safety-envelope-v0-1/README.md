@@ -157,6 +157,35 @@ These findings support a benchmark programme, not a claim that this small
 reference evaluator is safer or more capable than deployed industrial
 safeguards.
 
+## Commercial deployment context (not a matched safety comparison)
+
+Public vendor and programme reporting shows that construction robotics has
+moved beyond laboratory demonstrations in several bounded workflows. The
+figures below describe different tasks and conditions; they must not be
+combined into a league table.
+
+| System / task | Publicly reported evidence | Correct interpretation |
+|---|---|---|
+| [HP SitePrint](https://www.hp.com/us-en/printers/site-print/layout-robot.html) — floor layout | HP specifies up to ±2 mm layout tolerance and ±0.8 mm average floor-level accuracy under a high-accuracy setup at 5–30 m. HP also advertises up to 10× productivity; the separately footnoted up-to-30% increase compares its prior software version, not a controlled manual-labour study. | Useful survey/layout quality reference. Reproduce its exact tracker, total-station, distance, file and surface conditions before comparing residuals or productivity. |
+| [Dusty FieldPrinter 2](https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs) — floor layout | Dusty specifies ±1/16 in (±1.6 mm) print accuracy with surveyed control, 1.0 m/s navigation with obstacle sensors enabled, three forward IR time-of-flight sensors with about 0.9 m range, and separate cliff sensors. Its specifications warn that the cliff sensors may not detect narrow openings deeper than 6 in because of their field of view. | A valuable real product operating-envelope reference. The published specification is not a complete third-party functional-safety assessment; benchmark the declared detection geometry and edge cases, not a generic "safe" label. |
+| [Built Robotics / ARENA](https://arena.gov.au/knowledge-bank/built-robotics-australian-robotic-piling-deployment-for-large-scale-solar-lesson-learnt-report-1/) — solar pile installation | The Australian 5 MW pilot report records 1,723 piles installed by Gen 1. ARENA's October 2026 scale-up project targets domestic manufacturing capacity for 12 robot sets/year and describes future production / labour-reduction estimates as project outcomes to be achieved. | Strong field-deployment comparator for pile cycle, first-pass engineering acceptance, survey error, rework, intervention, crew-hours and night/site-condition limits. Separate demonstrated pilot results from future programme projections. |
+| [FBR Hadrian](https://investors.fbr.com.au/announcements/xzoJwm-fbr-annual-report-2026) — robotic masonry | FBR's 2026 annual report reports an effective rate above 285 blocks/hour and a record near 36 m² of wall/hour using specified large-format Porotherm blocks. | Vendor-reported result for a particular block, wall and production arrangement. Compare quality acceptance, corners/openings, downstream readiness, setup and crew composition before throughput. |
+
+The commercial lesson is not that one general-purpose robot wins. Current
+systems are task-specialized, configured around purpose-built workflows,
+survey controls, materials, site access and operator processes. A credible
+comparison therefore needs a **matched task contract** and the full resource
+boundary: robot + crew + survey + setup + consumables + maintenance + rework +
+safeguards + interruption + downstream inspection.
+
+For this safety-envelope package, the product figures above are context only.
+The relevant head-to-head measurements are detection coverage, false-safe
+classification, stopping-distance residuals against instrumented ground truth,
+protective-stop latency, nuisance-stop rate, fault recovery, sensor common-mode
+detection and evidence traceability. Public product brochures do not establish
+these quantities, so this README does not infer that any named competitor
+passes or fails them.
+
 ## Comparison plan
 
 Compare matched observations and the same declared machine/task/site profiles
