@@ -1156,6 +1156,7 @@ mod tests {
             }
         }
 
+        drop(add);
         roles
             .into_iter()
             .map(|(sha256, roles)| SourceArtifact {
