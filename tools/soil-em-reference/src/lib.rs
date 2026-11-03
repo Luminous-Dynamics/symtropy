@@ -1,5 +1,3 @@
-pub mod electrode;
-
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -19,6 +17,8 @@ pub mod electrode;
 //! where alpha is amplitude attenuation in Np/m and beta is phase constant
 //! in rad/m. This algebraically equivalent form avoids cancellation in
 //! sqrt(1+r^2)-1 when r is small.
+
+pub mod electrode;
 
 use std::f64::consts::PI;
 
