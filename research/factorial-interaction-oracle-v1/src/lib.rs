@@ -558,12 +558,13 @@ mod tests {
                     animal_id: animal_id.to_string(),
                     session_id: session_id.to_string(),
                     trial_id: format!(
-                        "{}-{}-{}-{}-{}",
+                        "{}-{}-{}-{}-{}-{}",
                         animal_id,
                         session_id,
                         cell.a as u8,
                         cell.b as u8,
-                        format!("{}-{}", cell.c as u8, replicate)
+                        cell.c as u8,
+                        replicate
                     ),
                     cell,
                     response: response_with_effects(cell, intercept, coefficients),
@@ -680,7 +681,7 @@ mod tests {
             [0.0; 7],
             2,
         );
-        observations.retain(|item| item.cell != FactorialCell { a: true, b: true, c: true });
+        observations.retain(|item| item.cell != (FactorialCell { a: true, b: true, c: true }));
         assert!(matches!(
             analyze_factorial(&protocol(), &observations),
             Err(FactorialError::MissingFactorialCell { .. })
