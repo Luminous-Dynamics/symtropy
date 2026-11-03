@@ -152,7 +152,9 @@ pub struct SelectedEstimator {
     pub bias_bound_evidence_digest: String,
     /// Mean per-coordinate upper bound: bias_bound^2 + variance.
     pub mean_mse_upper_bound: f64,
-    /// MSE upper bound plus declared compute penalty.
+    /// Worst single-coordinate upper bound. This is the configured hard gate.
+    pub max_coordinate_mse_upper_bound: f64,
+    /// Mean MSE plus declared compute penalty.
     pub routing_score: f64,
     pub cost_units: f64,
 }
@@ -193,6 +195,7 @@ impl SelectedEstimator {
         output.push(u8::from(self.routing_configuration.allow_zeroth_order));
 
         push_f64(&mut output, self.mean_mse_upper_bound);
+        push_f64(&mut output, self.max_coordinate_mse_upper_bound);
         push_f64(&mut output, self.routing_score);
         push_f64(&mut output, self.cost_units);
         output
@@ -358,22 +361,24 @@ impl GradientEstimatorCandidate {
         Ok(())
     }
 
-    fn mean_mse_upper_bound(&self) -> Result<f64, EstimatorRoutingError> {
-        let total = self
-            .absolute_bias_bound
-            .iter()
-            .zip(self.variance.iter())
-            .try_fold(0.0, |accumulator, (bias, variance)| {
-                let bias_squared = bias * bias;
-                let term = bias_squared + variance;
-                let next = accumulator + term;
-                next.is_finite()
-                    .then_some(next)
-                    .ok_or(EstimatorRoutingError::NumericalOverflow)
-            })?;
-        let result = total / self.coordinate_ids.len() as f64;
-        if result.is_finite() {
-            Ok(result)
+    fn mse_upper_bounds(&self) -> Result<(f64, f64), EstimatorRoutingError> {
+        let mut total = 0.0;
+        let mut maximum = 0.0_f64;
+        for (bias, variance) in self.absolute_bias_bound.iter().zip(self.variance.iter()) {
+            let bias_squared = bias * bias;
+            let coordinate_bound = bias_squared + variance;
+            if !coordinate_bound.is_finite() {
+                return Err(EstimatorRoutingError::NumericalOverflow);
+            }
+            total += coordinate_bound;
+            maximum = maximum.max(coordinate_bound);
+            if !total.is_finite() {
+                return Err(EstimatorRoutingError::NumericalOverflow);
+            }
+        }
+        let mean = total / self.coordinate_ids.len() as f64;
+        if mean.is_finite() && maximum.is_finite() {
+            Ok((mean, maximum))
         } else {
             Err(EstimatorRoutingError::NumericalOverflow)
         }
@@ -556,12 +561,12 @@ pub fn route_gradient_estimator(
             continue;
         }
 
-        let mse = candidate.mean_mse_upper_bound()?;
-        if mse > config.max_mse_upper_bound {
+        let (mean_mse, max_coordinate_mse) = candidate.mse_upper_bounds()?;
+        if max_coordinate_mse > config.max_mse_upper_bound {
             continue;
         }
         let risk_penalty = config.cost_weight * candidate.cost_units;
-        let routing_score = mse + risk_penalty;
+        let routing_score = mean_mse + risk_penalty;
         if !routing_score.is_finite() {
             return Err(EstimatorRoutingError::NumericalOverflow);
         }
@@ -584,7 +589,8 @@ pub fn route_gradient_estimator(
             routing_configuration: config.clone(),
             variance_evidence_digest: candidate.variance_evidence_digest.clone(),
             bias_bound_evidence_digest: candidate.bias_bound_evidence_digest.clone(),
-            mean_mse_upper_bound: mse,
+            mean_mse_upper_bound: mean_mse,
+            max_coordinate_mse_upper_bound: max_coordinate_mse,
             routing_score,
             cost_units: candidate.cost_units,
         };
@@ -1027,6 +1033,22 @@ mod tests {
         let mut altered = selected.clone();
         altered.estimator_implementation_digest = digest('0');
         assert_ne!(original, altered.canonical_bytes());
+    }
+
+
+    #[test]
+    fn per_coordinate_mse_gate_cannot_be_diluted_by_low_variance_coordinates() {
+        let ctx = context(ContactRegime::Nonsmooth {
+            reason: NonsmoothReason::ActiveSetChange,
+        });
+        let mut candidate =
+            candidate("one-bad-coordinate", EstimatorKind::ScoreFunction, 0.0, 1.0e-4);
+        candidate.variance = vec![0.02, 0.0];
+
+        assert_eq!(
+            route_gradient_estimator(&ctx, &[candidate], &config()).unwrap(),
+            EstimatorDecision::Abstained(RoutingAbstention::NoAdmissibleEstimator)
+        );
     }
 
 
