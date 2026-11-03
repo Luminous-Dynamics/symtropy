@@ -158,3 +158,21 @@ The v0 parent catalogue now includes a 20 kW tightly coupled magnetic-integratio
 
 This addition expands the empirical envelope, not the matched-condition leaderboard. Do not compare a 20 kW converter-stage DC-DC value to whole-system EV charging values, or rank forward and reverse power-flow efficiencies as if they were the same operating condition.
 
+## Full-text multi-frequency and cyber-physical evidence
+
+The 2026 bidirectional multi-vehicle paper is now expanded beyond its abstract:
+- Table 4 class-specific BIPT-link DC-DC bands: **6 kW 94.0–95.7%**, **11 kW 94.7–97.1%**, **30 kW 93.6–94.5%**. These are link-stage values, not whole grid-to-battery/battery-to-grid efficiency.
+- Table 4 air gap is distinct from Table 1 vehicle ground clearance: 6 kW 101–121 mm air gap vs190–210mm ground clearance; 11kW 71–91mm vs160–180mm; 30kW 185–205mm vs270–290mm.
+- Table 4 system-efficiency slash pairs are preserved in print order because the table header does not disambiguate G2V/V2G direction. No direction assignment is invented.
+- Modelled cross-frequency current: 17 A induced in the closed 85 kHz loop when 20 kHz/30 kW network is enabled; 4 A in the closed 20 kHz loop when 85 kHz low-power network is enabled. These are simulations, not measurements.
+- 376 mT calculated ferrite flux vs stated saturation values530mT at25°C and410mT at100°C. The reduced hot-state margin motivates thermal/flux sweeps, but remains an author/model result.
+- The paper states 48 test points and reports all three vehicle classes above80% system efficiency at its tested misaligned positions. It does not provide a run-level open dataset; no 48 rows were fabricated.
+
+The class-specific typed records and unresolved comparison fixtures are in `measurements.jsonl` and `comparison-cases.jsonl`. Rated power class, resonant frequency, air gap and vehicle ground clearance are separate typed dimensions; cross-class headline efficiency ranking is rejected where conditions differ.
+
+## Cyber-physical qualification
+
+The new secondary review DOI 10.1002/ese3.70608 highlights that BWPT control, communication and electromagnetic behaviour are coupled. The run manifest now includes mutual authentication, replay freshness, receiver identity binding, firmware integrity, sensor plausibility, spoof/replay/sensor-tampering outcomes, p99 latency, jitter, maximum command age and communication-loss fallback. Qualified networked runs must reject spoofing/replay, verify firmware, check sensing, meet the declared control deadline and have a security report bound by SHA-256.
+
+A security report, authentication flag or synthetic fixture is not certification. Threat-injection tests must be isolated, authorized and conducted only on controlled non-energized or approved test infrastructure.
+
