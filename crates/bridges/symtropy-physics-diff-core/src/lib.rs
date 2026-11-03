@@ -724,7 +724,7 @@ pub fn compare_observation_traces(
     Ok(metrics)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ObservationError {
     UnsupportedSchemaVersion {
         found: u16,
