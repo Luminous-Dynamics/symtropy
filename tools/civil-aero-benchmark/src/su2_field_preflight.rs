@@ -97,8 +97,16 @@ impl Su2FieldPreflightReport {
             optional_string(&self.convergence_protocol.steady_residual_min_log10),
             optional_string(&self.convergence_protocol.steady_cauchy_epsilon),
             format_optional_u64(self.convergence_protocol.steady_cauchy_elements),
-            if self.convergence_protocol.time_domain { "YES".to_owned() } else { "NO".to_owned() },
-            if window_enabled { "YES".to_owned() } else { "NO".to_owned() },
+            if self.convergence_protocol.time_domain {
+                "YES".to_owned()
+            } else {
+                "NO".to_owned()
+            },
+            if window_enabled {
+                "YES".to_owned()
+            } else {
+                "NO".to_owned()
+            },
             csv_escape(&window_fields(&self.convergence_protocol.window)),
             optional_window_u64(&self.convergence_protocol.window, 0),
             optional_window_u64(&self.convergence_protocol.window, 1),
@@ -274,10 +282,9 @@ fn insert_config_option(
             | "WINDOW_FUNCTION"
             | "RESTART_ITER"
             | "TIME_DOMAIN"
-    )
-        && values
-            .insert(key.to_owned(), raw_value.trim().to_owned())
-            .is_some()
+    ) && values
+        .insert(key.to_owned(), raw_value.trim().to_owned())
+        .is_some()
     {
         return Err(format!("SU2 config line {line_number} duplicates {key}"));
     }
@@ -294,7 +301,9 @@ fn parse_field_list(value: &str, label: &str) -> Result<Vec<String>, String> {
         || fields.iter().any(String::is_empty)
         || fields.iter().any(|field| !unique.insert(field.clone()))
     {
-        return Err(format!("{label} must contain non-empty, unique field names"));
+        return Err(format!(
+            "{label} must contain non-empty, unique field names"
+        ));
     }
     Ok(fields)
 }
@@ -303,9 +312,10 @@ fn optional_u64(values: &BTreeMap<String, String>, key: &str) -> Result<Option<u
     values
         .get(key)
         .map(|value| {
-            value.trim().parse::<u64>().map_err(|error| {
-                format!("SU2 config {key} must be an unsigned integer: {error}")
-            })
+            value
+                .trim()
+                .parse::<u64>()
+                .map_err(|error| format!("SU2 config {key} must be an unsigned integer: {error}"))
         })
         .transpose()
 }
@@ -333,7 +343,10 @@ fn required_u64(values: &BTreeMap<String, String>, key: &str) -> Result<u64, Str
     optional_u64(values, key)?.ok_or_else(|| format!("SU2 config is missing required {key}"))
 }
 
-fn required_positive_decimal(values: &BTreeMap<String, String>, key: &str) -> Result<String, String> {
+fn required_positive_decimal(
+    values: &BTreeMap<String, String>,
+    key: &str,
+) -> Result<String, String> {
     optional_positive_decimal(values, key)?
         .ok_or_else(|| format!("SU2 config is missing required {key}"))
 }
@@ -395,12 +408,11 @@ fn parse_configuration(bytes: &[u8]) -> Result<ParsedConfiguration, String> {
         return Err("SU2 SOLVER value must not be empty".to_owned());
     }
     let time_domain = parse_config_boolean(&values, "TIME_DOMAIN")?;
-    let steady_fields = parse_field_list(
-        parse_config_value(&values, "CONV_FIELD")?,
-        "CONV_FIELD",
+    let steady_fields = parse_field_list(parse_config_value(&values, "CONV_FIELD")?, "CONV_FIELD")?;
+    let history_output_selectors = parse_field_list(
+        parse_config_value(&values, "HISTORY_OUTPUT")?,
+        "HISTORY_OUTPUT",
     )?;
-    let history_output_selectors =
-        parse_field_list(parse_config_value(&values, "HISTORY_OUTPUT")?, "HISTORY_OUTPUT")?;
 
     let steady_start_iteration = optional_u64(&values, "CONV_STARTITER")?;
     let steady_residual_min_log10 = values
@@ -565,14 +577,29 @@ fn canonical_bytes(report: &Su2FieldPreflightReport) -> Vec<u8> {
     append_u64(&mut bytes, report.configuration_byte_length);
     append_u64(&mut bytes, report.mesh_byte_length);
     bytes.push(u8::from(report.convergence_protocol.time_domain));
-    append_u64(&mut bytes, report.convergence_protocol.steady_fields.len() as u64);
+    append_u64(
+        &mut bytes,
+        report.convergence_protocol.steady_fields.len() as u64,
+    );
     for field in &report.convergence_protocol.steady_fields {
         append_string(&mut bytes, field);
     }
-    append_optional_u64(&mut bytes, report.convergence_protocol.steady_start_iteration);
-    append_optional_string(&mut bytes, &report.convergence_protocol.steady_residual_min_log10);
-    append_optional_string(&mut bytes, &report.convergence_protocol.steady_cauchy_epsilon);
-    append_optional_u64(&mut bytes, report.convergence_protocol.steady_cauchy_elements);
+    append_optional_u64(
+        &mut bytes,
+        report.convergence_protocol.steady_start_iteration,
+    );
+    append_optional_string(
+        &mut bytes,
+        &report.convergence_protocol.steady_residual_min_log10,
+    );
+    append_optional_string(
+        &mut bytes,
+        &report.convergence_protocol.steady_cauchy_epsilon,
+    );
+    append_optional_u64(
+        &mut bytes,
+        report.convergence_protocol.steady_cauchy_elements,
+    );
     match &report.convergence_protocol.window {
         Su2WindowConvergenceProtocol::Disabled => bytes.push(0),
         Su2WindowConvergenceProtocol::Enabled {
@@ -672,7 +699,9 @@ fn window_epsilon(window: &Su2WindowConvergenceProtocol) -> String {
 fn window_function(window: &Su2WindowConvergenceProtocol) -> String {
     match window {
         Su2WindowConvergenceProtocol::Disabled => String::new(),
-        Su2WindowConvergenceProtocol::Enabled { window_function, .. } => window_function.clone(),
+        Su2WindowConvergenceProtocol::Enabled {
+            window_function, ..
+        } => window_function.clone(),
     }
 }
 
@@ -1010,13 +1039,9 @@ WINDOW_CAUCHY_CRIT= NO
         let root = root();
         let config = "SOLVER= NAVIER_STOKES\\nTIME_DOMAIN= YES\\nCONV_FIELD= RMS_DENSITY\\nHISTORY_OUTPUT= (ITER, RMS_RES, AERO_COEFF)\\nWINDOW_CAUCHY_CRIT= NO\\n";
         let run = fixture_run_with_config(&root.join("unsteady-endpoint"), config, INVENTORY);
-        let report = audit_su2_field_preflight(
-            &run,
-            "config.cfg",
-            "mesh.su2",
-            &["RMS_DENSITY".to_owned()],
-        )
-        .expect("unsteady endpoint preflight is recorded");
+        let report =
+            audit_su2_field_preflight(&run, "config.cfg", "mesh.su2", &["RMS_DENSITY".to_owned()])
+                .expect("unsteady endpoint preflight is recorded");
         assert!(report.convergence_protocol.time_domain);
         assert_eq!(
             report.convergence_protocol.window,
