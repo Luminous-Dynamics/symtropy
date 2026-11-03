@@ -477,14 +477,14 @@ pub fn analyze_factorial(
             .push(contrasts);
     }
 
-    let per_animal = contrasts_by_animal
-        .into_iter()
-        .map(|(animal_id, session_contrasts)| AnimalContrast {
+    let mut per_animal = Vec::with_capacity(contrasts_by_animal.len());
+    for (animal_id, session_contrasts) in contrasts_by_animal {
+        per_animal.push(AnimalContrast {
             animal_id,
             session_count: session_contrasts.len(),
-            contrasts: mean_contrasts(&session_contrasts).expect("non-empty sessions and finite checked contrasts"),
-        })
-        .collect::<Vec<_>>();
+            contrasts: mean_contrasts(&session_contrasts)?,
+        });
+    }
 
     let population = population_estimates(&per_animal)?;
     let trial_count = per_session.iter().map(|item| item.trial_count).sum();
