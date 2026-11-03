@@ -117,7 +117,7 @@ fn validate_dimension<const D: usize>() -> usize {
     let mut failures = 0usize;
     let mut previous: Option<CaseResult> = None;
 
-    for mut result in TIMESTEPS.map(run_case::<D>) {
+    for result in TIMESTEPS.map(run_case::<D>) {
         let expected_error_matches =
             (result.position_error - result.expected_position_error).abs()
                 <= POSITION_TOLERANCE;
@@ -141,10 +141,11 @@ fn validate_dimension<const D: usize>() -> usize {
             && order_matches;
 
         println!(
-            "{},{:.17},{},{:.17},{:.17},{:.17},{:.17},{:.17},{},{}",
+            "{},{:.17},{},{:.17},{:.17},{:.17},{:.17},{:.17},{:.17},{},{}",
             result.dimension,
             result.dt,
             result.steps,
+            result.duration,
             result.position_error,
             result.expected_position_error,
             result.velocity_error,
@@ -171,7 +172,6 @@ fn validate_dimension<const D: usize>() -> usize {
             );
         }
 
-        result.numerical_health &= pass;
         previous = Some(result);
     }
 
@@ -180,7 +180,7 @@ fn validate_dimension<const D: usize>() -> usize {
 
 fn main() {
     println!(
-        "dimension,dt,steps,position_error,expected_position_error,velocity_error,energy_drift,expected_energy_drift,observed_position_order,pass"
+        "dimension,dt,steps,duration,position_error,expected_position_error,velocity_error,energy_drift,expected_energy_drift,observed_position_order,pass"
     );
 
     let failures = validate_dimension::<2>()
