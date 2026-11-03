@@ -292,7 +292,12 @@ def main() -> int:
     ):
         add_string(source_receipt, value)
     add_u64(source_receipt, admitted)
-    add_string(source_receipt, "caller_bound_admission_receipt_scorecard_not_solver_validation")
+    expected_scorecard_evidence = "caller_bound_admission_receipt_scorecard_not_solver_validation"
+    require(
+        source_row["evidence_level"] == expected_scorecard_evidence,
+        "upstream scorecard evidence ceiling is not the expected caller-bound level",
+    )
+    add_string(source_receipt, source_row["evidence_level"])
     receipt_digest = hashlib.sha256(source_receipt).hexdigest()
     require(receipt_digest == summary["source_admission_frame_receipt_sha256"],
             "upstream source admission-frame receipt canonical digest mismatch")
