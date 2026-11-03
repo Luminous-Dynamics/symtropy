@@ -300,7 +300,7 @@ For cross-site correlation, require:
 3. sufficient exact common sample timestamps across the selected site meters;
 4. frozen meter-boundary selection and no nested ancestor/descendant pair in one sum.
 
-Three synthetic fixtures cover a valid aligned fleet trace, a nested PCC+UPS double-count rejection and a clock-alignment rejection. The Rust validator in PR #3436 implements these guards and has 11 unit tests. A data-contract PASS is not proof of physical meter accuracy or of empirical cross-site dependence.
+Three synthetic fixtures cover a valid aligned fleet trace, a nested PCC+UPS double-count rejection and a clock-alignment rejection. The Rust validator in PR #3437 implements these guards and has 11 unit tests. A data-contract PASS is not proof of physical meter accuracy or of empirical cross-site dependence.
 
 ## 6. Energy arithmetic and acceptance checks
 
