@@ -1,0 +1,77 @@
+# Locomotion Robustness Oracle V1
+
+A dependency-free Rust scorecard for matched, degraded-loop embodied locomotion.
+
+## Purpose
+
+The benchmark evaluates whether locomotion controllers remain functional when central drive, local reflexes, proprioceptive observations, load/contact feedback, actuators or mechanics are perturbed.
+
+It complements:
+- Symtropy #3345 — CPG-to-contact locomotion and mechanism families.
+- Symtropy #3456 — source-grounded proprioceptive joint-limit events.
+- Symtropy #3461 — neural-to-muscle actuation.
+- Symtropy #3462 — CPG × reflex × load factorial interactions.
+- Symtropy #3475 — degraded-loop robustness benchmark.
+- Symtropy #3357 — matched FlyGym/FlyBody/FlyMimic baselines.
+
+## What it computes
+
+- Per-model/per-scenario scorecards; it does not pool easy and hard scenarios.
+- Success rate, mean task score and lower-tail CVaR under a preregistered tail fraction.
+- Progress, pose/joint error, slip, energy and actuator-saturation metrics.
+- Recovery counts with right-censored non-recovery and unobserved recovery kept distinct.
+- Separate numerical, physical, fall and unclassified failure counts.
+- Worst success-rate stratum and worst CVaR stratum separately.
+- Strict paired model comparisons on identical scenario, individual, seed, initial state, morphology, body, physics, sensors, solver, hardware, horizon and compute/training budgets.
+
+## Scientific distinctions
+
+A perturbation scenario is not automatically a biological ablation. Missing a software sensor channel is an observation-channel intervention unless the source mapping and biological manipulation are declared independently.
+
+Recovery latency is reported only for episodes with observed recovery. A failure to recover by the horizon is right-censored; unobserved recovery is a separate category. Neither is assigned an invented finite latency.
+
+Numerical and physics failures remain visible counts. The evaluator does not quietly convert failed simulation output into ordinary task scores or allow a high average to conceal hard failures.
+
+A paired comparison rejects unmatched trial sets rather than intersecting them. If morphology, body model, physics, observation schema, hardware, horizon or budgets differ, the comparison belongs in a separate benchmark stratum.
+
+## Input contract
+
+Each episode binds:
+- model family, model evidence tier and evaluation tier;
+- protocol/split/scoring-plan references;
+- scenario, individual, trial, seed and initial state;
+- body model, morphology, physics, environment, sensor schema, solver, hardware, controller, code and parameter references;
+- trajectory, metric payload and run receipt;
+- task score, outcome/termination, recovery/censoring, raw motion/energy/saturation metrics and hard failure counts.
+
+Digest strings are references supplied by an upstream evidence authority. This crate validates their syntax and required presence, not signatures or the contents of the referenced artifacts.
+
+## Tail metric
+
+For scores (s_{(1)} le dots le s_{(n)}), V1 reports the mean of the lowest
+(lceil nalphaceil) scores, where (alpha) is preregistered in basis points.
+For example, 1000 basis points selects the worst 10%. The mean score and success
+rate are returned separately. This CVaR estimate is an empirical tail summary,
+not a confidence interval or a substitute for reporting the raw score distribution.
+
+## Synthetic tests
+
+The 15 tests cover lower-tail catastrophic failures, recovery censoring and missingness, worst-stratum separation, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics failures, outcome/termination consistency, duplicate trials, evidence-tier checks, protocol mismatch, measured-data requirements and minimum individual counts.
+
+All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
+
+## References
+
+- FlyGym 2.1.1 release and corrected GPU timing: https://github.com/NeLy-EPFL/flygym/releases/tag/v2.1.1
+- NeuroMechFly complex-terrain hybrid-controller tutorial: https://flygym.readthedocs.io/latest/tutorials/hybrid_controller.html
+- FlyBody whole-body simulation (Nature 2025): https://doi.org/10.1038/s41586-025-09029-4
+- FlyMimic musculoskeletal model (ICLR 2026): https://proceedings.iclr.cc/paper_files/paper/2026/hash/222843b731e2c7813291586e2b39fe89-Abstract-Conference.html
+- Musculoskeletal model verification/validation best practices: https://doi.org/10.1115/1.4029304
+
+## Run
+
+    cargo fmt --manifest-path research/locomotion-robustness-oracle-v1/Cargo.toml -- --check
+    cargo test --manifest-path research/locomotion-robustness-oracle-v1/Cargo.toml --locked
+    cargo clippy --manifest-path research/locomotion-robustness-oracle-v1/Cargo.toml --locked --all-targets -- -D warnings
+
+The package is a standalone Cargo workspace under research/. It does not alter Symtropy's production workspace or dependency graph.
