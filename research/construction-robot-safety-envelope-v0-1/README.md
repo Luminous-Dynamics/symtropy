@@ -19,6 +19,9 @@ profile and operational domain. The evaluator then checks:
   heartbeat freshness;
 - critical sensors, calibration, confidence, coverage, age and independent
   fault domains;
+- human-presence evidence bound to the exact contributing sensor IDs, its own
+  source digest, timestamp, confidence and spatial coverage; every contributor
+  must be current, calibrated, healthy and independent by declared fault domain;
 - required ODD conditions with explicit units, bounds, source references and
   maximum ages;
 - human separation using relative approach speed, reaction time, stopping
@@ -41,8 +44,11 @@ energy, human approach speed, uncertainty, sensor coverage and jobsite context
 differ.
 
 The key shift is from a static envelope to a **revision-bound, evidence-aware
-operating-state contract**. Runtime confidence is not a safety function.
-Missing or contradictory evidence is not converted into a safe observation.
+operating-state contract**. A `NoHumanDetected` state is not a free-standing
+boolean: it requires an explicit coverage receipt tied to contributing sensor
+IDs, source digest, freshness, confidence and independent fault domains.
+Runtime confidence is not a safety function. Missing or contradictory evidence
+is not converted into a safe observation.
 A learned policy cannot change thresholds, standards applicability or
 emergency-stop state.
 
@@ -64,7 +70,7 @@ external authority and this evaluator cannot clear the latch.
 
 ## Frozen corpus
 
-The V1 corpus contains 42 named synthetic cases. It includes:
+The V1 corpus contains 46 named synthetic cases and 34 authored Rust tests. It includes:
 
 - clear and near-boundary observations;
 - separation breach and fast human approach;
@@ -72,6 +78,8 @@ The V1 corpus contains 42 named synthetic cases. It includes:
 - degraded camera with independent lidar;
 - common-mode sensing failure and insufficient independent fault domains;
 - contradictory, unknown, stale and low-confidence human tracking;
+- no-human claims with inadequate coverage, stale receipts, missing sensor
+  identity and common-mode evidence;
 - speed, acceleration and maintenance-mode violations;
 - heartbeat loss, clock uncertainty and future/stale observations;
 - exact machine, tool, task, site, policy and standards bindings;
@@ -100,22 +108,23 @@ The dedicated workflow pins Rust 1.96.0 and runs on Linux, macOS and Windows.
 This crate does not claim compliance with any standard. Applicability is
 machine-, task-, jurisdiction- and integration-specific.
 
-- ISO 10218-1:2025 and ISO 10218-2:2025 are the current published industrial
-  robot safety editions. Their scope should not be assumed to cover every
-  construction machine or every jobsite integration.
-- ISO 3691-4:2023 is the published driverless-industrial-truck standard. The
-  third edition was still a Draft International Standard at enquiry stage
-  40.60 on 3 November 2026; a draft must not be described as a published
-  standard or silently used as a legal requirement.
-- The 2026 ISARC analysis of 12 standards identifies human-machine separation,
-  mode-aware behaviour, sensor monitoring, fail-safe response, progressive
-  mitigation and context-dependent validation as recurring safety principles.
-- NIST's Mobility Performance of Robotic Systems programme is developing
-  metrics, test methods, artefacts and datasets for mobility, adaptability,
-  task efficiency, completion quality and assurance in dynamic environments.
-- A 2026 systematic review of 215 construction HRC studies reports that 54%
-  remain at controlled-laboratory validation and identifies weak integration
-  of uncertainty across sensing, prediction, control and supervision.
+- [ISO 10218-1:2025](https://www.iso.org/standard/73933.html) and
+  [ISO 10218-2:2025](https://www.iso.org/standard/73934.html) are the current
+  published industrial-robot safety editions. Their scope should not be
+  assumed to cover every construction machine or jobsite integration.
+- [ISO 3691-4:2023](https://www.iso.org/standard/83545.html) is the published
+  driverless-industrial-truck standard. Its third edition is under development
+  as ISO/DIS 3691-4 at stage 40.60; the draft is not a published standard or a
+  silently applicable legal requirement ([ISO project status](https://www.iso.org/standard/88615.html)).
+- The [2026 ISARC analysis of 12 standards](https://doi.org/10.22260/ISARC2026/0104)
+  identifies human-machine separation, mode-aware behaviour, sensor monitoring,
+  fail-safe response, progressive mitigation and context-dependent validation.
+- [NIST's Mobility Performance of Robotic Systems programme](https://www.nist.gov/programs-projects/mobility-performance-robotic-systems)
+  is developing metrics, test methods, artefacts and datasets for mobility,
+  adaptability, task efficiency, completion quality and assurance in dynamic environments.
+- A [2026 systematic review of 215 construction HRC studies](https://doi.org/10.1016/j.autcon.2026.107288)
+  reports that 54% remain at controlled-laboratory validation and identifies
+  weak integration of uncertainty across sensing, prediction, control and supervision.
 
 These findings support a benchmark programme, not a claim that this small
 reference evaluator is safer or more capable than deployed industrial
