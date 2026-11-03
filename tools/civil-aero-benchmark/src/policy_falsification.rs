@@ -1158,8 +1158,8 @@ mod tests {
         let (
             source_scorecard_row,
             source_operation_ledger,
-            _source_scorecard_csv,
-            _source_operation_ledger_csv,
+            source_scorecard_csv,
+            source_operation_ledger_csv,
         ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
@@ -1219,16 +1219,32 @@ mod tests {
                 "policy-feasibility-oracle-{}-{nonce}.csv",
                 std::process::id()
             ));
+            let scorecard_path = std::env::temp_dir().join(format!(
+                "policy-scorecard-oracle-{}-{nonce}.csv",
+                std::process::id()
+            ));
+            let ledger_path = std::env::temp_dir().join(format!(
+                "policy-ledger-oracle-{}-{nonce}.csv",
+                std::process::id()
+            ));
             std::fs::write(&csv_path, &csv).expect("write audit CSV for independent oracle");
+            std::fs::write(&scorecard_path, &source_scorecard_csv)
+                .expect("write upstream policy scorecard");
+            std::fs::write(&ledger_path, &source_operation_ledger_csv)
+                .expect("write complete source operation ledger");
             let oracle = std::process::Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/scripts/verify-policy-feasibility-independent.py"
                 ))
                 .arg(&csv_path)
+                .arg(&scorecard_path)
+                .arg(&ledger_path)
                 .output()
                 .expect("run independent policy-feasibility oracle");
             let _ = std::fs::remove_file(&csv_path);
+            let _ = std::fs::remove_file(&scorecard_path);
+            let _ = std::fs::remove_file(&ledger_path);
             assert!(
                 oracle.status.success(),
                 "independent policy oracle failed: {}",
