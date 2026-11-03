@@ -102,7 +102,7 @@ or authenticate those bytes.
 ### Qualification cases added
 
 - paired native/reference traces bind the exact same scenario subject;
-- shared runner image and observation adapter remain visible;
+- shared scenario generator, runner image, observation adapter, compiler/toolchain and execution provider remain visible;
 - one expected-answer lineage reused by both lanes blocks the mandatory
   expected-answer separation;
 - a partial inventory or unknown solver lineage remains indeterminate;
