@@ -1225,7 +1225,8 @@ fn score_scenario(
         mechanism_recovery_applicable_episodes: mechanism_recovery_applicable,
         mechanism_restored_episodes: mechanism_restored_latency.len(),
         mechanism_not_restored_by_horizon_episodes: mechanism_not_restored_by_horizon,
-        mechanism_not_restored_before_termination_episodes: mechanism_not_restored_before_termination,
+        mechanism_not_restored_before_termination_episodes:
+            mechanism_not_restored_before_termination,
         unobserved_mechanism_recovery_episodes: mechanism_recovery_unobserved,
         median_mechanism_recovery_latency_ticks,
         p95_mechanism_recovery_latency_ticks,
