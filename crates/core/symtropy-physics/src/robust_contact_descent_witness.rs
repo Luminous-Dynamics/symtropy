@@ -209,17 +209,14 @@ fn solve_exact_rational_system(
     mut right_hand_side: Vec<BigRational>,
 ) -> Option<Vec<BigRational>> {
     let dimension = matrix.len();
-    if right_hand_side.len() != dimension
-        || matrix.iter().any(|row| row.len() != dimension)
-    {
+    if right_hand_side.len() != dimension || matrix.iter().any(|row| row.len() != dimension) {
         return None;
     }
     let zero = rational(0);
 
     // Exact Gauss-Jordan elimination. Singular systems are rejected.
     for pivot_column in 0..dimension {
-        let pivot_row =
-            (pivot_column..dimension).find(|row| matrix[*row][pivot_column] != zero)?;
+        let pivot_row = (pivot_column..dimension).find(|row| matrix[*row][pivot_column] != zero)?;
         if pivot_row != pivot_column {
             matrix.swap(pivot_row, pivot_column);
             right_hand_side.swap(pivot_row, pivot_column);
@@ -280,7 +277,9 @@ fn solve_active_lp_dual_constraints(
     active_indices: &[usize],
 ) -> Option<LpVector> {
     if active_indices.len() != LP_VARIABLE_COUNT
-        || active_indices.iter().any(|index| *index >= constraints.len())
+        || active_indices
+            .iter()
+            .any(|index| *index >= constraints.len())
     {
         return None;
     }
@@ -302,8 +301,9 @@ fn solve_active_lp_dual_constraints(
             }
         })
         .collect();
-    let multipliers: LpVector =
-        solve_exact_rational_system(matrix, right_hand_side)?.try_into().ok()?;
+    let multipliers: LpVector = solve_exact_rational_system(matrix, right_hand_side)?
+        .try_into()
+        .ok()?;
     multipliers
         .iter()
         .all(|multiplier| multiplier >= &rational(0))
@@ -320,7 +320,9 @@ fn verify_exact_lp_certificate(
     if !lp_constraints_satisfied(constraints, candidate)
         || active_indices.len() != LP_VARIABLE_COUNT
         || dual_multipliers.len() != LP_VARIABLE_COUNT
-        || active_indices.iter().any(|index| *index >= constraints.len())
+        || active_indices
+            .iter()
+            .any(|index| *index >= constraints.len())
         || dual_multipliers.iter().any(|value| value < &rational(0))
     {
         return false;
@@ -328,12 +330,12 @@ fn verify_exact_lp_certificate(
 
     // Dual stationarity: A^T lambda = e_margin.
     for variable in 0..LP_VARIABLE_COUNT {
-        let weighted_coefficient = active_indices
-            .iter()
-            .zip(dual_multipliers.iter())
-            .fold(rational(0), |sum, (index, multiplier)| {
+        let weighted_coefficient = active_indices.iter().zip(dual_multipliers.iter()).fold(
+            rational(0),
+            |sum, (index, multiplier)| {
                 sum + &constraints[*index].coefficients[variable] * multiplier
-            });
+            },
+        );
         let required = if variable == INPUT_DIMENSION {
             rational(1)
         } else {
@@ -395,17 +397,11 @@ fn enumerate_lp_active_sets(
         let Some(candidate) = solve_active_lp_constraints(constraints, active_indices) else {
             return;
         };
-        let Some(dual_multipliers) =
-            solve_active_lp_dual_constraints(constraints, active_indices)
-        else {
+        let Some(dual_multipliers) = solve_active_lp_dual_constraints(constraints, active_indices) else {
             return;
         };
-        if !verify_exact_lp_certificate(
-            constraints,
-            active_indices,
-            &dual_multipliers,
-            &candidate,
-        ) {
+        if !verify_exact_lp_certificate(constraints, active_indices, &dual_multipliers, &candidate)
+        {
             return;
         }
 
@@ -507,9 +503,9 @@ fn verify_robust_descent_interval_lp_certificate(
         &optimum.dual_constraint_indices,
         &optimum.dual_multipliers,
         &candidate,
-    ) && branches.iter().all(|branch| {
-        gradient_box_support_upper(branch, &optimum.direction) <= required_upper
-    })
+    ) && branches
+        .iter()
+        .all(|branch| gradient_box_support_upper(branch, &optimum.direction) <= required_upper)
 }
 
 fn adverse_box_corner(gradient: &GradientBox, direction: &RationalVector) -> RationalVector {
@@ -548,7 +544,9 @@ fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpO
             let support_upper = gradient_box_support_upper(gradient, &optimum.direction);
             if support_upper > required_upper {
                 let corner = adverse_box_corner(gradient, &optimum.direction);
-                if cuts.contains(&corner) || new_cuts.iter().any(|(candidate, _)| *candidate == corner) {
+                if cuts.contains(&corner)
+                    || new_cuts.iter().any(|(candidate, _)| *candidate == corner)
+                {
                     // A previously enforced exact corner cannot violate its
                     // own LP constraint; treat this as an internal inconsistency.
                     return None;
