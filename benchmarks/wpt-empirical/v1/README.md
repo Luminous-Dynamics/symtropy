@@ -1,0 +1,65 @@
+# WPT Typed Measurements v1 (development draft)
+
+**Status:** initial semantic contract and adversarial seed records; not yet qualified as a benchmark release.
+
+This directory begins the v0-to-v1 migration requested by issue #3466. It does not mutate or replace v0. Every record is attached to the stable v0 prototype `system_id` and an existing source ID. It keeps the raw reported number and qualifier intact, and stores any normalized value separately with an explicit conversion identifier.
+
+## Paradigm shift
+
+A WPT result is not just a number with a unit. It is an observation of a specific physical quantity for a defined engineering purpose, measured at a specific system boundary under specific operating conditions. v1 makes these dimensions machine-readable:
+
+- `quantity_kind`: what was observed (power, end-to-end efficiency, subchain efficiency, vehicle-service ratio, field exposure, etc.);
+- `measurement_purpose`: which engineering question the observation serves;
+- `raw_measurement`: source-reported value, upper bound, source unit, qualifier and wording;
+- `normalized_measurement`: optional normalized value, unit, conversion identity and physical dimension;
+- `boundary`: measurement class, named meter/probe point, input/output planes, included/excluded stages and an optional comparable-boundary signature;
+- `statistic`: peak/RMS/mean/steady-state/etc. or explicitly source-unspecified;
+- `evidence`: measured / author-calculated / simulated / secondary, source locator and uncertainty;
+- `conditions`: frequency, gap, load, duration, waveform, alignment, thermal state and medium.
+
+Unknowns remain null. A missing statistic is `reported_unspecified`, not a guessed mean. A missing uncertainty is `not_reported`, not zero. A source-reported approximate value is not silently promoted to exact.
+
+## Adversarial seed cases
+
+The seven records deliberately include the semantic traps:
+
+| Records | Correct interpretation | Invalid comparison |
+|---|---|---|
+| ZAVREL-WCS-ETA-65KW (92.7%) vs ZAVREL-DC-DC-ETA-65KW (95.5%) | Different whole-system and subchain boundaries | Ranking as equal-scope efficiencies |
+| TOKURIKI-TRACTION-ENERGY-REPLENISHMENT (≈63.3%) | Vehicle-service energy replenishment ratio | Calling 63.3% WPT conversion efficiency |
+| SASATANI-PASSIVE-RELAY-ACAC-50MM (>20%) vs SASATANI-FULL-DC-DC-500MW (≈5%) | Passive AC-to-AC link vs whole DC-to-DC chain | Treating passive link as full-system efficiency |
+| YIGIT-LASER-DRIVER-ETA (95.96%) vs YIGIT-LPT-END-TO-END-20M (≈12.4%) | Laser driver component vs full optical/electrical path | Component-to-system efficiency substitution |
+
+## Comparability contract (normative for v1 implementation)
+
+1. Different `quantity_kind` values are never compared as if they shared a scalar objective.
+2. `end_to_end_efficiency` is not interchangeable with `subsystem_efficiency`.
+3. Efficiency comparisons require a compatible boundary class, input plane, output plane and included/excluded stage set. A shared paper or prototype ID does not make the boundaries equal.
+4. `service_energy_replenishment_ratio` is a service outcome, not a conversion efficiency.
+5. `magnetic_field_strength`, `magnetic_flux_density`, `electric_field_strength` and `specific_absorption_rate` have distinct dimensions and cannot be substituted.
+6. Communications quantities (SNR, BER, data rate) remain outside useful-power comparisons.
+7. Peak, RMS, average, integrated and steady-state statistics remain distinct.
+8. Raw units and qualifiers are immutable evidence. Normalization must carry an explicit, versioned conversion ID and dimension.
+9. Missing values and uncertainty do not become zero. Unknown boundary planes block strict like-for-like efficiency ranking.
+10. Measured, calculated, simulated and secondary-reported values remain distinct evidence classes.
+
+## Current seed and limitations
+
+- Schema: `measurement.schema.json`.
+- Records: `measurements.jsonl`.
+- Seven deliberately heterogeneous observations; these are not seven independent prototypes.
+- Measurement identity binds to six known prototype families; multiple observations from the same prototype remain grouped by `system_id`.
+- Normalized efficiency values in these seed records use `percent_to_fraction_v1`. This is a unit conversion, not a recalculation of physical efficiency.
+- The measurement data are abstract- or table-locator-level for some sources. Exact input/output meter planes, uncertainty, duration and load conditions remain null where not established.
+- The schema's structure does not by itself enforce all cross-field physics. A Rust semantic validator must enforce quantity-to-unit dimensions, qualifier consistency, boundary comparability and the evidence/measurement-purpose relationship before v1 qualification.
+
+## Next gates (targets, not achieved)
+
+- JSON Schema 2020-12 validation of every record.
+- Semantic validator with dimension/quantity checks and strict comparability dispositions.
+- Deterministic v0 migration report, with ambiguous/free-text fields left unresolved.
+- Positive and negative fixtures for all comparisons above.
+- Zero invalid cross-quantity and cross-boundary comparisons in the frozen corpus.
+- Independent expert annotation and exact-head CI before qualification.
+
+No claim of physical superiority, regulatory compliance or new Tesla transmission physics follows from this data model.
