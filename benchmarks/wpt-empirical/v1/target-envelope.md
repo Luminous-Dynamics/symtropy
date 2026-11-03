@@ -152,3 +152,17 @@ Do not infer a safe design from a low external stray-field scalar, and do not pr
 ### Standards revision control
 
 IEEE now lists P63184 as an Active PAR approved 10 September 2025 that will supersede the published IEC/IEEE 63184:2025 edition. The project is a revision-in-progress, not a published replacement standard. The benchmark must bind a compliance assessment to the actually used edition and the authority's adoption; it must not treat the PAR as normative. Also preserve the wording discrepancy between IEEE's overview (stationary and dynamic, with a 1 kHz–30 MHz summary) and the IEC formal scope/title (stationary, 3 kHz–30 MHz). See the source-catalogue revision watch and [IEEE project record](https://standards.ieee.org/ieee/63184/12249/).
+
+## 8. Modular interoperability / multi-receiver research targets
+
+New 2026 references establish a distinct design frontier: power-class switching and simultaneous multi-receiver operation. This is not a direct substitute for increasing a single pad's kW rating.
+
+Proposed targets:
+- **Power-class switching:** support SAE WPT1/WPT2/WPT3-compatible operating envelopes with no manual coupler redesign; report efficiency and thermal limits at every actual power class, not just maximum efficiency.
+- **Multi-channel independence:** two or more active receiver channels with independently variable loads; target cross-regulation ≤1% of full-scale output during load/coupling steps, and no uncommanded activation.
+- **Channel fairness:** publish per-receiver delivered energy, latency and curtailment; target Jain's fairness index ≥0.98 when identical service is requested, without sacrificing hard safety constraints.
+- **Partial-load performance:** report aggregate and per-channel efficiency with 0, 1, 2 and N active channels, including standby/idle loss in the whole-system boundary.
+- **Reconfiguration reliability:** target 99.99% successful power-class transitions over 10,000 scripted transitions, with fail-safe de-energization on invalid state or loss of vehicle authorization.
+- **Shared hardware advantage:** show total system size/mass/cost and lifecycle maintenance separately from electrical efficiency; verify that a shared inverter/LCL network has a net benefit after switching/coupling/thermal overhead.
+
+The current literature references include a 4.60 kW five-mode prototype with all modes >80% DC-to-DC (Liu et al., DOI 10.1109/TIE.2026.3697464), a 6.6 kW six-mode dual-channel prototype with reported maximum DC-to-DC efficiencies 90.27–94.48% (DOI 10.1109/TPEL.2026.3689138), and a two-channel series transmitter array demonstrating 4 kW aggregate output at up to 95.7% maximum efficiency (Singhal et al., DOI 10.1109/TIE.2025.3605456). These are small-scale/architecture demonstrations; not a matched comparison to the 50 kW bus prototypes.
