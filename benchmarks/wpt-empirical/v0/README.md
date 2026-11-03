@@ -82,7 +82,7 @@ The dataset now contains four prototype families: one static 65 kW IPT charger, 
 | Static IPT | Zavrel et al. 2025 | Back-to-back 58 kW / 97.5% at 15 cm; >70 kW / 96.3% at 20 cm; <60 kW / 95.3% at 25 cm | Distinct P_DC1→P_DC2 back-to-back boundary; separate 65 kW Table VII reports eta_WCS 92.7%, eta_DC-DC 95.5%. |
 | Exposure-aware static IPT | Kindl et al. 2026 | >96% DC-to-DC at 20 cm, 85 kHz; ~56% less shielding loss; mutual inductance ~27.2–27.3 μH | Prototype efficiency measured; shielding and mutual-inductance changes from FEM/co-design; electric exposure screened in simulation. |
 | Dynamic roadway IPT | Purdue JTRP 2026 | 50–190 kW at up to 65 mph; efficiency approaching 85% | Abstract-level field-test envelope; input/output boundary, frequency, gap and per-speed efficiency not stated in abstract. |
-| Public-road dynamic IPT | Tokuriki et al. 2026 | ~10 kW delivered to moving EV; 63.3% of drive energy replenished; 18 months testing | 63.3% is a vehicle energy-offset metric, not link efficiency; no efficiency or frequency in abstract. |
+| Public-road dynamic IPT | Tokuriki et al. 2026 | ~10 kW delivered to moving EV; 63.3% of driving-consumption quantity reported replenished; 18 months testing | 63.3% is a vehicle-level replenishment ratio, not link efficiency; exact numerator/denominator interval needs full-paper extraction; no link efficiency or frequency in abstract. |
 
 ### The new benchmark paradigm
 
