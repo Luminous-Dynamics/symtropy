@@ -430,14 +430,18 @@ mod tests {
         let result = model(0.4, 0.2, 0.1)
             .classify(4.05)
             .expect("near-boundary force");
-        assert_eq!(
-            result,
+        match result {
             ContactClassification::NearBoundary {
-                direction: SlipDirection::Positive,
-                signed_excess_force_n: 0.04999999999999982,
-                force_tolerance_n: 0.1,
+                direction,
+                signed_excess_force_n,
+                force_tolerance_n,
+            } => {
+                assert_eq!(direction, SlipDirection::Positive);
+                assert!((signed_excess_force_n - 0.05).abs() < 1.0e-14);
+                assert_eq!(force_tolerance_n, 0.1);
             }
-        );
+            other => panic!("expected near-boundary abstention, got {other:?}"),
+        }
     }
 
     #[test]
