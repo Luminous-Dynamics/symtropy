@@ -65,11 +65,12 @@ measurement of momentum, energy, penetration, finite-state health, and
 rotation-group error. An analytical free-fall convergence study is included:
 
 ```bash
-cargo run --release --example free_fall_validation
-cargo run --release --example oriented_collision_validation
+cargo run --release -p symtropy-physics --example free_fall_validation
+cargo run --release -p symtropy-physics --example free_fall_convergence_gate
+cargo run --release -p symtropy-physics --example oriented_collision_validation
 ```
 
-The output is CSV for CI gates and external analysis. See
+The output is CSV for CI gates and external analysis. The separate `free_fall_convergence_gate` is fail-closed: it checks the analytical first-order position-error and mechanical-energy-drift predictions at four timesteps in 2D, 3D, and 4D, and exits non-zero on a regression. See
 [`RESEARCH_VALIDATION.md`](RESEARCH_VALIDATION.md) for the general validity
 protocol and [`ORIENTED_COLLISION_VALIDATION.md`](ORIENTED_COLLISION_VALIDATION.md)
 for the transformed-geometry contract, limitations, and external campaign. Public
