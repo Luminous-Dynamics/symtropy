@@ -91,6 +91,26 @@ pub enum SynapseSign {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Neurotransmitter {
+    Acetylcholine,
+    Gaba,
+    Glutamate,
+    Dopamine,
+    Serotonin,
+    Octopamine,
+    Other,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignEvidenceBasis {
+    DirectPhysiology,
+    ReceptorSupported,
+    TransmitterHeuristic,
+    Unknown,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MovementDirection {
     Anterior,
@@ -143,7 +163,10 @@ pub struct ConnectomeOutput {
     pub target_neuron_id: String,
     pub target_cell_type: String,
     pub synapse_count: u32,
+    pub neurotransmitter: Neurotransmitter,
     pub sign: SynapseSign,
+    pub sign_evidence_basis: SignEvidenceBasis,
+    pub sign_evidence_sha256: Option<String>,
     pub anatomical_region: String,
 }
 
@@ -179,6 +202,7 @@ pub enum SourceArtifactRole {
     AfferentIdentity,
     SensoryTuning,
     ConnectomeOutput,
+    SynapseSignEvidence,
     ReflexOutcome,
     SearchReceipt,
 }
@@ -257,9 +281,14 @@ pub struct MotorTargetMetrics {
     pub precision: Option<f64>,
     pub recall: Option<f64>,
     pub f1: Option<f64>,
+    /// Primary sign score: direct physiology or receptor-supported truth only.
     pub sign_evaluated_targets: usize,
     pub correct_sign_predictions: usize,
     pub sign_accuracy: Option<f64>,
+    /// Separate agreement with signs inferred from transmitter annotations.
+    pub annotation_sign_evaluated_targets: usize,
+    pub correct_annotation_sign_predictions: usize,
+    pub annotation_sign_accuracy: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -500,8 +529,37 @@ fn validate_connectome_outputs(value: &[ConnectomeOutput]) -> Result<(), OracleE
             || !valid_identifier(&target.anatomical_region)
             || target.synapse_count == 0
             || !identities.insert(target.target_neuron_id.as_str())
+            || target
+                .sign_evidence_sha256
+                .as_ref()
+                .is_some_and(|sha256| !valid_sha256(sha256))
         {
             return Err(OracleError::InvalidConnectomeOutput);
+        }
+
+        match target.sign_evidence_basis {
+            SignEvidenceBasis::DirectPhysiology | SignEvidenceBasis::ReceptorSupported => {
+                if target.sign == SynapseSign::Unknown
+                    || target.sign_evidence_sha256.is_none()
+                {
+                    return Err(OracleError::InvalidConnectomeOutput);
+                }
+            }
+            SignEvidenceBasis::TransmitterHeuristic => {
+                if target.sign == SynapseSign::Unknown
+                    || target.neurotransmitter == Neurotransmitter::Unknown
+                    || target.sign_evidence_sha256.is_none()
+                {
+                    return Err(OracleError::InvalidConnectomeOutput);
+                }
+            }
+            SignEvidenceBasis::Unknown => {
+                if target.sign != SynapseSign::Unknown
+                    || target.sign_evidence_sha256.is_some()
+                {
+                    return Err(OracleError::InvalidConnectomeOutput);
+                }
+            }
         }
     }
     Ok(())
@@ -767,15 +825,30 @@ fn motor_target_metrics(
     let mut false_negatives = 0usize;
     let mut sign_evaluated_targets = 0usize;
     let mut correct_sign_predictions = 0usize;
+    let mut annotation_sign_evaluated_targets = 0usize;
+    let mut correct_annotation_sign_predictions = 0usize;
 
     for (target_id, prediction) in &predicted_by_id {
         if let Some(observation) = truth_by_id.get(target_id) {
             true_positives += 1;
-            if observation.sign != SynapseSign::Unknown {
-                sign_evaluated_targets += 1;
-                if prediction.predicted_sign == observation.sign {
-                    correct_sign_predictions += 1;
+            match observation.sign_evidence_basis {
+                SignEvidenceBasis::DirectPhysiology | SignEvidenceBasis::ReceptorSupported => {
+                    if observation.sign != SynapseSign::Unknown {
+                        sign_evaluated_targets += 1;
+                        if prediction.predicted_sign == observation.sign {
+                            correct_sign_predictions += 1;
+                        }
+                    }
                 }
+                SignEvidenceBasis::TransmitterHeuristic => {
+                    if observation.sign != SynapseSign::Unknown {
+                        annotation_sign_evaluated_targets += 1;
+                        if prediction.predicted_sign == observation.sign {
+                            correct_annotation_sign_predictions += 1;
+                        }
+                    }
+                }
+                SignEvidenceBasis::Unknown => {}
             }
         } else {
             false_positives += 1;
@@ -811,11 +884,20 @@ fn motor_target_metrics(
     } else {
         Some(correct_sign_predictions as f64 / sign_evaluated_targets as f64)
     };
+    let annotation_sign_accuracy = if annotation_sign_evaluated_targets == 0 {
+        None
+    } else {
+        Some(
+            correct_annotation_sign_predictions as f64
+                / annotation_sign_evaluated_targets as f64,
+        )
+    };
 
     if precision.is_some_and(|value| !value.is_finite())
         || recall.is_some_and(|value| !value.is_finite())
         || f1.is_some_and(|value| !value.is_finite())
         || sign_accuracy.is_some_and(|value| !value.is_finite())
+        || annotation_sign_accuracy.is_some_and(|value| !value.is_finite())
     {
         return Err(OracleError::NonFiniteMetric);
     }
@@ -830,6 +912,9 @@ fn motor_target_metrics(
         sign_evaluated_targets,
         correct_sign_predictions,
         sign_accuracy,
+        annotation_sign_evaluated_targets,
+        correct_annotation_sign_predictions,
+        annotation_sign_accuracy,
     })
 }
 
