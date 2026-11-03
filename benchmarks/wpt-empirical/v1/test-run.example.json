@@ -173,6 +173,8 @@
     "energy_sufficiency_ratio": null,
     "segment_activation_success_fraction": null,
     "speed_profile_sha256": null,
-    "segment_event_log_sha256": null
+    "segment_event_log_sha256": null,
+    "vehicle_dc_energy_per_km_wh_km": null,
+    "roadway_idle_energy_per_km_wh_km": null
   }
 }
