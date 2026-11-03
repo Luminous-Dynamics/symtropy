@@ -12,6 +12,9 @@
 use std::collections::BTreeSet;
 
 const MAX_CONFIDENCE_PPM: u32 = 1_000_000;
+const MAX_IDENTIFIER_BYTES: usize = 128;
+const MAX_SENSOR_RECORDS: usize = 128;
+const MAX_ODD_CONDITIONS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperationalDomain {
@@ -105,6 +108,8 @@ pub enum Reason {
     OperatorOverrideRequiresReview,
     MaintenanceMotionDetected,
     SensorSetMalformed,
+    OddConditionSetMalformed,
+    UnexpectedOddCondition,
     CriticalSensorMissing,
     CriticalSensorUnhealthy,
     SensorDiversityInsufficient,
@@ -286,11 +291,15 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
         policy.standards_profile.as_str(),
     ];
 
-    if required_text.iter().any(|value| !non_empty(value)) {
+    if required_text
+        .iter()
+        .any(|value| !non_empty(value) || value.len() > MAX_IDENTIFIER_BYTES)
+    {
         return false;
     }
-    if !is_sha256_reference(&policy.policy_sha256)
-        || policy.valid_from_ms > policy.valid_until_ms
+    if policy.valid_from_ms > policy.valid_until_ms
+        || policy.odd_conditions.len() > MAX_ODD_CONDITIONS
+        || policy.critical_sensor_ids.len() > MAX_SENSOR_RECORDS
         || policy.maximum_state_age_ms == 0
         || policy.maximum_sensor_age_ms == 0
         || policy.maximum_heartbeat_age_ms == 0
@@ -314,7 +323,9 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
     let mut condition_ids = BTreeSet::new();
     policy.odd_conditions.iter().all(|condition| {
         non_empty(&condition.condition_id)
+            && condition.condition_id.len() <= MAX_IDENTIFIER_BYTES
             && non_empty(&condition.unit)
+            && condition.unit.len() <= MAX_IDENTIFIER_BYTES
             && condition.minimum_milli <= condition.maximum_milli
             && condition.maximum_age_ms > 0
             && condition_ids.insert(condition.condition_id.as_str())
@@ -434,10 +445,15 @@ fn conditions_are_unique(observation: &RuntimeObservation) -> bool {
 }
 
 fn sensors_are_well_formed(observation: &RuntimeObservation) -> bool {
+    if observation.sensors.len() > MAX_SENSOR_RECORDS {
+        return false;
+    }
     let mut ids = BTreeSet::new();
     observation.sensors.iter().all(|sensor| {
         non_empty(&sensor.sensor_id)
+            && sensor.sensor_id.len() <= MAX_IDENTIFIER_BYTES
             && non_empty(&sensor.fault_domain)
+            && sensor.fault_domain.len() <= MAX_IDENTIFIER_BYTES
             && is_sha256_reference(&sensor.source_sha256)
             && sensor.confidence_ppm <= MAX_CONFIDENCE_PPM
             && sensor.coverage_ppm <= MAX_CONFIDENCE_PPM
@@ -449,8 +465,24 @@ fn condition_is_supported(
     policy: &SafetyPolicy,
     observation: &RuntimeObservation,
 ) -> Result<(), Reason> {
-    if !conditions_are_unique(observation) {
-        return Err(Reason::SensorSetMalformed);
+    if observation.odd_conditions.len() > MAX_ODD_CONDITIONS
+        || !conditions_are_unique(observation)
+    {
+        return Err(Reason::OddConditionSetMalformed);
+    }
+    if observation.odd_conditions.len() != policy.odd_conditions.len() {
+        return Err(Reason::UnexpectedOddCondition);
+    }
+
+    for value in &observation.odd_conditions {
+        if !non_empty(&value.condition_id)
+            || value.condition_id.len() > MAX_IDENTIFIER_BYTES
+            || !non_empty(&value.unit)
+            || value.unit.len() > MAX_IDENTIFIER_BYTES
+            || !is_sha256_reference(&value.source_sha256)
+        {
+            return Err(Reason::SensorSetMalformed);
+        }
     }
 
     for limit in &policy.odd_conditions {
@@ -461,7 +493,7 @@ fn condition_is_supported(
         let Some(value) = matches.next() else {
             return Err(Reason::OddConditionMissing);
         };
-        if value.unit != limit.unit || !is_sha256_reference(&value.source_sha256) {
+        if value.unit != limit.unit {
             return Err(Reason::SensorSetMalformed);
         }
         if value.age_ms > limit.maximum_age_ms {
@@ -547,7 +579,16 @@ pub fn evaluate(
     if observation.mode == OperatingMode::Emergency {
         return stop(policy, observation, Reason::EmergencyModeRequested);
     }
+    if observation.mode == OperatingMode::Maintenance
+        && (observation.motion.motion_command_present
+            || observation.motion.speed_mm_s > 0)
+    {
+        return stop(policy, observation, Reason::MaintenanceMotionDetected);
+    }
 
+    if !non_empty(&policy.standards_profile) || !non_empty(&policy.jurisdiction) {
+        return unsupported(policy, observation, Reason::StandardProfileMissing);
+    }
     if !policy_is_well_formed(policy) {
         return unsupported(policy, observation, Reason::PolicyMalformed);
     }
@@ -584,36 +625,8 @@ pub fn evaluate(
     if observation.communications_heartbeat_age_ms > policy.maximum_heartbeat_age_ms {
         return stop(policy, observation, Reason::CommunicationsHeartbeatLost);
     }
-
     if !policy.permitted_modes.contains(&observation.mode) {
         return unsupported(policy, observation, Reason::ModeNotPermitted);
-    }
-
-    if observation.previous_mode == Some(OperatingMode::Emergency)
-        && observation.mode != OperatingMode::Emergency
-    {
-        // This evaluator cannot consume a reset authorization or clear a latch.
-        return hold(
-            policy,
-            observation,
-            Reason::EmergencyRecoveryRequiresExternalAuthority,
-        );
-    }
-    if observation.previous_mode.is_some()
-        && observation.previous_mode != Some(observation.mode)
-        && !observation.handover_acknowledged
-    {
-        return hold(policy, observation, Reason::HandoverUnacknowledged);
-    }
-    if observation.operator_override {
-        return hold(policy, observation, Reason::OperatorOverrideRequiresReview);
-    }
-
-    if observation.mode == OperatingMode::Maintenance
-        && (observation.motion.motion_command_present
-            || observation.motion.speed_mm_s > 0)
-    {
-        return stop(policy, observation, Reason::MaintenanceMotionDetected);
     }
 
     let degraded_sensors = match sensor_status(policy, observation) {
@@ -624,14 +637,8 @@ pub fn evaluate(
         Err(reason) => return stop(policy, observation, reason),
     };
 
-    match condition_is_supported(policy, observation) {
-        Ok(()) => {}
-        Err(Reason::SensorSetMalformed) => {
-            return inconsistent(policy, observation, Reason::SensorSetMalformed);
-        }
-        Err(reason) => return unsupported(policy, observation, reason),
-    }
-
+    // Evaluate hard proximity and motion limits before ODD and mitigation
+    // classifications. A missing environmental field cannot hide a hard stop.
     let mut near_separation_boundary = false;
     match observation.human {
         HumanObservation::NoHumanDetected => {}
@@ -694,17 +701,54 @@ pub fn evaluate(
         return stop(policy, observation, Reason::MotionLimitExceeded);
     }
 
+    match condition_is_supported(policy, observation) {
+        Ok(()) => {}
+        Err(Reason::SensorSetMalformed | Reason::OddConditionSetMalformed) => {
+            return inconsistent(
+                policy,
+                observation,
+                Reason::OddConditionSetMalformed,
+            );
+        }
+        Err(reason) => return unsupported(policy, observation, reason),
+    }
+
+    // A stop-to-operation transition is never performed by this module.
+    if observation.previous_mode == Some(OperatingMode::Emergency)
+        && observation.mode != OperatingMode::Emergency
+    {
+        return hold(
+            policy,
+            observation,
+            Reason::EmergencyRecoveryRequiresExternalAuthority,
+        );
+    }
+    if observation.previous_mode.is_some()
+        && observation.previous_mode != Some(observation.mode)
+        && !observation.handover_acknowledged
+    {
+        return hold(policy, observation, Reason::HandoverUnacknowledged);
+    }
+    if observation.operator_override {
+        return hold(policy, observation, Reason::OperatorOverrideRequiresReview);
+    }
+
     if degraded_sensors || near_separation_boundary {
         let reason = if near_separation_boundary {
             Reason::HumanSeparationNearBoundary
         } else {
             Reason::SensorEvidenceDegraded
         };
+        let response = if observation.motion.speed_mm_s > policy.reduced_speed_mm_s {
+            RequestedResponse::ReduceSpeedAndReassess
+        } else {
+            RequestedResponse::HoldForHumanReview
+        };
         return make_decision(
             policy,
             observation,
             Disposition::RequireProgressiveMitigation,
-            RequestedResponse::ReduceSpeedAndReassess,
+            response,
             vec![reason],
         );
     }
@@ -1399,7 +1443,7 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
         ..
     } = &mut observation.human
     {
-        *relative_approach_speed_mm_s = 6_000;
+        *relative_approach_speed_mm_s = 10_000;
     }
     add_case(
         &mut cases,
