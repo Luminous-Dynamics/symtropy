@@ -1074,6 +1074,62 @@ mod tests {
     }
 
     #[test]
+    fn perturbation_grounded_non_connectome_model_does_not_require_connectome() {
+        let mut first = forecast("learned-policy", vec![0.0], 0.1);
+        first.model_family = ModelFamily::LearnedController;
+        first.evidence_tier = EvidenceTier::PerturbationGrounded;
+        first.provenance.artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
+            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+        ];
+        let mut candidate = batch(vec![
+            first,
+            forecast("phenomenological-model", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_tier = EvaluationTier::MeasuredIntervention;
+        candidate.evaluation_artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
+            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+        ];
+        assert_eq!(validate_prediction_batch(&candidate), Ok(()));
+    }
+
+    #[test]
+    fn independent_replication_evaluation_requires_replication_artifact() {
+        let mut candidate = batch(vec![
+            forecast("model-a", vec![0.0], 0.1),
+            forecast("model-b", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_tier = EvaluationTier::IndependentReplication;
+        candidate.evaluation_artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
+            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+        ];
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::MissingArtifactRole(ArtifactRole::IndependentReplication))
+        );
+    }
+
+    #[test]
+    fn rejects_evaluation_artifact_count_above_the_resource_limit() {
+        let mut candidate = batch(vec![
+            forecast("model-a", vec![0.0], 0.1),
+            forecast("model-b", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_artifacts = (0..=MAX_EVALUATION_ARTIFACTS)
+            .map(|index| ArtifactRef {
+                role: ArtifactRole::Connectome,
+                sha256: format!("{:064x}", index + 1),
+            })
+            .collect();
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::ResourceLimitExceeded)
+        );
+    }
+
+    #[test]
     fn rejects_unblinding_before_prediction_commit() {
         let candidate = batch(vec![
             forecast("model-a", vec![0.0], 0.1),
