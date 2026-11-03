@@ -221,8 +221,8 @@ fn solve_active_lp_constraints(
 
     // Exact Gauss-Jordan elimination. Singular active sets are skipped.
     for pivot_column in 0..LP_VARIABLE_COUNT {
-        let pivot_row = (pivot_column..LP_VARIABLE_COUNT)
-            .find(|row| matrix[*row][pivot_column] != zero)?;
+        let pivot_row =
+            (pivot_column..LP_VARIABLE_COUNT).find(|row| matrix[*row][pivot_column] != zero)?;
         if pivot_row != pivot_column {
             matrix.swap(pivot_row, pivot_column);
             right_hand_side.swap(pivot_row, pivot_column);
@@ -243,8 +243,7 @@ fn solve_active_lp_constraints(
                 continue;
             }
             for column in pivot_column..LP_VARIABLE_COUNT {
-                matrix[row][column] -=
-                    factor.clone() * matrix[pivot_column][column].clone();
+                matrix[row][column] -= factor.clone() * matrix[pivot_column][column].clone();
             }
             right_hand_side[row] -= factor * right_hand_side[pivot_column].clone();
         }
@@ -282,13 +281,11 @@ fn enumerate_lp_active_sets(
         }
 
         let margin = candidate[INPUT_DIMENSION].clone();
-        let direction: RationalVector =
-            std::array::from_fn(|index| candidate[index].clone());
+        let direction: RationalVector = std::array::from_fn(|index| candidate[index].clone());
         let should_replace = best.as_ref().is_none_or(|previous| {
             margin > previous.margin
                 || (margin == previous.margin
-                    && direction_l1_norm(&direction)
-                        < direction_l1_norm(&previous.direction))
+                    && direction_l1_norm(&direction) < direction_l1_norm(&previous.direction))
         });
         if should_replace {
             let branch_upper_bounds = gradients
@@ -324,21 +321,12 @@ fn enumerate_lp_active_sets(
         .skip(start_index)
     {
         active_indices.push(index);
-        enumerate_lp_active_sets(
-            constraints,
-            gradients,
-            index + 1,
-            active_indices,
-            best,
-        );
+        enumerate_lp_active_sets(constraints, gradients, index + 1, active_indices, best);
         active_indices.pop();
     }
 }
 
-fn adverse_box_corner(
-    gradient: &GradientBox,
-    direction: &RationalVector,
-) -> RationalVector {
+fn adverse_box_corner(gradient: &GradientBox, direction: &RationalVector) -> RationalVector {
     std::array::from_fn(|coordinate| {
         if direction[coordinate] < rational(0) {
             gradient[coordinate].lower.clone()
@@ -354,9 +342,7 @@ fn adverse_box_corner(
 /// every box or returns an adverse box corner as a violated constraint.
 /// Finite termination with no violated corner proves the robust optimum for
 /// the complete declared boxes. A cap or repeated violated cut returns None.
-fn solve_robust_descent_interval_lp(
-    branches: &[GradientBox],
-) -> Option<ExactLpOptimum> {
+fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpOptimum> {
     if branches.is_empty() {
         return None;
     }
@@ -372,8 +358,7 @@ fn solve_robust_descent_interval_lp(
         let mut new_cuts = Vec::new();
 
         for gradient in branches {
-            let support_upper =
-                gradient_box_support_upper(gradient, &optimum.direction);
+            let support_upper = gradient_box_support_upper(gradient, &optimum.direction);
             if support_upper > required_upper {
                 let corner = adverse_box_corner(gradient, &optimum.direction);
                 if cuts.contains(&corner) || new_cuts.contains(&corner) {
@@ -425,11 +410,7 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
     }
 
     let constraints = robust_descent_constraints(gradients);
-    bounded_binomial(
-        constraints.len(),
-        LP_VARIABLE_COUNT,
-        MAX_ACTIVE_SETS,
-    )?;
+    bounded_binomial(constraints.len(), LP_VARIABLE_COUNT, MAX_ACTIVE_SETS)?;
 
     let mut best = None;
     enumerate_lp_active_sets(
@@ -695,28 +676,14 @@ mod tests {
         // One gradient box has a positive robust descent direction. Its lower
         // corner alone is an incomplete relaxation; the exact support oracle
         // adds the adverse upper endpoint when a proposed direction needs it.
-        let positive_box = interval_gradient([
-            (1, 2),
-            (0, 1),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-        ]);
+        let positive_box = interval_gradient([(1, 2), (0, 1), (0, 0), (0, 0), (0, 0), (0, 0)]);
         let positive = solve_robust_descent_interval_lp(&[positive_box])
             .expect("the exact interval LP certifies a common descent direction");
         assert_eq!(positive.margin, rational(1));
         assert_eq!(positive.branch_upper_bounds, vec![rational(-1)]);
         assert_eq!(
             gradient_box_support_upper(
-                &interval_gradient([
-                    (1, 2),
-                    (0, 1),
-                    (0, 0),
-                    (0, 0),
-                    (0, 0),
-                    (0, 0),
-                ]),
+                &interval_gradient([(1, 2), (0, 1), (0, 0), (0, 0), (0, 0), (0, 0),]),
                 &positive.direction
             ),
             rational(-1)
@@ -726,14 +693,7 @@ mod tests {
         // plane loop must add both adverse endpoints and return margin zero.
         // Their exact half/half convex combination is a no-strict-descent
         // witness for this complete one-dimensional uncertainty box.
-        let opposing_box = interval_gradient([
-            (-1, 1),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-        ]);
+        let opposing_box = interval_gradient([(-1, 1), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]);
         let no_descent = solve_robust_descent_interval_lp(&[opposing_box])
             .expect("the exact interval LP returns the optimum even when it is zero");
         assert_eq!(no_descent.margin, rational(0));
