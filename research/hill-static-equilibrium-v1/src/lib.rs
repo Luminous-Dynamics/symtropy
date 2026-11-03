@@ -196,10 +196,15 @@ impl SampledCurve {
 
     /// Piecewise-linear interpolation. Extrapolation is deliberately rejected.
     pub fn evaluate(&self, normalized_length: f64) -> Result<f64, MuscleError> {
+        self.validate(self.kind)?;
+        self.evaluate_validated(normalized_length)
+    }
+
+    /// Interpolation after curve validation has been performed by the caller.
+    fn evaluate_validated(&self, normalized_length: f64) -> Result<f64, MuscleError> {
         if !normalized_length.is_finite() {
             return Err(MuscleError::NonFiniteValue);
         }
-        self.validate(self.kind)?;
 
         let first = self.points.first().ok_or(MuscleError::InvalidCurve(self.kind))?;
         let last = self.points.last().ok_or(MuscleError::InvalidCurve(self.kind))?;
@@ -392,13 +397,13 @@ fn evaluate_residual(
     let normalized_tendon_length = tendon_length_m / parameters.tendon_slack_length_m;
     let active_factor = curves
         .active_force_length
-        .evaluate(normalized_fiber_length)?;
+        .evaluate_validated(normalized_fiber_length)?;
     let passive_factor = curves
         .passive_force_length
-        .evaluate(normalized_fiber_length)?;
+        .evaluate_validated(normalized_fiber_length)?;
     let tendon_factor = curves
         .tendon_force_length
-        .evaluate(normalized_tendon_length)?;
+        .evaluate_validated(normalized_tendon_length)?;
 
     let fiber_force_n = parameters.maximum_isometric_force_n
         * (activation * active_factor + passive_factor);
