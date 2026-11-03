@@ -176,6 +176,7 @@ members = [
     "crates/domains/symtropy-firstlight-catastrophe",
     "tools/wpt-empirical-validator",
     "tools/wpt-measurement-comparator",
+    "tools/wpt-round-robin-validator",
 ]
 
 [lints.clippy]
