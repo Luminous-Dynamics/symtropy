@@ -11,7 +11,7 @@
 //! typed paired-outcome deltas, and requires complete provenance digests.
 
 use core::fmt;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// SHA-256 digest represented as 32 bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -433,6 +433,24 @@ impl PairedScenarioBlock {
     }
 }
 
+/// Lifecycle state of one resource commitment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResourceCommitmentState {
+    /// Capacity has been reserved for planned work but is not yet realized.
+    Reserved,
+    /// Work has been settled and actual resource consumption recorded.
+    Settled,
+    /// Planned work was cancelled and its reservation released.
+    Released,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ResourceCommitmentRecord {
+    reserved: ResourceEnvelope,
+    settled: Option<ResourceEnvelope>,
+    state: ResourceCommitmentState,
+}
+
 /// Error returned when a resource commitment is invalid.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LedgerError {
@@ -446,13 +464,31 @@ pub enum LedgerError {
         kind: ResourceKind,
         /// Available quantity.
         available: u64,
-        /// Already committed quantity.
+        /// Already reserved or consumed quantity.
         committed: u64,
         /// New requested quantity.
         requested: u64,
     },
+    /// Actual settlement exceeds the reservation in a resource dimension.
+    ActualExceedsReservation {
+        /// Resource dimension that would exceed its reservation.
+        kind: ResourceKind,
+        /// Reserved quantity.
+        reserved: u64,
+        /// Actual quantity requested for settlement.
+        actual: u64,
+    },
     /// Adding resource quantities overflowed the integer representation.
     ArithmeticOverflow(ResourceKind),
+    /// The requested commitment identifier does not exist.
+    UnknownCommitment(String),
+    /// A commitment cannot be transitioned from its current state.
+    InvalidTransition {
+        /// Commitment identifier.
+        id: String,
+        /// Existing lifecycle state.
+        state: ResourceCommitmentState,
+    },
 }
 
 impl fmt::Display for LedgerError {
@@ -464,8 +500,14 @@ impl fmt::Display for LedgerError {
                 f,
                 "resource {kind:?} exceeds available envelope: available={available}, committed={committed}, requested={requested}"
             ),
-            Self::ArithmeticOverflow(kind) => {
-                write!(f, "resource arithmetic overflow for {kind:?}")
+            Self::ActualExceedsReservation { kind, reserved, actual } => write!(
+                f,
+                "actual resource {kind:?} exceeds reservation: reserved={reserved}, actual={actual}"
+            ),
+            Self::ArithmeticOverflow(kind) => write!(f, "resource arithmetic overflow for {kind:?}"),
+            Self::UnknownCommitment(id) => write!(f, "unknown resource commitment: {id}"),
+            Self::InvalidTransition { id, state } => {
+                write!(f, "resource commitment {id} cannot transition from {state:?}")
             }
         }
     }
@@ -474,11 +516,17 @@ impl fmt::Display for LedgerError {
 impl std::error::Error for LedgerError {}
 
 /// A deterministic resource ledger for one policy arm.
+///
+/// Available capacity is split into reserved, consumed and remaining buckets.
+/// A reservation can be settled once or released once. Settling records actual
+/// consumption, which may be lower than reserved but never higher. IDs remain
+/// recorded after settlement/release to prevent accidental reuse.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceLedger {
     available: ResourceEnvelope,
-    committed: ResourceEnvelope,
-    commitment_ids: BTreeSet<String>,
+    reserved: ResourceEnvelope,
+    consumed: ResourceEnvelope,
+    commitments: BTreeMap<String, ResourceCommitmentRecord>,
 }
 
 impl ResourceLedger {
@@ -486,67 +534,195 @@ impl ResourceLedger {
     pub fn new(available: ResourceEnvelope) -> Self {
         Self {
             available,
-            committed: ResourceEnvelope::zero(),
-            commitment_ids: BTreeSet::new(),
+            reserved: ResourceEnvelope::zero(),
+            consumed: ResourceEnvelope::zero(),
+            commitments: BTreeMap::new(),
         }
     }
 
-    /// Return the available resource envelope.
-    pub const fn available(&self) -> ResourceEnvelope {
-        self.available
+    /// Return the original available resource envelope.
+    pub const fn available(&self) -> ResourceEnvelope { self.available }
+
+    /// Return resources reserved for planned but unsettled work.
+    pub const fn reserved(&self) -> ResourceEnvelope { self.reserved }
+
+    /// Return actual resource consumption recorded by settled commitments.
+    pub const fn consumed(&self) -> ResourceEnvelope { self.consumed }
+
+    /// Return reserved plus consumed resources.
+    pub fn committed(&self) -> ResourceEnvelope {
+        let mut values = [0_u64; 8];
+        for kind in ResourceKind::ALL {
+            values[kind.index()] = self.reserved.get(kind) + self.consumed.get(kind);
+        }
+        ResourceEnvelope::from_values(values)
     }
 
-    /// Return the currently committed quantities.
-    pub const fn committed(&self) -> ResourceEnvelope {
-        self.committed
+    /// Return unreserved and unconsumed resource capacity.
+    pub fn remaining(&self) -> ResourceEnvelope {
+        let committed = self.committed();
+        let mut values = [0_u64; 8];
+        for kind in ResourceKind::ALL {
+            values[kind.index()] = self.available.get(kind) - committed.get(kind);
+        }
+        ResourceEnvelope::from_values(values)
     }
 
-    /// Return the number of unique commitments.
-    pub fn commitment_count(&self) -> usize {
-        self.commitment_ids.len()
+    /// Return the number of unique commitment identifiers ever recorded.
+    pub fn commitment_count(&self) -> usize { self.commitments.len() }
+
+    /// Return one commitment's lifecycle state, if it exists.
+    pub fn commitment_state(&self, commitment_id: &str) -> Option<ResourceCommitmentState> {
+        self.commitments.get(commitment_id.trim()).map(|record| record.state)
     }
 
-    /// Commit a resource bundle atomically.
+    fn new_commitment_id(&self, commitment_id: impl Into<String>) -> Result<String, LedgerError> {
+        let id = commitment_id.into().trim().to_owned();
+        if id.is_empty() { return Err(LedgerError::EmptyCommitmentId); }
+        if self.commitments.contains_key(&id) {
+            return Err(LedgerError::DuplicateCommitment(id));
+        }
+        Ok(id)
+    }
+
+    /// Reserve a resource bundle atomically for planned work.
     ///
-    /// Duplicate identifiers, arithmetic overflow and over-budget requests
-    /// leave the ledger unchanged.
-    pub fn commit(
+    /// Reserved resources reduce remaining capacity but are not reported as consumed.
+    pub fn reserve(
         &mut self,
         commitment_id: impl Into<String>,
         request: ResourceEnvelope,
     ) -> Result<(), LedgerError> {
-        let id = commitment_id.into();
-        let id = id.trim().to_owned();
-        if id.is_empty() {
-            return Err(LedgerError::EmptyCommitmentId);
-        }
-        if self.commitment_ids.contains(&id) {
-            return Err(LedgerError::DuplicateCommitment(id));
-        }
+        let id = self.new_commitment_id(commitment_id)?;
+        let remaining = self.remaining();
+        let mut next_values = *self.reserved.values();
 
-        let mut next_values = *self.committed.values();
         for kind in ResourceKind::ALL {
             let index = kind.index();
-            let committed = self.committed.get(kind);
+            let reserved = self.reserved.get(kind);
             let requested = request.get(kind);
-            let next = committed
-                .checked_add(requested)
+            let next = reserved.checked_add(requested)
                 .ok_or(LedgerError::ArithmeticOverflow(kind))?;
-            let available = self.available.get(kind);
-            if next > available {
+            if requested > remaining.get(kind) {
                 return Err(LedgerError::ExceedsAvailable {
                     kind,
-                    available,
-                    committed,
+                    available: self.available.get(kind),
+                    committed: self.committed().get(kind),
                     requested,
                 });
             }
             next_values[index] = next;
         }
 
-        // Commit only after every dimension has been checked.
-        self.committed = ResourceEnvelope::from_values(next_values);
-        self.commitment_ids.insert(id);
+        self.reserved = ResourceEnvelope::from_values(next_values);
+        self.commitments.insert(id, ResourceCommitmentRecord {
+            reserved: request,
+            settled: None,
+            state: ResourceCommitmentState::Reserved,
+        });
+        Ok(())
+    }
+
+    /// Settle a prior reservation using actual resource consumption.
+    ///
+    /// Actual consumption may be lower than the reservation, returning unused
+    /// capacity to remaining. Overruns and invalid transitions leave state unchanged.
+    pub fn settle(
+        &mut self,
+        commitment_id: &str,
+        actual: ResourceEnvelope,
+    ) -> Result<(), LedgerError> {
+        let id = commitment_id.trim();
+        let record = self.commitments.get(id).copied()
+            .ok_or_else(|| LedgerError::UnknownCommitment(id.to_owned()))?;
+        if record.state != ResourceCommitmentState::Reserved {
+            return Err(LedgerError::InvalidTransition { id: id.to_owned(), state: record.state });
+        }
+
+        let mut next_reserved = *self.reserved.values();
+        let mut next_consumed = *self.consumed.values();
+        for kind in ResourceKind::ALL {
+            let index = kind.index();
+            let reserved = record.reserved.get(kind);
+            let actual_value = actual.get(kind);
+            if actual_value > reserved {
+                return Err(LedgerError::ActualExceedsReservation {
+                    kind, reserved, actual: actual_value,
+                });
+            }
+            next_reserved[index] = self.reserved.get(kind) - reserved;
+            next_consumed[index] = self.consumed.get(kind).checked_add(actual_value)
+                .ok_or(LedgerError::ArithmeticOverflow(kind))?;
+        }
+
+        self.reserved = ResourceEnvelope::from_values(next_reserved);
+        self.consumed = ResourceEnvelope::from_values(next_consumed);
+        self.commitments.insert(id.to_owned(), ResourceCommitmentRecord {
+            reserved: record.reserved,
+            settled: Some(actual),
+            state: ResourceCommitmentState::Settled,
+        });
+        Ok(())
+    }
+
+    /// Release a reservation for work that was cancelled or not undertaken.
+    pub fn release(&mut self, commitment_id: &str) -> Result<(), LedgerError> {
+        let id = commitment_id.trim();
+        let record = self.commitments.get(id).copied()
+            .ok_or_else(|| LedgerError::UnknownCommitment(id.to_owned()))?;
+        if record.state != ResourceCommitmentState::Reserved {
+            return Err(LedgerError::InvalidTransition { id: id.to_owned(), state: record.state });
+        }
+
+        let mut next_reserved = *self.reserved.values();
+        for kind in ResourceKind::ALL {
+            next_reserved[kind.index()] =
+                self.reserved.get(kind) - record.reserved.get(kind);
+        }
+        self.reserved = ResourceEnvelope::from_values(next_reserved);
+        self.commitments.insert(id.to_owned(), ResourceCommitmentRecord {
+            reserved: record.reserved,
+            settled: None,
+            state: ResourceCommitmentState::Released,
+        });
+        Ok(())
+    }
+
+    /// Directly record a resource bundle as already consumed.
+    ///
+    /// This is an immediate settlement for known realized costs without a reservation.
+    pub fn commit(
+        &mut self,
+        commitment_id: impl Into<String>,
+        actual: ResourceEnvelope,
+    ) -> Result<(), LedgerError> {
+        let id = self.new_commitment_id(commitment_id)?;
+        let remaining = self.remaining();
+        let mut next_values = *self.consumed.values();
+
+        for kind in ResourceKind::ALL {
+            let index = kind.index();
+            let consumed = self.consumed.get(kind);
+            let requested = actual.get(kind);
+            let next = consumed.checked_add(requested)
+                .ok_or(LedgerError::ArithmeticOverflow(kind))?;
+            if requested > remaining.get(kind) {
+                return Err(LedgerError::ExceedsAvailable {
+                    kind,
+                    available: self.available.get(kind),
+                    committed: self.committed().get(kind),
+                    requested,
+                });
+            }
+            next_values[index] = next;
+        }
+
+        self.consumed = ResourceEnvelope::from_values(next_values);
+        self.commitments.insert(id, ResourceCommitmentRecord {
+            reserved: ResourceEnvelope::zero(),
+            settled: Some(actual),
+            state: ResourceCommitmentState::Settled,
+        });
         Ok(())
     }
 }
@@ -1524,6 +1700,100 @@ mod tests {
             })
         ));
         assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn resource_reservation_settlement_separates_buckets() {
+        let available = envelope([1000, 100, 200, 600, 30, 300, 500, 2]);
+        let mut ledger = ResourceLedger::new(available);
+        let reservation = envelope([100, 10, 20, 120, 2, 30, 50, 1]);
+        let actual = envelope([80, 8, 15, 90, 1, 25, 40, 1]);
+
+        ledger.reserve("work-1", reservation).unwrap();
+        assert_eq!(ledger.reserved(), reservation);
+        assert_eq!(ledger.consumed(), ResourceEnvelope::zero());
+        assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 480);
+        assert_eq!(ledger.commitment_state("work-1"), Some(ResourceCommitmentState::Reserved));
+
+        ledger.settle("work-1", actual).unwrap();
+        assert_eq!(ledger.reserved(), ResourceEnvelope::zero());
+        assert_eq!(ledger.consumed(), actual);
+        assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 510);
+        assert_eq!(ledger.commitment_state("work-1"), Some(ResourceCommitmentState::Settled));
+    }
+
+    #[test]
+    fn resource_reservation_release_returns_capacity_without_fake_consumption() {
+        let available = envelope([1000, 100, 200, 600, 30, 300, 500, 2]);
+        let mut ledger = ResourceLedger::new(available);
+        let reservation = envelope([0, 0, 0, 240, 0, 0, 0, 0]);
+
+        ledger.reserve("cancelled-work", reservation).unwrap();
+        assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 360);
+        ledger.release("cancelled-work").unwrap();
+        assert_eq!(ledger.reserved(), ResourceEnvelope::zero());
+        assert_eq!(ledger.consumed(), ResourceEnvelope::zero());
+        assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 600);
+        assert_eq!(ledger.commitment_state("cancelled-work"), Some(ResourceCommitmentState::Released));
+    }
+
+    #[test]
+    fn resource_settlement_overrun_is_rejected_atomically() {
+        let mut ledger = ResourceLedger::new(envelope([1000, 100, 200, 100, 30, 300, 500, 2]));
+        let reservation = envelope([0, 0, 0, 70, 0, 0, 0, 0]);
+        ledger.reserve("work-1", reservation).unwrap();
+        let before = ledger.clone();
+        let overrun = envelope([0, 0, 0, 71, 0, 0, 0, 0]);
+
+        assert_eq!(
+            ledger.settle("work-1", overrun),
+            Err(LedgerError::ActualExceedsReservation {
+                kind: ResourceKind::CrewMinutes,
+                reserved: 70,
+                actual: 71
+            })
+        );
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn resource_ledger_rejects_invalid_lifecycle_transitions_and_id_reuse() {
+        let mut ledger = ResourceLedger::new(envelope([1000, 100, 200, 100, 30, 300, 500, 2]));
+        let reservation = envelope([0, 0, 0, 10, 0, 0, 0, 0]);
+        ledger.reserve("work-1", reservation).unwrap();
+        ledger.release("work-1").unwrap();
+
+        assert_eq!(
+            ledger.settle("work-1", ResourceEnvelope::zero()),
+            Err(LedgerError::InvalidTransition {
+                id: "work-1".to_owned(),
+                state: ResourceCommitmentState::Released
+            })
+        );
+        assert_eq!(
+            ledger.release("work-1"),
+            Err(LedgerError::InvalidTransition {
+                id: "work-1".to_owned(),
+                state: ResourceCommitmentState::Released
+            })
+        );
+        assert_eq!(
+            ledger.reserve("work-1", reservation),
+            Err(LedgerError::DuplicateCommitment("work-1".to_owned()))
+        );
+    }
+
+    #[test]
+    fn resource_ledger_rejects_unknown_settlement_and_release() {
+        let mut ledger = ResourceLedger::new(envelope([100, 10, 20, 30, 4, 5, 6, 7]));
+        assert_eq!(
+            ledger.settle("missing", ResourceEnvelope::zero()),
+            Err(LedgerError::UnknownCommitment("missing".to_owned()))
+        );
+        assert_eq!(
+            ledger.release("missing"),
+            Err(LedgerError::UnknownCommitment("missing".to_owned()))
+        );
     }
 
     #[test]
