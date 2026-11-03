@@ -120,13 +120,22 @@ pub struct EstimatorRoutingContext {
 pub struct SelectedEstimator {
     pub estimator_id: String,
     pub kind: EstimatorKind,
+    pub objective_digest: String,
+    pub coordinate_ids: Vec<String>,
+    /// The actual selected gradient, in exactly coordinate_ids order.
+    pub gradient: Vec<f64>,
+    pub variance: Vec<f64>,
+    pub absolute_bias_bound: Vec<f64>,
+    pub branch_id: Option<String>,
+    pub branch_evidence_digest: Option<String>,
+    pub validity_region_digest: Option<String>,
+    /// Regime evidence that governed admission of the selected estimator.
+    pub regime: ContactRegime,
     /// Mean per-coordinate upper bound: bias_bound^2 + variance.
     pub mean_mse_upper_bound: f64,
     /// MSE upper bound plus declared compute penalty.
     pub routing_score: f64,
     pub cost_units: f64,
-    pub objective_digest: String,
-    pub coordinate_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,6 +158,7 @@ pub enum EstimatorRoutingError {
     InvalidConfiguration,
     InvalidObjectiveDigest,
     InvalidEstimatorIdentity,
+    InvalidBranchIdentity,
     InvalidCoordinateRoster,
     InvalidCandidateShape,
     InvalidGradientValue,
@@ -186,7 +196,9 @@ impl GradientEstimatorCandidate {
         &self,
         context: &EstimatorRoutingContext,
     ) -> Result<(), EstimatorRoutingError> {
-        validate_identifier(&self.estimator_id)?;
+        if !is_identifier(&self.estimator_id) {
+            return Err(EstimatorRoutingError::InvalidEstimatorIdentity);
+        }
         if !is_lower_hex_digest(&self.objective_digest) {
             return Err(EstimatorRoutingError::InvalidObjectiveDigest);
         }
@@ -196,7 +208,7 @@ impl GradientEstimatorCandidate {
         if self.coordinate_ids.is_empty()
             || self.coordinate_ids != context.coordinate_ids
             || has_duplicate_ids(&self.coordinate_ids)
-            || self.coordinate_ids.iter().any(|id| validate_identifier(id).is_err())
+            || self.coordinate_ids.iter().any(|id| !is_identifier(id))
         {
             return Err(EstimatorRoutingError::InvalidCoordinateRoster);
         }
@@ -234,7 +246,9 @@ impl GradientEstimatorCandidate {
                     .branch_id
                     .as_deref()
                     .ok_or(EstimatorRoutingError::MissingBranchIdentity)?;
-                validate_identifier(branch_id)?;
+                if !is_identifier(branch_id) {
+                    return Err(EstimatorRoutingError::InvalidBranchIdentity);
+                }
                 if !self
                     .branch_evidence_digest
                     .as_deref()
@@ -372,11 +386,18 @@ pub fn route_gradient_estimator(
         let selected = SelectedEstimator {
             estimator_id: candidate.estimator_id.clone(),
             kind: candidate.kind,
+            objective_digest: candidate.objective_digest.clone(),
+            coordinate_ids: candidate.coordinate_ids.clone(),
+            gradient: candidate.gradient.clone(),
+            variance: candidate.variance.clone(),
+            absolute_bias_bound: candidate.absolute_bias_bound.clone(),
+            branch_id: candidate.branch_id.clone(),
+            branch_evidence_digest: candidate.branch_evidence_digest.clone(),
+            validity_region_digest: candidate.validity_region_digest.clone(),
+            regime: context.regime.clone(),
             mean_mse_upper_bound: mse,
             routing_score,
             cost_units: candidate.cost_units,
-            objective_digest: candidate.objective_digest.clone(),
-            coordinate_ids: candidate.coordinate_ids.clone(),
         };
         let replace = best.as_ref().is_none_or(|current| {
             selected.routing_score < current.routing_score
@@ -402,7 +423,7 @@ fn validate_context(
     }
     if context.coordinate_ids.is_empty()
         || has_duplicate_ids(&context.coordinate_ids)
-        || context.coordinate_ids.iter().any(|id| validate_identifier(id).is_err())
+        || context.coordinate_ids.iter().any(|id| !is_identifier(id))
     {
         return Err(EstimatorRoutingError::InvalidCoordinateRoster);
     }
@@ -412,7 +433,9 @@ fn validate_context(
         validity_region_digest,
     } = &context.regime
     {
-        validate_identifier(branch_id)?;
+        if !is_identifier(branch_id) {
+            return Err(EstimatorRoutingError::InvalidBranchIdentity);
+        }
         if !is_lower_hex_digest(branch_evidence_digest) {
             return Err(EstimatorRoutingError::InvalidBranchEvidenceDigest);
         }
@@ -429,22 +452,18 @@ fn validate_context(
 fn validate_branch_set(branch_ids: &[String]) -> Result<(), EstimatorRoutingError> {
     if branch_ids.len() < 2
         || has_duplicate_ids(branch_ids)
-        || branch_ids.iter().any(|id| validate_identifier(id).is_err())
+        || branch_ids.iter().any(|id| !is_identifier(id))
     {
         return Err(EstimatorRoutingError::InvalidRegimeBranchSet);
     }
     Ok(())
 }
 
-fn validate_identifier(value: &str) -> Result<(), EstimatorRoutingError> {
-    if value.trim().is_empty()
-        || value
+fn is_identifier(value: &str) -> bool {
+    !value.trim().is_empty()
+        && !value
             .chars()
             .any(|character| character.is_whitespace() || character == '/' || character == '\\')
-    {
-        return Err(EstimatorRoutingError::InvalidEstimatorIdentity);
-    }
-    Ok(())
 }
 
 fn has_duplicate_ids(values: &[String]) -> bool {
