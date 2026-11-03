@@ -51,7 +51,7 @@ impl RationalInterval {
     }
 
     fn contains(&self, observation: &BigRational) -> bool {
-        self.lower <= *observation && *observation <= self.upper
+        &self.lower <= observation && observation <= &self.upper
     }
 }
 
@@ -247,7 +247,7 @@ impl<'a> PolicySynthesizer<'a> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct SynthesizedPolicy {
     root_state: PolicyState,
     value: PolicyValue,
@@ -361,6 +361,15 @@ mod tests {
         assert_eq!(policy.next_experiment((0b111, 0b11)), Some(0));
         assert_eq!(policy.next_experiment((0b011, 0b10)), Some(1));
         assert_eq!(policy.next_experiment((0b100, 0b10)), None);
+    }
+
+    #[test]
+    fn closed_interval_endpoints_are_not_discarded_as_measure_zero_events() {
+        let candidate = experiment(1, &[0, 1], (0, 0), true);
+        let outcomes = observation_outcome_masks(&candidate, 0b11);
+        // The exact endpoint at zero selects h0, the exact endpoint at one
+        // selects h1, while the midpoint is impossible and is ignored.
+        assert_eq!(outcomes, vec![0b01, 0b10]);
     }
 
     #[test]
