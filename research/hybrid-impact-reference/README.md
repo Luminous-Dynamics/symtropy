@@ -321,3 +321,12 @@ rule before it can replace this single-estimator selector.
 The router is a first auditable DDCG/IVW-H-inspired control baseline, not a
 reproduction of those papers and not a policy-learning result. It contributes
 to PHYS-GRADIENT-ROUTING-001 #3443.
+
+
+The candidate identity additionally binds an estimator implementation/build
+digest, separate variance-sample and bias-bound evidence digests, and the
+contact-regime classifier evidence digest. The selected decision carries all
+of these references plus the routing thresholds and admissibility switches.
+Its canonical bytes encode vectors independently by length, so a malformed
+manually constructed result cannot panic merely because a vector roster was
+mutated after selection.
