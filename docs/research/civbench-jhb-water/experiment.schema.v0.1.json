@@ -749,7 +749,9 @@
           "required": [
             "zero_false_positive_interpretation",
             "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent",
-            "report_exact_binomial_interval"
+            "report_exact_binomial_interval",
+            "independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent",
+            "example_0_of_299_one_sided_95_percent_exact_upper_bound_percent"
           ],
           "properties": {
             "zero_false_positive_interpretation": {
@@ -761,6 +763,14 @@
             "report_exact_binomial_interval": {
               "type": "boolean",
               "const": true
+            },
+            "independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent": {
+              "type": "integer",
+              "const": 299
+            },
+            "example_0_of_299_one_sided_95_percent_exact_upper_bound_percent": {
+              "type": "number",
+              "const": 0.9969146793
             }
           }
         },
