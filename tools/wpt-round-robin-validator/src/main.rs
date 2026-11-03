@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde_json::{json, Value};
+use serde_json::Value;
 use std::collections::BTreeSet;
 use std::env;
 use std::error::Error;
@@ -32,10 +32,6 @@ fn string_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
 
 fn number_at(value: &Value, path: &[&str]) -> Option<f64> {
     at(value, path).and_then(Value::as_f64)
-}
-
-fn push_missing(errors: &mut Vec<String>, path: &str) {
-    errors.push(format!("{path}: missing or invalid"));
 }
 
 fn nonempty(value: Option<&str>) -> bool {
