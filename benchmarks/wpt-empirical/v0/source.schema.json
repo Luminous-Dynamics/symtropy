@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v0/source.schema.json",
+  "title": "WPT Source Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_id",
+    "uri",
+    "source_kind",
+    "rights_status",
+    "content_access",
+    "rights_review",
+    "split",
+    "locators"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-source-v0"
+    },
+    "source_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "doi": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "year": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1900,
+      "maximum": 2100
+    },
+    "source_kind": {
+      "enum": [
+        "peer_reviewed_article",
+        "survey_article",
+        "standard",
+        "other"
+      ]
+    },
+    "rights_status": {
+      "enum": [
+        "known_open",
+        "unknown",
+        "restricted",
+        "public_domain"
+      ]
+    },
+    "content_access": {
+      "enum": [
+        "metadata_only",
+        "limited_use",
+        "full_text"
+      ]
+    },
+    "rights_review": {
+      "enum": [
+        "approved",
+        "pending",
+        "denied"
+      ]
+    },
+    "split": {
+      "enum": [
+        "development",
+        "validation",
+        "test",
+        "holdout"
+      ]
+    },
+    "locators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
