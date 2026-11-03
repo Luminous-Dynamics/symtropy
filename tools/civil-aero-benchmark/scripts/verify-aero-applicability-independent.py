@@ -110,6 +110,9 @@ def region_scope_digest(
 
 
 def verify_manifest(rows: list[dict[str, str]]) -> dict:
+    allowed = {"manifest", "feature", "evidence", "region", "region_evidence", "bound"}
+    require(all(row["record_type"] in allowed for row in rows),
+            "manifest CSV contains an unknown record type")
     meta = one_record(rows, "manifest")
     require(meta["schema"] == MANIFEST_SCHEMA, "unsupported manifest schema")
     for name in ("model_id", "quantity", "quantity_unit"):
@@ -242,6 +245,9 @@ def total_cmp_key(value: float) -> int:
 
 
 def verify_query(rows: list[dict[str, str]]) -> dict:
+    allowed = {"query", "feature"}
+    require(all(row["record_type"] in allowed for row in rows),
+            "query CSV contains an unknown record type")
     meta = one_record(rows, "query")
     features = []
     for row in (r for r in rows if r["record_type"] == "feature"):
@@ -392,6 +398,9 @@ def verify_assessment(
     manifest: dict,
     query: dict,
 ) -> None:
+    allowed = {"assessment", "matched_region"}
+    require(all(row["record_type"] in allowed for row in rows),
+            "assessment CSV contains an unknown record type")
     meta = one_record(rows, "assessment")
     matches = sorted(
         row["region_id"] for row in rows if row["record_type"] == "matched_region"
