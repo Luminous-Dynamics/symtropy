@@ -1879,6 +1879,81 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
         Disposition::StopRequiredBySyntheticPolicy,
     );
 
+    let mut observation = base_observation.clone();
+    observation.human_detection.covered_cells.pop();
+    add_case(
+        &mut cases,
+        "SAFE-048-human-detection-misses-required-hazard-zone-cell",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[2].covered_cells.pop();
+    add_case(
+        &mut cases,
+        "SAFE-049-independent-camera-modality-misses-required-cell",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human_detection.coverage_grid_sha256 = digest('3');
+    add_case(
+        &mut cases,
+        "SAFE-050-human-receipt-uses-different-site-grid-revision",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[2].coverage_grid_sha256 = digest('3');
+    add_case(
+        &mut cases,
+        "SAFE-051-camera-coverage-uses-different-site-grid-revision",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[0].covered_cells.pop();
+    observation.sensors[2].covered_cells.pop();
+    add_case(
+        &mut cases,
+        "SAFE-052-fused-receipt-claims-cell-without-source-support",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human_detection.covered_cells.push(CoverageCell {
+        column: 9,
+        row: 9,
+    });
+    add_case(
+        &mut cases,
+        "SAFE-053-human-receipt-includes-cell-outside-pinned-zone",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[2].covered_cells.pop();
+    observation.sensors[2].fault_domain = observation.sensors[0].fault_domain.clone();
+    add_case(
+        &mut cases,
+        "SAFE-054-single-fault-domain-and-modality-fail-partial-zone",
+        base_policy,
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
     cases
 }
 
@@ -1935,6 +2010,10 @@ mod tests {
         let (policy, mut observation) = baseline();
         let expected = evaluate(&policy, &observation);
         observation.sensors.reverse();
+        observation.human_detection.covered_cells.reverse();
+        for sensor in &mut observation.sensors {
+            sensor.covered_cells.reverse();
+        }
         let reversed = evaluate(&policy, &observation);
         assert_eq!(expected, reversed);
     }
@@ -2272,7 +2351,7 @@ mod tests {
         );
         assert_eq!(
             decision.reasons,
-            vec![Reason::SensorDiversityInsufficient]
+            vec![Reason::HumanFaultDomainRegionUncovered]
         );
     }
 
@@ -2297,7 +2376,7 @@ mod tests {
         );
         assert_eq!(
             decision.reasons,
-            vec![Reason::HumanModalityDiversityInsufficient]
+            vec![Reason::HumanModalityRegionUncovered]
         );
     }
 
@@ -2334,6 +2413,11 @@ mod tests {
             })
             .collect::<Vec<_>>();
         expected.push(EvidenceReference {
+            role: EvidenceRole::CoverageGrid,
+            source_id: "site-human-monitoring-grid".to_owned(),
+            source_sha256: policy.coverage_grid_sha256.clone(),
+        });
+        expected.push(EvidenceReference {
             role: EvidenceRole::HumanDetection,
             source_id: "human-detection".to_owned(),
             source_sha256: observation.human_detection.source_sha256.clone(),
@@ -2347,6 +2431,86 @@ mod tests {
         }));
         expected.sort();
         assert_eq!(decision.evidence_references, expected);
+    }
+
+    #[test]
+    fn every_required_hazard_zone_cell_must_be_covered() {
+        let (policy, mut observation) = baseline();
+        observation.human_detection.covered_cells.pop();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanEvidenceRegionUncovered]
+        );
+    }
+
+    #[test]
+    fn each_independent_modality_must_cover_the_entire_hazard_zone() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[2].covered_cells.pop();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanModalityRegionUncovered]
+        );
+    }
+
+    #[test]
+    fn each_independent_fault_domain_must_cover_the_entire_hazard_zone() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[0].fault_domain = "shared-range-domain".to_owned();
+        observation.sensors[2].fault_domain = "shared-range-domain".to_owned();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanFaultDomainRegionUncovered]
+        );
+    }
+
+    #[test]
+    fn coverage_grid_revision_must_match_the_policy() {
+        let (policy, mut observation) = baseline();
+        observation.human_detection.coverage_grid_sha256 = digest('3');
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::CoverageGridMismatch]);
+    }
+
+    #[test]
+    fn fused_coverage_cannot_claim_cells_without_source_sensor_support() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[0].covered_cells.pop();
+        observation.sensors[2].covered_cells.pop();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanEvidenceCoverageUnsupported]
+        );
+    }
+
+    #[test]
+    fn coverage_cells_outside_the_pinned_hazard_zone_are_rejected() {
+        let (policy, mut observation) = baseline();
+        observation.human_detection.covered_cells.push(CoverageCell {
+            column: 9,
+            row: 9,
+        });
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::CoverageCellsMalformed]);
     }
 
     #[test]
