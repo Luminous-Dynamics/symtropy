@@ -696,17 +696,20 @@ mod tests {
     }
     fn ttc_view(tick: u64, status: CueStatus, value: Option<f64>) -> AllowedActorObservation {
         let cue = match (status, value) {
-            (CueStatus::Observed, Some(v)) => ObservationCue::observed(
-                CueKind::EgoTimeToConflictSeconds,
-                CueValue::TimeToConflictSeconds(v),
-                ScenarioTick(tick),
-                ScenarioTick(tick),
-            ),
+            (CueStatus::Observed, Some(v)) => {
+                let delivered = ScenarioTick(tick.saturating_sub(1));
+                ObservationCue::observed(
+                    CueKind::EgoTimeToConflictSeconds,
+                    CueValue::TimeToConflictSeconds(v),
+                    delivered,
+                    delivered,
+                )
+            }
             (CueStatus::Stale, Some(v)) => ObservationCue::stale(
                 CueKind::EgoTimeToConflictSeconds,
                 CueValue::TimeToConflictSeconds(v),
                 ScenarioTick(tick.saturating_sub(2)),
-                ScenarioTick(tick),
+                ScenarioTick(tick.saturating_sub(1)),
             ),
             (kind, None) => ObservationCue::unavailable(
                 CueKind::EgoTimeToConflictSeconds,
