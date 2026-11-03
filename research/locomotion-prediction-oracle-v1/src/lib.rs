@@ -140,6 +140,8 @@ pub enum ValidationError {
     InvalidIdentifier(&'static str),
     InvalidDigest(&'static str),
     MissingArtifactRole(ArtifactRole),
+    ConnectomeFamilyBelowEvidenceTier,
+    ConnectomeTierRequiresConnectomeFamily,
     TooFewModels,
     DuplicateModelId,
     InterventionMismatch,
@@ -241,74 +243,123 @@ fn validate_digest(value: &str, field: &'static str) -> Result<(), ValidationErr
     }
 }
 
-fn has_role(provenance: &ModelProvenance, role: ArtifactRole) -> bool {
-    provenance.artifacts.iter().any(|artifact| artifact.role == role)
+fn has_role(artifacts: &[ArtifactRef], role: ArtifactRole) -> bool {
+    artifacts.iter().any(|artifact| artifact.role == role)
+}
+
+fn validate_artifact_set(
+    artifacts: &[ArtifactRef],
+    maximum: usize,
+) -> Result<BTreeSet<ArtifactRole>, ValidationError> {
+    if artifacts.len() > maximum {
+        return Err(ValidationError::ResourceLimitExceeded);
+    }
+
+    let mut roles = BTreeSet::new();
+    for artifact in artifacts {
+        validate_digest(&artifact.sha256, "artifact")?;
+        if !roles.insert(artifact.role) {
+            return Err(ValidationError::DuplicateArtifactRole);
+        }
+    }
+    Ok(roles)
+}
+
+fn is_connectome_family(family: ModelFamily) -> bool {
+    matches!(
+        family,
+        ModelFamily::ConnectomeCircuit
+            | ModelFamily::ConnectomeGroundedReflex
+            | ModelFamily::ConnectomeHybrid
+    )
 }
 
 fn validate_provenance(
     provenance: &ModelProvenance,
-    tier: EvidenceTier,
+    family: ModelFamily,
+    evidence_tier: EvidenceTier,
+    evaluation_tier: EvaluationTier,
 ) -> Result<(), ValidationError> {
     validate_digest(&provenance.model_sha256, "model")?;
     validate_digest(&provenance.code_sha256, "code")?;
     validate_digest(&provenance.parameter_sha256, "parameters")?;
     validate_digest(&provenance.configuration_sha256, "configuration")?;
 
-    if provenance.artifacts.len() > MAX_ARTIFACTS_PER_MODEL {
-        return Err(ValidationError::ResourceLimitExceeded);
+    let roles = validate_artifact_set(&provenance.artifacts, MAX_ARTIFACTS_PER_MODEL)?;
+    let connectome_family = is_connectome_family(family);
+
+    if connectome_family && evidence_tier < EvidenceTier::ConnectomeConstrained {
+        return Err(ValidationError::ConnectomeFamilyBelowEvidenceTier);
+    }
+    if evidence_tier == EvidenceTier::ConnectomeConstrained && !connectome_family {
+        return Err(ValidationError::ConnectomeTierRequiresConnectomeFamily);
     }
 
-    let mut artifact_roles = BTreeSet::new();
-    for artifact in &provenance.artifacts {
-        validate_digest(&artifact.sha256, "artifact")?;
-        if !artifact_roles.insert(artifact.role) {
-            return Err(ValidationError::DuplicateArtifactRole);
+    let mut required_roles = BTreeSet::new();
+
+    if connectome_family || evidence_tier >= EvidenceTier::ConnectomeConstrained {
+        required_roles.insert(ArtifactRole::Connectome);
+        required_roles.insert(ArtifactRole::BiologicalSource);
+        required_roles.insert(ArtifactRole::SensorMapping);
+        required_roles.insert(ArtifactRole::EffectorMapping);
+    }
+
+    match evidence_tier {
+        EvidenceTier::Synthetic | EvidenceTier::Phenomenological => {}
+        EvidenceTier::ConnectomeConstrained => {}
+        EvidenceTier::PerturbationGrounded => {
+            required_roles.insert(ArtifactRole::BiologicalSource);
+            required_roles.insert(ArtifactRole::MeasuredDataset);
+        }
+        EvidenceTier::ReplicatedBiological => {
+            required_roles.insert(ArtifactRole::BiologicalSource);
+            required_roles.insert(ArtifactRole::MeasuredDataset);
+            required_roles.insert(ArtifactRole::IndependentReplication);
         }
     }
 
-    let required_roles: &[ArtifactRole] = match tier {
-        EvidenceTier::Synthetic | EvidenceTier::Phenomenological => &[],
-        EvidenceTier::ConnectomeConstrained => &[
-            ArtifactRole::Connectome,
-            ArtifactRole::BiologicalSource,
-            ArtifactRole::SensorMapping,
-            ArtifactRole::EffectorMapping,
-        ],
-        EvidenceTier::InSilicoEmbodied => &[
-            ArtifactRole::Connectome,
-            ArtifactRole::BiologicalSource,
-            ArtifactRole::SensorMapping,
-            ArtifactRole::EffectorMapping,
+    if evaluation_tier == EvaluationTier::InSilicoEmbodied {
+        required_roles.insert(ArtifactRole::SensorMapping);
+        required_roles.insert(ArtifactRole::EffectorMapping);
+    }
+
+    for role in required_roles {
+        if !roles.contains(&role) {
+            return Err(ValidationError::MissingArtifactRole(role));
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_evaluation_artifacts(batch: &PredictionBatch) -> Result<(), ValidationError> {
+    let roles = validate_artifact_set(
+        &batch.evaluation_artifacts,
+        MAX_EVALUATION_ARTIFACTS,
+    )?;
+
+    let required_roles: &[ArtifactRole] = match batch.evaluation_tier {
+        EvaluationTier::SyntheticHarness => &[],
+        EvaluationTier::InSilicoEmbodied => &[
             ArtifactRole::BodyMorphology,
             ArtifactRole::PhysicsConfiguration,
         ],
-        EvidenceTier::PerturbationGrounded => &[
-            ArtifactRole::Connectome,
+        EvaluationTier::MeasuredIntervention => &[
             ArtifactRole::BiologicalSource,
-            ArtifactRole::SensorMapping,
-            ArtifactRole::EffectorMapping,
-            ArtifactRole::BodyMorphology,
-            ArtifactRole::PhysicsConfiguration,
             ArtifactRole::MeasuredDataset,
         ],
-        EvidenceTier::ReplicatedBiological => &[
-            ArtifactRole::Connectome,
+        EvaluationTier::ProspectiveReplication => &[
             ArtifactRole::BiologicalSource,
-            ArtifactRole::SensorMapping,
-            ArtifactRole::EffectorMapping,
-            ArtifactRole::BodyMorphology,
-            ArtifactRole::PhysicsConfiguration,
             ArtifactRole::MeasuredDataset,
             ArtifactRole::IndependentReplication,
         ],
     };
 
     for role in required_roles {
-        if !has_role(provenance, *role) {
+        if !roles.contains(role) {
             return Err(ValidationError::MissingArtifactRole(*role));
         }
     }
-
     Ok(())
 }
 
@@ -398,6 +449,7 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
         return Err(ValidationError::ResourceLimitExceeded);
     }
 
+    validate_evaluation_artifacts(batch)?;
     validate_covariance(&batch.pairwise_observation_difference_covariance)?;
     validate_covariance(&batch.observation_covariance)?;
 
@@ -428,7 +480,12 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
             return Err(ValidationError::ForecastCommittedAfterBatch);
         }
 
-        validate_provenance(&forecast.provenance, forecast.evidence_tier)?;
+        validate_provenance(
+            &forecast.provenance,
+            forecast.model_family,
+            forecast.evidence_tier,
+            batch.evaluation_tier,
+        )?;
 
         if dimension > MAX_FEATURE_DIMENSION {
             return Err(ValidationError::ResourceLimitExceeded);
