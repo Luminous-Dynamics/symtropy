@@ -17,13 +17,16 @@ It complements:
 ## What it computes
 
 - Per-model/per-scenario scorecards; it does not pool easy and hard scenarios.
+- Episode-weighted and equal-individual success/task-score summaries, plus per-individual morphology and outcome scorecards.
+- Individual-balanced lower-tail CVaR so heavily sampled individuals cannot dominate the population tail estimate.
 - Separate declarations for model family, model evidence tier and evaluation tier.
 - Explicit connectome/source/sensor/effector provenance for connectome claims and a muscle-map digest for muscle-actuated claims.
 - Success rate, mean task score and lower-tail CVaR under a preregistered tail fraction.
 - Progress, pose/joint error, slip, energy and actuator-saturation metrics.
 - Recovery counts with right-censored non-recovery and unobserved recovery kept distinct.
 - Separate numerical, physical, fall and unclassified failure counts.
-- Worst success-rate stratum and worst CVaR stratum separately.
+- Worst success-rate stratum and worst CVaR stratum separately, both across scenarios and within each scenario across individuals.
+- An explicit per-scenario and per-individual hard-failure promotion gate, independent of task score.
 - Strict paired model comparisons on identical scenario, individual, seed, initial state, morphology, body, physics, sensors, solver, hardware, horizon and compute/training budgets.
 
 ## Scientific distinctions
@@ -32,7 +35,7 @@ A perturbation scenario is not automatically a biological ablation. Missing a so
 
 Recovery latency is reported only for episodes with observed recovery. A failure to recover by the horizon is right-censored; unobserved recovery is a separate category. Neither is assigned an invented finite latency.
 
-Numerical and physics failures remain visible counts. The evaluator does not quietly convert failed simulation output into ordinary task scores or allow a high average to conceal hard failures.
+Numerical, physics and unclassified failures remain visible counts. Per-scenario and per-individual hard-failure gates are false when any such failure occurs. Task scores are never altered to disguise failures, and a task-score aggregate cannot override a failed hard gate.
 
 A paired comparison rejects unmatched trial sets rather than intersecting them. If morphology, body model, physics, observation schema, hardware, horizon or budgets differ, the comparison belongs in a separate benchmark stratum.
 
@@ -41,6 +44,7 @@ A paired comparison rejects unmatched trial sets rather than intersecting them. 
 Each episode binds:
 - model family, model evidence tier and evaluation tier;
 - protocol/split/scoring-plan references;
+- connectome, biological-source, sensor/effector projection and muscle-map references when the model family/evidence tier requires them;
 - scenario, individual, trial, seed and initial state;
 - body model, morphology, physics, environment, sensor schema, solver, hardware, controller, code and parameter references;
 - trajectory, metric payload and run receipt;
@@ -58,7 +62,7 @@ not a confidence interval or a substitute for reporting the raw score distributi
 
 ## Synthetic tests
 
-The 17 tests cover lower-tail catastrophic failures, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics failures, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts.
+The 20 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
