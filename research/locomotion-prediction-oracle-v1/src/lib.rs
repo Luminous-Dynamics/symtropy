@@ -24,7 +24,7 @@ const MAX_FEATURE_DIMENSION: usize = 64;
 const MAX_ARTIFACTS_PER_MODEL: usize = 32;
 const MAX_EVALUATION_ARTIFACTS: usize = 32;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EvidenceTier {
     Synthetic,
     Phenomenological,
@@ -836,6 +836,7 @@ mod tests {
         ModelForecast {
             model_id: model_id.to_string(),
             intervention_id: "intervention-a".to_string(),
+            model_family: ModelFamily::SyntheticOracle,
             evidence_tier: EvidenceTier::Synthetic,
             feature_ids: (0..dimension).map(|index| format!("feature-{index}")).collect(),
             mean: means,
@@ -861,6 +862,8 @@ mod tests {
             commit_receipt_sha256: digest(),
             event_log_id: "evidence-log-1".to_string(),
             commit_sequence: 20,
+            evaluation_tier: EvaluationTier::SyntheticHarness,
+            evaluation_artifacts: Vec::new(),
             observation_covariance: diagonal_covariance(dimension, 0.0),
             pairwise_observation_difference_covariance: diagonal_covariance(dimension, 0.0),
             forecasts,
@@ -875,7 +878,15 @@ mod tests {
         }
     }
 
+    fn add_sensor_effector_artifacts(forecast: &mut ModelForecast) {
+        forecast.provenance.artifacts = vec![
+            ArtifactRef { role: ArtifactRole::SensorMapping, sha256: digest() },
+            ArtifactRef { role: ArtifactRole::EffectorMapping, sha256: digest() },
+        ];
+    }
+
     fn add_connectome_artifacts(forecast: &mut ModelForecast) {
+        forecast.model_family = ModelFamily::ConnectomeCircuit;
         forecast.provenance.artifacts = vec![
             ArtifactRef { role: ArtifactRole::Connectome, sha256: digest() },
             ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
@@ -954,6 +965,7 @@ mod tests {
     #[test]
     fn requires_connectome_and_mapping_artifacts_for_connectome_tier() {
         let mut first = forecast("connectome-model", vec![0.0], 0.1);
+        first.model_family = ModelFamily::ConnectomeCircuit;
         first.evidence_tier = EvidenceTier::ConnectomeConstrained;
         assert_eq!(
             validate_prediction_batch(&batch(vec![
@@ -967,6 +979,7 @@ mod tests {
     #[test]
     fn accepts_declared_connectome_provenance() {
         let mut first = forecast("connectome-model", vec![0.0], 0.1);
+        first.model_family = ModelFamily::ConnectomeCircuit;
         first.evidence_tier = EvidenceTier::ConnectomeConstrained;
         add_connectome_artifacts(&mut first);
         let candidate = batch(vec![first, forecast("phenomenological-model", vec![1.0], 0.1)]);
