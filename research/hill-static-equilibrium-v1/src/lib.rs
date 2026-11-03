@@ -729,8 +729,10 @@ mod tests {
 
     #[test]
     fn detects_non_unique_slack_equilibrium_instead_of_inventing_fiber_length() {
+        let mut muscle = parameters(0.0);
+        muscle.maximum_fiber_length_ratio = 1.0;
         let result = solve_static_equilibrium(
-            &parameters(0.0),
+            &muscle,
             &curves(),
             0.018,
             0.0,
