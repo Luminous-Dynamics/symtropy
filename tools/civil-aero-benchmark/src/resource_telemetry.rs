@@ -24,6 +24,10 @@ pub struct CgroupV2Snapshot {
     pub cpu_user_usec: u64,
     pub cpu_system_usec: u64,
     pub memory_peak_bytes: u64,
+    /// Stable identity of the one open memory.peak FD used for both observations.
+    pub memory_peak_reader_id: String,
+    /// Exact cgroup2 mount-options bytes; local-only memory.events semantics are rejected.
+    pub cgroup2_mount_options_sha256: String,
     pub oom_events: u64,
     pub oom_kill_events: u64,
     pub oom_group_kill_events: Option<u64>,
@@ -122,6 +126,8 @@ fn snapshot_canonical_bytes(snapshot: &CgroupV2Snapshot) -> Vec<u8> {
         snapshot.memory_peak_sha256.as_str(),
         snapshot.memory_events_sha256.as_str(),
         snapshot.cgroup_events_sha256.as_str(),
+        snapshot.memory_peak_reader_id.as_str(),
+        snapshot.cgroup2_mount_options_sha256.as_str(),
     ] {
         append_string(&mut bytes, value);
     }
@@ -190,6 +196,8 @@ fn report_canonical_bytes(report: &CgroupV2ResourceReport) -> Vec<u8> {
 /// monotonic_time_ns must come from a monotonic clock, not wall-clock time.
 pub fn parse_cgroup_v2_snapshot(
     cgroup_id: &str,
+    memory_peak_reader_id: &str,
+    cgroup2_mount_options: &str,
     monotonic_time_ns: u64,
     cpu_stat: &str,
     memory_peak: &str,
@@ -198,6 +206,21 @@ pub fn parse_cgroup_v2_snapshot(
 ) -> Result<CgroupV2Snapshot, String> {
     if cgroup_id.trim().is_empty() {
         return Err("cgroup identity must not be empty".to_owned());
+    }
+    if memory_peak_reader_id.trim().is_empty() {
+        return Err("memory.peak reader identity must not be empty".to_owned());
+    }
+    if cgroup2_mount_options.trim().is_empty() {
+        return Err("cgroup2 mount options must not be empty".to_owned());
+    }
+    if cgroup2_mount_options
+        .split(',')
+        .any(|option| option.trim() == "memory_localevents")
+    {
+        return Err(
+            "memory_localevents mount option disables hierarchical memory.events evidence"
+                .to_owned(),
+        );
     }
 
     let cpu = parse_key_value_file(cpu_stat, "cpu.stat")?;
@@ -215,6 +238,8 @@ pub fn parse_cgroup_v2_snapshot(
         cpu_user_usec: required_counter(&cpu, "user_usec", "cpu.stat")?,
         cpu_system_usec: required_counter(&cpu, "system_usec", "cpu.stat")?,
         memory_peak_bytes: memory,
+        memory_peak_reader_id: memory_peak_reader_id.to_owned(),
+        cgroup2_mount_options_sha256: sha256_hex(cgroup2_mount_options.as_bytes())?,
         oom_events: required_counter(&events, "oom", "memory.events")?,
         oom_kill_events: required_counter(&events, "oom_kill", "memory.events")?,
         oom_group_kill_events: events.get("oom_group_kill").copied(),
@@ -268,6 +293,12 @@ pub fn derive_cgroup_v2_resource_report(
     validate_snapshot_integrity(end)?;
     if start.cgroup_id != end.cgroup_id {
         return Err("cgroup resource snapshots have different cgroup identities".to_owned());
+    }
+    if start.memory_peak_reader_id != end.memory_peak_reader_id {
+        return Err("memory.peak samples were read through different file descriptors".to_owned());
+    }
+    if start.cgroup2_mount_options_sha256 != end.cgroup2_mount_options_sha256 {
+        return Err("cgroup2 mount options changed between resource snapshots".to_owned());
     }
     if start.populated || end.populated {
         return Err("cgroup must be empty at both baseline and finalization".to_owned());
