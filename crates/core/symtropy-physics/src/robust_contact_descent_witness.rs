@@ -656,6 +656,12 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
 
 const MAX_POLYTOPE_VERTICES: usize = 128;
 
+fn checked_polytope_vertex_count(polytopes: &[RationalGradientPolytope]) -> Option<usize> {
+    polytopes
+        .iter()
+        .try_fold(0_usize, |total, polytope| total.checked_add(polytope.vertices.len()))
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct RationalGradientPolytope {
     /// Exact vertices of a closed convex polytope in the six-dimensional
@@ -695,7 +701,12 @@ fn verify_robust_descent_polytope_certificate(
     polytopes: &[RationalGradientPolytope],
     optimum: &ExactLpOptimum,
 ) -> bool {
+    let Some(vertex_count) = checked_polytope_vertex_count(polytopes) else {
+        return false;
+    };
     if polytopes.is_empty()
+        || vertex_count == 0
+        || vertex_count > MAX_POLYTOPE_VERTICES
         || polytopes.iter().any(|polytope| polytope.vertices.is_empty())
         || optimum.gradient_cuts.len() != optimum.gradient_cut_owners.len()
         || optimum.branch_upper_bounds.len() != polytopes.len()
@@ -703,14 +714,13 @@ fn verify_robust_descent_polytope_certificate(
         return false;
     }
 
-    let mut expected_vertices = Vec::new();
-    let mut expected_owners = Vec::new();
+    let mut expected_vertices = Vec::with_capacity(vertex_count);
+    let mut expected_owners = Vec::with_capacity(vertex_count);
     for (owner, polytope) in polytopes.iter().enumerate() {
         expected_vertices.extend(polytope.vertices.iter().cloned());
         expected_owners.extend(std::iter::repeat_n(owner, polytope.vertices.len()));
     }
-    if expected_vertices.len() > MAX_POLYTOPE_VERTICES
-        || optimum.gradient_cuts != expected_vertices
+    if optimum.gradient_cuts != expected_vertices
         || optimum.gradient_cut_owners != expected_owners
     {
         return false;
@@ -753,20 +763,21 @@ fn verify_robust_descent_polytope_certificate(
 fn solve_robust_descent_polytope_lp(
     polytopes: &[RationalGradientPolytope],
 ) -> Option<ExactLpOptimum> {
-    if polytopes.is_empty() || polytopes.iter().any(|polytope| polytope.vertices.is_empty()) {
+    let vertex_count = checked_polytope_vertex_count(polytopes)?;
+    if polytopes.is_empty()
+        || vertex_count == 0
+        || vertex_count > MAX_POLYTOPE_VERTICES
+        || polytopes.iter().any(|polytope| polytope.vertices.is_empty())
+    {
         return None;
     }
 
-    let mut vertices = Vec::new();
-    let mut owners = Vec::new();
+    let mut vertices = Vec::with_capacity(vertex_count);
+    let mut owners = Vec::with_capacity(vertex_count);
     for (owner, polytope) in polytopes.iter().enumerate() {
         vertices.extend(polytope.vertices.iter().cloned());
         owners.extend(std::iter::repeat_n(owner, polytope.vertices.len()));
     }
-    if vertices.len() > MAX_POLYTOPE_VERTICES {
-        return None;
-    }
-
     let mut optimum = solve_robust_descent_lp(&vertices)?;
     optimum.gradient_cut_owners = owners;
     optimum.branch_upper_bounds = polytopes
