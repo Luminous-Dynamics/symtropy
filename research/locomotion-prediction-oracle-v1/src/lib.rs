@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A small, dependency-free oracle for blinded locomotion-model predictions.
 //!
 //! This crate validates prediction receipts and screens whether declared model
