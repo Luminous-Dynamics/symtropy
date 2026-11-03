@@ -11,7 +11,8 @@ V1 includes:
 - normalized curve forces scaled by maximum isometric force;
 - first-order activation/deactivation state update using the exact exponential solution for piecewise-constant excitation;
 - a bounded bisection solver for static fiber-tendon force equilibrium;
-- result receipts binding muscle ID, parameter/curve digests, musculotendon length, activation, solver policy, root bracket residual and iteration count;
+- validates all three curve tables once per solve; root-loop interpolation reuses the validated tables without rescanning their points on every iteration;
+- result receipts binding muscle ID, parameter/curve digests, musculotendon length, activation, solver policy, final fiber-length bracket, both endpoint residuals, force residual and iteration count;
 - typed no-bracket, degenerate-sampled-equilibrium, invalid-geometry, iteration-limit and tolerance failures.
 
 The static equilibrium equation is:
