@@ -1919,6 +1919,20 @@ mod tests {
     }
 
     #[test]
+    fn rejects_mechanism_state_schema_drift_from_the_preregistered_protocol() {
+        let episodes = vec![
+            episode("candidate", "trial-1", "fly-1", 0.9),
+            episode("candidate", "trial-2", "fly-2", 0.8),
+        ];
+        let mut protocol = protocol();
+        protocol.mechanism_state_schema_sha256 = Some(digest('z'));
+        assert_eq!(
+            analyze_robustness(&protocol, &episodes),
+            Err(RobustnessError::ProtocolMismatch)
+        );
+    }
+
+    #[test]
     fn rejects_mechanism_restoration_without_a_within_tolerance_state_measure() {
         let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
         invalid.mechanism_state_deviation_from_nominal = Some(0.4);
