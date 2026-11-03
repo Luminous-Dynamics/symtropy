@@ -1,0 +1,819 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+use serde_json::{json, Value};
+use std::collections::BTreeSet;
+use std::env;
+use std::error::Error;
+use std::fs;
+use std::process;
+
+const TOP_LEVEL: &[&str] = &[
+    "schema_version",
+    "run_id",
+    "protocol",
+    "system",
+    "conditions",
+    "metrology",
+    "energy_balance",
+    "power_quality",
+    "safety",
+    "artifact_refs",
+    "result",
+];
+
+fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
+    path.iter().try_fold(value, |current, key| current.get(*key))
+}
+
+fn string_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
+    at(value, path).and_then(Value::as_str)
+}
+
+fn number_at(value: &Value, path: &[&str]) -> Option<f64> {
+    at(value, path).and_then(Value::as_f64)
+}
+
+fn push_missing(errors: &mut Vec<String>, path: &str) {
+    errors.push(format!("{path}: missing or invalid"));
+}
+
+fn nonempty(value: Option<&str>) -> bool {
+    value.is_some_and(|text| !text.trim().is_empty())
+}
+
+fn valid_identifier(value: &str) -> bool {
+    let mut chars = value.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first.is_ascii_uppercase() || first.is_ascii_digit())
+        && chars.all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || "._-".contains(ch))
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+// Round-robin timestamps are deliberately normalized to RFC3339 UTC whole
+// seconds (YYYY-MM-DDTHH:MM:SSZ), avoiding offset and locale ambiguity.
+fn parse_utc_seconds(value: &str) -> Option<i64> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+    {
+        return None;
+    }
+
+    let part = |start: usize, end: usize| -> Option<i64> {
+        std::str::from_utf8(&bytes[start..end]).ok()?.parse().ok()
+    };
+    let year = part(0, 4)?;
+    let month = part(5, 7)?;
+    let day = part(8, 10)?;
+    let hour = part(11, 13)?;
+    let minute = part(14, 16)?;
+    let second = part(17, 19)?;
+
+    if !(1..=12).contains(&month)
+        || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute)
+        || !(0..=59).contains(&second)
+    {
+        return None;
+    }
+
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let month_days = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return None,
+    };
+    if day < 1 || day > month_days {
+        return None;
+    }
+
+    // Days since 1970-01-01, using the proleptic Gregorian calendar.
+    let adjusted_year = year - i64::from(month <= 2);
+    let era = if adjusted_year >= 0 {
+        adjusted_year
+    } else {
+        adjusted_year - 399
+    } / 400;
+    let year_of_era = adjusted_year - era * 400;
+    let adjusted_month = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
+    let day_of_era =
+        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days = era * 146_097 + day_of_era - 719_468;
+    Some(days * 86_400 + hour * 3_600 + minute * 60 + second)
+}
+
+fn validate_structure(manifest: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+    if !manifest.is_object() {
+        return vec!["$: manifest must be a JSON object".into()];
+    }
+
+    for key in TOP_LEVEL {
+        if manifest.get(*key).is_none() {
+            push_missing(&mut errors, key);
+        }
+    }
+    if string_at(manifest, &["schema_version"]) != Some("wpt-test-run-v1") {
+        errors.push("schema_version: expected wpt-test-run-v1".into());
+    }
+    match string_at(manifest, &["run_id"]) {
+        Some(id) if valid_identifier(id) => {}
+        _ => errors.push("run_id: expected uppercase stable identifier".into()),
+    }
+
+    for section in [
+        "protocol",
+        "system",
+        "conditions",
+        "metrology",
+        "energy_balance",
+        "power_quality",
+        "safety",
+        "result",
+    ] {
+        if !manifest.get(section).is_some_and(Value::is_object) {
+            errors.push(format!("{section}: expected object"));
+        }
+    }
+    if !manifest
+        .get("artifact_refs")
+        .is_some_and(Value::is_array)
+    {
+        errors.push("artifact_refs: expected array".into());
+    }
+    if !manifest
+        .get("metrology")
+        .and_then(|value| value.get("meters"))
+        .is_some_and(Value::is_array)
+    {
+        errors.push("metrology.meters: expected array".into());
+    }
+    if !manifest
+        .get("metrology")
+        .and_then(|value| value.get("measurement_planes"))
+        .is_some_and(Value::is_array)
+    {
+        errors.push("metrology.measurement_planes: expected array".into());
+    }
+
+    match string_at(manifest, &["result", "qualification"]) {
+        Some(
+            "NOT_RUN"
+            | "INCOMPLETE"
+            | "QUALIFIED"
+            | "NOT_COMPARABLE"
+            | "MODEL_ONLY"
+            | "REJECTED",
+        ) => {}
+        _ => errors.push("result.qualification: invalid or missing disposition".into()),
+    }
+    errors
+}
+
+fn validate_qualified(manifest: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+
+    for path in [
+        &["protocol", "protocol_id"][..],
+        &["protocol", "version"][..],
+        &["system", "system_id"][..],
+        &["system", "topology"][..],
+        &["system", "hardware_revision"][..],
+        &["system", "controller_revision"][..],
+    ] {
+        if !nonempty(string_at(manifest, path)) {
+            errors.push(format!("{}: required for QUALIFIED", path.join(".")));
+        }
+    }
+    if string_at(manifest, &["protocol", "protocol_id"]) != Some("WPT-RR-01") {
+        errors.push("protocol.protocol_id: unsupported protocol".into());
+    }
+    match string_at(manifest, &["system", "configuration_digest"]) {
+        Some(digest) if valid_sha256(digest) => {}
+        _ => errors.push("system.configuration_digest: require 64-character SHA-256".into()),
+    }
+    match number_at(manifest, &["system", "power_rating_w"]) {
+        Some(value) if value > 0.0 => {}
+        _ => errors.push("system.power_rating_w: positive rating required".into()),
+    }
+
+    let technology = string_at(manifest, &["system", "technology"]).unwrap_or("");
+    if !matches!(
+        string_at(manifest, &["conditions", "direction"]),
+        Some("GRID_TO_VEHICLE" | "VEHICLE_TO_GRID" | "UNIDIRECTIONAL")
+    ) {
+        errors.push("conditions.direction: physical power-flow direction required".into());
+    }
+    if string_at(manifest, &["conditions", "power_class"]) == Some("NOT_APPLICABLE") {
+        errors.push("conditions.power_class: declare a power class".into());
+    }
+    for (path, predicate) in [
+        (&["conditions", "commanded_power_w"][..], "positive"),
+        (&["conditions", "frequency_hz"][..], "positive"),
+        (&["conditions", "transfer_gap_m"][..], "nonnegative"),
+    ] {
+        let valid = number_at(manifest, path).is_some_and(|v| {
+            if predicate == "positive" {
+                v > 0.0
+            } else {
+                v >= 0.0
+            }
+        });
+        if !valid {
+            errors.push(format!("{}: {predicate} value required", path.join(".")));
+        }
+    }
+    let receiver_count = at(manifest, &["conditions", "receiver_count"])
+        .and_then(Value::as_u64);
+    let active_count = at(manifest, &["conditions", "active_receiver_count"])
+        .and_then(Value::as_u64);
+    match (receiver_count, active_count) {
+        (Some(total), Some(active)) if total > 0 && active > 0 && active <= total => {}
+        _ => errors.push(
+            "conditions.receiver_count/active_receiver_count: require 0 < active <= total"
+                .into(),
+        ),
+    }
+    if string_at(manifest, &["conditions", "thermal_state"]) == Some("UNKNOWN") {
+        errors.push("conditions.thermal_state: known thermal state required".into());
+    }
+
+    let start_text = string_at(manifest, &["metrology", "window_start_utc"]);
+    let end_text = string_at(manifest, &["metrology", "window_end_utc"]);
+    let start = start_text.and_then(parse_utc_seconds);
+    let end = end_text.and_then(parse_utc_seconds);
+    match (start, end) {
+        (Some(start), Some(end)) if end > start => {}
+        _ => errors.push(
+            "metrology.window_start_utc/window_end_utc: require ordered UTC timestamps in YYYY-MM-DDTHH:MM:SSZ"
+                .into(),
+        ),
+    }
+    if !number_at(manifest, &["metrology", "sample_rate_hz"]).is_some_and(|v| v > 0.0) {
+        errors.push("metrology.sample_rate_hz: positive sample rate required".into());
+    }
+    if !number_at(manifest, &["metrology", "synchronization_error_s"])
+        .is_some_and(|v| v >= 0.0)
+    {
+        errors.push("metrology.synchronization_error_s: nonnegative value required".into());
+    }
+    if string_at(manifest, &["metrology", "power_basis"]) != Some("REAL_POWER") {
+        errors.push("metrology.power_basis: REAL_POWER required for energy accounting".into());
+    }
+
+    let meters = manifest
+        .get("metrology")
+        .and_then(|value| value.get("meters"))
+        .and_then(Value::as_array);
+    let mut meter_ids = BTreeSet::new();
+    let mut has_source_meter = false;
+    let mut has_receiver_meter = false;
+    match meters {
+        Some(meters) if meters.len() >= 2 => {
+            for (index, meter) in meters.iter().enumerate() {
+                let id = string_at(meter, &["meter_id"]).unwrap_or("");
+                if !nonempty(Some(id)) || !meter_ids.insert(id.to_owned()) {
+                    errors.push(format!("metrology.meters[{index}].meter_id: missing or duplicate"));
+                }
+                match string_at(meter, &["role"]) {
+                    Some("SOURCE" | "PRIMARY") => has_source_meter = true,
+                    Some("RECEIVER" | "BATTERY") => has_receiver_meter = true,
+                    _ => {}
+                }
+                for field in ["model", "calibration_reference"] {
+                    if !nonempty(string_at(meter, &[field])) {
+                        errors.push(format!(
+                            "metrology.meters[{index}].{field}: required for QUALIFIED"
+                        ));
+                    }
+                }
+                let valid_from = string_at(meter, &["calibration_valid_from_utc"])
+                    .and_then(parse_utc_seconds);
+                let due = string_at(meter, &["calibration_due_utc"])
+                    .and_then(parse_utc_seconds);
+                match (valid_from, due, start, end) {
+                    (Some(valid_from), Some(due), Some(start), Some(end))
+                        if valid_from <= start && due >= end && due >= valid_from => {}
+                    _ => errors.push(format!(
+                        "metrology.meters[{index}]: calibration must cover the complete run window"
+                    )),
+                }
+                if !number_at(meter, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
+                    errors.push(format!(
+                        "metrology.meters[{index}].uncertainty_pct: nonnegative uncertainty required"
+                    ));
+                }
+                if !number_at(meter, &["bandwidth_hz"]).is_some_and(|v| v > 0.0) {
+                    errors.push(format!(
+                        "metrology.meters[{index}].bandwidth_hz: positive bandwidth required"
+                    ));
+                }
+            }
+        }
+        _ => errors.push("metrology.meters: at least two calibrated meters required".into()),
+    }
+    if !has_source_meter {
+        errors.push("metrology.meters: SOURCE or PRIMARY meter required".into());
+    }
+    if !has_receiver_meter {
+        errors.push("metrology.meters: RECEIVER or BATTERY meter required".into());
+    }
+
+    let planes = manifest
+        .get("metrology")
+        .and_then(|value| value.get("measurement_planes"))
+        .and_then(Value::as_array);
+    let mut plane_ids = BTreeSet::new();
+    let mut has_input_plane = false;
+    let mut has_output_plane = false;
+    match planes {
+        Some(planes) if planes.len() >= 2 => {
+            for (index, plane) in planes.iter().enumerate() {
+                let id = string_at(plane, &["plane_id"]).unwrap_or("");
+                if !nonempty(Some(id)) || !plane_ids.insert(id.to_owned()) {
+                    errors.push(format!(
+                        "metrology.measurement_planes[{index}].plane_id: missing or duplicate"
+                    ));
+                }
+                let role = string_at(plane, &["role"]).unwrap_or("");
+                let is_input = matches!(
+                    role,
+                    "MAINS_AC_INPUT" | "SYSTEM_DC_INPUT" | "PRIMARY_DC_BUS"
+                );
+                let is_output = matches!(
+                    role,
+                    "RECEIVER_AC_OUTPUT"
+                        | "RECTIFIED_DC_OUTPUT"
+                        | "BATTERY_DC_TERMINAL"
+                        | "USEFUL_LOAD_DC"
+                );
+                if is_input {
+                    has_input_plane = true;
+                }
+                if is_output {
+                    has_output_plane = true;
+                }
+                if is_input || is_output {
+                    if !number_at(plane, &["real_power_w"]).is_some_and(|v| v >= 0.0) {
+                        errors.push(format!(
+                            "metrology.measurement_planes[{index}].real_power_w: measured real power required"
+                        ));
+                    }
+                    if !number_at(plane, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
+                        errors.push(format!(
+                            "metrology.measurement_planes[{index}].uncertainty_pct: required"
+                        ));
+                    }
+                }
+            }
+        }
+        _ => errors.push("metrology.measurement_planes: at least two planes required".into()),
+    }
+    if !has_input_plane {
+        errors.push("metrology.measurement_planes: source-side input plane required".into());
+    }
+    if !has_output_plane {
+        errors.push("metrology.measurement_planes: receiver/useful-output plane required".into());
+    }
+
+    let source_energy = number_at(manifest, &["energy_balance", "source_energy_j"]);
+    let useful_energy = number_at(manifest, &["energy_balance", "useful_energy_j"]);
+    let stored_delta = number_at(manifest, &["energy_balance", "stored_energy_delta_j"]);
+    let reported_residual = number_at(manifest, &["energy_balance", "residual_energy_j"]);
+    let residual_fraction = number_at(manifest, &["energy_balance", "residual_fraction_pct"]);
+    let expanded_uncertainty =
+        number_at(manifest, &["energy_balance", "expanded_uncertainty_pct"]);
+    let loss_terms = manifest
+        .get("energy_balance")
+        .and_then(|value| value.get("loss_terms"))
+        .and_then(Value::as_array);
+    let mut loss_total = 0.0;
+    let mut loss_ids = BTreeSet::new();
+    match loss_terms {
+        Some(terms) => {
+            for (index, term) in terms.iter().enumerate() {
+                let stage = string_at(term, &["stage_id"]).unwrap_or("");
+                if !nonempty(Some(stage)) || !loss_ids.insert(stage.to_owned()) {
+                    errors.push(format!("energy_balance.loss_terms[{index}].stage_id: missing or duplicate"));
+                }
+                match number_at(term, &["energy_j"]) {
+                    Some(value) if value >= 0.0 => loss_total += value,
+                    _ => errors.push(format!(
+                        "energy_balance.loss_terms[{index}].energy_j: measured/calculated nonnegative energy required"
+                    )),
+                }
+                if !matches!(
+                    string_at(term, &["evidence_kind"]),
+                    Some("MEASURED" | "AUTHOR_CALCULATED" | "MODEL_DERIVED")
+                ) {
+                    errors.push(format!(
+                        "energy_balance.loss_terms[{index}].evidence_kind: unknown/inferred losses cannot qualify"
+                    ));
+                }
+            }
+        }
+        None => errors.push("energy_balance.loss_terms: array required".into()),
+    }
+
+    match (
+        source_energy,
+        useful_energy,
+        stored_delta,
+        reported_residual,
+        residual_fraction,
+        expanded_uncertainty,
+    ) {
+        (
+            Some(source),
+            Some(useful),
+            Some(stored),
+            Some(residual),
+            Some(fraction),
+            Some(uncertainty),
+        ) if source > 0.0 && useful >= 0.0 && uncertainty >= 0.0 => {
+            let calculated_residual = source - useful - loss_total - stored;
+            let tolerance = (source.abs() * 1e-8).max(1e-6);
+            if (calculated_residual - residual).abs() > tolerance {
+                errors.push(format!(
+                    "energy_balance.residual_energy_j: ledger mismatch; calculated {calculated_residual:.9}, reported {residual:.9}"
+                ));
+            }
+            let calculated_fraction = residual.abs() / source * 100.0;
+            if (calculated_fraction - fraction).abs() > 1e-6 {
+                errors.push(format!(
+                    "energy_balance.residual_fraction_pct: expected absolute residual fraction {calculated_fraction:.9}, got {fraction:.9}"
+                ));
+            }
+            let residual_limit = if string_at(manifest, &["conditions", "thermal_state"])
+                == Some("STEADY_STATE")
+            {
+                0.5
+            } else {
+                1.0
+            };
+            if fraction > residual_limit {
+                errors.push(format!(
+                    "energy_balance.residual_fraction_pct: {fraction:.6}% exceeds proposed {residual_limit:.3}% qualification target"
+                ));
+            }
+        }
+        _ => errors.push(
+            "energy_balance: source/useful/stored/residual energies, residual fraction and expanded uncertainty must be numeric"
+                .into(),
+        ),
+    }
+
+    let safety_checks = [
+        (
+            "safety.exposure_assessment_status",
+            string_at(manifest, &["safety", "exposure_assessment_status"])
+                == Some("ASSESSED"),
+        ),
+        (
+            "safety.foreign_object_detection",
+            matches!(
+                string_at(manifest, &["safety", "foreign_object_detection"]),
+                Some("PASS" | "NOT_APPLICABLE")
+            ),
+        ),
+        (
+            "safety.unauthorized_receiver",
+            matches!(
+                string_at(manifest, &["safety", "unauthorized_receiver"]),
+                Some("PASS" | "NOT_APPLICABLE")
+            ),
+        ),
+        (
+            "safety.communication_loss_response",
+            matches!(
+                string_at(manifest, &["safety", "communication_loss_response"]),
+                Some("SAFE_DEENERGIZE" | "NOT_APPLICABLE")
+            ),
+        ),
+    ];
+    if !nonempty(string_at(manifest, &["safety", "standard_edition"])) {
+        errors.push("safety.standard_edition: declare applicable standard/edition or assessment basis".into());
+    }
+    for (field, passed) in safety_checks {
+        if !passed {
+            errors.push(format!("{field}: hard safety gate not satisfied"));
+        }
+    }
+    if !number_at(manifest, &["safety", "thermal_maximum_c"]).is_some() {
+        errors.push("safety.thermal_maximum_c: thermal maximum required".into());
+    }
+
+    let artifacts = manifest
+        .get("artifact_refs")
+        .and_then(Value::as_array);
+    let mut has_waveform = false;
+    let mut has_calibration = false;
+    match artifacts {
+        Some(artifacts) => {
+            for (index, artifact) in artifacts.iter().enumerate() {
+                let kind = string_at(artifact, &["artifact_type"]).unwrap_or("");
+                has_waveform |= kind == "RAW_WAVEFORM";
+                has_calibration |= kind == "CALIBRATION_CERTIFICATE";
+                if !nonempty(string_at(artifact, &["uri"])) {
+                    errors.push(format!("artifact_refs[{index}].uri: required"));
+                }
+                if !string_at(artifact, &["sha256"]).is_some_and(valid_sha256) {
+                    errors.push(format!("artifact_refs[{index}].sha256: valid SHA-256 required"));
+                }
+            }
+        }
+        None => errors.push("artifact_refs: array required".into()),
+    }
+    if !has_waveform {
+        errors.push("artifact_refs: RAW_WAVEFORM artifact required".into());
+    }
+    if !has_calibration {
+        errors.push("artifact_refs: CALIBRATION_CERTIFICATE artifact required".into());
+    }
+
+    if matches!(technology, "IPT" | "CPT" | "HYBRID") {
+        if !number_at(manifest, &["power_quality", "primary_current_thd_pct"])
+            .is_some_and(|value| value >= 0.0)
+        {
+            errors.push("power_quality.primary_current_thd_pct: required for inductive/capacitive/hybrid WPT".into());
+        }
+        if !number_at(manifest, &["power_quality", "thd_measurement_bandwidth_hz"])
+            .is_some_and(|value| value > 0.0)
+            || !number_at(manifest, &["power_quality", "thd_window_s"])
+                .is_some_and(|value| value > 0.0)
+        {
+            errors.push("power_quality: THD bandwidth and analysis window required".into());
+        }
+    }
+
+    errors
+}
+
+pub fn validate_manifest(manifest: &Value) -> (String, Vec<String>) {
+    let mut errors = validate_structure(manifest);
+    let disposition = string_at(manifest, &["result", "qualification"])
+        .unwrap_or("INVALID")
+        .to_owned();
+    if errors.is_empty() && disposition == "QUALIFIED" {
+        errors.extend(validate_qualified(manifest));
+    }
+    (disposition, errors)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut args = env::args();
+    let program = args.next().unwrap_or_else(|| "wpt-round-robin-validator".into());
+    let Some(path) = args.next() else {
+        eprintln!("usage: {program} <test-run-manifest.json>");
+        process::exit(2);
+    };
+    if args.next().is_some() {
+        eprintln!("error: expected exactly one manifest path");
+        process::exit(2);
+    }
+
+    let contents = fs::read_to_string(&path)?;
+    let manifest: Value = serde_json::from_str(&contents)?;
+    let (disposition, errors) = validate_manifest(&manifest);
+    if errors.is_empty() {
+        println!("WPT run manifest valid; disposition={disposition}.");
+        if disposition == "NOT_RUN" {
+            println!("Template/record only: no physical measurement or qualification is implied.");
+        }
+        return Ok(());
+    }
+
+    eprintln!("WPT run manifest rejected ({}) issue(s):", errors.len());
+    for error in &errors {
+        eprintln!(" - {error}");
+    }
+    process::exit(1);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn template() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../benchmarks/wpt-empirical/v1/test-run.example.json"
+        ))
+        .expect("template JSON parses")
+    }
+
+    fn qualified_fixture() -> Value {
+        let mut manifest = template();
+        manifest["run_id"] = json!("SYNTHETIC-KNOWN-TRUTH-001");
+        manifest["system"]["power_rating_w"] = json!(11_000.0);
+        manifest["system"]["topology"] = json!("synthetic IPT reference");
+        manifest["system"]["hardware_revision"] = json!("rev-A");
+        manifest["system"]["controller_revision"] = json!("controller-test-commit");
+        manifest["system"]["configuration_digest"] = json!("a".repeat(64));
+
+        manifest["conditions"]["direction"] = json!("GRID_TO_VEHICLE");
+        manifest["conditions"]["power_class"] = json!("11_KW");
+        manifest["conditions"]["commanded_power_w"] = json!(11_000.0);
+        manifest["conditions"]["frequency_hz"] = json!(85_000.0);
+        manifest["conditions"]["transfer_gap_m"] = json!(0.16);
+        manifest["conditions"]["receiver_count"] = json!(1);
+        manifest["conditions"]["active_receiver_count"] = json!(1);
+        manifest["conditions"]["battery_voltage_v"] = json!(400.0);
+        manifest["conditions"]["thermal_state"] = json!("STEADY_STATE");
+        manifest["conditions"]["ambient_temperature_c"] = json!(23.0);
+        manifest["conditions"]["relative_humidity_pct"] = json!(45.0);
+
+        manifest["metrology"]["window_start_utc"] = json!("2026-10-01T10:00:00Z");
+        manifest["metrology"]["window_end_utc"] = json!("2026-10-01T11:00:00Z");
+        manifest["metrology"]["sample_rate_hz"] = json!(1_000_000.0);
+        manifest["metrology"]["synchronization_error_s"] = json!(0.000001);
+        manifest["metrology"]["power_basis"] = json!("REAL_POWER");
+        for meter in manifest["metrology"]["meters"].as_array_mut().unwrap() {
+            meter["model"] = json!("synthetic traceable power analyser");
+            meter["calibration_reference"] = json!("CAL-SYNTHETIC-001");
+            meter["calibration_valid_from_utc"] = json!("2026-01-01T00:00:00Z");
+            meter["calibration_due_utc"] = json!("2027-01-01T00:00:00Z");
+            meter["bandwidth_hz"] = json!(2_000_000.0);
+            meter["phase_error_deg"] = json!(0.01);
+            meter["uncertainty_pct"] = json!(0.2);
+        }
+        manifest["metrology"]["meters"][0]["role"] = json!("SOURCE");
+        manifest["metrology"]["meters"][1]["role"] = json!("BATTERY");
+
+        let planes = manifest["metrology"]["measurement_planes"]
+            .as_array_mut()
+            .unwrap();
+        planes[0]["role"] = json!("MAINS_AC_INPUT");
+        planes[0]["real_power_w"] = json!(12_000.0);
+        planes[0]["apparent_power_va"] = json!(12_100.0);
+        planes[0]["reactive_power_var"] = json!(1_552.0);
+        planes[0]["voltage_rms_v"] = json!(230.0);
+        planes[0]["current_rms_a"] = json!(52.6);
+        planes[0]["power_factor"] = json!(0.992);
+        planes[0]["uncertainty_pct"] = json!(0.2);
+        planes[1]["role"] = json!("BATTERY_DC_TERMINAL");
+        planes[1]["real_power_w"] = json!(11_000.0);
+        planes[1]["voltage_rms_v"] = json!(400.0);
+        planes[1]["current_rms_a"] = json!(27.5);
+        planes[1]["uncertainty_pct"] = json!(0.2);
+
+        manifest["energy_balance"]["source_energy_j"] = json!(43_200_000.0);
+        manifest["energy_balance"]["useful_energy_j"] = json!(39_600_000.0);
+        manifest["energy_balance"]["loss_terms"] = json!([
+            {"stage_id":"conversion-losses","energy_j":3_500_000.0,"evidence_kind":"MEASURED"}
+        ]);
+        manifest["energy_balance"]["stored_energy_delta_j"] = json!(0.0);
+        manifest["energy_balance"]["residual_energy_j"] = json!(100_000.0);
+        manifest["energy_balance"]["residual_fraction_pct"] =
+            json!(100_000.0 / 43_200_000.0 * 100.0);
+        manifest["energy_balance"]["expanded_uncertainty_pct"] = json!(0.5);
+
+        manifest["power_quality"]["primary_current_thd_pct"] = json!(4.4);
+        manifest["power_quality"]["secondary_current_thd_pct"] = json!(3.2);
+        manifest["power_quality"]["voltage_thd_pct"] = json!(1.5);
+        manifest["power_quality"]["thd_measurement_bandwidth_hz"] = json!(1_000_000.0);
+        manifest["power_quality"]["thd_window_s"] = json!(1.0);
+        manifest["power_quality"]["switching_frequency_hz"] = json!(85_000.0);
+        manifest["power_quality"]["zvs_observed"] = json!(true);
+
+        manifest["safety"]["standard_edition"] = json!("synthetic test basis; not a real certification");
+        manifest["safety"]["exposure_assessment_status"] = json!("ASSESSED");
+        manifest["safety"]["foreign_object_detection"] = json!("PASS");
+        manifest["safety"]["unauthorized_receiver"] = json!("PASS");
+        manifest["safety"]["communication_loss_response"] = json!("SAFE_DEENERGIZE");
+        manifest["safety"]["thermal_maximum_c"] = json!(70.0);
+
+        manifest["artifact_refs"] = json!([
+            {"artifact_type":"RAW_WAVEFORM","uri":"artifact://synthetic/raw","sha256": "a".repeat(64),"media_type":"application/octet-stream","description":"Synthetic known-truth waveform placeholder; not measured data."},
+            {"artifact_type":"CALIBRATION_CERTIFICATE","uri":"artifact://synthetic/calibration","sha256": "b".repeat(64),"media_type":"application/pdf","description":"Synthetic known-truth calibration placeholder; not a real certificate."}
+        ]);
+        manifest["result"]["qualification"] = json!("QUALIFIED");
+        manifest["result"]["notes"] = json!("Synthetic unit-test fixture only; not a physical experiment.");
+        manifest
+    }
+
+    #[test]
+    fn not_run_template_is_structurally_valid_but_not_a_measurement() {
+        let (disposition, errors) = validate_manifest(&template());
+        assert_eq!(disposition, "NOT_RUN");
+        assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn synthetic_known_truth_qualified_record_passes() {
+        let (disposition, errors) = validate_manifest(&qualified_fixture());
+        assert_eq!(disposition, "QUALIFIED");
+        assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn rejects_expired_calibration() {
+        let mut manifest = qualified_fixture();
+        manifest["metrology"]["meters"][0]["calibration_due_utc"] =
+            json!("2026-09-30T00:00:00Z");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("calibration must cover")));
+    }
+
+    #[test]
+    fn rejects_apparent_power_only_energy_accounting() {
+        let mut manifest = qualified_fixture();
+        manifest["metrology"]["power_basis"] = json!("APPARENT_POWER_ONLY");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("REAL_POWER required")));
+    }
+
+    #[test]
+    fn rejects_energy_ledger_that_does_not_close_to_reported_residual() {
+        let mut manifest = qualified_fixture();
+        manifest["energy_balance"]["residual_energy_j"] = json!(500_000.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("ledger mismatch")));
+    }
+
+    #[test]
+    fn rejects_residual_above_steady_state_target() {
+        let mut manifest = qualified_fixture();
+        manifest["energy_balance"]["residual_energy_j"] = json!(400_000.0);
+        manifest["energy_balance"]["residual_fraction_pct"] =
+            json!(400_000.0 / 43_200_000.0 * 100.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("exceeds proposed 0.500%")));
+    }
+
+    #[test]
+    fn rejects_failed_safety_gate() {
+        let mut manifest = qualified_fixture();
+        manifest["safety"]["unauthorized_receiver"] = json!("FAIL");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("unauthorized_receiver")));
+    }
+
+    #[test]
+    fn rejects_receiver_count_inversion() {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["receiver_count"] = json!(1);
+        manifest["conditions"]["active_receiver_count"] = json!(2);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("active <= total")));
+    }
+
+    #[test]
+    fn rejects_duplicate_loss_stage_double_counting() {
+        let mut manifest = qualified_fixture();
+        manifest["energy_balance"]["loss_terms"] = json!([
+            {"stage_id":"inverter","energy_j":1.0,"evidence_kind":"MEASURED"},
+            {"stage_id":"inverter","energy_j":1.0,"evidence_kind":"MEASURED"}
+        ]);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("stage_id: missing or duplicate")));
+    }
+
+    #[test]
+    fn rejects_missing_raw_waveform_artifact() {
+        let mut manifest = qualified_fixture();
+        manifest["artifact_refs"] = json!([
+            {"artifact_type":"CALIBRATION_CERTIFICATE","uri":"artifact://synthetic/calibration","sha256":"b".repeat(64),"media_type":"application/pdf","description":"Synthetic placeholder."}
+        ]);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("RAW_WAVEFORM artifact required")));
+    }
+
+    #[test]
+    fn rejects_invalid_utc_dates() {
+        assert!(parse_utc_seconds("2026-02-29T00:00:00Z").is_none());
+        assert!(parse_utc_seconds("2024-02-29T00:00:00Z").is_some());
+        assert!(parse_utc_seconds("2026-01-01T00:00:00+02:00").is_none());
+    }
+
+    #[test]
+    fn rejects_duplicate_meter_ids() {
+        let mut manifest = qualified_fixture();
+        manifest["metrology"]["meters"][1]["meter_id"] =
+            manifest["metrology"]["meters"][0]["meter_id"].clone();
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("meter_id: missing or duplicate")));
+    }
+
+    #[test]
+    fn rejects_invalid_artifact_digest() {
+        let mut manifest = qualified_fixture();
+        manifest["artifact_refs"][0]["sha256"] = json!("not-a-hash");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("valid SHA-256 required")));
+    }
+}
