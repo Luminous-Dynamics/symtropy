@@ -328,7 +328,8 @@
         "robustness",
         "resilience_performance_curves",
         "hierarchical_hydroinformatics",
-        "digital_twin_maturity"
+        "digital_twin_maturity",
+        "leak_validation_integrity"
       ],
       "properties": {
         "accounting_correctness": {
@@ -359,6 +360,9 @@
           "type": "string"
         },
         "digital_twin_maturity": {
+          "type": "string"
+        },
+        "leak_validation_integrity": {
           "type": "string"
         }
       },
