@@ -488,7 +488,7 @@ mod tests {
 
     #[test]
     fn derives_cpu_wall_peak_memory_and_oom_deltas() {
-        let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 2_000_000, 0, 0);
+        let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 0, 0, 0);
         let end = snapshot(11_000_000_000, 6_000_000, 4_800_000, 1_200_000, 48_000_000, 1, 1);
         let report = derive_cgroup_v2_resource_report(&start, &end).expect("derive resource report");
         assert_eq!(report.elapsed_wall_time_ns, 10_000_000_000);
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn rejects_counter_regression_identity_drift_and_memory_peak_reset() {
-        let start = snapshot(1_000, 100, 80, 20, 1000, 0, 0);
+        let start = snapshot(1_000, 100, 80, 20, 0, 0, 0);
         let cpu_regressed = snapshot(2_000, 99, 79, 20, 1100, 0, 0);
         assert!(derive_cgroup_v2_resource_report(&start, &cpu_regressed)
             .expect_err("CPU counter reset must reject")
@@ -534,10 +534,12 @@ mod tests {
             .expect_err("cross-cgroup report must reject")
             .contains("different cgroup"));
 
-        let memory_reset = snapshot(2_000, 200, 160, 40, 900, 0, 0);
-        assert!(derive_cgroup_v2_resource_report(&start, &memory_reset)
-            .expect_err("memory peak reset must reject")
-            .contains("memory.peak"));
+        let contaminated_baseline = snapshot(2_000, 200, 160, 40, 900, 0, 0);
+        assert!(
+            derive_cgroup_v2_resource_report(&contaminated_baseline, &wrong_id)
+                .expect_err("a reused cgroup peak baseline must reject")
+                .contains("baseline is nonzero")
+        );
     }
 
     #[test]
@@ -545,6 +547,7 @@ mod tests {
         assert!(parse_cgroup_v2_snapshot(
             "x",
             "reader-x",
+            0,
             "rw,nosuid,nodev",
             1,
             "usage_usec 1\nuser_usec 1\n",
@@ -555,6 +558,7 @@ mod tests {
         assert!(parse_cgroup_v2_snapshot(
             "x",
             "reader-x",
+            0,
             "rw,nosuid,nodev",
             1,
             "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
@@ -570,6 +574,7 @@ mod tests {
             parse_cgroup_v2_snapshot(
                 "x",
                 "reader-x",
+                0,
                 "rw,nosuid,nodev,memory_localevents",
                 1,
                 "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
@@ -595,7 +600,7 @@ mod tests {
 
     #[test]
     fn independent_python_oracle_replays_cgroup_resource_evidence() {
-        let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 2_000_000, 0, 0);
+        let start = snapshot(1_000_000_000, 1_000_000, 800_000, 200_000, 0, 0, 0);
         let end = snapshot(11_000_000_000, 6_000_000, 4_800_000, 1_200_000, 48_000_000, 1, 1);
         let report = derive_cgroup_v2_resource_report(&start, &end).unwrap();
         let root = std::env::temp_dir().join(format!(
