@@ -479,7 +479,8 @@
         "split_contract",
         "metrics",
         "published_baselines",
-        "confidence_contract"
+        "confidence_contract",
+        "external_evaluation_lanes"
       ],
       "properties": {
         "version": {
@@ -760,6 +761,180 @@
             "report_exact_binomial_interval": {
               "type": "boolean",
               "const": true
+            }
+          }
+        },
+        "external_evaluation_lanes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA",
+            "L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY"
+          ],
+          "properties": {
+            "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "dataset_id",
+                "network",
+                "training_period",
+                "evaluation_period",
+                "time_step_minutes",
+                "sensor_inventory",
+                "task",
+                "holdout_status",
+                "source_refs"
+              ],
+              "properties": {
+                "dataset_id": {
+                  "type": "string",
+                  "const": "BATTLEDIM_L_TOWN_2018_2019"
+                },
+                "network": {
+                  "type": "string"
+                },
+                "training_period": {
+                  "type": "string"
+                },
+                "evaluation_period": {
+                  "type": "string"
+                },
+                "time_step_minutes": {
+                  "type": "integer",
+                  "const": 5
+                },
+                "sensor_inventory": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tank_level",
+                    "flow",
+                    "pressure",
+                    "area_c_amr"
+                  ],
+                  "properties": {
+                    "tank_level": {
+                      "type": "integer",
+                      "const": 1
+                    },
+                    "flow": {
+                      "type": "integer",
+                      "const": 3
+                    },
+                    "pressure": {
+                      "type": "integer",
+                      "const": 33
+                    },
+                    "area_c_amr": {
+                      "type": "integer",
+                      "const": 82
+                    }
+                  }
+                },
+                "task": {
+                  "type": "string",
+                  "const": "event_detection_and_leak_localization_with_operational_costs"
+                },
+                "holdout_status": {
+                  "type": "string",
+                  "const": "public_historical_external_evaluation_not_secret_or_blind"
+                },
+                "source_refs": {
+                  "type": "array",
+                  "minItems": 2,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "dataset_id",
+                "network",
+                "data_coverage",
+                "record_count",
+                "time_step_minutes",
+                "timezone",
+                "feature_count",
+                "feature_representation",
+                "label",
+                "label_window_days",
+                "task",
+                "pipe_localization_supported",
+                "negative_semantics",
+                "holdout_status",
+                "leakage_risk",
+                "source_refs"
+              ],
+              "properties": {
+                "dataset_id": {
+                  "type": "string",
+                  "const": "SLOVAK_2022_ONE_ZONE_HOURLY_ANOMALY_SCORES"
+                },
+                "network": {
+                  "type": "string"
+                },
+                "data_coverage": {
+                  "type": "string"
+                },
+                "record_count": {
+                  "type": "integer",
+                  "const": 8737
+                },
+                "time_step_minutes": {
+                  "type": "integer",
+                  "const": 60
+                },
+                "timezone": {
+                  "type": "string",
+                  "const": "Europe/Bratislava"
+                },
+                "feature_count": {
+                  "type": "integer",
+                  "const": 18
+                },
+                "feature_representation": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "label_window_days": {
+                  "type": "integer",
+                  "const": 7
+                },
+                "task": {
+                  "type": "string",
+                  "const": "weak_label_temporal_anomaly_and_lead_time_only"
+                },
+                "pipe_localization_supported": {
+                  "type": "boolean",
+                  "const": false
+                },
+                "negative_semantics": {
+                  "type": "string"
+                },
+                "holdout_status": {
+                  "type": "string",
+                  "const": "public_single_zone_processed_dataset_not_blind_holdout"
+                },
+                "leakage_risk": {
+                  "type": "string"
+                },
+                "source_refs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }
