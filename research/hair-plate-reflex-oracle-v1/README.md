@@ -24,7 +24,7 @@ A plate record binds:
 - morphology (hair count, contact normal, orientation axis and geometry digest);
 - afferent neuron identities;
 - sensory tuning (measured joint-limit angle, threshold definition, response curve and units);
-- connectome outputs (target identities, target cell types, synapse counts, sign and anatomical region);
+- connectome outputs (target identities, target cell types, synapse counts, transmitter identity, synapse sign, sign-evidence basis, sign-evidence artifact digest and anatomical region);
 - reflex outcomes (intervention kind, movement direction, latency, magnitude and behavioural context);
 - record-level source digest.
 
@@ -42,9 +42,11 @@ For each held-out plate, V1 reports:
 - absolute joint-limit angle error when measured tuning is observed;
 - reflex direction correctness when a measured intervention outcome is observed;
 - motor-target precision, recall and F1 when connectome output targets are observed or explicitly absent within a complete search scope;
-- signed pathway accuracy only for target edges whose biological sign is known.
+- primary signed-pathway accuracy only for direct physiological or receptor-supported truth labels;
+- separate annotation-sign agreement for transmitter-heuristic labels;
+- unknown sign labels remain unscored. Transmitter identity is not itself a measured postsynaptic sign.
 
-Unknown evidence produces an explicit unscorable reason rather than a negative label. If the observed target set is empty, recall is undefined and returned as None; it is not forced to zero or one.
+Unknown evidence produces an explicit unscorable reason rather than a negative label. Target presence is scored independently from sign. Direct/receptor-supported sign accuracy and transmitter-heuristic agreement are separate metrics, so an annotation rule cannot be reported as physiological validation. If the observed target set is empty, recall is undefined and returned as None; it is not forced to zero or one.
 
 ## Scientific boundaries
 
@@ -77,7 +79,7 @@ this difference and cannot call predictions confirmed reflex labels.
 
 ## Synthetic tests
 
-The 23 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
+The 27 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
 
 ## References
 
