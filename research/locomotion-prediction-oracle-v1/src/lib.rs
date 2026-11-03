@@ -987,6 +987,89 @@ mod tests {
     }
 
     #[test]
+    fn embodied_non_connectome_baselines_do_not_require_connectome_artifacts() {
+        let mut candidate = batch(vec![
+            forecast("rule-based", vec![0.0], 0.1),
+            forecast("learned-policy", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_tier = EvaluationTier::InSilicoEmbodied;
+        candidate.evaluation_artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BodyMorphology, sha256: digest() },
+            ArtifactRef { role: ArtifactRole::PhysicsConfiguration, sha256: digest() },
+        ];
+        for forecast in &mut candidate.forecasts {
+            forecast.model_family = ModelFamily::RuleBasedController;
+            forecast.evidence_tier = EvidenceTier::Phenomenological;
+            add_sensor_effector_artifacts(forecast);
+        }
+        assert_eq!(validate_prediction_batch(&candidate), Ok(()));
+    }
+
+    #[test]
+    fn embodied_evaluation_requires_body_and_physics_artifacts() {
+        let mut candidate = batch(vec![
+            forecast("rule-based", vec![0.0], 0.1),
+            forecast("learned-policy", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_tier = EvaluationTier::InSilicoEmbodied;
+        candidate.evaluation_artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BodyMorphology, sha256: digest() },
+        ];
+        for forecast in &mut candidate.forecasts {
+            forecast.model_family = ModelFamily::RuleBasedController;
+            forecast.evidence_tier = EvidenceTier::Phenomenological;
+            add_sensor_effector_artifacts(forecast);
+        }
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::MissingArtifactRole(ArtifactRole::PhysicsConfiguration))
+        );
+    }
+
+    #[test]
+    fn connectome_family_cannot_claim_only_phenomenological_evidence() {
+        let mut first = forecast("connectome-model", vec![0.0], 0.1);
+        first.model_family = ModelFamily::ConnectomeCircuit;
+        assert_eq!(
+            validate_prediction_batch(&batch(vec![
+                first,
+                forecast("phenomenological-model", vec![1.0], 0.1),
+            ])),
+            Err(ValidationError::ConnectomeFamilyBelowEvidenceTier)
+        );
+    }
+
+    #[test]
+    fn connectome_evidence_cannot_be_claimed_by_rule_based_family() {
+        let mut first = forecast("rule-based", vec![0.0], 0.1);
+        first.model_family = ModelFamily::RuleBasedController;
+        first.evidence_tier = EvidenceTier::ConnectomeConstrained;
+        assert_eq!(
+            validate_prediction_batch(&batch(vec![
+                first,
+                forecast("phenomenological-model", vec![1.0], 0.1),
+            ])),
+            Err(ValidationError::ConnectomeTierRequiresConnectomeFamily)
+        );
+    }
+
+    #[test]
+    fn measured_evaluation_requires_source_and_dataset_at_batch_level() {
+        let mut candidate = batch(vec![
+            forecast("rule-based", vec![0.0], 0.1),
+            forecast("learned-policy", vec![1.0], 0.1),
+        ]);
+        candidate.evaluation_tier = EvaluationTier::MeasuredIntervention;
+        candidate.evaluation_artifacts = vec![
+            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
+        ];
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::MissingArtifactRole(ArtifactRole::MeasuredDataset))
+        );
+    }
+
+    #[test]
     fn rejects_unblinding_before_prediction_commit() {
         let candidate = batch(vec![
             forecast("model-a", vec![0.0], 0.1),
