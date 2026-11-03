@@ -1305,6 +1305,9 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
             item.received_at_ms = 4_805;
         }
     }
+    // The lower sequence arrives after the higher sequence but cannot replace it.
+    events[0].received_at_ms = 4_990;
+    events[0].state = ObservationState::HumanPresent;
     let mut newer_clear = events[0].clone();
     newer_clear.event_id = "newer-clear-arrived-first".to_owned();
     newer_clear.source_sequence = 2;
@@ -1393,6 +1396,12 @@ mod tests {
     fn delayed_old_source_sequence_cannot_overwrite_newer_state() {
         let policy = base_policy();
         let mut events = baseline_events();
+        for item in &mut events {
+            if item.source_id == "lidar-front" {
+                item.source_time_ms = 4_800;
+                item.received_at_ms = 4_805;
+            }
+        }
         let mut newer = events[0].clone();
         newer.event_id = "newer-human-present".to_owned();
         newer.source_sequence = 2;
@@ -1494,8 +1503,12 @@ mod tests {
     fn source_time_and_receive_time_are_not_interchangeable() {
         let policy = base_policy();
         let mut events = baseline_events();
-        events[0].source_time_ms = 4_000;
-        events[0].received_at_ms = 4_999;
+        for item in &mut events {
+            if item.source_id == "lidar-front" {
+                item.source_time_ms = 4_000;
+                item.received_at_ms = 4_999;
+            }
+        }
         let decision = evaluate(&policy, &events);
         assert_eq!(
             decision.disposition,
