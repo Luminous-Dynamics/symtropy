@@ -603,6 +603,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "aggregation_input_point_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
