@@ -24,12 +24,13 @@ Repository: https://github.com/KrisshChawla6/ShapeBench
 
 Use the Simple Transonic Wing as a lower-cost integration case and the DLR-F25 as a grand-challenge case when the required models/data are admitted.
 
-The benchmark's intended progression includes sensitivity/trade validation, coupled MDO and design under uncertainty. Its disciplines include aerodynamics, structures, propulsion and UQ.
+**Data-readiness correction (checked 2026-11-03):** the official Digital Hangar MDO Benchmark page currently identifies Sensitivity and Trade Studies as the starting task; Aerodynamic Optimisation, Structural Optimisation, coupled MDO and Design Under Uncertainty are each labelled "in preparation". Computational models (CAD, CFD, CSM and engine decks) are available on request, not assumed public downloads. Therefore:
+- Begin with the published sensitivity/trade task and record its exact task-definition PDF revision.
+- Do not claim that a full DLR-F25 coupled MDO/UQ package is currently available or completed.
+- Treat any privately supplied model/deck as a separate, permissioned source-admission event with exact revision, license/usage scope and digest.
+- Promote to coupled design only when the relevant discipline packages and local/global constraints have actually been admitted.
 
-- Start with discipline-level sensitivity verification and trade studies.
-- Then compare coupled feasible designs under matched resource limits.
-- Add manufacturing, operating-condition and model uncertainty only after baseline sensitivities/coupling are qualified.
-- Do not claim access to restricted models or data merely because the benchmark describes them as available on request.
+The benchmark's intended progression includes sensitivity/trade validation, coupled MDO and design under uncertainty. Its disciplines include aerodynamics, structures, propulsion and UQ.
 
 Reference: https://www.digital-hangar.de/collaboration/mdo-benchmark/
 
@@ -42,10 +43,20 @@ References:
 - https://github.com/su2code/SU2/pull/2881
 - https://github.com/su2code/SU2/pull/2870
 
-Use public, protocol-compliant cases such as ONERA OAT15A and NASA Common Research Model when the exact geometry, grid, boundary conditions, solver version, reference data and uncertainty are available.
+Use public, protocol-compliant cases when the exact geometry, grid, boundary conditions, solver version, reference data and uncertainty are available.
 
-DPW-8/AePW-4 was held on 2026-06-06 to 2026-06-07 in conjunction with the AIAA Aviation Forum. AIAA identifies working groups spanning static deformation, buffet, high-angle, high-speed, large-deflection, sources of DPW scatter and test environments. As of this benchmark revision (2026-11-03), treat the workshop event as completed, but do not assume that a workshop report, participant dataset or post-workshop adjudication is publicly available: admit only exact published source bytes with an independently recorded revision, protocol and license/applicability note.
+**DPW-8 required ONERA OAT15A case detail:** the official test-case page identifies Verification 1 as required:
+- V1a steady grid-convergence/polar case at M=0.73, Re_c=3×10^6, T_static=271 K; angles of attack 1.36°, 1.50°, 2.50°, 3.00° and 3.10°; six grid levels (four required, six desirable).
+- V1b extended unsteady polar/buffet case at 3.25°, 3.40°, 3.50°, 3.60° and 3.90° over the same six grid levels.
+- V1c scatter-reduction reprise with a common farfield of 1000 chords, French-Vanilla SA-negative all-terms, Sutherland viscosity, adiabatic wall and residual convergence target around 1e-10.
 
+Treat these as distinct protocol lanes; a V1a steady result cannot be presented as a V1b buffet result. Record exact supplied grid family and its revision, and do not pool historical participant reproduction with strict protocol reproduction.
+
+DPW-8/AePW-4 was held on 2026-06-06 to 2026-06-07 in conjunction with the AIAA Aviation Forum. The workshop is completed; admit only actual published source bytes with independently recorded revision, protocol and license/applicability note. Do not assume a workshop report or post-workshop adjudication is available without locating and admitting it.
+
+**AePW-4 flutter case:** the public workshop page identifies mandatory flutter prediction at M=0.80 over AoA 0°–6°, and optional predictions at M=0.78, 0.76 and 0.74 at AoA 3°. This is an aeroelastic evidence lane with its own structural model, coupling, temporal convergence and validation requirements; do not collapse it into a steady aerodynamic score.
+
+**NASA TMR NACA 0012 is a separate validation lane, not the DPW-8 ONERA OAT15A case.** TMR supplies experimental data at Re=6 million for an essentially incompressible case and separately supplies a numerics-focused family of very fine grids. Its maintainers caution that near-stall experiments become less two-dimensional and no surface skin-friction experiment is available for the case. Preserve these limitations in the applicability domain. TMR moved to its GitHub-maintained site in February 2026; pin its repository commit/source files, not only a page URL.
 
 - Maintain separate strict-protocol and historical participant-reproduction lanes.
 - Record every grid, angle, failed run, restart, and exclusion.
@@ -53,9 +64,12 @@ DPW-8/AePW-4 was held on 2026-06-06 to 2026-06-07 in conjunction with the AIAA A
 - Require grid and (for unsteady cases) temporal/sample-window studies before interpreting a nominal result as discretization independent.
 
 References:
-- https://www.aiaa-dpw.org/
-- https://aiaa.org/courses/aiaa-drag-prediction-and-aeroelastic-prediction-workshop/
-- https://dpw.larc.nasa.gov/DPW8/
+- DPW-8 test cases: https://www.aiaa-dpw.org/TestCases/testcases.html
+- AIAA DPW-8/AePW-4 event: https://aiaa.org/courses/aiaa-drag-prediction-and-aeroelastic-prediction-workshop/
+- AePW-4 public cases: https://nescacademy.nasa.gov/workshops/AePW4/public
+- NASA TMR NACA 0012 validation: https://tmbwg.github.io/turbmodels/naca0012_val.html
+- NASA TMR numerics-focused NACA 0012 grids: https://tmbwg.github.io/turbmodels/naca0012numerics_val.html
+- NASA TMR experiments index / source relocation: https://tmbwg.github.io/turbmodels/other_exp.html
 
 ## Baseline policy matrix
 
