@@ -535,6 +535,36 @@ mod tests {
     }
 
     #[test]
+    fn constraint_unit_mismatch_is_not_evaluable() {
+        let item = Candidate::new("wrong-unit", [
+            ("efficiency_percent", Interval::exact(95.0).unwrap(), "%"),
+            ("shield_loss_w", Interval::exact(5.0).unwrap(), "W"),
+            ("load_power_w", Interval::exact(50_000.0).unwrap(), "W"),
+            ("e_field_v_per_m", Interval::exact(20_000.0).unwrap(), "microvolt/m"),
+            ("temperature_rise_c", Interval::exact(20.0).unwrap(), "degC"),
+        ]).unwrap();
+        let evaluated = evaluate_candidate(&item, &plan());
+        assert_eq!(evaluated.disposition, Disposition::NotEvaluable);
+        assert_eq!(
+            evaluated.constraints.iter()
+                .find(|x| x.name == "electric_exposure_limit").unwrap().outcome,
+            ConstraintOutcome::UnitMismatch
+        );
+    }
+
+    #[test]
+    fn objective_unit_mismatch_is_not_evaluable() {
+        let item = Candidate::new("wrong-power-unit", [
+            ("efficiency_percent", Interval::exact(95.0).unwrap(), "%"),
+            ("shield_loss_w", Interval::exact(5.0).unwrap(), "W"),
+            ("load_power_w", Interval::exact(50.0).unwrap(), "kW"),
+            ("e_field_v_per_m", Interval::exact(10.0).unwrap(), "V/m"),
+            ("temperature_rise_c", Interval::exact(20.0).unwrap(), "degC"),
+        ]).unwrap();
+        assert_eq!(evaluate_candidate(&item, &plan()).disposition, Disposition::NotEvaluable);
+    }
+
+    #[test]
     fn robust_dominance_requires_interval_separation() {
         let objectives = vec![
             Objective::new("power", ObjectiveDirection::Maximize, "W").unwrap(),
