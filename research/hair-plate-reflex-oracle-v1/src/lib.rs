@@ -1605,7 +1605,7 @@ mod tests {
             .find(|artifact| artifact.sha256 == digest('c'))
             .expect("fixture source artifact exists");
         artifact.custody_mode = SourceCustodyMode::DerivedFromSourceArtifacts;
-        artifact.derived_from_sha256 = vec![digest('d')];
+        artifact.derived_from_sha256 = vec![digest('0')];
         artifact.transformation_sha256 = Some(digest('2'));
         assert_eq!(input.validate(), Err(OracleError::InvalidSourceArtifact));
     }
