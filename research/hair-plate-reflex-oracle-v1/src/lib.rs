@@ -1231,18 +1231,6 @@ mod tests {
             }
         }
 
-            if let Evidence::Observed { value, .. } = &record.morphology {
-                add(&value.geometry_sha256, SourceArtifactRole::Morphology);
-            }
-            if let Evidence::Observed { value, .. } = &record.connectome_outputs {
-                for target in value {
-                    if let Some(sign_sha256) = &target.sign_evidence_sha256 {
-                        add(sign_sha256, SourceArtifactRole::SynapseSignEvidence);
-                    }
-                }
-            }
-        }
-
         drop(add);
         roles
             .into_iter()
