@@ -243,10 +243,6 @@ fn validate_digest(value: &str, field: &'static str) -> Result<(), ValidationErr
     }
 }
 
-fn has_role(artifacts: &[ArtifactRef], role: ArtifactRole) -> bool {
-    artifacts.iter().any(|artifact| artifact.role == role)
-}
-
 fn validate_artifact_set(
     artifacts: &[ArtifactRef],
     maximum: usize,
@@ -297,7 +293,7 @@ fn validate_provenance(
 
     let mut required_roles = BTreeSet::new();
 
-    if connectome_family || evidence_tier >= EvidenceTier::ConnectomeConstrained {
+    if connectome_family || evidence_tier == EvidenceTier::ConnectomeConstrained {
         required_roles.insert(ArtifactRole::Connectome);
         required_roles.insert(ArtifactRole::BiologicalSource);
         required_roles.insert(ArtifactRole::SensorMapping);
