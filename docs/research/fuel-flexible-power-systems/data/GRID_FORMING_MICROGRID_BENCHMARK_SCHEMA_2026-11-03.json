@@ -120,6 +120,10 @@
         "board_approval_date": {
           "type": "string",
           "format": "date"
+        },
+        "data_uri": {
+          "type": "string",
+          "format": "uri"
         }
       },
       "additionalProperties": true
@@ -185,6 +189,10 @@
           }
         },
         "reference_testbed": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "benchmark_reference": {
           "type": "object",
           "additionalProperties": true
         }
