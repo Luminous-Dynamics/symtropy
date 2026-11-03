@@ -253,7 +253,9 @@ impl HybridProjectionReceipt {
         if expected.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(ProjectionReceiptError::DuplicateSourceSemantic);
         }
-        if expected != self.source_semantic_ids {
+        let mut declared = self.source_semantic_ids.clone();
+        declared.sort();
+        if expected != declared {
             return Err(ProjectionReceiptError::SourceInventoryMismatch);
         }
         Ok(())
