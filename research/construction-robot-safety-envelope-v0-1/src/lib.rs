@@ -121,6 +121,10 @@ pub enum Reason {
     HumanTrackConflicting,
     HumanTrackStale,
     HumanTrackConfidenceInsufficient,
+    HumanEvidenceMalformed,
+    HumanEvidenceSensorMissing,
+    HumanEvidenceSensorUnhealthy,
+    HumanEvidenceCoverageInsufficient,
     HumanSeparationBreached,
     HumanSeparationNearBoundary,
     MotionLimitExceeded,
@@ -156,6 +160,17 @@ pub struct SensorEvidence {
     pub coverage_ppm: u32,
     pub calibration_current: bool,
     pub source_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HumanDetectionEvidence {
+    /// Sensor IDs that actually contributed to this human-presence observation.
+    pub contributing_sensor_ids: Vec<String>,
+    /// Digest of the source-side detection/coverage receipt, not an authenticity proof.
+    pub source_sha256: String,
+    pub observed_at_ms: u64,
+    pub coverage_ppm: u32,
+    pub confidence_ppm: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -248,6 +263,7 @@ pub struct RuntimeObservation {
     pub emergency_stop: EmergencyStopSignal,
     pub motion: MotionState,
     pub human: HumanObservation,
+    pub human_detection: HumanDetectionEvidence,
     pub sensors: Vec<SensorEvidence>,
     pub odd_conditions: Vec<OddConditionObservation>,
 }
@@ -463,6 +479,68 @@ fn sensors_are_well_formed(observation: &RuntimeObservation) -> bool {
     })
 }
 
+
+fn human_evidence_status(
+    policy: &SafetyPolicy,
+    observation: &RuntimeObservation,
+) -> Result<(), Reason> {
+    let evidence = &observation.human_detection;
+    if evidence.contributing_sensor_ids.is_empty()
+        || evidence.contributing_sensor_ids.len() > MAX_SENSOR_RECORDS
+        || !is_sha256_reference(&evidence.source_sha256)
+        || evidence.coverage_ppm > MAX_CONFIDENCE_PPM
+        || evidence.confidence_ppm > MAX_CONFIDENCE_PPM
+    {
+        return Err(Reason::HumanEvidenceMalformed);
+    }
+    if evidence.observed_at_ms > observation.evaluated_at_ms {
+        return Err(Reason::HumanEvidenceMalformed);
+    }
+    if observation.evaluated_at_ms.saturating_sub(evidence.observed_at_ms)
+        > policy.maximum_sensor_age_ms
+    {
+        return Err(Reason::HumanTrackStale);
+    }
+    if evidence.coverage_ppm < policy.minimum_sensor_coverage_ppm {
+        return Err(Reason::HumanEvidenceCoverageInsufficient);
+    }
+    if evidence.confidence_ppm < policy.minimum_sensor_confidence_ppm {
+        return Err(Reason::HumanTrackConfidenceInsufficient);
+    }
+
+    let mut sensor_ids = BTreeSet::new();
+    let mut independent_fault_domains = BTreeSet::new();
+    for sensor_id in &evidence.contributing_sensor_ids {
+        if !non_empty(sensor_id)
+            || sensor_id.len() > MAX_IDENTIFIER_BYTES
+            || !sensor_ids.insert(sensor_id.as_str())
+        {
+            return Err(Reason::HumanEvidenceMalformed);
+        }
+        let Some(sensor) = observation
+            .sensors
+            .iter()
+            .find(|sensor| sensor.sensor_id == *sensor_id)
+        else {
+            return Err(Reason::HumanEvidenceSensorMissing);
+        };
+        if sensor.health != SensorHealth::Healthy
+            || !sensor.calibration_current
+            || sensor.age_ms > policy.maximum_sensor_age_ms
+            || sensor.confidence_ppm < policy.minimum_sensor_confidence_ppm
+            || sensor.coverage_ppm < policy.minimum_sensor_coverage_ppm
+        {
+            return Err(Reason::HumanEvidenceSensorUnhealthy);
+        }
+        independent_fault_domains.insert(sensor.fault_domain.as_str());
+    }
+
+    if independent_fault_domains.len() < policy.minimum_independent_sensor_groups {
+        return Err(Reason::SensorDiversityInsufficient);
+    }
+    Ok(())
+}
+
 fn condition_is_supported(
     policy: &SafetyPolicy,
     observation: &RuntimeObservation,
@@ -644,6 +722,13 @@ pub fn evaluate(
         }
         Err(reason) => return stop(policy, observation, reason),
     };
+
+    if let Err(reason) = human_evidence_status(policy, observation) {
+        if reason == Reason::HumanEvidenceMalformed {
+            return inconsistent(policy, observation, reason);
+        }
+        return stop(policy, observation, reason);
+    }
 
     // Evaluate hard proximity and motion limits before ODD and mitigation
     // classifications. A missing environmental field cannot hide a hard stop.
@@ -899,6 +984,16 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
             track_age_ms: 10,
             confidence_ppm: 980_000,
             conflicting_tracks: false,
+        },
+        human_detection: HumanDetectionEvidence {
+            contributing_sensor_ids: vec![
+                "lidar-front".to_owned(),
+                "localization-unit".to_owned(),
+            ],
+            source_sha256: digest('9'),
+            observed_at_ms: 4_990,
+            coverage_ppm: 980_000,
+            confidence_ppm: 980_000,
         },
         sensors: vec![
             SensorEvidence {
@@ -1788,6 +1883,83 @@ mod tests {
             Disposition::StopRequiredBySyntheticPolicy
         );
         assert_eq!(decision.reasons, vec![Reason::CriticalSensorMissing]);
+    }
+
+    #[test]
+    fn no_human_detected_requires_current_sensor_coverage_evidence() {
+        let (policy, mut observation) = baseline();
+        observation.human = HumanObservation::NoHumanDetected;
+        observation.human_detection.coverage_ppm = 100_000;
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanEvidenceCoverageInsufficient]
+        );
+    }
+
+    #[test]
+    fn human_presence_evidence_must_name_its_sensor_sources() {
+        let (policy, mut observation) = baseline();
+        observation.human = HumanObservation::NoHumanDetected;
+        observation.human_detection.contributing_sensor_ids = vec![
+            "lidar-front".to_owned(),
+            "unknown-sensor".to_owned(),
+        ];
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanEvidenceSensorMissing]
+        );
+    }
+
+    #[test]
+    fn no_human_detected_cannot_reuse_stale_coverage_receipt() {
+        let (policy, mut observation) = baseline();
+        observation.human = HumanObservation::NoHumanDetected;
+        observation.human_detection.observed_at_ms = 4_000;
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reasons, vec![Reason::HumanTrackStale]);
+    }
+
+    #[test]
+    fn human_absence_evidence_requires_independent_sensor_fault_domains() {
+        let (policy, mut observation) = baseline();
+        observation.human = HumanObservation::NoHumanDetected;
+        observation.human_detection.contributing_sensor_ids = vec![
+            "lidar-front".to_owned(),
+            "camera-front".to_owned(),
+        ];
+        observation.sensors[2].fault_domain = observation.sensors[0].fault_domain.clone();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::SensorDiversityInsufficient]
+        );
+    }
+
+    #[test]
+    fn malformed_human_detection_receipt_is_inconsistent() {
+        let (policy, mut observation) = baseline();
+        observation.human_detection.source_sha256 = "invalid".to_owned();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::HumanEvidenceMalformed]);
     }
 
     #[test]
