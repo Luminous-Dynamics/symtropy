@@ -27,7 +27,7 @@ Every run must be independently interpretable. Missing meter planes, unreported 
 A run is uniquely identified by a run ID and binds to:
 - protocol ID and semantic version;
 - prototype/system ID, hardware revision and topology;
-- controller firmware/software revision and configuration digest;
+- controller firmware/software revision and a SHA-256 configuration digest;
 - power-flow direction, power class, commanded load, frequency, coil gap, 3D alignment and yaw;
 - receiver count, number of active receivers and each receiver's load request;
 - battery/emulator voltage, impedance/load profile and ambient/thermal conditions.
@@ -86,7 +86,7 @@ Only where the hardware is designed for dynamic transfer:
 
 Each metering channel must provide:
 - unique meter/sensor ID and model;
-- calibration certificate or traceable reference and due date;
+- calibration certificate or traceable reference, validity start and due date;
 - measurement role/plane;
 - bandwidth, sample rate, voltage/current range and phase error;
 - timestamp synchronization uncertainty;
