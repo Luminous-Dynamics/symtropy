@@ -485,6 +485,15 @@ impl DataCenterPowerTrace {
 
         self.validate_parent_cycles(&point_map)?;
 
+        for workload in &self.workloads {
+            if !site_map.contains_key(workload.site_id()) {
+                return Err(PowerTraceError::UnknownSite {
+                    identity: workload.workload_id().to_string(),
+                    site_id: workload.site_id().to_string(),
+                });
+            }
+        }
+
         let mut last_timestamp_by_point = BTreeMap::<String, u64>::new();
         for sample in &self.samples {
             let point = point_map
@@ -598,7 +607,7 @@ impl DataCenterPowerTrace {
         for ancestor in &selected_points {
             for descendant in &selected_points {
                 if ancestor.measurement_point_id() != descendant.measurement_point_id()
-                    && self.is_ancestor(ancestor.measurement_point_id(), descendant, &point_map)
+                    && Self::is_ancestor(ancestor.measurement_point_id(), descendant, &point_map)
                 {
                     return Err(PowerTraceError::NestedMeterDoubleCount {
                         ancestor_id: ancestor.measurement_point_id().to_string(),
@@ -622,9 +631,34 @@ impl DataCenterPowerTrace {
                     maximum_error_ns: selection.maximum_clock_alignment_error_ns(),
                 });
             }
+
+            let common_samples = self.common_sample_timestamps(selection.measurement_point_ids());
+            if common_samples < selection.minimum_common_samples() {
+                return Err(PowerTraceError::InsufficientCommonSamples {
+                    observed: common_samples,
+                    required: selection.minimum_common_samples(),
+                });
+            }
         }
 
         Ok(())
+    }
+
+    fn common_sample_timestamps(&self, selected_point_ids: &[String]) -> usize {
+        let mut common: Option<BTreeSet<u64>> = None;
+        for point_id in selected_point_ids {
+            let timestamps = self
+                .samples
+                .iter()
+                .filter(|sample| sample.measurement_point_id() == point_id)
+                .map(PowerTraceSample::elapsed_ns)
+                .collect::<BTreeSet<_>>();
+            common = Some(match common {
+                Some(previous) => previous.intersection(&timestamps).copied().collect(),
+                None => timestamps,
+            });
+        }
+        common.map_or(0, |timestamps| timestamps.len())
     }
 
     fn validate_parent_cycles(
@@ -650,7 +684,6 @@ impl DataCenterPowerTrace {
     }
 
     fn is_ancestor(
-        &self,
         ancestor_id: &str,
         descendant: &PowerMeasurementPoint,
         point_map: &BTreeMap<&str, &PowerMeasurementPoint>,
@@ -674,6 +707,7 @@ pub struct PowerAggregationSelection {
     boundary: PowerMeasurementBoundary,
     measurement_point_ids: Vec<String>,
     maximum_clock_alignment_error_ns: u64,
+    minimum_common_samples: usize,
 }
 
 impl PowerAggregationSelection {
@@ -681,9 +715,15 @@ impl PowerAggregationSelection {
         boundary: PowerMeasurementBoundary,
         measurement_point_ids: Vec<String>,
         maximum_clock_alignment_error_ns: u64,
+        minimum_common_samples: usize,
     ) -> Result<Self, PowerTraceError> {
         if measurement_point_ids.is_empty() {
             return Err(PowerTraceError::EmptyAggregationSelection);
+        }
+        if minimum_common_samples < 2 {
+            return Err(PowerTraceError::InvalidMinimumCommonSamples {
+                value: minimum_common_samples,
+            });
         }
         for id in &measurement_point_ids {
             if id.trim().is_empty() {
@@ -696,6 +736,7 @@ impl PowerAggregationSelection {
             boundary,
             measurement_point_ids,
             maximum_clock_alignment_error_ns,
+            minimum_common_samples,
         })
     }
 
@@ -709,6 +750,10 @@ impl PowerAggregationSelection {
 
     pub const fn maximum_clock_alignment_error_ns(&self) -> u64 {
         self.maximum_clock_alignment_error_ns
+    }
+
+    pub const fn minimum_common_samples(&self) -> usize {
+        self.minimum_common_samples
     }
 }
 
@@ -833,6 +878,13 @@ pub enum PowerTraceError {
         measured_error_ns: u64,
         maximum_error_ns: u64,
     },
+    InvalidMinimumCommonSamples {
+        value: usize,
+    },
+    InsufficientCommonSamples {
+        observed: usize,
+        required: usize,
+    },
 }
 
 impl fmt::Display for PowerTraceError {
@@ -940,6 +992,13 @@ impl fmt::Display for PowerTraceError {
             } => write!(
                 f,
                 "cross-site clock alignment error {measured_error_ns} ns exceeds allowed {maximum_error_ns} ns"
+            ),
+            Self::InvalidMinimumCommonSamples { value } => {
+                write!(f, "minimum common sample count must be at least 2; got {value}")
+            }
+            Self::InsufficientCommonSamples { observed, required } => write!(
+                f,
+                "cross-site correlation has {observed} common timestamps; {required} required"
             ),
         }
     }
@@ -1052,6 +1111,7 @@ mod tests {
             PowerMeasurementBoundary::FacilityPcc,
             vec!["A-PCC".to_string(), "B-PCC".to_string()],
             5_000_000,
+            2,
         )
         .unwrap();
         assert!(trace.validate_aggregation(&selection).is_ok());
@@ -1064,6 +1124,7 @@ mod tests {
             PowerMeasurementBoundary::FacilityPcc,
             vec!["A-PCC".to_string(), "A-NODE".to_string()],
             5_000_000,
+            2,
         );
         // Boundary mismatch is also fail-closed because the node meter is not a PCC meter.
         assert!(matches!(
@@ -1102,6 +1163,7 @@ mod tests {
             PowerMeasurementBoundary::FacilityPcc,
             vec!["PCC".to_string(), "UPS".to_string()],
             5_000_000,
+            2,
         )
         .unwrap();
 
@@ -1144,6 +1206,7 @@ mod tests {
             PowerMeasurementBoundary::FacilityPcc,
             vec!["A-PCC".to_string(), "B-PCC".to_string()],
             5_000_000,
+            2,
         )
         .unwrap();
 
@@ -1174,6 +1237,7 @@ mod tests {
             PowerMeasurementBoundary::FacilityPcc,
             vec!["A-PCC".to_string()],
             5_000_000,
+            2,
         )
         .unwrap();
 
