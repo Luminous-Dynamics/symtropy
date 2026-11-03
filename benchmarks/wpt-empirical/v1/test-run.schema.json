@@ -20,7 +20,8 @@
     "resonant_networks",
     "cyber_physical_security",
     "standards_basis",
-    "motion_profile"
+    "motion_profile",
+    "foreign_object_assessment"
   ],
   "properties": {
     "schema_version": {
@@ -749,7 +750,9 @@
               "REPORT",
               "OTHER",
               "SECURITY_REPORT",
-              "CERTIFICATION_EVIDENCE"
+              "CERTIFICATION_EVIDENCE",
+              "FOD_REPORT",
+              "FOD_THERMAL_DATA"
             ]
           },
           "uri": {
@@ -1488,6 +1491,326 @@
             "null"
           ],
           "minimum": 0
+        }
+      }
+    },
+    "foreign_object_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Evidence and outcome record for foreign-object detection, localization and mitigation. Status NOT_ASSESSED preserves absence of an FOD campaign; QUALIFIED means the benchmark gates have been met, not regulatory certification.",
+      "required": [
+        "assessment_status",
+        "sensor_modality",
+        "pre_transfer_frame_count",
+        "active_transfer_frame_count",
+        "distinct_conductive_object_count",
+        "distinct_nonconductive_object_count",
+        "held_out_object_count",
+        "held_out_session_count",
+        "data_split_policy",
+        "confusion_matrix",
+        "detection_recall_pct",
+        "false_negative_rate_pct",
+        "false_positive_rate_pct",
+        "real_time_accuracy_pct",
+        "p99_detection_latency_ms",
+        "localization_error_p95_mm",
+        "expected_calibration_error_pct",
+        "ood_abstention_count",
+        "sensor_fault_abstention_count",
+        "mitigation_mode",
+        "auxiliary_energy_j",
+        "max_object_temperature_rise_c",
+        "thermal_ground_truth_method",
+        "scenario_corpus_sha256",
+        "assessment_report_sha256",
+        "scenario_results"
+      ],
+      "properties": {
+        "assessment_status": {
+          "enum": [
+            "NOT_ASSESSED",
+            "INCOMPLETE",
+            "QUALIFIED"
+          ]
+        },
+        "sensor_modality": {
+          "enum": [
+            "IMPEDANCE",
+            "MIT",
+            "THERMAL",
+            "OPTICAL",
+            "HYBRID",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "pre_transfer_frame_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "active_transfer_frame_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "distinct_conductive_object_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "distinct_nonconductive_object_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "held_out_object_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "held_out_session_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "data_split_policy": {
+          "enum": [
+            "OBJECT_AND_SESSION_HELD_OUT",
+            "SESSION_HELD_OUT",
+            "OBJECT_HELD_OUT",
+            "RANDOM_FRAME_SPLIT",
+            "UNKNOWN"
+          ]
+        },
+        "confusion_matrix": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "true_positive",
+            "true_negative",
+            "false_positive",
+            "false_negative"
+          ],
+          "properties": {
+            "true_positive": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "true_negative": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "false_positive": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "false_negative": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "detection_recall_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "false_negative_rate_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "false_positive_rate_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "real_time_accuracy_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "p99_detection_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "localization_error_p95_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_calibration_error_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "ood_abstention_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sensor_fault_abstention_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mitigation_mode": {
+          "enum": [
+            "NONE",
+            "STOP_ONLY",
+            "DERATE",
+            "ACTIVE_DEMAG",
+            "HYBRID",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "auxiliary_energy_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_object_temperature_rise_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "thermal_ground_truth_method": {
+          "enum": [
+            "CALIBRATED_THERMOCOUPLE",
+            "CALIBRATED_IR",
+            "THERMOCOUPLE_AND_IR",
+            "VALIDATED_THERMAL_MODEL",
+            "NOT_REPORTED",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "scenario_corpus_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "assessment_report_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "scenario_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scenario_id",
+              "outcome",
+              "expected_action",
+              "observed_action",
+              "evidence_sha256",
+              "notes"
+            ],
+            "properties": {
+              "scenario_id": {
+                "type": "string",
+                "pattern": "^WPT-FOD-[A-Z0-9-]+$"
+              },
+              "outcome": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "expected_action": {
+                "enum": [
+                  "INHIBIT_TRANSFER",
+                  "SAFE_DEENERGIZE",
+                  "DERATE",
+                  "ACTIVATE_MITIGATION",
+                  "ABSTAIN",
+                  "NO_FOD_ACTION"
+                ]
+              },
+              "observed_action": {
+                "enum": [
+                  "INHIBIT_TRANSFER",
+                  "SAFE_DEENERGIZE",
+                  "DERATE",
+                  "ACTIVATE_MITIGATION",
+                  "ABSTAIN",
+                  "NO_FOD_ACTION"
+                ]
+              },
+              "evidence_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     }
