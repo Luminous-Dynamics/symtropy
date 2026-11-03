@@ -1461,6 +1461,50 @@ mod tests {
         assert_eq!(ids, expected, "frozen scenario IDs and validator contract drifted");
     }
 
+
+    #[test]
+    fn run_schema_matches_validator_top_level_and_scenario_ids() {
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../benchmarks/wpt-empirical/v1/test-run.schema.json"
+        ))
+        .expect("run manifest schema JSON parses");
+        let example: Value = serde_json::from_str(include_str!(
+            "../../../benchmarks/wpt-empirical/v1/test-run.example.json"
+        ))
+        .expect("run manifest example JSON parses");
+
+        let schema_top = schema["required"]
+            .as_array()
+            .expect("schema top-level required array")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        let validator_top = TOP_LEVEL.iter().copied().collect::<BTreeSet<_>>();
+        assert_eq!(schema_top, validator_top, "schema and validator top-level fields drifted");
+        assert_eq!(
+            example["schema_version"].as_str(),
+            Some("wpt-test-run-v1")
+        );
+
+        let schema_scenarios = schema["properties"]["cyber_physical_security"]
+            ["properties"]["security_scenario_results"]["items"]["properties"]["scenario_id"]
+            ["enum"]
+            .as_array()
+            .expect("security scenario ID enum")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        let validator_scenarios = REQUIRED_SECURITY_SCENARIOS
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            schema_scenarios,
+            validator_scenarios,
+            "run schema and security scenario gate drifted"
+        );
+    }
+
     #[test]
     fn not_run_template_is_structurally_valid_but_not_a_measurement() {
         let (disposition, errors) = validate_manifest(&template());
