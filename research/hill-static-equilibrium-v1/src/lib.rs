@@ -127,14 +127,15 @@ pub enum MuscleError {
     ImpossiblePennationGeometry,
     NonPositiveTendonLength,
     NonFiniteValue,
-    NonUniqueEquilibrium,
+    DegenerateEquilibriumSamples,
     NoEquilibriumBracket {
         lower_residual_n: f64,
         upper_residual_n: f64,
     },
     IterationLimit {
         iterations: u32,
-        last_residual_n: f64,
+        lower_residual_n: f64,
+        upper_residual_n: f64,
         bracket_width_m: f64,
     },
     ResidualToleranceUnmet {
@@ -479,7 +480,10 @@ pub fn solve_static_equilibrium(
             midpoint,
         )?;
         if middle_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-            return Err(MuscleError::NonUniqueEquilibrium);
+            // Three sampled points indicate a degenerate/underconstrained
+            // interval. This does not prove that the residual is identically
+            // zero or that no additional roots exist elsewhere.
+            return Err(MuscleError::DegenerateEquilibriumSamples);
         }
     }
 
@@ -578,7 +582,8 @@ pub fn solve_static_equilibrium(
 
     Err(MuscleError::IterationLimit {
         iterations: policy.maximum_iterations,
-        last_residual_n: 0.5 * (lower_eval.residual_n + upper_eval.residual_n),
+        lower_residual_n: lower_eval.residual_n,
+        upper_residual_n: upper_eval.residual_n,
         bracket_width_m: upper_fiber_length_m - lower_fiber_length_m,
     })
 }
@@ -804,7 +809,7 @@ mod tests {
             0.0,
             policy(),
         );
-        assert_eq!(result, Err(MuscleError::NonUniqueEquilibrium));
+        assert_eq!(result, Err(MuscleError::DegenerateEquilibriumSamples));
     }
 
     #[test]
