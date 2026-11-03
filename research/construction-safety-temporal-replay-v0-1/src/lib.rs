@@ -1402,20 +1402,15 @@ mod tests {
                 item.received_at_ms = 4_805;
             }
         }
+        // The source sequence 1 clear record arrives after sequence 2.
+        events[0].received_at_ms = 4_995;
         let mut newer = events[0].clone();
         newer.event_id = "newer-human-present".to_owned();
         newer.source_sequence = 2;
         newer.source_time_ms = 4_980;
         newer.received_at_ms = 4_990;
         newer.state = ObservationState::HumanPresent;
-        let mut older = newer.clone();
-        older.event_id = "older-clear-arrives-late".to_owned();
-        older.source_sequence = 1;
-        older.source_time_ms = 4_800;
-        older.received_at_ms = 4_995;
-        older.state = ObservationState::Clear;
         events.push(newer);
-        events.push(older);
         let decision = evaluate(&policy, &events);
         assert_eq!(
             decision.disposition,
@@ -1468,7 +1463,7 @@ mod tests {
         let policy = base_policy();
         let mut events = baseline_events();
         let mut replay = events[0].clone();
-        replay.received_at_ms = 4_800;
+        replay.received_at_ms = 4_903;
         events.push(replay);
 
         let decision = evaluate(&policy, &events);
@@ -1478,7 +1473,7 @@ mod tests {
                 .iter()
                 .find(|reference| reference.event_id == events[0].event_id)
                 .map(|reference| reference.received_at_ms),
-            Some(4_800)
+            Some(4_903)
         );
     }
 
