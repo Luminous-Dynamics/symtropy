@@ -449,9 +449,9 @@ mod tests {
     fn plan() -> EvaluationPlan {
         EvaluationPlan::new(
             vec![
-                Objective::new("efficiency_percent", ObjectiveDirection::Maximize).unwrap(),
-                Objective::new("shield_loss_w", ObjectiveDirection::Minimize).unwrap(),
-                Objective::new("load_power_w", ObjectiveDirection::Maximize).unwrap(),
+                Objective::new("efficiency_percent", ObjectiveDirection::Maximize, "%").unwrap(),
+                Objective::new("shield_loss_w", ObjectiveDirection::Minimize, "W").unwrap(),
+                Objective::new("load_power_w", ObjectiveDirection::Maximize, "W").unwrap(),
             ],
             vec![
                 HardConstraint::new(
@@ -483,11 +483,11 @@ mod tests {
         Candidate::new(
             id,
             [
-                ("efficiency_percent", Interval::new(efficiency.0, efficiency.1).unwrap()),
-                ("shield_loss_w", Interval::new(shield_loss.0, shield_loss.1).unwrap()),
-                ("load_power_w", Interval::new(power.0, power.1).unwrap()),
-                ("e_field_v_per_m", Interval::new(e_field.0, e_field.1).unwrap()),
-                ("temperature_rise_c", Interval::new(temperature.0, temperature.1).unwrap()),
+                ("efficiency_percent", Interval::new(efficiency.0, efficiency.1).unwrap(), "%"),
+                ("shield_loss_w", Interval::new(shield_loss.0, shield_loss.1).unwrap(), "W"),
+                ("load_power_w", Interval::new(power.0, power.1).unwrap(), "W"),
+                ("e_field_v_per_m", Interval::new(e_field.0, e_field.1).unwrap(), "V/m"),
+                ("temperature_rise_c", Interval::new(temperature.0, temperature.1).unwrap(), "degC"),
             ],
         ).unwrap()
     }
@@ -507,10 +507,10 @@ mod tests {
     #[test]
     fn missing_required_safety_metric_is_not_evaluable() {
         let item = Candidate::new("missing", [
-            ("efficiency_percent", Interval::exact(95.0).unwrap()),
-            ("shield_loss_w", Interval::exact(5.0).unwrap()),
-            ("load_power_w", Interval::exact(50_000.0).unwrap()),
-            ("temperature_rise_c", Interval::exact(20.0).unwrap()),
+            ("efficiency_percent", Interval::exact(95.0).unwrap(), "%"),
+            ("shield_loss_w", Interval::exact(5.0).unwrap(), "W"),
+            ("load_power_w", Interval::exact(50_000.0).unwrap(), "W"),
+            ("temperature_rise_c", Interval::exact(20.0).unwrap(), "degC"),
         ]).unwrap();
         assert_eq!(evaluate_candidate(&item, &plan()).disposition, Disposition::NotEvaluable);
     }
@@ -518,10 +518,10 @@ mod tests {
     #[test]
     fn proven_violation_takes_priority_over_another_missing_constraint() {
         let item = Candidate::new("bad", [
-            ("efficiency_percent", Interval::exact(99.0).unwrap()),
-            ("shield_loss_w", Interval::exact(2.0).unwrap()),
-            ("load_power_w", Interval::exact(90_000.0).unwrap()),
-            ("e_field_v_per_m", Interval::exact(120.0).unwrap()),
+            ("efficiency_percent", Interval::exact(99.0).unwrap(), "%"),
+            ("shield_loss_w", Interval::exact(2.0).unwrap(), "W"),
+            ("load_power_w", Interval::exact(90_000.0).unwrap(), "W"),
+            ("e_field_v_per_m", Interval::exact(120.0).unwrap(), "V/m"),
         ]).unwrap();
         assert_eq!(evaluate_candidate(&item, &plan()).disposition, Disposition::Infeasible);
     }
@@ -531,22 +531,22 @@ mod tests {
         let item = candidate("boundary", (95.0, 95.0), (4.0, 4.0), (60_000.0, 60_000.0), (100.0, 100.0), (40.0, 40.0));
         assert_eq!(evaluate_candidate(&item, &plan()).disposition, Disposition::Feasible);
         let minimum = HardConstraint::new("minimum", "power", ConstraintSense::AtLeast, 60.0, "W").unwrap();
-        assert_eq!(minimum.evaluate(Some(Interval::exact(60.0).unwrap())), ConstraintOutcome::Safe);
+        assert_eq!(minimum.evaluate(Some(&MetricValue::new(Interval::exact(60.0).unwrap(), "W").unwrap())), ConstraintOutcome::Safe);
     }
 
     #[test]
     fn robust_dominance_requires_interval_separation() {
         let objectives = vec![
-            Objective::new("power", ObjectiveDirection::Maximize).unwrap(),
-            Objective::new("loss", ObjectiveDirection::Minimize).unwrap(),
+            Objective::new("power", ObjectiveDirection::Maximize, "W").unwrap(),
+            Objective::new("loss", ObjectiveDirection::Minimize, "W").unwrap(),
         ];
         let a = Candidate::new("a", [
-            ("power", Interval::new(110.0, 120.0).unwrap()),
-            ("loss", Interval::new(4.0, 5.0).unwrap()),
+            ("power", Interval::new(110.0, 120.0).unwrap(), "W"),
+            ("loss", Interval::new(4.0, 5.0).unwrap(), "W"),
         ]).unwrap();
         let b = Candidate::new("b", [
-            ("power", Interval::new(90.0, 100.0).unwrap()),
-            ("loss", Interval::new(6.0, 7.0).unwrap()),
+            ("power", Interval::new(90.0, 100.0).unwrap(), "W"),
+            ("loss", Interval::new(6.0, 7.0).unwrap(), "W"),
         ]).unwrap();
         assert!(robustly_dominates(&a, &b, &objectives).unwrap());
         assert!(!robustly_dominates(&b, &a, &objectives).unwrap());
@@ -555,16 +555,16 @@ mod tests {
     #[test]
     fn overlapping_uncertainties_are_not_forced_into_a_ranking() {
         let objectives = vec![
-            Objective::new("power", ObjectiveDirection::Maximize).unwrap(),
-            Objective::new("loss", ObjectiveDirection::Minimize).unwrap(),
+            Objective::new("power", ObjectiveDirection::Maximize, "W").unwrap(),
+            Objective::new("loss", ObjectiveDirection::Minimize, "W").unwrap(),
         ];
         let a = Candidate::new("a", [
-            ("power", Interval::new(90.0, 105.0).unwrap()),
-            ("loss", Interval::new(8.0, 9.0).unwrap()),
+            ("power", Interval::new(90.0, 105.0).unwrap(), "W"),
+            ("loss", Interval::new(8.0, 9.0).unwrap(), "W"),
         ]).unwrap();
         let b = Candidate::new("b", [
-            ("power", Interval::new(95.0, 110.0).unwrap()),
-            ("loss", Interval::new(8.5, 9.5).unwrap()),
+            ("power", Interval::new(95.0, 110.0).unwrap(), "W"),
+            ("loss", Interval::new(8.5, 9.5).unwrap(), "W"),
         ]).unwrap();
         assert!(!robustly_dominates(&a, &b, &objectives).unwrap());
         assert!(!robustly_dominates(&b, &a, &objectives).unwrap());
@@ -598,8 +598,8 @@ mod tests {
         assert_eq!(Interval::new(f64::NAN, 1.0), Err(MetricError::InvalidInterval));
         assert_eq!(Interval::new(2.0, 1.0), Err(MetricError::InvalidInterval));
         let duplicate = EvaluationPlan::new(vec![
-            Objective::new("power", ObjectiveDirection::Maximize).unwrap(),
-            Objective::new("power", ObjectiveDirection::Minimize).unwrap(),
+            Objective::new("power", ObjectiveDirection::Maximize, "W").unwrap(),
+            Objective::new("power", ObjectiveDirection::Minimize, "W").unwrap(),
         ], vec![]);
         assert_eq!(duplicate, Err(MetricError::DuplicateObjectiveMetric));
     }
@@ -609,8 +609,8 @@ mod tests {
         let duplicate = Candidate::new(
             "duplicate-metric",
             [
-                ("power", Interval::exact(10.0).unwrap()),
-                ("power", Interval::exact(11.0).unwrap()),
+                ("power", Interval::exact(10.0).unwrap(), "W"),
+                ("power", Interval::exact(11.0).unwrap(), "W"),
             ],
         );
         assert_eq!(duplicate, Err(MetricError::DuplicateCandidateMetric));
