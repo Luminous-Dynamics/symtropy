@@ -19,7 +19,8 @@
     "conditions",
     "source_refs",
     "qualification",
-    "notes"
+    "notes",
+    "field_observation"
   ],
   "properties": {
     "schema_version": {
@@ -62,7 +63,10 @@
         "control_latency",
         "signal_to_noise_ratio",
         "bit_error_rate",
-        "data_rate"
+        "data_rate",
+        "apparent_power",
+        "reactive_power",
+        "power_factor"
       ]
     },
     "measurement_purpose": {
@@ -531,6 +535,104 @@
     },
     "notes": {
       "type": "string"
+    },
+    "field_observation": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "probe_method",
+        "probe_model",
+        "position_m",
+        "orientation",
+        "reference_frame",
+        "spatial_region",
+        "averaging_method",
+        "averaging_window_s"
+      ],
+      "properties": {
+        "probe_method": {
+          "enum": [
+            "MEASURED",
+            "SIMULATED",
+            "COMBINED",
+            "UNKNOWN"
+          ]
+        },
+        "probe_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "position_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "y": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "z": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "orientation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference_frame": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "spatial_region": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "averaging_method": {
+          "enum": [
+            "rms",
+            "peak",
+            "spatial_maximum",
+            "spatial_average",
+            "time_average",
+            "not_reported",
+            "not_applicable"
+          ]
+        },
+        "averaging_window_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
     }
   }
 }
