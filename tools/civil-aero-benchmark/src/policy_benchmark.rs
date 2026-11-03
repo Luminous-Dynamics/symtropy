@@ -791,7 +791,7 @@ pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
     let mut output = format!("{POLICY_BENCHMARK_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             csv_escape(&row.task_id),
             csv_escape(&row.replicate_id),
             csv_escape(&row.policy_id),
