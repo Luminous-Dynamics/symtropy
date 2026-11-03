@@ -59,7 +59,8 @@
         "topology",
         "hardware_revision",
         "controller_revision",
-        "power_rating_w"
+        "power_rating_w",
+        "configuration_digest"
       ],
       "properties": {
         "system_id": {
@@ -96,6 +97,13 @@
             "null"
           ],
           "exclusiveMinimum": 0
+        },
+        "configuration_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     },
@@ -291,7 +299,8 @@
               "calibration_due_utc",
               "bandwidth_hz",
               "phase_error_deg",
-              "uncertainty_pct"
+              "uncertainty_pct",
+              "calibration_valid_from_utc"
             ],
             "properties": {
               "meter_id": {
@@ -347,6 +356,12 @@
                   "null"
                 ],
                 "minimum": 0
+              },
+              "calibration_valid_from_utc": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           }
