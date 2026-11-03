@@ -65,6 +65,31 @@ decision with a new cutoff; it cannot mutate the earlier result.
 Source age is computed from source time, not receive time. Recently received
 stale measurements remain stale.
 
+### Optional continuous evidence window
+
+A point-in-time decision can set `required_evidence_window_ms = 0`. A stronger
+qualification profile sets a positive evidence window and a maximum
+inter-sample gap. For every required hazard-zone cell and each contributing
+sensor, the reducer then requires:
+
+- a first observation no later than the declared maximum gap after the window
+  starts;
+- subsequent source-time gaps no larger than the configured maximum;
+- a latest observation still within the normal freshness bound at the cutoff;
+- clear, sufficiently confident and sufficiently covered observations
+  throughout the window.
+
+A human-present observation anywhere inside the window requires a stop. Unknown,
+conflicting, stale or low-confidence samples cannot be erased by a later clear
+sample. The decision receipt reports the window start, maximum observed gap
+(including leading/trailing gaps) and the number of contributing temporal
+samples for each cell.
+
+This is a bounded event-cadence contract, not proof that a sensor physically
+observed every instant between events. Actual exposure, occlusion, update
+cadence, clock error and detection performance require independent
+instrumentation and physical validation.
+
 ### Epochs, sequences and replay
 
 For each source:
@@ -96,15 +121,18 @@ For each exact policy-required hazard-zone cell, V1:
 6. Requires the minimum number of modalities and fault domains to cover the
    entire required zone.
 7. Checks inter-sensor source-time skew at each cell.
-8. Emits cell-level source IDs, modality/fault-domain coverage, source-time
-   bounds and maximum observed age.
+8. Optionally requires a complete source-time evidence window per cell, with a
+   bounded leading gap, bounded inter-sample gaps, a fresh final sample and no
+   unknown/low-confidence/human-present sample within the window.
+9. Emits cell-level source IDs, modality/fault-domain coverage, source-time
+   bounds, maximum age, maximum observation gap and temporal sample count.
 
 A clear claim for one part of a work zone cannot be averaged into coverage of a
 blind cell elsewhere.
 
 ## Frozen trace corpus
 
-V1 defines **59 named synthetic traces** and **12 authored Rust unit tests**.
+V1 defines **69 named synthetic traces** and **17 authored Rust unit tests**.
 The trace corpus includes:
 
 - synchronized clear baseline and arrival-order permutations;
@@ -121,6 +149,11 @@ The trace corpus includes:
 - a late clear event that cannot rewrite a prior cutoff;
 - a new cutoff that can consume a later, complete clear frame;
 - per-cell inter-sensor skew;
+- full clear evidence windows, leading blind intervals, excessive inter-sample
+  gaps, missing middle frames and stale final samples;
+- human-present, unknown and low-confidence observations that occur inside a
+  window and are followed by later clear snapshots;
+- exact maximum-gap boundary behaviour;
 - single-modality and common-mode-only profiles;
 - empty event batch and duplicate policy sensor identities.
 
@@ -150,8 +183,9 @@ measured by this first reducer:
 |---|---|
 | T0 | Latest-arrival snapshot (intentionally naive comparator). |
 | T1 | Source-timestamp-only ordering, without explicit epoch/sequence semantics. |
-| T2 | Source-epoch + monotonic-sequence + event-time reduction (this V1). |
-| T3 | Separately implemented independent trace oracle / mutation evaluator. |
+| T2 | Source-epoch + monotonic-sequence + event-time point reduction. |
+| T3 | T2 plus per-cell continuous evidence windows and bounded inter-sample gaps (this V1). |
+| T4 | Separately implemented independent trace oracle / mutation evaluator. |
 
 Report separately:
 
@@ -165,6 +199,7 @@ Report separately:
 - source-order monotonicity and duplicate idempotence;
 - arrival-order permutation invariance at the same cutoff;
 - per-cell modality/fault-domain completeness and maximum inter-sensor skew;
+- maximum per-cell observation gap and temporal sample depth;
 - false stop/hold rate on benign paired controls;
 - results stratified by sensor modality, fault domain, source reset, zone cell
   and ODD.
@@ -180,8 +215,10 @@ The next research steps are:
 
 1. **Causal event campaigns:** compose with the existing scenario fault
    schedule rather than inventing another scenario engine.
-2. **Temporal cell coverage:** track the longest unobserved interval per cell,
-   not only whether each cell had one recent event at cutoff.
+2. **Temporal cell coverage:** the positive evidence-window profile now rejects
+   excessive leading/inter-sample/trailing gaps and reports the maximum observed
+   gap and sample depth per cell. Next add explicit variable-cadence models,
+   source dropout-duration campaigns and window-level cross-modal disagreement.
 3. **Cross-modal conflict:** preserve the raw disagreement and reason codes;
    do not average contradictory sensors into a reassuring confidence value.
 4. **Independent evaluation:** implement T3 in a structurally different reducer
