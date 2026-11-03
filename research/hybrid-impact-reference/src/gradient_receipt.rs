@@ -146,6 +146,7 @@ pub enum GradientReceiptError {
     UnexpectedDirectionIdentity,
     MissingValidityRegion,
     InvalidCoordinateSet,
+    MismatchedCoordinateRoster,
     NonFiniteGradient,
     InvalidMetric,
     MissingNormalizationId,
@@ -373,6 +374,7 @@ fn validate_branch_responses(
 ) -> Result<(), GradientReceiptError> {
     let mut branch_ids = Vec::new();
     let mut direction_ids = Vec::new();
+    let mut canonical_coordinate_ids: Option<Vec<&str>> = None;
 
     for response in responses {
         match response.branch_id.as_deref() {
@@ -430,6 +432,13 @@ fn validate_branch_responses(
         coordinates.sort_unstable();
         if coordinates.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(GradientReceiptError::InvalidCoordinateSet);
+        }
+        if let Some(expected) = &canonical_coordinate_ids {
+            if *expected != coordinates {
+                return Err(GradientReceiptError::MismatchedCoordinateRoster);
+            }
+        } else {
+            canonical_coordinate_ids = Some(coordinates);
         }
     }
 
@@ -801,6 +810,43 @@ mod tests {
 
         receipt.metrics.transversality_abs_margin = Some(1.0e-6);
         receipt.validate().expect("strictly positive transversality bound");
+    }
+
+
+    #[test]
+    fn branch_sets_require_identical_coordinate_rosters() {
+        let mut receipt = base_receipt(GradientKind::SetValued);
+        let height_only = GradientResponse {
+            branch_id: Some("stick".into()),
+            direction_id: None,
+            validity_region_digest: Some(digest('8')),
+            coordinates: vec![GradientCoordinate {
+                coordinate_id: "height".into(),
+                value: 0.0,
+            }],
+        };
+
+        let two_coordinates = GradientResponse {
+            branch_id: Some("slip".into()),
+            direction_id: None,
+            validity_region_digest: Some(digest('7')),
+            coordinates: vec![
+                GradientCoordinate {
+                    coordinate_id: "height".into(),
+                    value: 0.5,
+                },
+                GradientCoordinate {
+                    coordinate_id: "velocity".into(),
+                    value: 1.0,
+                },
+            ],
+        };
+        receipt.responses = vec![height_only, two_coordinates];
+
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::MismatchedCoordinateRoster)
+        );
     }
 
 
