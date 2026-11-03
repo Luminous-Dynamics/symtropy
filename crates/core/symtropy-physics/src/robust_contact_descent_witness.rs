@@ -201,6 +201,53 @@ fn bounded_binomial(n: usize, k: usize, cap: usize) -> Option<usize> {
 }
 
 #[allow(clippy::needless_range_loop)]
+fn solve_exact_rational_system(
+    mut matrix: Vec<Vec<BigRational>>,
+    mut right_hand_side: Vec<BigRational>,
+) -> Option<Vec<BigRational>> {
+    let dimension = matrix.len();
+    if right_hand_side.len() != dimension
+        || matrix.iter().any(|row| row.len() != dimension)
+    {
+        return None;
+    }
+    let zero = rational(0);
+
+    // Exact Gauss-Jordan elimination. Singular systems are rejected.
+    for pivot_column in 0..dimension {
+        let pivot_row =
+            (pivot_column..dimension).find(|row| matrix[*row][pivot_column] != zero)?;
+        if pivot_row != pivot_column {
+            matrix.swap(pivot_row, pivot_column);
+            right_hand_side.swap(pivot_row, pivot_column);
+        }
+
+        let pivot = matrix[pivot_column][pivot_column].clone();
+        for column in pivot_column..dimension {
+            matrix[pivot_column][column] /= pivot.clone();
+        }
+        right_hand_side[pivot_column] /= pivot;
+
+        let pivot_values = matrix[pivot_column].clone();
+        let pivot_rhs = right_hand_side[pivot_column].clone();
+        for row in 0..dimension {
+            if row == pivot_column {
+                continue;
+            }
+            let factor = matrix[row][pivot_column].clone();
+            if factor == zero {
+                continue;
+            }
+            for column in pivot_column..dimension {
+                matrix[row][column] -= factor.clone() * pivot_values[column].clone();
+            }
+            right_hand_side[row] -= factor * pivot_rhs.clone();
+        }
+    }
+
+    Some(right_hand_side)
+}
+
 fn solve_active_lp_constraints(
     constraints: &[LpConstraint],
     active_indices: &[usize],
@@ -209,49 +256,116 @@ fn solve_active_lp_constraints(
         return None;
     }
 
-    let mut matrix: Vec<Vec<BigRational>> = active_indices
+    let matrix = active_indices
         .iter()
         .map(|index| constraints[*index].coefficients.to_vec())
         .collect();
-    let mut right_hand_side: Vec<BigRational> = active_indices
+    let right_hand_side = active_indices
         .iter()
         .map(|index| constraints[*index].upper_bound.clone())
         .collect();
-    let zero = rational(0);
 
-    // Exact Gauss-Jordan elimination. Singular active sets are skipped.
-    for pivot_column in 0..LP_VARIABLE_COUNT {
-        let pivot_row =
-            (pivot_column..LP_VARIABLE_COUNT).find(|row| matrix[*row][pivot_column] != zero)?;
-        if pivot_row != pivot_column {
-            matrix.swap(pivot_row, pivot_column);
-            right_hand_side.swap(pivot_row, pivot_column);
-        }
+    solve_exact_rational_system(matrix, right_hand_side)?
+        .try_into()
+        .ok()
+}
 
-        let pivot = matrix[pivot_column][pivot_column].clone();
-        for column in pivot_column..LP_VARIABLE_COUNT {
-            matrix[pivot_column][column] /= pivot.clone();
-        }
-        right_hand_side[pivot_column] /= pivot;
+/// Solve A_active^T lambda = e_margin. Nonnegative multipliers are an exact
+/// dual certificate for the active-set primal vertex.
+fn solve_active_lp_dual_constraints(
+    constraints: &[LpConstraint],
+    active_indices: &[usize],
+) -> Option<LpVector> {
+    if active_indices.len() != LP_VARIABLE_COUNT
+        || active_indices.iter().any(|index| *index >= constraints.len())
+    {
+        return None;
+    }
 
-        let pivot_values = matrix[pivot_column].clone();
-        let pivot_rhs = right_hand_side[pivot_column].clone();
-        for row in 0..LP_VARIABLE_COUNT {
-            if row == pivot_column {
-                continue;
+    let matrix: Vec<Vec<BigRational>> = (0..LP_VARIABLE_COUNT)
+        .map(|variable| {
+            active_indices
+                .iter()
+                .map(|index| constraints[*index].coefficients[variable].clone())
+                .collect()
+        })
+        .collect();
+    let right_hand_side = (0..LP_VARIABLE_COUNT)
+        .map(|variable| {
+            if variable == INPUT_DIMENSION {
+                rational(1)
+            } else {
+                rational(0)
             }
-            let factor = matrix[row][pivot_column].clone();
-            if factor == zero {
-                continue;
-            }
-            for column in pivot_column..LP_VARIABLE_COUNT {
-                matrix[row][column] -= factor.clone() * pivot_values[column].clone();
-            }
-            right_hand_side[row] -= factor * pivot_rhs.clone();
+        })
+        .collect();
+    let multipliers: LpVector =
+        solve_exact_rational_system(matrix, right_hand_side)?.try_into().ok()?;
+    multipliers
+        .iter()
+        .all(|multiplier| multiplier >= &rational(0))
+        .then_some(multipliers)
+}
+
+#[allow(clippy::needless_range_loop)]
+fn verify_exact_lp_certificate(
+    constraints: &[LpConstraint],
+    active_indices: &[usize],
+    dual_multipliers: &[BigRational],
+    candidate: &LpVector,
+) -> bool {
+    if !lp_constraints_satisfied(constraints, candidate)
+        || active_indices.len() != LP_VARIABLE_COUNT
+        || dual_multipliers.len() != LP_VARIABLE_COUNT
+        || active_indices.iter().any(|index| *index >= constraints.len())
+        || dual_multipliers.iter().any(|value| value < &rational(0))
+    {
+        return false;
+    }
+
+    // Dual stationarity: A^T lambda = e_margin.
+    for variable in 0..LP_VARIABLE_COUNT {
+        let weighted_coefficient = active_indices
+            .iter()
+            .zip(dual_multipliers.iter())
+            .fold(rational(0), |sum, (index, multiplier)| {
+                sum + &constraints[*index].coefficients[variable] * multiplier
+            });
+        let required = if variable == INPUT_DIMENSION {
+            rational(1)
+        } else {
+            rational(0)
+        };
+        if weighted_coefficient != required {
+            return false;
         }
     }
 
-    right_hand_side.try_into().ok()
+    // Complementary slackness on positive multipliers.
+    for (index, multiplier) in active_indices.iter().zip(dual_multipliers.iter()) {
+        if multiplier > &rational(0) {
+            let constraint = &constraints[*index];
+            let value = constraint
+                .coefficients
+                .iter()
+                .zip(candidate.iter())
+                .fold(rational(0), |sum, (coefficient, variable)| {
+                    sum + coefficient * variable
+                });
+            if value != constraint.upper_bound {
+                return false;
+            }
+        }
+    }
+
+    // Exact primal/dual objective equality.
+    let dual_objective = active_indices
+        .iter()
+        .zip(dual_multipliers.iter())
+        .fold(rational(0), |sum, (index, multiplier)| {
+            sum + &constraints[*index].upper_bound * multiplier
+        });
+    dual_objective == candidate[INPUT_DIMENSION]
 }
 
 fn lp_constraints_satisfied(constraints: &[LpConstraint], candidate: &LpVector) -> bool {
