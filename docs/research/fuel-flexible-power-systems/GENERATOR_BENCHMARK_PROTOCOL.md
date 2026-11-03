@@ -322,6 +322,33 @@ The matched horizon includes event and post-event rebound. All samples must foll
 
 Use [AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json](data/AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json) and its [schema](data/AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json). Six synthetic cases cover 25%-for-3-hours matched service, battery shift with unchanged facility energy/work, work loss, rebound, facility energy regression and SLA/thermal failure. These are code/data oracles, not field measurements. Well-to-Service accounting is still required for primary energy, grid-generation and lifecycle effects.
 
+### 5.11 Independent workload schedule feasibility certificate
+
+Dependent implementation: [PR #3443](https://github.com/Luminous-Dynamics/symtropy/pull/3443).
+
+This component verifies a schedule; it does not create one. This separation allows EDF, MILP, MPC or learned planning algorithms to be benchmarked against the same deterministic feasibility oracle.
+
+A schedule receipt is accepted only when:
+- every job is completed within its release/deadline window;
+- work-unit identity and per-slot limits are respected;
+- non-preemptible jobs remain contiguous;
+- checkpointable pauses incur their declared resume overhead;
+- per-slot compute, facility input, residual grid import and cooling remain within frozen budgets;
+- integrated facility, grid and cooling energy are finite and reproducible.
+
+The independent accounting reconstructs:
+`facility input = base non-compute + base cooling + job IT + incremental cooling + checkpoint power`
+and
+`grid import = max(facility input - committed non-grid supply, 0)`.
+
+Checkpoint energy is converted into slot power using the exact slot duration before checking limits. Zero-compute slots are legal and useful during demand-response intervals; job completion must still occur in allowed slots.
+
+Machine-readable cases:
+- [AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json](data/AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json)
+- [AI_WORKLOAD_SCHEDULE_SCHEMA_2026-11-03.json](data/AI_WORKLOAD_SCHEDULE_SCHEMA_2026-11-03.json)
+
+Five synthetic cases include feasible work allocation, grid cap, cooling cap, non-preemptible fragmentation and checkpoint-resume energy. They do not establish optimality, real site feasibility or physical grid-service qualification.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
