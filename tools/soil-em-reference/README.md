@@ -12,6 +12,12 @@ power ratios, wavelength, conduction/displacement current ratio and skin
 depth. It also exposes the familiar good-conductor approximation, but only
 when the conduction ratio is at least 100.
 
+It also contains an ideal hemispherical-electrode spreading-impedance
+reference for a hemispherical equipotential electrode flush with an insulating
+plane over a uniform conductive half-space. Its complex impedance is
+`1 / (2*pi*a*(sigma + j*omega*epsilon))`; the DC limit is `1/(2*pi*a*sigma)`.
+This ideal one-electrode result is not a two-terminal ground resistance.
+
 This is a **material propagation reference**, not a model of a soil electrode,
 ground rod, lossy half-space with an earth return electrode, layered geology,
 near-field coupling, surface-wave propagation, Earth-ionosphere modes or the
@@ -64,6 +70,6 @@ Compare solver and analytic results only on a matched physical problem.
 
 ## Validation status
 
-Six Rust unit tests are authored. They have not been compiled or executed in
+Nine Rust unit tests are authored across plane-wave and ideal electrode references. They have not been compiled or executed in
 this authoring environment because Cargo/rustc are unavailable. No CI or
 numerical qualification pass is claimed.
