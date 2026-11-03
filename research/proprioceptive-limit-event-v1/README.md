@@ -25,7 +25,7 @@ Related scientific work: Symtropy [ANIMA-NEURO-003 / #3456](https://github.com/L
 
 ## Synthetic tests
 
-The tests cover upper/lower crossings, one-shot/latch semantics, hysteresis re-arming, initial conditions already beyond a limit, sample-gap rebaselining, out-of-order samples, wrong joint IDs, body-state digest syntax, declared angle bounds, zero ticks and invalid hysteresis configuration.
+The 16 tests cover upper/lower crossings, one-shot/latch semantics, hysteresis re-arming, initial conditions already beyond a limit, sample-gap rebaselining, out-of-order samples, wrong joint IDs, body-state digest syntax, declared angle bounds, zero ticks and invalid hysteresis configuration.
 
 All tests are synthetic and establish only the event contract.
 
