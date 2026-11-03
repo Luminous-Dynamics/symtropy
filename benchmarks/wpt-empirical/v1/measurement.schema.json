@@ -66,7 +66,18 @@
         "data_rate",
         "apparent_power",
         "reactive_power",
-        "power_factor"
+        "power_factor",
+        "relative_temperature_reduction",
+        "relative_leakage_flux_reduction",
+        "relative_efficiency_improvement",
+        "thermal_spatial_uniformity_improvement",
+        "magnetic_flux_spatial_uniformity_improvement",
+        "magnetothermal_equilibrium_improvement",
+        "mutual_inductance_estimation_error",
+        "equivalent_load_estimation_error",
+        "output_prediction_mape",
+        "cc_cv_regulation_error",
+        "control_settling_time"
       ]
     },
     "measurement_purpose": {
@@ -78,7 +89,8 @@
         "thermal_performance",
         "operational_reliability",
         "communications_performance",
-        "environmental_context"
+        "environmental_context",
+        "control_performance"
       ]
     },
     "raw_measurement": {
@@ -454,7 +466,9 @@
         "transmitter_pitch_m",
         "vehicle_energy_demand_wh_km",
         "vehicle_profile_id",
-        "drive_cycle_id"
+        "drive_cycle_id",
+        "reference_baseline_id",
+        "metric_definition_id"
       ],
       "properties": {
         "frequency_hz": {
@@ -590,6 +604,18 @@
           ]
         },
         "drive_cycle_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reference_baseline_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metric_definition_id": {
           "type": [
             "string",
             "null"
