@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 publish = false
-description = "Source-qualified inventory and blind held-out prediction evaluation for Drosophila hair-plate reflexes."
+description = "Source-qualified blind prediction contract for Drosophila hair-plate reflexes."
 
 [lib]
 path = "src/lib.rs"
