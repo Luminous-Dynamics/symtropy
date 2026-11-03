@@ -207,3 +207,14 @@ The new DYNAMIC run record stores speed profile and segment log digests, route l
 IEC PAS 61980-4:2025 now provides a stationary high-power off-board WPT reference, IEC PAS 61980-5:2024 a dynamic off-board WPT reference, and IEC PAS 61980-6:2025 dynamic communications/positioning. The latter explicitly leaves bidirectional transfer under consideration. The typed run contract validates their static/dynamic applicability and rejects a bidirectional normative claim under Part 6.
 
 The dynamic route-energy lane records distance/speed, transmitter segment pitch and events, missed/false activations, roadway source energy, vehicle DC energy, battery gain, propulsion energy, idle energy, Wh/km and energy sufficiency. Dynamic and static runs are separate comparison strata.
+
+
+## FOD and foreign-object-tolerant WPT
+
+Typed v1 contains 58 observations and 19 frozen comparison cases. The new FOD records distinguish raw versus feature-engineered MIT classifier accuracy under cross-session drift, classifier-cycle latency, coin temperature rise with and without DeMag, relative thermal reduction, and DeMag-on whole-system efficiency claims at 1.5 and 3.3 kW. Meter boundaries and uncertainty remain incomplete; these are SOURCE_CLAIM_ONLY records.
+
+The run manifest now has a foreign_object_assessment object with dataset split, distinct object/session counts, confusion matrix, derived recall/FNR/FPR/accuracy, p99 latency, localization p95, calibration error, abstentions, mitigation mode, auxiliary energy, thermal ground truth and SHA-256-bound scenario/report evidence.
+
+The 14-case frozen corpus is foreign-object-scenarios.jsonl. It covers conductive/ferrous objects, multiple objects, unseen alloy, session drift, active-transfer EMI, sensor faults, localization uncertainty, DeMag actuation/fault, object movement, thermal-sensor failure and an empty-region negative control.
+
+A FOD assessment marked QUALIFIED must pass the object-and-session-held-out criteria and produce all required scenario results. safety.foreign_object_detection = PASS is rejected unless the FOD assessment itself is QUALIFIED. These are proposed engineering research gates, not a published standard or certification.
