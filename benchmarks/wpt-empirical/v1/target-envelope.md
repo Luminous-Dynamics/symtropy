@@ -283,3 +283,15 @@ For each resonant network, publish the ferrite/core material, saturation-versus-
 
 The 2026 bidirectional prototype paper reports a calculated 376 mT core flux and cited ferrite saturation values of 530 mT at 25°C and 410 mT at 100°C. From these values, utilization rises from 71.0% to 91.7% at the hot reference, leaving 8.3% nominal margin to the cited hot threshold. This is a source-based calculation, not a measured failure. The proposed 80% limit is a research design target, not a standard requirement.
 
+
+## 11. Standards-aware interoperability scoring
+
+A standards score must be scope-qualified before it contributes to any performance comparison. Proposed gate:
+- 0 false-compliance claims: the record never labels an out-of-scope test as normative or certified.
+- For SAE J2954_202408 normative claims, require stationary, surface-mounted, grid-to-vehicle operation and measured source-side apparent power <=11 kVA; this test checks declared applicability, not all provisions of the standard.
+- For >11 kVA or heavy-duty systems, record J2954/2 context and the exact independently verified requirements used. J2954/2_202212 is an Information Report with incomplete detailed requirements, not a complete compliance test.
+- For bidirectional WPT, record J2954_202408 as partial/out-of-scope as appropriate and separately identify J3072/J2836/3/IEEE/UL provisions actually applied. J3072 is conductive-EVSE interconnection scope and J2836/3 is DER use-case guidance; neither alone certifies wireless V2G.
+- For dynamic roadway tests, do not cite a future/planned J2954/3 as a published requirement. Track it as PLANNED_NOT_ISSUED until a current issued edition is confirmed.
+- Distinguish standard applicability, test method borrowed, self-assessment, and independent certification in reports.
+
+The goal is not standards name-dropping. It is a machine-checkable boundary between what was required, what was tested, what was merely referenced and what remains outside the published scope.
