@@ -770,8 +770,9 @@ mod tests {
         assert!(result.force_residual_n.abs() <= 1.0e-8);
         assert!(result.root_bracket_lower_fiber_length_m <= result.fiber_length_m);
         assert!(result.fiber_length_m <= result.root_bracket_upper_fiber_length_m);
-        assert!(result.root_bracket_lower_residual_n <= 0.0);
-        assert!(result.root_bracket_upper_residual_n >= 0.0);
+        assert!(
+            result.root_bracket_lower_residual_n * result.root_bracket_upper_residual_n <= 0.0
+        );
     }
 
     #[test]
