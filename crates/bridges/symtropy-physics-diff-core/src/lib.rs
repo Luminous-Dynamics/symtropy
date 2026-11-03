@@ -2006,7 +2006,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn pairwise_shared_lineage_is_detected_with_a_third_disjoint_lane() {
         let (mut manifest, mut traces, mut policy) = differential_lineage_fixture();
@@ -2036,16 +2035,20 @@ mod tests {
         );
         manifest.lanes.push(analytical);
         traces.insert("analytical".to_owned(), analytical_trace);
-        policy.required_lanes.insert(DifferentialLaneKind::AnalyticalOracle);
+        policy
+            .required_lanes
+            .insert(DifferentialLaneKind::AnalyticalOracle);
 
         let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
             .expect("valid three-lane lineage manifest");
-        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            DifferentialLineageDisposition::Indeterminate
+        );
         assert!(report.separation_findings.iter().any(|finding| {
             finding.kind == LineageDependencyKind::ExpectedAnswer
                 && finding.disposition == SeparationDisposition::Shared
-                && finding.shared_identities
-                    == vec!["source:native-analytic-oracle-01".to_owned()]
+                && finding.shared_identities == vec!["source:native-analytic-oracle-01".to_owned()]
         }));
     }
 }
