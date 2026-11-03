@@ -7,8 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const CLAIM_ADMISSION_SCHEMA: &str = "aero-claim-admission/0.2.0";
-pub const CLAIM_ADMISSION_EVIDENCE_LEVEL: &str =
-    "claim_specific_policy_evaluation_with_exact_scope_and_full_evidence_manifest_digest_binding_not_artifact_verification_not_regulatory_approval_or_flight_authorization";
+pub const CLAIM_ADMISSION_EVIDENCE_LEVEL: &str = "claim_specific_policy_evaluation_with_exact_scope_and_full_evidence_manifest_digest_binding_not_artifact_verification_not_regulatory_approval_or_flight_authorization";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ClaimClass {
@@ -166,7 +165,9 @@ impl ClaimDecisionStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::AdmittedWithinDeclaredScope => "admitted_within_declared_scope",
-            Self::AbstainInsufficientOrUnknownEvidence => "abstain_insufficient_or_unknown_evidence",
+            Self::AbstainInsufficientOrUnknownEvidence => {
+                "abstain_insufficient_or_unknown_evidence"
+            }
             Self::RejectedFailedOrMismatchedEvidence => "rejected_failed_or_mismatched_evidence",
             Self::RequiresHumanAuthorityDecision => "requires_human_authority_decision",
         }
@@ -528,15 +529,18 @@ pub fn evaluate_claim_admission(
 
 /// Replay a claim decision from its original request and source assertions.
 fn kinds_csv(kinds: &[EvidenceKind]) -> String {
-    kinds.iter().map(|kind| kind.as_str()).collect::<Vec<_>>().join(";")
+    kinds
+        .iter()
+        .map(|kind| kind.as_str())
+        .collect::<Vec<_>>()
+        .join(";")
 }
 
 fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const CLAIM_ADMISSION_CSV_HEADER: &str =
-    "schema,claim_id,claim_class,consequence,scope_sha256,policy_sha256,evidence_manifest_sha256,required_evidence,verified_evidence,unknown_evidence,missing_evidence,failed_evidence,status,evidence_level,decision_sha256";
+pub const CLAIM_ADMISSION_CSV_HEADER: &str = "schema,claim_id,claim_class,consequence,scope_sha256,policy_sha256,evidence_manifest_sha256,required_evidence,verified_evidence,unknown_evidence,missing_evidence,failed_evidence,status,evidence_level,decision_sha256";
 
 pub fn report_to_csv(decision: &ClaimDecision) -> String {
     let fields = [
@@ -559,7 +563,11 @@ pub fn report_to_csv(decision: &ClaimDecision) -> String {
     format!(
         "{}\n{}\n",
         CLAIM_ADMISSION_CSV_HEADER,
-        fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
+        fields
+            .iter()
+            .map(|field| csv_escape(field))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
@@ -573,7 +581,11 @@ pub fn request_to_csv(request: &ClaimRequest) -> String {
     ];
     format!(
         "{header}\n{}\n",
-        fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(",")
+        fields
+            .iter()
+            .map(|field| csv_escape(field))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
@@ -581,34 +593,32 @@ pub fn evidence_manifest_to_csv(evidence: &[ScopedEvidence]) -> Result<String, S
     let mut ordered = BTreeMap::new();
     for item in evidence {
         if ordered.insert(item.kind, item).is_some() {
-            return Err(format!("duplicate evidence assertion for {}", item.kind.as_str()));
+            return Err(format!(
+                "duplicate evidence assertion for {}",
+                item.kind.as_str()
+            ));
         }
     }
     let header = "kind,scope_sha256,assertion_status,artifact_sha256,verifier_id,verifier_sha256,verifier_receipt_sha256,reason";
     let mut output = format!("{header}\n");
     for (kind, item) in ordered {
-        let (status, artifact, verifier_id, verifier, receipt, reason) =
-            match &item.assertion {
-                EvidenceAssertion::Verified {
-                    artifact_sha256,
-                    verifier_id,
-                    verifier_sha256,
-                    verifier_receipt_sha256,
-                } => (
-                    "verified",
-                    artifact_sha256.as_str(),
-                    verifier_id.as_str(),
-                    verifier_sha256.as_str(),
-                    verifier_receipt_sha256.as_str(),
-                    "",
-                ),
-                EvidenceAssertion::Unknown { reason } => (
-                    "unknown", "", "", "", "", reason.as_str(),
-                ),
-                EvidenceAssertion::Failed { reason } => (
-                    "failed", "", "", "", "", reason.as_str(),
-                ),
-            };
+        let (status, artifact, verifier_id, verifier, receipt, reason) = match &item.assertion {
+            EvidenceAssertion::Verified {
+                artifact_sha256,
+                verifier_id,
+                verifier_sha256,
+                verifier_receipt_sha256,
+            } => (
+                "verified",
+                artifact_sha256.as_str(),
+                verifier_id.as_str(),
+                verifier_sha256.as_str(),
+                verifier_receipt_sha256.as_str(),
+                "",
+            ),
+            EvidenceAssertion::Unknown { reason } => ("unknown", "", "", "", "", reason.as_str()),
+            EvidenceAssertion::Failed { reason } => ("failed", "", "", "", "", reason.as_str()),
+        };
         let fields = [
             kind.as_str(),
             item.scope_sha256.as_str(),
@@ -620,7 +630,11 @@ pub fn evidence_manifest_to_csv(evidence: &[ScopedEvidence]) -> Result<String, S
             reason,
         ];
         output.push_str(
-            &fields.iter().map(|field| csv_escape(field)).collect::<Vec<_>>().join(","),
+            &fields
+                .iter()
+                .map(|field| csv_escape(field))
+                .collect::<Vec<_>>()
+                .join(","),
         );
         output.push('\n');
     }
@@ -721,7 +735,11 @@ mod tests {
             decision.status,
             ClaimDecisionStatus::AbstainInsufficientOrUnknownEvidence
         );
-        assert!(decision.unknown_evidence.contains(&EvidenceKind::ExperimentalValidation));
+        assert!(
+            decision
+                .unknown_evidence
+                .contains(&EvidenceKind::ExperimentalValidation)
+        );
     }
 
     #[test]
@@ -741,7 +759,11 @@ mod tests {
             decision.status,
             ClaimDecisionStatus::RejectedFailedOrMismatchedEvidence
         );
-        assert!(decision.failed_evidence.contains(&EvidenceKind::ExperimentalValidation));
+        assert!(
+            decision
+                .failed_evidence
+                .contains(&EvidenceKind::ExperimentalValidation)
+        );
     }
 
     #[test]
@@ -806,23 +828,20 @@ mod tests {
             DecisionConsequence::Exploratory,
         );
         let evidence = all_verified(&request);
-        let first = evaluate_claim_admission(&request, &evidence)
-            .expect("first evidence manifest");
+        let first = evaluate_claim_admission(&request, &evidence).expect("first evidence manifest");
         let mut changed = evidence.clone();
         let artifact = changed
             .iter_mut()
             .find_map(|item| match &mut item.assertion {
-                EvidenceAssertion::Verified { artifact_sha256, .. }
-                    if item.kind == EvidenceKind::GeometryIdentity =>
-                {
-                    Some(artifact_sha256)
-                }
+                EvidenceAssertion::Verified {
+                    artifact_sha256, ..
+                } if item.kind == EvidenceKind::GeometryIdentity => Some(artifact_sha256),
                 _ => None,
             })
             .expect("geometry artifact digest");
         *artifact = digest('e');
-        let second = evaluate_claim_admission(&request, &changed)
-            .expect("second evidence manifest");
+        let second =
+            evaluate_claim_admission(&request, &changed).expect("second evidence manifest");
         assert_eq!(first.status, second.status);
         assert_ne!(
             first.evidence_manifest_sha256,
@@ -856,9 +875,11 @@ mod tests {
             .expect("supplemental evidence accepted and bound");
         let mut reordered = evidence.clone();
         reordered.reverse();
-        let second = evaluate_claim_admission(&request, &reordered)
-            .expect("reordered evidence");
-        assert_eq!(first.evidence_manifest_sha256, second.evidence_manifest_sha256);
+        let second = evaluate_claim_admission(&request, &reordered).expect("reordered evidence");
+        assert_eq!(
+            first.evidence_manifest_sha256,
+            second.evidence_manifest_sha256
+        );
         let mut changed_reason = evidence;
         let supplemental = changed_reason
             .iter_mut()
@@ -869,7 +890,10 @@ mod tests {
         };
         let third = evaluate_claim_admission(&request, &changed_reason)
             .expect("changed supplemental reason");
-        assert_ne!(first.evidence_manifest_sha256, third.evidence_manifest_sha256);
+        assert_ne!(
+            first.evidence_manifest_sha256,
+            third.evidence_manifest_sha256
+        );
         assert_eq!(first.status, third.status);
     }
 
@@ -901,7 +925,8 @@ mod tests {
             kind: EvidenceKind::StatisticalSamplingAssessment,
             scope_sha256: request.scope_sha256.clone(),
             assertion: EvidenceAssertion::Unknown {
-                reason: "supplemental sampling evidence not required by this exploratory claim".to_owned(),
+                reason: "supplemental sampling evidence not required by this exploratory claim"
+                    .to_owned(),
             },
         });
         let decision = evaluate_claim_admission(&request, &evidence)
