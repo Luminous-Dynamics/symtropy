@@ -85,3 +85,11 @@ The v1 seed now includes three observations from Riekerk et al. (DOI 10.1109/JES
 - Abstract-reported 13.86 μT stray field with quantity/geometry/method metadata still incomplete; evidence kind remains UNKNOWN and it is not a compliance result.
 
 A new frozen comparison case requires the Riekerk DC-to-DC range versus Zavrel's 95.5% DC-to-DC subchain to remain UNRESOLVED until meter planes, included stages and operating points are source-verified. Similar percentages and nominal power do not establish matched measurement boundaries.
+
+## Typed measurement planes and evidence completeness (v1.1 draft)
+
+The boundary object now carries controlled `input_plane_kind` and `output_plane_kind` values, in addition to source-native free-text meter descriptions. These identify metrological roles (for example, `PRIMARY_DC_BUS`, `SECONDARY_DC_BUS`, `RELAY_AC_INPUT`, `RECTIFIED_DC_OUTPUT`) without pretending different named devices are the same physical meter. Unknown boundaries stay `UNKNOWN`; field-only and service-only observations use their own typed boundary endpoints or `NOT_APPLICABLE`.
+
+Every record also declares `stage_set_status`: `COMPLETE`, `INCOMPLETE`, `UNKNOWN` or `NOT_APPLICABLE`. A strict efficiency comparison is unresolved until both stage sets and both measurement planes are sufficiently identified. A boundary signature is not a substitute for source evidence; it is an identity aid.
+
+The comparison reason vocabulary now also includes `STATISTIC_UNSPECIFIED`, `UNCERTAINTY_NOT_REPORTED` and `OPERATING_CONDITION_INCOMPLETE`.
