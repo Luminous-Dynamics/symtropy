@@ -484,10 +484,28 @@ pub fn solve_static_equilibrium(
     }
 
     if lower_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-        return to_result(parameters, curves, musculotendon_length_m, activation, policy, lower_eval, lower_fiber_length_m, 0);
+        return to_result(
+            parameters,
+            curves,
+            musculotendon_length_m,
+            activation,
+            policy,
+            lower_eval,
+            lower_fiber_length_m,
+            0,
+        );
     }
     if upper_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-        return to_result(parameters, curves, musculotendon_length_m, activation, policy, upper_eval, upper_fiber_length_m, 0);
+        return to_result(
+            parameters,
+            curves,
+            musculotendon_length_m,
+            activation,
+            policy,
+            upper_eval,
+            upper_fiber_length_m,
+            0,
+        );
     }
 
     if lower_eval.residual_n.signum() == upper_eval.residual_n.signum() {
@@ -509,7 +527,16 @@ pub fn solve_static_equilibrium(
         )?;
 
         if middle_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-            return to_result(parameters, curves, musculotendon_length_m, activation, policy, middle_eval, midpoint, iteration);
+            return to_result(
+                parameters,
+                curves,
+                musculotendon_length_m,
+                activation,
+                policy,
+                middle_eval,
+                midpoint,
+                iteration,
+            );
         }
 
         if middle_eval.residual_n.signum() == lower_eval.residual_n.signum() {
@@ -531,7 +558,16 @@ pub fn solve_static_equilibrium(
                 final_midpoint,
             )?;
             if final_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-                return to_result(parameters, curves, musculotendon_length_m, activation, policy, final_eval, final_midpoint, iteration);
+                return to_result(
+                    parameters,
+                    curves,
+                    musculotendon_length_m,
+                    activation,
+                    policy,
+                    final_eval,
+                    final_midpoint,
+                    iteration,
+                );
             }
             return Err(MuscleError::ResidualToleranceUnmet {
                 residual_n: final_eval.residual_n,
