@@ -1,0 +1,46 @@
+name: Tesla Patent Claim Audit
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "tools/tesla-patent-claim-audit/**"
+      - ".github/workflows/tesla-patent-claim-audit.yml"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "tools/tesla-patent-claim-audit/**"
+      - ".github/workflows/tesla-patent-claim-audit.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tesla-patent-claim-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Tesla Patent Claim Audit (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all -- --check
+
+      - name: Run tests
+        run: cargo test --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all-targets --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Run patent arithmetic report
+        run: cargo run --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --release --locked --bin audit > patent-arithmetic.csv
