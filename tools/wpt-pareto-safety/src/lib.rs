@@ -532,6 +532,18 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_candidate_metric_names_are_rejected() {
+        let duplicate = Candidate::new(
+            "duplicate-metric",
+            [
+                ("power", Interval::exact(10.0).unwrap()),
+                ("power", Interval::exact(11.0).unwrap()),
+            ],
+        );
+        assert_eq!(duplicate, Err(MetricError::DuplicateCandidateMetric));
+    }
+
+    #[test]
     fn duplicate_candidate_ids_are_rejected() {
         let a = candidate("same", (95.0, 95.0), (5.0, 5.0), (60_000.0, 60_000.0), (90.0, 90.0), (20.0, 20.0));
         assert_eq!(evaluate_portfolio(&[a.clone(), a], &plan()), Err(MetricError::DuplicateCandidateId));
