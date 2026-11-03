@@ -9,7 +9,7 @@ A dependency-free Rust qualification slice for the Symtropy–Symthaea locomotio
 - Enforces evidence-tier artifact requirements for connectome-constrained, in-silico embodied, perturbation-grounded and replicated-biological claims.
 - Checks that prediction commits precede the unblinding event in the same declared append-only evidence log.
 - Checks covariance symmetry and positive semidefiniteness, and rejects non-finite values.
-- Computes pairwise, noise-aware squared Mahalanobis separation using both model predictive covariances and the observation covariance.
+- Computes pairwise, noise-aware squared Mahalanobis separation using both model predictive covariances and the declared covariance of observation error in their difference.
 - Reports fully separated, partially separated or unresolved model sets. It never silently chooses a winner.
 
 ## What it deliberately does not do
@@ -28,7 +28,7 @@ For models i and j, the oracle computes:
 
 It uses Cholesky factorization and triangular solves rather than an explicit matrix inverse.
 
-The threshold minimum_pair_d2 and regularizer lambda are inputs to the evaluator and must be preregistered. This pairwise distance is only a noise-aware screening heuristic. It is not exact expected information gain and must not be presented as a probability that a model is correct.
+The threshold minimum_pair_d2 and regularizer lambda are inputs to the evaluator and must be preregistered. The statistic assumes independent model-predictive errors; paired/correlated predictive errors need a future explicit cross-model covariance term. This pairwise distance is only a noise-aware screening heuristic. It is not exact expected information gain and must not be presented as a probability that a model is correct.
 
 ## Synthetic oracle cases
 
