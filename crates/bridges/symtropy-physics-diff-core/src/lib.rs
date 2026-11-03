@@ -382,12 +382,31 @@ pub enum TraceComparisonError {
     InvalidRightTrace(ObservationError),
     ScenarioIdMismatch,
     ScenarioDigestMismatch,
-    TimestepMismatch { left_seconds: f64, right_seconds: f64 },
-    FrameCountMismatch { left: usize, right: usize },
-    FrameStepMismatch { left: u64, right: u64 },
-    FrameTimeMismatch { step: u64, left_seconds: f64, right_seconds: f64 },
-    BodySetMismatch { step: u64 },
-    NonFiniteDifference { step: u64, semantic_body_id: String, field: &'static str },
+    TimestepMismatch {
+        left_seconds: f64,
+        right_seconds: f64,
+    },
+    FrameCountMismatch {
+        left: usize,
+        right: usize,
+    },
+    FrameStepMismatch {
+        left: u64,
+        right: u64,
+    },
+    FrameTimeMismatch {
+        step: u64,
+        left_seconds: f64,
+        right_seconds: f64,
+    },
+    BodySetMismatch {
+        step: u64,
+    },
+    NonFiniteDifference {
+        step: u64,
+        semantic_body_id: String,
+        field: &'static str,
+    },
 }
 
 /// Stable sum-of-squares accumulator (the scaled LASSQ algorithm).
@@ -406,7 +425,11 @@ impl StableSumSquares {
             return;
         }
         if self.scale < magnitude {
-            let ratio = if self.scale == 0.0 { 0.0 } else { self.scale / magnitude };
+            let ratio = if self.scale == 0.0 {
+                0.0
+            } else {
+                self.scale / magnitude
+            };
             self.sum_squares = 1.0 + self.sum_squares * ratio * ratio;
             self.scale = magnitude;
         } else {
@@ -505,11 +528,9 @@ pub fn compare_observation_traces(
     if left.identity.scenario_digest != right.identity.scenario_digest {
         return Err(TraceComparisonError::ScenarioDigestMismatch);
     }
-    let timestep_delta =
-        (left.identity.timestep_seconds - right.identity.timestep_seconds).abs();
-    let timestep_scale = 1.0
-        + left.identity.timestep_seconds.abs()
-        + right.identity.timestep_seconds.abs();
+    let timestep_delta = (left.identity.timestep_seconds - right.identity.timestep_seconds).abs();
+    let timestep_scale =
+        1.0 + left.identity.timestep_seconds.abs() + right.identity.timestep_seconds.abs();
     if timestep_delta > 1.0e-12 * timestep_scale {
         return Err(TraceComparisonError::TimestepMismatch {
             left_seconds: left.identity.timestep_seconds,
@@ -661,8 +682,7 @@ pub fn compare_observation_traces(
                         "max_penetration_m",
                     )?;
                     metrics.penetration_comparisons += 1;
-                    metrics.max_penetration_error_m =
-                        metrics.max_penetration_error_m.max(error);
+                    metrics.max_penetration_error_m = metrics.max_penetration_error_m.max(error);
                 }
                 _ => {}
             }
@@ -799,10 +819,16 @@ impl std::fmt::Display for ObservationError {
             }
             Self::EmptyTrace => write!(f, "observation trace must contain at least one frame"),
             Self::FrameIdentityMismatch => {
-                write!(f, "observation frame run identity differs from its trace identity")
+                write!(
+                    f,
+                    "observation frame run identity differs from its trace identity"
+                )
             }
             Self::NonIncreasingStep { previous, current } => {
-                write!(f, "observation steps must increase: previous={previous}, current={current}")
+                write!(
+                    f,
+                    "observation steps must increase: previous={previous}, current={current}"
+                )
             }
             Self::NonIncreasingSimulationTime { previous, current } => {
                 write!(
