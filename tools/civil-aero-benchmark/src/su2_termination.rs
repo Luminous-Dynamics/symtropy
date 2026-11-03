@@ -13,8 +13,8 @@ use crate::external_solver::{read_external_solver_receipt, verify_external_solve
 use crate::integrity::sha256_hex;
 use crate::su2_field_preflight::{Su2FieldPreflightReport, Su2WindowConvergenceProtocol};
 
-pub const SU2_TERMINATION_SCHEMA: &str = "su2-native-termination-evidence/0.2.0";
-pub const SU2_TERMINATION_EVIDENCE_LEVEL: &str = "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
+pub const SU2_TERMINATION_SCHEMA: &str = "su2-native-termination-evidence/0.3.0";
+pub const SU2_TERMINATION_EVIDENCE_LEVEL: &str = "receipt_bound_su2_solver_exit_reason_per_field_steady_rows_or_aggregate_window_success_scoped_to_all_configured_fields_from_exact_full_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
 
 const INTERRUPTED: &str =
     "Interrupt signal received, exiting before the convergence criteria were satisfied.";
@@ -26,12 +26,29 @@ const STEADY_ITERATION_LIMIT: &str = "Maximum number of iterations reached";
 const TIME_LIMIT: &str = "Maximum time reached";
 const TIME_ITERATION_LIMIT: &str = "Maximum number of time iterations reached";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Su2NativeCriterionEvidenceScope {
+    PerFieldNativeSummaryRow,
+    AggregateWindowSuccessBanner,
+}
+
+impl Su2NativeCriterionEvidenceScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::PerFieldNativeSummaryRow => "per_field_native_summary_row",
+            Self::AggregateWindowSuccessBanner => "aggregate_window_success_banner",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Su2NativeCriterionResult {
-    /// The caller-declared field name, e.g. DRAG or RMS_DENSITY.
+    /// The configured field supported by this native evidence.
     pub configured_field: String,
-    /// The field label emitted by COutput::PrintConvergenceSummary, e.g. CAUCHY_DRAG.
+    /// The emitted field label for a steady row, or the explicit aggregate sentinel for window success.
     pub reported_field: String,
+    /// Whether this is a literal per-field row or a deduction from SU2's aggregate window-success banner.
+    pub evidence_scope: Su2NativeCriterionEvidenceScope,
     pub status: String,
     pub summary_line_sha256: String,
 }
@@ -60,15 +77,27 @@ impl Su2TerminationReport {
         matches!(
             self.classification.as_str(),
             "steady_native_criteria_satisfied" | "time_window_native_criteria_satisfied"
-        ) && self
-            .native_criteria
-            .iter()
-            .all(|criterion| criterion.status == "passed")
+        ) && !self.native_criteria.is_empty()
+            && self.native_criteria.iter().all(|criterion| {
+                criterion.status == "passed"
+                    && match self.mode.as_str() {
+                        "steady" => {
+                            criterion.evidence_scope
+                                == Su2NativeCriterionEvidenceScope::PerFieldNativeSummaryRow
+                        }
+                        "time_window" => {
+                            criterion.evidence_scope
+                                == Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner
+                                && criterion.reported_field == "AGGREGATE_WINDOW_SUCCESS_BANNER"
+                        }
+                        _ => false,
+                    }
+            })
     }
 
     pub fn to_csv(&self) -> String {
         let mut output = String::from(
-            "schema,run_id,solver_id,solver_version_claim,runner_receipt_sha256,executable_sha256,stdout_sha256,stderr_sha256,exit_section_sha256,mode,classification,configured_field,reported_field,criterion_status,summary_line_sha256,terminal_messages,termination_sha256,evidence_level\n",
+            "schema,run_id,solver_id,solver_version_claim,runner_receipt_sha256,executable_sha256,stdout_sha256,stderr_sha256,exit_section_sha256,mode,classification,configured_field,reported_field,evidence_scope,criterion_status,summary_line_sha256,terminal_messages,termination_sha256,evidence_level\n",
         );
         for criterion in &self.native_criteria {
             let fields = [
@@ -85,6 +114,7 @@ impl Su2TerminationReport {
                 csv_escape(&self.classification),
                 csv_escape(&criterion.configured_field),
                 csv_escape(&criterion.reported_field),
+                csv_escape(criterion.evidence_scope.as_str()),
                 csv_escape(&criterion.status),
                 criterion.summary_line_sha256.clone(),
                 csv_escape(&self.terminal_messages.join(";")),
@@ -129,6 +159,7 @@ fn canonical_bytes(report: &Su2TerminationReport) -> Vec<u8> {
     for criterion in &report.native_criteria {
         append_string(&mut bytes, &criterion.configured_field);
         append_string(&mut bytes, &criterion.reported_field);
+        append_string(&mut bytes, criterion.evidence_scope.as_str());
         append_string(&mut bytes, &criterion.status);
         append_string(&mut bytes, &criterion.summary_line_sha256);
     }
@@ -187,6 +218,7 @@ fn parse_steady_native_criteria(
                 configured.clone()
             },
             status: if status == "Yes" { "passed" } else { "failed" }.to_owned(),
+            evidence_scope: Su2NativeCriterionEvidenceScope::PerFieldNativeSummaryRow,
             summary_line_sha256: sha256_hex(line.as_bytes())?,
         });
     }
@@ -410,7 +442,9 @@ fn classify_exit_section(
                         .iter()
                         .map(|field| Su2NativeCriterionResult {
                             configured_field: field.clone(),
-                            reported_field: field.clone(),
+                            reported_field: "AGGREGATE_WINDOW_SUCCESS_BANNER".to_owned(),
+                            evidence_scope:
+                                Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner,
                             status: "passed".to_owned(),
                             summary_line_sha256: success_digest.clone(),
                         })
@@ -745,7 +779,19 @@ mod tests {
             .expect("classify time-window success");
         assert_eq!(classification, "time_window_native_criteria_satisfied");
         assert_eq!(criteria.len(), 2);
-        assert!(criteria.iter().all(|row| row.status == "passed"));
+        assert!(criteria.iter().all(|row| {
+            row.status == "passed"
+                && row.evidence_scope
+                    == Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner
+                && row.reported_field == "AGGREGATE_WINDOW_SUCCESS_BANNER"
+        }));
+        assert_eq!(
+            criteria
+                .iter()
+                .map(|row| row.configured_field.as_str())
+                .collect::<Vec<_>>(),
+            vec!["TAVG_DRAG", "TAVG_LIFT"]
+        );
 
         let limited = concat!(
             "----------------------------- Solver Exit -------------------------------\n",
