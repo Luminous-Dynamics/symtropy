@@ -987,7 +987,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].source_sha256 = "bad-digest".to_owned();
     add_case(
         &mut cases,
-        "TIME-035-malformed-source-digest".to_owned(),
+        "TIME-036-malformed-source-digest".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -997,7 +997,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].clock_uncertainty_ms = 100;
     add_case(
         &mut cases,
-        "TIME-036-source-clock-uncertainty-exceeded".to_owned(),
+        "TIME-037-source-clock-uncertainty-exceeded".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1007,7 +1007,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].source_time_ms = events[0].received_at_ms + 100;
     add_case(
         &mut cases,
-        "TIME-037-source-timestamp-after-receive-window".to_owned(),
+        "TIME-038-source-timestamp-after-receive-window".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1015,11 +1015,11 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     let mut events = base.clone();
     events[0].source_time_ms = 5_005;
-    events[0].received_at_ms = 5_010;
+    events[0].received_at_ms = 5_000;
     events[0].clock_uncertainty_ms = 10;
     add_case(
         &mut cases,
-        "TIME-038-source-event-after-evaluation-cutoff".to_owned(),
+        "TIME-039-source-event-after-evaluation-cutoff".to_owned(),
         base_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1029,7 +1029,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].run_id = "other-run".to_owned();
     add_case(
         &mut cases,
-        "TIME-039-run-binding-mismatch".to_owned(),
+        "TIME-040-run-binding-mismatch".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1039,7 +1039,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].source_id = "unregistered-sensor".to_owned();
     add_case(
         &mut cases,
-        "TIME-040-unknown-sensor-source".to_owned(),
+        "TIME-041-unknown-sensor-source".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1049,7 +1049,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].source_sequence = 0;
     add_case(
         &mut cases,
-        "TIME-041-zero-source-sequence".to_owned(),
+        "TIME-042-zero-source-sequence".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1062,7 +1062,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     };
     add_case(
         &mut cases,
-        "TIME-042-event-outside-declared-hazard-zone".to_owned(),
+        "TIME-043-event-outside-declared-hazard-zone".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1072,7 +1072,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].event_id = events[1].event_id.clone();
     add_case(
         &mut cases,
-        "TIME-043-event-id-conflict".to_owned(),
+        "TIME-044-event-id-conflict".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1080,14 +1080,14 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     let mut events = base.clone();
     events[0].source_sequence = 2;
-    events[0].source_time_ms = 4_980;
-    events[0].received_at_ms = 4_985;
+    events[0].source_time_ms = 4_800;
+    events[0].received_at_ms = 4_805;
     events[1].source_sequence = 1;
-    events[1].source_time_ms = 4_950;
-    events[1].received_at_ms = 4_955;
+    events[1].source_time_ms = 4_900;
+    events[1].received_at_ms = 4_905;
     add_case(
         &mut cases,
-        "TIME-044-source-time-regresses-with-sequence".to_owned(),
+        "TIME-045-source-time-regresses-with-sequence".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1102,7 +1102,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[1].received_at_ms = 4_986;
     add_case(
         &mut cases,
-        "TIME-045-one-source-sequence-has-multiple-times".to_owned(),
+        "TIME-046-one-source-sequence-has-multiple-times".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1122,7 +1122,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events.push(old);
     add_case(
         &mut cases,
-        "TIME-046-newer-source-sequence-wins".to_owned(),
+        "TIME-047-newer-source-sequence-wins".to_owned(),
         base_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1141,7 +1141,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events.push(late_clear);
     add_case(
         &mut cases,
-        "TIME-047-late-clear-cannot-rewrite-prior-cutoff".to_owned(),
+        "TIME-048-late-clear-cannot-rewrite-prior-cutoff".to_owned(),
         base_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1150,22 +1150,29 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     let mut later_policy = base_policy.clone();
     later_policy.evaluated_at_ms = 5_200;
     let mut events = base.clone();
-    events[0].state = ObservationState::HumanPresent;
-    events[0].source_time_ms = 4_800;
-    events[0].received_at_ms = 4_805;
-    let mut later_clear = events[0].clone();
-    later_clear.event_id = "later-cutoff-clear".to_owned();
-    later_clear.source_sequence = 2;
-    later_clear.source_time_ms = 5_100;
-    later_clear.received_at_ms = 5_110;
-    later_clear.state = ObservationState::Clear;
-    events.push(later_clear);
     for item in &mut events {
-        if item.source_id == "camera-front" {
-            item.source_time_ms = 5_100;
-            item.received_at_ms = 5_110;
+        item.source_time_ms = 4_800;
+        item.received_at_ms = 4_805;
+    }
+    // Sequence 1 records a person present; the later sequence-2 complete frame
+    // clears every required cell for both modalities.
+    events[0].state = ObservationState::HumanPresent;
+    let mut later_frame = Vec::new();
+    for source in ["lidar-front", "camera-front"] {
+        for cell in [
+            GridCell { column: 0, row: 0 },
+            GridCell { column: 1, row: 0 },
+        ] {
+            later_frame.push(event(
+                source,
+                2,
+                5_100,
+                cell,
+                ObservationState::Clear,
+            ));
         }
     }
+    events.extend(later_frame);
     add_case(
         &mut cases,
         "TIME-048-new-cutoff-consumes-new-evidence".to_owned(),
@@ -1185,7 +1192,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     }
     add_case(
         &mut cases,
-        "TIME-049-independent-sensors-exceed-time-skew".to_owned(),
+        "TIME-050-independent-sensors-exceed-time-skew".to_owned(),
         skew_policy,
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1196,7 +1203,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].received_at_ms = 4_999;
     add_case(
         &mut cases,
-        "TIME-050-stale-source-time-despite-recent-arrival".to_owned(),
+        "TIME-051-stale-source-time-despite-recent-arrival".to_owned(),
         base_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1207,7 +1214,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[2].received_at_ms = 6_000;
     add_case(
         &mut cases,
-        "TIME-051-newer-received-frames-not-yet-at-cutoff".to_owned(),
+        "TIME-052-newer-received-frames-not-yet-at-cutoff".to_owned(),
         base_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1217,7 +1224,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].confidence_ppm = 1_000_001;
     add_case(
         &mut cases,
-        "TIME-052-confidence-overflow".to_owned(),
+        "TIME-053-confidence-overflow".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1227,7 +1234,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events[0].state = ObservationState::Conflicting;
     add_case(
         &mut cases,
-        "TIME-053-conflicting-human-evidence".to_owned(),
+        "TIME-054-conflicting-human-evidence".to_owned(),
         base_policy.clone(),
         events,
         Disposition::EvidenceInconsistent,
@@ -1238,7 +1245,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
         single_domain_policy.sources[0].fault_domain.clone();
     add_case(
         &mut cases,
-        "TIME-054-policy-has-common-mode-only-sources".to_owned(),
+        "TIME-055-policy-has-common-mode-only-sources".to_owned(),
         single_domain_policy,
         base.clone(),
         Disposition::Unsupported,
@@ -1249,7 +1256,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
         single_modality_policy.sources[0].modality;
     add_case(
         &mut cases,
-        "TIME-055-policy-has-one-modality-only".to_owned(),
+        "TIME-056-policy-has-one-modality-only".to_owned(),
         single_modality_policy,
         base.clone(),
         Disposition::Unsupported,
@@ -1257,7 +1264,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     add_case(
         &mut cases,
-        "TIME-056-empty-event-batch".to_owned(),
+        "TIME-057-empty-event-batch".to_owned(),
         base_policy.clone(),
         Vec::new(),
         Disposition::StopRequiredBySyntheticPolicy,
@@ -1267,26 +1274,29 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     duplicate_policy.sources[1].sensor_id = duplicate_policy.sources[0].sensor_id.clone();
     add_case(
         &mut cases,
-        "TIME-057-duplicate-policy-sensor-identity".to_owned(),
+        "TIME-058-duplicate-policy-sensor-identity".to_owned(),
         duplicate_policy,
         base.clone(),
         Disposition::Unsupported,
     );
 
     let mut events = base.clone();
-    events[0].source_sequence = 2;
-    events[0].source_time_ms = 4_980;
-    events[0].received_at_ms = 4_985;
-    let mut older_clear = events[0].clone();
-    older_clear.event_id = "older-clear-arrived-after-newer".to_owned();
-    older_clear.source_sequence = 1;
-    older_clear.source_time_ms = 4_800;
-    older_clear.received_at_ms = 4_990;
-    older_clear.state = ObservationState::Clear;
-    events.push(older_clear);
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = 4_800;
+            item.received_at_ms = 4_805;
+        }
+    }
+    let mut newer_clear = events[0].clone();
+    newer_clear.event_id = "newer-clear-arrived-first".to_owned();
+    newer_clear.source_sequence = 2;
+    newer_clear.source_time_ms = 4_980;
+    newer_clear.received_at_ms = 4_985;
+    newer_clear.state = ObservationState::Clear;
+    events.push(newer_clear);
     add_case(
         &mut cases,
-        "TIME-058-delayed-older-frame-does-not-overwrite-newer-clear".to_owned(),
+        "TIME-059-delayed-older-frame-does-not-overwrite-newer-clear".to_owned(),
         base_policy,
         events,
         Disposition::WithinSyntheticEnvelope,
