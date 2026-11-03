@@ -1448,7 +1448,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     if let Some(sample) = events.iter_mut().find(|item| {
         item.source_id == "lidar-front"
             && item.source_sequence == 2
-            && item.cell == GridCell { column: 0, row: 0 }
+            && item.cell == (GridCell { column: 0, row: 0 })
     }) {
         sample.state = ObservationState::Unknown;
     }
@@ -1464,7 +1464,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     if let Some(sample) = events.iter_mut().find(|item| {
         item.source_id == "lidar-front"
             && item.source_sequence == 2
-            && item.cell == GridCell { column: 0, row: 0 }
+            && item.cell == (GridCell { column: 0, row: 0 })
     }) {
         sample.state = ObservationState::HumanPresent;
     }
@@ -1480,7 +1480,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events.retain(|item| {
         !(item.source_id == "camera-front"
             && item.source_sequence == 2
-            && item.cell == GridCell { column: 1, row: 0 })
+            && item.cell == (GridCell { column: 1, row: 0 }))
     });
     add_case(
         &mut cases,
@@ -1502,7 +1502,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     if let Some(sample) = events.iter_mut().find(|item| {
         item.source_id == "camera-front"
             && item.source_sequence == 2
-            && item.cell == GridCell { column: 0, row: 0 }
+            && item.cell == (GridCell { column: 0, row: 0 })
     }) {
         sample.confidence_ppm = 100_000;
     }
@@ -1759,7 +1759,7 @@ mod tests {
         if let Some(sample) = events.iter_mut().find(|item| {
             item.source_id == "lidar-front"
                 && item.source_sequence == 2
-                && item.cell == GridCell { column: 0, row: 0 }
+                && item.cell == (GridCell { column: 0, row: 0 })
         }) {
             sample.state = ObservationState::HumanPresent;
         }
@@ -1778,7 +1778,7 @@ mod tests {
         if let Some(sample) = events.iter_mut().find(|item| {
             item.source_id == "lidar-front"
                 && item.source_sequence == 2
-                && item.cell == GridCell { column: 0, row: 0 }
+                && item.cell == (GridCell { column: 0, row: 0 })
         }) {
             sample.state = ObservationState::Unknown;
         }
