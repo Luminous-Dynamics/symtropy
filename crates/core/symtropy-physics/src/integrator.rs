@@ -30,7 +30,14 @@ pub fn nan_zeroed_count() -> u64 {
 /// Integrate a single rigid body forward by dt seconds.
 ///
 /// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+///
+/// For a separable conservative system, the idealized undamped and
+/// unclamped velocity-first update is a symplectic Euler scheme. Symplecticity
+/// does **not** imply unconditional stability: timestep restrictions still
+/// apply, and damping, velocity clamps, contact impulses, and positional
+/// corrections change the numerical guarantees. Validate each modeled regime
+/// against an analytical or independent reference rather than inferring
+/// stability from the integrator's name.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
