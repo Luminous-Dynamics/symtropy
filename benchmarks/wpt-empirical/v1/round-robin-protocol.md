@@ -170,3 +170,9 @@ Only matched, qualified measurements enter a strict performance ranking. Publish
 ## 11. Current implementation boundary
 
 This file and the accompanying schema/template are research artifacts. There is no physical WPT test, three-laboratory campaign, hardware safety validation or standards certification completed under this protocol.
+
+### Frequency, voltage and mechanical interoperability matrix
+
+The full-text paper's Table 1 maps the three vehicle-side assemblies to distinct compatibility envelopes: 6 kW / 380–440 V / 190–210 mm / 85 kHz; 11 kW / 600–700 V / 160–180 mm / 85 kHz; 30 kW / 420–610 V / 270–290 mm / 20 kHz. The ground assembly uses two independently enabled resonant networks, while the grid interface has four parallel low-power modules with adaptive activation.
+
+Use these as the initial class configuration fixtures. Benchmark frequency-network isolation and switching, all battery-voltage endpoints, clearances, module activation counts, reverse-flow operation, misalignment, load transients and safety response. Do not claim that the article's aggregate efficiency ranges are per-class measured points.
