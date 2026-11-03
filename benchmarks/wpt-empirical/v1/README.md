@@ -180,3 +180,7 @@ A security report, authentication flag or synthetic fixture is not certification
 
 Ten deterministic cyber-physical negative controls are now in `cyber-physical-scenarios.jsonl`: receiver identity spoofing, replayed power/frequency command, stale command, firmware integrity, phase sensor injection, current sensor tampering, timing jitter, communication DoS/loss, credential revocation and resonant switch-state mismatch. Each qualified test-run manifest must include all ten scenario results; a networked system cannot leave them NOT_RUN. Results are evidence-backed and allow NOT_APPLICABLE only with an explicit reason. These are safe synthetic test specifications, not field or live-system attack instructions.
 
+### Temperature-indexed core flux evidence in the run contract
+
+The test-run manifest now captures core material ID, Bsat(T) curve reference, core temperature, peak flux density, temperature-specific saturation limit and assessment method. For QUALIFIED IPT/CPT/hybrid tests, flux must be measured or calculated from a measured voltage waveform; simulation-only values do not qualify. The validator rejects peak flux above 80% of the Bsat value at the recorded core temperature. The 80% limit is a proposed engineering margin, not a standard requirement.
+
