@@ -1171,6 +1171,58 @@ mod tests {
             source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("full census audit");
+
+        // A self-consistent downstream digest is not enough: omission, same-count substitution
+        // and ledger mutation must still be caught against the source scorecard receipt.
+        let omitted_candidates = candidates[..2].to_vec();
+        let omitted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &omitted_candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_request)
+                .expect_err("omitted admitted candidate must be rejected")
+                .contains("source policy benchmark row does not match")
+        );
+
+        let mut substituted_candidates = candidates.clone();
+        substituted_candidates[1].output_sha256 = digest('9');
+        let substituted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted_candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&substituted_request)
+                .expect_err("same-count substituted output must be rejected")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut altered_ledger = source_operation_ledger.clone();
+        altered_ledger[0].cost_units += 0.25;
+        let altered_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &altered_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&altered_ledger_request)
+                .expect_err("tampered source operation ledger must be rejected")
+                .contains("source operation ledger digest differs")
+        );
         assert_eq!(report.admitted_candidate_count, 3);
         assert_eq!(report.adjudicated_candidate_count, 3);
         assert_eq!(report.confirmed_feasible_count, 1);
