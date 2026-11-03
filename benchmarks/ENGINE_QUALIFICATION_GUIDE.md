@@ -102,6 +102,43 @@ If a metric is Phi or an IIT-inspired score, describe it as an experimental comp
 
 No external engine is automatically “ground truth.” Agreement is useful evidence; disagreement identifies a case for analysis. For physical truth, use analytic solutions or validated experimental data with uncertainty where available.
 
+### Version-pinned comparator snapshot (3 November 2026)
+
+The names in the matrix above are not sufficient for reproducibility. Pin exact
+versions and feature profiles in every run. The current reference snapshot is:
+
+| Reference | Current documented baseline | Consequence for Symtropy qualification |
+|---|---|---|
+| Rapier | `rapier3d 0.36.1` (6 October 2026 registry release) | Keep the existing `0.18` runner as a historical lane. Qualify `0.36.1` in a separate backend profile; its API and math-type changes are not a transparent version bump. |
+| MuJoCo | `3.17.0` (22 October 2026) | Add a separate batch-rollout experiment. Its batch API is documented to match plain serial stepping bit-for-bit across thread counts for the same model/configuration; compare this determinism property and throughput separately from contact-model equivalence. |
+| Newton | Pin an exact Git commit/release, Warp version, OpenUSD schema/runtime and solver configuration for each run | Treat it as a GPU-accelerated robotics simulation comparator, not an unnamed moving target. Record GPU/driver and whether the backend is MuJoCo Warp. |
+
+Rapier 0.36.1 is an active, pre-1.0 API line. Its current docs expose
+SIMD-batched contact processing as always enabled, with `parallel` and
+`enhanced-determinism` as explicit features. Its published package manifest
+declares Rust 1.86 MSRV. These are not details to normalize away: record the
+feature flags, target and exact version as part of the backend identity. The
+repo's Rapier 0.18 bridge therefore cannot be described as “current Rapier.”
+
+MuJoCo's 3.17 batch API changes the performance comparison question. Report
+both:
+- **single-rollout latency:** time to advance one fixed scenario;
+- **batch throughput:** completed independent rollouts per second at fixed
+  model, horizon, output sampling and thread budget.
+
+For both, record per-rollout final-state digests and the full state/observation
+policy. Do not compare aggregate throughput when one engine emits fewer
+observations or computes a different horizon. Do not equate cross-engine
+trajectory equality with physical truth.
+
+The repository already tracks the safe Rapier migration in
+[PHYS-RAPIER-14 / #495](https://github.com/Luminous-Dynamics/symtropy/issues/495):
+preserve `0.18` as a historical baseline, finish the executable D0 lane,
+converge on one common trace schema, then qualify `0.36.1` separately. Do not
+make a third overlapping D0 bridge or silently retarget #488/#1643. The current
+SO(4) production/oracle campaign remains separate from this 2D/3D differential
+reference programme.
+
 ## 5. Initial workload matrix
 
 | Workload | Scale | Correctness / stability outputs | Performance outputs |
