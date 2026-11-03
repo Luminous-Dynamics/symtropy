@@ -10,8 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::integrity::sha256_hex;
 
 pub const APPLICABILITY_DOMAIN_SCHEMA: &str = "aero-applicability-domain/0.1.0";
-pub const APPLICABILITY_DOMAIN_EVIDENCE_LEVEL: &str =
-    "deterministic_exact_identity_and_explicit_axis_aligned_support_region_membership_not_physical_validation_or_generalization";
+pub const APPLICABILITY_DOMAIN_EVIDENCE_LEVEL: &str = "deterministic_exact_identity_and_explicit_axis_aligned_support_region_membership_not_physical_validation_or_generalization";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApplicabilityFeatureSpec {
@@ -47,9 +46,7 @@ impl ApplicabilitySupportClass {
         match self {
             Self::Dense => ApplicabilityStatus::SupportedWithinDeclaredDomain,
             Self::Sparse => ApplicabilityStatus::SupportedButSparse,
-            Self::BoundaryOrRegimeTransition => {
-                ApplicabilityStatus::BoundaryOrRegimeTransition
-            }
+            Self::BoundaryOrRegimeTransition => ApplicabilityStatus::BoundaryOrRegimeTransition,
         }
     }
 }
@@ -235,8 +232,9 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
     if !is_sha256(&manifest.solver_identity_sha256)
         || !is_sha256(&manifest.output_definition_sha256)
     {
-        return Err("solver and output-definition identities must be lowercase SHA-256 digests"
-            .to_owned());
+        return Err(
+            "solver and output-definition identities must be lowercase SHA-256 digests".to_owned(),
+        );
     }
     if manifest.feature_schema.is_empty() {
         return Err("applicability feature schema must not be empty".to_owned());
@@ -249,13 +247,18 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
     for feature in &manifest.feature_schema {
         require_nonempty(&feature.name, "feature name")?;
         require_nonempty(&feature.unit, "feature unit")?;
-        if schema.insert(feature.name.as_str(), feature.unit.as_str()).is_some() {
+        if schema
+            .insert(feature.name.as_str(), feature.unit.as_str())
+            .is_some()
+        {
             return Err(format!("duplicate applicability feature {}", feature.name));
         }
     }
 
     if manifest.evidence_refs.is_empty() {
-        return Err("applicability manifest must reference at least one evidence artifact".to_owned());
+        return Err(
+            "applicability manifest must reference at least one evidence artifact".to_owned(),
+        );
     }
     let mut evidence_by_id = BTreeMap::new();
     for evidence in &manifest.evidence_refs {
@@ -273,8 +276,14 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
                 evidence.evidence_id
             ));
         }
-        if evidence_by_id.insert(evidence.evidence_id.as_str(), evidence).is_some() {
-            return Err(format!("duplicate applicability evidence ID {}", evidence.evidence_id));
+        if evidence_by_id
+            .insert(evidence.evidence_id.as_str(), evidence)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate applicability evidence ID {}",
+                evidence.evidence_id
+            ));
         }
     }
 
@@ -317,7 +326,10 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
             used_evidence.insert(evidence_id.as_str());
         }
         if !region_ids.insert(region.region_id.as_str()) {
-            return Err(format!("duplicate applicability region {}", region.region_id));
+            return Err(format!(
+                "duplicate applicability region {}",
+                region.region_id
+            ));
         }
         if region.bounds.len() != schema.len() {
             return Err(format!(
@@ -364,7 +376,10 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
         }
     }
     if used_evidence.len() != evidence_by_id.len() {
-        return Err("applicability manifest contains an evidence reference unused by every region".to_owned());
+        return Err(
+            "applicability manifest contains an evidence reference unused by every region"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -529,14 +544,11 @@ fn unknown(
     )
 }
 
-fn region_contains(
-    region: &ApplicabilityDomainRegion,
-    values: &BTreeMap<&str, f64>,
-) -> bool {
+fn region_contains(region: &ApplicabilityDomainRegion, values: &BTreeMap<&str, f64>) -> bool {
     region.bounds.iter().all(|bound| {
-        values.get(bound.name.as_str()).is_some_and(|value| {
-            *value >= bound.lower_inclusive && *value <= bound.upper_inclusive
-        })
+        values
+            .get(bound.name.as_str())
+            .is_some_and(|value| *value >= bound.lower_inclusive && *value <= bound.upper_inclusive)
     })
 }
 
@@ -587,7 +599,11 @@ pub fn assess_applicability_domain(
     let mut values = BTreeMap::new();
     for feature in &ordered_query_features {
         if feature.name.trim().is_empty() || feature.unit.trim().is_empty() {
-            return unknown(manifest, query, "query contains a missing feature name or unit");
+            return unknown(
+                manifest,
+                query,
+                "query contains a missing feature name or unit",
+            );
         }
         if !feature.value.is_finite() {
             return unknown(
@@ -596,7 +612,10 @@ pub fn assess_applicability_domain(
                 format!("query feature {} is non-finite", feature.name),
             );
         }
-        if values.insert(feature.name.as_str(), feature.value).is_some() {
+        if values
+            .insert(feature.name.as_str(), feature.value)
+            .is_some()
+        {
             return unknown(
                 manifest,
                 query,
@@ -610,9 +629,7 @@ pub fn assess_applicability_domain(
         .iter()
         .map(|feature| (feature.name.as_str(), feature.unit.as_str()))
         .collect::<BTreeMap<_, _>>();
-    if values.len() != expected.len()
-        || expected.keys().any(|name| !values.contains_key(*name))
-    {
+    if values.len() != expected.len() || expected.keys().any(|name| !values.contains_key(*name)) {
         return unknown(
             manifest,
             query,
@@ -628,7 +645,10 @@ pub fn assess_applicability_domain(
                     "query feature {} has unit {}, expected {}",
                     feature.name,
                     feature.unit,
-                    expected.get(feature.name.as_str()).copied().unwrap_or("undeclared")
+                    expected
+                        .get(feature.name.as_str())
+                        .copied()
+                        .unwrap_or("undeclared")
                 ),
             );
         }
@@ -649,7 +669,10 @@ pub fn assess_applicability_domain(
             manifest,
             query,
             ApplicabilityStatus::UnknownDueToMissingOrUnqualifiedInputs,
-            matching.iter().map(|region| region.region_id.clone()).collect(),
+            matching
+                .iter()
+                .map(|region| region.region_id.clone())
+                .collect(),
             "query matches overlapping support regions; policy is ambiguous",
         );
     }
@@ -934,8 +957,7 @@ mod tests {
                     .expect("compute exact region scope"),
             })
             .collect();
-        seal_applicability_domain_manifest(manifest)
-            .expect("seal valid applicability manifest")
+        seal_applicability_domain_manifest(manifest).expect("seal valid applicability manifest")
     }
 
     fn query(mach: f64) -> ApplicabilityQuery {
@@ -986,10 +1008,22 @@ mod tests {
             ApplicabilityStatus::BoundaryOrRegimeTransition
         );
         assert_eq!(sparse.status, ApplicabilityStatus::SupportedButSparse);
-        assert!(dense.status.may_support_claim_admission_without_boundary_review());
-        assert!(!boundary.status.may_support_claim_admission_without_boundary_review());
+        assert!(
+            dense
+                .status
+                .may_support_claim_admission_without_boundary_review()
+        );
+        assert!(
+            !boundary
+                .status
+                .may_support_claim_admission_without_boundary_review()
+        );
         assert!(boundary.status.is_inside_declared_support());
-        assert!(sparse.status.may_support_claim_admission_without_boundary_review());
+        assert!(
+            sparse
+                .status
+                .may_support_claim_admission_without_boundary_review()
+        );
     }
 
     #[test]
@@ -1013,7 +1047,9 @@ mod tests {
         let mut changed_solver = query(0.72);
         changed_solver.solver_identity_sha256 = digest('c');
         assert_eq!(
-            assess_applicability_domain(&m, &changed_solver).unwrap().status,
+            assess_applicability_domain(&m, &changed_solver)
+                .unwrap()
+                .status,
             ApplicabilityStatus::UnknownDueToMissingOrUnqualifiedInputs
         );
     }
@@ -1021,12 +1057,7 @@ mod tests {
     #[test]
     fn overlapping_regions_are_never_resolved_by_best_case_precedence() {
         let mut m = manifest();
-        let overlap = region(
-            "overlap",
-            0.71,
-            0.73,
-            ApplicabilitySupportClass::Sparse,
-        );
+        let overlap = region("overlap", 0.71, 0.73, ApplicabilitySupportClass::Sparse);
         let overlap_evidence_id = overlap.supporting_evidence_ids[0].clone();
         let overlap_scope = region_scope_sha256(&m, &overlap).unwrap();
         m.evidence_refs.push(ApplicabilityEvidenceRef {
@@ -1063,9 +1094,11 @@ mod tests {
         let first_assessment = assess_applicability_domain(&first, &query(0.72)).unwrap();
         let mut reversed_query = query(0.72);
         reversed_query.features.reverse();
-        let second_assessment =
-            assess_applicability_domain(&first, &reversed_query).unwrap();
-        assert_eq!(first_assessment.query_sha256, second_assessment.query_sha256);
+        let second_assessment = assess_applicability_domain(&first, &reversed_query).unwrap();
+        assert_eq!(
+            first_assessment.query_sha256,
+            second_assessment.query_sha256
+        );
         assert_eq!(
             first_assessment.assessment_sha256,
             second_assessment.assessment_sha256
@@ -1094,38 +1127,47 @@ mod tests {
         let mut tampered = m.clone();
         tampered.evidence_refs[0].license_applicability =
             "silently-changed-license-scope".to_owned();
-        assert!(verify_applicability_domain_manifest(&tampered)
-            .expect_err("tampered manifest must reject")
-            .contains("digest mismatch"));
+        assert!(
+            verify_applicability_domain_manifest(&tampered)
+                .expect_err("tampered manifest must reject")
+                .contains("digest mismatch")
+        );
     }
 
     #[test]
     fn every_region_requires_an_exactly_scoped_evidence_reference() {
         let mut wrong_scope = manifest();
         wrong_scope.evidence_refs[0].scope_sha256 = digest('e');
-        assert!(seal_applicability_domain_manifest(wrong_scope)
-            .expect_err("wrong evidence scope must reject")
-            .contains("scoped to a different"));
+        assert!(
+            seal_applicability_domain_manifest(wrong_scope)
+                .expect_err("wrong evidence scope must reject")
+                .contains("scoped to a different")
+        );
 
         let mut missing_reference = manifest();
-        missing_reference.regions[0].supporting_evidence_ids[0] =
-            "not-present".to_owned();
-        assert!(seal_applicability_domain_manifest(missing_reference)
-            .expect_err("missing evidence reference must reject")
-            .contains("references missing evidence ID"));
+        missing_reference.regions[0].supporting_evidence_ids[0] = "not-present".to_owned();
+        assert!(
+            seal_applicability_domain_manifest(missing_reference)
+                .expect_err("missing evidence reference must reject")
+                .contains("references missing evidence ID")
+        );
 
         let mut orphan_reference = manifest();
-        orphan_reference.evidence_refs.push(ApplicabilityEvidenceRef {
-            evidence_id: "orphan".to_owned(),
-            evidence_kind: "validation_observation_fixture".to_owned(),
-            source_ref: "synthetic://orphan".to_owned(),
-            license_applicability: "synthetic-ci-fixture-only".to_owned(),
-            artifact_sha256: digest('e'),
-            scope_sha256: digest('f'),
-        });
-        assert!(seal_applicability_domain_manifest(orphan_reference)
-            .expect_err("orphan evidence reference must reject")
-            .contains("unused by every region"));
+        orphan_reference
+            .evidence_refs
+            .push(ApplicabilityEvidenceRef {
+                evidence_id: "orphan".to_owned(),
+                evidence_kind: "validation_observation_fixture".to_owned(),
+                source_ref: "synthetic://orphan".to_owned(),
+                license_applicability: "synthetic-ci-fixture-only".to_owned(),
+                artifact_sha256: digest('e'),
+                scope_sha256: digest('f'),
+            });
+        assert!(
+            seal_applicability_domain_manifest(orphan_reference)
+                .expect_err("orphan evidence reference must reject")
+                .contains("unused by every region")
+        );
     }
 
     #[test]
@@ -1182,8 +1224,7 @@ mod tests {
         let assessment_path = root.join("assessment.csv");
         std::fs::write(&manifest_path, applicability_manifest_to_csv(&m))
             .expect("write manifest CSV");
-        std::fs::write(&query_path, applicability_query_to_csv(&q))
-            .expect("write query CSV");
+        std::fs::write(&query_path, applicability_query_to_csv(&q)).expect("write query CSV");
         std::fs::write(
             &assessment_path,
             applicability_assessment_to_csv(&assessment),
