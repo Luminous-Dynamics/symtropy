@@ -37,7 +37,8 @@
         "compare_vehicle_service",
         "compare_exposure",
         "compare_reliability",
-        "generic_numeric_ranking"
+        "generic_numeric_ranking",
+        "rank_energy_per_distance"
       ]
     },
     "expected_disposition": {
