@@ -226,3 +226,51 @@ This is a branch-local algebraic oracle, not a Coulomb differential inclusion
 solver, multi-contact solver, or physical validation result. It contributes
 the frictional contact benchmark lane in PHYS-DIFF-CONTACT-GRAD-001 #3425 and
 the stick/slip boundary work tracked by PHYS-FRICTION-BRANCH-001 #3436.
+
+
+## Qualified gradient evidence receipt
+
+The `gradient_receipt` module records a solver-independent, verifier-checkable
+claim about a derivative produced by a contact-dynamics run. It does not
+compute the derivative, authenticate the verifier, or prove the claimed
+mathematics on its own.
+
+A receipt binds exact digests for the physical model, forward trajectory,
+objective, solver configuration, solver implementation, and gradient source.
+It also carries a declared normalization identity and optional, explicitly
+unknown residual/conditioning metrics.
+
+Five structurally distinct result kinds are supported:
+
+- `BRANCH_LOCAL`: exactly one derivative, branch identity, validity-region
+  digest, and verifier binding.
+- `DIRECTIONAL_SET`: at least two one-sided responses, each with a distinct
+  direction ID and a branch/validity identity. Responses may share the same
+  branch identity.
+- `SET_VALUED`: at least two distinct branch identities, each retaining its
+  own response and validity region.
+- `SURROGATE`: one estimator response with explicit estimator identity and
+  bias-evidence reference. It need not claim a certified branch or validity
+  region.
+- `UNAVAILABLE`: zero gradient responses and a typed abstention reason.
+
+Event-sensitive exact/directional/set-valued receipts set
+`requires_transversality`; they then require a strictly positive independently
+established lower bound on the absolute transversality margin. A missing or
+zero margin is not accepted as a qualified event derivative.
+
+All available responses must use the same derivative-coordinate roster.
+Every coordinate and reported metric must be finite; negative residual/error
+metrics are rejected. A missing metric stays unknown and is encoded
+differently from an explicit zero. Canonical bytes normalize response order
+and coordinate order, but do not average branches or directions.
+
+This schema is a binding and admission contract. The independent verifier
+must still fetch the bound source artifacts, reconstruct the branch/direction
+domain, and recompute the reported residuals. A verification reference stored
+inside the receipt is not self-authenticating evidence.
+
+The initial consumers are the analytical impact/saltation fixture (#3407), the
+stick/slip branch oracle (#3438), the hard-contact gradient benchmark (#3425),
+and the multi-branch sensitivity lane (#3358/#3365). It is not a gradient
+engine or physical validation result.
