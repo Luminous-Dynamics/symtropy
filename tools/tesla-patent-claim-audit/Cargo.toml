@@ -1,0 +1,8 @@
+[package]
+name = "tesla-patent-claim-audit"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Reproducible dimensional and arithmetic audit of numeric claims in Tesla US787412A"
+
+[workspace]
