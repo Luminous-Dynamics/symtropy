@@ -1309,7 +1309,7 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
     (policy, observation)
 }
 
-/// Frozen 42-case synthetic corpus for exact disposition checks.
+/// Frozen synthetic corpus for exact disposition checks.
 ///
 /// Values are invented, explicitly synthetic test inputs. Expected results are
 /// pinned here independently of the evaluator and are not empirical rates.
@@ -1957,6 +1957,53 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
         Disposition::StopRequiredBySyntheticPolicy,
     );
 
+    let mut observation = base_observation.clone();
+    observation.human_detection.covered_cells.pop();
+    observation.human_detection.covered_cells.push(CoverageCell {
+        column: 0,
+        row: 0,
+    });
+    add_case(
+        &mut cases,
+        "SAFE-055-duplicate-cell-in-human-coverage-receipt",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[2].covered_cells.push(CoverageCell {
+        column: 0,
+        row: 0,
+    });
+    add_case(
+        &mut cases,
+        "SAFE-056-duplicate-cell-in-sensor-coverage-source",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.sensors[2].coverage_grid_sha256 = digest('3');
+    add_case(
+        &mut cases,
+        "SAFE-057-contributing-sensor-grid-revision-mismatch",
+        base_policy.clone(),
+        observation,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut policy = base_policy.clone();
+    policy.required_human_coverage_cells.clear();
+    add_case(
+        &mut cases,
+        "SAFE-058-policy-does-not-declare-required-hazard-zone-cells",
+        policy,
+        base_observation.clone(),
+        Disposition::UnsupportedOdd,
+    );
+
     cases
 }
 
@@ -2519,6 +2566,53 @@ mod tests {
             column: 9,
             row: 9,
         });
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::CoverageCellsMalformed]);
+    }
+
+    #[test]
+    fn policy_requires_unique_nonempty_hazard_zone_cells() {
+        let (mut policy, observation) = baseline();
+        policy.required_human_coverage_cells.clear();
+        let empty = evaluate(&policy, &observation);
+        assert_eq!(empty.disposition, Disposition::UnsupportedOdd);
+
+        let (mut policy, observation) = baseline();
+        policy
+            .required_human_coverage_cells
+            .push(policy.required_human_coverage_cells[0]);
+        let duplicate = evaluate(&policy, &observation);
+        assert_eq!(duplicate.disposition, Disposition::UnsupportedOdd);
+    }
+
+    #[test]
+    fn sensor_coverage_grid_revision_must_match_policy() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[2].coverage_grid_sha256 = digest('3');
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::CoverageGridMismatch]);
+    }
+
+    #[test]
+    fn duplicate_sensor_coverage_cells_are_rejected() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[2]
+            .covered_cells
+            .push(observation.sensors[2].covered_cells[0]);
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::SensorSetMalformed]);
+    }
+
+    #[test]
+    fn duplicate_human_receipt_cells_are_rejected() {
+        let (policy, mut observation) = baseline();
+        observation
+            .human_detection
+            .covered_cells
+            .push(observation.human_detection.covered_cells[0]);
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
         assert_eq!(decision.reasons, vec![Reason::CoverageCellsMalformed]);
