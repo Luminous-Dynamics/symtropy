@@ -206,8 +206,9 @@ slip response are retained:
   module returns both one-sided derivatives, 0 on the stick side and 1/m on
   the slip side.
 - If `mu_static > mu_kinetic`, acceleration jumps at slip onset. The module
-  reports the signed jump and deliberately supplies no finite single
-  derivative. It never averages the stick and slip branch derivatives.
+  reports the signed jump and both branch-local slopes (0 on stick, 1/m on
+  sliding), but deliberately supplies no single derivative across the jump.
+  It never averages the stick and slip branch derivatives.
 
 A caller-supplied absolute force tolerance is bound into deterministic model
 identity bytes. If a floating-point force lies within that band but is not
