@@ -30,7 +30,7 @@ A plate record binds:
 
 The inventory binds a dataset ID/version, inventory digest and typed source-artifact manifest. Each observed field must resolve to a manifest entry with the matching semantic role (morphology, afferent identity, sensory tuning, connectome output or reflex outcome). Each explicit-absence claim must resolve to a SearchReceipt artifact. Manifest entries carry a locator, source version, media type, optional SPDX license, SHA-256, roles and declared custody mode.
 
-Custody mode is metadata, not proof. This crate validates manifest structure and digest references but does not download bytes, hash them, validate digital signatures or authenticate the source provider. A separate intake/materialization process must verify downloaded bytes against claimed digests before assigning a byte-verified custody mode.
+Custody mode is metadata, not proof. This crate validates manifest structure and digest references but does not download bytes, hash them, validate digital signatures or authenticate the source provider. A separate intake/materialization process must verify downloaded bytes against claimed digests before assigning a byte-verified custody mode. The typed materialization receipt binds dataset version, file ID, exact byte count, saved metadata-response digest, local SHA-256, independently recomputed provider-declared checksum and materializer-run digest. Both checksum values are retained; a provider MD5 cannot be substituted for the local SHA-256.
 
 ## Blind prediction contract
 
@@ -79,7 +79,7 @@ this difference and cannot call predictions confirmed reflex labels.
 
 ## Synthetic tests
 
-The 27 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
+The 34 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
 
 ## References
 
