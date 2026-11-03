@@ -25,6 +25,7 @@ pub enum MetricError {
     EmptyObjectiveSet,
     EmptyConstraintName,
     DuplicateObjectiveMetric,
+    DuplicateCandidateMetric,
     DuplicateConstraintName,
     DuplicateCandidateId,
     MissingMetric(String),
@@ -40,6 +41,7 @@ impl fmt::Display for MetricError {
             Self::EmptyObjectiveSet => f.write_str("at least one Pareto objective is required"),
             Self::EmptyConstraintName => f.write_str("constraint name must not be empty"),
             Self::DuplicateObjectiveMetric => f.write_str("objective metric names must be unique"),
+            Self::DuplicateCandidateMetric => f.write_str("candidate metric names must be unique"),
             Self::DuplicateConstraintName => f.write_str("constraint names must be unique"),
             Self::DuplicateCandidateId => f.write_str("candidate IDs must be unique in a portfolio"),
             Self::MissingMetric(metric) => write!(f, "required metric is missing: {metric}"),
@@ -96,7 +98,7 @@ impl Candidate {
                 return Err(MetricError::EmptyMetricName);
             }
             if indexed.insert(name, interval).is_some() {
-                return Err(MetricError::EmptyMetricName);
+                return Err(MetricError::DuplicateCandidateMetric);
             }
         }
         Ok(Self { id, metrics: indexed })
@@ -225,7 +227,7 @@ pub struct CandidateEvaluation {
     pub constraints: Vec<ConstraintFinding>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EvaluationPlan {
     pub objectives: Vec<Objective>,
     pub constraints: Vec<HardConstraint>,
