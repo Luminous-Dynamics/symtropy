@@ -973,9 +973,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         .get("cyber_physical_security")
         .unwrap_or(&Value::Null);
     let communication_mode =
-        text(security, "communication_mode").unwrap_or("UNKNOWN");
+        string_at(security, &["communication_mode"]).unwrap_or("UNKNOWN");
     let authentication_method =
-        text(security, "authentication_method").unwrap_or("UNKNOWN");
+        string_at(security, &["authentication_method"]).unwrap_or("UNKNOWN");
     if !matches!(communication_mode, "NETWORKED" | "LOCAL_ONLY" | "NONE") {
         errors.push("cyber_physical_security.communication_mode: known mode required".into());
     }
