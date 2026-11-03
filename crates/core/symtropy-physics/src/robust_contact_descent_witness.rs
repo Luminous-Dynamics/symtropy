@@ -418,18 +418,16 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_interval_grid_search_is_not_an_infeasibility_certificate() {
-        // This box conservatively contains zero in its second coordinate. The
-        // selected direction cannot be certified against the entire box even
-        // though a particular point inside it may admit descent.
-        let branches = vec![interval_gradient([
-            (2, 2),
-            (-1, 1),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-            (0, 0),
-        ])];
+    fn a_failed_complete_box_search_is_not_a_pointwise_infeasibility_certificate() {
+        // The complete gradient box contains zero in every coordinate, so
+        // no nonzero direction can be certified as strictly descending for
+        // every gradient in the box.
+        let branches = vec![interval_gradient([(-1, 1); INPUT_DIMENSION])];
+        assert!(search_rational_grid(&branches, 1).is_none());
+
+        // However, a particular gradient inside the same box has a descent
+        // direction. The box-level verifier must not confuse failure to
+        // certify the whole set with pointwise infeasibility.
         let candidate = [
             rational(-1),
             rational(0),
@@ -443,6 +441,10 @@ mod tests {
             &candidate,
             &rational_fraction(1, 100)
         ));
-        // No assertion of mathematical infeasibility is made here.
-    }
-}
+
+        let one_point = point_gradient([1, 0, 0, 0, 0, 0]);
+        assert_eq!(
+            gradient_box_support_upper(&one_point, &candidate),
+            rational(-1)
+        );
+    }}
