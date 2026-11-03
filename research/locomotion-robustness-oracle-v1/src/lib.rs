@@ -99,6 +99,7 @@ pub struct RobustnessProtocol {
     /// Lower-tail CVaR fraction, in basis points (1000 = worst 10%).
     pub lower_tail_fraction_basis_points: u16,
     pub minimum_episodes_per_scenario: usize,
+    pub minimum_episodes_per_individual: usize,
     pub minimum_individuals_per_scenario: usize,
     pub minimum_paired_episodes: usize,
     /// Absolute tolerance used only to classify paired score ties.
@@ -191,6 +192,11 @@ pub enum RobustnessError {
     EmptyEpisodes,
     ResourceLimitExceeded,
     TooFewEpisodes { observed: usize, minimum: usize },
+    TooFewIndividualEpisodes {
+        individual_id: String,
+        observed: usize,
+        minimum: usize,
+    },
     TooFewIndividuals { observed: usize, minimum: usize },
     ModelNotFound(String),
     PairSetMismatch,
@@ -413,6 +419,7 @@ impl RobustnessProtocol {
         if self.lower_tail_fraction_basis_points == 0
             || self.lower_tail_fraction_basis_points > 10_000
             || self.minimum_episodes_per_scenario == 0
+            || self.minimum_episodes_per_individual == 0
             || self.minimum_individuals_per_scenario == 0
             || self.minimum_paired_episodes == 0
             || !self.paired_score_tie_tolerance.is_finite()
@@ -883,6 +890,13 @@ fn score_scenario(
     let mut individual_mean_task_scores = Vec::with_capacity(episodes_by_individual.len());
 
     for (individual_id, individual_episodes) in episodes_by_individual {
+        if individual_episodes.len() < protocol.minimum_episodes_per_individual {
+            return Err(RobustnessError::TooFewIndividualEpisodes {
+                individual_id,
+                observed: individual_episodes.len(),
+                minimum: protocol.minimum_episodes_per_individual,
+            });
+        }
         let first_individual_episode = individual_episodes
             .first()
             .ok_or(RobustnessError::NonFiniteSummary)?;
@@ -1372,6 +1386,7 @@ mod tests {
             scoring_plan_sha256: digest('d'),
             lower_tail_fraction_basis_points: 1000,
             minimum_episodes_per_scenario: 2,
+            minimum_episodes_per_individual: 1,
             minimum_individuals_per_scenario: 2,
             minimum_paired_episodes: 2,
             paired_score_tie_tolerance: 1.0e-9,
@@ -1724,6 +1739,24 @@ mod tests {
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
             Err(RobustnessError::MissingEvidenceArtifact("measured_dataset"))
+        );
+    }
+
+    #[test]
+    fn rejects_individual_below_declared_episode_replicates() {
+        let episodes = vec![
+            episode("candidate", "trial-1", "fly-1", 0.9),
+            episode("candidate", "trial-2", "fly-2", 0.8),
+        ];
+        let mut protocol = protocol();
+        protocol.minimum_episodes_per_individual = 2;
+        assert_eq!(
+            analyze_robustness(&protocol, &episodes),
+            Err(RobustnessError::TooFewIndividualEpisodes {
+                individual_id: "fly-1".to_string(),
+                observed: 1,
+                minimum: 2,
+            })
         );
     }
 
