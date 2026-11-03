@@ -19,18 +19,38 @@
 
 use std::collections::BTreeSet;
 
-const MAX_MODELS_PER_INTERVENTION: usize = 64;
-const MAX_FEATURE_DIMENSION: usize = 256;
-const MAX_ARTIFACTS_PER_MODEL: usize = 64;
+const MAX_MODELS_PER_INTERVENTION: usize = 16;
+const MAX_FEATURE_DIMENSION: usize = 64;
+const MAX_ARTIFACTS_PER_MODEL: usize = 32;
+const MAX_EVALUATION_ARTIFACTS: usize = 32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceTier {
     Synthetic,
     Phenomenological,
     ConnectomeConstrained,
-    InSilicoEmbodied,
     PerturbationGrounded,
     ReplicatedBiological,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModelFamily {
+    SyntheticOracle,
+    PhenomenologicalController,
+    RuleBasedController,
+    LearnedController,
+    ConnectomeCircuit,
+    ConnectomeGroundedReflex,
+    ConnectomeHybrid,
+    MechanisticHybrid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvaluationTier {
+    SyntheticHarness,
+    InSilicoEmbodied,
+    MeasuredIntervention,
+    ProspectiveReplication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -64,6 +84,7 @@ pub struct ModelProvenance {
 pub struct ModelForecast {
     pub model_id: String,
     pub intervention_id: String,
+    pub model_family: ModelFamily,
     pub evidence_tier: EvidenceTier,
     /// Ordered IDs from the frozen feature schema. Order is semantically binding.
     pub feature_ids: Vec<String>,
@@ -96,6 +117,9 @@ pub struct PredictionBatch {
     pub commit_receipt_sha256: String,
     pub event_log_id: String,
     pub commit_sequence: u64,
+    pub evaluation_tier: EvaluationTier,
+    /// Shared body/physics/data artifacts for this matched evaluation.
+    pub evaluation_artifacts: Vec<ArtifactRef>,
     /// Covariance of one measured feature vector for Gaussian forecasts.
     pub observation_covariance: Vec<Vec<f64>>,
     /// Covariance of observation error in a pairwise prediction difference.
