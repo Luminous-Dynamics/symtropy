@@ -117,6 +117,7 @@ The adapter checks:
 - G/M/I intervention semantics, H blocking-stratum semantics, and factor cardinalities (4/5/4/4);
 - the eleven expected benchmark lanes and twelve estimands;
 - all seven outcome evidence statuses, no-zero-fill behavior and evidence-class parity for paired deltas;
+- the network-interference causal contract: five candidate exposure mappings, six direct/spillover/total/displacement estimands, five assignment designs, eight comparison methods, seven perturbations, eleven metrics, four method sources, partial-identification policy, and service-safe randomization hard gates;
 - the separate cyber-physical resilience contract: WDSEventDB, ACG Water Testbed and chronological WDT resources; C1 event discrimination, C2 cyber-to-physical propagation and C3 control/recovery lanes; six disjoint event classes and non-disableable no-live-PLC, human-authorization and independent-safety gates;
 - the exact one-sided 95% binomial confidence contract: with zero false positives, 299 independent negative scenario units are required for an upper FPR bound below 1% (correlated timesteps do not count as independent units);
 - LeakDB paper-reproduction/full-corpus dataset identities, topology labels, scenario counts and source references;
