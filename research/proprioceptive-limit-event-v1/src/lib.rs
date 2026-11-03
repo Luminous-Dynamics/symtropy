@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Fixed-point joint-limit event detection for embodied sensorimotor research.
 //!
 //! This crate detects a threshold crossing from a sequence of timestamped
