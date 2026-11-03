@@ -34,6 +34,7 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         | "thermal_spatial_uniformity_improvement"
         | "magnetic_flux_spatial_uniformity_improvement"
         | "magnetothermal_equilibrium_improvement"
+        | "foreign_object_detection_accuracy"
         | "mutual_inductance_estimation_error"
         | "equivalent_load_estimation_error"
         | "output_prediction_mape"
@@ -108,7 +109,8 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         | "cc_cv_regulation_error"
         | "output_regulation_error"
         | "control_settling_time" => Some("control_performance"),
-        "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency" => {
+        "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency"
+        | "foreign_object_detection_accuracy" => {
             Some("operational_reliability")
         }
         _ => None,
