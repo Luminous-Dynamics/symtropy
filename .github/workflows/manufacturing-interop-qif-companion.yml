@@ -52,7 +52,7 @@ jobs:
           actual_commit="$(git -C qif-community rev-parse HEAD)"
           test "$actual_commit" = "$expected_commit"
 
-          jq -e '.schema_version == "luminous.qif3.companion-schema-pins.v0.1" and .qif_version == "3.0.0" and .classification == "public_companion_schema_bundle_not_normative_package" and .normative_distribution.status == "not_admitted" and .normative_distribution.full_qif_rule_checks == false and (.schema_files | length == .expected_schema_file_count) and (.positive_fixtures | length == 2)' "$manifest"
+          jq -e '.schema_version == "luminous.qif3.companion-schema-pins.v0.1" and .qif_version == "3.0.0" and .classification == "public_companion_schema_bundle_not_normative_package" and .normative_distribution.status == "not_admitted" and .normative_distribution.full_qif_rule_checks == false and (.schema_files | length) == .expected_schema_file_count and (.positive_fixtures | length == 2)' "$manifest"
 
           while IFS= read -r item; do
             path="$(jq -r '.path' <<<"$item")"
