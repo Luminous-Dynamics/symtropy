@@ -91,3 +91,15 @@ jobs:
 
     - name: Validate WPT empirical dataset
       run: cargo run --locked -p wpt-empirical-validator -- "${{ github.workspace }}"
+
+    - name: Test WPT measurement comparator
+      run: cargo test --locked -p wpt-measurement-comparator
+
+    - name: Validate WPT typed measurements and comparison fixtures
+      run: cargo run --locked -p wpt-measurement-comparator -- "${{ github.workspace }}"
+
+    - name: Test WPT round-robin manifest validator
+      run: cargo test --locked -p wpt-round-robin-validator
+
+    - name: Validate NOT_RUN round-robin manifest template
+      run: cargo run --locked -p wpt-round-robin-validator -- benchmarks/wpt-empirical/v1/test-run.example.json
