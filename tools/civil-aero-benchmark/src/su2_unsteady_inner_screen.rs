@@ -11,8 +11,7 @@ use crate::su2_field_preflight::Su2FieldPreflightReport;
 use crate::su2_history::Su2HistoryReport;
 
 pub const SU2_UNSTEADY_INNER_SCREEN_SCHEMA: &str = "su2-unsteady-inner-step-screen/0.1.0";
-pub const SU2_UNSTEADY_INNER_SCREEN_EVIDENCE_LEVEL: &str =
-    "receipt_and_history_bound_every_contiguous_saved_time_iter_checked_against_explicit_log10_residual_threshold_residual_fields_only_not_inner_solver_native_iteration_trace_or_temporal_grid_independent_or_experimentally_validated";
+pub const SU2_UNSTEADY_INNER_SCREEN_EVIDENCE_LEVEL: &str = "receipt_and_history_bound_every_contiguous_saved_time_iter_checked_against_explicit_log10_residual_threshold_residual_fields_only_not_inner_solver_native_iteration_trace_or_temporal_grid_independent_or_experimentally_validated";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Su2UnsteadyInnerFieldResult {
@@ -113,7 +112,10 @@ pub fn screen_su2_unsteady_inner_convergence(
         return Err("unsteady inner-step screen requires at least one CONV_FIELD".to_owned());
     }
     if history.iteration_column != "TIME_ITER" {
-        return Err("unsteady inner-step screen requires TIME_ITER as the history iteration column".to_owned());
+        return Err(
+            "unsteady inner-step screen requires TIME_ITER as the history iteration column"
+                .to_owned(),
+        );
     }
     let threshold_text = protocol
         .steady_residual_min_log10
@@ -136,24 +138,29 @@ pub fn screen_su2_unsteady_inner_convergence(
     if fields[inner_index].unit != "iterations" {
         return Err("INNER_ITER must have the declared unit 'iterations'".to_owned());
     }
-    let (window_start_iter, convergence_start_iter, cauchy_elements) =
-        match &protocol.window {
-            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
-                window_start_iter,
-                convergence_start_iter,
-                cauchy_elements,
-                ..
-            } => (*window_start_iter, *convergence_start_iter, *cauchy_elements),
-            crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => {
-                return Err(
-                    "unsteady inner-step screen requires an enabled windowed convergence protocol"
-                        .to_owned(),
-                );
-            }
-        };
+    let (window_start_iter, convergence_start_iter, cauchy_elements) = match &protocol.window {
+        crate::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+            window_start_iter,
+            convergence_start_iter,
+            cauchy_elements,
+            ..
+        } => (
+            *window_start_iter,
+            *convergence_start_iter,
+            *cauchy_elements,
+        ),
+        crate::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => {
+            return Err(
+                "unsteady inner-step screen requires an enabled windowed convergence protocol"
+                    .to_owned(),
+            );
+        }
+    };
     let points = history.points();
     if points.len() < 2 {
-        return Err("unsteady inner-step screen requires at least two TIME_ITER records".to_owned());
+        return Err(
+            "unsteady inner-step screen requires at least two TIME_ITER records".to_owned(),
+        );
     }
     let first_time_iteration = points.first().expect("non-empty points").iteration;
     let last_time_iteration = points.last().expect("non-empty points").iteration;
@@ -162,11 +169,8 @@ pub fn screen_su2_unsteady_inner_convergence(
             "unsteady history begins at TIME_ITER {first_time_iteration} after WINDOW_START_ITER {window_start_iter}"
         ));
     }
-    let required_terminal_iteration = required_terminal_iteration(
-        window_start_iter,
-        convergence_start_iter,
-        cauchy_elements,
-    )?;
+    let required_terminal_iteration =
+        required_terminal_iteration(window_start_iter, convergence_start_iter, cauchy_elements)?;
     if last_time_iteration < required_terminal_iteration {
         return Err(format!(
             "unsteady history ends at TIME_ITER {last_time_iteration} before the configured window convergence period ends at {required_terminal_iteration}"
@@ -215,7 +219,9 @@ pub fn screen_su2_unsteady_inner_convergence(
         let mut failed_count = 0usize;
         for point in points {
             if point.values.len() != fields.len() {
-                return Err("unsteady history point width differs from imported field schema".to_owned());
+                return Err(
+                    "unsteady history point width differs from imported field schema".to_owned(),
+                );
             }
             let inner_iterations = point.values[inner_index];
             if !inner_iterations.is_finite()
@@ -252,16 +258,14 @@ pub fn screen_su2_unsteady_inner_convergence(
         });
     }
 
-    if results.iter().any(|result| result.failed_time_step_count > 0) {
+    if results
+        .iter()
+        .any(|result| result.failed_time_step_count > 0)
+    {
         let failed = results
             .iter()
             .filter(|result| result.failed_time_step_count > 0)
-            .map(|result| {
-                format!(
-                    "{}:{}",
-                    result.field, result.failed_time_step_count
-                )
-            })
+            .map(|result| format!("{}:{}", result.field, result.failed_time_step_count))
             .collect::<Vec<_>>();
         return Err(format!(
             "unsteady inner residual threshold failed at sampled TIME_ITER records: {}",
@@ -340,12 +344,17 @@ pub fn report_to_csv(report: &Su2UnsteadyInnerScreenReport) -> String {
             report.screen_sha256.clone(),
             report.evidence_level.clone(),
         ];
-        output.push_str(&values.iter().map(|value| format!("\"{}\"", value)).collect::<Vec<_>>().join(","));
+        output.push_str(
+            &values
+                .iter()
+                .map(|value| format!("\"{}\"", value))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
         output.push('\n');
     }
     output
 }
-
 
 #[cfg(test)]
 mod tests {
