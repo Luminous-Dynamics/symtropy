@@ -774,7 +774,13 @@
           "current_peak_limit_a",
           "voltage_peak_v",
           "voltage_peak_limit_v",
-          "thermal_limit_c"
+          "thermal_limit_c",
+          "core_material_id",
+          "core_saturation_curve_ref",
+          "core_temperature_c",
+          "core_flux_density_peak_t",
+          "core_flux_density_limit_t",
+          "core_flux_assessment_method"
         ],
         "properties": {
           "network_id": {
@@ -886,6 +892,47 @@
             "type": [
               "number",
               "null"
+            ]
+          },
+          "core_material_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "core_saturation_curve_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "core_temperature_c": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "core_flux_density_peak_t": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "core_flux_density_limit_t": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "core_flux_assessment_method": {
+            "enum": [
+              "MEASURED",
+              "CALCULATED_FROM_MEASURED_WAVEFORM",
+              "SIMULATED",
+              "NOT_APPLICABLE",
+              "NOT_REPORTED"
             ]
           }
         }
