@@ -3238,8 +3238,27 @@ mod double_sliding_direction_oracle {
         ];
         let radius = BigRational::new(BigInt::from(1_u8), BigInt::from(100_000_u32));
 
-        // One interval gradient vector per objective and certified root box.
-        let branch_gradients: [[[RationalInterval; 2]; 6]; 2] =
+        // Combine each objective's six exact input partial polynomials with
+        // its proposed direction BEFORE interval evaluation. This preserves
+        // shared (t1,t2) dependence and exact polynomial cancellation; summing
+        // six separately enclosed sensitivities can be needlessly wide.
+        let directional_partials: [[BivariateIntegerPolynomial; 2]; 2] =
+            std::array::from_fn(|objective| {
+                std::array::from_fn(|equation| {
+                    input_partials
+                        .iter()
+                        .zip(OBJECTIVE_DIRECTIONS[objective].iter())
+                        .fold(BivariateIntegerPolynomial::zero(), |sum, (partials, coefficient)| {
+                            sum.add(partials[equation].scale(*coefficient))
+                        })
+                })
+            });
+
+        // One exact directional derivative interval per objective and
+        // Krawczyk-certified branch. The implicit-function formula is applied
+        // to the combined directional partials, not to independently widened
+        // coordinate derivatives.
+        let branch_directional_derivatives: [[RationalInterval; 2]; 2] =
             std::array::from_fn(|branch_index| {
                 let certificate = certify_exact_double_slide_root_box(
                     &base,
@@ -3277,10 +3296,12 @@ mod double_sliding_direction_oracle {
                     "each certified branch Jacobian must remain nonsingular"
                 );
 
-                std::array::from_fn(|coordinate| {
+                std::array::from_fn(|objective| {
                     let parameter_derivative = [
-                        input_partials[coordinate][0].evaluate_interval(&domain[0], &domain[1]),
-                        input_partials[coordinate][1].evaluate_interval(&domain[0], &domain[1]),
+                        directional_partials[objective][0]
+                            .evaluate_interval(&domain[0], &domain[1]),
+                        directional_partials[objective][1]
+                            .evaluate_interval(&domain[0], &domain[1]),
                     ];
                     let dt1_numerator = jacobian[1][1]
                         .mul(&parameter_derivative[0])
@@ -3290,28 +3311,23 @@ mod double_sliding_direction_oracle {
                         .mul(&parameter_derivative[1])
                         .sub(&jacobian[1][0].mul(&parameter_derivative[0]))
                         .neg();
-                    [
+                    let directional_numerator = if objective == 0 {
                         dt1_numerator
-                            .div(&determinant)
-                            .expect("nonsingular branch Jacobian gives dt1/dq"),
+                    } else {
                         dt2_numerator
-                            .div(&determinant)
-                            .expect("nonsingular branch Jacobian gives dt2/dq"),
-                    ]
+                    };
+                    directional_numerator
+                        .div(&determinant)
+                        .expect("nonsingular branch Jacobian gives directional derivative")
                 })
             });
 
-        let zero = BigRational::from_integer(BigInt::from(0_u8));
-        for (branch_index, branch_gradient) in branch_gradients.iter().enumerate() {
-            for (objective, direction) in OBJECTIVE_DIRECTIONS.iter().enumerate() {
-                let mut directional_derivative = RationalInterval::point(zero.clone());
-                for (coordinate, direction_coefficient) in direction.iter().enumerate() {
-                    let direction_coefficient =
-                        BigRational::from_integer(BigInt::from(*direction_coefficient));
-                    directional_derivative = directional_derivative
-                        .add(&branch_gradient[coordinate][objective].scale(&direction_coefficient));
-                }
-
+        for (branch_index, objective_derivatives) in
+            branch_directional_derivatives.iter().enumerate()
+        {
+            for (objective, directional_derivative) in
+                objective_derivatives.iter().enumerate()
+            {
                 let required_upper = if objective == 0 {
                     BigRational::from_integer(BigInt::from(-10_i8))
                 } else {
