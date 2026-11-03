@@ -302,6 +302,26 @@ For cross-site correlation, require:
 
 Three synthetic fixtures cover a valid aligned fleet trace, a nested PCC+UPS double-count rejection and a clock-alignment rejection. The Rust validator in PR #3437 implements these guards and has 11 unit tests. A data-contract PASS is not proof of physical meter accuracy or of empirical cross-site dependence.
 
+### 5.10 Matched-service compute flexibility evaluation
+
+Dependent implementation: [PR #3438](https://github.com/Luminous-Dynamics/symtropy/pull/3438), building on the trace and meter validator #3437.
+
+The event evaluator uses two explicit boundaries:
+1. **Grid-facing response:** facility PCC active import, where a utility/grid-support signal is observed.
+2. **Facility energy per work:** total electricity input at one frozen facility service boundary, including grid import, on-site generation and storage discharge, measured without nested meter addition.
+
+Do not calculate facility energy efficiency from PCC imports alone. A battery can reduce grid import while discharging stored energy; that is a grid-support result but not necessarily an energy-efficiency improvement.
+
+The matched horizon includes event and post-event rebound. All samples must follow the frozen interval/timebase and have evidence IDs. The identity binds event, service contract, work unit, measurement boundary and baseline/response configuration digests. PASS requires:
+- required grid-import reduction;
+- work loss below the declared bound;
+- facility electrical energy per completed work no worse than the declared limit;
+- rebound PCC peak within the declared bound;
+- p99 latency and deadline misses within SLA;
+- response temperature within the declared thermal limit.
+
+Use [AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json](data/AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json) and its [schema](data/AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json). Six synthetic cases cover 25%-for-3-hours matched service, battery shift with unchanged facility energy/work, work loss, rebound, facility energy regression and SLA/thermal failure. These are code/data oracles, not field measurements. Well-to-Service accounting is still required for primary energy, grid-generation and lifecycle effects.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
