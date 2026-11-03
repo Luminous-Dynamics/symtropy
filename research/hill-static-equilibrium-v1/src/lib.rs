@@ -492,6 +492,8 @@ pub fn solve_static_equilibrium(
     }
 
     if lower_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
+        let bracket_lower_residual_n = lower_eval.residual_n;
+        let bracket_upper_residual_n = upper_eval.residual_n;
         return to_result(
             parameters,
             curves,
@@ -502,12 +504,14 @@ pub fn solve_static_equilibrium(
             lower_fiber_length_m,
             lower_fiber_length_m,
             upper_fiber_length_m,
-            lower_eval.residual_n,
-            upper_eval.residual_n,
+            bracket_lower_residual_n,
+            bracket_upper_residual_n,
             0,
         );
     }
     if upper_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
+        let bracket_lower_residual_n = lower_eval.residual_n;
+        let bracket_upper_residual_n = upper_eval.residual_n;
         return to_result(
             parameters,
             curves,
@@ -518,8 +522,8 @@ pub fn solve_static_equilibrium(
             upper_fiber_length_m,
             lower_fiber_length_m,
             upper_fiber_length_m,
-            lower_eval.residual_n,
-            upper_eval.residual_n,
+            bracket_lower_residual_n,
+            bracket_upper_residual_n,
             0,
         );
     }
@@ -543,6 +547,8 @@ pub fn solve_static_equilibrium(
         )?;
 
         if middle_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
+            let bracket_lower_residual_n = lower_eval.residual_n;
+            let bracket_upper_residual_n = upper_eval.residual_n;
             return to_result(
                 parameters,
                 curves,
@@ -553,8 +559,8 @@ pub fn solve_static_equilibrium(
                 midpoint,
                 lower_fiber_length_m,
                 upper_fiber_length_m,
-                lower_eval.residual_n,
-                upper_eval.residual_n,
+                bracket_lower_residual_n,
+                bracket_upper_residual_n,
                 iteration,
             );
         }
@@ -578,6 +584,8 @@ pub fn solve_static_equilibrium(
                 final_midpoint,
             )?;
             if final_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
+                let bracket_lower_residual_n = lower_eval.residual_n;
+                let bracket_upper_residual_n = upper_eval.residual_n;
                 return to_result(
                     parameters,
                     curves,
@@ -588,8 +596,8 @@ pub fn solve_static_equilibrium(
                     final_midpoint,
                     lower_fiber_length_m,
                     upper_fiber_length_m,
-                    lower_eval.residual_n,
-                    upper_eval.residual_n,
+                    bracket_lower_residual_n,
+                    bracket_upper_residual_n,
                     iteration,
                 );
             }
