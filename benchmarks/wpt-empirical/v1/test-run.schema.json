@@ -19,6 +19,7 @@
     "result",
     "resonant_networks",
     "cyber_physical_security",
+    "standards_basis",
     "standards_basis"
   ],
   "properties": {
@@ -137,6 +138,9 @@
         "ambient_temperature_c",
         "relative_humidity_pct",
         "thermal_state",
+        "operating_mode",
+        "installation_type",
+        "rated_apparent_power_va",
         "operating_mode",
         "installation_type",
         "rated_apparent_power_va"
@@ -728,7 +732,8 @@
               "ANALYSIS_CODE",
               "REPORT",
               "OTHER",
-              "SECURITY_REPORT"
+              "SECURITY_REPORT",
+              "CERTIFICATION_EVIDENCE"
             ]
           },
           "uri": {
@@ -1190,6 +1195,8 @@
           "provisions_tested",
           "compliance_claim",
           "evidence_sha256",
+          "issuing_body",
+          "certificate_id",
           "notes"
         ],
         "properties": {
@@ -1234,6 +1241,18 @@
               "null"
             ],
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "issuing_body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "certificate_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "notes": {
             "type": "string",
