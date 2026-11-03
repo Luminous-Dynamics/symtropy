@@ -176,5 +176,38 @@
     "segment_event_log_sha256": null,
     "vehicle_dc_energy_per_km_wh_km": null,
     "roadway_idle_energy_per_km_wh_km": null
+  },
+  "foreign_object_assessment": {
+    "assessment_status": "NOT_ASSESSED",
+    "sensor_modality": "UNKNOWN",
+    "pre_transfer_frame_count": null,
+    "active_transfer_frame_count": null,
+    "distinct_conductive_object_count": null,
+    "distinct_nonconductive_object_count": null,
+    "held_out_object_count": null,
+    "held_out_session_count": null,
+    "data_split_policy": "UNKNOWN",
+    "confusion_matrix": {
+      "true_positive": null,
+      "true_negative": null,
+      "false_positive": null,
+      "false_negative": null
+    },
+    "detection_recall_pct": null,
+    "false_negative_rate_pct": null,
+    "false_positive_rate_pct": null,
+    "real_time_accuracy_pct": null,
+    "p99_detection_latency_ms": null,
+    "localization_error_p95_mm": null,
+    "expected_calibration_error_pct": null,
+    "ood_abstention_count": null,
+    "sensor_fault_abstention_count": null,
+    "mitigation_mode": "NOT_APPLICABLE",
+    "auxiliary_energy_j": null,
+    "max_object_temperature_rise_c": null,
+    "thermal_ground_truth_method": "NOT_REPORTED",
+    "scenario_corpus_sha256": null,
+    "assessment_report_sha256": null,
+    "scenario_results": []
   }
 }
