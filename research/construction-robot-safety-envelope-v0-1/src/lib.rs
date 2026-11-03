@@ -2330,10 +2330,8 @@ mod tests {
     fn human_presence_evidence_must_name_its_sensor_sources() {
         let (policy, mut observation) = baseline();
         observation.human = HumanObservation::NoHumanDetected;
-        observation.human_detection.contributing_sensor_ids = vec![
-            "lidar-front".to_owned(),
-            "unknown-sensor".to_owned(),
-        ];
+        observation.human_detection.contributing_sensor_ids =
+            vec!["lidar-front".to_owned(), "unknown-sensor".to_owned()];
         let decision = evaluate(&policy, &observation);
         assert_eq!(
             decision.disposition,
@@ -2359,10 +2357,8 @@ mod tests {
     fn human_absence_evidence_requires_independent_sensor_fault_domains() {
         let (policy, mut observation) = baseline();
         observation.human = HumanObservation::NoHumanDetected;
-        observation.human_detection.contributing_sensor_ids = vec![
-            "lidar-front".to_owned(),
-            "camera-front".to_owned(),
-        ];
+        observation.human_detection.contributing_sensor_ids =
+            vec!["lidar-front".to_owned(), "camera-front".to_owned()];
         observation.sensors[2].fault_domain = observation.sensors[0].fault_domain.clone();
         let decision = evaluate(&policy, &observation);
         assert_eq!(
@@ -2523,10 +2519,10 @@ mod tests {
     #[test]
     fn coverage_cells_outside_the_pinned_hazard_zone_are_rejected() {
         let (policy, mut observation) = baseline();
-        observation.human_detection.covered_cells.push(CoverageCell {
-            column: 9,
-            row: 9,
-        });
+        observation
+            .human_detection
+            .covered_cells
+            .push(CoverageCell { column: 9, row: 9 });
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
         assert_eq!(decision.reasons, vec![Reason::CoverageCellsMalformed]);
