@@ -28,7 +28,9 @@ A plate record binds:
 - reflex outcomes (intervention kind, movement direction, latency, magnitude and behavioural context);
 - record-level source digest.
 
-The inventory binds a dataset ID/version and inventory digest. It validates syntax and structure but does not authenticate source artifacts or claim the input data are biologically correct.
+The inventory binds a dataset ID/version, inventory digest and typed source-artifact manifest. Each observed field must resolve to a manifest entry with the matching semantic role (morphology, afferent identity, sensory tuning, connectome output or reflex outcome). Each explicit-absence claim must resolve to a SearchReceipt artifact. Manifest entries carry a locator, source version, media type, optional SPDX license, SHA-256, roles and declared custody mode.
+
+Custody mode is metadata, not proof. This crate validates manifest structure and digest references but does not download bytes, hash them, validate digital signatures or authenticate the source provider. A separate intake/materialization process must verify downloaded bytes against claimed digests before assigning a byte-verified custody mode.
 
 ## Blind prediction contract
 
