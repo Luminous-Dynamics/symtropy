@@ -944,4 +944,3 @@ mod tests {
         assert_eq!(limited_class, "maximum_time_iterations_reached");
     }
 }
-
