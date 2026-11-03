@@ -1721,7 +1721,7 @@ mod tests {
 
 
     #[test]
-    fn run_schema_matches_validator_top_level_and_scenario_ids() {
+    fn run_schema_matches_validator_top_level_nested_fields_and_scenario_ids() {
         let schema: Value = serde_json::from_str(include_str!(
             "../../../benchmarks/wpt-empirical/v1/test-run.schema.json"
         ))
@@ -1731,36 +1731,203 @@ mod tests {
         ))
         .expect("run manifest example JSON parses");
 
-        let schema_top = schema["required"]
-            .as_array()
-            .expect("schema top-level required array")
-            .iter()
-            .filter_map(Value::as_str)
-            .collect::<BTreeSet<_>>();
-        let validator_top = TOP_LEVEL.iter().copied().collect::<BTreeSet<_>>();
+        let unique_strings = |value: &Value, path: &[&str]| -> BTreeSet<String> {
+            value
+                .pointer(&format!("/{}", path.join("/")))
+                .and_then(Value::as_array)
+                .expect("schema required array")
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        };
+        let len_strings = |value: &Value, path: &[&str]| -> usize {
+            value
+                .pointer(&format!("/{}", path.join("/")))
+                .and_then(Value::as_array)
+                .expect("schema required array")
+                .len()
+        };
+
+        let schema_top = unique_strings(&schema, &["required"]);
+        let validator_top = TOP_LEVEL.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
         assert_eq!(schema_top, validator_top, "schema and validator top-level fields drifted");
         assert_eq!(
-            example["schema_version"].as_str(),
-            Some("wpt-test-run-v1")
+            len_strings(&schema, &["required"]),
+            schema_top.len(),
+            "top-level schema contains duplicate required fields"
         );
 
-        let schema_scenarios = schema["properties"]["cyber_physical_security"]
-            ["properties"]["security_scenario_results"]["items"]["properties"]["scenario_id"]
-            ["enum"]
-            .as_array()
-            .expect("security scenario ID enum")
-            .iter()
-            .filter_map(Value::as_str)
-            .collect::<BTreeSet<_>>();
+        let condition_keys = unique_strings(
+            &schema,
+            &["properties", "conditions", "required"],
+        );
+        assert_eq!(
+            len_strings(&schema, &["properties", "conditions", "required"]),
+            condition_keys.len(),
+            "conditions schema contains duplicate required fields"
+        );
+        let validator_conditions = [
+            "direction",
+            "power_class",
+            "commanded_power_w",
+            "frequency_hz",
+            "transfer_gap_m",
+            "offset_x_m",
+            "offset_y_m",
+            "offset_z_m",
+            "yaw_deg",
+            "receiver_count",
+            "active_receiver_count",
+            "battery_voltage_v",
+            "load_profile_id",
+            "ambient_temperature_c",
+            "relative_humidity_pct",
+            "thermal_state",
+            "operating_mode",
+            "installation_type",
+            "rated_apparent_power_va",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<BTreeSet<_>>();
+        assert_eq!(
+            condition_keys, validator_conditions,
+            "conditions schema and validator contract drifted"
+        );
+
+        let resonant_keys = unique_strings(
+            &schema,
+            &["properties", "resonant_networks", "items", "required"],
+        );
+        assert_eq!(
+            len_strings(&schema, &["properties", "resonant_networks", "items", "required"]),
+            resonant_keys.len(),
+            "resonant network schema contains duplicate required fields"
+        );
+        let validator_resonant = [
+            "network_id",
+            "nominal_frequency_hz",
+            "commanded_state",
+            "isolation_switch_state",
+            "current_rms_a",
+            "current_peak_a",
+            "continuous_current_limit_a",
+            "current_peak_limit_a",
+            "voltage_rms_v",
+            "voltage_peak_v",
+            "voltage_limit_v",
+            "voltage_peak_limit_v",
+            "thermal_maximum_c",
+            "thermal_limit_c",
+            "core_material_id",
+            "core_saturation_curve_ref",
+            "core_temperature_c",
+            "core_flux_density_peak_t",
+            "core_flux_density_limit_t",
+            "core_flux_assessment_method",
+            "measurement_method",
+            "artifact_sha256",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<BTreeSet<_>>();
+        assert_eq!(
+            resonant_keys, validator_resonant,
+            "resonant network schema and validator contract drifted"
+        );
+
+        let security_keys = unique_strings(
+            &schema,
+            &["properties", "cyber_physical_security", "required"],
+        );
+        assert_eq!(
+            len_strings(&schema, &["properties", "cyber_physical_security", "required"]),
+            security_keys.len(),
+            "cyber-physical security schema contains duplicate required fields"
+        );
+        let validator_security = [
+            "communication_mode",
+            "authentication_method",
+            "mutual_authentication",
+            "replay_protection",
+            "receiver_identity_bound",
+            "firmware_integrity_verified",
+            "sensor_plausibility_checks",
+            "spoofed_receiver_rejected",
+            "replay_message_rejected",
+            "sensor_tampering_detected",
+            "communication_loss_fallback",
+            "p99_message_latency_ms",
+            "max_message_jitter_ms",
+            "max_message_age_ms",
+            "security_artifact_sha256",
+            "freshness_mechanism",
+            "control_deadline_ms",
+            "max_accepted_command_age_ms",
+            "security_scenario_results",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<BTreeSet<_>>();
+        assert_eq!(
+            security_keys, validator_security,
+            "security schema and validator contract drifted"
+        );
+
+        let standards_keys = unique_strings(
+            &schema,
+            &["properties", "standards_basis", "items", "required"],
+        );
+        assert_eq!(
+            len_strings(&schema, &["properties", "standards_basis", "items", "required"]),
+            standards_keys.len(),
+            "standards basis schema contains duplicate required fields"
+        );
+        let validator_standards = [
+            "document_id",
+            "edition",
+            "applicability",
+            "scope_statement",
+            "provisions_tested",
+            "compliance_claim",
+            "evidence_sha256",
+            "issuing_body",
+            "certificate_id",
+            "notes",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<BTreeSet<_>>();
+        assert_eq!(
+            standards_keys, validator_standards,
+            "standards-basis schema and validator contract drifted"
+        );
+
+        let schema_scenarios = unique_strings(
+            &schema,
+            &[
+                "properties",
+                "cyber_physical_security",
+                "properties",
+                "security_scenario_results",
+                "items",
+                "properties",
+                "scenario_id",
+                "enum",
+            ],
+        );
         let validator_scenarios = REQUIRED_SECURITY_SCENARIOS
             .iter()
-            .copied()
+            .map(|id| id.to_string())
             .collect::<BTreeSet<_>>();
         assert_eq!(
             schema_scenarios,
             validator_scenarios,
             "run schema and security scenario gate drifted"
         );
+        assert_eq!(example["schema_version"].as_str(), Some("wpt-test-run-v1"));
+        assert_eq!(example["standards_basis"].as_array().map(Vec::len), Some(0));
     }
 
     #[test]
@@ -2039,6 +2206,17 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("published <=11 kVA scope")));
     }
 
+
+    #[test]
+    fn rejects_j2954_normative_claim_for_flush_mounted_installation() {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["installation_type"] = json!("FLUSH_MOUNTED");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        manifest["conditions"]["rated_apparent_power_va"] = json!(10_000.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires SURFACE_MOUNTED installation")));
+    }
+
     #[test]
     fn rejects_j2954_normative_claim_for_dynamic_operation() {
         let mut manifest = qualified_fixture();
@@ -2046,6 +2224,17 @@ mod tests {
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("requires STATIC operation")));
+    }
+
+
+    #[test]
+    fn rejects_j2954_3_as_normative_before_issued() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("SAE J2954/3");
+        manifest["standards_basis"][0]["edition"] = json!("planned");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("tracked as planned/unissued")));
     }
 
     #[test]
