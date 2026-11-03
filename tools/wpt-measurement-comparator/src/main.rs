@@ -12,14 +12,6 @@ fn text<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
     v.get(key).and_then(Value::as_str)
 }
 
-fn n(v: &Value, keys: &[&str]) -> Option<f64> {
-    let mut x = v;
-    for key in keys {
-        x = x.get(*key)?;
-    }
-    x.as_f64().filter(|x| x.is_finite())
-}
-
 fn dimension_for_quantity(q: &str) -> Option<&'static str> {
     match q {
         "electrical_real_power" | "apparent_power" | "reactive_power" | "useful_load_power" => Some("power"),
@@ -390,7 +382,10 @@ fn read_jsonl(path: &Path) -> Result<Vec<Value>, Box<dyn Error>> {
         let line = line?;
         if line.trim().is_empty() { continue; }
         values.push(serde_json::from_str(&line).map_err(|e| {
-            format!("{} line {}: {e}", path.display(), index + 1)
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("{} line {}: {e}", path.display(), index + 1),
+            )
         })?);
     }
     Ok(values)
@@ -399,9 +394,14 @@ fn read_jsonl(path: &Path) -> Result<Vec<Value>, Box<dyn Error>> {
 fn unique_index<'a>(rows: &'a [Value], key: &str) -> Result<BTreeMap<String, &'a Value>, Box<dyn Error>> {
     let mut map = BTreeMap::new();
     for row in rows {
-        let id = text(row, key).ok_or_else(|| format!("missing {key}"))?;
+        let id = text(row, key).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, format!("missing {key}"))
+        })?;
         if map.insert(id.to_owned(), row).is_some() {
-            return Err(format!("duplicate {key} {id}").into());
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("duplicate {key} {id}"),
+            ).into());
         }
     }
     Ok(map)
@@ -451,8 +451,12 @@ pub fn audit(root: &Path) -> Result<Value, Box<dyn Error>> {
             .filter_map(|m| Some((text(m, "measurement_id")?, m))).collect();
         let left_id = text(case, "left_measurement_id").unwrap_or("");
         let right_id = text(case, "right_measurement_id").unwrap_or("");
-        let left = by_id.get(left_id).ok_or_else(|| format!("{cid}: missing measurement {left_id}"))?;
-        let right = by_id.get(right_id).ok_or_else(|| format!("{cid}: missing measurement {right_id}"))?;
+        let left = by_id.get(left_id).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, format!("{cid}: missing measurement {left_id}"))
+        })?;
+        let right = by_id.get(right_id).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, format!("{cid}: missing measurement {right_id}"))
+        })?;
         let intent = text(case, "comparison_intent").unwrap_or("");
         let (actual, reasons) = compare_measurements(left, right, intent);
         let expected = text(case, "expected_disposition").unwrap_or("");
@@ -509,7 +513,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let report = audit(&root)?;
     println!("{}", serde_json::to_string_pretty(&report)?);
     if report["valid"] != Value::Bool(true) {
-        return Err("WPT typed measurement audit failed".into());
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "WPT typed measurement audit failed",
+        ).into());
     }
     Ok(())
 }
