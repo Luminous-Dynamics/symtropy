@@ -339,6 +339,30 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
         &mut errors,
     );
     exact_object_keys(
+        manifest.get("cyber_physical_security"),
+        &[
+            "communication_mode",
+            "authentication_method",
+            "mutual_authentication",
+            "replay_protection",
+            "receiver_identity_bound",
+            "firmware_integrity_verified",
+            "sensor_plausibility_checks",
+            "spoofed_receiver_rejected",
+            "replay_message_rejected",
+            "sensor_tampering_detected",
+            "communication_loss_fallback",
+            "p99_message_latency_ms",
+            "max_message_jitter_ms",
+            "max_message_age_ms",
+            "control_deadline_ms",
+            "max_accepted_command_age_ms",
+            "security_artifact_sha256",
+        ],
+        "cyber_physical_security",
+        &mut errors,
+    );
+    exact_object_keys(
         manifest.get("result"),
         &["qualification", "deviations", "notes"],
         "result",
@@ -940,6 +964,110 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         }
     }
 
+
+    // WPT control is cyber-physical: authenticated commands and trusted sensors
+    // must not be allowed to turn a network fault into unintended energy flow.
+    let security = manifest
+        .get("cyber_physical_security")
+        .unwrap_or(&Value::Null);
+    let communication_mode =
+        text(security, "communication_mode").unwrap_or("UNKNOWN");
+    let authentication_method =
+        text(security, "authentication_method").unwrap_or("UNKNOWN");
+    if !matches!(communication_mode, "NETWORKED" | "LOCAL_ONLY" | "NONE") {
+        errors.push("cyber_physical_security.communication_mode: known mode required".into());
+    }
+    if !at(manifest, &["cyber_physical_security", "receiver_identity_bound"])
+        .and_then(Value::as_bool).unwrap_or(false)
+    {
+        errors.push("cyber_physical_security.receiver_identity_bound: receiver identity binding required".into());
+    }
+    if !at(manifest, &["cyber_physical_security", "firmware_integrity_verified"])
+        .and_then(Value::as_bool).unwrap_or(false)
+    {
+        errors.push("cyber_physical_security.firmware_integrity_verified: verified firmware integrity required".into());
+    }
+    if !at(manifest, &["cyber_physical_security", "sensor_plausibility_checks"])
+        .and_then(Value::as_bool).unwrap_or(false)
+    {
+        errors.push("cyber_physical_security.sensor_plausibility_checks: trusted sensor cross-checks required".into());
+    }
+    if string_at(security, "spoofed_receiver_rejected") != Some("PASS") {
+        errors.push("cyber_physical_security.spoofed_receiver_rejected: spoofed receiver must be rejected".into());
+    }
+    if string_at(security, "sensor_tampering_detected") != Some("PASS") {
+        errors.push("cyber_physical_security.sensor_tampering_detected: sensor tampering must be detected".into());
+    }
+    if !matches!(
+        string_at(security, "communication_loss_fallback"),
+        Some("SAFE_DEENERGIZE" | "LOCAL_SAFE_CONTROL")
+    ) {
+        errors.push("cyber_physical_security.communication_loss_fallback: safe fallback required".into());
+    }
+    if !string_at(security, "security_artifact_sha256").is_some_and(valid_sha256) {
+        errors.push("cyber_physical_security.security_artifact_sha256: attack-test evidence digest required".into());
+    }
+
+    match communication_mode {
+        "NETWORKED" => {
+            if !matches!(authentication_method, "PKI_MUTUAL" | "TLS_MUTUAL") {
+                errors.push("cyber_physical_security.authentication_method: mutual PKI/TLS required for networked control".into());
+            }
+            if !at(manifest, &["cyber_physical_security", "mutual_authentication"])
+                .and_then(Value::as_bool).unwrap_or(false)
+            {
+                errors.push("cyber_physical_security.mutual_authentication: networked session must authenticate both peers".into());
+            }
+            if !at(manifest, &["cyber_physical_security", "replay_protection"])
+                .and_then(Value::as_bool).unwrap_or(false)
+            {
+                errors.push("cyber_physical_security.replay_protection: fresh nonce/timestamp/sequence required".into());
+            }
+            if string_at(security, "replay_message_rejected") != Some("PASS") {
+                errors.push("cyber_physical_security.replay_message_rejected: replay control test must pass".into());
+            }
+            let latency = number_at(manifest, &["cyber_physical_security", "p99_message_latency_ms"]);
+            let deadline = number_at(manifest, &["cyber_physical_security", "control_deadline_ms"]);
+            let jitter = number_at(manifest, &["cyber_physical_security", "max_message_jitter_ms"]);
+            let age = number_at(manifest, &["cyber_physical_security", "max_message_age_ms"]);
+            let max_age = number_at(manifest, &["cyber_physical_security", "max_accepted_command_age_ms"]);
+            match (latency, deadline) {
+                (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                _ => errors.push("cyber_physical_security.p99_message_latency_ms: measured p99 latency must meet positive control deadline".into()),
+            }
+            if !jitter.is_some_and(|value| value >= 0.0) {
+                errors.push("cyber_physical_security.max_message_jitter_ms: measured jitter required".into());
+            }
+            match (age, max_age) {
+                (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                _ => errors.push("cyber_physical_security.max_message_age_ms: command freshness must meet accepted age bound".into()),
+            }
+        }
+        "LOCAL_ONLY" => {
+            if !matches!(authentication_method, "LOCAL_AUTH" | "NOT_APPLICABLE") {
+                errors.push("cyber_physical_security.authentication_method: LOCAL_AUTH or NOT_APPLICABLE required for local-only control".into());
+            }
+            if !matches!(
+                string_at(security, "replay_message_rejected"),
+                Some("PASS" | "NOT_APPLICABLE")
+            ) {
+                errors.push("cyber_physical_security.replay_message_rejected: declare local replay test disposition".into());
+            }
+        }
+        "NONE" => {
+            if authentication_method != "NOT_APPLICABLE" {
+                errors.push("cyber_physical_security.authentication_method: NOT_APPLICABLE required with no communications".into());
+            }
+            if !matches!(
+                string_at(security, "replay_message_rejected"),
+                Some("NOT_APPLICABLE")
+            ) {
+                errors.push("cyber_physical_security.replay_message_rejected: NOT_APPLICABLE required with no communications".into());
+            }
+        }
+        _ => {}
+    }
+
     if matches!(technology, "IPT" | "CPT" | "HYBRID") {
         if !number_at(manifest, &["power_quality", "primary_current_thd_pct"])
             .is_some_and(|value| value >= 0.0)
@@ -1134,6 +1262,25 @@ mod tests {
         manifest["safety"]["unauthorized_receiver"] = json!("PASS");
         manifest["safety"]["communication_loss_response"] = json!("SAFE_DEENERGIZE");
         manifest["safety"]["thermal_maximum_c"] = json!(70.0);
+        manifest["cyber_physical_security"] = json!({
+            "communication_mode": "NETWORKED",
+            "authentication_method": "PKI_MUTUAL",
+            "mutual_authentication": true,
+            "replay_protection": true,
+            "receiver_identity_bound": true,
+            "firmware_integrity_verified": true,
+            "sensor_plausibility_checks": true,
+            "spoofed_receiver_rejected": "PASS",
+            "replay_message_rejected": "PASS",
+            "sensor_tampering_detected": "PASS",
+            "communication_loss_fallback": "SAFE_DEENERGIZE",
+            "p99_message_latency_ms": 4.0,
+            "max_message_jitter_ms": 1.0,
+            "max_message_age_ms": 20.0,
+            "control_deadline_ms": 10.0,
+            "max_accepted_command_age_ms": 25.0,
+            "security_artifact_sha256": "e".repeat(64)
+        });
 
         manifest["artifact_refs"] = json!([
             {
@@ -1290,6 +1437,47 @@ mod tests {
         manifest["resonant_networks"][1]["isolation_switch_state"] = json!("FAULT");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("faulted switch state")));
+    }
+
+
+    #[test]
+    fn rejects_replayed_power_command_in_networked_mode() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["replay_message_rejected"] = json!("FAIL");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("replay control test must pass")));
+    }
+
+    #[test]
+    fn rejects_spoofed_receiver_acceptance() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["spoofed_receiver_rejected"] = json!("FAIL");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("spoofed receiver must be rejected")));
+    }
+
+    #[test]
+    fn rejects_network_latency_over_declared_control_deadline() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["p99_message_latency_ms"] = json!(12.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("must meet positive control deadline")));
+    }
+
+    #[test]
+    fn rejects_unsafe_communication_loss_fallback() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["communication_loss_fallback"] = json!("UNSAFE");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("safe fallback required")));
+    }
+
+    #[test]
+    fn rejects_firmware_integrity_failure() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["firmware_integrity_verified"] = json!(false);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("verified firmware integrity required")));
     }
 
     #[test]
