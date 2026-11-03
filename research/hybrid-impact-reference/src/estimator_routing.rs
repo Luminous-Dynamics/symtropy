@@ -93,6 +93,7 @@ pub struct GradientEstimatorCandidate {
     /// Per-coordinate absolute-bias upper bounds. Unknown bias is not zero.
     pub absolute_bias_bound: Vec<f64>,
     /// Digest of the independent bound/calibration procedure for bias.
+    pub bias_bound_evidence_digest: String,
     /// Comparable caller-declared cost units (e.g. rollout-equivalents).
     pub cost_units: f64,
     /// Required only for BranchLocalExact.
@@ -145,6 +146,7 @@ pub struct SelectedEstimator {
     pub cost_units: f64,
 }
 
+impl SelectedEstimator {
     /// Deterministic, length-prefixed bytes for auditing or hashing the exact
     /// selected estimate and the configuration that admitted it.
     pub fn canonical_bytes(&self) -> Vec<u8> {
@@ -182,7 +184,6 @@ pub struct SelectedEstimator {
         output
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoutingAbstention {
