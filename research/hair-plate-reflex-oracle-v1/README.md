@@ -32,7 +32,7 @@ The inventory binds a dataset ID/version and inventory digest. It validates synt
 
 ## Blind prediction contract
 
-Each prediction binds model, training split, held-out split and prediction digests plus the exact plate ID. The held-out plate must not occur in the training plate list. The inventory-aware validator checks that the held-out plate and every training plate exist in the pinned inventory and rejects cross-taxon training plates. A future run manifest should bind all data preprocessing, normalization, cell registration, connectome release/materialization, model hyperparameters, random seeds and prediction outputs.
+Each prediction binds model, training split, held-out split and prediction digests plus the exact plate ID. The held-out plate must not occur in the training plate list. The inventory-aware validator checks that the held-out plate and every training plate exist in the pinned inventory and rejects cross-taxon training plates. A joint-limit prediction also binds the exact response-threshold definition. A reflex prediction binds intervention, behavioural context and assay-scope identity; an observed outcome from another assay context cannot be used to infer absence. An explicit-absence search receipt is scored as negative only when its scope ID exactly matches the predicted assay scope. A future run manifest should bind all data preprocessing, normalization, cell registration, connectome release/materialization, model hyperparameters, random seeds and prediction outputs.
 
 ## V1 metrics
 
@@ -52,7 +52,7 @@ The synthetic tests validate the contract and metric arithmetic only. They do no
 
 ## Synthetic tests
 
-The 13 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
+The 19 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
 
 ## References
 
