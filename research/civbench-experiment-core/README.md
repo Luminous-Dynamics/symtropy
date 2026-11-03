@@ -118,7 +118,9 @@ The adapter checks:
 - the eleven expected benchmark lanes and twelve estimands;
 - all seven outcome evidence statuses, no-zero-fill behavior and evidence-class parity for paired deltas;
 - LeakDB paper-reproduction/full-corpus dataset identities, topology labels, scenario counts and source references;
-- L0/L1/L2 evaluation lanes;
+- L0/L1/L2 synthetic LeakDB lanes, plus separate L3 BattLeDIM external SCADA and L4 Slovak weak-label temporal-anomaly lanes;
+- BattLeDIM's five-minute cadence, tank/flow/pressure/AMR sensor inventory, and explicit public-not-blind holdout status;
+- Slovak lane's 8,737 hourly records, 18 derived features, seven-day weak-label window, unconfirmed-negative semantics and prohibition on pipe-localization claims;
 - complete-scenario split, train/validation/calibration/sealed-test partitions, train-only model/transform fitting, calibration-only threshold/calibration, evaluator-only test labels and frozen split/archive digests;
 - fail-closed provenance requirements.
 
