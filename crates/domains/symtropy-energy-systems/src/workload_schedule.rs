@@ -672,7 +672,8 @@ pub fn verify_workload_schedule(
                 deadline_slot_exclusive: job.deadline_slot_exclusive(),
             });
         }
-        if allocation.work_units() > job.maximum_work_units_per_slot() + tolerance.absolute_work_units
+        if allocation.work_units()
+            > job.maximum_work_units_per_slot() + tolerance.absolute_work_units
         {
             return Err(WorkloadScheduleError::JobSlotWorkExceeded {
                 job_id: allocation.job_id().to_string(),
@@ -1165,7 +1166,7 @@ impl fmt::Display for WorkloadScheduleError {
                 deadline_slot_exclusive,
             } => write!(
                 f,
-                "job {job_id} assigned slot {slot_index} outside [{release_slot}, {deadline_slot_exclusive})"
+                "job {job_id} slot {slot_index} outside [{release_slot}, {deadline_slot_exclusive})"
             ),
             Self::JobSlotWorkExceeded {
                 job_id,
@@ -1174,7 +1175,7 @@ impl fmt::Display for WorkloadScheduleError {
                 maximum_work_units,
             } => write!(
                 f,
-                "job {job_id} in slot {slot_index} allocated {observed_work_units}; max {maximum_work_units}"
+                "job {job_id} slot {slot_index} work {observed_work_units} exceeds max {maximum_work_units}"
             ),
             Self::DuplicateJobSlotAllocation { job_id, slot_index } => {
                 write!(f, "job {job_id} has multiple allocations in slot {slot_index}")
@@ -1188,7 +1189,7 @@ impl fmt::Display for WorkloadScheduleError {
                 allocated_work_units,
             } => write!(
                 f,
-                "job {job_id} requires {required_work_units} work units; schedule allocates {allocated_work_units}"
+                "job {job_id} allocated {allocated_work_units}; required {required_work_units}"
             ),
             Self::NonPreemptibleJobFragmented {
                 job_id,
@@ -1196,7 +1197,7 @@ impl fmt::Display for WorkloadScheduleError {
                 next_slot,
             } => write!(
                 f,
-                "non-preemptible job {job_id} is fragmented between slots {previous_slot} and {next_slot}"
+                "non-preemptible job {job_id} has a gap from {previous_slot} to {next_slot}"
             ),
             Self::InvalidDerivedSlotValue {
                 slot_index,
@@ -1256,7 +1257,12 @@ mod tests {
 
     const SLOT_NS: u64 = 3_600_000_000_000;
 
-    fn slot(index: u32, facility_cap: f64, grid_cap: f64, cooling_cap: f64) -> WorkloadScheduleSlot {
+    fn slot(
+        index: u32,
+        facility_cap: f64,
+        grid_cap: f64,
+        cooling_cap: f64,
+    ) -> WorkloadScheduleSlot {
         WorkloadScheduleSlot::new(
             index,
             index as u64 * SLOT_NS,
