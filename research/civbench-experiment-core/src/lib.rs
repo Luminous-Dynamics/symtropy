@@ -2482,6 +2482,44 @@ impl ExperimentProtocolV0_1 {
             },
         ];
 
+        let confidence = manifest_field(
+            leak,
+            "confidence_contract",
+            "$.leak_benchmark_contract",
+        )?;
+        let independent_negative_count = manifest_u64(
+            manifest_field(
+                confidence,
+                "independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent",
+                "$.leak_benchmark_contract.confidence_contract",
+            )?,
+            "$.leak_benchmark_contract.confidence_contract.independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent",
+        )?;
+        if independent_negative_count != 299 {
+            return Err(ManifestAdapterError::new(
+                "$.leak_benchmark_contract.confidence_contract.independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent",
+                "at least 299 independent negatives are required for a one-sided 95% exact upper FPR bound below 1% when zero false positives are observed",
+            ));
+        }
+        let exact_upper_bound = manifest_field(
+            confidence,
+            "example_0_of_299_one_sided_95_percent_exact_upper_bound_percent",
+            "$.leak_benchmark_contract.confidence_contract",
+        )?
+        .as_f64()
+        .ok_or_else(|| {
+            ManifestAdapterError::new(
+                "$.leak_benchmark_contract.confidence_contract.example_0_of_299_one_sided_95_percent_exact_upper_bound_percent",
+                "expected a finite numeric percentage",
+            )
+        })?;
+        if (exact_upper_bound - 0.996_914_679_3).abs() > 1.0e-9 {
+            return Err(ManifestAdapterError::new(
+                "$.leak_benchmark_contract.confidence_contract.example_0_of_299_one_sided_95_percent_exact_upper_bound_percent",
+                "unexpected one-sided exact binomial bound for 0/299",
+            ));
+        }
+
         let split = manifest_field(
             leak,
             "split_contract",
@@ -2896,6 +2934,21 @@ mod tests {
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. })
                 if path.ends_with("source_refs")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_underpowered_sub_one_percent_fpr_claim() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["confidence_contract"]
+            ["independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent"] =
+            298.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent")
         ));
     }
 
