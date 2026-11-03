@@ -341,8 +341,7 @@ mod tests {
     }
     #[test]
     fn event_relocalized_one_sided_gradient_converges_at_first_order() {
-        let map = point_impact_saltation(-2.0, 2.0, 0.5, 0.0)
-            .expect("base transversal impact");
+        let map = point_impact_saltation(-2.0, 2.0, 0.5, 0.0).expect("base transversal impact");
         let terminal_time = 0.25;
         let base = post_event_terminal_state(0.0, -2.0, 2.0, 0.5, terminal_time);
         let expected = [
@@ -355,8 +354,7 @@ mod tests {
         for epsilon in perturbations {
             // The helper independently solves the positive impact time for
             // every perturbed height; it does not reuse the nominal event time.
-            let perturbed =
-                post_event_terminal_state(epsilon, -2.0, 2.0, 0.5, terminal_time);
+            let perturbed = post_event_terminal_state(epsilon, -2.0, 2.0, 0.5, terminal_time);
             let finite_difference = [
                 (perturbed[0] - base[0]) / epsilon,
                 (perturbed[1] - base[1]) / epsilon,
@@ -386,6 +384,4 @@ mod tests {
             previous_error = error;
         }
     }
-
-
 }
