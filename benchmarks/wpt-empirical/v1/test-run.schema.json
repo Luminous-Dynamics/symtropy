@@ -18,7 +18,8 @@
     "artifact_refs",
     "result",
     "resonant_networks",
-    "cyber_physical_security"
+    "cyber_physical_security",
+    "standards_basis"
   ],
   "properties": {
     "schema_version": {
@@ -135,7 +136,10 @@
         "load_profile_id",
         "ambient_temperature_c",
         "relative_humidity_pct",
-        "thermal_state"
+        "thermal_state",
+        "operating_mode",
+        "installation_type",
+        "rated_apparent_power_va"
       ],
       "properties": {
         "direction": {
@@ -244,6 +248,32 @@
             "THERMAL_SOAK",
             "UNKNOWN"
           ]
+        },
+        "operating_mode": {
+          "enum": [
+            "STATIC",
+            "DYNAMIC",
+            "DOCKED",
+            "PORTABLE",
+            "UNKNOWN"
+          ]
+        },
+        "installation_type": {
+          "enum": [
+            "SURFACE_MOUNTED",
+            "FLUSH_MOUNTED",
+            "EMBEDDED",
+            "ROADWAY_DYNAMIC",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "rated_apparent_power_va": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
@@ -1142,6 +1172,72 @@
                 "minLength": 1
               }
             }
+          }
+        }
+      }
+    },
+    "standards_basis": {
+      "type": "array",
+      "description": "Versioned standards applicability record. A listed document is not a compliance claim; applicability and claim ceiling must be explicit.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "document_id",
+          "edition",
+          "applicability",
+          "scope_statement",
+          "provisions_tested",
+          "compliance_claim",
+          "evidence_sha256",
+          "notes"
+        ],
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "edition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applicability": {
+            "enum": [
+              "NORMATIVE_REQUIREMENT",
+              "PARTIAL_REFERENCE",
+              "TEST_METHOD_REFERENCE",
+              "INFORMATION_REPORT",
+              "OUT_OF_SCOPE_REFERENCE",
+              "PLANNED_NOT_ISSUED"
+            ]
+          },
+          "scope_statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provisions_tested": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "compliance_claim": {
+            "enum": [
+              "NO_CLAIM",
+              "SELF_ASSESSED",
+              "INDEPENDENTLY_CERTIFIED"
+            ]
+          },
+          "evidence_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
