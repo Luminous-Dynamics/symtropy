@@ -126,5 +126,10 @@ jobs:
             ([.evaluator_timeline[] | select(.tick == 2) | .events_injected_but_not_yet_observable[] | select(. == "R-008")] | length) == 1 and
             ([.policy_timeline[] | select(.tick == 3) | .visible_event_ids[] | select(. == "R-008")] | length) == 0 and
             ([.policy_timeline[] | select(.tick == 4) | .visible_event_ids[] | select(. == "R-008")] | length) == 1 and
-            ([.policy_timeline[4].newly_observed_events[] | select(.case_id == "R-008" and .observed_at_tick == 4 and (has("injection_tick") | not))] | length) == 1
+            ([.policy_timeline[4].newly_observed_events[] | select(.case_id == "R-008" and .observed_at_tick == 4 and (has("injection_tick") | not))] | length) == 1 and
+            ([.evaluator_timeline[] | select(.tick == 2) | .invalidations_in_effect[] | select(.case_id == "R-008") | .targets[] | select(. == "site-snapshot")] | length) == 1 and
+            ([.policy_timeline[] | select(.tick == 3) | .known_invalidations_in_effect[] | select(.case_id == "R-008") | .targets[] | select(. == "site-snapshot")] | length) == 0 and
+            ([.policy_timeline[] | select(.tick == 3) | .latent_invalidations_in_effect[] | select(.case_id == "R-008") | .targets[] | select(. == "site-snapshot")] | length) == 1 and
+            ([.policy_timeline[] | select(.tick == 4) | .known_invalidations_in_effect[] | select(.case_id == "R-008") | .targets[] | select(. == "site-snapshot")] | length) == 1 and
+            ([.policy_timeline[] | select(.tick == 4) | .latent_invalidations_in_effect[] | select(.case_id == "R-008") | .targets[] | select(. == "site-snapshot")] | length) == 0
           ' "$report"
