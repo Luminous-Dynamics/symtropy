@@ -29,7 +29,9 @@ pub enum DigestError {
 impl fmt::Display for DigestError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidLength => write!(f, "SHA-256 digest must contain 64 hexadecimal characters"),
+            Self::InvalidLength => {
+                write!(f, "SHA-256 digest must contain 64 hexadecimal characters")
+            }
             Self::InvalidHexCharacter { index } => {
                 write!(f, "invalid hexadecimal character at byte index {index}")
             }
@@ -54,14 +56,11 @@ impl Digest {
 
         let mut digest = [0_u8; 32];
         for (index, pair) in bytes.chunks_exact(2).enumerate() {
-            let high = decode_hex(pair[0]).ok_or(
-                DigestError::InvalidHexCharacter { index: index * 2 },
-            )?;
-            let low = decode_hex(pair[1]).ok_or(
-                DigestError::InvalidHexCharacter {
-                    index: index * 2 + 1,
-                },
-            )?;
+            let high =
+                decode_hex(pair[0]).ok_or(DigestError::InvalidHexCharacter { index: index * 2 })?;
+            let low = decode_hex(pair[1]).ok_or(DigestError::InvalidHexCharacter {
+                index: index * 2 + 1,
+            })?;
             digest[index] = (high << 4) | low;
         }
         Ok(Self(digest))
@@ -295,7 +294,9 @@ impl fmt::Display for PairError {
             Self::EmptyBlockId => write!(f, "scenario block identifier is empty"),
             Self::EmptyFactorLevel => write!(f, "intervention factor level is empty"),
             Self::BlockIdMismatch => write!(f, "paired arms use different block identifiers"),
-            Self::ExogenousScheduleMismatch => write!(f, "paired arms use different exogenous schedules"),
+            Self::ExogenousScheduleMismatch => {
+                write!(f, "paired arms use different exogenous schedules")
+            }
             Self::InitialStateMismatch => write!(f, "paired arms use different initial states"),
             Self::TopologyMismatch => write!(f, "paired arms use different topologies"),
             Self::ModelFamilyMismatch => write!(f, "paired arms use different model families"),
@@ -304,10 +305,18 @@ impl fmt::Display for PairError {
             Self::FactorMismatch => write!(f, "paired arms vary different intervention factors"),
             Self::SameFactorLevel => write!(f, "control and treatment use the same factor level"),
             Self::UndeclaredResourceDifference(kind) => {
-                write!(f, "resource {kind:?} differs without a declared treatment exception")
+                write!(
+                    f,
+                    "resource {kind:?} differs without a declared treatment exception"
+                )
             }
-            Self::ZeroScenarioDigest => write!(f, "required scenario digest is an all-zero unset sentinel"),
-            Self::ZeroEvaluatorTruthDigest => write!(f, "evaluator-only truth digest is an all-zero unset sentinel"),
+            Self::ZeroScenarioDigest => {
+                write!(f, "required scenario digest is an all-zero unset sentinel")
+            }
+            Self::ZeroEvaluatorTruthDigest => write!(
+                f,
+                "evaluator-only truth digest is an all-zero unset sentinel"
+            ),
             Self::ZeroHorizon => write!(f, "scenario evaluation horizon must be greater than zero"),
         }
     }
@@ -411,10 +420,7 @@ impl PairedScenarioBlock {
         }
 
         Ok(Self {
-            candidate_view: CandidateScenarioView {
-                control,
-                treatment,
-            },
+            candidate_view: CandidateScenarioView { control, treatment },
             evaluator_truth_digest,
         })
     }
@@ -496,18 +502,32 @@ impl fmt::Display for LedgerError {
         match self {
             Self::EmptyCommitmentId => write!(f, "resource commitment identifier is empty"),
             Self::DuplicateCommitment(id) => write!(f, "duplicate resource commitment: {id}"),
-            Self::ExceedsAvailable { kind, available, committed, requested } => write!(
+            Self::ExceedsAvailable {
+                kind,
+                available,
+                committed,
+                requested,
+            } => write!(
                 f,
                 "resource {kind:?} exceeds available envelope: available={available}, committed={committed}, requested={requested}"
             ),
-            Self::ActualExceedsReservation { kind, reserved, actual } => write!(
+            Self::ActualExceedsReservation {
+                kind,
+                reserved,
+                actual,
+            } => write!(
                 f,
                 "actual resource {kind:?} exceeds reservation: reserved={reserved}, actual={actual}"
             ),
-            Self::ArithmeticOverflow(kind) => write!(f, "resource arithmetic overflow for {kind:?}"),
+            Self::ArithmeticOverflow(kind) => {
+                write!(f, "resource arithmetic overflow for {kind:?}")
+            }
             Self::UnknownCommitment(id) => write!(f, "unknown resource commitment: {id}"),
             Self::InvalidTransition { id, state } => {
-                write!(f, "resource commitment {id} cannot transition from {state:?}")
+                write!(
+                    f,
+                    "resource commitment {id} cannot transition from {state:?}"
+                )
             }
         }
     }
@@ -541,13 +561,19 @@ impl ResourceLedger {
     }
 
     /// Return the original available resource envelope.
-    pub const fn available(&self) -> ResourceEnvelope { self.available }
+    pub const fn available(&self) -> ResourceEnvelope {
+        self.available
+    }
 
     /// Return resources reserved for planned but unsettled work.
-    pub const fn reserved(&self) -> ResourceEnvelope { self.reserved }
+    pub const fn reserved(&self) -> ResourceEnvelope {
+        self.reserved
+    }
 
     /// Return actual resource consumption recorded by settled commitments.
-    pub const fn consumed(&self) -> ResourceEnvelope { self.consumed }
+    pub const fn consumed(&self) -> ResourceEnvelope {
+        self.consumed
+    }
 
     /// Return reserved plus consumed resources.
     pub fn committed(&self) -> ResourceEnvelope {
@@ -569,11 +595,15 @@ impl ResourceLedger {
     }
 
     /// Return the number of unique commitment identifiers ever recorded.
-    pub fn commitment_count(&self) -> usize { self.commitments.len() }
+    pub fn commitment_count(&self) -> usize {
+        self.commitments.len()
+    }
 
     /// Return one commitment's lifecycle state, if it exists.
     pub fn commitment_state(&self, commitment_id: &str) -> Option<ResourceCommitmentState> {
-        self.commitments.get(commitment_id.trim()).map(|record| record.state)
+        self.commitments
+            .get(commitment_id.trim())
+            .map(|record| record.state)
     }
 
     /// Return the original reservation for a recorded commitment.
@@ -594,7 +624,9 @@ impl ResourceLedger {
 
     fn new_commitment_id(&self, commitment_id: impl Into<String>) -> Result<String, LedgerError> {
         let id = commitment_id.into().trim().to_owned();
-        if id.is_empty() { return Err(LedgerError::EmptyCommitmentId); }
+        if id.is_empty() {
+            return Err(LedgerError::EmptyCommitmentId);
+        }
         if self.commitments.contains_key(&id) {
             return Err(LedgerError::DuplicateCommitment(id));
         }
@@ -617,7 +649,8 @@ impl ResourceLedger {
             let index = kind.index();
             let reserved = self.reserved.get(kind);
             let requested = request.get(kind);
-            let next = reserved.checked_add(requested)
+            let next = reserved
+                .checked_add(requested)
                 .ok_or(LedgerError::ArithmeticOverflow(kind))?;
             if requested > remaining.get(kind) {
                 return Err(LedgerError::ExceedsAvailable {
@@ -631,11 +664,14 @@ impl ResourceLedger {
         }
 
         self.reserved = ResourceEnvelope::from_values(next_values);
-        self.commitments.insert(id, ResourceCommitmentRecord {
-            reserved: request,
-            settled: None,
-            state: ResourceCommitmentState::Reserved,
-        });
+        self.commitments.insert(
+            id,
+            ResourceCommitmentRecord {
+                reserved: request,
+                settled: None,
+                state: ResourceCommitmentState::Reserved,
+            },
+        );
         Ok(())
     }
 
@@ -649,10 +685,16 @@ impl ResourceLedger {
         actual: ResourceEnvelope,
     ) -> Result<(), LedgerError> {
         let id = commitment_id.trim();
-        let record = self.commitments.get(id).copied()
+        let record = self
+            .commitments
+            .get(id)
+            .copied()
             .ok_or_else(|| LedgerError::UnknownCommitment(id.to_owned()))?;
         if record.state != ResourceCommitmentState::Reserved {
-            return Err(LedgerError::InvalidTransition { id: id.to_owned(), state: record.state });
+            return Err(LedgerError::InvalidTransition {
+                id: id.to_owned(),
+                state: record.state,
+            });
         }
 
         let mut next_reserved = *self.reserved.values();
@@ -663,44 +705,60 @@ impl ResourceLedger {
             let actual_value = actual.get(kind);
             if actual_value > reserved {
                 return Err(LedgerError::ActualExceedsReservation {
-                    kind, reserved, actual: actual_value,
+                    kind,
+                    reserved,
+                    actual: actual_value,
                 });
             }
             next_reserved[index] = self.reserved.get(kind) - reserved;
-            next_consumed[index] = self.consumed.get(kind).checked_add(actual_value)
+            next_consumed[index] = self
+                .consumed
+                .get(kind)
+                .checked_add(actual_value)
                 .ok_or(LedgerError::ArithmeticOverflow(kind))?;
         }
 
         self.reserved = ResourceEnvelope::from_values(next_reserved);
         self.consumed = ResourceEnvelope::from_values(next_consumed);
-        self.commitments.insert(id.to_owned(), ResourceCommitmentRecord {
-            reserved: record.reserved,
-            settled: Some(actual),
-            state: ResourceCommitmentState::Settled,
-        });
+        self.commitments.insert(
+            id.to_owned(),
+            ResourceCommitmentRecord {
+                reserved: record.reserved,
+                settled: Some(actual),
+                state: ResourceCommitmentState::Settled,
+            },
+        );
         Ok(())
     }
 
     /// Release a reservation for work that was cancelled or not undertaken.
     pub fn release(&mut self, commitment_id: &str) -> Result<(), LedgerError> {
         let id = commitment_id.trim();
-        let record = self.commitments.get(id).copied()
+        let record = self
+            .commitments
+            .get(id)
+            .copied()
             .ok_or_else(|| LedgerError::UnknownCommitment(id.to_owned()))?;
         if record.state != ResourceCommitmentState::Reserved {
-            return Err(LedgerError::InvalidTransition { id: id.to_owned(), state: record.state });
+            return Err(LedgerError::InvalidTransition {
+                id: id.to_owned(),
+                state: record.state,
+            });
         }
 
         let mut next_reserved = *self.reserved.values();
         for kind in ResourceKind::ALL {
-            next_reserved[kind.index()] =
-                self.reserved.get(kind) - record.reserved.get(kind);
+            next_reserved[kind.index()] = self.reserved.get(kind) - record.reserved.get(kind);
         }
         self.reserved = ResourceEnvelope::from_values(next_reserved);
-        self.commitments.insert(id.to_owned(), ResourceCommitmentRecord {
-            reserved: record.reserved,
-            settled: None,
-            state: ResourceCommitmentState::Released,
-        });
+        self.commitments.insert(
+            id.to_owned(),
+            ResourceCommitmentRecord {
+                reserved: record.reserved,
+                settled: None,
+                state: ResourceCommitmentState::Released,
+            },
+        );
         Ok(())
     }
 
@@ -720,7 +778,8 @@ impl ResourceLedger {
             let index = kind.index();
             let consumed = self.consumed.get(kind);
             let requested = actual.get(kind);
-            let next = consumed.checked_add(requested)
+            let next = consumed
+                .checked_add(requested)
                 .ok_or(LedgerError::ArithmeticOverflow(kind))?;
             if requested > remaining.get(kind) {
                 return Err(LedgerError::ExceedsAvailable {
@@ -734,11 +793,14 @@ impl ResourceLedger {
         }
 
         self.consumed = ResourceEnvelope::from_values(next_values);
-        self.commitments.insert(id, ResourceCommitmentRecord {
-            reserved: ResourceEnvelope::zero(),
-            settled: Some(actual),
-            state: ResourceCommitmentState::Settled,
-        });
+        self.commitments.insert(
+            id,
+            ResourceCommitmentRecord {
+                reserved: ResourceEnvelope::zero(),
+                settled: Some(actual),
+                state: ResourceCommitmentState::Settled,
+            },
+        );
         Ok(())
     }
 }
@@ -865,15 +927,13 @@ impl QualifiedMetric {
                     status: self.status,
                 },
             },
-            (Some(_), Some(_)) if control.status != self.status => {
-                MetricDelta {
-                    value: None,
-                    status: MetricDeltaStatus::EvidenceStatusMismatch {
-                        control: control.status,
-                        treatment: self.status,
-                    },
-                }
-            }
+            (Some(_), Some(_)) if control.status != self.status => MetricDelta {
+                value: None,
+                status: MetricDeltaStatus::EvidenceStatusMismatch {
+                    control: control.status,
+                    treatment: self.status,
+                },
+            },
             (Some(control_value), Some(treatment_value)) => MetricDelta {
                 value: Some(i128::from(treatment_value) - i128::from(control_value)),
                 status: MetricDeltaStatus::Comparable {
@@ -988,7 +1048,10 @@ impl fmt::Display for OutcomeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::StatusValueMismatch { field } => {
-                write!(f, "outcome field {field} has an invalid status/value combination")
+                write!(
+                    f,
+                    "outcome field {field} has an invalid status/value combination"
+                )
             }
             Self::WorstGroupServiceOutOfRange { value } => write!(
                 f,
@@ -1003,17 +1066,20 @@ impl std::error::Error for OutcomeError {}
 impl OutcomeVector {
     /// Validate status/value consistency and bounded service performance.
     pub fn validate(&self) -> Result<(), OutcomeError> {
-        self.essential_shortfall_l.validate("essential_shortfall_l")?;
+        self.essential_shortfall_l
+            .validate("essential_shortfall_l")?;
         self.interruption_service_seconds
             .validate("interruption_service_seconds")?;
         self.worst_group_service_ppm
             .validate("worst_group_service_ppm")?;
         self.physical_loss_l.validate("physical_loss_l")?;
         self.commercial_loss_l.validate("commercial_loss_l")?;
-        self.unbilled_authorised_l.validate("unbilled_authorised_l")?;
+        self.unbilled_authorised_l
+            .validate("unbilled_authorised_l")?;
         self.asset_failures.validate("asset_failures")?;
         self.verified_repairs.validate("verified_repairs")?;
-        self.whole_life_cost_minor.validate("whole_life_cost_minor")?;
+        self.whole_life_cost_minor
+            .validate("whole_life_cost_minor")?;
         self.recovery_seconds.validate("recovery_seconds")?;
         self.safe_fallback_delivery_l
             .validate("safe_fallback_delivery_l")?;
@@ -1082,7 +1148,9 @@ impl OutcomeDelta {
             unbilled_authorised_l: treatment
                 .unbilled_authorised_l
                 .paired_delta(control.unbilled_authorised_l),
-            asset_failures: treatment.asset_failures.paired_delta(control.asset_failures),
+            asset_failures: treatment
+                .asset_failures
+                .paired_delta(control.asset_failures),
             verified_repairs: treatment
                 .verified_repairs
                 .paired_delta(control.verified_repairs),
@@ -1115,10 +1183,7 @@ pub struct PairedOutcomeReceipt {
 
 impl PairedOutcomeReceipt {
     /// Construct a receipt after validating both outcome vectors.
-    pub fn new(
-        control: OutcomeVector,
-        treatment: OutcomeVector,
-    ) -> Result<Self, OutcomeError> {
+    pub fn new(control: OutcomeVector, treatment: OutcomeVector) -> Result<Self, OutcomeError> {
         control.validate()?;
         treatment.validate()?;
         Ok(Self {
@@ -1208,10 +1273,19 @@ impl fmt::Display for ReceiptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyCodeCommit => write!(f, "exact code commit identifier is required"),
-            Self::InvalidCodeCommit => write!(f, "code commit must be a 40- or 64-character hexadecimal object ID"),
+            Self::InvalidCodeCommit => write!(
+                f,
+                "code commit must be a 40- or 64-character hexadecimal object ID"
+            ),
             Self::EmptySolverVersion => write!(f, "solver/runtime version is required"),
-            Self::ZeroDigest => write!(f, "required provenance digest is an all-zero unset sentinel"),
-            Self::SourceSnapshotNotFrozen => write!(f, "source bytes must be snapshotted before a confirmatory receipt can be created"),
+            Self::ZeroDigest => write!(
+                f,
+                "required provenance digest is an all-zero unset sentinel"
+            ),
+            Self::SourceSnapshotNotFrozen => write!(
+                f,
+                "source bytes must be snapshotted before a confirmatory receipt can be created"
+            ),
         }
     }
 }
@@ -1249,7 +1323,10 @@ impl ProvenanceReceipt {
             return Err(ReceiptError::EmptyCodeCommit);
         }
         if !matches!(execution.code_commit.len(), 40 | 64)
-            || !execution.code_commit.bytes().all(|byte| decode_hex(byte).is_some())
+            || !execution
+                .code_commit
+                .bytes()
+                .all(|byte| decode_hex(byte).is_some())
         {
             return Err(ReceiptError::InvalidCodeCommit);
         }
@@ -1380,20 +1457,35 @@ impl fmt::Display for DecisionChainError {
             Self::EmptyEventId => write!(f, "evidence event identifier is empty"),
             Self::DuplicateEventId(id) => write!(f, "duplicate evidence event identifier: {id}"),
             Self::ZeroEvidenceDigest(id) => write!(f, "event {id} has an all-zero evidence digest"),
-            Self::TimestampRegression { previous_ms, current_ms } => write!(
+            Self::TimestampRegression {
+                previous_ms,
+                current_ms,
+            } => write!(
                 f,
                 "event time regressed from {previous_ms} ms to {current_ms} ms"
             ),
             Self::RootHasPredecessor => write!(f, "root observation must not have a predecessor"),
-            Self::BrokenLineage(id) => write!(f, "event {id} does not link to its immediate predecessor"),
+            Self::BrokenLineage(id) => {
+                write!(f, "event {id} does not link to its immediate predecessor")
+            }
             Self::IncompleteChain => write!(f, "decision-to-service evidence chain is incomplete"),
-            Self::InvalidStageOrder { index } => write!(f, "invalid evidence stage at chain position {index}"),
-            Self::MissingHumanDisposition => write!(f, "human decision event lacks an explicit disposition"),
+            Self::InvalidStageOrder { index } => {
+                write!(f, "invalid evidence stage at chain position {index}")
+            }
+            Self::MissingHumanDisposition => {
+                write!(f, "human decision event lacks an explicit disposition")
+            }
             Self::UnexpectedHumanDisposition(id) => {
-                write!(f, "non-decision event {id} carries a human decision disposition")
+                write!(
+                    f,
+                    "non-decision event {id} carries a human decision disposition"
+                )
             }
             Self::ActionAfterNonAuthorization => {
-                write!(f, "rejected or deferred recommendation cannot be followed by an operational action")
+                write!(
+                    f,
+                    "rejected or deferred recommendation cannot be followed by an operational action"
+                )
             }
         }
     }
@@ -1432,7 +1524,9 @@ impl DecisionServiceChain {
                 return Err(DecisionChainError::DuplicateEventId(event.event_id.clone()));
             }
             if event.evidence_digest.is_zero() {
-                return Err(DecisionChainError::ZeroEvidenceDigest(event.event_id.clone()));
+                return Err(DecisionChainError::ZeroEvidenceDigest(
+                    event.event_id.clone(),
+                ));
             }
         }
 
@@ -1580,15 +1674,17 @@ mod tests {
 
     #[test]
     fn paired_block_accepts_only_declared_resource_treatment_changes() {
-        let control = arm("reactive_only", envelope([1000, 100, 100, 600, 30, 300, 500, 2]));
-        let treatment = arm("risk_prioritised", envelope([1000, 100, 100, 480, 30, 300, 500, 2]));
-        let block = PairedScenarioBlock::new(
-            control,
-            treatment,
-            &[ResourceKind::CrewMinutes],
-            digest(99),
-        )
-        .unwrap();
+        let control = arm(
+            "reactive_only",
+            envelope([1000, 100, 100, 600, 30, 300, 500, 2]),
+        );
+        let treatment = arm(
+            "risk_prioritised",
+            envelope([1000, 100, 100, 480, 30, 300, 500, 2]),
+        );
+        let block =
+            PairedScenarioBlock::new(control, treatment, &[ResourceKind::CrewMinutes], digest(99))
+                .unwrap();
 
         let view = block.candidate_view();
         assert_eq!(view.control.assignment.level, "reactive_only");
@@ -1614,7 +1710,7 @@ mod tests {
         let mut valid_treatment = arm("risk_prioritised", resources);
         valid_control.exogenous_digest = digest(1);
         valid_treatment.exogenous_digest = digest(1);
-        
+
         assert_eq!(
             PairedScenarioBlock::new(
                 valid_control.clone(),
@@ -1633,7 +1729,10 @@ mod tests {
 
     #[test]
     fn paired_block_rejects_exogenous_schedule_mismatch() {
-        let control = arm("reactive_only", envelope([1000, 100, 100, 600, 30, 300, 500, 2]));
+        let control = arm(
+            "reactive_only",
+            envelope([1000, 100, 100, 600, 30, 300, 500, 2]),
+        );
         let mut treatment = arm("risk_prioritised", control.resources);
         treatment.exogenous_digest = digest(8);
 
@@ -1645,12 +1744,20 @@ mod tests {
 
     #[test]
     fn paired_block_rejects_undeclared_resource_envelope_difference() {
-        let control = arm("reactive_only", envelope([1000, 100, 100, 600, 30, 300, 500, 2]));
-        let treatment = arm("risk_prioritised", envelope([1000, 100, 90, 600, 30, 300, 500, 2]));
+        let control = arm(
+            "reactive_only",
+            envelope([1000, 100, 100, 600, 30, 300, 500, 2]),
+        );
+        let treatment = arm(
+            "risk_prioritised",
+            envelope([1000, 100, 90, 600, 30, 300, 500, 2]),
+        );
 
         assert_eq!(
             PairedScenarioBlock::new(control, treatment, &[], digest(99)),
-            Err(PairError::UndeclaredResourceDifference(ResourceKind::OperatingMinor))
+            Err(PairError::UndeclaredResourceDifference(
+                ResourceKind::OperatingMinor
+            ))
         );
     }
 
@@ -1729,13 +1836,19 @@ mod tests {
         assert_eq!(ledger.reserved(), reservation);
         assert_eq!(ledger.consumed(), ResourceEnvelope::zero());
         assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 480);
-        assert_eq!(ledger.commitment_state("work-1"), Some(ResourceCommitmentState::Reserved));
+        assert_eq!(
+            ledger.commitment_state("work-1"),
+            Some(ResourceCommitmentState::Reserved)
+        );
 
         ledger.settle("work-1", actual).unwrap();
         assert_eq!(ledger.reserved(), ResourceEnvelope::zero());
         assert_eq!(ledger.consumed(), actual);
         assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 510);
-        assert_eq!(ledger.commitment_state("work-1"), Some(ResourceCommitmentState::Settled));
+        assert_eq!(
+            ledger.commitment_state("work-1"),
+            Some(ResourceCommitmentState::Settled)
+        );
     }
 
     #[test]
@@ -1765,7 +1878,10 @@ mod tests {
         assert_eq!(ledger.reserved(), ResourceEnvelope::zero());
         assert_eq!(ledger.consumed(), ResourceEnvelope::zero());
         assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 600);
-        assert_eq!(ledger.commitment_state("cancelled-work"), Some(ResourceCommitmentState::Released));
+        assert_eq!(
+            ledger.commitment_state("cancelled-work"),
+            Some(ResourceCommitmentState::Released)
+        );
     }
 
     #[test]
@@ -2002,7 +2118,16 @@ mod tests {
             EvidenceStage::ServiceOutcome,
             EvidenceStage::ModelDiscrepancyReview,
         ];
-        let ids = ["obs", "estimate", "recommendation", "decision", "work", "verify", "outcome", "review"];
+        let ids = [
+            "obs",
+            "estimate",
+            "recommendation",
+            "decision",
+            "work",
+            "verify",
+            "outcome",
+            "review",
+        ];
         stages
             .iter()
             .enumerate()
@@ -2032,7 +2157,10 @@ mod tests {
     #[test]
     fn decision_service_chain_requires_complete_verified_closure() {
         let chain = DecisionServiceChain::new(decision_chain_events()).unwrap();
-        assert_eq!(chain.status(), DecisionServiceStatus::VerifiedServiceOutcome);
+        assert_eq!(
+            chain.status(),
+            DecisionServiceStatus::VerifiedServiceOutcome
+        );
         assert_eq!(chain.events().len(), 8);
         assert_eq!(
             chain.events().last().unwrap().stage,
@@ -2100,7 +2228,9 @@ mod tests {
         zero_digest[2].evidence_digest = digest(0);
         assert_eq!(
             DecisionServiceChain::new(zero_digest),
-            Err(DecisionChainError::ZeroEvidenceDigest("recommendation".to_owned()))
+            Err(DecisionChainError::ZeroEvidenceDigest(
+                "recommendation".to_owned()
+            ))
         );
 
         let mut wrong_stage = decision_chain_events();
@@ -2131,11 +2261,7 @@ mod tests {
             solver_version: "civbench-experiment-core/0.1.0".to_owned(),
             runtime_environment: digest(12),
         };
-        assert!(ProvenanceReceipt::new(
-            digests,
-            identity,
-            SourceSnapshotStatus::Frozen
-        ).is_ok());
+        assert!(ProvenanceReceipt::new(digests, identity, SourceSnapshotStatus::Frozen).is_ok());
 
         let missing_commit = ExecutionIdentity {
             code_commit: String::new(),
@@ -2163,7 +2289,11 @@ mod tests {
             runtime_environment: digest(12),
         };
         assert_eq!(
-            ProvenanceReceipt::new(digests, identity.clone(), SourceSnapshotStatus::NotSnapshotted),
+            ProvenanceReceipt::new(
+                digests,
+                identity.clone(),
+                SourceSnapshotStatus::NotSnapshotted
+            ),
             Err(ReceiptError::SourceSnapshotNotFrozen)
         );
 
