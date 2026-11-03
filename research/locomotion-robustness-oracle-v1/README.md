@@ -23,7 +23,9 @@ It complements:
 - Explicit connectome/source/sensor/effector provenance for connectome claims and a muscle-map digest for muscle-actuated claims.
 - Success rate, mean task score and lower-tail CVaR under a preregistered tail fraction.
 - Progress, pose/joint error, slip, energy and actuator-saturation metrics.
-- Recovery counts with right-censored non-recovery and unobserved recovery kept distinct.
+- Separate functional recovery and mechanism restoration, with independent preregistered normalized-state tolerances and a pinned mechanism-state schema.
+- Compensation classification when task function returns but the measured neural/sensory/motor/effector mechanism does not; joint function+mechanism recovery is reported separately.
+- Recovery counts with right-censored non-recovery and unobserved recovery kept distinct for both dimensions.
 - Separate numerical, physical, fall and unclassified failure counts.
 - Worst success-rate stratum and worst CVaR stratum separately, both across scenarios and within each scenario across individuals.
 - An explicit per-scenario and per-individual hard-failure promotion gate, independent of task score.
@@ -33,7 +35,9 @@ It complements:
 
 A perturbation scenario is not automatically a biological ablation. Missing a software sensor channel is an observation-channel intervention unless the source mapping and biological manipulation are declared independently.
 
-Recovery latency is reported only for episodes with observed recovery. A failure to recover by the horizon is right-censored; unobserved recovery is a separate category. Neither is assigned an invented finite latency.
+Functional recovery means the preregistered task/functional state returned within its declared normalized distance threshold and sustained the required dwell protocol upstream. Mechanism restoration is a separate normalized distance over a versioned mechanism-state schema covering declared neural, sensory, motor and effector variables. If function recovers while the measured mechanism remains outside its equivalence margin, V1 reports compensation without mechanism restoration. This is a descriptive classification, not proof that a particular alternate pathway caused compensation; causal attribution still requires selective intervention/blockade and matched controls. The mechanism-state schema, normalization and tolerances are part of the frozen protocol.
+
+Functional and mechanism recovery latencies are reported separately and only for observed returns to their respective preregistered equivalence margins. Failure to return by the horizon is right-censored; unobserved state channels are a separate category. Neither is assigned an invented finite latency. Recovery labels inconsistent with their normalized-state distance or schema are rejected.
 
 Numerical, physics and unclassified failures remain visible counts. Per-scenario and per-individual hard-failure gates are false when any such failure occurs. Task scores are never altered to disguise failures, and a task-score aggregate cannot override a failed hard gate.
 
@@ -48,6 +52,7 @@ Each episode binds:
 - scenario, individual, trial, seed and initial state;
 - body model, morphology, physics, environment, sensor schema, solver, hardware, controller, code and parameter references;
 - trajectory, metric payload and run receipt;
+- functional recovery status/deviation and mechanism recovery status/deviation, with a mechanism-state schema digest whenever mechanism recovery is assessed;
 - task score, outcome/termination, recovery/censoring, raw motion/energy/saturation metrics and hard failure counts.
 
 Digest strings are references supplied by an upstream evidence authority. This crate validates their syntax and required presence, not signatures or the contents of the referenced artifacts.
@@ -68,7 +73,7 @@ neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
 
-The 21 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
+The 24 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, functional versus mechanism recovery, compensation without mechanism restoration, invalid recovery-distance/status pairs, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
