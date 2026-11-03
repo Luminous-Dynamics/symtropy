@@ -913,7 +913,8 @@
         "security_artifact_sha256",
         "freshness_mechanism",
         "control_deadline_ms",
-        "max_accepted_command_age_ms"
+        "max_accepted_command_age_ms",
+        "security_scenario_results"
       ],
       "properties": {
         "communication_mode": {
@@ -1047,6 +1048,55 @@
             "null"
           ],
           "exclusiveMinimum": 0
+        },
+        "security_scenario_results": {
+          "type": "array",
+          "minItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "scenario_id",
+              "outcome",
+              "evidence_sha256",
+              "notes"
+            ],
+            "properties": {
+              "scenario_id": {
+                "enum": [
+                  "WPT-SEC-AUTH-SPOOF-001",
+                  "WPT-SEC-CMD-REPLAY-001",
+                  "WPT-SEC-CMD-STALE-001",
+                  "WPT-SEC-FW-INTEGRITY-001",
+                  "WPT-SEC-SENSOR-PHASE-001",
+                  "WPT-SEC-SENSOR-CURRENT-001",
+                  "WPT-SEC-TIMING-JITTER-001",
+                  "WPT-SEC-COMM-DOS-001",
+                  "WPT-SEC-CERT-REVOKE-001",
+                  "WPT-SEC-RESONANT-SWITCH-001"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN",
+                  "NOT_APPLICABLE"
+                ]
+              },
+              "evidence_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-fA-F0-9]{64}$"
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
         }
       }
     }
