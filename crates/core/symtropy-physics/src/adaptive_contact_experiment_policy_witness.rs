@@ -111,8 +111,7 @@ fn policy_value_is_better(
         (true, true) => candidate.worst_case_cost < incumbent.worst_case_cost,
         (false, false) => {
             candidate.worst_residual_hypotheses < incumbent.worst_residual_hypotheses
-                || (candidate.worst_residual_hypotheses
-                    == incumbent.worst_residual_hypotheses
+                || (candidate.worst_residual_hypotheses == incumbent.worst_residual_hypotheses
                     && candidate.worst_case_cost < incumbent.worst_case_cost)
         }
     }
@@ -223,8 +222,7 @@ impl<'a> PolicySynthesizer<'a> {
 
             for child_hypotheses in outcomes {
                 let child = self.solve_state((child_hypotheses, next_available))?;
-                worst_child_ambiguity =
-                    worst_child_ambiguity.max(child.worst_residual_hypotheses);
+                worst_child_ambiguity = worst_child_ambiguity.max(child.worst_residual_hypotheses);
                 worst_child_cost = worst_child_cost.max(child.worst_case_cost);
             }
 
@@ -319,12 +317,7 @@ fn synthesize_policy(
 mod tests {
     use super::*;
 
-    fn experiment(
-        cost: i64,
-        predictions: &[i64],
-        noise: (i64, i64),
-        safe: bool,
-    ) -> Experiment {
+    fn experiment(cost: i64, predictions: &[i64], noise: (i64, i64), safe: bool) -> Experiment {
         Experiment {
             cost: rational(cost),
             prediction_intervals: predictions
