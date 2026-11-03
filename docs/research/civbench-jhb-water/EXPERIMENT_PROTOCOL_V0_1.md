@@ -549,3 +549,31 @@ For every compared placement algorithm:
 ### CivBench competitive claim rule
 
 First reproduce the 2026 paper-specific baselines on their own compatible task. Then report new L1/L2 results independently. A +5 percentage-point gain can be claimed only on a genuinely identical frozen test protocol and only if false dispatch, p90 localization, calibration and worst-stratum performance do not regress. Otherwise report a new benchmark result, not “SOTA superiority”.
+
+
+## 21. Cyber-physical resilience track — safe operation under hostile or degraded information
+
+Water distribution resilience depends on both the hydraulic plant and the cyber systems that observe and control it. A redundant network can improve communication availability while adding reachable attack paths; the 2026 cyber-reliability trade-off study finds that this balance depends strongly on the topology and redundancy configuration. Therefore, “more connectivity” and “more telemetry” are not automatically resilience improvements. Reference: [cyber-reliability / cyber-physical risk trade-off study](https://doi.org/10.1016/j.ress.2026.112667).
+
+### Separate benchmark resources
+
+- **WDSEventDB** is a public dataset from a sensor-instrumented water-system testbed containing cyberattack, leakage and sensor-failure events. It is useful for testing whether a detector distinguishes physical leaks, compromised measurements and ordinary instrumentation faults. It is testbed evidence, not utility-wide field validation. [Dataset](https://zenodo.org/records/17547955).
+- **ACG-Water-Testbed** is a small, reproducible controlled research testbed that models the progression from remote-access/IT-OT compromise through PLC/controller and sensor/pump/storage behavior into physical-process deviations. It supports comparative security-control and recovery experiments; it does not operate real utilities or internet-connected production PLCs. [Dataset and software](https://zenodo.org/records/21814947).
+- **Water Distribution Testbed (WDT) benchmark case study**: a 2026 review and benchmark paper maps 50 water cyber-physical studies and demonstrates a chronological test protocol. Its results show why sample-level recall cannot stand in for event detection: cumulative alarm policies raised sample recall but sustained alarms and detected fewer event onsets than a fixed-threshold policy in its five primary neural runs. Treat this as a paper-specific protocol result, not a universal algorithm ranking. [Paper](https://doi.org/10.3390/eng7100564).
+- A 2026 systematic review of 32 WDN cybersecurity studies found heavy reliance on a small set of synthetic/testbed datasets and no cross-dataset validation among the reviewed studies. Cross-system transfer and physical consequence remain major gaps. [Review](https://doi.org/10.3390/w18040519).
+
+### C1–C3 evaluation contract
+
+1. **C1 — event discrimination:** score leakage, sensor failure, communication/telemetry anomaly and cyberattack labels separately where the dataset supports them. Do not merge all anomalies into “attack.” Report event-level precision/recall, event onset delay, false alarm episodes per system-day, event fragmentation, calibration and abstention.
+2. **C2 — cyber-to-physical propagation:** under controlled testbed-only scenarios, measure whether a cyber event produces a material process deviation: pressure/service deficit, storage starvation/overflow, water-quality excursions where modeled, unsafe pump/valve state, or loss of observability. Record detection, isolation and safe-recovery timelines. The attack-path simulator remains an offline research instrument; never connect it to production SCADA or live PLCs.
+3. **C3 — control and resilience comparison:** compare nominal operation, cyber-only monitoring, process-aware detection, segmentation/least-privilege and recovery policies under the same attack/event schedule and physical model. Report false alarms, event-onset recall, physical consequence exposure, time to safe state, recovery time and service deficit. Evaluate redundant communication/control paths against the new attack surface they create.
+
+### Hard gates and claim ceiling
+
+- No model-generated recommendation or benchmark rank grants authority to actuate pumps, valves, dosing or isolation equipment. Any live operational use requires the operator's existing authorization, independent safety interlocks, rollback and an audited human decision.
+- A cyber alarm is not proof of malicious intent; preserve uncertainty and competing explanations (leak, sensor fault, drift, maintenance, communication outage, malicious action).
+- Keep attack labels, leak labels, sensor-failure labels and process-outcome evidence as distinct fields with provenance. A cyber event is not a confirmed leak, and an anomaly is not an attack attribution.
+- Synthetic and hardware-in-the-loop results demonstrate controlled mechanism coverage only. They cannot establish municipal cybersecurity posture or safe production deployment.
+- Promotion beyond M3 requires a threat model, asset/identity inventory, independent red-team review in a contained environment, safety-case evidence and a rollback/incident-response exercise. M4 additionally requires prospective, independently verified service outcomes and bounded authority.
+
+This track complements (and does not replace) the G/M/I water-service experiment. It connects the governance of observations and actions to the integrity of the physical system without duplicating Symtropy's experiment core, Sol-Atlas's hydraulic ownership or Mycelix's authority/appeal responsibilities.
