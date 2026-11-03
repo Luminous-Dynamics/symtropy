@@ -114,7 +114,7 @@ impl Dpw8SourceAdmissionState {
     fn is_byte_pinned(self) -> bool {
         matches!(
             self,
-            Self::BytePinnedReferenceOnly | Self::BytePinnedRedistributionPermitted
+            Self::BytePinnedReferenceOnly | Self::BytePinnedRedistributionPermissionDocumentReferenced
         )
     }
 
@@ -387,9 +387,13 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
     }
     match source.state {
         Dpw8SourceAdmissionState::NotAdmitted => {
-            if source.byte_length.is_some() || source.sha256.is_some() {
+            if source.byte_length.is_some()
+                || source.sha256.is_some()
+                || source.permission_evidence_reference.is_some()
+                || source.permission_evidence_sha256.is_some()
+            {
                 return Err(format!(
-                    "DPW-8 source {} is not admitted but contains a digest/length",
+                    "DPW-8 source {} is not admitted but contains byte or permission metadata",
                     source.source_id
                 ));
             }
@@ -714,9 +718,9 @@ fn optional_f64(value: Option<f64>) -> String {
 
 /// Normalized protocol/source export for an independent non-Rust oracle.
 pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> String {
-    let header = "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,source_revision,license_applicability,acknowledgement";
+    let header = "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,source_revision,license_applicability,acknowledgement,permission_evidence_reference,permission_evidence_sha256";
     let mut output = format!("{header}\n");
-    let mut row = vec![String::new(); 36];
+    let mut row = vec![String::new(); 38];
     row[0] = "manifest".to_owned();
     row[1] = manifest.schema.clone();
     row[2] = manifest.protocol_revision.clone();
@@ -765,7 +769,7 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
     let mut sources = manifest.sources.iter().collect::<Vec<_>>();
     sources.sort_by(|left, right| left.source_id.cmp(&right.source_id));
     for source in sources {
-        let mut row = vec![String::new(); 36];
+        let mut row = vec![String::new(); 38];
         row[0] = "source".to_owned();
         row[27] = source.source_id.clone();
         row[28] = source.source_url.clone();
@@ -776,6 +780,8 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
         row[33] = source.source_revision.clone();
         row[34] = source.license_applicability.clone();
         row[35] = source.acknowledgement.clone();
+        row[36] = source.permission_evidence_reference.clone().unwrap_or_default();
+        row[37] = source.permission_evidence_sha256.clone().unwrap_or_default();
         output.push_str(&csv_row(row));
         output.push('\n');
     }
@@ -843,7 +849,7 @@ mod tests {
             Dpw8Oat15aLane::V1aSteadyGridConvergencePolar,
         )).unwrap();
         assert!(!dpw8_oat15a_protocol_sources_byte_pinned(&v1a));
-        assert!(!dpw8_oat15a_geometry_redistribution_permitted(&v1a));
+        assert!(!dpw8_oat15a_geometry_permission_document_referenced(&v1a));
     }
 
     #[test]
