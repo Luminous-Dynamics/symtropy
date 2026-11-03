@@ -225,3 +225,16 @@ Primary abstracts and review record:
 - https://doi.org/10.1109/TPEL.2026.3727562
 - https://doi.org/10.1016/j.rser.2026.117141
 
+### Full-text extraction: bidirectional multi-vehicle compatibility matrix
+
+The University of Turku repository exposes the full 13-page open-access article PDF for Zhang et al. (DOI 10.1016/j.geits.2025.100307). Table 1 provides vehicle-side assembly design specifications that were not present in the abstract:
+
+| Vehicle assembly | Rated power | Battery-voltage range | Nominal battery voltage | Ground-clearance range | Operating frequency |
+|---|---:|---:|---:|---:|---:|
+| VA 1 | 6 kW | 380–440 V | 400 V | 190–210 mm | 85 kHz |
+| VA 2 | 11 kW | 600–700 V | 660 V | 160–180 mm | 85 kHz |
+| VA 3 | 30 kW | 420–610 V | 550 V | 270–290 mm | 20 kHz |
+
+This clarifies the architecture: the ground assembly integrates two independently enabled resonant networks for the separated 85 kHz and 20 kHz bands. The grid-side converter uses four parallel low-power modules and adaptive activation according to output demand. The resonant link uses a dual-coupled LCC–LCC arrangement. This is a frequency-polymorphic architecture, not one pad that simply operates all three power classes at a single resonant frequency.
+
+The table entries are author-stated target vehicle/VA specifications. They do not prove that each published efficiency-range endpoint corresponds to a particular VA. The 91.7–94.3% grid-to-battery and 89.5–93.5% battery-to-grid results remain aggregate aligned ranges until the experimental result figures/tables are extracted and mapped to individual modes. The machine-readable catalogue stores the table specifications as explicitly unverified design metadata, not as independently measured outcomes.
