@@ -75,7 +75,7 @@ Expand the 133-paper survey at source-family/prototype-lineage granularity, manu
 
 ## 2026 frontier additions (development records)
 
-The dataset now contains four prototype families: one static 65 kW IPT charger, one exposure-informed DD pad, one heavy-duty dynamic roadway system, and one public-road DWPT endurance trial. These are not rankable on a single axis.
+The dataset now contains six prototype families: a static 65 kW EV IPT charger, an exposure-informed DD pad, a heavy-duty dynamic roadway system, a public-road DWPT endurance trial, a room-scale magnetoquasistatic relay network, and an indoor optical laser transfer system. These are not rankable on a single axis.
 
 | Lane | System | Reported result | Important qualification |
 |---|---|---|---|
