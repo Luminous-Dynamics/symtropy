@@ -724,6 +724,22 @@ impl HairPlateInventory {
                 &self.source_artifacts,
                 SourceArtifactRole::ConnectomeOutput,
             )?;
+            if let Evidence::Observed { value, .. } = &record.connectome_outputs {
+                for target in value {
+                    if let Some(sign_sha256) = &target.sign_evidence_sha256 {
+                        if !source_artifact_has_role(
+                            &self.source_artifacts,
+                            sign_sha256,
+                            SourceArtifactRole::SynapseSignEvidence,
+                        ) {
+                            return Err(OracleError::MissingSourceArtifact {
+                                sha256: sign_sha256.clone(),
+                                role: SourceArtifactRole::SynapseSignEvidence,
+                            });
+                        }
+                    }
+                }
+            }
             require_evidence_artifact(
                 &record.reflex_outcomes,
                 &self.source_artifacts,
@@ -1161,14 +1177,20 @@ mod tests {
                         target_neuron_id: "motor-posterior-1".to_string(),
                         target_cell_type: "motor-neuron".to_string(),
                         synapse_count: 24,
+                        neurotransmitter: Neurotransmitter::Acetylcholine,
                         sign: SynapseSign::Excitatory,
+                        sign_evidence_basis: SignEvidenceBasis::TransmitterHeuristic,
+                        sign_evidence_sha256: Some(digest('g')),
                         anatomical_region: "front-leg-neuropil".to_string(),
                     },
                     ConnectomeOutput {
                         target_neuron_id: "premotor-anterior-1".to_string(),
                         target_cell_type: "premotor-neuron".to_string(),
                         synapse_count: 18,
+                        neurotransmitter: Neurotransmitter::Gaba,
                         sign: SynapseSign::Inhibitory,
+                        sign_evidence_basis: SignEvidenceBasis::TransmitterHeuristic,
+                        sign_evidence_sha256: Some(digest('g')),
                         anatomical_region: "front-leg-neuropil".to_string(),
                     },
                 ],
@@ -1238,6 +1260,13 @@ mod tests {
             }
             if let Evidence::Observed { value, .. } = &record.morphology {
                 add(&value.geometry_sha256, SourceArtifactRole::Morphology);
+            }
+            if let Evidence::Observed { value, .. } = &record.connectome_outputs {
+                for target in value {
+                    if let Some(sign_sha256) = &target.sign_evidence_sha256 {
+                        add(sign_sha256, SourceArtifactRole::SynapseSignEvidence);
+                    }
+                }
             }
         }
 
@@ -1408,7 +1437,10 @@ mod tests {
         assert_eq!(targets.false_positives, 0);
         assert_eq!(targets.false_negatives, 0);
         assert_eq!(targets.f1, Some(1.0));
-        assert_eq!(targets.sign_accuracy, Some(1.0));
+        assert_eq!(targets.sign_evaluated_targets, 0);
+        assert_eq!(targets.sign_accuracy, None);
+        assert_eq!(targets.annotation_sign_evaluated_targets, 2);
+        assert_eq!(targets.annotation_sign_accuracy, Some(1.0));
     }
 
     #[test]
@@ -1573,6 +1605,69 @@ mod tests {
         invalid.reflex_context_id = None;
         invalid.reflex_assay_scope_id = None;
         assert_eq!(invalid.validate(), Err(OracleError::InvalidPrediction));
+    }
+
+    #[test]
+    fn direct_and_receptor_supported_signs_use_the_primary_sign_metric() {
+        let mut input = record();
+        if let Evidence::Observed { value, .. } = &mut input.connectome_outputs {
+            value[0].sign_evidence_basis = SignEvidenceBasis::DirectPhysiology;
+            value[1].sign_evidence_basis = SignEvidenceBasis::ReceptorSupported;
+        }
+        let metrics = evaluate_prediction(&input, &prediction())
+            .expect("evaluation")
+            .motor_target_metrics
+            .expect("target metrics");
+        assert_eq!(metrics.sign_evaluated_targets, 2);
+        assert_eq!(metrics.correct_sign_predictions, 2);
+        assert_eq!(metrics.sign_accuracy, Some(1.0));
+        assert_eq!(metrics.annotation_sign_evaluated_targets, 0);
+        assert_eq!(metrics.annotation_sign_accuracy, None);
+    }
+
+    #[test]
+    fn unknown_signs_are_not_scored_as_wrong_or_transmitter_heuristic() {
+        let mut input = record();
+        if let Evidence::Observed { value, .. } = &mut input.connectome_outputs {
+            value[1].neurotransmitter = Neurotransmitter::Unknown;
+            value[1].sign = SynapseSign::Unknown;
+            value[1].sign_evidence_basis = SignEvidenceBasis::Unknown;
+            value[1].sign_evidence_sha256 = None;
+        }
+        let metrics = evaluate_prediction(&input, &prediction())
+            .expect("evaluation")
+            .motor_target_metrics
+            .expect("target metrics");
+        assert_eq!(metrics.sign_evaluated_targets, 0);
+        assert_eq!(metrics.annotation_sign_evaluated_targets, 1);
+        assert_eq!(metrics.annotation_sign_accuracy, Some(1.0));
+    }
+
+    #[test]
+    fn rejects_transmitter_heuristic_without_a_known_transmitter() {
+        let mut invalid = record();
+        if let Evidence::Observed { value, .. } = &mut invalid.connectome_outputs {
+            value[0].neurotransmitter = Neurotransmitter::Unknown;
+        }
+        assert_eq!(
+            invalid.validate(),
+            Err(OracleError::InvalidConnectomeOutput)
+        );
+    }
+
+    #[test]
+    fn inventory_requires_separate_sign_evidence_artifacts() {
+        let mut input = inventory(vec![record()]);
+        input
+            .source_artifacts
+            .retain(|artifact| artifact.sha256 != digest('g'));
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::MissingSourceArtifact {
+                sha256: digest('g'),
+                role: SourceArtifactRole::SynapseSignEvidence,
+            })
+        );
     }
 
     #[test]
