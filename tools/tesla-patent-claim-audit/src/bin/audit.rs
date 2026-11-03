@@ -19,8 +19,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("frequency_at_max_wavelength_claimed_speed,{:.3},Hz,derived_arithmetic", result.frequency_at_max_wavelength_using_claimed_speed_hz);
     println!("frequency_at_min_wavelength_c,{:.3},Hz,comparison_reference", result.frequency_at_min_wavelength_using_c_hz);
     println!("frequency_at_max_wavelength_c,{:.3},Hz,comparison_reference", result.frequency_at_max_wavelength_using_c_hz);
-    println!("quarter_wave_factor_min,{:.6},1,derived_arithmetic", result.quarter_wave_odd_multiple_min);
-    println!("quarter_wave_factor_max,{:.6},1,derived_arithmetic", result.quarter_wave_odd_multiple_max);
+    println!("quarter_wave_factor_min,{:.6},1,derived_arithmetic", result.quarter_wave_factor_min);
+    println!("quarter_wave_factor_max,{:.6},1,derived_arithmetic", result.quarter_wave_factor_max);
     println!("earth_mean_radius,{:.3},m,reference_constant", EARTH_MEAN_RADIUS_M);
     println!("wavelength_min,{:.3},m,patent_reported_value", TESLA_WAVELENGTH_MIN_M);
     println!("wavelength_max,{:.3},m,patent_reported_value", TESLA_WAVELENGTH_MAX_M);
