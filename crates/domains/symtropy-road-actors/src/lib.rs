@@ -23,12 +23,14 @@ pub enum ActorMode {
     Complete,
 }
 
-/// Actor-local state. The fields are private so adapters must use validated
-/// transitions rather than inject arbitrary speed or mode combinations.
+/// Actor-local policy state. The speed is a requested setpoint, not measured
+/// body velocity; the physics adapter must rate-limit it under the scenario's
+/// acceleration/deceleration profile when applying kinematic motion. The fields
+/// are private so adapters use validated states rather than arbitrary values.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ActorPolicyState {
     mode: ActorMode,
-    forward_speed_mps: f64,
+    target_forward_speed_mps: f64,
 }
 
 impl ActorPolicyState {
@@ -42,28 +44,40 @@ impl ActorPolicyState {
     pub const fn mode(self) -> ActorMode {
         self.mode
     }
-    pub const fn forward_speed_mps(self) -> f64 {
-        self.forward_speed_mps
+    pub const fn target_forward_speed_mps(self) -> f64 {
+        self.target_forward_speed_mps
     }
 
-    fn new(mode: ActorMode, forward_speed_mps: f64) -> Self {
+    fn new(mode: ActorMode, target_forward_speed_mps: f64) -> Self {
         Self {
             mode,
-            forward_speed_mps,
+            target_forward_speed_mps,
         }
     }
 
+    /// Restores a scenario-authored or replayed actor state after validating
+    /// the policy speed setpoint against the declared profile bounds.
+    pub fn from_scenario(
+        mode: ActorMode,
+        target_forward_speed_mps: f64,
+        bounds: MotionBounds,
+    ) -> Result<Self, PolicyError> {
+        let state = Self::new(mode, target_forward_speed_mps);
+        state.validate(bounds)?;
+        Ok(state)
+    }
+
     fn validate(self, bounds: MotionBounds) -> Result<(), PolicyError> {
-        if !self.forward_speed_mps.is_finite()
-            || self.forward_speed_mps < 0.0
-            || self.forward_speed_mps > bounds.max_forward_speed_mps
+        if !self.target_forward_speed_mps.is_finite()
+            || self.target_forward_speed_mps < 0.0
+            || self.target_forward_speed_mps > bounds.max_forward_speed_mps
         {
             return Err(PolicyError::InvalidActorState);
         }
         if matches!(
             self.mode,
             ActorMode::Waiting | ActorMode::Paused | ActorMode::Complete
-        ) && self.forward_speed_mps != 0.0
+        ) && self.target_forward_speed_mps != 0.0
         {
             return Err(PolicyError::InvalidActorState);
         }
