@@ -1390,6 +1390,38 @@ mod tests {
         }
     }
 
+    fn dryad_file_metadata() -> DryadFileMetadata {
+        DryadFileMetadata {
+            dataset_doi: "doi:10.5061/dryad.fxpnvx153".to_string(),
+            dataset_version_id: "version-123".to_string(),
+            file_id: "file-456".to_string(),
+            path: "LacinHLTable_-_HL_table.csv".to_string(),
+            size_bytes: 1_440,
+            mime_type: "text/csv".to_string(),
+            status: "copied".to_string(),
+            provider_digest: Some(ProviderDigest {
+                algorithm: ProviderDigestAlgorithm::Md5,
+                value: "0123456789abcdef0123456789abcdef".to_string(),
+            }),
+            metadata_response_sha256: digest('a'),
+        }
+    }
+
+    fn materialization_receipt() -> FileMaterializationReceipt {
+        FileMaterializationReceipt {
+            dataset_version_id: "version-123".to_string(),
+            file_id: "file-456".to_string(),
+            downloaded_bytes: 1_440,
+            local_bytes_sha256: digest('b'),
+            recomputed_provider_digest: Some(ProviderDigest {
+                algorithm: ProviderDigestAlgorithm::Md5,
+                value: "0123456789abcdef0123456789abcdef".to_string(),
+            }),
+            metadata_response_sha256: digest('a'),
+            materializer_run_sha256: digest('c'),
+        }
+    }
+
     fn prediction() -> HairPlatePrediction {
         HairPlatePrediction {
             plate_id: "front-coxa-hp8".to_string(),
@@ -1417,6 +1449,103 @@ mod tests {
                 },
             ],
         }
+    }
+
+    #[test]
+    fn dryad_file_metadata_preserves_provider_digest_algorithm() {
+        let metadata = dryad_file_metadata();
+        assert_eq!(metadata.validate(), Ok(()));
+        assert_eq!(
+            metadata.provider_digest.as_ref().map(|digest| digest.algorithm),
+            Some(ProviderDigestAlgorithm::Md5)
+        );
+    }
+
+    #[test]
+    fn dryad_metadata_rejects_digest_length_that_disagrees_with_algorithm() {
+        let mut metadata = dryad_file_metadata();
+        if let Some(digest) = &mut metadata.provider_digest {
+            digest.value = digest('d');
+        }
+        assert_eq!(
+            metadata.validate(),
+            Err(OracleError::InvalidDryadFileMetadata)
+        );
+    }
+
+    #[test]
+    fn dryad_materialization_requires_size_version_file_and_metadata_match() {
+        let metadata = dryad_file_metadata();
+        let receipt = materialization_receipt();
+        assert_eq!(metadata.validate_materialization(&receipt), Ok(()));
+
+        let mut wrong_size = receipt.clone();
+        wrong_size.downloaded_bytes += 1;
+        assert_eq!(
+            metadata.validate_materialization(&wrong_size),
+            Err(OracleError::MaterializationMismatch("downloaded_bytes"))
+        );
+
+        let mut wrong_version = receipt.clone();
+        wrong_version.dataset_version_id = "version-latest".to_string();
+        assert_eq!(
+            metadata.validate_materialization(&wrong_version),
+            Err(OracleError::MaterializationMismatch("dataset_version_id"))
+        );
+    }
+
+    #[test]
+    fn dryad_materialization_recomputes_provider_digest_separately_from_local_sha256() {
+        let metadata = dryad_file_metadata();
+        let receipt = materialization_receipt();
+        assert_ne!(
+            metadata.provider_digest.as_ref().map(|digest| &digest.value),
+            Some(&receipt.local_bytes_sha256)
+        );
+        assert_eq!(metadata.validate_materialization(&receipt), Ok(()));
+    }
+
+    #[test]
+    fn dryad_materialization_rejects_provider_checksum_mismatch() {
+        let metadata = dryad_file_metadata();
+        let mut receipt = materialization_receipt();
+        receipt.recomputed_provider_digest = Some(ProviderDigest {
+            algorithm: ProviderDigestAlgorithm::Md5,
+            value: "ffffffffffffffffffffffffffffffff".to_string(),
+        });
+        assert_eq!(
+            metadata.validate_materialization(&receipt),
+            Err(OracleError::MaterializationMismatch("provider_digest"))
+        );
+    }
+
+    #[test]
+    fn dryad_materialization_rejects_missing_provider_checksum_recomputation() {
+        let metadata = dryad_file_metadata();
+        let mut receipt = materialization_receipt();
+        receipt.recomputed_provider_digest = None;
+        assert_eq!(
+            metadata.validate_materialization(&receipt),
+            Err(OracleError::MaterializationMismatch(
+                "provider_digest_not_recomputed"
+            ))
+        );
+    }
+
+    #[test]
+    fn dryad_metadata_rejects_path_traversal_and_zero_byte_files() {
+        let mut metadata = dryad_file_metadata();
+        metadata.path = "../README.md".to_string();
+        assert_eq!(
+            metadata.validate(),
+            Err(OracleError::InvalidDryadFileMetadata)
+        );
+        metadata.path = "README.md".to_string();
+        metadata.size_bytes = 0;
+        assert_eq!(
+            metadata.validate(),
+            Err(OracleError::InvalidDryadFileMetadata)
+        );
     }
 
     #[test]
