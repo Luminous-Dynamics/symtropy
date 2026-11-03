@@ -199,9 +199,24 @@ fn compare_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTr
 }
 
 fn compare_string_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTreeSet<String>) {
+    let controlled = |value: &str| {
+        let value = value.trim().to_ascii_lowercase();
+        match field {
+            "waveform" => matches!(value.as_str(), "sinusoidal" | "square" | "square_wave" | "triangular" | "dc" | "pwm"),
+            "alignment" => matches!(value.as_str(), "nominal" | "aligned" | "centered" | "misaligned" | "x_misaligned" | "y_misaligned" | "xy_misaligned" | "misalignment_sweep"),
+            "thermal_state" => matches!(value.as_str(), "cold" | "warm" | "hot" | "steady_state" | "transient" | "thermal_soak"),
+            "medium" => matches!(value.as_str(), "air" | "water" | "soil" | "vacuum" | "oil" | "concrete" | "indoor_air"),
+            _ => false,
+        }
+    };
     match (text(left, field), text(right, field)) {
         (Some(a), Some(b)) if a == b => {}
-        (Some(_), Some(_)) => { reasons.insert("OPERATING_CONDITION_MISMATCH".into()); }
+        (Some(a), Some(b)) if controlled(a) && controlled(b) => {
+            reasons.insert("OPERATING_CONDITION_MISMATCH".into());
+        }
+        (Some(_), Some(_)) => {
+            reasons.insert("OPERATING_CONDITION_UNNORMALIZED".into());
+        }
         _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
     }
 }
