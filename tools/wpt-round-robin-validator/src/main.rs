@@ -19,6 +19,7 @@ const TOP_LEVEL: &[&str] = &[
     "power_quality",
     "safety",
     "artifact_refs",
+    "resonant_networks",
     "result",
 ];
 
@@ -181,6 +182,7 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "controller_revision",
             "power_rating_w",
             "configuration_digest",
+            "concurrent_resonant_networks_allowed",
         ],
         "system",
         &mut errors,
@@ -311,6 +313,25 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "description",
         ],
         "artifact_refs",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        manifest.get("resonant_networks"),
+        &[
+            "network_id",
+            "nominal_frequency_hz",
+            "commanded_state",
+            "isolation_switch_state",
+            "current_rms_a",
+            "current_peak_a",
+            "continuous_current_limit_a",
+            "voltage_rms_v",
+            "voltage_limit_v",
+            "thermal_maximum_c",
+            "measurement_method",
+            "artifact_sha256",
+        ],
+        "resonant_networks",
         &mut errors,
     );
     exact_object_keys(
@@ -747,6 +768,136 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         errors.push("artifact_refs: CALIBRATION_CERTIFICATE artifact required".into());
     }
 
+
+    // Resonant-network branches are first-class electrical ports. A network
+    // commanded INACTIVE can still carry induced circulating current.
+    if matches!(technology, "IPT" | "CPT" | "HYBRID") {
+        let networks = manifest
+            .get("resonant_networks")
+            .and_then(Value::as_array);
+        match networks {
+            Some(networks) if !networks.is_empty() => {
+                let mut ids = BTreeSet::new();
+                let mut active_count = 0usize;
+                let concurrent_allowed = at(
+                    manifest,
+                    &["system", "concurrent_resonant_networks_allowed"],
+                )
+                .and_then(Value::as_bool);
+
+                if networks.len() > 1 && concurrent_allowed.is_none() {
+                    errors.push(
+                        "system.concurrent_resonant_networks_allowed: declare whether multiple networks may be active"
+                            .into(),
+                    );
+                }
+                for (index, network) in networks.iter().enumerate() {
+                    let network_id = string_at(network, &["network_id"]).unwrap_or("");
+                    if !nonempty(Some(network_id)) || !ids.insert(network_id.to_owned()) {
+                        errors.push(format!(
+                            "resonant_networks[{index}].network_id: missing or duplicate"
+                        ));
+                    }
+                    if !number_at(network, &["nominal_frequency_hz"])
+                        .is_some_and(|value| value > 0.0)
+                    {
+                        errors.push(format!(
+                            "resonant_networks[{index}].nominal_frequency_hz: positive frequency required"
+                        ));
+                    }
+                    let state = string_at(network, &["commanded_state"]).unwrap_or("UNKNOWN");
+                    let switch_state =
+                        string_at(network, &["isolation_switch_state"]).unwrap_or("UNKNOWN");
+                    let method =
+                        string_at(network, &["measurement_method"]).unwrap_or("NOT_REPORTED");
+                    if switch_state == "FAULT" {
+                        errors.push(format!(
+                            "resonant_networks[{index}].isolation_switch_state: faulted switch state"
+                        ));
+                    }
+                    if state == "TRANSITIONING" || state == "UNKNOWN" {
+                        errors.push(format!(
+                            "resonant_networks[{index}].commanded_state: steady-state run cannot contain transitioning/unknown network"
+                        ));
+                    }
+                    let current = number_at(network, &["current_rms_a"]);
+                    let current_limit =
+                        number_at(network, &["continuous_current_limit_a"]);
+                    let voltage = number_at(network, &["voltage_rms_v"]);
+                    let voltage_limit = number_at(network, &["voltage_limit_v"]);
+                    if !number_at(network, &["thermal_maximum_c"]).is_some() {
+                        errors.push(format!(
+                            "resonant_networks[{index}].thermal_maximum_c: branch temperature required"
+                        ));
+                    }
+                    if method != "MEASURED" {
+                        errors.push(format!(
+                            "resonant_networks[{index}].measurement_method: physical branch qualification requires MEASURED evidence"
+                        ));
+                    }
+                    if !string_at(network, &["artifact_sha256"]).is_some_and(valid_sha256) {
+                        errors.push(format!(
+                            "resonant_networks[{index}].artifact_sha256: waveform/evidence digest required"
+                        ));
+                    }
+
+                    if state == "ACTIVE" {
+                        active_count += 1;
+                        match (current, current_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: active branch current missing or exceeds continuous rating"
+                            )),
+                        }
+                        match (voltage, voltage_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: active branch voltage missing or exceeds rated voltage"
+                            )),
+                        }
+                    } else if state == "INACTIVE" || state == "ISOLATED" {
+                        match (current, current_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 => {
+                                let leakage_pct = value / limit * 100.0;
+                                if leakage_pct > 1.0 {
+                                    errors.push(format!(
+                                        "resonant_networks[{index}]: inactive branch current {leakage_pct:.3}% of continuous rating exceeds proposed 1.000% target"
+                                    ));
+                                }
+                            }
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: inactive branch current and continuous rating are required"
+                            )),
+                        }
+                        match (voltage, voltage_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: inactive branch voltage missing or exceeds rated voltage"
+                            )),
+                        }
+                    } else {
+                        errors.push(format!(
+                            "resonant_networks[{index}].commanded_state: unsupported steady-state value"
+                        ));
+                    }
+                }
+                if active_count == 0 {
+                    errors.push("resonant_networks: at least one active branch required".into());
+                }
+                if concurrent_allowed == Some(false) && active_count != 1 {
+                    errors.push(
+                        "resonant_networks: exactly one active branch required when concurrent activation is disallowed"
+                            .into(),
+                    );
+                }
+            }
+            _ => errors.push(
+                "resonant_networks: at least one measured branch record required for IPT/CPT/hybrid qualification"
+                    .into(),
+            ),
+        }
+    }
+
     if matches!(technology, "IPT" | "CPT" | "HYBRID") {
         if !number_at(manifest, &["power_quality", "primary_current_thd_pct"])
             .is_some_and(|value| value >= 0.0)
@@ -829,6 +980,7 @@ mod tests {
         manifest["system"]["hardware_revision"] = json!("rev-A");
         manifest["system"]["controller_revision"] = json!("controller-test-commit");
         manifest["system"]["configuration_digest"] = json!("a".repeat(64));
+        manifest["system"]["concurrent_resonant_networks_allowed"] = json!(false);
 
         manifest["conditions"]["direction"] = json!("GRID_TO_VEHICLE");
         manifest["conditions"]["power_class"] = json!("11_KW");
@@ -894,6 +1046,36 @@ mod tests {
         manifest["power_quality"]["thd_window_s"] = json!(1.0);
         manifest["power_quality"]["switching_frequency_hz"] = json!(85_000.0);
         manifest["power_quality"]["zvs_observed"] = json!(true);
+        manifest["resonant_networks"] = json!([
+            {
+                "network_id": "RES-85KHZ",
+                "nominal_frequency_hz": 85_000.0,
+                "commanded_state": "ACTIVE",
+                "isolation_switch_state": "CLOSED",
+                "current_rms_a": 22.0,
+                "current_peak_a": 31.1,
+                "continuous_current_limit_a": 31.4,
+                "voltage_rms_v": 724.0,
+                "voltage_limit_v": 1_000.0,
+                "thermal_maximum_c": 64.0,
+                "measurement_method": "MEASURED",
+                "artifact_sha256": "c".repeat(64)
+            },
+            {
+                "network_id": "RES-20KHZ",
+                "nominal_frequency_hz": 20_000.0,
+                "commanded_state": "INACTIVE",
+                "isolation_switch_state": "OPEN",
+                "current_rms_a": 0.2,
+                "current_peak_a": 0.3,
+                "continuous_current_limit_a": 94.2,
+                "voltage_rms_v": 10.0,
+                "voltage_limit_v": 2_400.0,
+                "thermal_maximum_c": 35.0,
+                "measurement_method": "MEASURED",
+                "artifact_sha256": "d".repeat(64)
+            }
+        ]);
 
         manifest["safety"]["standard_edition"] =
             json!("synthetic test basis; not a real certification");
@@ -1000,6 +1182,48 @@ mod tests {
         manifest["safety"]["unauthorized_receiver"] = json!("FAIL");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("unauthorized_receiver")));
+    }
+
+    #[test]
+    fn accepts_measured_inactive_branch_below_one_percent_rating() {
+        let (disposition, errors) = validate_manifest(&qualified_fixture());
+        assert_eq!(disposition, "QUALIFIED");
+        assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn rejects_modelled_inactive_branch_current_as_qualification_evidence() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][1]["measurement_method"] = json!("SIMULATED");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires MEASURED evidence")));
+    }
+
+    #[test]
+    fn rejects_cross_frequency_inactive_loop_current_above_target() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][1]["current_rms_a"] = json!(17.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("exceeds proposed 1.000% target")));
+    }
+
+    #[test]
+    fn rejects_simultaneous_active_networks_when_not_allowed() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][1]["commanded_state"] = json!("ACTIVE");
+        manifest["resonant_networks"][1]["isolation_switch_state"] = json!("CLOSED");
+        manifest["resonant_networks"][1]["current_rms_a"] = json!(12.0);
+        manifest["resonant_networks"][1]["voltage_rms_v"] = json!(400.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("exactly one active branch")));
+    }
+
+    #[test]
+    fn rejects_faulted_resonant_isolation_switch() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][1]["isolation_switch_state"] = json!("FAULT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("faulted switch state")));
     }
 
     #[test]
