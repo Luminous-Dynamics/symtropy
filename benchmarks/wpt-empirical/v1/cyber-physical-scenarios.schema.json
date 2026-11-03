@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/cyber-physical-scenario.schema.json",
+  "title": "WPT Cyber-Physical Negative-Control Scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "threat_class",
+    "preconditions",
+    "stimulus",
+    "expected_safe_response",
+    "failure_condition",
+    "applicability"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-security-scenario-v1"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^WPT-SEC-[A-Z0-9-]+$"
+    },
+    "threat_class": {
+      "enum": [
+        "receiver_identity_spoof",
+        "command_replay",
+        "stale_command",
+        "firmware_integrity",
+        "phase_sensor_tampering",
+        "current_sensor_tampering",
+        "timing_jitter",
+        "communication_denial_of_service",
+        "credential_revocation",
+        "resonant_isolation_state_mismatch"
+      ]
+    },
+    "preconditions": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stimulus": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_safe_response": {
+      "type": "string",
+      "minLength": 1
+    },
+    "failure_condition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "applicability": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
