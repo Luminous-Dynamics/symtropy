@@ -137,6 +137,11 @@ pub struct EpisodeRecord {
     pub code_sha256: String,
     pub parameter_sha256: String,
     pub controller_config_sha256: String,
+    pub connectome_sha256: Option<String>,
+    pub biological_source_sha256: Option<String>,
+    pub sensor_mapping_sha256: Option<String>,
+    pub effector_mapping_sha256: Option<String>,
+    pub muscle_mapping_sha256: Option<String>,
     pub raw_trajectory_sha256: String,
     pub metric_payload_sha256: String,
     pub run_receipt_sha256: String,
@@ -433,6 +438,11 @@ fn validate_episode(
             return Err(RobustnessError::InvalidDigest(label));
         }
     }
+    validate_optional_digest(&record.connectome_sha256, "connectome")?;
+    validate_optional_digest(&record.biological_source_sha256, "biological_source")?;
+    validate_optional_digest(&record.sensor_mapping_sha256, "sensor_mapping")?;
+    validate_optional_digest(&record.effector_mapping_sha256, "effector_mapping")?;
+    validate_optional_digest(&record.muscle_mapping_sha256, "muscle_mapping")?;
     validate_optional_digest(&record.measured_dataset_sha256, "measured_dataset")?;
     validate_optional_digest(
         &record.independent_replication_sha256,
@@ -451,10 +461,31 @@ fn validate_episode(
     {
         return Err(RobustnessError::EvidenceTierMismatch);
     }
+    if record.model_evidence_tier >= ModelEvidenceTier::ConnectomeConstrained
+        && (record.connectome_sha256.is_none()
+            || record.biological_source_sha256.is_none()
+            || record.sensor_mapping_sha256.is_none()
+            || record.effector_mapping_sha256.is_none())
+    {
+        return Err(RobustnessError::MissingEvidenceArtifact("connectome_or_mapping"));
+    }
+    if matches!(
+        record.model_family,
+        ModelFamily::MuscleActuatedController | ModelFamily::ConnectomeMuscleHybrid
+    ) && record.muscle_mapping_sha256.is_none()
+    {
+        return Err(RobustnessError::MissingEvidenceArtifact("muscle_mapping"));
+    }
     if record.model_evidence_tier == ModelEvidenceTier::PerturbationGrounded
-        && record.evaluation_tier < EvaluationTier::MeasuredIntervention
+        && (record.evaluation_tier < EvaluationTier::MeasuredIntervention
+            || record.biological_source_sha256.is_none())
     {
         return Err(RobustnessError::EvidenceTierMismatch);
+    }
+    if record.model_evidence_tier == ModelEvidenceTier::ReplicatedBiological
+        && record.independent_replication_sha256.is_none()
+    {
+        return Err(RobustnessError::MissingEvidenceArtifact("independent_replication"));
     }
     if record.model_evidence_tier == ModelEvidenceTier::ReplicatedBiological
         && record.evaluation_tier != EvaluationTier::IndependentReplication
@@ -674,19 +705,19 @@ fn score_scenario(
     for record in records {
         if record.model_id != first.model_id
             || record.scenario_id != first.scenario_id
-            || ScenarioSignature {
+            || (ScenarioSignature {
                 family: record.scenario_family,
                 severity_microunits: record.perturbation_severity_microunits,
                 unit: record.perturbation_unit.clone(),
                 scenario_sha256: record.scenario_sha256.clone(),
-            } != signature
-            || ModelSignature {
+            }) != signature
+            || (ModelSignature {
                 family: record.model_family,
                 evidence_tier: record.model_evidence_tier,
                 code_sha256: record.code_sha256.clone(),
                 parameter_sha256: record.parameter_sha256.clone(),
                 controller_config_sha256: record.controller_config_sha256.clone(),
-            } != first_model_signature
+            }) != first_model_signature
             || record.evaluation_tier != first.evaluation_tier
         {
             return Err(RobustnessError::ScenarioDefinitionMismatch);
@@ -816,44 +847,46 @@ fn score_scenario(
     })
 }
 
-fn model_worst_cases(scores: &[ScenarioScorecard]) -> Vec<ModelWorstCase> {
+fn model_worst_cases(
+    scores: &[ScenarioScorecard],
+) -> Result<Vec<ModelWorstCase>, RobustnessError> {
     let mut by_model: BTreeMap<&str, Vec<&ScenarioScorecard>> = BTreeMap::new();
     for score in scores {
         by_model.entry(&score.model_id).or_default().push(score);
     }
 
-    by_model
-        .into_iter()
-        .map(|(model_id, rows)| {
-            let worst_success = rows
+    let mut worst_cases = Vec::with_capacity(by_model.len());
+    for (model_id, rows) in by_model {
+        let worst_success = rows
+            .iter()
+            .min_by(|left, right| left.success_rate.total_cmp(&right.success_rate))
+            .ok_or(RobustnessError::NonFiniteSummary)?;
+        let worst_cvar = rows
+            .iter()
+            .min_by(|left, right| {
+                left.lower_tail_cvar_task_score
+                    .total_cmp(&right.lower_tail_cvar_task_score)
+            })
+            .ok_or(RobustnessError::NonFiniteSummary)?;
+
+        worst_cases.push(ModelWorstCase {
+            model_id: model_id.to_string(),
+            scenario_count: rows.len(),
+            worst_success_rate: worst_success.success_rate,
+            worst_success_scenario_id: worst_success.scenario_id.clone(),
+            worst_lower_tail_cvar_task_score: worst_cvar.lower_tail_cvar_task_score,
+            worst_cvar_scenario_id: worst_cvar.scenario_id.clone(),
+            total_numerical_failure_episodes: rows
                 .iter()
-                .min_by(|left, right| left.success_rate.total_cmp(&right.success_rate))
-                .expect("non-empty model scorecard group");
-            let worst_cvar = rows
+                .map(|row| row.episodes_with_numerical_failures as u64)
+                .sum(),
+            total_physics_violation_episodes: rows
                 .iter()
-                .min_by(|left, right| {
-                    left.lower_tail_cvar_task_score
-                        .total_cmp(&right.lower_tail_cvar_task_score)
-                })
-                .expect("non-empty model scorecard group");
-            ModelWorstCase {
-                model_id: model_id.to_string(),
-                scenario_count: rows.len(),
-                worst_success_rate: worst_success.success_rate,
-                worst_success_scenario_id: worst_success.scenario_id.clone(),
-                worst_lower_tail_cvar_task_score: worst_cvar.lower_tail_cvar_task_score,
-                worst_cvar_scenario_id: worst_cvar.scenario_id.clone(),
-                total_numerical_failure_episodes: rows
-                    .iter()
-                    .map(|row| row.episodes_with_numerical_failures as u64)
-                    .sum(),
-                total_physics_violation_episodes: rows
-                    .iter()
-                    .map(|row| row.episodes_with_physics_violations as u64)
-                    .sum(),
-            }
-        })
-        .collect()
+                .map(|row| row.episodes_with_physics_violations as u64)
+                .sum(),
+        });
+    }
+    Ok(worst_cases)
 }
 
 fn matched_key(record: &EpisodeRecord) -> MatchedTrialKey {
@@ -961,7 +994,7 @@ pub fn analyze_robustness(
         by_scenario.push(score_scenario(protocol, records)?);
     }
 
-    let model_worst_case = model_worst_cases(&by_scenario);
+    let model_worst_case = model_worst_cases(&by_scenario)?;
     Ok(RobustnessReport {
         protocol_sha256: protocol.protocol_sha256.clone(),
         split_sha256: protocol.split_sha256.clone(),
@@ -998,9 +1031,27 @@ pub fn compare_paired_models(
     let mut baseline = BTreeMap::new();
     let mut candidate_seen = false;
     let mut baseline_seen = false;
+    let mut seen_model_trials = BTreeSet::new();
+    let mut model_signatures: BTreeMap<String, ModelSignature> = BTreeMap::new();
 
     for episode in episodes {
         validate_episode(protocol, episode)?;
+        if !seen_model_trials.insert((episode.model_id.clone(), episode.trial_id.clone())) {
+            return Err(RobustnessError::DuplicateTrial);
+        }
+        let signature = ModelSignature {
+            family: episode.model_family,
+            evidence_tier: episode.model_evidence_tier,
+            code_sha256: episode.code_sha256.clone(),
+            parameter_sha256: episode.parameter_sha256.clone(),
+            controller_config_sha256: episode.controller_config_sha256.clone(),
+        };
+        if model_signatures
+            .insert(episode.model_id.clone(), signature.clone())
+            .is_some_and(|previous| previous != signature)
+        {
+            return Err(RobustnessError::ModelDefinitionMismatch);
+        }
         let key = matched_key(episode);
         if episode.model_id == candidate_model_id {
             candidate_seen = true;
