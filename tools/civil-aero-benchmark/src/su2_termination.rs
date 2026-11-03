@@ -121,7 +121,7 @@ impl Su2TerminationReport {
                 criterion.summary_line_sha256.clone(),
                 csv_escape(&self.terminal_messages.join(";")),
                 self.termination_sha256.clone(),
-                csv_escape(self.evidence_level),
+                csv_escape(&self.evidence_level),
             ];
             output.push_str(&fields.join(","));
             output.push('\n');
@@ -153,7 +153,7 @@ fn canonical_bytes(report: &Su2TerminationReport) -> Vec<u8> {
         report.exit_section_sha256.as_str(),
         report.mode.as_str(),
         report.classification.as_str(),
-        report.evidence_level,
+        report.evidence_level.as_str(),
     ] {
         append_string(&mut bytes, value);
     }
