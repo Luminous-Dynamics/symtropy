@@ -75,7 +75,7 @@ Required first suite:
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
 
-The included `free_fall_validation` example is the reference format.
+The included `free_fall_validation` example is the reference format. The fail-closed `free_fall_convergence_gate` additionally checks the exact semi-implicit Euler position-error and mechanical-energy-drift predictions across four timesteps in 2D, 3D, and 4D.
 
 ### Tier C — Independent implementation comparison
 
@@ -154,8 +154,12 @@ must show whether error decreases at the expected order as `dt` is reduced.
 
 For the current semi-implicit Euler translational integrator, position error is
 expected to converge at first order in timestep for constant acceleration.
-Failure to show convergence is more important than one attractive result at a
-single timestep.
+In the zero-initial-velocity free-fall scenario, the exact discrete error is
+`0.5 * |g| * T * dt`; velocity is exact up to floating-point accumulation, and
+the modeled mechanical-energy drift is `-0.5 * m * |g|^2 * T * dt`. The
+`free_fall_convergence_gate` checks these predictions and the observed order in
+2D, 3D, and 4D. Failure to show convergence is more important than one
+attractive result at a single timestep.
 
 ## Conservation snapshots
 
