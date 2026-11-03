@@ -141,7 +141,8 @@
         "operating_mode",
         "installation_type",
         "rated_apparent_power_va",
-        "vehicle_category"
+        "vehicle_category",
+        "onboard_secondary_device_count"
       ],
       "properties": {
         "direction": {
@@ -286,6 +287,13 @@
             "OTHER",
             "UNKNOWN"
           ]
+        },
+        "onboard_secondary_device_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
