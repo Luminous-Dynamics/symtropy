@@ -21,6 +21,7 @@ mod fuel;
 mod matched_service;
 mod service_contract;
 mod trace_validation;
+mod workload_schedule;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -56,6 +57,11 @@ pub use trace_validation::{
     PowerMeasurementPoint, PowerMeasurementRole, PowerSignConvention, PowerTraceError,
     PowerTraceSample, PowerTraceValidationReport, TraceClockType, TraceSite, TraceTimebase,
     TraceWorkloadSession,
+};
+pub use workload_schedule::{
+    WorkloadAllocation, WorkloadJobContract, WorkloadPreemptionPolicy, WorkloadSchedule,
+    WorkloadScheduleError, WorkloadScheduleSlot, WorkloadScheduleTolerance,
+    WorkloadScheduleVerificationReport, WorkloadSlotVerification, verify_workload_schedule,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
