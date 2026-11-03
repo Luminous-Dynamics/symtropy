@@ -3143,22 +3143,20 @@ mod double_sliding_direction_oracle {
         // would erase real branch structure. Derivatives are with respect to
         // the exact integer q numerators; physical-q derivatives are scaled by
         // the positive common denominator, leaving these signs unchanged.
-        for coordinate in 0..6 {
-            for direction in 0..2 {
+        for (coordinate, (branch_a, branch_b)) in branch_sensitivities[0]
+            .iter()
+            .zip(branch_sensitivities[1].iter())
+            .enumerate()
+        {
+            for (sensitivity_a, sensitivity_b) in branch_a.iter().zip(branch_b.iter()) {
                 if coordinate == 0 {
-                    assert!(branch_sensitivities[0][coordinate][direction].is_strictly_negative());
-                    assert!(branch_sensitivities[1][coordinate][direction].is_strictly_positive());
-                    assert!(
-                        branch_sensitivities[0][coordinate][direction].upper
-                            < branch_sensitivities[1][coordinate][direction].lower
-                    );
+                    assert!(sensitivity_a.is_strictly_negative());
+                    assert!(sensitivity_b.is_strictly_positive());
+                    assert!(sensitivity_a.upper < sensitivity_b.lower);
                 } else {
-                    assert!(branch_sensitivities[0][coordinate][direction].is_strictly_positive());
-                    assert!(branch_sensitivities[1][coordinate][direction].is_strictly_negative());
-                    assert!(
-                        branch_sensitivities[1][coordinate][direction].upper
-                            < branch_sensitivities[0][coordinate][direction].lower
-                    );
+                    assert!(sensitivity_a.is_strictly_positive());
+                    assert!(sensitivity_b.is_strictly_negative());
+                    assert!(sensitivity_b.upper < sensitivity_a.lower);
                 }
             }
         }
