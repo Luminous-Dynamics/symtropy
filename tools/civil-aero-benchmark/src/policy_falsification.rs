@@ -956,7 +956,7 @@ mod tests {
         let mut output = format!("{LEDGER_INPUT_HEADER}\\n");
         for operation in operations {
             output.push_str(&format!(
-                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{},{}\\n",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\\n",
                 operation.task_id,
                 operation.replicate_id,
                 operation.policy_id,
