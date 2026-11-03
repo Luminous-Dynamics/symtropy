@@ -286,3 +286,12 @@ The reported 2026 Colombo et al. SS/LCC study is simulation-only: under its 90 k
 ### IEC PAS scope mapping
 
 For stationary high-power MF-WPT, cite IEC PAS 61980-4:2025. For vehicles in motion, cite IEC PAS 61980-5:2024 for off-board system requirements and IEC PAS 61980-6:2025 for communication/positioning activities. Part 6 explicitly lists bidirectional power transfer as under consideration. Therefore dynamic bidirectional power transfer remains a research extension in this benchmark, not a published conformance claim under Part 6.
+
+
+## 17. FOD, thermal prediction and foreign-object mitigation
+
+The companion foreign-object-scenarios.jsonl freezes 14 scenario IDs and expected safe actions. A qualified run records each scenario's expected and observed action, outcome, notes and evidence digest. NOT_ASSESSED and INCOMPLETE preserve missing evidence and cannot be promoted to safety PASS.
+
+A qualified FOD record captures sensor modality, pre-transfer and active-transfer frame counts, distinct conductive/non-conductive objects, held-out objects and sessions, an object-and-session-held-out split, TP/TN/FP/FN counts, derived recall/FNR/FPR/accuracy, p99 detection latency, p95 localization error, expected calibration error, OOD and sensor-fault abstentions, mitigation mode, auxiliary energy, maximum object temperature rise, calibrated thermal ground truth and SHA-256-bound evidence.
+
+A high classifier accuracy does not by itself qualify FOD. The assessment must measure session drift, held-out materials, active-transfer EMI, localization uncertainty, sensor faults and correct safe-action selection. Active DeMag is only allowed inside an independently validated material/location/power envelope. Otherwise the safe action is inhibit, abstain or de-energize.
