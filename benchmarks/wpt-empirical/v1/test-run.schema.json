@@ -140,7 +140,8 @@
         "thermal_state",
         "operating_mode",
         "installation_type",
-        "rated_apparent_power_va"
+        "rated_apparent_power_va",
+        "vehicle_category"
       ],
       "properties": {
         "direction": {
@@ -275,6 +276,16 @@
             "null"
           ],
           "minimum": 0
+        },
+        "vehicle_category": {
+          "enum": [
+            "PASSENGER_CAR",
+            "LIGHT_COMMERCIAL",
+            "HEAVY_DUTY",
+            "TWO_THREE_WHEELER",
+            "OTHER",
+            "UNKNOWN"
+          ]
         }
       }
     },
