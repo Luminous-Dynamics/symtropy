@@ -136,7 +136,7 @@ struct ExactLpOptimum {
     direction: RationalVector,
     margin: BigRational,
     branch_upper_bounds: Vec<BigRational>,
-    active_gradients: Vec<RationalVector>,
+    gradient_cuts: Vec<RationalVector>,
 }
 
 fn robust_descent_constraints(gradients: &[RationalVector]) -> Vec<LpConstraint> {
@@ -306,7 +306,7 @@ fn enumerate_lp_active_sets(
                 direction,
                 margin,
                 branch_upper_bounds,
-                active_gradients: gradients.to_vec(),
+                gradient_cuts: gradients.to_vec(),
             });
         }
         return;
@@ -738,7 +738,7 @@ mod tests {
             .expect("the exact interval LP returns the optimum even when it is zero");
         assert_eq!(no_descent.margin, rational(0));
         assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
-        assert_eq!(no_descent.active_gradients.len(), 2);
+        assert_eq!(no_descent.gradient_cuts.len(), 2);
         assert!(verify_zero_convex_combination(
             &no_descent.active_gradients,
             &[rational_fraction(1, 2), rational_fraction(1, 2)]
