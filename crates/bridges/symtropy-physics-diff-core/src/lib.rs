@@ -1662,8 +1662,11 @@ mod tests {
         let dependencies = vec![
             known_lineage(LineageDependencyKind::SolverImplementation, implementation),
             known_lineage(LineageDependencyKind::ExpectedAnswer, expected_answer),
+            known_lineage(LineageDependencyKind::ScenarioGenerator, "shared:scenario-generator-v1"),
             known_lineage(LineageDependencyKind::ObservationAdapter, "shared:canonical-observation-adapter-v1"),
             known_lineage(LineageDependencyKind::RunnerImage, "shared:ci-runner-image-v3"),
+            known_lineage(LineageDependencyKind::CompilerToolchain, "shared:rust-toolchain-profile-v1"),
+            known_lineage(LineageDependencyKind::ExecutionProvider, "shared:github-hosted-runner-domain"),
         ];
         let lane = DifferentialLaneBinding {
             lane_id: lane_id.to_owned(),
@@ -1746,6 +1749,18 @@ mod tests {
         assert!(report.shared_dependencies.iter().any(|dependency| {
             dependency.kind == LineageDependencyKind::ObservationAdapter
                 && dependency.identity == "shared:canonical-observation-adapter-v1"
+        }));
+        assert!(report.shared_dependencies.iter().any(|dependency| {
+            dependency.kind == LineageDependencyKind::ScenarioGenerator
+                && dependency.identity == "shared:scenario-generator-v1"
+        }));
+        assert!(report.shared_dependencies.iter().any(|dependency| {
+            dependency.kind == LineageDependencyKind::CompilerToolchain
+                && dependency.identity == "shared:rust-toolchain-profile-v1"
+        }));
+        assert!(report.shared_dependencies.iter().any(|dependency| {
+            dependency.kind == LineageDependencyKind::ExecutionProvider
+                && dependency.identity == "shared:github-hosted-runner-domain"
         }));
         assert_eq!(
             report.unbound_canonical_assurance_owners,
