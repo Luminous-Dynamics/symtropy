@@ -1015,8 +1015,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         .and_then(Value::as_array)
         .is_some_and(|artifacts| {
             artifacts.iter().any(|artifact| {
-                string_at(artifact, "artifact_type") == Some("SECURITY_REPORT")
-                    && string_at(artifact, "sha256") == security_digest
+                string_at(artifact, &["artifact_type"]) == Some("SECURITY_REPORT")
+                    && string_at(artifact, &["sha256"]) == security_digest
             })
         });
     if !security_report_bound {
