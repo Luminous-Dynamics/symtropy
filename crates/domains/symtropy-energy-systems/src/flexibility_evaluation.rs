@@ -865,7 +865,7 @@ mod tests {
         assert!(report.power_reduction_pass());
         assert!((report.event_grid_import_reduction_fraction() - 0.25).abs() < 1e-12);
         assert!((report.energy_per_work_ratio() - 1.0).abs() < 1e-12);
-        assert!(!report.work_completion_pass() == false);
+        assert!(report.work_completion_pass());
         assert!(report.passed());
     }
 
