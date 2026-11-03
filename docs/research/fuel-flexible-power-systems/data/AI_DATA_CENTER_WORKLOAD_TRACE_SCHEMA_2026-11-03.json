@@ -1,0 +1,594 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ai-data-center-workload-trace-0.1.0.json",
+  "title": "AI Data-Centre Workload and Electrical Trace Dataset",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "intended_use",
+    "timebase",
+    "sites",
+    "measurement_points",
+    "workload_sessions",
+    "samples",
+    "control_events",
+    "aggregation_policy",
+    "evidence_register",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "synthetic_fixture",
+        "published_measurement_dataset",
+        "site_measurement",
+        "third_party_verified_site_measurement",
+        "modelled_scenario"
+      ]
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timebase": {
+      "$ref": "#/$defs/timebase"
+    },
+    "sites": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/site"
+      }
+    },
+    "measurement_points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/measurement_point"
+      }
+    },
+    "workload_sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workload_session"
+      }
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/sample"
+      }
+    },
+    "control_events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/control_event"
+      }
+    },
+    "aggregation_policy": {
+      "type": "object",
+      "required": [
+        "selected_service_boundary",
+        "prohibit_nested_meter_addition",
+        "cross_site_correlation_requires_clock_alignment"
+      ],
+      "properties": {
+        "selected_service_boundary": {
+          "enum": [
+            "accelerator_rail",
+            "node_input",
+            "rack_pdu",
+            "ups_output",
+            "facility_pcc"
+          ]
+        },
+        "prohibit_nested_meter_addition": {
+          "const": true
+        },
+        "cross_site_correlation_requires_clock_alignment": {
+          "const": true
+        },
+        "maximum_clock_alignment_error_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_register": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "expected_validation": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "enum": [
+            "pass",
+            "reject"
+          ]
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "timebase": {
+      "type": "object",
+      "required": [
+        "timestamp_unit",
+        "clock_type",
+        "clock_id",
+        "nominal_sample_interval_ns",
+        "clock_alignment_error_ns"
+      ],
+      "properties": {
+        "timestamp_unit": {
+          "const": "elapsed_nanoseconds"
+        },
+        "clock_type": {
+          "enum": [
+            "monotonic_hardware_clock",
+            "ptp_synchronised",
+            "ntp_synchronised",
+            "wall_clock",
+            "synthetic_clock"
+          ]
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_sample_interval_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clock_alignment_error_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sampling_jitter_p99_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "site": {
+      "type": "object",
+      "required": [
+        "site_id",
+        "geography",
+        "grid_region",
+        "facility_id"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geography": {
+          "type": "string",
+          "minLength": 1
+        },
+        "grid_region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facility_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "utility_or_operator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "measurement_point": {
+      "type": "object",
+      "required": [
+        "measurement_point_id",
+        "site_id",
+        "parent_measurement_point_id",
+        "boundary_type",
+        "measurement_role",
+        "unit",
+        "sign_convention",
+        "calibration_id",
+        "evidence_id"
+      ],
+      "properties": {
+        "measurement_point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_measurement_point_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "boundary_type": {
+          "enum": [
+            "accelerator_rail",
+            "node_input",
+            "rack_pdu",
+            "ups_output",
+            "facility_pcc",
+            "cooling_plant",
+            "facility_auxiliary"
+          ]
+        },
+        "measurement_role": {
+          "enum": [
+            "component_meter",
+            "subsystem_meter",
+            "aggregate_meter"
+          ]
+        },
+        "unit": {
+          "const": "W"
+        },
+        "sign_convention": {
+          "enum": [
+            "positive_import",
+            "positive_export",
+            "bidirectional_signed"
+          ]
+        },
+        "hardware_or_meter_id": {
+          "type": "string"
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_accuracy_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "workload_session": {
+      "type": "object",
+      "required": [
+        "workload_id",
+        "site_id",
+        "workload_family",
+        "hardware_profile_id",
+        "sla_contract_id",
+        "preemptibility"
+      ],
+      "properties": {
+        "workload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workload_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accelerator_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "model_or_application": {
+          "type": "string"
+        },
+        "batch_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "sequence_length": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "sla_contract_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preemptibility": {
+          "enum": [
+            "non_preemptible",
+            "checkpointable",
+            "latency_tolerant",
+            "deferrable",
+            "migratable"
+          ]
+        },
+        "deadline_elapsed_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "sample": {
+      "type": "object",
+      "required": [
+        "elapsed_ns",
+        "site_id",
+        "measurement_point_id",
+        "power_w",
+        "evidence_id"
+      ],
+      "properties": {
+        "elapsed_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_point_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "workload_id": {
+          "type": "string"
+        },
+        "power_w": {
+          "type": "number"
+        },
+        "power_uncertainty_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gpu_utilization_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cpu_utilization_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gpu_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "memory_utilization_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "queue_depth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completed_work_delta": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "control_event": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "elapsed_ns",
+        "site_id",
+        "event_type",
+        "commanded_value",
+        "unit",
+        "evidence_id"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elapsed_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_type": {
+          "enum": [
+            "gpu_power_cap",
+            "workload_defer",
+            "checkpoint",
+            "workload_migrate",
+            "battery_dispatch",
+            "ups_mode_change",
+            "cooling_setpoint",
+            "grid_dispatch_signal",
+            "load_shed",
+            "restoration"
+          ]
+        },
+        "commanded_value": {
+          "type": [
+            "number",
+            "string",
+            "boolean"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workload_id": {
+          "type": "string"
+        },
+        "expiry_elapsed_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "evidence_id",
+        "evidence_class",
+        "source_uri",
+        "publisher",
+        "retrieved_at",
+        "claim_scope"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "physical_measurement",
+            "published_measurement_dataset",
+            "third_party_test",
+            "official_standard_or_guideline",
+            "model_output",
+            "synthetic_fixture",
+            "analyst_scenario"
+          ]
+        },
+        "source_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retrieved_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "document_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claim_scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
