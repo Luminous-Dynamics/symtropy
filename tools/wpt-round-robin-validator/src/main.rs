@@ -96,17 +96,17 @@ fn parse_utc_seconds(value: &str) -> Option<i64> {
         2 => 28,
         _ => return None,
     };
-    if day < 1 || day > month_days {
+    if !(1..=month_days).contains(&day) {
         return None;
     }
 
     // Days since 1970-01-01, using the proleptic Gregorian calendar.
     let adjusted_year = year - i64::from(month <= 2);
-    let era = if adjusted_year >= 0 {
+    let era = (if adjusted_year >= 0 {
         adjusted_year
     } else {
         adjusted_year - 399
-    } / 400;
+    }) / 400;
     let year_of_era = adjusted_year - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
@@ -363,11 +363,16 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 );
                 if is_input {
                     has_input_plane = true;
+                    if !number_at(plane, &["real_power_w"]).is_some_and(|v| v > 0.0) {
+                        errors.push(format!(
+                            "metrology.measurement_planes[{index}].real_power_w: positive source-side real power required"
+                        ));
+                    }
                 }
                 if is_output {
                     has_output_plane = true;
                 }
-                if is_input || is_output {
+                if is_output {
                     if !number_at(plane, &["real_power_w"]).is_some_and(|v| v >= 0.0) {
                         errors.push(format!(
                             "metrology.measurement_planes[{index}].real_power_w: measured real power required"
@@ -803,8 +808,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_meter_ids() {
         let mut manifest = qualified_fixture();
-        manifest["metrology"]["meters"][1]["meter_id"] =
-            manifest["metrology"]["meters"][0]["meter_id"].clone();
+        let duplicate_id = manifest["metrology"]["meters"][0]["meter_id"].clone();
+        manifest["metrology"]["meters"][1]["meter_id"] = duplicate_id;
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("meter_id: missing or duplicate")));
     }
