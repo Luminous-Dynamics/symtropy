@@ -585,6 +585,8 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
             compare_condition(lc, rc, "load_power_w", &mut reasons);
         }
         compare_condition(lc, rc, "operating_duration_s", &mut reasons);
+        compare_condition(lc, rc, "load_resistance_min_ohm", &mut reasons);
+        compare_condition(lc, rc, "load_resistance_max_ohm", &mut reasons);
         if intent == "rank_energy_per_distance" {
             for field in [
                 "route_distance_km",
