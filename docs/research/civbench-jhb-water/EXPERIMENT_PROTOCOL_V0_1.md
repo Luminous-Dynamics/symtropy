@@ -480,7 +480,7 @@ Several current papers use a 500-scenario Hanoi subset, which should be preserve
 
 **Important caveat on the 93.60% / zero-FP claim:** the uncertainty-aware paper's accessible methods/results discuss selecting the operational cutoff against a difficult scenario and say it was chosen to guarantee zero false positives across the 120 negative scenarios; the text we inspected does not establish an independent, sealed threshold-calibration set. Treat the reported metrics as an internal 500-scenario benchmark result until the authors' split and threshold-calibration procedure are independently reconstructed. This is a reproducibility caveat, not an allegation of misconduct.
 
-Even with 0/120 false positives observed, the one-sided 95% exact binomial upper confidence limit for the underlying FPR is approximately **2.47%**, not zero. A finite test set cannot establish a population FPR of exactly zero.
+Even with 0/120 false positives observed, the one-sided 95% exact binomial upper confidence limit for the underlying FPR is approximately **2.47%**, not zero. A finite test set cannot establish a population FPR of exactly zero. For a one-sided 95% exact upper bound below 1% with zero false positives, at least **299 independent negative scenario units** are required (0/299 gives approximately 0.997%; 0/298 is still approximately 1.0002%). Count independent scenario/event groups, not correlated timesteps or overlapping windows. If the test set has fewer independent negatives, report its actual exact interval and do not claim the sub-1% bound.
 
 ### New integrated digital-twin comparator (separate from a universal SOTA claim)
 
