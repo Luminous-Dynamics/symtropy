@@ -18,6 +18,7 @@ It complements:
 
 - Per-model/per-scenario scorecards; it does not pool easy and hard scenarios.
 - Episode-weighted and equal-individual success/task-score summaries, plus per-individual morphology and outcome scorecards.
+- Per-individual functional recovery, mechanism restoration, compensation and unobserved-mechanism counts.
 - Individual-balanced lower-tail CVaR so heavily sampled individuals cannot dominate the population tail estimate.
 - Separate declarations for model family, model evidence tier and evaluation tier.
 - Explicit connectome/source/sensor/effector provenance for connectome claims and a muscle-map digest for muscle-actuated claims.
@@ -67,8 +68,8 @@ Two tail estimates are returned:
 - **Episode-level CVaR:** each episode contributes equally, so additional trials increase that individual's weight. The protocol separately declares a minimum episode count per individual.
 - **Individual-balanced CVaR:** first compute each individual's mean score, then weight each individual equally when taking the lower tail.
 
-The per-individual table keeps morphology, success, episode count and hard
-failures inspectable. The two estimators answer different population questions;
+The per-individual table keeps morphology, success, episode count, hard
+failures, functional recovery, mechanism restoration and compensation inspectable. The two estimators answer different population questions;
 neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
