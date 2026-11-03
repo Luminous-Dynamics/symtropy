@@ -281,3 +281,8 @@ For a qualified DYNAMIC run:
 The initial profile set should include: constant 90 km/h controlled comparison; variable speed freight mission; stop/start/queueing; acceleration and deceleration; differing inter-vehicle headways; receiver gap/misalignment sweep; wet pavement and seasonal temperature. Every profile needs a stable ID and SHA-256 digest.
 
 The reported 2026 Colombo et al. SS/LCC study is simulation-only: under its 90 km/h, 510 km case, SS reports 0.14 kWh/km and LCC 0.15 kWh/km against 0.129 kWh/km assumed vehicle demand. Those values demonstrate the usefulness of the route-energy metric, but they are not field results and do not qualify a real roadway. The Purdue/INDOT field system is a distinct measured context: 50–190 kW at up to 65 mph with end-to-end DC-bus efficiency around 85% at rated power. Peak kW and efficiency alone do not establish a vehicle mission energy-sufficiency ratio without the route, propulsion and battery energy traces.
+
+
+### IEC PAS scope mapping
+
+For stationary high-power MF-WPT, cite IEC PAS 61980-4:2025. For vehicles in motion, cite IEC PAS 61980-5:2024 for off-board system requirements and IEC PAS 61980-6:2025 for communication/positioning activities. Part 6 explicitly lists bidirectional power transfer as under consideration. Therefore dynamic bidirectional power transfer remains a research extension in this benchmark, not a published conformance claim under Part 6.
