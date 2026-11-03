@@ -121,5 +121,22 @@
     "deviations": [],
     "notes": "Template only. No physical WPT experiment, measurement, calibration or safety assessment is represented."
   },
-  "resonant_networks": []
+  "resonant_networks": [],
+  "cyber_physical_security": {
+    "communication_mode": "UNKNOWN",
+    "authentication_method": "UNKNOWN",
+    "mutual_authentication": null,
+    "replay_protection": null,
+    "receiver_identity_bound": null,
+    "firmware_integrity_verified": null,
+    "sensor_plausibility_checks": null,
+    "spoofed_receiver_rejected": "NOT_RUN",
+    "replay_message_rejected": "NOT_RUN",
+    "sensor_tampering_detected": "NOT_RUN",
+    "communication_loss_fallback": "NOT_RUN",
+    "p99_message_latency_ms": null,
+    "max_message_jitter_ms": null,
+    "max_message_age_ms": null,
+    "security_artifact_sha256": null
+  }
 }
