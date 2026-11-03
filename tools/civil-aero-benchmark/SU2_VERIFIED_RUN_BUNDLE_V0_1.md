@@ -37,6 +37,7 @@ The bundle builder replays the reports from the original run directories. It rej
 - Every history column consumed by the importer was both required and discovered by the preflight.
 - The production history, convergence screen, native termination report and lineage all reference the exact production receipt and history/log bytes.
 - Native termination is consistent with the preflight's time-domain/window mode and reports the relevant solver convergence completion. Scheduler signal/interruption evidence rejects admission even if a success banner is also present.
+- Native steady convergence is represented by separately parsed per-field table rows. Native time-window convergence is represented by the single SU2 aggregate success banner scoped to the complete configured `CONV_WINDOW_FIELD` list; the report does not fabricate per-field native output rows from that banner. Independent post-run history screening remains per-field.
 - For an unsteady time-window run, every saved time step in the required window coverage passes the explicit inner residual threshold; gaps and unsupported residual fields reject.
 - Every declared convergence criterion passes. An empty, failed or insufficient criterion set cannot be promoted.
 - Every active `CONV_FIELD` and `CONV_WINDOW_FIELD` is both imported from production history and covered by a passing independent post-run screen.
