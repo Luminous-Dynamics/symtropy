@@ -32,7 +32,10 @@
     "load_profile_id": null,
     "ambient_temperature_c": null,
     "relative_humidity_pct": null,
-    "thermal_state": "UNKNOWN"
+    "thermal_state": "UNKNOWN",
+    "operating_mode": "UNKNOWN",
+    "installation_type": "UNKNOWN",
+    "rated_apparent_power_va": null
   },
   "metrology": {
     "window_start_utc": null,
@@ -142,5 +145,6 @@
     "control_deadline_ms": null,
     "max_accepted_command_age_ms": null,
     "security_scenario_results": []
-  }
+  },
+  "standards_basis": []
 }
