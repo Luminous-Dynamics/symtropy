@@ -11,21 +11,17 @@ use std::path::Path;
 
 use crate::external_solver::{read_external_solver_receipt, verify_external_solver_receipt};
 use crate::integrity::sha256_hex;
-use crate::su2_field_preflight::{
-    Su2FieldPreflightReport, Su2WindowConvergenceProtocol,
-};
+use crate::su2_field_preflight::{Su2FieldPreflightReport, Su2WindowConvergenceProtocol};
 
 pub const SU2_TERMINATION_SCHEMA: &str = "su2-native-termination-evidence/0.2.0";
-pub const SU2_TERMINATION_EVIDENCE_LEVEL: &str =
-    "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
+pub const SU2_TERMINATION_EVIDENCE_LEVEL: &str = "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation";
 
 const INTERRUPTED: &str =
     "Interrupt signal received, exiting before the convergence criteria were satisfied.";
 const SIGNAL_INTERRUPT_PREFIX: &str = "Interrupt signal (";
 const SIGNAL_INTERRUPT_SUFFIX: &str = ") received, saving files and exiting.";
 const STEADY_SUCCESS: &str = "All convergence criteria satisfied.";
-const WINDOW_SUCCESS: &str =
-    "All windowed time-averaged convergence criteria are fullfilled.";
+const WINDOW_SUCCESS: &str = "All windowed time-averaged convergence criteria are fullfilled.";
 const STEADY_ITERATION_LIMIT: &str = "Maximum number of iterations reached";
 const TIME_LIMIT: &str = "Maximum time reached";
 const TIME_ITERATION_LIMIT: &str = "Maximum number of time iterations reached";
@@ -199,7 +195,10 @@ fn parse_steady_native_criteria(
 
 fn exit_section(text: &str) -> Result<&str, String> {
     let marker = "Solver Exit";
-    let positions = text.match_indices(marker).map(|(index, _)| index).collect::<Vec<_>>();
+    let positions = text
+        .match_indices(marker)
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
     if positions.len() != 1 {
         return Err(format!(
             "expected exactly one SU2 Solver Exit section, found {}",
@@ -215,14 +214,20 @@ fn signal_interrupt_message(full_log: &str) -> Result<Option<String>, String> {
     for raw_line in full_log.lines() {
         let line = raw_line.trim();
         if let Some(signal_text) = line.strip_prefix(SIGNAL_INTERRUPT_PREFIX) {
-            let Some((signal_number, trailing)) = signal_text.split_once(SIGNAL_INTERRUPT_SUFFIX) else {
-                return Err("SU2 signal-handler output has an unrecognized termination message".to_owned());
+            let Some((signal_number, trailing)) = signal_text.split_once(SIGNAL_INTERRUPT_SUFFIX)
+            else {
+                return Err(
+                    "SU2 signal-handler output has an unrecognized termination message".to_owned(),
+                );
             };
             if signal_number.is_empty()
                 || !signal_number.bytes().all(|byte| byte.is_ascii_digit())
                 || !trailing.trim().is_empty()
             {
-                return Err("SU2 signal-handler output has an invalid signal number or trailing text".to_owned());
+                return Err(
+                    "SU2 signal-handler output has an invalid signal number or trailing text"
+                        .to_owned(),
+                );
             }
             return Ok(Some(line.to_owned()));
         }
@@ -238,7 +243,10 @@ fn classify_full_log(
     if let Some(signal_message) = signal_interrupt_message(full_log)? {
         let mode = if !protocol.time_domain {
             "steady"
-        } else if matches!(&protocol.window, Su2WindowConvergenceProtocol::Enabled { .. }) {
+        } else if matches!(
+            &protocol.window,
+            Su2WindowConvergenceProtocol::Enabled { .. }
+        ) {
             "time_window"
         } else {
             "unsteady_no_window"
@@ -278,10 +286,13 @@ fn classify_exit_section(
     section: &str,
     protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
 ) -> Result<(String, String, Vec<Su2NativeCriterionResult>, Vec<String>), String> {
-    let steady_mode = !protocol.time_domain
-        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled);
+    let steady_mode =
+        !protocol.time_domain && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled);
     let window_mode = protocol.time_domain
-        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Enabled { .. });
+        && matches!(
+            &protocol.window,
+            Su2WindowConvergenceProtocol::Enabled { .. }
+        );
     let mode = if steady_mode {
         "steady"
     } else if window_mode {
@@ -324,9 +335,7 @@ fn classify_exit_section(
             Vec::new(),
         ));
     }
-    if protocol.time_domain
-        && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled)
-    {
+    if protocol.time_domain && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled) {
         return Ok((
             "unsteady_no_window".to_owned(),
             "unsupported_unsteady_termination_protocol".to_owned(),
@@ -444,7 +453,9 @@ pub fn classify_su2_termination(
     let receipt = read_external_solver_receipt(production_run_directory)?;
     verify_external_solver_receipt(production_run_directory, &receipt)?;
     if receipt.solver_id != "SU2_CFD" || !receipt.is_process_success() {
-        return Err("native SU2 termination evidence requires a successful SU2_CFD receipt".to_owned());
+        return Err(
+            "native SU2 termination evidence requires a successful SU2_CFD receipt".to_owned(),
+        );
     }
     let root = fs::canonicalize(production_run_directory)
         .map_err(|error| format!("cannot resolve SU2 production run directory: {error}"))?;
@@ -467,7 +478,6 @@ pub fn classify_su2_termination(
 
     let (mode, classification, native_criteria, terminal_messages) =
         classify_full_log(&combined, section, &preflight.convergence_protocol)?;
-
 
     let mut report = Su2TerminationReport {
         schema: SU2_TERMINATION_SCHEMA.to_owned(),
@@ -503,7 +513,8 @@ pub fn verify_su2_termination(
     }
     let recomputed = classify_su2_termination(production_run_directory, preflight)?;
     if recomputed != *report {
-        return Err("replayed native SU2 termination report differs from supplied report".to_owned());
+        return Err(
+            "replayed native SU2 termination report differs from supplied report".to_owned(),
     }
     if sha256_hex(&canonical_bytes(report))? != report.termination_sha256 {
         return Err("native SU2 termination canonical digest mismatch".to_owned());
@@ -578,8 +589,8 @@ mod tests {
             "| RMS_DENSITY | -2.0 | < -8.0 | No |\n",
             "-------------------------------------------------------------------------\n",
         );
-        let (_, classification, criteria, _) =
-            classify_exit_section(section, &steady_protocol()).expect("classify contradictory banner");
+        let (_, classification, criteria, _) = classify_exit_section(section, &steady_protocol())
+            .expect("classify contradictory banner");
         assert_eq!(classification, "steady_native_criteria_not_satisfied");
         assert_eq!(criteria.len(), 2);
         assert!(criteria.iter().all(|row| row.status == "failed"));
@@ -613,8 +624,8 @@ mod tests {
             "----------------------------- Solver Exit -------------------------------\n",
             "Maximum time reached (MAX_TIME = 2.0s).\n",
         );
-        let (mode, classification, criteria, messages) =
-            classify_exit_section(section, &protocol).expect("classify unsupported unsteady endpoint");
+        let (mode, classification, criteria, messages) = classify_exit_section(section, &protocol)
+            .expect("classify unsupported unsteady endpoint");
         assert_eq!(mode, "unsteady_no_window");
         assert_eq!(classification, "unsupported_unsteady_termination_protocol");
         assert!(criteria.is_empty());
@@ -729,8 +740,8 @@ mod tests {
             "All windowed time-averaged convergence criteria are fullfilled.\n",
             "-------------------------------------------------------------------------\n",
         );
-        let (_, classification, criteria, _) =
-            classify_exit_section(section, &window_protocol()).expect("classify time-window success");
+        let (_, classification, criteria, _) = classify_exit_section(section, &window_protocol())
+            .expect("classify time-window success");
         assert_eq!(classification, "time_window_native_criteria_satisfied");
         assert_eq!(criteria.len(), 2);
         assert!(criteria.iter().all(|row| row.status == "passed"));
