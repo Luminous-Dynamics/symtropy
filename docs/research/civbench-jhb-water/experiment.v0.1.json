@@ -394,7 +394,7 @@
     "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
     "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
     "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation.",
-    "leak_validation_integrity": "Separate paper-matched 500-scenario Hanoi reproduction, full 1000-scenario Hanoi/1000-scenario Net1 scenario-held-out evaluation, and bidirectional cross-topology transfer. Group split by entire scenario and related seed/config family before windows/features; fit transforms/model/threshold only on train/calibration, evaluate once on sealed test. Publish frozen split membership and SHA-256 digests. Report event, timestep/delay, localization and operational metrics separately. Require source archive/version digest and blind evaluator isolation."
+    "leak_validation_integrity": "Separate paper-matched 500-scenario Hanoi reproduction, full 1000-scenario Hanoi/1000-scenario Net1 scenario-held-out evaluation, and bidirectional cross-topology transfer. Group split by entire scenario and related seed/config family before windows/features; fit transforms/model/threshold only on train/calibration, evaluate once on sealed test. Publish frozen split membership and SHA-256 digests. Report event, timestep/delay, localization and operational metrics separately. Require source archive/version digest and blind evaluator isolation. Keep BattLeDIM L3 external network/time-period results and Slovak L4 weak-label temporal results as separate non-pooled lanes; neither is a secret blind holdout in its current public form."
   },
   "provenance_receipt": {
     "required_digests": [
@@ -641,6 +641,24 @@
         "threshold_calibration_status": "exact_train_validation_test_and_threshold_partition_not_established_in_accessible_abstract",
         "code_status": "not_confirmed_public",
         "comparability_limit": "paper-reported sensor-placement/detection result; exact subset identity relative to other 500-case Hanoi studies is not confirmed"
+      },
+      {
+        "paper_id": "LI_GAO_INTEGRATED_LEAK_PRESSURE_TWIN_2026",
+        "dataset_id": "MULTI_NETWORK_IN_HOUSE_PLUS_BATTLEDIM_EXTERNAL",
+        "reported": {
+          "pooled_in_house_f1": 0.916,
+          "pooled_in_house_top5_hit_rate": 0.816,
+          "strongest_baseline_f1": 0.836,
+          "strongest_baseline_top5_hit_rate": 0.573,
+          "battledim_2019_external_f1": 0.818,
+          "battledim_top5_hit_rate_degradation_percentage_points_approx": 20,
+          "c_town_leakage_reduction_percent": 37.5,
+          "uniform_depressurization_leakage_reduction_percent": 24.6,
+          "c_town_service_compliance_percent": 99.4
+        },
+        "threshold_calibration_status": "paper-specific; reconstruct calibration and holdout partitions before direct numerical comparison",
+        "code_status": "reproducible_artifacts_not_yet_independently_verified",
+        "comparability_limit": "integrated multi-network paper baseline; in-house pooled results and public BattLeDIM 2019 external validation must remain distinct; not a matched CivBench leaderboard result"
       }
     ],
     "confidence_contract": {
