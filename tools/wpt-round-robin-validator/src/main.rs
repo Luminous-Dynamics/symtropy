@@ -42,6 +42,48 @@ fn nonempty(value: Option<&str>) -> bool {
     value.is_some_and(|text| !text.trim().is_empty())
 }
 
+fn exact_object_keys(
+    value: Option<&Value>,
+    expected: &[&str],
+    path: &str,
+    errors: &mut Vec<String>,
+) {
+    let Some(object) = value.and_then(Value::as_object) else {
+        errors.push(format!("{path}: expected object"));
+        return;
+    };
+    for key in expected {
+        if !object.contains_key(*key) {
+            errors.push(format!("{path}.{key}: required field missing"));
+        }
+    }
+    for key in object.keys() {
+        if !expected.contains(&key.as_str()) {
+            errors.push(format!("{path}.{key}: unexpected field"));
+        }
+    }
+}
+
+fn exact_array_item_keys(
+    value: Option<&Value>,
+    expected: &[&str],
+    path: &str,
+    errors: &mut Vec<String>,
+) {
+    let Some(items) = value.and_then(Value::as_array) else {
+        errors.push(format!("{path}: expected array"));
+        return;
+    };
+    for (index, item) in items.iter().enumerate() {
+        exact_object_keys(
+            Some(item),
+            expected,
+            &format!("{path}[{index}]"),
+            errors,
+        );
+    }
+}
+
 fn valid_identifier(value: &str) -> bool {
     let mut chars = value.chars();
     let Some(first) = chars.next() else {
@@ -118,15 +160,7 @@ fn parse_utc_seconds(value: &str) -> Option<i64> {
 
 fn validate_structure(manifest: &Value) -> Vec<String> {
     let mut errors = Vec::new();
-    if !manifest.is_object() {
-        return vec!["$: manifest must be a JSON object".into()];
-    }
-
-    for key in TOP_LEVEL {
-        if manifest.get(*key).is_none() {
-            push_missing(&mut errors, key);
-        }
-    }
+    exact_object_keys(Some(manifest), TOP_LEVEL, "$", &mut errors);
     if string_at(manifest, &["schema_version"]) != Some("wpt-test-run-v1") {
         errors.push("schema_version: expected wpt-test-run-v1".into());
     }
@@ -135,40 +169,160 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
         _ => errors.push("run_id: expected uppercase stable identifier".into()),
     }
 
-    for section in [
+    exact_object_keys(
+        manifest.get("protocol"),
+        &["protocol_id", "version", "revision"],
         "protocol",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("system"),
+        &[
+            "system_id",
+            "technology",
+            "topology",
+            "hardware_revision",
+            "controller_revision",
+            "power_rating_w",
+            "configuration_digest",
+        ],
         "system",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("conditions"),
+        &[
+            "direction",
+            "power_class",
+            "commanded_power_w",
+            "frequency_hz",
+            "transfer_gap_m",
+            "offset_x_m",
+            "offset_y_m",
+            "offset_z_m",
+            "yaw_deg",
+            "receiver_count",
+            "active_receiver_count",
+            "battery_voltage_v",
+            "load_profile_id",
+            "ambient_temperature_c",
+            "relative_humidity_pct",
+            "thermal_state",
+        ],
         "conditions",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("metrology"),
+        &[
+            "window_start_utc",
+            "window_end_utc",
+            "sample_rate_hz",
+            "synchronization_error_s",
+            "power_basis",
+            "meters",
+            "measurement_planes",
+        ],
         "metrology",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        at(manifest, &["metrology", "meters"]),
+        &[
+            "meter_id",
+            "role",
+            "model",
+            "calibration_reference",
+            "calibration_due_utc",
+            "bandwidth_hz",
+            "phase_error_deg",
+            "uncertainty_pct",
+            "calibration_valid_from_utc",
+        ],
+        "metrology.meters",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        at(manifest, &["metrology", "measurement_planes"]),
+        &[
+            "plane_id",
+            "role",
+            "real_power_w",
+            "apparent_power_va",
+            "reactive_power_var",
+            "voltage_rms_v",
+            "current_rms_a",
+            "power_factor",
+            "uncertainty_pct",
+        ],
+        "metrology.measurement_planes",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("energy_balance"),
+        &[
+            "source_energy_j",
+            "useful_energy_j",
+            "loss_terms",
+            "stored_energy_delta_j",
+            "residual_energy_j",
+            "residual_fraction_pct",
+            "expanded_uncertainty_pct",
+        ],
         "energy_balance",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        at(manifest, &["energy_balance", "loss_terms"]),
+        &["stage_id", "energy_j", "evidence_kind"],
+        "energy_balance.loss_terms",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("power_quality"),
+        &[
+            "primary_current_thd_pct",
+            "secondary_current_thd_pct",
+            "voltage_thd_pct",
+            "thd_measurement_bandwidth_hz",
+            "thd_window_s",
+            "switching_frequency_hz",
+            "zvs_observed",
+        ],
         "power_quality",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("safety"),
+        &[
+            "standard_edition",
+            "exposure_assessment_status",
+            "foreign_object_detection",
+            "unauthorized_receiver",
+            "communication_loss_response",
+            "thermal_maximum_c",
+        ],
         "safety",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        manifest.get("artifact_refs"),
+        &[
+            "artifact_type",
+            "uri",
+            "sha256",
+            "media_type",
+            "description",
+        ],
+        "artifact_refs",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("result"),
+        &["qualification", "deviations", "notes"],
         "result",
-    ] {
-        if !manifest.get(section).is_some_and(Value::is_object) {
-            errors.push(format!("{section}: expected object"));
-        }
-    }
-    if !manifest
-        .get("artifact_refs")
-        .is_some_and(Value::is_array)
-    {
-        errors.push("artifact_refs: expected array".into());
-    }
-    if !manifest
-        .get("metrology")
-        .and_then(|value| value.get("meters"))
-        .is_some_and(Value::is_array)
-    {
-        errors.push("metrology.meters: expected array".into());
-    }
-    if !manifest
-        .get("metrology")
-        .and_then(|value| value.get("measurement_planes"))
-        .is_some_and(Value::is_array)
-    {
-        errors.push("metrology.measurement_planes: expected array".into());
-    }
+        &mut errors,
+    );
 
     match string_at(manifest, &["result", "qualification"]) {
         Some(
@@ -180,6 +334,16 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             | "REJECTED",
         ) => {}
         _ => errors.push("result.qualification: invalid or missing disposition".into()),
+    }
+    if !manifest
+        .get("result")
+        .and_then(|value| value.get("deviations"))
+        .is_some_and(Value::is_array)
+    {
+        errors.push("result.deviations: expected array".into());
+    }
+    if !nonempty(string_at(manifest, &["result", "notes"])) {
+        errors.push("result.notes: nonempty explanation required".into());
     }
     errors
 }
@@ -716,6 +880,25 @@ mod tests {
         let (disposition, errors) = validate_manifest(&template());
         assert_eq!(disposition, "NOT_RUN");
         assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn rejects_missing_nested_required_field_even_for_not_run_template() {
+        let mut manifest = template();
+        manifest["conditions"]
+            .as_object_mut()
+            .unwrap()
+            .remove("frequency_hz");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("conditions.frequency_hz")));
+    }
+
+    #[test]
+    fn rejects_unexpected_schema_field() {
+        let mut manifest = template();
+        manifest["system"]["unreviewed_claim"] = json!("not allowed");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("system.unreviewed_claim: unexpected field")));
     }
 
     #[test]
