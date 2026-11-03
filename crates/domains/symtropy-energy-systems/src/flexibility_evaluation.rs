@@ -566,8 +566,10 @@ pub fn evaluate_flexibility_event(
         1.0 - (response_event_grid_import_energy_kwh / baseline_event_grid_import_energy_kwh);
     let work_loss_fraction =
         (1.0 - (response_completed_work_units / baseline_completed_work_units)).max(0.0);
-    let baseline_energy_per_work = baseline_total_facility_energy_kwh / baseline_completed_work_units;
-    let response_energy_per_work = response_total_facility_energy_kwh / response_completed_work_units;
+    let baseline_energy_per_work =
+        baseline_total_facility_energy_kwh / baseline_completed_work_units;
+    let response_energy_per_work =
+        response_total_facility_energy_kwh / response_completed_work_units;
     let energy_per_work_ratio = response_energy_per_work / baseline_energy_per_work;
     let rebound_peak_ratio = response_rebound_peak_kw / baseline_rebound_peak_kw;
 
@@ -1070,6 +1072,7 @@ mod tests {
         );
         assert!(
             FlexibilityEventContract::new(
+                identity(),
                 0,
                 3 * HOUR_NS,
                 4 * HOUR_NS,
