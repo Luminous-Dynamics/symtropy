@@ -664,7 +664,9 @@
     "confidence_contract": {
       "zero_false_positive_interpretation": "zero observed false positives does not imply zero population false-positive rate",
       "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent": 2.4655401056,
-      "report_exact_binomial_interval": true
+      "report_exact_binomial_interval": true,
+      "independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent": 299,
+      "example_0_of_299_one_sided_95_percent_exact_upper_bound_percent": 0.9969146793
     },
     "external_evaluation_lanes": {
       "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA": {
