@@ -222,34 +222,31 @@ def termination_evidence(
     observed_terminal_markers = [
         marker for marker in terminal_markers if marker in section
     ]
-    if len(observed_terminal_markers) > 1 or (
-        signal_message is not None
-        and any(
-            marker in {
-                STEADY_SUCCESS,
-                WINDOW_SUCCESS,
-                STEADY_ITERATION_LIMIT,
-                TIME_LIMIT,
-                TIME_ITERATION_LIMIT,
-            }
-            for marker in observed_terminal_markers
-        )
-    ):
+    if signal_message is not None:
+        conflicting_markers = [
+            marker for marker in observed_terminal_markers if marker != INTERRUPTED
+        ]
         mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
-        classification = "contradictory_terminal_messages"
-        terminal_messages = observed_terminal_markers + (
-            [signal_message] if signal_message is not None else []
-        )
-    elif signal_message is not None:
-        mode = "steady" if not time_domain else ("time_window" if time_window else "unsteady_no_window")
-        classification = "interrupted"
-        terminal_messages = [signal_message]
+        if conflicting_markers:
+            classification = "contradictory_terminal_messages"
+            terminal_messages = conflicting_markers + [signal_message]
+        else:
+            classification = "interrupted"
+            terminal_messages = [signal_message]
     elif time_window:
         mode = "time_window"
         window_fields = preflight["window_convergence_fields"].split(";")
         if INTERRUPTED in section:
-            classification = "interrupted"
-            terminal_messages = [INTERRUPTED]
+            other_markers = [
+                marker for marker in observed_terminal_markers if marker != INTERRUPTED
+            ]
+            classification = (
+                "contradictory_terminal_messages" if other_markers else "interrupted"
+            )
+            terminal_messages = other_markers + [INTERRUPTED]
+        elif STEADY_SUCCESS in section or STEADY_ITERATION_LIMIT in section:
+            classification = "contradictory_terminal_messages"
+            terminal_messages = observed_terminal_markers
         elif WINDOW_SUCCESS in section:
             success_lines = [
                 line for line in section.splitlines() if line.strip() == WINDOW_SUCCESS
@@ -259,8 +256,18 @@ def termination_evidence(
                 f"expected exactly one native aggregate window-success line, found {len(success_lines)}",
             )
             success_line = success_lines[0]
-            classification = "time_window_native_criteria_satisfied"
+            coincident_time_limit = TIME_LIMIT in section
+            coincident_iteration_limit = TIME_ITERATION_LIMIT in section
+            classification = (
+                "time_window_native_criteria_satisfied_with_coincident_limit"
+                if coincident_time_limit or coincident_iteration_limit
+                else "time_window_native_criteria_satisfied"
+            )
             terminal_messages = [success_line]
+            if coincident_time_limit:
+                terminal_messages.append(TIME_LIMIT)
+            if coincident_iteration_limit:
+                terminal_messages.append(TIME_ITERATION_LIMIT)
             success_sha = hashlib.sha256(success_line.encode("utf-8")).hexdigest()
             native_rows = [
                 (
@@ -272,19 +279,31 @@ def termination_evidence(
                 )
                 for field in window_fields
             ]
-        elif TIME_LIMIT in section:
-            classification = "maximum_time_reached"
-            terminal_messages = [TIME_LIMIT]
-        elif TIME_ITERATION_LIMIT in section:
-            classification = "maximum_time_iterations_reached"
-            terminal_messages = [TIME_ITERATION_LIMIT]
+        elif TIME_LIMIT in section or TIME_ITERATION_LIMIT in section:
+            coincident_time_limit = TIME_LIMIT in section
+            coincident_iteration_limit = TIME_ITERATION_LIMIT in section
+            classification = (
+                "time_limits_reached_before_window_convergence"
+                if coincident_time_limit and coincident_iteration_limit
+                else "maximum_time_reached"
+                if coincident_time_limit
+                else "maximum_time_iterations_reached"
+            )
+            terminal_messages = []
+            if coincident_time_limit:
+                terminal_messages.append(TIME_LIMIT)
+            if coincident_iteration_limit:
+                terminal_messages.append(TIME_ITERATION_LIMIT)
         else:
             classification = "unclassified_time_window_termination"
-            terminal_messages = []
+            terminal_messages = observed_terminal_markers
     else:
         mode = "steady"
         steady_fields = preflight["steady_convergence_fields"].split(";")
-        if INTERRUPTED in section:
+        if len(observed_terminal_markers) > 1:
+            classification = "contradictory_terminal_messages"
+            terminal_messages = observed_terminal_markers
+        elif INTERRUPTED in section:
             classification = "interrupted"
             terminal_messages = [INTERRUPTED]
         elif STEADY_ITERATION_LIMIT in section:
@@ -323,7 +342,7 @@ def termination_evidence(
             )
         else:
             classification = "unclassified_steady_termination"
-            terminal_messages = []
+            terminal_messages = observed_terminal_markers
 
     canonical = bytearray()
     for value in (
@@ -355,6 +374,7 @@ def termination_evidence(
     require(classification in {
         "steady_native_criteria_satisfied",
         "time_window_native_criteria_satisfied",
+        "time_window_native_criteria_satisfied_with_coincident_limit",
     }, f"native SU2 termination is not converged: {classification}")
     require(all(row[3] == "passed" for row in native_rows),
             "native SU2 termination includes a failed criterion")
