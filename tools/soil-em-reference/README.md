@@ -18,12 +18,19 @@ plane over a uniform conductive half-space. Its complex impedance is
 `1 / (2*pi*a*(sigma + j*omega*epsilon))`; the DC limit is `1/(2*pi*a*sigma)`.
 This ideal one-electrode result is not a two-terminal ground resistance.
 
+A second reference supplies a *first-order point-electrode approximation* for
+two small hemispherical electrodes separated by a distance much greater than
+their radii. It includes the mutual-potential term and is admitted only when
+`max(a1,a2)/separation <= 0.1`. It is still not a finite-electrode solution
+and cannot be used as a direct model of a buried plate and municipal water main.
+
 This is a **material propagation reference**, not a model of a soil electrode,
 ground rod, lossy half-space with an earth return electrode, layered geology,
 near-field coupling, surface-wave propagation, Earth-ionosphere modes or the
 Wardenclyffe installation. Those require distinct geometry and boundary-value
 models. Do not reverse-infer soil conductivity from Tesla's diary-reported
-14-ohm two-electrode measurement.
+14-ohm earth-plate-to-water-main measurement. The approximate two-hemisphere
+formula is only an asymptotic reference for small, widely separated hemispheres.
 
 ## Run
 
@@ -70,6 +77,6 @@ Compare solver and analytic results only on a matched physical problem.
 
 ## Validation status
 
-Nine Rust unit tests are authored across plane-wave and ideal electrode references. They have not been compiled or executed in
+Twelve Rust unit tests are authored across plane-wave, single-electrode and two-electrode reference cases. They have not been compiled or executed in
 this authoring environment because Cargo/rustc are unavailable. No CI or
 numerical qualification pass is claimed.
