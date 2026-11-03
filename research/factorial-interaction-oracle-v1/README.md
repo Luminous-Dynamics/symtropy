@@ -13,7 +13,7 @@ This crate provides a narrow, deterministic estimator for preregistered factoria
 - Three binary factors A, B and C, each with declared reference and intervention labels.
 - A pinned protocol digest, randomization-plan digest and analysis-plan digest.
 - One declared outcome identifier, unit and scale/transformation identity.
-- Animal ID, session ID, trial ID, factorial cell and one finite scalar outcome per trial.
+- Animal ID, session ID, trial ID, one-based trial order, factorial cell and one finite scalar outcome per trial.
 - Minimum replicate count per cell and minimum animal count.
 
 Every animal/session must contain all eight factorial cells with at least the declared number of trials. Missing cells or insufficient replication fail closed; the oracle does not impute missing outcomes.
@@ -25,23 +25,23 @@ Every animal/session must contain all eight factorial cells with at least the de
 3. Average session contrasts within each animal, so every animal contributes exactly once.
 4. Compute population means, sample standard deviations and standard errors across animals.
 
-This prevents pseudo-replication from treating multiple trials or sessions from one animal as independent biological replicates. Both per-session and per-animal contrasts are returned.
+This prevents pseudo-replication from treating multiple trials or sessions from one animal as independent biological replicates. Both per-session and per-animal contrasts are returned, with per-cell trial-order summaries at the session level.
 
 For each contrast, the balanced design estimate is one quarter of the signed sum over the eight cell means. The factor coding uses -1 for the reference level and +1 for the intervention level. The reported effects are on the declared raw response scale; the oracle performs no transformations.
 
 ## What it does not establish
 
-- It does not verify that assignment order was truly randomized; it only binds a randomization-plan digest supplied by the upstream study system.
+- It does not verify that assignment order was truly randomized or counterbalanced; it binds a randomization-plan digest and reports observed trial order by cell, but does not test for or adjust order/carryover effects.
 - It does not infer causal effects if the study design is confounded or non-randomized.
 - It does not estimate arbitrary missing-cell factorial designs, mixed-effects models or non-linear dose-response curves.
 - It does not select interventions, calculate EIG/Fisher information, or evaluate a neural/biomechanical simulator.
 - It does not perform or authorize live-animal experiments.
 
-An interaction contrast is scale-dependent. A nonzero interaction on a raw linear scale is not identical to an interaction on a log or logistic scale. The outcome scale and analysis plan must be preregistered.
+Trial-order summaries are audit aids only. The oracle does not regress out order, fatigue, washout or carryover; the protocol must randomize/counterbalance and model these effects when scientifically needed. An interaction contrast is scale-dependent. A nonzero interaction on a raw linear scale is not identical to an interaction on a log or logistic scale. The outcome scale and analysis plan must be preregistered.
 
 ## Synthetic tests
 
-The 13 tests cover known-answer recovery of all main and interaction effects, zero-interaction negative controls, equal-animal weighting despite unequal session counts, input-order invariance, missing-cell and insufficient-replicate rejection, duplicate trial IDs, non-finite outcomes and summary-overflow rejection, digest checks, minimum animal/replicate checks and duplicate factor IDs.
+The 17 tests cover known-answer recovery of all main and interaction effects, zero-interaction negative controls, equal-animal weighting despite unequal session counts, input-order invariance, trial-order diagnostics and duplicate/gap/zero-order rejection, missing-cell and insufficient-replicate rejection, duplicate trial IDs, non-finite outcomes and summary-overflow rejection, digest checks, minimum animal/replicate checks and duplicate factor IDs.
 
 All results are synthetic and establish only the local contrast implementation.
 
