@@ -897,8 +897,10 @@ mod tests {
             operation_id: operation.to_owned(),
             operation_kind: kind.to_owned(),
             fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
-            aerodynamic_condition_calls_attempted: u64::from(kind == "high_fidelity"),
-            aerodynamic_condition_calls_succeeded: u64::from(kind == "high_fidelity" && success),
+            aerodynamic_condition_calls_attempted: u64::from(matches!(kind, "high_fidelity" | "low_fidelity")),
+            aerodynamic_condition_calls_succeeded: u64::from(
+                matches!(kind, "high_fidelity" | "low_fidelity") && success
+            ),
             cost_units: 1.0,
             budget_cap_units: 100.0,
             wall_seconds: 2.0,
@@ -1014,7 +1016,7 @@ mod tests {
                 && row.replicate_id == target_replicate
                 && row.policy_id == target_policy
         }).expect("target scorecard row").clone();
-        (row, operations, policy_benchmark::report_to_csv(&report))
+        (row, operations, crate::policy_benchmark::report_to_csv(&report))
     }
 
     fn candidate(
@@ -1101,12 +1103,16 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256,
         };
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("full census audit");
         assert_eq!(report.admitted_candidate_count, 3);
@@ -1209,12 +1215,16 @@ mod tests {
             selection_plan_sha256: digest('7'),
             selection_receipt_sha256: digest('8'),
         };
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("sampled audit");
         assert_eq!(report.adjudicated_candidate_count, 2);
@@ -1246,12 +1256,16 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1277,12 +1291,16 @@ mod tests {
         );
         wrong_scope.scope_sha256 = digest('9');
         let wrong_scope_adjudications = [wrong_scope.clone()];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &wrong_scope_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1293,12 +1311,16 @@ mod tests {
         wrong_scope.scope_sha256 = candidates[0].scope_sha256.clone();
         wrong_scope.output_sha256 = digest('0');
         let wrong_output_adjudications = [wrong_scope.clone()];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &wrong_output_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1313,12 +1335,16 @@ mod tests {
             'e',
         );
         let same_verifier_adjudications = [same_verifier];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &same_verifier_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1342,12 +1368,16 @@ mod tests {
             "independent-verifier",
             'e',
         )];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1363,12 +1393,16 @@ mod tests {
             selection_receipt_sha256: digest('8'),
         };
         let shared_receipt_adjudications = [shared_receipt];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &correct_design,
             admitted_candidates: &candidates,
             adjudications: &shared_receipt_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1378,12 +1412,16 @@ mod tests {
 
         let duplicate = adjudications[0].clone();
         let duplicate_adjudications = [adjudications[0].clone(), duplicate];
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &correct_design,
             admitted_candidates: &candidates,
             adjudications: &duplicate_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1399,12 +1437,16 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
+        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
+            source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("empty frame is defined");
         assert_eq!(report.false_feasible_rate_lower_bound, None);
