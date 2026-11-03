@@ -234,6 +234,8 @@ fn solve_active_lp_constraints(
         }
         right_hand_side[pivot_column] /= pivot;
 
+        let pivot_values = matrix[pivot_column].clone();
+        let pivot_rhs = right_hand_side[pivot_column].clone();
         for row in 0..LP_VARIABLE_COUNT {
             if row == pivot_column {
                 continue;
@@ -243,9 +245,9 @@ fn solve_active_lp_constraints(
                 continue;
             }
             for column in pivot_column..LP_VARIABLE_COUNT {
-                matrix[row][column] -= factor.clone() * matrix[pivot_column][column].clone();
+                matrix[row][column] -= factor.clone() * pivot_values[column].clone();
             }
-            right_hand_side[row] -= factor * right_hand_side[pivot_column].clone();
+            right_hand_side[row] -= factor * pivot_rhs.clone();
         }
     }
 
@@ -721,7 +723,7 @@ mod tests {
         assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
         assert_eq!(no_descent.gradient_cuts.len(), 2);
         assert!(verify_zero_convex_combination(
-            &no_descent.active_gradients,
+            &no_descent.gradient_cuts,
             &[rational_fraction(1, 2), rational_fraction(1, 2)]
         ));
     }
