@@ -125,6 +125,8 @@ Let candidate model m under intervention a and initial condition x predict an ob
 
 The regularization ε, feature scaling, covariance estimator and any dimensionality reduction must be fixed using training/calibration data only. This statistic is not exact expected information gain and must not be labelled as such. It is a noise-aware separation heuristic.
 
+The executable follow-on [Symtropy PR #3454](https://github.com/Luminous-Dynamics/symtropy/pull/3454) also computes a separate Bhattacharyya distance between multivariate-Gaussian predictive approximations. This detects covariance-only differences that the mean-only D² screen cannot detect. It is exact only under the Gaussian approximation and remains a pairwise screening statistic—not EIG, a posterior model probability, or a nonparametric trajectory-distribution test. The two outputs must be reported separately. Use Symthaea #9589's discrete-hypothesis EIG for expected information gain when full predictive distributions and priors are qualified; do not substitute either pairwise screen for it.
+
 For each candidate intervention, report:
 - minimum pairwise separation across model pairs;
 - average and distribution of pairwise separation;
