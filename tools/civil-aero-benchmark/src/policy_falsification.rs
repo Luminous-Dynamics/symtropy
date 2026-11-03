@@ -14,6 +14,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::budget::LedgerOperation;
+use crate::policy_benchmark::{
+    CandidateAdmissionStatus, CandidateObservation, PolicyBenchmarkRow, PolicyBenchmarkTask,
+    evaluate_policy_benchmark,
+};
 use crate::integrity::sha256_hex;
 use crate::policy_benchmark::{PolicyBenchmarkRow, verify_policy_benchmark_source_receipt};
 
@@ -211,6 +215,8 @@ pub struct PolicyFeasibilityAuditRequest<'a> {
     pub design: &'a AdjudicationSelectionDesign,
     pub admitted_candidates: &'a [AdmittedCandidateFrameEntry],
     pub adjudications: &'a [IndependentFeasibilityAdjudication],
+    pub source_scorecard_row: &'a PolicyBenchmarkRow,
+    pub source_operation_ledger: &'a [LedgerOperation],
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -873,6 +879,142 @@ mod tests {
 
     fn digest(byte: char) -> String {
         std::iter::repeat_n(byte, 64).collect()
+    }
+
+    fn source_operation(
+        task: &str,
+        replicate: &str,
+        policy: &str,
+        operation: &str,
+        kind: &str,
+        output: char,
+        success: bool,
+    ) -> LedgerOperation {
+        LedgerOperation {
+            task_id: task.to_owned(),
+            replicate_id: replicate.to_owned(),
+            policy_id: policy.to_owned(),
+            operation_id: operation.to_owned(),
+            operation_kind: kind.to_owned(),
+            fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
+            aerodynamic_condition_calls_attempted: u64::from(kind == "high_fidelity"),
+            aerodynamic_condition_calls_succeeded: u64::from(kind == "high_fidelity" && success),
+            cost_units: 1.0,
+            budget_cap_units: 100.0,
+            wall_seconds: 2.0,
+            cpu_seconds: 1.0,
+            success,
+            output_sha256: if success { digest(output) } else { "-".to_owned() },
+            reason_code: if success { "-".to_owned() } else { "synthetic_solver_failure".to_owned() },
+        }
+    }
+
+    fn source_observation(candidate: &AdmittedCandidateFrameEntry) -> CandidateObservation {
+        CandidateObservation {
+            task_id: candidate.task_id.clone(),
+            replicate_id: candidate.replicate_id.clone(),
+            policy_id: candidate.policy_id.clone(),
+            operation_id: candidate.operation_id.clone(),
+            candidate_id: candidate.candidate_id.clone(),
+            output_sha256: candidate.output_sha256.clone(),
+            admission_status: CandidateAdmissionStatus::Admitted,
+            admission_receipt_sha256: candidate.admission_receipt_sha256.clone(),
+            scope_sha256: Some(candidate.scope_sha256.clone()),
+            admission_verifier_id: Some(candidate.admission_verifier_id.clone()),
+            admission_verifier_sha256: Some(candidate.admission_verifier_sha256.clone()),
+            feasible: Some(true),
+            objective_1: Some(0.02),
+            objective_2: Some(500.0),
+        }
+    }
+
+    fn source_scorecard_for_frame(
+        frame_candidates: &[AdmittedCandidateFrameEntry],
+    ) -> (PolicyBenchmarkRow, Vec<LedgerOperation>, String) {
+        let task_id = "airfoil-family-a";
+        let target_replicate = "seed-1";
+        let target_policy = "symtropy-voi";
+        let task = PolicyBenchmarkTask {
+            task_id: task_id.to_owned(),
+            objective_1_name: "drag_coefficient".to_owned(),
+            objective_2_name: "mission_energy_wh".to_owned(),
+            ideal_point_1: 0.0,
+            ideal_point_2: 0.0,
+            reference_point_1: 0.1,
+            reference_point_2: 1000.0,
+        };
+        let mut operations = Vec::new();
+        let mut observations = Vec::new();
+        for replicate in ["seed-1", "seed-2"] {
+            for policy in ["symtropy-voi", "baseline"] {
+                let is_source_group = replicate == target_replicate && policy == target_policy;
+                if is_source_group && !frame_candidates.is_empty() {
+                    for candidate in frame_candidates {
+                        let output = candidate.output_sha256.as_bytes()[0] as char;
+                        operations.push(source_operation(
+                            task_id, replicate, policy, &candidate.operation_id,
+                            "high_fidelity", output, true,
+                        ));
+                        observations.push(source_observation(candidate));
+                    }
+                } else {
+                    let output = if is_source_group { '9' } else if policy == "baseline" { '8' } else { '7' };
+                    let operation_id = format!("synthetic-{replicate}-{policy}");
+                    operations.push(source_operation(
+                        task_id, replicate, policy, &operation_id,
+                        "high_fidelity", output, true,
+                    ));
+                    if is_source_group {
+                        observations.push(CandidateObservation {
+                            task_id: task_id.to_owned(),
+                            replicate_id: replicate.to_owned(),
+                            policy_id: policy.to_owned(),
+                            operation_id,
+                            candidate_id: "synthetic-not-admitted".to_owned(),
+                            output_sha256: digest(output),
+                            admission_status: CandidateAdmissionStatus::NotAdmitted,
+                            admission_receipt_sha256: "-".to_owned(),
+                            scope_sha256: None,
+                            admission_verifier_id: None,
+                            admission_verifier_sha256: None,
+                            feasible: None,
+                            objective_1: None,
+                            objective_2: None,
+                        });
+                    } else {
+                        let synthetic = AdmittedCandidateFrameEntry {
+                            task_id: task_id.to_owned(),
+                            replicate_id: replicate.to_owned(),
+                            policy_id: policy.to_owned(),
+                            candidate_id: format!("synthetic-{replicate}-{policy}"),
+                            operation_id,
+                            output_sha256: digest(output),
+                            admission_receipt_sha256: digest('a'),
+                            admission_verifier_id: "admission-verifier-v1".to_owned(),
+                            admission_verifier_sha256: digest('b'),
+                            scope_sha256: digest('c'),
+                        };
+                        observations.push(source_observation(&synthetic));
+                    }
+                }
+                operations.push(source_operation(
+                    task_id, replicate, policy, &format!("low-{replicate}-{policy}"),
+                    "low_fidelity", if policy == "baseline" { '5' } else { '4' }, true,
+                ));
+                operations.push(source_operation(
+                    task_id, replicate, policy, &format!("failed-{replicate}-{policy}"),
+                    "high_fidelity", '0', false,
+                ));
+            }
+        }
+        let report = evaluate_policy_benchmark(&[task], &operations, &observations)
+            .expect("synthetic source policy scorecard");
+        let row = report.rows.iter().find(|row| {
+            row.task_id == task_id
+                && row.replicate_id == target_replicate
+                && row.policy_id == target_policy
+        }).expect("target scorecard row").clone();
+        (row, operations, policy_benchmark::report_to_csv(&report))
     }
 
     fn candidate(
