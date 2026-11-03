@@ -109,3 +109,19 @@ This is a single-branch analytical point-impact reference. It does not certify
 multiple contact branches, simultaneous impact ordering, branch completeness,
 or a parameter-family interval enclosure. Those remain the scope of
 PHYS-HYBRID-SALTATION-001.
+
+
+### Event-relocalized gradient convergence
+
+The saltation reference also contains a one-sided finite-difference ladder for
+the initial-height perturbation. Each perturbed trajectory independently
+re-solves its positive impact time before evaluating a common post-event
+terminal state; it never reuses the nominal event timestamp. A separate ladder
+checks the event-time derivative itself.
+
+The frozen fixture is v_minus=-2 m/s, g=2 m/s^2, e=0.5 and terminal time
+T=0.25 s. The analytic saltation matrix is propagated through the smooth
+post-event variational flow. One-sided finite-difference error should decrease
+at first order over the admitted perturbation range. This is distinct from a
+central-difference check of the reset-map velocity column, because height is
+one-sided at the y=0 initial event surface.
