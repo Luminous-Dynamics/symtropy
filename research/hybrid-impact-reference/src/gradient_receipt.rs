@@ -329,7 +329,7 @@ impl QualifiedGradientReceipt {
             push_len(&mut output, response.coordinates.len());
             for coordinate in &response.coordinates {
                 push_string(&mut output, &coordinate.coordinate_id);
-                output.extend_from_slice(&coordinate.value.to_bits().to_le_bytes());
+                output.extend_from_slice(&canonical_f64_bits(coordinate.value).to_le_bytes());
             }
         }
 
@@ -551,11 +551,19 @@ fn push_optional_string(output: &mut Vec<u8>, value: Option<&str>) {
     }
 }
 
+fn canonical_f64_bits(value: f64) -> u64 {
+    if value == 0.0 {
+        0.0_f64.to_bits()
+    } else {
+        value.to_bits()
+    }
+}
+
 fn push_optional_f64(output: &mut Vec<u8>, value: Option<f64>) {
     match value {
         Some(value) => {
             output.push(1);
-            output.extend_from_slice(&value.to_bits().to_le_bytes());
+            output.extend_from_slice(&canonical_f64_bits(value).to_le_bytes());
         }
         None => output.push(0),
     }
@@ -806,6 +814,12 @@ mod tests {
         let mut receipt = base_receipt(GradientKind::BranchLocal);
         receipt.responses.push(branch_response("impact", 0.5));
         receipt.requires_transversality = true;
+        receipt.metrics.transversality_abs_margin = None;
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::InvalidTransversalityMargin)
+        );
+
         receipt.metrics.transversality_abs_margin = Some(0.0);
 
         assert_eq!(
@@ -873,6 +887,21 @@ mod tests {
             receipt.validate(),
             Err(GradientReceiptError::MissingBiasMeasurement)
         );
+    }
+
+
+    #[test]
+    fn canonical_bytes_normalize_signed_zero_in_gradients_and_metrics() {
+        let mut positive = base_receipt(GradientKind::Unavailable);
+        positive.verifier_id = None;
+        positive.verification_receipt_digest = None;
+        positive.abstention_reason = Some(AbstentionReason::NonDifferentiable);
+        positive.metrics.directional_reference_error = Some(0.0);
+
+        let mut negative = positive.clone();
+        negative.metrics.directional_reference_error = Some(-0.0);
+
+        assert_eq!(positive.canonical_bytes(), negative.canonical_bytes());
     }
 
 
