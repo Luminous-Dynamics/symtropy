@@ -176,3 +176,7 @@ The new secondary review DOI 10.1002/ese3.70608 highlights that BWPT control, co
 
 A security report, authentication flag or synthetic fixture is not certification. Threat-injection tests must be isolated, authorized and conducted only on controlled non-energized or approved test infrastructure.
 
+### Frozen security scenario corpus
+
+Ten deterministic cyber-physical negative controls are now in `cyber-physical-scenarios.jsonl`: receiver identity spoofing, replayed power/frequency command, stale command, firmware integrity, phase sensor injection, current sensor tampering, timing jitter, communication DoS/loss, credential revocation and resonant switch-state mismatch. Each qualified test-run manifest must include all ten scenario results; a networked system cannot leave them NOT_RUN. Results are evidence-backed and allow NOT_APPLICABLE only with an explicit reason. These are safe synthetic test specifications, not field or live-system attack instructions.
+
