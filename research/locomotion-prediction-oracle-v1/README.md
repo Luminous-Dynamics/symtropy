@@ -57,8 +57,7 @@ The 24 unit tests cover:
 - covariance-only differences remaining unresolved under the mean metric but separated by the Gaussian Bhattacharyya metric;
 - known-answer one-dimensional Gaussian Bhattacharyya distance;
 - partial mean separation and all-pairs mean separation without forced winner selection;
-- uncertainty reducing both mean and Gaussian separation;
-- uncertainty reducing apparent model separation.
+- uncertainty reducing both mean and Gaussian separation.
 
 ## Run
 
