@@ -275,3 +275,59 @@ The initial consumers are the analytical impact/saltation fixture (#3407), the
 stick/slip branch oracle (#3438), the hard-contact gradient benchmark (#3425),
 and the multi-branch sensitivity lane (#3358/#3365). It is not a gradient
 engine or physical validation result.
+
+
+## Bias-aware gradient-estimator routing
+
+The `estimator_routing` module implements a deterministic selector over
+candidate gradient estimators. It does not implement the estimators themselves
+or fuse their vectors.
+
+Candidate kinds:
+- `BranchLocalExact`: admissible only for the currently certified smooth
+  branch, with matching branch-evidence and validity-region digests.
+- `ModeBridgingSurrogate`: e.g. a full-cone central-path backward sensitivity;
+  requires measured per-coordinate bias bounds.
+- `ScoreFunction`: a policy-gradient estimator such as REINFORCE.
+- `ZerothOrder`: finite-difference or other derivative-free estimate.
+
+Every candidate binds the same objective digest, ordered coordinate roster,
+and normalization digest. It also carries per-coordinate variance, per-coordinate
+absolute-bias upper bounds, a separate evidence digest for each, and explicit
+cost units. Missing bias bounds are not encoded as zero.
+
+The router:
+- uses branch-local derivatives only while the matching branch/validity region
+  is admitted;
+- switches away from branch-local derivatives in declared nonsmooth regimes;
+- rejects any candidate whose per-coordinate absolute-bias bound or worst-coordinate
+  MSE upper bound exceeds the configured risk budget; the mean MSE is retained
+  separately for ranking admissible candidates;
+- abstains for multi-branch, grazing, singular, or unresolved event-order
+  contexts instead of collapsing them into one gradient;
+- selects one admissible estimator by risk upper bound plus an explicit cost
+  penalty, with deterministic identifier tie-breaking.
+
+The selected decision carries the actual gradient vector, variance/bias
+bounds, evidence digests, normalization identity, contact regime, and the
+complete routing configuration. It exposes deterministic length-prefixed
+canonical bytes for hashing.
+
+This v0 intentionally does not implement IVW-H-style fusion. Marginal
+variances alone do not justify combining estimates when estimator covariance
+is unknown. A covariance-aware fusion lane must bind the common estimand,
+cross-estimator covariance evidence, bias constraints and the exact weighting
+rule before it can replace this single-estimator selector.
+
+The router is a first auditable DDCG/IVW-H-inspired control baseline, not a
+reproduction of those papers and not a policy-learning result. It contributes
+to PHYS-GRADIENT-ROUTING-001 #3443.
+
+
+The candidate identity additionally binds an estimator implementation/build
+digest, separate variance-sample and bias-bound evidence digests, and the
+contact-regime classifier evidence digest. The selected decision carries all
+of these references plus the routing thresholds and admissibility switches.
+Its canonical bytes encode vectors independently by length, so a malformed
+manually constructed result cannot panic merely because a vector roster was
+mutated after selection.
