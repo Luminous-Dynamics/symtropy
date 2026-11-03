@@ -693,7 +693,7 @@ impl fmt::Display for FlexibilityEvaluationError {
                 rebound_end_ns,
             } => write!(
                 f,
-                "invalid event window [{event_start_ns}, {event_end_ns}); rebound ends at {rebound_end_ns}"
+                "invalid event [{event_start_ns}, {event_end_ns}); rebound ends {rebound_end_ns}"
             ),
             Self::InvalidSampleInterval { sample_interval_ns } => write!(
                 f,
