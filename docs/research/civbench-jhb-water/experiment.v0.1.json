@@ -435,5 +435,194 @@
     "paired_difference": "defined_only_when_both_arms_have_valid_numeric_values_with_exactly_the_same_evidence_status; otherwise delta is indeterminate with explicit missingness or evidence_status_mismatch",
     "worst_group_service_ppm_max": 1000000,
     "cross_status_comparison": "disallowed_by_default; requires a separately named, versioned, preregistered and validated bridge"
+  },
+  "leak_benchmark_contract": {
+    "version": "0.1.0",
+    "dataset_inventory": [
+      {
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "topology": "Hanoi",
+        "scenario_count": 500,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "paper_specific_reproduction_only",
+        "subset_identity": "paper_specific_scenario_IDs_not_yet_reconciled_between_papers",
+        "source_refs": [
+          "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+          "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026"
+        ]
+      },
+      {
+        "dataset_id": "LEAKDB_HANOI_1000",
+        "topology": "Hanoi",
+        "scenario_count": 1000,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "full_corpus_scenario_holdout",
+        "source_refs": [
+          "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+          "WATERBENCHMARKHUB_KIOS_LEAKDB"
+        ]
+      },
+      {
+        "dataset_id": "LEAKDB_NET1_1000",
+        "topology": "Net1",
+        "scenario_count": 1000,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "full_corpus_scenario_holdout_and_cross_topology_transfer",
+        "source_refs": [
+          "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+          "WATERBENCHMARKHUB_KIOS_LEAKDB"
+        ]
+      }
+    ],
+    "evaluation_lanes": {
+      "L0_paper_reproduction": {
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "rule": "reproduce paper-specific scenarios, sensors, preprocessing, labels and operating threshold where artifacts permit",
+        "comparison_claim": "numeric replication only if exact scenario IDs, sensor assumptions, split and metrics match"
+      },
+      "L1_full_corpus_scenario_holdout": {
+        "dataset_ids": [
+          "LEAKDB_HANOI_1000",
+          "LEAKDB_NET1_1000"
+        ],
+        "rule": "split on complete scenario identities before any windows, augmentation or feature generation"
+      },
+      "L2_cross_topology_transfer": {
+        "topology_pairs": [
+          [
+            "Hanoi",
+            "Net1"
+          ],
+          [
+            "Net1",
+            "Hanoi"
+          ]
+        ],
+        "rule": "train and calibrate on one topology, test on the other, then reverse",
+        "claim_limit": "two-topology synthetic transfer only; not multi-utility or field generalization"
+      }
+    },
+    "split_contract": {
+      "unit_of_split": "complete_scenario",
+      "group_related_scenario_families": true,
+      "related_fields": [
+        "scenario_id",
+        "parent_configuration_id",
+        "random_seed",
+        "topology_variant",
+        "leak_location_family",
+        "leak_profile_family"
+      ],
+      "split_before": [
+        "rolling_window_generation",
+        "feature_extraction",
+        "augmentation",
+        "normalization_fit",
+        "sensor_placement_optimization",
+        "hyperparameter_search",
+        "threshold_selection"
+      ],
+      "partitions": [
+        "train",
+        "validation",
+        "calibration",
+        "sealed_test"
+      ],
+      "fit_rules": {
+        "transforms": "fit_on_train_only",
+        "hyperparameters": "nested_selection_within_train_only",
+        "probability_calibration": "calibration_partition_only",
+        "operating_threshold": "calibration_partition_only",
+        "sensor_placement": "train_partition_only",
+        "sealed_test": "single_frozen_evaluation_after_all_choices_locked"
+      },
+      "test_label_access": "independent_evaluator_only",
+      "frozen_split_manifest_required": true,
+      "source_archive_digest_required": true,
+      "adaptive_submission_budget": "fixed_and_audited"
+    },
+    "metrics": {
+      "scenario_event_detection": [
+        "sensitivity",
+        "specificity",
+        "precision",
+        "F1",
+        "balanced_accuracy",
+        "MCC",
+        "PR_AUC",
+        "ROC_AUC",
+        "Brier_score",
+        "log_loss",
+        "false_positive_count",
+        "confidence_interval"
+      ],
+      "time_series": [
+        "detection_delay_from_onset",
+        "time_to_sustained_alert",
+        "false_alarm_episodes_per_node_day",
+        "missed_event_duration",
+        "event_fragmentation"
+      ],
+      "localization": [
+        "pipe_node_top1",
+        "pipe_node_top3",
+        "graph_distance_p50",
+        "graph_distance_p90",
+        "metric_distance_p50",
+        "metric_distance_p90",
+        "abstention_coverage",
+        "localization_calibration"
+      ],
+      "operations": [
+        "false_dispatches",
+        "unnecessary_field_visits",
+        "latency",
+        "compute",
+        "sensor_uptime",
+        "telemetry_uptime",
+        "bandwidth",
+        "energy",
+        "whole_life_cost",
+        "verified_service_outcome"
+      ]
+    },
+    "published_baselines": [
+      {
+        "paper_id": "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "reported": {
+          "leak_scenarios": 380,
+          "non_leak_scenarios": 120,
+          "accuracy_percent": 93.6,
+          "sensitivity_percent": 91.58,
+          "false_positives": 0,
+          "false_positive_rate_percent": 0,
+          "roc_auc": 0.975,
+          "pr_auc": 0.993
+        },
+        "threshold_calibration_status": "independent_sealed_threshold_holdout_not_established_in_accessible_methods; paper describes cutoff selected to ensure zero FPs on the same 120 negatives",
+        "code_status": "specific_python_implementation_not_publicly_hosted",
+        "comparability_limit": "paper-reported result on a 500-scenario subset; not independently reproduced or proven to be an unseen-scenario generalization result"
+      },
+      {
+        "paper_id": "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026",
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "reported": {
+          "five_sensor_accuracy_percent_abstract": 91.6,
+          "five_sensor_accuracy_percent_highlight": 91.4,
+          "full_coverage_31_sensor_accuracy_percent": 93.8,
+          "false_positive_reduction_vs_explicit_jacobian_percent": 2.5,
+          "highlight_false_positive_rate_percent": 4.2
+        },
+        "threshold_calibration_status": "exact_train_validation_test_and_threshold_partition_not_established_in_accessible_abstract",
+        "code_status": "not_confirmed_public",
+        "comparability_limit": "paper-reported sensor-placement/detection result; exact subset identity relative to other 500-case Hanoi studies is not confirmed"
+      }
+    ],
+    "confidence_contract": {
+      "zero_false_positive_interpretation": "zero observed false positives does not imply zero population false-positive rate",
+      "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent": 2.4655401056,
+      "report_exact_binomial_interval": true
+    }
   }
 }
