@@ -417,7 +417,10 @@
           "minLength": 1
         },
         "workload_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "expiry_elapsed_ns": {
           "type": [
