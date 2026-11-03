@@ -151,6 +151,24 @@ fn validate_sources(
     for (index, record) in records.iter().enumerate() {
         let label = format!("source record {}", index + 1);
         required_fields(record, schema, &label)?;
+        if record.get("schema_version").and_then(Value::as_str) != Some("wpt-source-v0") {
+            return invalid(format!("{label}: unsupported schema_version"));
+        }
+        let uri = non_empty_string(record, "uri", &label)?;
+        if !(uri.starts_with("https://") || uri.starts_with("http://")) {
+            return invalid(format!("{label}: uri must use http or https"));
+        }
+        non_empty_string(record, "title", &label)?;
+        let year = record.get("year").and_then(Value::as_i64)
+            .ok_or_else(|| ValidationError(format!("{label}: year must be an integer")))?;
+        if !(1900..=2100).contains(&year) {
+            return invalid(format!("{label}: year is outside the allowed range"));
+        }
+        let authors = record.get("authors").and_then(Value::as_array)
+            .ok_or_else(|| ValidationError(format!("{label}: authors must be an array")))?;
+        if authors.is_empty() || authors.iter().any(|x| x.as_str().is_none_or(|s| s.trim().is_empty())) {
+            return invalid(format!("{label}: authors must contain non-empty strings"));
+        }
         let id = non_empty_string(record, "source_id", &label)?;
         if !ids.insert(id.clone()) {
             return invalid(format!("{label}: duplicate source_id {id}"));
@@ -228,9 +246,24 @@ fn validate_measurement(
         Some(100.0),
         &format!("{label}.efficiency"),
     )?;
-    optional_number(measurement, "power_in_w", label)?;
-    optional_number(measurement, "transfer_gap_m", label)?;
-    optional_number(measurement, "frequency_hz", label)?;
+    for key in ["power_in_w", "transfer_gap_m", "frequency_hz"] {
+        if let Some(number) = optional_number(measurement, key, label)? {
+            if number < 0.0 || (key == "frequency_hz" && number == 0.0) {
+                return invalid(format!("{label}: {key} must be positive or zero only where meaningful"));
+            }
+        }
+    }
+    for boundary_key in ["input_boundary", "output_boundary"] {
+        let boundary = measurement.get(boundary_key)
+            .ok_or_else(|| ValidationError(format!("{label}: missing {boundary_key}")))?;
+        for stages_key in ["included_stages", "excludes"] {
+            let stages = boundary.get(stages_key).and_then(Value::as_array)
+                .ok_or_else(|| ValidationError(format!("{label}: {boundary_key}.{stages_key} must be an array")))?;
+            if stages.iter().any(|x| x.as_str().is_none_or(|s| s.trim().is_empty())) {
+                return invalid(format!("{label}: {boundary_key}.{stages_key} must contain non-empty strings"));
+            }
+        }
+    }
     non_empty_string(measurement, "source_locator", label)?;
     Ok(())
 }
@@ -254,10 +287,50 @@ fn validate_realizations(
             return invalid(format!("{label}: duplicate system_id {id}"));
         }
 
-        let technology = enum_value(record, "technology", &[
+        if record.get("schema_version").and_then(Value::as_str) != Some("wpt-realization-v0") {
+            return invalid(format!("{label}: unsupported schema_version"));
+        }
+        enum_value(record, "technology", &[
             "IPT", "CPT", "RF_MICROWAVE", "OPTICAL", "EARTH_CONDUCTION", "GUIDED_WAVE", "HYBRID", "OTHER"
         ], &label)?;
-        let _ = technology;
+        let publication = record.get("publication")
+            .ok_or_else(|| ValidationError(format!("{label}: missing publication")))?;
+        non_empty_string(publication, "doi", &label)?;
+        non_empty_string(publication, "title", &label)?;
+        let publication_year = publication.get("year").and_then(Value::as_i64)
+            .ok_or_else(|| ValidationError(format!("{label}: publication year must be an integer")))?;
+        if !(1900..=2100).contains(&publication_year) {
+            return invalid(format!("{label}: publication year is outside the allowed range"));
+        }
+        let application = record.get("application")
+            .ok_or_else(|| ValidationError(format!("{label}: missing application")))?;
+        enum_value(application, "domain", &[
+            "EV_CHARGING", "INDUSTRIAL", "CONSUMER", "BIOMEDICAL", "ROBOTICS", "GRID", "COMMUNICATIONS", "RESEARCH", "OTHER"
+        ], &label)?;
+        enum_value(application, "operating_mode", &[
+            "STATIC", "DYNAMIC", "DOCKED", "PORTABLE", "OTHER"
+        ], &label)?;
+        let prototype = record.get("prototype")
+            .ok_or_else(|| ValidationError(format!("{label}: missing prototype")))?;
+        enum_value(prototype, "transfer_medium", &[
+            "AIR", "WATER", "SOIL", "VACUUM", "OTHER", "UNKNOWN"
+        ], &label)?;
+        for key in ["nominal_power_w", "frequency_hz", "transmitter_area_cm2", "receiver_area_cm2", "gap_min_m", "gap_max_m"] {
+            if let Some(number) = optional_number(prototype, key, &label)? {
+                if number < 0.0 || (key == "frequency_hz" && number == 0.0) {
+                    return invalid(format!("{label}: prototype {key} must be positive or zero only where meaningful"));
+                }
+            }
+        }
+        let gap_min = optional_number(prototype, "gap_min_m", &label)?;
+        let gap_max = optional_number(prototype, "gap_max_m", &label)?;
+        if matches!((gap_min, gap_max), (Some(min), Some(max)) if min > max) {
+            return invalid(format!("{label}: prototype gap_min_m exceeds gap_max_m"));
+        }
+        let status = enum_value(record, "data_status", &[
+            "DEVELOPMENT", "DUAL_ANNOTATED", "EXPERT_REVIEWED", "HELD_OUT", "RETIRED"
+        ], &label)?;
+        let _ = status;
 
         let refs = record.get("source_refs").and_then(Value::as_array)
             .ok_or_else(|| ValidationError(format!("{label}: source_refs must be an array")))?;
@@ -303,7 +376,11 @@ fn validate_realizations(
             enum_value(claim, "status", &[
                 "RECONCILED", "DISCREPANCY", "AMBIGUOUS_BOUNDARY", "UNRESOLVED"
             ], &claim_label)?;
-            optional_number(claim, "value_percent", &claim_label)?;
+            if let Some(value) = optional_number(claim, "value_percent", &claim_label)? {
+                if !(0.0..=100.0).contains(&value) {
+                    return invalid(format!("{claim_label}: value_percent must be in 0..=100"));
+                }
+            }
         }
 
         if let Some(metrics) = record.get("engineering_metrics") {
@@ -323,8 +400,11 @@ fn validate_realizations(
                 enum_value(metric, "evidence_kind", &[
                     "MEASURED", "AUTHOR_CALCULATED", "SIMULATED", "SECONDARY_REPORTED", "UNKNOWN"
                 ], &metric_label)?;
-                optional_number(metric, "value", &metric_label)?;
-                optional_number(metric, "value_max", &metric_label)?;
+                let value = optional_number(metric, "value", &metric_label)?;
+                let value_max = optional_number(metric, "value_max", &metric_label)?;
+                if matches!((value, value_max), (Some(lower), Some(upper)) if upper < lower) {
+                    return invalid(format!("{metric_label}: value_max is below value"));
+                }
                 total_engineering_metrics += 1;
             }
         }
@@ -378,6 +458,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn checked_in_dataset_passes_the_full_integrity_audit() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        validate(&root).expect("checked-in WPT empirical dataset should validate");
+    }
 
     #[test]
     fn range_qualifier_requires_ordered_bounds() {
