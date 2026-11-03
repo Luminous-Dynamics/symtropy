@@ -371,6 +371,27 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         reasons.insert("QUANTITY_KIND_MISMATCH".into());
     }
 
+    if intent == "compare_metric_improvement" {
+        if text(left.get("conditions").unwrap_or(&Value::Null), "reference_baseline_id")
+            != text(right.get("conditions").unwrap_or(&Value::Null), "reference_baseline_id")
+        {
+            reasons.insert("REFERENCE_BASELINE_MISMATCH".into());
+        }
+        if text(left.get("conditions").unwrap_or(&Value::Null), "metric_definition_id")
+            != text(right.get("conditions").unwrap_or(&Value::Null), "metric_definition_id")
+        {
+            reasons.insert("METRIC_DEFINITION_MISMATCH".into());
+        }
+        match (
+            left.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
+            right.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
+        ) {
+            (Some(a), Some(b)) if (a - b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
+            (Some(_), Some(_)) => { reasons.insert("POWER_CLASS_MISMATCH".into()); }
+            _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+        }
+    }
+
     if intent == "rank_efficiency" {
         match (
             left.get("conditions")
@@ -525,6 +546,7 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     if intent == "rank_efficiency"
         || intent == "compare_exposure"
         || intent == "rank_energy_per_distance"
+        || intent == "compare_metric_improvement"
     {
         let lc = left.get("conditions").unwrap_or(&Value::Null);
         let rc = right.get("conditions").unwrap_or(&Value::Null);
@@ -538,7 +560,7 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         ] {
             compare_condition(lc, rc, field, &mut reasons);
         }
-        if intent == "rank_efficiency" {
+        if intent == "rank_efficiency" || intent == "compare_metric_improvement" {
             compare_condition(lc, rc, "load_power_w", &mut reasons);
         }
         compare_condition(lc, rc, "operating_duration_s", &mut reasons);
@@ -580,6 +602,8 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         "OPERATING_CONDITION_MISMATCH",
         "POWER_CLASS_MISMATCH",
         "FIELD_GEOMETRY_MISMATCH",
+        "REFERENCE_BASELINE_MISMATCH",
+        "METRIC_DEFINITION_MISMATCH",
     ];
     let disposition = if reasons.iter().any(|r| decisive.contains(&r.as_str())) {
         "NOT_COMPARABLE"
@@ -1037,6 +1061,24 @@ mod tests {
         assert_eq!(disposition, "UNRESOLVED");
         assert!(reasons.contains(&"OPERATING_CONDITION_UNNORMALIZED".to_string()));
         assert!(!reasons.contains(&"OPERATING_CONDITION_MISMATCH".to_string()));
+    }
+
+    #[test]
+    fn relative_improvements_from_different_baselines_are_not_comparable() {
+        let mut left = sample("BASELINE-LEFT", 31.3);
+        left["quantity_kind"] = json!("relative_temperature_reduction");
+        left["measurement_purpose"] = json!("thermal_performance");
+        left["raw_measurement"]["unit"] = json!("%");
+        left["normalized_measurement"]["unit"] = json!("1");
+        left["normalized_measurement"]["dimension"] = json!("dimensionless");
+        left["conditions"]["reference_baseline_id"] = json!("MFB-REFERENCE");
+        left["conditions"]["metric_definition_id"] = json!("MAX-CORE-TEMP-REDUCTION-V1");
+        let mut right = left.clone();
+        right["measurement_id"] = json!("BASELINE-RIGHT");
+        right["conditions"]["reference_baseline_id"] = json!("DRCOIL-REFERENCE");
+        let (disposition, reasons) = compare_measurements(&left, &right, "compare_metric_improvement");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"REFERENCE_BASELINE_MISMATCH".to_string()));
     }
 
     #[test]
