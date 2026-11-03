@@ -17,8 +17,8 @@ HEADER = (
     "memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,"
     "cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,"
     "snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,"
-    "cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_nanounits,"
-    "peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,"
+    "cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_numerator_usec,"
+    "cpu_core_hours_denominator_usec,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,"
     "start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256"
 ).split(",")
 
@@ -157,7 +157,8 @@ def main() -> None:
         group_delta = group_end - group_start
 
     elapsed = end_ns - start_ns
-    core_hours_nanounits = usage * 1_000_000_000 // 3_600_000_000
+    core_hours_numerator_usec = usage
+    core_hours_denominator_usec = 3_600_000_000
     start_digest, end_digest = start["snapshot_sha256"], end["snapshot_sha256"]
 
     require(report["schema"] == SCHEMA, "resource report schema mismatch")
@@ -169,7 +170,8 @@ def main() -> None:
         "cpu_usage_delta_usec": usage,
         "cpu_user_delta_usec": user,
         "cpu_system_delta_usec": system,
-        "cpu_core_hours_nanounits": core_hours_nanounits,
+        "cpu_core_hours_numerator_usec": core_hours_numerator_usec,
+        "cpu_core_hours_denominator_usec": core_hours_denominator_usec,
         "peak_memory_bytes": peak_end,
         "oom_event_delta": oom,
         "oom_kill_event_delta": oom_kill,
@@ -200,7 +202,8 @@ def main() -> None:
         oom_kill,
     ):
         add_u64(canonical, value)
-    add_u128(canonical, core_hours_nanounits)
+    add_u64(canonical, core_hours_numerator_usec)
+    add_u64(canonical, core_hours_denominator_usec)
     if group_delta is None:
         canonical.append(0)
     else:
