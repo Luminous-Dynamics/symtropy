@@ -229,6 +229,49 @@ pub struct SourceArtifact {
     pub custody_mode: SourceCustodyMode,
 }
 
+/// Dryad's file API exposes a digest plus an explicit digestType; never assume SHA-256.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderDigestAlgorithm {
+    Md5,
+    Sha1,
+    Sha256,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderDigest {
+    pub algorithm: ProviderDigestAlgorithm,
+    pub value: String,
+}
+
+/// Normalized snapshot of a Dryad v2 file metadata record.
+/// file/version IDs are extracted from the API's HAL link relations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DryadFileMetadata {
+    pub dataset_doi: String,
+    pub dataset_version_id: String,
+    pub file_id: String,
+    pub path: String,
+    pub size_bytes: u64,
+    pub mime_type: String,
+    pub status: String,
+    pub provider_digest: Option<ProviderDigest>,
+    /// SHA-256 of the saved API response bytes, not of the data file.
+    pub metadata_response_sha256: String,
+}
+
+/// Receipt emitted by an independent downloader/materializer after hashing bytes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileMaterializationReceipt {
+    pub dataset_version_id: String,
+    pub file_id: String,
+    pub downloaded_bytes: u64,
+    pub local_bytes_sha256: String,
+    /// Recomputed using the provider-declared algorithm, where one was published.
+    pub recomputed_provider_digest: Option<ProviderDigest>,
+    pub metadata_response_sha256: String,
+    pub materializer_run_sha256: String,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct HairPlateInventory {
     pub inventory_id: String,
@@ -325,6 +368,8 @@ pub enum OracleError {
     UnknownPlate(String),
     CrossTaxonTrainingPlate(String),
     InvalidSourceArtifact,
+    InvalidDryadFileMetadata,
+    MaterializationMismatch(&'static str),
     MissingSourceArtifact {
         sha256: String,
         role: SourceArtifactRole,
@@ -368,6 +413,92 @@ fn valid_media_type(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'+' | b'.' | b'-'))
+}
+
+impl ProviderDigest {
+    pub fn validate(&self) -> Result<(), OracleError> {
+        let expected_length = match self.algorithm {
+            ProviderDigestAlgorithm::Md5 => 32,
+            ProviderDigestAlgorithm::Sha1 => 40,
+            ProviderDigestAlgorithm::Sha256 => 64,
+        };
+        if self.value.len() != expected_length
+            || !self.value.bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(OracleError::InvalidDryadFileMetadata);
+        }
+        Ok(())
+    }
+}
+
+impl DryadFileMetadata {
+    pub fn validate(&self) -> Result<(), OracleError> {
+        let doi_valid = self.dataset_doi.starts_with("doi:10.5061/dryad.")
+            || self.dataset_doi.starts_with("10.5061/dryad.");
+        let path_valid = !self.path.is_empty()
+            && self.path.len() <= 1024
+            && !self.path.starts_with('/')
+            && !self.path.split('/').any(|part| part == ".." || part.is_empty());
+        if !doi_valid
+            || !valid_identifier(&self.dataset_version_id)
+            || !valid_identifier(&self.file_id)
+            || !path_valid
+            || self.size_bytes == 0
+            || !valid_media_type(&self.mime_type)
+            || self.status.trim().is_empty()
+            || self.status.len() > 64
+            || !valid_sha256(&self.metadata_response_sha256)
+        {
+            return Err(OracleError::InvalidDryadFileMetadata);
+        }
+        if let Some(digest) = &self.provider_digest {
+            digest.validate()?;
+        }
+        Ok(())
+    }
+
+    pub fn validate_materialization(
+        &self,
+        receipt: &FileMaterializationReceipt,
+    ) -> Result<(), OracleError> {
+        self.validate()?;
+        if !valid_sha256(&receipt.local_bytes_sha256)
+            || !valid_sha256(&receipt.metadata_response_sha256)
+            || !valid_sha256(&receipt.materializer_run_sha256)
+        {
+            return Err(OracleError::InvalidDryadFileMetadata);
+        }
+        if receipt.dataset_version_id != self.dataset_version_id {
+            return Err(OracleError::MaterializationMismatch("dataset_version_id"));
+        }
+        if receipt.file_id != self.file_id {
+            return Err(OracleError::MaterializationMismatch("file_id"));
+        }
+        if receipt.downloaded_bytes != self.size_bytes {
+            return Err(OracleError::MaterializationMismatch("downloaded_bytes"));
+        }
+        if receipt.metadata_response_sha256 != self.metadata_response_sha256 {
+            return Err(OracleError::MaterializationMismatch("metadata_response_sha256"));
+        }
+        match (&self.provider_digest, &receipt.recomputed_provider_digest) {
+            (Some(expected), Some(observed)) if expected == observed => {}
+            (Some(_), Some(_)) => {
+                return Err(OracleError::MaterializationMismatch("provider_digest"));
+            }
+            (Some(_), None) => {
+                return Err(OracleError::MaterializationMismatch(
+                    "provider_digest_not_recomputed",
+                ));
+            }
+            (None, Some(_)) => {
+                return Err(OracleError::MaterializationMismatch(
+                    "unexpected_provider_digest",
+                ));
+            }
+            (None, None) => {}
+        }
+        Ok(())
+    }
 }
 
 impl SourceArtifact {
