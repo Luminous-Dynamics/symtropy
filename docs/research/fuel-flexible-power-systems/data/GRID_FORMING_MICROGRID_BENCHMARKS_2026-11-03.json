@@ -146,6 +146,67 @@
       "evidence_class": "industry_standards_needs_activity",
       "published_at": "2026",
       "notes": "IEEE identifies fast-changing data-centre load time constants, grid-interconnection challenges, local power needs, microgrids, forecasting uncertainty and co-location as standards needs."
+    },
+    {
+      "source_id": "IEEE_SPATIALLY_CORRELATED_AI_LOADS_2026",
+      "title": "Spatially Correlated Load Dynamics in AI Data-Center-Dominated Grids",
+      "publisher": "IEEE Transactions on Power Systems",
+      "doi": "10.1109/TPWRS.2026.3729445",
+      "uri": "https://doi.org/10.1109/TPWRS.2026.3729445",
+      "evidence_class": "peer_reviewed_early_access_research",
+      "published_at": "2026-08-31",
+      "notes": "Real-time EMT simulation on IEEE 39-bus system. Reported correlated AI data-centre loading increases aggregate active-power variability about 7x and frequency standard deviation about 11x versus an independent-load reference in the studied cases. These are study-specific simulation comparisons, not universal constants."
+    },
+    {
+      "source_id": "AI_WORKLOAD_TRACE_DATASET_2026",
+      "title": "Characterization of High-Resolution AI Data Center Training Workloads on Single and Multiple GPU Nodes",
+      "publisher": "Scientific Data",
+      "doi": "10.1038/s41597-026-07496-6",
+      "uri": "https://www.nature.com/articles/s41597-026-07496-6",
+      "published_at": "2026-06-03",
+      "evidence_class": "peer_reviewed_open_dataset",
+      "data_uri": "https://doi.org/10.6084/m9.figshare.31654879",
+      "notes": "Open dataset with 32 training sessions on H100/B200 eight-GPU nodes and 40 sessions on RTX 3060 systems; over 1.8 million samples, 50 Hz where detailed traces are provided. Fields include CPU/GPU utilization, per-GPU power, memory and temperature. Not a geographically distributed fleet dataset; do not infer cross-site covariance from this source alone."
+    },
+    {
+      "source_id": "ALIBABA_WORKLOAD_FLEX_2026",
+      "title": "Data Center Workload Flexibility for Power System Demand Response: Evidence from Alibaba Traces",
+      "publisher": "International Journal of Electrical Power & Energy Systems",
+      "doi": "10.1016/j.ijepes.2026.111940",
+      "uri": "https://doi.org/10.1016/j.ijepes.2026.111940",
+      "published_at": "2026-05",
+      "evidence_class": "peer_reviewed_trace_based_demand_response_study",
+      "notes": "Uses Alibaba cluster traces with more than one million tasks. The study estimates around 20% of data-centre power is associated with latency-tolerant tasks and reports up to 22% load shedding during flexibility windows under its LAD-Flex model. This is trace-based/modelled flexibility, not a field demonstration."
+    },
+    {
+      "source_id": "NATURE_ENERGY_AI_GRID_INTERACTIVE_2025",
+      "title": "AI Data Centres as Grid-Interactive Assets",
+      "publisher": "Nature Energy",
+      "doi": "10.1038/s41560-025-01927-1",
+      "uri": "https://www.nature.com/articles/s41560-025-01927-1",
+      "published_at": "2025-12-05",
+      "evidence_class": "peer_reviewed_field_demonstration",
+      "notes": "Field demonstration on a 256-GPU cluster in a hyperscale cloud facility in Phoenix. Software-based workload orchestration reduced power by 25% for 3 hours during peak demand while maintaining declared AI QoS, without hardware changes or energy storage. This is a source-specific reference envelope, not a universal guaranteed flexibility level."
+    },
+    {
+      "source_id": "LBNL_H100_EMPIRICAL_POWER_MODEL_2025",
+      "title": "Empirically-Calibrated H100 Node Power Models for Accurate AI Training Energy Estimation",
+      "publisher": "Environmental Research: Energy / Lawrence Berkeley National Laboratory",
+      "doi": "10.1088/2753-3751/ae2486",
+      "uri": "https://doi.org/10.1088/2753-3751/ae2486",
+      "evidence_class": "peer_reviewed_empirical_power_model",
+      "published_at": "2025-12-31",
+      "notes": "Empirical power model calibrated on measured H100 training loads; reports 11.4% MAPE and compares against TDP-based estimation errors of 27–37%. Use as a measurement/model calibration benchmark, not a universal across-hardware result."
+    },
+    {
+      "source_id": "IEEE_WIDE_AREA_AI_WORKLOAD_OSCILLATIONS_2026",
+      "title": "Wide-Area Power System Oscillations From Large-Scale AI Workloads",
+      "publisher": "IEEE Transactions on Power Systems",
+      "doi": "10.1109/TPWRS.2026.3685506",
+      "uri": "https://doi.org/10.1109/TPWRS.2026.3685506",
+      "evidence_class": "peer_reviewed_grid_simulation_study",
+      "published_at": "2026",
+      "notes": "Develops dynamic AI data-centre load profiles and analyses sustained periodic stochastic training/fine-tuning power fluctuations as possible forcing inputs to local and inter-area oscillatory modes in WECC 179-bus and NPCC 140-bus simulations."
     }
   ],
   "test_groups": [
@@ -881,6 +942,167 @@
           "acceptance_threshold": null,
           "threshold_source_required": true,
           "notes": "A claimed demand-response resource must account for deferred work and rebound, not only instantaneous load reduction."
+        }
+      ]
+    },
+    {
+      "group_id": "DC-GRID-COORD-001",
+      "name": "Correlation-aware AI load modelling, grid oscillations and workload flexibility",
+      "purpose": "Model AI data-centre demand as a non-stationary, workload-driven, spatially correlated large electric load. Combine measured accelerator traces, multi-site common-mode correlation, grid dynamics and SLA-constrained workload flexibility. Do not assume independent sites or stationary Gaussian demand.",
+      "source_ids": [
+        "IEEE_SPATIALLY_CORRELATED_AI_LOADS_2026",
+        "AI_WORKLOAD_TRACE_DATASET_2026",
+        "ALIBABA_WORKLOAD_FLEX_2026",
+        "NATURE_ENERGY_AI_GRID_INTERACTIVE_2025",
+        "LBNL_H100_EMPIRICAL_POWER_MODEL_2025",
+        "IEEE_WIDE_AREA_AI_WORKLOAD_OSCILLATIONS_2026"
+      ],
+      "cases": [
+        {
+          "test_id": "DC-GRID-01",
+          "name": "Sub-second GPU workload trace ingestion and power-model holdout",
+          "test_type": "HIL_or_physical",
+          "preconditions": [
+            "record hardware SKU, GPU count, firmware and power limits",
+            "freeze workload, batch-size, sequence-length and parallelization metadata",
+            "retain raw sampling timestamps and instrumentation calibration"
+          ],
+          "measured_channels": [
+            "GPU_power_per_device",
+            "node_active_power",
+            "CPU_power_or_utilization",
+            "GPU_utilization",
+            "memory_utilization",
+            "temperature",
+            "sampling_jitter",
+            "prediction_error_by_workload",
+            "energy_per_completed_work_unit"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "benchmark_reference": {
+            "dataset_sessions": 72,
+            "high_end_h100_b200_sessions": 32,
+            "rtx_3060_sessions": 40,
+            "samples_reported": 1800000,
+            "sampling_hz": 50,
+            "power_model_mape_reference": 0.114,
+            "tdp_baseline_mape_range": [
+              0.27,
+              0.37
+            ]
+          },
+          "notes": "The Scientific Data dataset is open and contains 72 sessions / 1.8M samples at 50 Hz. Evaluate against held-out workload families and hardware configurations. Initial target: beat the published 11.4% H100 model MAPE on its comparable domain; stretch target <8% MAPE with calibrated prediction intervals. Do not transfer H100 accuracy claims to B200/RTX without validation."
+        },
+        {
+          "test_id": "DC-GRID-02",
+          "name": "Spatial correlation versus independent-site aggregation",
+          "test_type": "HIL_required",
+          "preconditions": [
+            "define fleet geography and electrical buses",
+            "declare shared model rollout, batch synchronization, cooling/weather and control events",
+            "freeze per-site marginal traces before applying correlation structures"
+          ],
+          "measured_channels": [
+            "per_site_active_power",
+            "cross_site_lagged_correlation",
+            "cross_spectral_density",
+            "aggregate_active_power_variance",
+            "aggregate_ramp_distribution",
+            "frequency_deviation_std",
+            "reserve_requirement",
+            "correlation_regime"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "benchmark_reference": {
+            "source_reported_correlated_to_independent_active_power_variability_ratio": 7,
+            "source_reported_correlated_to_independent_frequency_std_ratio": 11,
+            "study_network": "IEEE 39-bus EMT"
+          },
+          "notes": "The ~7x and ~11x figures are from one published system study. Use them as replication targets for its assumptions, not fixed universal multipliers. Required hostile control: independently randomize sites and show the model does not falsely preserve a common-mode correlation."
+        },
+        {
+          "test_id": "DC-GRID-03",
+          "name": "Periodic workload forcing and grid modal interaction",
+          "test_type": "HIL_required",
+          "preconditions": [
+            "record workload periodicities and time-varying spectrum",
+            "freeze grid model and modal estimates",
+            "separate grid-control modes from workload forcing frequencies"
+          ],
+          "measured_channels": [
+            "workload_power_spectrum",
+            "grid_modal_frequency",
+            "modal_damping",
+            "forced_oscillation_amplitude",
+            "PCC_voltage",
+            "PCC_frequency",
+            "cross_spectral_coherence",
+            "mitigation_response"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Use stochastic and periodic training/fine-tuning traces to test local and inter-area modes. Include both grid-following and grid-forming supply cases; do not treat workload periodicity as white noise."
+        },
+        {
+          "test_id": "DC-GRID-04",
+          "name": "Latency-aware demand response with SLA and rebound constraints",
+          "test_type": "HIL_then_physical",
+          "preconditions": [
+            "classify workload latency tolerance and deadline",
+            "freeze SLA and work-completion accounting",
+            "include deferred queue, restart/checkpoint and cooling load"
+          ],
+          "measured_channels": [
+            "power_reduction_fraction",
+            "duration",
+            "completed_work",
+            "deadline_misses",
+            "tail_latency",
+            "queue_depth",
+            "deferred_work",
+            "rebound_peak",
+            "total_energy",
+            "cooling_energy"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "benchmark_reference": {
+            "trace_tasks_reported_over": 1000000,
+            "study_reported_max_load_shed_fraction": 0.22
+          },
+          "notes": "Alibaba-trace LAD-Flex study reports up to 22% load shedding during flexibility windows from modelled latency-tolerant demand. This is a trace-based benchmark; require same-window service completion, deadlines and rebound measurement."
+        },
+        {
+          "test_id": "DC-GRID-05",
+          "name": "Field-reference workload flexibility envelope",
+          "test_type": "HIL_then_physical",
+          "preconditions": [
+            "freeze exact workload mix and QoS contract",
+            "declare response notification and ramp profile",
+            "declare baseline energy use and workload completion denominator"
+          ],
+          "measured_channels": [
+            "power_reduction_fraction",
+            "sustained_duration",
+            "ramp_rate",
+            "completed_work",
+            "QoS_violation_count",
+            "energy_per_completed_work",
+            "post_event_rebound",
+            "grid_signal_tracking_error"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "benchmark_reference": {
+            "gpu_count": 256,
+            "reported_power_reduction_fraction": 0.25,
+            "reported_duration_hours": 3,
+            "hardware_modification_required": false,
+            "energy_storage_required": false
+          },
+          "notes": "Nature Energy field demonstration reported 25% reduction for 3 hours on a 256-GPU cluster while meeting declared QoS. Programme target: reproduce at matched workload/SLA, then stretch to >=30% for 3 hours without increased energy per completed work or rebound peak. This is a proposed target, not a guaranteed capability."
         }
       ]
     }
