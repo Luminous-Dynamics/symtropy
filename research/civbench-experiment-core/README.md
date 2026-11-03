@@ -31,7 +31,9 @@ Resources have explicit integer units:
 - parts and sensors: whole declared units;
 - energy: watt-hours.
 
-Every commitment has a unique, whitespace-normalized identifier. The ledger checks every resource dimension before mutating state. Duplicate IDs, arithmetic overflow and over-budget requests leave the ledger unchanged. Create one ledger per policy arm and use the same declared resource envelope for paired comparisons unless the resource delta is the registered treatment.
+The ledger separates **available**, **reserved**, **consumed**, and **remaining** quantities. Planned work reserves finite resources; completed work settles the reservation using actual consumption; cancelled work releases the reservation. Actual consumption may be lower than reserved, returning the unused balance, but cannot exceed the reservation. Every transition is atomic and IDs remain recorded after settlement/release to prevent reuse.
+
+Each commitment has a unique, whitespace-normalized identifier and a per-commitment reservation/settlement record. Duplicate IDs, invalid lifecycle transitions, arithmetic overflow, over-budget requests and settlement overruns leave the ledger unchanged. This distinguishes planned capacity from realized activity and supports realistic repair-queue/fallback-resource accounting.
 
 ### 3. Non-composite outcome receipt
 
@@ -72,9 +74,10 @@ It also requires the exact 40- or 64-character hexadecimal code commit and solve
 cargo fmt --manifest-path research/civbench-experiment-core/Cargo.toml --all -- --check
 cargo test --manifest-path research/civbench-experiment-core/Cargo.toml --locked
 cargo clippy --manifest-path research/civbench-experiment-core/Cargo.toml --all-targets --locked -- -D warnings
+cargo doc --manifest-path research/civbench-experiment-core/Cargo.toml --no-deps --locked
 ~~~
 
-The crate has no third-party dependencies. It is included in the standalone research-crates workflow.
+The crate has no third-party dependencies. Its exact-path workflow is [.github/workflows/civbench-experiment-core.yml](../../.github/workflows/civbench-experiment-core.yml), which runs formatting, locked check/test, strict Clippy and documentation builds for this standalone crate.
 
 ## Limitations and claim ceiling
 
