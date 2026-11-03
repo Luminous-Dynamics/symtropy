@@ -1311,6 +1311,104 @@ mod tests {
     }
 
     #[test]
+    fn source_scorecard_receipt_rejects_omission_substitution_and_ledger_tampering() {
+        let candidates = vec![
+            candidate("c1", "op1", '1', 'a'),
+            candidate("c2", "op2", '2', 'b'),
+        ];
+        let frame = "campaign-2026-source-frame-negative-controls";
+        let design = AdjudicationSelectionDesign::FullCensus {
+            sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
+        };
+        let (source_scorecard_row, source_operation_ledger, _, _) =
+            source_scorecard_for_frame(&candidates);
+
+        let omitted = vec![candidates[0].clone()];
+        let omitted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &omitted,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_request)
+                .expect_err("omitting one admitted candidate must fail")
+                .contains("source policy benchmark row does not match")
+        );
+
+        let mut substituted = candidates.clone();
+        substituted[1].output_sha256 = digest('9');
+        let substituted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&substituted_request)
+                .expect_err("same-count candidate substitution must fail")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut substituted_scope = candidates.clone();
+        substituted_scope[0].scope_sha256 = digest('9');
+        let scope_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted_scope,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&scope_request)
+                .expect_err("same-count scope substitution must fail")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut altered_ledger = source_operation_ledger.clone();
+        altered_ledger[0].cost_units += 0.25;
+        let altered_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &altered_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&altered_ledger_request)
+                .expect_err("mutating one source operation must fail")
+                .contains("source operation ledger digest differs")
+        );
+
+        let mut omitted_ledger = source_operation_ledger.clone();
+        omitted_ledger.pop();
+        let omitted_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &omitted_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_ledger_request)
+                .expect_err("omitting a low/failed source operation must fail")
+                .contains("source operation ledger count differs")
+        );
+    }
+
+    #[test]
     fn sampled_frames_keep_unassessed_candidates_in_upper_bound() {
         let candidates = vec![
             candidate("c1", "op1", '1', 'a'),
