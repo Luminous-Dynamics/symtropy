@@ -151,6 +151,7 @@ fn snapshot_canonical_bytes(snapshot: &CgroupV2Snapshot) -> Vec<u8> {
         }
         None => bytes.push(0),
     }
+    append_u64(&mut bytes, snapshot.memory_peak_reader_flags);
     bytes.push(u8::from(snapshot.populated));
     bytes.push(u8::from(snapshot.frozen));
     bytes
@@ -415,52 +416,53 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     end: &CgroupV2Snapshot,
     report: &CgroupV2ResourceReport,
 ) -> String {
-    let header = "record_type,cgroup_id,memory_peak_reader_id,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_numerator_usec,cpu_core_hours_denominator_usec,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256";
+    let header = "record_type,cgroup_id,memory_peak_reader_id,memory_peak_reader_flags,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_numerator_usec,cpu_core_hours_denominator_usec,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256";
     let mut output = format!("{header}\n");
     for (kind, snapshot) in [("start", start), ("end", end)] {
-        let mut row = vec![String::new(); 36];
+        let mut row = vec![String::new(); 37];
         row[0] = kind.to_owned();
         row[1] = snapshot.cgroup_id.clone();
         row[2] = snapshot.memory_peak_reader_id.clone();
-        row[3] = snapshot.cgroup2_mount_options_sha256.clone();
-        row[4] = snapshot.monotonic_time_ns.to_string();
-        row[5] = snapshot.cpu_usage_usec.to_string();
-        row[6] = snapshot.cpu_user_usec.to_string();
-        row[7] = snapshot.cpu_system_usec.to_string();
-        row[8] = snapshot.memory_peak_bytes.to_string();
-        row[9] = snapshot.oom_events.to_string();
-        row[10] = snapshot.oom_kill_events.to_string();
-        row[11] = snapshot.oom_group_kill_events.map(|value| value.to_string()).unwrap_or_default();
-        row[12] = snapshot.populated.to_string();
-        row[13] = snapshot.frozen.to_string();
-        row[14] = snapshot.cpu_stat_sha256.clone();
-        row[15] = snapshot.memory_peak_sha256.clone();
-        row[16] = snapshot.memory_events_sha256.clone();
-        row[17] = snapshot.cgroup_events_sha256.clone();
-        row[18] = snapshot.snapshot_sha256.clone();
+        row[3] = snapshot.memory_peak_reader_flags.to_string();
+        row[4] = snapshot.cgroup2_mount_options_sha256.clone();
+        row[5] = snapshot.monotonic_time_ns.to_string();
+        row[6] = snapshot.cpu_usage_usec.to_string();
+        row[7] = snapshot.cpu_user_usec.to_string();
+        row[8] = snapshot.cpu_system_usec.to_string();
+        row[9] = snapshot.memory_peak_bytes.to_string();
+        row[10] = snapshot.oom_events.to_string();
+        row[11] = snapshot.oom_kill_events.to_string();
+        row[12] = snapshot.oom_group_kill_events.map(|value| value.to_string()).unwrap_or_default();
+        row[13] = snapshot.populated.to_string();
+        row[14] = snapshot.frozen.to_string();
+        row[15] = snapshot.cpu_stat_sha256.clone();
+        row[16] = snapshot.memory_peak_sha256.clone();
+        row[17] = snapshot.memory_events_sha256.clone();
+        row[18] = snapshot.cgroup_events_sha256.clone();
+        row[19] = snapshot.snapshot_sha256.clone();
         output.push_str(&csv_row(row));
         output.push('\n');
     }
-    let mut row = vec![String::new(); 36];
+    let mut row = vec![String::new(); 37];
     row[0] = "report".to_owned();
     row[1] = report.cgroup_id.clone();
-    row[19] = report.schema.clone();
-    row[20] = report.start_monotonic_time_ns.to_string();
-    row[21] = report.end_monotonic_time_ns.to_string();
-    row[22] = report.elapsed_wall_time_ns.to_string();
-    row[23] = report.cpu_usage_usec.to_string();
-    row[24] = report.cpu_user_usec.to_string();
-    row[25] = report.cpu_system_usec.to_string();
-    row[26] = report.cpu_core_hours_numerator_usec.to_string();
-    row[27] = report.cpu_core_hours_denominator_usec.to_string();
-    row[28] = report.peak_memory_bytes.to_string();
-    row[29] = report.oom_event_delta.to_string();
-    row[30] = report.oom_kill_event_delta.to_string();
-    row[31] = report.oom_group_kill_event_delta.map(|value| value.to_string()).unwrap_or_default();
-    row[32] = report.start_snapshot_sha256.clone();
-    row[33] = report.end_snapshot_sha256.clone();
-    row[34] = report.evidence_level.clone();
-    row[35] = report.report_sha256.clone();
+    row[20] = report.schema.clone();
+    row[21] = report.start_monotonic_time_ns.to_string();
+    row[22] = report.end_monotonic_time_ns.to_string();
+    row[23] = report.elapsed_wall_time_ns.to_string();
+    row[24] = report.cpu_usage_usec.to_string();
+    row[25] = report.cpu_user_usec.to_string();
+    row[26] = report.cpu_system_usec.to_string();
+    row[27] = report.cpu_core_hours_numerator_usec.to_string();
+    row[28] = report.cpu_core_hours_denominator_usec.to_string();
+    row[29] = report.peak_memory_bytes.to_string();
+    row[30] = report.oom_event_delta.to_string();
+    row[31] = report.oom_kill_event_delta.to_string();
+    row[32] = report.oom_group_kill_event_delta.map(|value| value.to_string()).unwrap_or_default();
+    row[33] = report.start_snapshot_sha256.clone();
+    row[34] = report.end_snapshot_sha256.clone();
+    row[35] = report.evidence_level.clone();
+    row[36] = report.report_sha256.clone();
     output.push_str(&csv_row(row));
     output.push('\n');
     output
@@ -474,6 +476,7 @@ mod tests {
         parse_cgroup_v2_snapshot(
             "solver-operation-42",
             "memory-peak-reader-42",
+            0,
             "rw,nosuid,nodev,relatime",
             time_ns,
             &format!("usage_usec {cpu}\nuser_usec {user}\nsystem_usec {system}\nnr_periods 10\n"),
