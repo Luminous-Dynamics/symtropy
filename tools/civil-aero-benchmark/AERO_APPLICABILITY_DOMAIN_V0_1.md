@@ -111,13 +111,14 @@ All current examples are synthetic contract tests. They are not NASA TMR, DPW-8,
 
 ## Advancement benchmark
 
-Before using this as a claim-admission control:
-1. Add an independent non-Rust oracle for manifest canonicalization, query assessment and assessment digests.
-2. Add exact source-admitted data cases and record their licensing/applicability limits.
-3. Freeze blind geometry-family and operating-condition holdouts.
-4. Report false-in-domain and false-out-of-domain rates, risk-coverage curves and subgroup results by geometry family and flow regime.
-5. Report independent sample counts and confidence bounds; zero errors on a small synthetic corpus is only a finite software test result.
-6. Compose the assessment into claim admission so OutOfDomain, Unknown and Boundary/Transition cannot silently be promoted for high-consequence uses.
+The initial Rust implementation now has an independent Python stdlib oracle at `scripts/verify-aero-applicability-independent.py`. The oracle reconstructs the canonical manifest, evidence-region scope digests, query digest, membership decision and assessment digest from normalized CSV exports; a Rust test invokes it on a synthetic known-answer fixture. This is independent language implementation/replay, not independent physical data validation.
+
+Before using this as a production claim-admission control:
+1. Add exact source-admitted NASA TMR / DPW-8 / AePW-4 data cases and record their licensing/applicability limits.
+2. Freeze blind geometry-family and operating-condition holdouts.
+3. Report false-in-domain and false-out-of-domain rates, risk-coverage curves and subgroup results by geometry family and flow regime.
+4. Report independent sample counts and confidence bounds; zero errors on a small synthetic corpus is only a finite software test result.
+5. Compose the assessment into claim admission so OutOfDomain, Unknown and Boundary/Transition cannot silently be promoted for high-consequence uses.
 
 ## Relationship to related work
 
