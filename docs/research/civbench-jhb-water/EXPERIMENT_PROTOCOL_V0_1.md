@@ -626,3 +626,44 @@ Compare oracle exposure; topology-only; hydraulic sensitivity; directed flow; ro
 Report direct, spillover, interaction and total-effect bias separately; nominal interval coverage; Type-I error under null treatments; interval width; mapping sensitivity; displaced harm; worst-group service and whole-system service. Proposed targets are aspirational qualification thresholds, not claimed SOTA: absolute standardized bias ≤0.10 on correctly specified networks; 93–97% empirical coverage for nominal 95% intervals; Type-I error ≤5%; and at least 95% truth coverage for sensitivity bounds under registered misspecification, with bound width published. Coverage alone is insufficient—a vacuous interval that contains everything is not useful. Do not declare a robust method without reporting both coverage and interval width.
 
 The exact network/pressure model, topology digest, exposure-map family, assignment unit, buffer logic and all estimand definitions must be frozen before outcome inspection. If topology uncertainty is material, the result is a set of effects/bounds, not a single precise point estimate. This is a causal-evaluation contribution; Sol-Atlas still owns physical network modelling, and Mycelix still owns legitimate authority, appeal and agency constraints.
+
+
+## 23. Statistical power, independent replication and multiplicity
+
+CivBench has twelve estimands, but twelve outcomes must not become twelve chances to declare victory. After a variance-estimating pilot, select exactly one primary service outcome with its denominator and any hard floor. Freeze the minimum detectable effect (MDE), assignment unit, exclusion/missingness rules, analysis code and multiplicity family before the confirmatory run. Other metrics are secondary/exploratory unless a family and hierarchy are registered in advance. Continue to report all registered outcomes, including negative and indeterminate results.
+
+### What counts as an independent replicate
+
+- Synthetic work: a complete paired scenario block with a genuinely independent shock/configuration family. Nodes and timesteps within one simulated network are repeated measurements, not independent samples. Group related seeds/configurations before splitting.
+- Network-interference experiments: the assignment unit is the randomized hydraulic cluster/network block plus its declared exposure mapping. A DMA count is not a valid independent sample count when the hydraulic system couples those DMAs.
+- Field work: the effective randomized unit is the independently assigned cluster/rollout period under the registered design. If the entire municipality is one connected network with one treatment assignment, the result is conditional on that network and scenario distribution; thousands of household or sensor records do not create thousands of independent treatment replicates.
+- Do not reuse pilot blocks for confirmation after the pilot informs feature selection, policy, model, sensor placement or thresholds. Freeze an independent confirmatory set.
+
+### Paired sensitivity calculation (planning guide only)
+
+For a two-sided paired mean-difference test, normal-approximation planning uses:
+
+\[
+ n_{pairs} = \left\lceil \frac{(z_{1-\alpha/2}+z_{1-\beta})^2}{d_z^2} \right\rceil,
+ \qquad d_z = \frac{\text{mean paired difference}}{SD(\text{paired differences})}.
+\]
+
+The following illustrative values assume alpha 0.05 and 80% power; they are **not** recommended CivBench sample counts because pilot variance and the actual estimand are not yet known:
+
+| Paired standardized effect \(d_z\) | Approx. pairs, one primary | Approx. pairs, 12 co-primary (Bonferroni planning) |
+|---:|---:|---:|
+| 0.20 | 197 | 344 |
+| 0.35 | 65 | 113 |
+| 0.50 | 32 | 55 |
+| 0.80 | 13 | 22 |
+
+The twelve-co-primary column uses a conservative Bonferroni approximation to plan for multiplicity; the analysis still applies the pre-registered Holm procedure. Exact paired-​*t*, randomization or cluster-level power may require larger sample counts. The final sample size must be recalculated from pilot-estimated paired variance, assignment-unit correlation, network exposure, attrition/missingness, and a stakeholder-relevant service MDE. Report the assumptions and sensitivity curve; do not present these rough numbers as a formal power result.
+
+### Inference and reporting rules
+
+- Apply randomization inference at the actual assignment unit when assignment is randomized; otherwise specify and defend a cluster-robust or design-based estimator.
+- Report effect estimates, uncertainty intervals, MDE, power assumptions, multiplicity family, cluster/block counts, effective sample size and all exclusions. Keep scenario variability, model-parameter uncertainty and measurement uncertainty distinct.
+- For one physical network with no independent network replication, state that estimates are conditional on the topology/model and registered scenario distribution. Do not infer a general municipal or multi-utility effect from many nodes or sensor observations.
+- Report the effect distribution across topologies, service strata and network-exposure mappings; do not hide heterogeneity in a single mean.
+- If the pilot cannot estimate the paired variance or the assignment units are not independent under the physical coupling, mark power as **not yet estimable** and improve the design rather than inventing a sample size.
+
