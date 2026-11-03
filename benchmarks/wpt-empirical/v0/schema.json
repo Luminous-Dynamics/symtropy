@@ -1,0 +1,599 @@
+[
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v0/realization.schema.json",
+    "title": "Wireless Power Transfer Experimental Realization",
+    "description": "Source-grounded record for one physical WPT prototype, preserving multiple measurement conditions and energy boundaries without collapsing unlike trials.",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "schema_version",
+      "system_id",
+      "publication",
+      "technology",
+      "application",
+      "prototype",
+      "measurements",
+      "source_refs",
+      "data_status"
+    ],
+    "properties": {
+      "schema_version": {
+        "const": "wpt-realization-v0"
+      },
+      "system_id": {
+        "type": "string",
+        "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+      },
+      "publication": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "doi",
+          "title",
+          "year"
+        ],
+        "properties": {
+          "doi": {
+            "type": "string",
+            "pattern": "^10\\."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "year": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "journal": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "volume": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pages": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "technology": {
+        "enum": [
+          "IPT",
+          "CPT",
+          "RF_MICROWAVE",
+          "OPTICAL",
+          "EARTH_CONDUCTION",
+          "GUIDED_WAVE",
+          "HYBRID",
+          "OTHER"
+        ]
+      },
+      "application": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "operating_mode"
+        ],
+        "properties": {
+          "domain": {
+            "enum": [
+              "EV_CHARGING",
+              "INDUSTRIAL",
+              "CONSUMER",
+              "BIOMEDICAL",
+              "ROBOTICS",
+              "GRID",
+              "COMMUNICATIONS",
+              "RESEARCH",
+              "OTHER"
+            ]
+          },
+          "operating_mode": {
+            "enum": [
+              "STATIC",
+              "DYNAMIC",
+              "DOCKED",
+              "PORTABLE",
+              "OTHER"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "prototype": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "nominal_power_w",
+          "frequency_hz",
+          "transfer_medium"
+        ],
+        "properties": {
+          "nominal_power_w": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "frequency_hz": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "transfer_medium": {
+            "enum": [
+              "AIR",
+              "WATER",
+              "SOIL",
+              "VACUUM",
+              "OTHER",
+              "UNKNOWN"
+            ]
+          },
+          "topology": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coupler_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transmitter_area_cm2": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "receiver_area_cm2": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "gap_min_m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "gap_max_m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "gap_definition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "misalignment_tested": {
+            "type": "boolean"
+          },
+          "misalignment_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "control_method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "institution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "measurements": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "measurement_id",
+            "test_mode",
+            "evidence_kind",
+            "input_boundary",
+            "output_boundary",
+            "power_out_w",
+            "efficiency",
+            "transfer_gap_m",
+            "frequency_hz",
+            "source_locator"
+          ],
+          "properties": {
+            "measurement_id": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+            },
+            "test_mode": {
+              "enum": [
+                "ELECTRONIC_LOAD",
+                "BACK_TO_BACK",
+                "BATTERY_LOAD",
+                "FIELD_TEST",
+                "CONTROL_COMPARISON",
+                "SIMULATION",
+                "OTHER"
+              ]
+            },
+            "evidence_kind": {
+              "enum": [
+                "MEASURED",
+                "AUTHOR_CALCULATED",
+                "SIMULATED",
+                "SECONDARY_REPORTED",
+                "UNKNOWN"
+              ]
+            },
+            "input_boundary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "measurement_point",
+                "included_stages"
+              ],
+              "properties": {
+                "measurement_point": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "included_stages": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "excludes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "output_boundary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "measurement_point",
+                "included_stages"
+              ],
+              "properties": {
+                "measurement_point": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "included_stages": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "excludes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "power_in_w": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "power_out_w": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "qualifier"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "qualifier": {
+                  "enum": [
+                    "EXACT",
+                    "APPROX",
+                    "GREATER_THAN",
+                    "LESS_THAN",
+                    "RANGE",
+                    "NOT_REPORTED"
+                  ]
+                },
+                "upper_value_w": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                }
+              }
+            },
+            "efficiency": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value_percent",
+                "qualifier",
+                "definition"
+              ],
+              "properties": {
+                "value_percent": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "qualifier": {
+                  "enum": [
+                    "EXACT",
+                    "APPROX",
+                    "GREATER_THAN",
+                    "LESS_THAN",
+                    "RANGE",
+                    "NOT_REPORTED"
+                  ]
+                },
+                "definition": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "transfer_gap_m": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "frequency_hz": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "load_description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "alignment_description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "operating_duration_s": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "uncertainty": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source_locator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "source_refs": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "role",
+            "locator"
+          ],
+          "properties": {
+            "source_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "enum": [
+                "PRIMARY_PUBLICATION",
+                "SURVEY_SECONDARY",
+                "DATASET",
+                "OTHER"
+              ]
+            },
+            "locator": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "data_status": {
+        "enum": [
+          "DEVELOPMENT",
+          "DUAL_ANNOTATED",
+          "EXPERT_REVIEWED",
+          "HELD_OUT",
+          "RETIRED"
+        ]
+      },
+      "lineage": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "limitations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v0/source.schema.json",
+    "title": "WPT Source Metadata",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "schema_version",
+      "source_id",
+      "uri",
+      "source_kind",
+      "rights_status",
+      "content_access",
+      "rights_review",
+      "split",
+      "locators"
+    ],
+    "properties": {
+      "schema_version": {
+        "const": "wpt-source-v0"
+      },
+      "source_id": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._-]+$"
+      },
+      "uri": {
+        "type": "string",
+        "format": "uri"
+      },
+      "doi": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1
+      },
+      "authors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "year": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "minimum": 1900,
+        "maximum": 2100
+      },
+      "source_kind": {
+        "enum": [
+          "peer_reviewed_article",
+          "survey_article",
+          "standard",
+          "other"
+        ]
+      },
+      "rights_status": {
+        "enum": [
+          "known_open",
+          "unknown",
+          "restricted",
+          "public_domain"
+        ]
+      },
+      "content_access": {
+        "enum": [
+          "metadata_only",
+          "limited_use",
+          "full_text"
+        ]
+      },
+      "rights_review": {
+        "enum": [
+          "approved",
+          "pending",
+          "denied"
+        ]
+      },
+      "split": {
+        "enum": [
+          "development",
+          "validation",
+          "test",
+          "holdout"
+        ]
+      },
+      "locators": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  }
+]
