@@ -82,7 +82,8 @@ The V1 corpus contains 47 named synthetic cases and 36 authored Rust tests. It i
 - clear and near-boundary observations;
 - separation breach and fast human approach;
 - stale critical localization;
-- degraded camera with independent lidar;
+- degraded peripheral tool-encoder evidence while the human-detection
+  sensor modalities remain healthy;
 - common-mode sensing failure and insufficient independent fault domains;
 - contradictory, unknown, stale and low-confidence human tracking;
 - no-human claims with inadequate coverage, stale receipts, missing sensor
