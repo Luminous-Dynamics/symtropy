@@ -31,6 +31,7 @@ It complements:
 - Worst success-rate stratum and worst CVaR stratum separately, both across scenarios and within each scenario across individuals.
 - An explicit per-scenario and per-individual hard-failure promotion gate, independent of task score.
 - Strict paired model comparisons on identical scenario, individual, seed, initial state, morphology, body, physics, sensors, solver, hardware, horizon and compute/training budgets.
+- Paired comparisons report task-score deltas, functional recovery, mechanism restoration and compensation counts separately for candidate and baseline.
 
 ## Scientific distinctions
 
@@ -74,7 +75,7 @@ neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
 
-The 25 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, functional versus mechanism recovery, compensation without mechanism restoration, invalid recovery-distance/status pairs, post hoc mechanism-schema drift rejection, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
+The 26 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, functional versus mechanism recovery, compensation without mechanism restoration, paired task-score wins despite worse mechanism restoration, invalid recovery-distance/status pairs, post hoc mechanism-schema drift rejection, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
