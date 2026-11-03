@@ -885,8 +885,7 @@ mod tests {
 
     #[test]
     fn scenario_state_restoration_validates_mode_and_speed_setpoint() {
-        let restored =
-            ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, bounds()).unwrap();
+        let restored = ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, bounds()).unwrap();
         assert_eq!(restored.mode(), ActorMode::Crossing);
         assert_eq!(restored.target_forward_speed_mps(), 1.2);
 
