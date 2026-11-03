@@ -141,7 +141,7 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         errors.push(format!("{id}: numeric raw value has no normalized record"));
     }
 
-    if matches!(q, "end_to_end_efficiency" | "subsystem_efficiency" | "service_energy_replenishment_ratio") {
+    if matches!(q, "end_to_end_efficiency" | "subsystem_efficiency") {
         for v in [value, upper].into_iter().flatten() {
             if !(0.0..=100.0).contains(&v) {
                 errors.push(format!("{id}: percentage {v} outside 0..=100"));
@@ -635,6 +635,25 @@ mod tests {
         assert!(validate_measurement(&m).iter().any(|e| e.contains("expects dimension")));
     }
 
+
+
+    #[test]
+    fn service_energy_replenishment_ratio_can_exceed_one_hundred_percent() {
+        let mut m = sample("SURPLUS-ENERGY-RATIO", 108.5);
+        m["quantity_kind"] = json!("service_energy_replenishment_ratio");
+        m["measurement_purpose"] = json!("vehicle_service_outcome");
+        m["normalized_measurement"]["value"] = json!(1.085);
+        m["normalized_measurement"]["unit"] = json!("1");
+        m["normalized_measurement"]["conversion_id"] = json!("percent_to_fraction_v1");
+        m["normalized_measurement"]["dimension"] = json!("dimensionless");
+        m["boundary"]["boundary_class"] = json!("vehicle_service");
+        m["boundary"]["input_plane_kind"] = json!("VEHICLE_TRACTION_ENERGY_USED");
+        m["boundary"]["output_plane_kind"] = json!("VEHICLE_WPT_ENERGY_RECEIVED");
+        m["boundary"]["included_stages"] = json!(["vehicle propulsion demand","vehicle-side WPT energy received"]);
+        m["boundary"]["excluded_stages"] = json!(["not a converter efficiency"]);
+        m["boundary"]["stage_set_status"] = json!("COMPLETE");
+        assert!(validate_measurement(&m).is_empty(), "{:#?}", validate_measurement(&m));
+    }
 
     #[test]
     fn validates_kwh_per_km_normalization() {
