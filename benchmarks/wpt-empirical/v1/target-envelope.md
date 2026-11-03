@@ -174,3 +174,56 @@ The source set now includes Liu's scalable five-mode multichannel IPT, Liu's six
 See [WPT-MULTI-RECEIVER-001 #3473](https://github.com/Luminous-Dynamics/symtropy/issues/3473) for the scenario corpus and acceptance plan. The benchmark should track independently: per-channel real power, aggregate power, cross-regulation, inactive-channel leakage, mode switching, activation authorization, fairness, partial-load efficiency and source-to-load energy.
 
 The key comparison trap is exposed by the new frozen case: Singhal's 95.7% maximum at 4 kW aggregate output is not directly rankable against Zavrel's 92.7% whole-WCS at 65 kW. It is a different power point and still has insufficiently documented meter planes and statistics. No one-number ranking is warranted.
+
+
+## New system-level benchmark lanes (proposed, not achieved)
+
+The current industry evidence argues for a joint objective rather than a single efficiency score. A candidate architecture should publish a full Pareto surface across useful energy, power quality, compatibility, exposure, thermal stress, reliability, mass/cost and controllability.
+
+### 1. Harmonic-aware high-power conversion
+
+Reference evidence: the 20 kW magnetic-integration prototype reports 90.58% DC-DC efficiency, inverter-output current THD reduced from 19.75% to 5.71%, and ZVS over its tested range. The exact boundaries and THD measurement setup require primary-text extraction.
+
+Proposed matched-boundary target:
+- DC-DC efficiency >=92% at a declared 20 kW operating point, with the complete converter boundary and uncertainty stated.
+- Inverter-output current THD <=5.0% over 20-100% load and the declared frequency range.
+- ZVS demonstrated over the entire declared load/alignment envelope, with switching loss and device temperature recorded.
+- No trade of lower THD for unreported thermal, insulation, common-mode or exposure penalties.
+- Publish efficiency/THD/thermal Pareto curves, not a single best point.
+
+### 2. Bidirectional, multi-vehicle interoperability
+
+Reference evidence: one 2026 experimental system reports aligned grid-to-battery efficiency of 91.7-94.3% and battery-to-grid efficiency of 89.5-93.5%, interoperating with vehicle-side assemblies rated at 6, 11 and 30 kW. Abstract-level conditions do not identify meter planes or map efficiency endpoints to each class.
+
+Proposed matched-boundary target:
+- >=95.0% grid-to-battery and >=94.0% battery-to-grid at declared rated points, each with independently metered, calibrated real-power boundaries.
+- Demonstrate all 6/11/30 kW vehicle classes on the same grid-side hardware; publish a class-by-class efficiency/load-voltage map.
+- Maintain >=90% end-to-end efficiency over the declared misalignment envelope (including at least +/-100 mm X/Y where mechanically applicable); this is a proposed target, not a standards requirement.
+- Include four-quadrant power flow, battery voltage variation, direction reversal, transition latency, reactive power, harmonics and standby/auxiliary consumption.
+- Prove both directions independently; never average forward and reverse efficiencies into a single opaque number.
+
+### 3. Multi-receiver service rather than paired-coil maxima
+
+- Test 1, 2 and N active receivers with equal and highly unequal load requests.
+- Target cross-regulation <=1% at non-faulted channels under a declared worst-case receiver load step.
+- Target Jain fairness >=0.99 for equal-priority equal-demand receivers, while reporting delivered-energy shortfall and per-channel efficiency.
+- Target >=99.99% successful power-class transitions over at least 10,000 transitions; report every failed transition and safe-state latency.
+- An inactive or unauthorized receiver must remain below a published leakage/energization threshold.
+
+### 4. Energy-ledger closure and cross-laboratory reproducibility
+
+- Use synchronized meters and a frozen test protocol with measured meter uncertainty, bandwidth, phase error, sample clock, calibration traceability and environmental conditions.
+- Proposed energy-balance residual: <=0.5% in steady state and <=1.0% during declared dynamic trajectories, including change in stored field energy.
+- Run a blind round-robin across at least three independent laboratories using shared reference loads and calibration artifacts. Proposed inter-lab expanded uncertainty <=1.0 percentage point for efficiency and <=10% relative for field/thermal results after method harmonization.
+- Preserve raw waveforms, calibration certificates, analysis code, exact firmware/controller versions and signed run manifests.
+
+### 5. PV, storage and WPT module reuse
+
+Treat the 2026 PV/storage/WPT cascaded-H-bridge paper as an architecture frontier, not a measured performance benchmark. Require three independently declared operating modes (PV-only, WPT-only, simultaneous PV+WPT), transition tests, storage equalization, MPPT tracking error, circulating current, thermal distribution and source-to-load energy balance. Compare against a conventional separate-converter baseline at equal input/output conditions. Proposed integration acceptance: no more than 1 percentage point loss in end-to-end efficiency versus the optimized separate-converter baseline at equal useful output, while demonstrating a measured reduction in mass, volume or component count.
+
+### 6. Safety and reliability are hard constraints
+
+Efficiency gains do not compensate for exposure, EMC, thermal, fault-containment or interoperability failures. For every claimed envelope, include worst-case alignment, foreign-object/living-object detection, communication loss, unauthorized receiver, fault injection, thermal soak, restart and shutdown. Report exposure assessment under the applicable standards and jurisdiction; the benchmark is not a substitute for certification.
+
+All targets in this section are development targets. None is evidence of a tested Symtropy design or a standards-mandated threshold.
+
