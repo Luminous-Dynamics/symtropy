@@ -1,0 +1,251 @@
+name: QIF 3.0 companion schema and fixture admission
+
+on:
+  pull_request:
+    paths:
+      - "tools/manufacturing-interop/qif-schema-admission/**"
+      - ".github/workflows/manufacturing-interop-qif-companion.yml"
+  push:
+    branches: [main, research/qif3-companion-schema-validation-20261103]
+    paths:
+      - "tools/manufacturing-interop/qif-schema-admission/**"
+      - ".github/workflows/manufacturing-interop-qif-companion.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qif3-companion-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  companion-schema:
+    name: Exact-source offline QIF companion validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout this exact PR/head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact Luminous source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Checkout pinned QIF Community source tree
+        uses: actions/checkout@v4
+        with:
+          repository: QualityInformationFramework/qif-community
+          ref: 64268c175a3058d09db29c14869b94b781518709
+          path: qif-community
+          persist-credentials: false
+
+      - name: Verify pinned community commit and all schema/fixture Git blob identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json
+          expected_commit="$(jq -r '.source_commit' "$manifest")"
+          actual_commit="$(git -C qif-community rev-parse HEAD)"
+          test "$actual_commit" = "$expected_commit"
+
+          jq -e '.schema_version == "luminous.qif3.companion-schema-pins.v0.1" and .qif_version == "3.0.0" and .classification == "public_companion_schema_bundle_not_normative_package" and .normative_distribution.status == "not_admitted" and .normative_distribution.full_qif_rule_checks == false and (.schema_files | length == .expected_schema_file_count) and (.positive_fixtures | length == 2)' "$manifest"
+
+          while IFS= read -r item; do
+            path="$(jq -r '.path' <<<"$item")"
+            expected_blob="$(jq -r '.git_blob_sha' <<<"$item")"
+            actual_blob="$(git -C qif-community rev-parse "$expected_commit:$path")"
+            test "$actual_blob" = "$expected_blob" || {
+              echo "Pinned schema blob mismatch: $path expected=$expected_blob actual=$actual_blob"
+              exit 1
+            }
+            test -s "qif-community/$path"
+          done < <(jq -c '.schema_files[]' "$manifest")
+
+          while IFS= read -r item; do
+            path="$(jq -r '.path' <<<"$item")"
+            expected_blob="$(jq -r '.git_blob_sha' <<<"$item")"
+            actual_blob="$(git -C qif-community rev-parse "$expected_commit:$path")"
+            test "$actual_blob" = "$expected_blob" || {
+              echo "Pinned fixture blob mismatch: $path expected=$expected_blob actual=$actual_blob"
+              exit 1
+            }
+            test -s "qif-community/$path"
+          done < <(jq -c '.positive_fixtures[]' "$manifest")
+
+      - name: Install offline XML schema tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libxml2-utils xmlstarlet
+
+      - name: Stage the exact local companion schema closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json
+          bundle="$RUNNER_TEMP/qif3-companion-bundle"
+          mkdir -p "$bundle/QIFApplications" "$bundle/QIFLibrary"
+
+          while IFS= read -r item; do
+            path="$(jq -r '.path' <<<"$item")"
+            role="$(jq -r '.role' <<<"$item")"
+            case "$role" in
+              root-wrapper-qif3-namespace-adjusted)
+                destination="$bundle/QIFApplications/QIFDocument.xsd"
+                ;;
+              xml-signature-qif3-namespace-adjusted)
+                destination="$bundle/QIFLibrary/xmldsig-core-schema-qif3-namespace.xsd"
+                ;;
+              application-schema|library-schema)
+                destination="$bundle/QIFApplications/$(basename "$path")"
+                ;;
+              *)
+                echo "Unsupported schema role: $role"
+                exit 1
+                ;;
+            esac
+            cp "qif-community/$path" "$destination"
+          done < <(jq -c '.schema_files[]' "$manifest")
+
+          test "$(find "$bundle" -type f -name '*.xsd' | wc -l)" -eq "$(jq -r '.expected_schema_file_count' "$manifest")"
+
+          # Inspect live XML Schema includes/imports (comments are ignored by the XML parser).
+          # Every dependency must be relative and resolve inside the local bundle.
+          while IFS= read -r schema; do
+            while IFS= read -r dependency; do
+              case "$dependency" in
+                ""|http://*|https://*|file://*|/*)
+                  echo "Forbidden non-local schema dependency in $schema: $dependency"
+                  exit 1
+                  ;;
+              esac
+              resolved="$(realpath -m "$(dirname "$schema")/$dependency")"
+              case "$resolved" in
+                "$bundle"/*) ;;
+                *)
+                  echo "Schema dependency escapes bundle: $schema -> $dependency"
+                  exit 1
+                  ;;
+              esac
+              test -f "$resolved" || {
+                echo "Missing local schema dependency: $schema -> $dependency"
+                exit 1
+              }
+            done < <(xmlstarlet sel -N xs="http://www.w3.org/2001/XMLSchema" -t -m '//xs:include|//xs:import' -v '@schemaLocation' -n "$schema")
+          done < <(find "$bundle" -type f -name '*.xsd' -print | sort)
+
+          printf '%s\n' "$bundle" > "$RUNNER_TEMP/qif3-companion-bundle-path.txt"
+
+      - name: Compute source and staged schema SHA-256 manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json
+          : > "$RUNNER_TEMP/qif3-source-schema-sha256.txt"
+          while IFS= read -r item; do
+            path="$(jq -r '.path' <<<"$item")"
+            sha256sum "qif-community/$path" >> "$RUNNER_TEMP/qif3-source-schema-sha256.txt"
+          done < <(jq -c '.schema_files[]' "$manifest")
+
+          bundle="$(cat "$RUNNER_TEMP/qif3-companion-bundle-path.txt")"
+          find "$bundle" -type f -name '*.xsd' -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/qif3-staged-schema-sha256.txt"
+          (cd "$bundle" && find QIFApplications QIFLibrary -type f -name '*.xsd' -print0 | sort -z | xargs -0 sha256sum) > "$RUNNER_TEMP/qif3-relative-schema-sha256.txt"
+          sha256sum tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json qif-community/samples/Plans/repeatabilityTestUsingWhile.QIF qif-community/samples/ExternalReferencesAndQPIds/Exploded_Results1.QIF > "$RUNNER_TEMP/qif3-manifest-and-fixtures-sha256.txt"
+
+      - name: Validate pinned QIF 3.0 positive companion fixtures without network access
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$(cat "$RUNNER_TEMP/qif3-companion-bundle-path.txt")"
+          schema="$bundle/QIFApplications/QIFDocument.xsd"
+          plan=qif-community/samples/Plans/repeatabilityTestUsingWhile.QIF
+          results=qif-community/samples/ExternalReferencesAndQPIds/Exploded_Results1.QIF
+
+          xmllint --nonet --noout "$plan"
+          xmllint --nonet --noout "$results"
+          xmllint --nonet --noout --schema "$schema" "$plan"
+          xmllint --nonet --noout --schema "$schema" "$results"
+
+      - name: Reject schema-invalid QIF version and namespace controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$(cat "$RUNNER_TEMP/qif3-companion-bundle-path.txt")"
+          schema="$bundle/QIFApplications/QIFDocument.xsd"
+          source=qif-community/samples/Plans/repeatabilityTestUsingWhile.QIF
+
+          sed 's/versionQIF="3.0.0"/versionQIF="2.1.0"/' "$source" > "$RUNNER_TEMP/qif-wrong-version.QIF"
+          sed 's#http://qifstandards.org/xsd/qif3#http://qifstandards.org/xsd/qif2#g' "$source" > "$RUNNER_TEMP/qif-wrong-namespace.QIF"
+
+          for mutant in "$RUNNER_TEMP/qif-wrong-version.QIF" "$RUNNER_TEMP/qif-wrong-namespace.QIF"; do
+            if xmllint --nonet --noout --schema "$schema" "$mutant"; then
+              echo "ERROR: QIF companion schema accepted negative control $mutant"
+              exit 1
+            fi
+          done
+
+      - name: Emit explicit companion-only validation report
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json
+          bundle="$(cat "$RUNNER_TEMP/qif3-companion-bundle-path.txt")"
+          schema="$bundle/QIFApplications/QIFDocument.xsd"
+          root_sha="$(sha256sum "$schema" | cut -d' ' -f1)"
+          fixture_plan_sha="$(sha256sum qif-community/samples/Plans/repeatabilityTestUsingWhile.QIF | cut -d' ' -f1)"
+          fixture_results_sha="$(sha256sum qif-community/samples/ExternalReferencesAndQPIds/Exploded_Results1.QIF | cut -d' ' -f1)"
+          source_manifest_sha="$(sha256sum "$manifest" | cut -d' ' -f1)"
+          schema_manifest_sha="$(sha256sum "$RUNNER_TEMP/qif3-relative-schema-sha256.txt" | cut -d' ' -f1)"
+
+          jq -n \
+            --arg source_commit "$(jq -r '.source_commit' "$manifest")" \
+            --arg source_manifest_sha256 "$source_manifest_sha" \
+            --arg schema_manifest_sha256 "$schema_manifest_sha" \
+            --arg root_schema_sha256 "$root_sha" \
+            --arg plan_fixture_sha256 "$fixture_plan_sha" \
+            --arg results_fixture_sha256 "$fixture_results_sha" \
+            --argjson schema_file_count "$(jq -r '.expected_schema_file_count' "$manifest")" \
+            '{
+              schema_version: "luminous.qif3.companion-schema-validation-report.v0.1",
+              profile_id: "QIF3_COMMUNITY_PYTHON_BINDING_SCHEMA_PROFILE",
+              source_repository: "QualityInformationFramework/qif-community",
+              source_commit: $source_commit,
+              source_manifest_sha256: $source_manifest_sha256,
+              schema_manifest_sha256: $schema_manifest_sha256,
+              root_schema_sha256: $root_schema_sha256,
+              schema_file_count: $schema_file_count,
+              positive_fixtures: [
+                { path: "samples/Plans/repeatabilityTestUsingWhile.QIF", sha256: $plan_fixture_sha256, validation: "passed" },
+                { path: "samples/ExternalReferencesAndQPIds/Exploded_Results1.QIF", sha256: $results_fixture_sha256, validation: "passed" }
+              ],
+              negative_controls: [
+                { mutation: "versionQIF 3.0.0 to 2.1.0", validation: "rejected" },
+                { mutation: "QIF 3 namespace to QIF 2 namespace", validation: "rejected" }
+              ],
+              network_schema_retrieval: false,
+              status: "COMPANION_VALID_NOT_NORMATIVE",
+              normative_conformance_claimed: false,
+              signature_semantics_verified: false,
+              qif_xslt_rules_executed: false,
+              metrology_or_product_conformity_claimed: false
+            }' > "$RUNNER_TEMP/qif3-companion-validation-report.json"
+
+          jq -e '.status == "COMPANION_VALID_NOT_NORMATIVE" and .normative_conformance_claimed == false and .signature_semantics_verified == false and .qif_xslt_rules_executed == false and .metrology_or_product_conformity_claimed == false and .schema_file_count == 22 and (.positive_fixtures | length == 2) and ([.negative_controls[].validation] | all(. == "rejected"))' "$RUNNER_TEMP/qif3-companion-validation-report.json"
+
+      - name: Retain source pins, schema digests and validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qif3-companion-schema-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/manufacturing-interop/qif-schema-admission/source-pins-v0.1.json
+            ${{ runner.temp }}/qif3-source-schema-sha256.txt
+            ${{ runner.temp }}/qif3-staged-schema-sha256.txt
+            ${{ runner.temp }}/qif3-relative-schema-sha256.txt
+            ${{ runner.temp }}/qif3-manifest-and-fixtures-sha256.txt
+            ${{ runner.temp }}/qif3-companion-validation-report.json
+          if-no-files-found: warn
+          retention-days: 30
