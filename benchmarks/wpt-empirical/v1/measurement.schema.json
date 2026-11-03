@@ -439,7 +439,14 @@
         "transfer_gap_min_m",
         "transfer_gap_max_m",
         "vehicle_ground_clearance_min_m",
-        "vehicle_ground_clearance_max_m"
+        "vehicle_ground_clearance_max_m",
+        "operating_mode",
+        "route_distance_km",
+        "vehicle_speed_mean_mps",
+        "transmitter_pitch_m",
+        "vehicle_energy_demand_wh_km",
+        "vehicle_profile_id",
+        "drive_cycle_id"
       ],
       "properties": {
         "frequency_hz": {
@@ -528,6 +535,57 @@
             "null"
           ],
           "minimum": 0
+        },
+        "operating_mode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "STATIC",
+            "DYNAMIC",
+            null
+          ]
+        },
+        "route_distance_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_speed_mean_mps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transmitter_pitch_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_energy_demand_wh_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "drive_cycle_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
