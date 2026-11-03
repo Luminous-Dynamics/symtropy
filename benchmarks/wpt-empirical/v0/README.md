@@ -201,3 +201,27 @@ Primary-source publisher abstracts and records:
 - https://doi.org/10.1109/TPEL.2026.3704859
 - https://doi.org/10.1109/TIE.2025.3605456
 - https://doi.org/10.4233/uuid:022e25d4-7c01-4a4b-91e9-4c7608096121
+
+
+## 2026 harmonic-quality and bidirectional interoperability additions
+
+The source catalogue now includes four additional references:
+- Li et al., *Magnetic Integration for WPT Systems Using Tightly Coupled Coils With Harmonic Suppressions*, DOI 10.1109/TPEL.2026.3688006;
+- Zhang et al., *Design and implementation of interoperable high-efficiency bidirectional wireless power transfer systems for multiple vehicles*, DOI 10.1016/j.geits.2025.100307;
+- Zhuang et al., *A Multiplexing Topology for EV WPT Systems with Integrated PV and Storage*, DOI 10.1109/TPEL.2026.3727562;
+- Liu et al., *Review on interoperability of wireless charging systems for electric vehicles*, DOI 10.1016/j.rser.2026.117141.
+
+Two experimental prototype families are added:
+- **20 kW magnetic integration:** abstract-reported measured DC-DC efficiency 90.58%; inverter-output current THD changes from 19.75% to 5.71%; ZVS maintained over the tested operating range. Efficiency and THD are separate metrics. Exact meter planes, operating point, THD method, bandwidth and uncertainty are not identified in the abstract.
+- **Bidirectional multi-vehicle IPT:** one ground-side system demonstrated with vehicle-side assemblies rated at 6, 11 and 30 kW. The aligned abstract reports 91.7-94.3% grid-to-battery and 89.5-93.5% battery-to-grid efficiency. These are two distinct directional ranges, not six per-vehicle point estimates; no range endpoint is assigned to a vehicle rating without full-text extraction.
+
+The PV/storage/WPT module-reuse paper and the 2026 interoperability review are source-only entries at this stage. The former's accessible abstract supplies an experimentally validated architecture but no numerical performance figures; the latter is secondary literature, not an experiment.
+
+Updated parent-catalogue totals at this revision: **27 source records, 13 prototype families, 27 measurement records and 22 auxiliary engineering metrics**. These are record counts, not independent operating points or a matched-condition leaderboard. The 20 kW converter-stage DC-DC result, aligned bidirectional grid/battery ranges, 50 kW bus pad and 65 kW back-to-back WCS remain separate comparison lanes until meter boundaries, test windows and operating conditions are reconciled.
+
+Primary abstracts and review record:
+- https://doi.org/10.1109/TPEL.2026.3688006
+- https://doi.org/10.1016/j.geits.2025.100307
+- https://doi.org/10.1109/TPEL.2026.3727562
+- https://doi.org/10.1016/j.rser.2026.117141
+
