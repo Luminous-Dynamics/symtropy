@@ -340,7 +340,7 @@ def classify(manifest: dict, query: dict) -> tuple[str, list[str], str]:
             [],
             "query feature set is incomplete or contains undeclared features",
         )
-    for feature in query["features"]:
+    for feature in ordered_features:
         if expected.get(feature["name"]) != feature["unit"]:
             return (
                 "unknown_due_to_missing_or_unqualified_inputs",
