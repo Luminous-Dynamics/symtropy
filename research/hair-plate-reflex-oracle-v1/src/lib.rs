@@ -17,6 +17,7 @@ const MAX_POINTS: usize = 16_384;
 const MAX_NEURONS_PER_PLATE: usize = 4096;
 const MAX_TARGETS_PER_PLATE: usize = 65_536;
 const MAX_TRAIN_PLATES: usize = 1024;
+const MAX_SOURCE_ARTIFACTS: usize = 16_384;
 const MAX_ID_BYTES: usize = 128;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -172,12 +173,45 @@ pub struct HairPlateRecord {
     pub reflex_outcomes: Evidence<Vec<ReflexOutcome>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SourceArtifactRole {
+    Morphology,
+    AfferentIdentity,
+    SensoryTuning,
+    ConnectomeOutput,
+    ReflexOutcome,
+    SearchReceipt,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceCustodyMode {
+    LocalBytesDigestVerified,
+    ProviderChecksumOnly,
+    VersionedRemoteMaterialization,
+    DerivedFromSourceArtifacts,
+    SyntheticFixture,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceArtifact {
+    pub artifact_id: String,
+    pub source_uri: String,
+    pub source_version_id: String,
+    pub media_type: String,
+    pub license_spdx: Option<String>,
+    pub sha256: String,
+    pub roles: Vec<SourceArtifactRole>,
+    /// Declared provenance mode. This crate does not verify the underlying bytes.
+    pub custody_mode: SourceCustodyMode,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct HairPlateInventory {
     pub inventory_id: String,
     pub dataset_id: String,
     pub dataset_version: String,
     pub inventory_sha256: String,
+    pub source_artifacts: Vec<SourceArtifact>,
     pub records: Vec<HairPlateRecord>,
 }
 
@@ -261,6 +295,11 @@ pub enum OracleError {
     TrainingLeakage,
     UnknownPlate(String),
     CrossTaxonTrainingPlate(String),
+    InvalidSourceArtifact,
+    MissingSourceArtifact {
+        sha256: String,
+        role: SourceArtifactRole,
+    },
     InvalidPrediction,
     NonFiniteMetric,
 }
@@ -279,6 +318,87 @@ fn valid_sha256(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_source_uri(value: &str) -> bool {
+    value.starts_with("https://")
+        && value.len() <= 2048
+        && !value.bytes().any(|byte| byte.is_ascii_whitespace())
+}
+
+fn valid_media_type(value: &str) -> bool {
+    let mut parts = value.split('/');
+    let Some(top) = parts.next() else {
+        return false;
+    };
+    let Some(sub) = parts.next() else {
+        return false;
+    };
+    parts.next().is_none()
+        && !top.is_empty()
+        && !sub.is_empty()
+        && value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'+' | b'.' | b'-')
+        })
+}
+
+impl SourceArtifact {
+    pub fn validate(&self) -> Result<(), OracleError> {
+        if !valid_identifier(&self.artifact_id)
+            || !valid_identifier(&self.source_version_id)
+            || self.license_spdx.as_ref().is_some_and(|license| !valid_identifier(license))
+        {
+            return Err(OracleError::InvalidSourceArtifact);
+        }
+        if !valid_source_uri(&self.source_uri)
+            || !valid_media_type(&self.media_type)
+            || !valid_sha256(&self.sha256)
+            || self.roles.is_empty()
+        {
+            return Err(OracleError::InvalidSourceArtifact);
+        }
+        let mut roles = std::collections::BTreeSet::new();
+        for role in &self.roles {
+            if !roles.insert(*role) {
+                return Err(OracleError::InvalidSourceArtifact);
+            }
+        }
+        Ok(())
+    }
+}
+
+fn source_artifact_has_role(
+    artifacts: &[SourceArtifact],
+    sha256: &str,
+    required_role: SourceArtifactRole,
+) -> bool {
+    artifacts.iter().any(|artifact| {
+        artifact.sha256 == sha256 && artifact.roles.contains(&required_role)
+    })
+}
+
+fn require_evidence_artifact<T>(
+    evidence: &Evidence<T>,
+    artifacts: &[SourceArtifact],
+    role: SourceArtifactRole,
+) -> Result<(), OracleError> {
+    let required = match evidence {
+        Evidence::Observed { source_sha256, .. } => Some((source_sha256, role)),
+        Evidence::ExplicitlyAbsent {
+            search_receipt_sha256,
+            ..
+        } => Some((search_receipt_sha256, SourceArtifactRole::SearchReceipt)),
+        Evidence::Unknown { .. } => None,
+    };
+    if let Some((sha256, required_role)) = required {
+        if !source_artifact_has_role(artifacts, sha256, required_role) {
+            return Err(OracleError::MissingSourceArtifact {
+                sha256: sha256.clone(),
+                role: required_role,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_evidence<T>(
@@ -489,8 +609,22 @@ impl HairPlateInventory {
         if self.records.is_empty() {
             return Err(OracleError::EmptyInventory);
         }
-        if self.records.len() > MAX_RECORDS {
+        if self.records.len() > MAX_RECORDS
+            || self.source_artifacts.is_empty()
+            || self.source_artifacts.len() > MAX_SOURCE_ARTIFACTS
+        {
             return Err(OracleError::ResourceLimitExceeded);
+        }
+
+        let mut artifact_ids = std::collections::BTreeSet::new();
+        let mut artifact_digests = std::collections::BTreeSet::new();
+        for artifact in &self.source_artifacts {
+            artifact.validate()?;
+            if !artifact_ids.insert(artifact.artifact_id.as_str())
+                || !artifact_digests.insert(artifact.sha256.as_str())
+            {
+                return Err(OracleError::DuplicateIdentity("source_artifact"));
+            }
         }
 
         let mut plate_ids = std::collections::BTreeSet::new();
@@ -499,6 +633,44 @@ impl HairPlateInventory {
             if !plate_ids.insert(record.plate_id.as_str()) {
                 return Err(OracleError::DuplicateIdentity("plate_id"));
             }
+
+            require_evidence_artifact(
+                &record.morphology,
+                &self.source_artifacts,
+                SourceArtifactRole::Morphology,
+            )?;
+            if let Evidence::Observed { value, .. } = &record.morphology {
+                if !source_artifact_has_role(
+                    &self.source_artifacts,
+                    &value.geometry_sha256,
+                    SourceArtifactRole::Morphology,
+                ) {
+                    return Err(OracleError::MissingSourceArtifact {
+                        sha256: value.geometry_sha256.clone(),
+                        role: SourceArtifactRole::Morphology,
+                    });
+                }
+            }
+            require_evidence_artifact(
+                &record.afferent_neuron_ids,
+                &self.source_artifacts,
+                SourceArtifactRole::AfferentIdentity,
+            )?;
+            require_evidence_artifact(
+                &record.sensory_tuning,
+                &self.source_artifacts,
+                SourceArtifactRole::SensoryTuning,
+            )?;
+            require_evidence_artifact(
+                &record.connectome_outputs,
+                &self.source_artifacts,
+                SourceArtifactRole::ConnectomeOutput,
+            )?;
+            require_evidence_artifact(
+                &record.reflex_outcomes,
+                &self.source_artifacts,
+                SourceArtifactRole::ReflexOutcome,
+            )?;
         }
         Ok(())
     }
