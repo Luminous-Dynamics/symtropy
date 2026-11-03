@@ -408,9 +408,11 @@ mod tests {
     fn complete_loss_ledger_validates_against_independent_source_inventory() {
         let receipt = valid_receipt();
         receipt.validate().expect("valid receipt");
+        let mut independent_inventory = receipt.source_semantic_ids.clone();
+        independent_inventory.reverse();
         receipt
-            .validate_source_binding(&digest('b'), &digest('c'), &receipt.source_semantic_ids)
-            .expect("source identities and semantic inventory match");
+            .validate_source_binding(&digest('b'), &digest('c'), &independent_inventory)
+            .expect("source identities and order-independent semantic inventory match");
     }
 
     #[test]
