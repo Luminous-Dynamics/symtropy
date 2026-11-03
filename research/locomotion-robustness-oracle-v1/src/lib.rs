@@ -208,6 +208,8 @@ pub struct IndividualScorecard {
     pub lower_tail_cvar_task_score: f64,
     pub episodes_with_numerical_failures: usize,
     pub episodes_with_physics_violations: usize,
+    pub episodes_with_unclassified_failures: usize,
+    pub hard_failure_gate_passed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -881,7 +883,10 @@ fn score_scenario(
     let mut individual_mean_task_scores = Vec::with_capacity(episodes_by_individual.len());
 
     for (individual_id, individual_episodes) in episodes_by_individual {
-        let morphology_sha256 = individual_episodes[0].morphology_sha256.clone();
+        let first_individual_episode = individual_episodes
+            .first()
+            .ok_or(RobustnessError::NonFiniteSummary)?;
+        let morphology_sha256 = first_individual_episode.morphology_sha256.clone();
         if individual_episodes
             .iter()
             .any(|episode| episode.morphology_sha256 != morphology_sha256)
@@ -912,6 +917,10 @@ fn score_scenario(
             .iter()
             .filter(|episode| episode.physics_violation_count > 0)
             .count();
+        let episodes_with_unclassified_failures = individual_episodes
+            .iter()
+            .filter(|episode| episode.unclassified_failure_count > 0)
+            .count();
 
         individual_success_rates.push(individual_success_rate);
         individual_mean_task_scores.push(individual_mean_task_score);
@@ -924,6 +933,10 @@ fn score_scenario(
             lower_tail_cvar_task_score: individual_lower_tail_cvar,
             episodes_with_numerical_failures,
             episodes_with_physics_violations,
+            episodes_with_unclassified_failures,
+            hard_failure_gate_passed: episodes_with_numerical_failures == 0
+                && episodes_with_physics_violations == 0
+                && episodes_with_unclassified_failures == 0,
         });
     }
 
