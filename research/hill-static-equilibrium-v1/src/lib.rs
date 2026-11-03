@@ -826,6 +826,38 @@ mod tests {
     }
 
     #[test]
+    fn result_receipt_rejects_a_root_outside_its_declared_bracket() {
+        let muscle = parameters(0.0);
+        let tables = curves();
+        let solve_policy = policy();
+        let evaluation = evaluate_residual(
+            &muscle,
+            &tables,
+            0.0205,
+            1.0,
+            0.01,
+        )
+        .expect("known-answer residual");
+        assert_eq!(
+            to_result(
+                &muscle,
+                &tables,
+                0.0205,
+                1.0,
+                solve_policy,
+                evaluation,
+                0.01,
+                0.011,
+                0.012,
+                -1.0,
+                1.0,
+                1,
+            ),
+            Err(MuscleError::InvalidRootBracket)
+        );
+    }
+
+    #[test]
     fn curve_interpolation_is_linear_and_extrapolation_rejects() {
         let table = curve(
             CurveKind::ActiveForceLength,
