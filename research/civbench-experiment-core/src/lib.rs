@@ -1626,6 +1626,676 @@ impl DecisionServiceChain {
     }
 }
 
+/// One dataset registered in the machine-readable leak benchmark contract.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeakDatasetDescriptor {
+    /// Stable dataset identifier.
+    pub dataset_id: String,
+    /// Network topology represented by the dataset.
+    pub topology: String,
+    /// Number of complete scenarios.
+    pub scenario_count: usize,
+}
+
+/// Validated projection of CivBench experiment protocol v0.1.
+///
+/// This adapter validates the decision-critical manifest contract used by
+/// the paired experiment runner. Callers should validate JSON Schema first,
+/// then use this semantic adapter before constructing a scenario run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExperimentProtocolV0_1 {
+    /// Protocol identifier.
+    pub protocol_id: String,
+    /// Protocol version.
+    pub version: String,
+    /// Manifest lifecycle status.
+    pub status: String,
+    /// True only when an external pre-registration receipt is present.
+    pub confirmatory_eligible: bool,
+    /// Number of declared source records.
+    pub source_count: usize,
+    /// Stable source identifiers.
+    pub source_ids: Vec<String>,
+    /// Number of declared intervention levels for G, M, I, H in that order.
+    pub factor_level_counts: [usize; 4],
+    /// Stage identifiers in manifest order.
+    pub stage_ids: Vec<String>,
+    /// Estimand identifiers in manifest order.
+    pub estimand_ids: Vec<String>,
+    /// Declared benchmark lane names.
+    pub benchmark_lanes: Vec<String>,
+    /// LeakDB dataset inventory.
+    pub leak_datasets: Vec<LeakDatasetDescriptor>,
+}
+
+/// Error returned when a JSON protocol manifest fails semantic validation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ManifestAdapterError {
+    /// JSON path or top-level location of the invalid contract.
+    pub path: String,
+    /// Expected value or reason for rejection.
+    pub reason: String,
+}
+
+impl ManifestAdapterError {
+    fn new(path: impl Into<String>, reason: impl Into<String>) -> Self {
+        Self {
+            path: path.into(),
+            reason: reason.into(),
+        }
+    }
+}
+
+impl fmt::Display for ManifestAdapterError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "invalid experiment manifest at {}: {}",
+            self.path, self.reason
+        )
+    }
+}
+
+impl std::error::Error for ManifestAdapterError {}
+
+fn manifest_field<'a>(
+    value: &'a serde_json::Value,
+    key: &str,
+    path: &str,
+) -> Result<&'a serde_json::Value, ManifestAdapterError> {
+    value.get(key).ok_or_else(|| {
+        ManifestAdapterError::new(
+            format!("{path}.{key}"),
+            "required field is missing",
+        )
+    })
+}
+
+fn manifest_string(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<String, ManifestAdapterError> {
+    value
+        .as_str()
+        .map(str::to_owned)
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| {
+            ManifestAdapterError::new(path, "expected a non-empty string")
+        })
+}
+
+fn manifest_array<'a>(
+    value: &'a serde_json::Value,
+    path: &str,
+) -> Result<&'a Vec<serde_json::Value>, ManifestAdapterError> {
+    value
+        .as_array()
+        .ok_or_else(|| ManifestAdapterError::new(path, "expected an array"))
+}
+
+fn manifest_string_array(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<Vec<String>, ManifestAdapterError> {
+    let values = manifest_array(value, path)?;
+    let mut output = Vec::with_capacity(values.len());
+    let mut seen = BTreeSet::new();
+
+    for (index, value) in values.iter().enumerate() {
+        let item_path = format!("{path}[{index}]");
+        let item = manifest_string(value, &item_path)?;
+        if !seen.insert(item.clone()) {
+            return Err(ManifestAdapterError::new(
+                item_path,
+                "duplicate identifier",
+            ));
+        }
+        output.push(item);
+    }
+    Ok(output)
+}
+
+fn manifest_object_ids(
+    value: &serde_json::Value,
+    path: &str,
+    key: &str,
+) -> Result<Vec<String>, ManifestAdapterError> {
+    let entries = manifest_array(value, path)?;
+    let mut ids = Vec::with_capacity(entries.len());
+    let mut seen = BTreeSet::new();
+
+    for (index, entry) in entries.iter().enumerate() {
+        let entry_path = format!("{path}[{index}]");
+        let id_path = format!("{entry_path}.{key}");
+        let id = manifest_string(
+            manifest_field(entry, key, &entry_path)?,
+            &id_path,
+        )?;
+        if !seen.insert(id.clone()) {
+            return Err(ManifestAdapterError::new(
+                id_path,
+                "duplicate identifier",
+            ));
+        }
+        ids.push(id);
+    }
+    Ok(ids)
+}
+
+fn manifest_require_ids(
+    actual: &[String],
+    required: &[&str],
+    path: &str,
+) -> Result<(), ManifestAdapterError> {
+    for required_id in required {
+        if !actual.iter().any(|value| value == required_id) {
+            return Err(ManifestAdapterError::new(
+                path,
+                format!("required identifier {required_id} is missing"),
+            ));
+        }
+    }
+    Ok(())
+}
+
+impl ExperimentProtocolV0_1 {
+    /// Parse and semantically validate the experiment manifest JSON.
+    ///
+    /// The current design-only manifest is not eligible for confirmatory runs.
+    /// A future locked manifest must include an external registry URI, UTC lock
+    /// timestamp, valid SHA-256 lock digest and signature before admission.
+    pub fn parse_json(input: &str) -> Result<Self, ManifestAdapterError> {
+        let root: serde_json::Value = serde_json::from_str(input).map_err(|error| {
+            ManifestAdapterError::new("$", format!("invalid JSON: {error}"))
+        })?;
+
+        let protocol_id = manifest_string(
+            manifest_field(&root, "protocol_id", "$")?,
+            "$.protocol_id",
+        )?;
+        if protocol_id != "CIVBENCH-JHB-WATER-EXPERIMENT-001" {
+            return Err(ManifestAdapterError::new(
+                "$.protocol_id",
+                "unsupported protocol identifier",
+            ));
+        }
+
+        let version = manifest_string(
+            manifest_field(&root, "version", "$")?,
+            "$.version",
+        )?;
+        if version != "0.1.0" {
+            return Err(ManifestAdapterError::new(
+                "$.version",
+                "this adapter supports exactly version 0.1.0",
+            ));
+        }
+
+        let status = manifest_string(
+            manifest_field(&root, "status", "$")?,
+            "$.status",
+        )?;
+        if !matches!(
+            status.as_str(),
+            "design_only_pre_registration_pending"
+                | "locked_pre_registration"
+                | "retired"
+        ) {
+            return Err(ManifestAdapterError::new(
+                "$.status",
+                "unknown manifest lifecycle status",
+            ));
+        }
+
+        let scope = manifest_field(&root, "scope", "$")?;
+        let source_values =
+            manifest_field(scope, "reference_sources", "$.scope")?;
+        let source_ids = manifest_object_ids(
+            source_values,
+            "$.scope.reference_sources",
+            "source_id",
+        )?;
+        if source_ids.is_empty() {
+            return Err(ManifestAdapterError::new(
+                "$.scope.reference_sources",
+                "at least one source is required",
+            ));
+        }
+
+        let factors = manifest_field(&root, "factors", "$")?;
+        let factor_names = ["G", "M", "I", "H"];
+        let expected_counts = [4_usize, 5, 4, 4];
+        let mut factor_level_counts = [0_usize; 4];
+        for (index, factor_name) in factor_names.iter().enumerate() {
+            let factor_path = format!("$.factors.{factor_name}");
+            let factor = manifest_field(factors, factor_name, "$.factors")?;
+            let levels = manifest_string_array(
+                manifest_field(factor, "levels", &factor_path)?,
+                &format!("{factor_path}.levels"),
+            )?;
+            if levels.len() != expected_counts[index] {
+                return Err(ManifestAdapterError::new(
+                    format!("{factor_path}.levels"),
+                    format!(
+                        "expected {} unique levels, found {}",
+                        expected_counts[index],
+                        levels.len()
+                    ),
+                ));
+            }
+            factor_level_counts[index] = levels.len();
+        }
+
+        let stage_ids = manifest_object_ids(
+            manifest_field(&root, "stages", "$")?,
+            "$.stages",
+            "id",
+        )?;
+        if stage_ids.len() != 6 {
+            return Err(ManifestAdapterError::new(
+                "$.stages",
+                "version 0.1.0 requires six stages",
+            ));
+        }
+
+        let estimand_ids = manifest_object_ids(
+            manifest_field(&root, "estimands", "$")?,
+            "$.estimands",
+            "id",
+        )?;
+        if estimand_ids.len() != 12 {
+            return Err(ManifestAdapterError::new(
+                "$.estimands",
+                "version 0.1.0 requires twelve estimands",
+            ));
+        }
+
+        let targets =
+            manifest_field(&root, "benchmark_targets", "$")?;
+        let target_object = targets.as_object().ok_or_else(|| {
+            ManifestAdapterError::new(
+                "$.benchmark_targets",
+                "expected an object",
+            )
+        })?;
+        let benchmark_lanes: Vec<String> =
+            target_object.keys().cloned().collect();
+        if benchmark_lanes.len() != 11 {
+            return Err(ManifestAdapterError::new(
+                "$.benchmark_targets",
+                "version 0.1.0 requires eleven benchmark lanes",
+            ));
+        }
+        manifest_require_ids(
+            &benchmark_lanes,
+            &[
+                "accounting_correctness",
+                "hydraulic_fidelity",
+                "leak_detection",
+                "leak_localization",
+                "competitive_improvement",
+                "sensor_placement",
+                "robustness",
+                "resilience_performance_curves",
+                "hierarchical_hydroinformatics",
+                "digital_twin_maturity",
+                "leak_validation_integrity",
+            ],
+            "$.benchmark_targets",
+        )?;
+
+        let outcome =
+            manifest_field(&root, "outcome_contract", "$")?;
+        let status_values = manifest_string_array(
+            manifest_field(
+                outcome,
+                "metric_evidence_statuses",
+                "$.outcome_contract",
+            )?,
+            "$.outcome_contract.metric_evidence_statuses",
+        )?;
+        let expected_statuses = [
+            "observed",
+            "derived",
+            "modelled",
+            "not_measured",
+            "unsupported",
+            "withheld",
+            "not_applicable",
+        ];
+        if status_values.len() != expected_statuses.len()
+            || !expected_statuses.iter().all(|expected| {
+                status_values.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                "$.outcome_contract.metric_evidence_statuses",
+                "all seven v0.1 evidence statuses must be present exactly once",
+            ));
+        }
+
+        let missing_behavior = manifest_string(
+            manifest_field(
+                outcome,
+                "missing_value_behavior",
+                "$.outcome_contract",
+            )?,
+            "$.outcome_contract.missing_value_behavior",
+        )?;
+        if missing_behavior != "no_zero_fill" {
+            return Err(ManifestAdapterError::new(
+                "$.outcome_contract.missing_value_behavior",
+                "missing metrics must never be zero-filled",
+            ));
+        }
+
+        let paired_rule = manifest_string(
+            manifest_field(outcome, "paired_difference", "$.outcome_contract")?,
+            "$.outcome_contract.paired_difference",
+        )?;
+        if !paired_rule.contains("exactly_the_same_evidence_status") {
+            return Err(ManifestAdapterError::new(
+                "$.outcome_contract.paired_difference",
+                "paired deltas require evidence-class parity",
+            ));
+        }
+
+        let leak =
+            manifest_field(&root, "leak_benchmark_contract", "$")?;
+        let dataset_values = manifest_field(
+            leak,
+            "dataset_inventory",
+            "$.leak_benchmark_contract",
+        )?;
+        let dataset_entries = manifest_array(
+            dataset_values,
+            "$.leak_benchmark_contract.dataset_inventory",
+        )?;
+        let mut leak_datasets =
+            Vec::with_capacity(dataset_entries.len());
+        let mut dataset_ids = BTreeSet::new();
+
+        for (index, entry) in dataset_entries.iter().enumerate() {
+            let entry_path =
+                format!("$.leak_benchmark_contract.dataset_inventory[{index}]");
+            let dataset_id = manifest_string(
+                manifest_field(entry, "dataset_id", &entry_path)?,
+                &format!("{entry_path}.dataset_id"),
+            )?;
+            if !dataset_ids.insert(dataset_id.clone()) {
+                return Err(ManifestAdapterError::new(
+                    format!("{entry_path}.dataset_id"),
+                    "duplicate dataset identifier",
+                ));
+            }
+
+            let topology = manifest_string(
+                manifest_field(entry, "topology", &entry_path)?,
+                &format!("{entry_path}.topology"),
+            )?;
+            let scenario_count_u64 = manifest_field(
+                entry,
+                "scenario_count",
+                &entry_path,
+            )?
+            .as_u64()
+            .ok_or_else(|| {
+                ManifestAdapterError::new(
+                    format!("{entry_path}.scenario_count"),
+                    "expected a positive integer",
+                )
+            })?;
+            let scenario_count =
+                usize::try_from(scenario_count_u64).map_err(|_| {
+                    ManifestAdapterError::new(
+                        format!("{entry_path}.scenario_count"),
+                        "count exceeds platform range",
+                    )
+                })?;
+            if scenario_count == 0 {
+                return Err(ManifestAdapterError::new(
+                    format!("{entry_path}.scenario_count"),
+                    "scenario count must be positive",
+                ));
+            }
+
+            let source_refs = manifest_string_array(
+                manifest_field(entry, "source_refs", &entry_path)?,
+                &format!("{entry_path}.source_refs"),
+            )?;
+            for source_ref in source_refs {
+                if !source_ids.iter().any(|id| id == &source_ref) {
+                    return Err(ManifestAdapterError::new(
+                        format!("{entry_path}.source_refs"),
+                        format!("unknown source identifier {source_ref}"),
+                    ));
+                }
+            }
+
+            leak_datasets.push(LeakDatasetDescriptor {
+                dataset_id,
+                topology,
+                scenario_count,
+            });
+        }
+
+        for (dataset_id, topology, expected_count) in [
+            ("LEAKDB_PAPER_HANOI_500", "Hanoi", 500_usize),
+            ("LEAKDB_HANOI_1000", "Hanoi", 1000_usize),
+            ("LEAKDB_NET1_1000", "Net1", 1000_usize),
+        ] {
+            let dataset = leak_datasets
+                .iter()
+                .find(|dataset| dataset.dataset_id == dataset_id)
+                .ok_or_else(|| {
+                    ManifestAdapterError::new(
+                        "$.leak_benchmark_contract.dataset_inventory",
+                        format!("required dataset {dataset_id} is missing"),
+                    )
+                })?;
+            if dataset.topology != topology
+                || dataset.scenario_count != expected_count
+            {
+                return Err(ManifestAdapterError::new(
+                    "$.leak_benchmark_contract.dataset_inventory",
+                    format!(
+                        "dataset {dataset_id} has unexpected topology or scenario count"
+                    ),
+                ));
+            }
+        }
+
+        let lanes = manifest_field(
+            leak,
+            "evaluation_lanes",
+            "$.leak_benchmark_contract",
+        )?;
+        for lane in [
+            "L0_paper_reproduction",
+            "L1_full_corpus_scenario_holdout",
+            "L2_cross_topology_transfer",
+        ] {
+            manifest_field(
+                lanes,
+                lane,
+                "$.leak_benchmark_contract.evaluation_lanes",
+            )?;
+        }
+
+        let split = manifest_field(
+            leak,
+            "split_contract",
+            "$.leak_benchmark_contract",
+        )?;
+        let split_unit = manifest_string(
+            manifest_field(
+                split,
+                "unit_of_split",
+                "$.leak_benchmark_contract.split_contract",
+            )?,
+            "$.leak_benchmark_contract.split_contract.unit_of_split",
+        )?;
+        if split_unit != "complete_scenario" {
+            return Err(ManifestAdapterError::new(
+                "$.leak_benchmark_contract.split_contract.unit_of_split",
+                "time windows from one scenario must never cross partitions",
+            ));
+        }
+
+        let partitions = manifest_string_array(
+            manifest_field(
+                split,
+                "partitions",
+                "$.leak_benchmark_contract.split_contract",
+            )?,
+            "$.leak_benchmark_contract.split_contract.partitions",
+        )?;
+        manifest_require_ids(
+            &partitions,
+            &["train", "validation", "calibration", "sealed_test"],
+            "$.leak_benchmark_contract.split_contract.partitions",
+        )?;
+
+        let fit_rules = manifest_field(
+            split,
+            "fit_rules",
+            "$.leak_benchmark_contract.split_contract",
+        )?;
+        let required_fit_rules = [
+            ("transforms", "fit_on_train_only"),
+            ("hyperparameters", "nested_selection_within_train_only"),
+            ("probability_calibration", "calibration_partition_only"),
+            ("operating_threshold", "calibration_partition_only"),
+            ("sensor_placement", "train_partition_only"),
+            ("sealed_test", "single_frozen_evaluation_after_all_choices_locked"),
+        ];
+        for (field, expected) in required_fit_rules {
+            let actual = manifest_string(
+                manifest_field(
+                    fit_rules,
+                    field,
+                    "$.leak_benchmark_contract.split_contract.fit_rules",
+                )?,
+                &format!(
+                    "$.leak_benchmark_contract.split_contract.fit_rules.{field}"
+                ),
+            )?;
+            if actual != expected {
+                return Err(ManifestAdapterError::new(
+                    format!(
+                        "$.leak_benchmark_contract.split_contract.fit_rules.{field}"
+                    ),
+                    format!("expected {expected}"),
+                ));
+            }
+        }
+
+        let test_label_access = manifest_string(
+            manifest_field(
+                split,
+                "test_label_access",
+                "$.leak_benchmark_contract.split_contract",
+            )?,
+            "$.leak_benchmark_contract.split_contract.test_label_access",
+        )?;
+        if test_label_access != "independent_evaluator_only" {
+            return Err(ManifestAdapterError::new(
+                "$.leak_benchmark_contract.split_contract.test_label_access",
+                "sealed test labels must be evaluator-only",
+            ));
+        }
+
+        for flag in [
+            "group_related_scenario_families",
+            "frozen_split_manifest_required",
+            "source_archive_digest_required",
+        ] {
+            if manifest_field(
+                split,
+                flag,
+                "$.leak_benchmark_contract.split_contract",
+            )?
+            .as_bool()
+                != Some(true)
+            {
+                return Err(ManifestAdapterError::new(
+                    format!("$.leak_benchmark_contract.split_contract.{flag}"),
+                    "must be true",
+                ));
+            }
+        }
+
+        let provenance =
+            manifest_field(&root, "provenance_receipt", "$")?;
+        let required_digests = manifest_string_array(
+            manifest_field(provenance, "required_digests", "$.provenance_receipt")?,
+            "$.provenance_receipt.required_digests",
+        )?;
+        manifest_require_ids(
+            &required_digests,
+            &[
+                "protocol",
+                "schema",
+                "source_inventory",
+                "source_snapshots_if_available",
+            ],
+            "$.provenance_receipt.required_digests",
+        )?;
+        let missing_digest_behavior = manifest_string(
+            manifest_field(
+                provenance,
+                "missing_digest_behavior",
+                "$.provenance_receipt",
+            )?,
+            "$.provenance_receipt.missing_digest_behavior",
+        )?;
+        if missing_digest_behavior != "fail_closed" {
+            return Err(ManifestAdapterError::new(
+                "$.provenance_receipt.missing_digest_behavior",
+                "missing provenance must fail closed",
+            ));
+        }
+
+        let confirmatory_eligible = if status == "locked_pre_registration" {
+            let receipt =
+                manifest_field(&root, "pre_registration_receipt", "$")?;
+            for field in ["registry_uri", "locked_at_utc", "signature"] {
+                manifest_string(
+                    manifest_field(receipt, field, "$.pre_registration_receipt")?,
+                    &format!("$.pre_registration_receipt.{field}"),
+                )?;
+            }
+            let digest_hex = manifest_string(
+                manifest_field(receipt, "lock_digest", "$.pre_registration_receipt")?,
+                "$.pre_registration_receipt.lock_digest",
+            )?;
+            Digest::from_hex(&digest_hex).map_err(|error| {
+                ManifestAdapterError::new(
+                    "$.pre_registration_receipt.lock_digest",
+                    error.to_string(),
+                )
+            })?;
+            true
+        } else {
+            false
+        };
+
+        Ok(Self {
+            protocol_id,
+            version,
+            status,
+            confirmatory_eligible,
+            source_count: source_ids.len(),
+            source_ids,
+            factor_level_counts,
+            stage_ids,
+            estimand_ids,
+            benchmark_lanes,
+            leak_datasets,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1650,6 +2320,89 @@ mod tests {
             FactorAssignment::new(InterventionFactor::Maintenance, level),
             resources,
         )
+    }
+
+    #[test]
+    fn manifest_adapter_accepts_the_pinned_protocol_fixture() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let manifest = ExperimentProtocolV0_1::parse_json(input).unwrap();
+
+        assert_eq!(manifest.protocol_id, "CIVBENCH-JHB-WATER-EXPERIMENT-001");
+        assert_eq!(manifest.version, "0.1.0");
+        assert_eq!(manifest.status, "design_only_pre_registration_pending");
+        assert!(!manifest.confirmatory_eligible);
+        assert_eq!(manifest.source_count, 14);
+        assert_eq!(manifest.factor_level_counts, [4, 5, 4, 4]);
+        assert_eq!(manifest.stage_ids.len(), 6);
+        assert_eq!(manifest.estimand_ids.len(), 12);
+        assert_eq!(manifest.benchmark_lanes.len(), 11);
+        assert_eq!(manifest.leak_datasets.len(), 3);
+        assert!(manifest.leak_datasets.iter().any(|dataset| {
+            dataset.dataset_id == "LEAKDB_HANOI_1000" && dataset.scenario_count == 1000
+        }));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unsupported_protocol_version() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["version"] = serde_json::Value::String("0.2.0".to_owned());
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path == "$.version"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_factor_cardinality_drift() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["factors"]["M"]["levels"].as_array_mut().unwrap().pop();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path == "$.factors.M.levels"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unsealed_threshold_fit() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["split_contract"]["fit_rules"]["operating_threshold"] =
+            serde_json::Value::String("sealed_test_partition".to_owned());
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path == "$.leak_benchmark_contract.split_contract.fit_rules.operating_threshold"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unknown_dataset_source_reference() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["dataset_inventory"][0]["source_refs"][0] =
+            serde_json::Value::String("UNKNOWN_SOURCE".to_owned());
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path.ends_with("source_refs")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_locked_status_without_external_receipt() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["status"] = serde_json::Value::String("locked_pre_registration".to_owned());
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path == "$.pre_registration_receipt"
+        ));
     }
 
     #[test]
