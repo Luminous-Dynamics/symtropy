@@ -575,6 +575,10 @@ mod tests {
             "qualification": "QUALIFIED_RECORD",
             "conditions": {
                 "frequency_hz": 85000.0, "transfer_gap_m": 0.16,
+                "transfer_gap_min_m": 0.15, "transfer_gap_max_m": 0.17,
+                "vehicle_ground_clearance_min_m": 0.18,
+                "vehicle_ground_clearance_max_m": 0.20,
+                "nominal_power_class_w": 50000.0,
                 "load_power_w": 50000.0, "operating_duration_s": 60.0,
                 "waveform": "sinusoidal", "alignment": "nominal",
                 "thermal_state": "steady_state", "medium": "air"
@@ -686,6 +690,16 @@ mod tests {
     }
 
     #[test]
+    fn different_rated_power_classes_are_not_comparable_for_efficiency_ranking() {
+        let left = sample("CLASS-LEFT", 95.0);
+        let mut right = sample("CLASS-RIGHT", 96.0);
+        right["conditions"]["nominal_power_class_w"] = json!(30_000.0);
+        let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"POWER_CLASS_MISMATCH".to_string()));
+    }
+
+    #[test]
     fn different_numeric_power_points_are_not_comparable_for_efficiency_ranking() {
         let left = sample("POWER-POINT-LEFT", 95.0);
         let mut right = sample("POWER-POINT-RIGHT", 96.0);
@@ -711,7 +725,7 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         let report = audit(&root).expect("WPT comparator corpus should load");
         assert_eq!(report["valid"], Value::Bool(true), "{report:#}");
-        assert_eq!(report["measurement_count"], json!(10));
-        assert_eq!(report["comparison_case_count"], json!(6));
+        assert_eq!(report["measurement_count"], json!(29));
+        assert_eq!(report["comparison_case_count"], json!(14));
     }
 }
