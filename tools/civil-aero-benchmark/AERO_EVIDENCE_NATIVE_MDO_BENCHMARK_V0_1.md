@@ -62,14 +62,16 @@ Run all policies from the same immutable task manifest. Record exact method/vers
 
 | Policy | Purpose | Required comparator |
 |---|---|---|
-| SU2 native adjoint / gradient-based optimization | Strong solver-native local optimization | Same solver, mesh, geometry parameterization and derivative settings |
+| SU2 native discrete adjoint (source-built, pinned) | Strong solver-native local optimization | Same solver, mesh, geometry parameterization and derivative settings; exact adjoint capability and gradients independently qualified |
 | OpenMDAO with analytic/adjoint derivatives | Strong coupled MDO and gradient baseline | DLR-F25 or another shared coupled benchmark |
 | DOE + response surface | Conventional engineering exploration | Same sample budget and fidelity allocation |
 | Evolutionary multiobjective policy (e.g. NSGA-II / differential evolution) | Derivative-free Pareto baseline | Same total cost, not just population size |
 | Bayesian / surrogate-assisted optimization | Sample-efficient black-box baseline | Same high-fidelity-equivalent budget and uncertainty treatment |
 | Symtropy-guided policy | Active experiment selection, robust optimization, abstention | No extra hidden evaluations or privileged validation labels |
 
-OpenMDAO's own strength is tightly coupled systems analysis and gradient-based MDO with parallel methods. The correct comparison is interoperability and matched-cost decision quality, not an unsupported claim that a Rust implementation is automatically a better optimizer.
+**Adjoint executable qualification is a prerequisite, not an assumption.** SU2's published prebuilt binaries do not provide discrete-adjoint functionality. Therefore, a binary-only primal run is not an SU2-adjoint baseline. The SU2 comparator must use a source build from the exact pinned release with the adjoint capability explicitly enabled and demonstrated by an actual adjoint execution. Record the complete source/build/dependency/toolchain/runtime identity. Before optimization, require independent gradient checks (central finite-difference step-size sweeps and directional Taylor-remainder tests) on the eligible smooth cases. A build that lacks the capability is reported as `capability_unavailable`, never silently replaced by finite differences. See [AERO-SU2-ADJOINT-001](https://github.com/Luminous-Dynamics/symtropy/issues/3494) and the [official SU2 download/build information](https://su2code.github.io/download.html).
+
+OpenMDAO's own strength is tightly coupled systems analysis and gradient-based MDO with parallel methods. OpenMDAO is a framework, not one fixed optimizer: every comparison must name the driver/optimizer, derivative source, scaling, coupling convergence policy and stopping rules. The correct comparison is interoperability and matched-cost decision quality, not an unsupported claim that a Rust implementation is automatically a better optimizer.
 
 Reference: https://openmdao.org/newdocs/versions/latest/
 
