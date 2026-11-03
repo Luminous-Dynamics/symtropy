@@ -399,6 +399,14 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
             }
         }
         Dpw8SourceAdmissionState::PermissionPending => {
+            if source.permission_evidence_reference.is_some()
+                || source.permission_evidence_sha256.is_some()
+            {
+                return Err(format!(
+                    "DPW-8 source {} is permission-pending and cannot carry a permission-document admission reference",
+                    source.source_id
+                ));
+            }
             match (source.byte_length, source.sha256.as_deref()) {
                 (None, None) => {}
                 (Some(length), Some(value))
