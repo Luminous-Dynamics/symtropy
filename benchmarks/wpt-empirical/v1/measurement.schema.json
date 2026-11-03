@@ -78,7 +78,8 @@
         "output_prediction_mape",
         "cc_cv_regulation_error",
         "control_settling_time",
-        "output_regulation_error"
+        "output_regulation_error",
+        "foreign_object_detection_accuracy"
       ]
     },
     "measurement_purpose": {
