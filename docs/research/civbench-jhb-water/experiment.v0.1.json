@@ -81,6 +81,46 @@
         "evidence_class": "published_method_paper",
         "assurance": "reported 91.4% accuracy and 4.2% false positives are specific to the article's own setup; exact cross-paper comparability not established",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+        "uri": "https://github.com/KIOS-Research/LeakDB",
+        "period": "dataset_release_2018_and_subsequent_expansion",
+        "evidence_class": "public_synthetic_benchmark_dataset",
+        "assurance": "repository describes synthetic leakage scenarios and links the complete dataset on Zenodo; preserve archive/version digest",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WATERBENCHMARKHUB_KIOS_LEAKDB",
+        "uri": "https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/KIOS-LeakDB.html",
+        "period": "accessed_2026-11-03",
+        "evidence_class": "public_benchmark_catalogue_record",
+        "assurance": "catalogue describes 1000 scenarios each for Net1 and Hanoi, time-step labels, topology/configuration and 30-minute steps",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+        "uri": "https://doi.org/10.1007/s00477-026-03239-6",
+        "period": "published_2026-05-02",
+        "evidence_class": "paper_reported_500_scenario_Hanoi_benchmark",
+        "assurance": "reports 93.60% accuracy, 91.58% sensitivity, 0/120 false positives, ROC AUC 0.975 and PR AUC 0.993; threshold selection on same corpus and independent holdout not established by accessible methods; implementation not publicly hosted",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "FARAH_SHAHRUR_LEAK_BENCHMARK_REVIEW_2026",
+        "uri": "https://doi.org/10.3390/w18182267",
+        "period": "published_2026-09-11",
+        "evidence_class": "systematic_review_90_studies",
+        "assurance": "reports 32 random splits, 9 temporal/independent holdouts, 7 cross-validation and 42 absent/insufficient validation descriptions",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "TARAWNEH_DEEP_LEARNING_LEAK_BENCHMARK_REVIEW_2026",
+        "uri": "https://doi.org/10.2166/wpt.2026.485",
+        "period": "published_2026-10-30",
+        "evidence_class": "systematic_review_and_benchmark_244_records_71_DL_studies",
+        "assurance": "review and paper-specific benchmark; treat reported results by task/split, not as one universal leaderboard",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -322,14 +362,15 @@
   "benchmark_targets": {
     "accounting_correctness": "all known-truth positive and negative controls recover expected results; no silent invariant violation",
     "hydraulic_fidelity": "differential comparison only on aligned supported EPANET cases and pinned versions",
-    "leak_detection": "calibrated sensitivity at a declared false-alarm/dispatch budget; PR-AUC and detection delay",
+    "leak_detection": "Reconstruct 2026 500-scenario Hanoi baselines separately: uncertainty-aware SVR + rolling RF tree variance (93.60% accuracy, 91.58% sensitivity, 0/120 FPs, ROC AUC 0.975, PR AUC 0.993 reported; independent threshold holdout not established in accessible methods and code not public) and Dynamic Residual Masking (91.60% five-sensor, 93.80% 31-sensor reported; paper-specific). Then evaluate full LeakDB by frozen scenario-held-out and cross-topology lanes. Thresholds fit only on a calibration partition; report exact binomial uncertainty, sensitivity, specificity, precision, F1, MCC, balanced accuracy, PR/ROC AUC, calibration and detection delay.",
     "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
     "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
     "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published topology+sensitivity hybrid, probabilistic Dynamic Residual Masking / game-theoretic pseudo-Jacobian placement, cascading-aware placement, and decision-aware placement at matched sensor count and whole-life cost. Reconstruct exact source task/split before numeric SOTA claims. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome.",
     "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score",
     "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
     "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
-    "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation."
+    "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation.",
+    "leak_validation_integrity": "Separate paper-matched 500-scenario Hanoi reproduction, full 1000-scenario Hanoi/1000-scenario Net1 scenario-held-out evaluation, and bidirectional cross-topology transfer. Group split by entire scenario and related seed/config family before windows/features; fit transforms/model/threshold only on train/calibration, evaluate once on sealed test. Publish frozen split membership and SHA-256 digests. Report event, timestep/delay, localization and operational metrics separately. Require source archive/version digest and blind evaluator isolation."
   },
   "provenance_receipt": {
     "required_digests": [
