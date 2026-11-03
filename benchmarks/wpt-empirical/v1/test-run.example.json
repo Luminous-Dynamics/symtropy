@@ -146,5 +146,31 @@
     "max_accepted_command_age_ms": null,
     "security_scenario_results": []
   },
-  "standards_basis": []
+  "standards_basis": [],
+  "motion_profile": {
+    "profile_id": "NOT_RUN",
+    "route_distance_m": null,
+    "elapsed_time_s": null,
+    "speed_mean_mps": null,
+    "speed_min_mps": null,
+    "speed_max_mps": null,
+    "longitudinal_acceleration_abs_max_mps2": null,
+    "transmitter_pitch_m": null,
+    "segment_count_total": null,
+    "segment_count_energized": null,
+    "segment_activation_attempts": null,
+    "segment_missed_activations": null,
+    "false_activation_count": null,
+    "roadway_energy_source_j": null,
+    "vehicle_dc_energy_received_j": null,
+    "battery_energy_gain_j": null,
+    "vehicle_propulsion_energy_used_j": null,
+    "roadway_idle_energy_j": null,
+    "roadway_energy_per_km_wh_km": null,
+    "battery_net_energy_per_km_wh_km": null,
+    "energy_sufficiency_ratio": null,
+    "segment_activation_success_fraction": null,
+    "speed_profile_sha256": null,
+    "segment_event_log_sha256": null
+  }
 }
