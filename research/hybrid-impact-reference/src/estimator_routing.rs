@@ -900,4 +900,65 @@ mod tests {
     }
 
 
+    #[test]
+    fn selected_decision_carries_gradient_metrics_and_full_router_configuration() {
+        let context = context(ContactRegime::SmoothSingleBranch {
+            branch_id: "stick".into(),
+            branch_evidence_digest: digest('b'),
+            validity_region_digest: digest('c'),
+        });
+        let result = route_gradient_estimator(&context, &[exact_candidate()], &config()).unwrap();
+        let EstimatorDecision::Selected(selected) = result else {
+            panic!("expected a selected exact estimator");
+        };
+
+        assert_eq!(selected.gradient, vec![0.1, -0.2]);
+        assert_eq!(selected.variance, vec![1.0e-5, 1.0e-5]);
+        assert_eq!(selected.absolute_bias_bound, vec![0.0, 0.0]);
+        assert_eq!(selected.normalization_digest, digest('f'));
+
+        let original = selected.canonical_bytes();
+        let mut changed_config = selected.clone();
+        changed_config.routing_configuration.cost_weight = 0.5;
+        assert_ne!(original, changed_config.canonical_bytes());
+    }
+
+    #[test]
+    fn variance_and_bias_bounds_require_separate_evidence_digests() {
+        let context = context(ContactRegime::Nonsmooth {
+            reason: NonsmoothReason::StickSlipTransition,
+        });
+        let mut variance = candidate("variance", EstimatorKind::ScoreFunction, 0.0, 1.0e-3);
+        variance.variance_evidence_digest = "not-a-digest".into();
+        assert_eq!(
+            route_gradient_estimator(&context, &[variance], &config()),
+            Err(EstimatorRoutingError::InvalidVarianceEvidenceDigest)
+        );
+
+        let mut bias = candidate("bias", EstimatorKind::ScoreFunction, 0.0, 1.0e-3);
+        bias.bias_bound_evidence_digest = "not-a-digest".into();
+        assert_eq!(
+            route_gradient_estimator(&context, &[bias], &config()),
+            Err(EstimatorRoutingError::InvalidBiasEvidenceDigest)
+        );
+    }
+
+    #[test]
+    fn excessive_mse_upper_bound_abstains_even_when_bias_guard_passes() {
+        let context = context(ContactRegime::Nonsmooth {
+            reason: NonsmoothReason::ActiveSetChange,
+        });
+        let mut config = config();
+        config.max_mse_upper_bound = 1.0e-8;
+        let candidates = vec![
+            candidate("high-variance", EstimatorKind::ScoreFunction, 0.0, 1.0e-2),
+        ];
+
+        assert_eq!(
+            route_gradient_estimator(&context, &candidates, &config()).unwrap(),
+            EstimatorDecision::Abstained(RoutingAbstention::NoAdmissibleEstimator)
+        );
+    }
+
+
 }
