@@ -32,7 +32,7 @@ pub enum SensorModality {
     Other,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ObservationState {
     HumanPresent,
     Clear,
@@ -356,9 +356,20 @@ pub fn evaluate(
     ordered_events.sort_by(|left, right| {
         left.event_id
             .cmp(&right.event_id)
+            .then_with(|| left.run_id.cmp(&right.run_id))
             .then_with(|| left.source_id.cmp(&right.source_id))
+            .then_with(|| left.source_epoch.cmp(&right.source_epoch))
             .then_with(|| left.source_sequence.cmp(&right.source_sequence))
+            .then_with(|| left.source_time_ms.cmp(&right.source_time_ms))
+            .then_with(|| left.received_at_ms.cmp(&right.received_at_ms))
+            .then_with(|| left.clock_uncertainty_ms.cmp(&right.clock_uncertainty_ms))
+            .then_with(|| left.calibration_epoch.cmp(&right.calibration_epoch))
+            .then_with(|| left.coverage_grid_sha256.cmp(&right.coverage_grid_sha256))
             .then_with(|| left.cell.cmp(&right.cell))
+            .then_with(|| left.state.cmp(&right.state))
+            .then_with(|| left.confidence_ppm.cmp(&right.confidence_ppm))
+            .then_with(|| left.coverage_ppm.cmp(&right.coverage_ppm))
+            .then_with(|| left.source_sha256.cmp(&right.source_sha256))
     });
 
     // Ignore records that had not arrived by the decision cutoff. A later
@@ -1424,6 +1435,42 @@ mod tests {
         policy.evaluated_at_ms += 200;
         let later = evaluate(&policy, &events);
         assert_eq!(later.disposition, Disposition::WithinSyntheticEnvelope);
+    }
+
+    #[test]
+    fn conflicting_duplicate_identity_is_arrival_order_invariant() {
+        let policy = base_policy();
+        let mut events = baseline_events();
+        let mut conflict = events[0].clone();
+        conflict.state = ObservationState::HumanPresent;
+        conflict.source_sha256 = digest('e');
+        events.push(conflict);
+
+        let first = evaluate(&policy, &events);
+        events.reverse();
+        let second = evaluate(&policy, &events);
+        assert_eq!(first, second);
+        assert_eq!(first.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(first.reason, Some(Reason::EventIdentityConflict));
+    }
+
+    #[test]
+    fn source_sequence_is_not_rewritten_by_duplicate_arrival_time() {
+        let policy = base_policy();
+        let mut events = baseline_events();
+        let mut replay = events[0].clone();
+        replay.received_at_ms = 4_800;
+        events.push(replay);
+
+        let decision = evaluate(&policy, &events);
+        assert_eq!(decision.disposition, Disposition::WithinSyntheticEnvelope);
+        assert_eq!(
+            decision.event_references
+                .iter()
+                .find(|reference| reference.event_id == events[0].event_id)
+                .map(|reference| reference.received_at_ms),
+            Some(4_800)
+        );
     }
 
     #[test]
