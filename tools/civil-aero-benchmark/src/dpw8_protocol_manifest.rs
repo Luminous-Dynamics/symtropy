@@ -827,6 +827,47 @@ mod tests {
         assert!(verify_dpw8_oat15a_manifest(&tampered).is_err());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn independent_python_oracle_replays_each_dpW8_protocol_lane() {
+        let lanes = [
+            Dpw8Oat15aLane::V1aSteadyGridConvergencePolar,
+            Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet,
+            Dpw8Oat15aLane::V1cScatterReductionReprise,
+        ];
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "dpw8-protocol-oracle-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).expect("create oracle fixture");
+        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/verify-dpw8-protocol-independent.py");
+        for lane in lanes {
+            let manifest = seal_dpw8_oat15a_manifest(manifest(lane))
+                .expect("seal lane-specific DPW-8 protocol");
+            let csv_path = root.join(format!("{}.csv", lane.as_str()));
+            std::fs::write(&csv_path, dpw8_oat15a_manifest_to_csv(&manifest))
+                .expect("write DPW-8 protocol CSV");
+            let output = std::process::Command::new("python3")
+                .arg(&script)
+                .arg(&csv_path)
+                .output()
+                .expect("execute independent DPW-8 protocol oracle");
+            assert!(
+                output.status.success(),
+                "independent DPW-8 oracle failed for {}: {}{}",
+                lane.as_str(),
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        std::fs::remove_dir_all(root).expect("remove DPW-8 oracle fixture");
+    }
+
     #[test]
     fn byte_pinned_source_requires_revision_digest_and_length() {
         let mut v1a = manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar);
