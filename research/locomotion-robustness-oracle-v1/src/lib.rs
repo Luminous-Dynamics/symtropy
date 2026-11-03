@@ -1729,7 +1729,7 @@ mod tests {
             model_evidence_tier: ModelEvidenceTier::ConnectomeConstrained,
             evaluation_tier: EvaluationTier::InSilicoEmbodied,
             scenario_id: "front-feCO-dropout-v1".to_string(),
-            scenario_family: ScenarioFamily::SensoryDropout,
+            scenario_family: ScenarioFamily::SensorDropout,
             perturbation_severity_microunits: 500_000,
             perturbation_unit: "ppm".to_string(),
             individual_id: individual.to_string(),
