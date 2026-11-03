@@ -939,6 +939,28 @@ mod tests {
     }
 
     #[test]
+    fn restored_checkpoint_rejects_replaying_its_last_decision_tick() {
+        let restored = ActorPolicyState::from_scenario(
+            ActorMode::Crossing,
+            1.0,
+            Some(ScenarioTick(42)),
+            bounds(),
+        ).unwrap();
+        assert_eq!(restored.last_decision_tick(), Some(ScenarioTick(42)));
+        assert_eq!(
+            cautious().transition(
+                restored,
+                &ttc_view(42, CueStatus::Observed, Some(4.0)),
+            ),
+            Err(PolicyError::NonMonotonicTick)
+        );
+        assert!(cautious().transition(
+            restored,
+            &ttc_view(43, CueStatus::Observed, Some(4.0)),
+        ).is_ok());
+    }
+
+    #[test]
     fn stable_profile_ids_match_the_conformance_manifest() {
         assert_eq!(cautious().profile_id(), "cautious_pause_v1");
         assert_eq!(committed().profile_id(), "committed_after_entry_v1");
