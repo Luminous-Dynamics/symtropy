@@ -486,11 +486,15 @@ mod tests {
         let start = snapshot(1_000, 0, 0, 0, 0, 0, 0);
         let mut active = snapshot(2_000, 1, 1, 0, 1, 0, 0);
         active.populated = true;
+        active.snapshot_sha256 =
+            sha256_hex(&snapshot_canonical_bytes(&active)).expect("reseal active snapshot");
         assert!(derive_cgroup_v2_resource_report(&start, &active)
             .expect_err("active cgroup must reject")
             .contains("empty"));
         let mut busy_start = snapshot(1_000, 0, 0, 0, 0, 0, 0);
         busy_start.populated = true;
+        busy_start.snapshot_sha256 =
+            sha256_hex(&snapshot_canonical_bytes(&busy_start)).expect("reseal busy baseline");
         assert!(derive_cgroup_v2_resource_report(&busy_start, &start).is_err());
     }
 
@@ -504,6 +508,8 @@ mod tests {
 
         let mut wrong_id = snapshot(2_000, 200, 160, 40, 1200, 0, 0);
         wrong_id.cgroup_id = "other-operation".to_owned();
+        wrong_id.snapshot_sha256 =
+            sha256_hex(&snapshot_canonical_bytes(&wrong_id)).expect("reseal changed cgroup");
         assert!(derive_cgroup_v2_resource_report(&start, &wrong_id)
             .expect_err("cross-cgroup report must reject")
             .contains("different cgroup"));
@@ -518,6 +524,8 @@ mod tests {
     fn rejects_malformed_and_duplicate_kernel_counter_fields() {
         assert!(parse_cgroup_v2_snapshot(
             "x",
+            "reader-x",
+            "rw,nosuid,nodev",
             1,
             "usage_usec 1\nuser_usec 1\n",
             "10\n",
@@ -526,12 +534,43 @@ mod tests {
         ).expect_err("missing system_usec").contains("system_usec"));
         assert!(parse_cgroup_v2_snapshot(
             "x",
+            "reader-x",
+            "rw,nosuid,nodev",
             1,
             "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
             "10\n",
             "oom 0\noom_kill 0\n",
             "populated 0\nfrozen 0\n",
         ).expect_err("duplicate CPU stat").contains("duplicate"));
+    }
+
+    #[test]
+    fn rejects_local_only_memory_events_and_changed_memory_peak_reader() {
+        assert!(
+            parse_cgroup_v2_snapshot(
+                "x",
+                "reader-x",
+                "rw,nosuid,nodev,memory_localevents",
+                1,
+                "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
+                "10\n",
+                "oom 0\noom_kill 0\n",
+                "populated 0\nfrozen 0\n",
+            )
+            .expect_err("local-only memory events are not process-tree evidence")
+            .contains("hierarchical")
+        );
+
+        let start = snapshot(1_000, 0, 0, 0, 0, 0, 0);
+        let mut end = snapshot(2_000, 1, 1, 0, 1, 0, 0);
+        end.memory_peak_reader_id = "different-fd".to_owned();
+        end.snapshot_sha256 = sha256_hex(&snapshot_canonical_bytes(&end))
+            .expect("reseal different memory peak reader");
+        assert!(
+            derive_cgroup_v2_resource_report(&start, &end)
+                .expect_err("peak counter reader must remain identical")
+                .contains("different file descriptors")
+        );
     }
 
     #[test]
