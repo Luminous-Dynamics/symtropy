@@ -88,8 +88,11 @@ pub struct GradientEstimatorCandidate {
     pub gradient: Vec<f64>,
     /// Per-coordinate variance estimates from the estimator's sampling process.
     pub variance: Vec<f64>,
+    /// Digest of the independently reproducible variance calculation / samples.
+    pub variance_evidence_digest: String,
     /// Per-coordinate absolute-bias upper bounds. Unknown bias is not zero.
     pub absolute_bias_bound: Vec<f64>,
+    /// Digest of the independent bound/calibration procedure for bias.
     /// Comparable caller-declared cost units (e.g. rollout-equivalents).
     pub cost_units: f64,
     /// Required only for BranchLocalExact.
@@ -131,12 +134,55 @@ pub struct SelectedEstimator {
     pub validity_region_digest: Option<String>,
     /// Regime evidence that governed admission of the selected estimator.
     pub regime: ContactRegime,
+    /// Exact router thresholds and admissibility switches used for this decision.
+    pub routing_configuration: EstimatorRouterConfig,
+    pub variance_evidence_digest: String,
+    pub bias_bound_evidence_digest: String,
     /// Mean per-coordinate upper bound: bias_bound^2 + variance.
     pub mean_mse_upper_bound: f64,
     /// MSE upper bound plus declared compute penalty.
     pub routing_score: f64,
     pub cost_units: f64,
 }
+
+    /// Deterministic, length-prefixed bytes for auditing or hashing the exact
+    /// selected estimate and the configuration that admitted it.
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        let mut output = Vec::new();
+        push_string(&mut output, GRADIENT_ROUTING_SCHEMA);
+        push_string(&mut output, &self.estimator_id);
+        push_string(&mut output, self.kind.tag());
+        push_string(&mut output, &self.objective_digest);
+
+        push_len(&mut output, self.coordinate_ids.len());
+        for (index, coordinate_id) in self.coordinate_ids.iter().enumerate() {
+            push_string(&mut output, coordinate_id);
+            push_f64(&mut output, self.gradient[index]);
+            push_f64(&mut output, self.variance[index]);
+            push_f64(&mut output, self.absolute_bias_bound[index]);
+        }
+
+        push_optional_string(&mut output, self.branch_id.as_deref());
+        push_optional_string(&mut output, self.branch_evidence_digest.as_deref());
+        push_optional_string(&mut output, self.validity_region_digest.as_deref());
+        push_string(&mut output, self.variance_evidence_digest.as_str());
+        push_string(&mut output, self.bias_bound_evidence_digest.as_str());
+        encode_regime(&mut output, &self.regime);
+
+        push_f64(&mut output, self.routing_configuration.max_abs_bias_bound);
+        push_f64(&mut output, self.routing_configuration.max_mse_upper_bound);
+        push_f64(&mut output, self.routing_configuration.cost_weight);
+        output.push(u8::from(self.routing_configuration.allow_mode_bridging_surrogates));
+        output.push(u8::from(self.routing_configuration.allow_score_function));
+        output.push(u8::from(self.routing_configuration.allow_zeroth_order));
+
+        push_f64(&mut output, self.mean_mse_upper_bound);
+        push_f64(&mut output, self.routing_score);
+        push_f64(&mut output, self.cost_units);
+        output
+    }
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoutingAbstention {
@@ -163,8 +209,10 @@ pub enum EstimatorRoutingError {
     InvalidCandidateShape,
     InvalidGradientValue,
     InvalidVariance,
+    InvalidVarianceEvidenceDigest,
     UnknownBiasBound,
     InvalidBiasBound,
+    InvalidBiasEvidenceDigest,
     InvalidCost,
     DuplicateEstimatorIdentity,
     MixedObjective,
@@ -229,12 +277,18 @@ impl GradientEstimatorCandidate {
         {
             return Err(EstimatorRoutingError::InvalidVariance);
         }
+        if !is_lower_hex_digest(&self.variance_evidence_digest) {
+            return Err(EstimatorRoutingError::InvalidVarianceEvidenceDigest);
+        }
         if self
             .absolute_bias_bound
             .iter()
             .any(|value| !value.is_finite() || *value < 0.0)
         {
             return Err(EstimatorRoutingError::InvalidBiasBound);
+        }
+        if !is_lower_hex_digest(&self.bias_bound_evidence_digest) {
+            return Err(EstimatorRoutingError::InvalidBiasEvidenceDigest);
         }
         if !self.cost_units.is_finite() || self.cost_units < 0.0 {
             return Err(EstimatorRoutingError::InvalidCost);
@@ -304,6 +358,100 @@ impl GradientEstimatorCandidate {
 /// IVW-style fusion is deferred until estimator covariance is available and
 /// independently bound; independent marginal variances alone are insufficient
 /// to justify combining correlated estimates.
+impl EstimatorKind {
+    fn tag(self) -> &'static str {
+        match self {
+            Self::BranchLocalExact => "BRANCH_LOCAL_EXACT",
+            Self::ModeBridgingSurrogate => "MODE_BRIDGING_SURROGATE",
+            Self::ScoreFunction => "SCORE_FUNCTION",
+            Self::ZerothOrder => "ZEROTH_ORDER",
+        }
+    }
+}
+
+impl NonsmoothReason {
+    fn tag(self) -> &'static str {
+        match self {
+            Self::ActiveSetChange => "ACTIVE_SET_CHANGE",
+            Self::StickSlipTransition => "STICK_SLIP_TRANSITION",
+            Self::ContactMakeOrBreak => "CONTACT_MAKE_OR_BREAK",
+            Self::EventSurfaceCrossing => "EVENT_SURFACE_CROSSING",
+            Self::EventOrderAmbiguity => "EVENT_ORDER_AMBIGUITY",
+            Self::EmpiricallyDetectedDiscontinuity => "EMPIRICALLY_DETECTED_DISCONTINUITY",
+        }
+    }
+}
+
+impl SingularRegimeReason {
+    fn tag(self) -> &'static str {
+        match self {
+            Self::Grazing => "GRAZING",
+            Self::IllConditioned => "ILL_CONDITIONED",
+            Self::UnresolvedEventOrder => "UNRESOLVED_EVENT_ORDER",
+            Self::NonUniqueContactResponse => "NON_UNIQUE_CONTACT_RESPONSE",
+            Self::MissingBranchEvidence => "MISSING_BRANCH_EVIDENCE",
+        }
+    }
+}
+
+fn encode_regime(output: &mut Vec<u8>, regime: &ContactRegime) {
+    match regime {
+        ContactRegime::SmoothSingleBranch {
+            branch_id,
+            branch_evidence_digest,
+            validity_region_digest,
+        } => {
+            output.push(0);
+            push_string(output, branch_id);
+            push_string(output, branch_evidence_digest);
+            push_string(output, validity_region_digest);
+        }
+        ContactRegime::Nonsmooth { reason } => {
+            output.push(1);
+            push_string(output, reason.tag());
+        }
+        ContactRegime::MultiBranch { branch_ids } => {
+            output.push(2);
+            push_len(output, branch_ids.len());
+            for branch_id in branch_ids {
+                push_string(output, branch_id);
+            }
+        }
+        ContactRegime::SingularOrUnresolved { reason } => {
+            output.push(3);
+            push_string(output, reason.tag());
+        }
+    }
+}
+
+fn push_len(output: &mut Vec<u8>, length: usize) {
+    output.extend_from_slice(&(length as u64).to_le_bytes());
+}
+
+fn push_string(output: &mut Vec<u8>, value: &str) {
+    push_len(output, value.len());
+    output.extend_from_slice(value.as_bytes());
+}
+
+fn push_optional_string(output: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        Some(value) => {
+            output.push(1);
+            push_string(output, value);
+        }
+        None => output.push(0),
+    }
+}
+
+fn push_f64(output: &mut Vec<u8>, value: f64) {
+    let bits = if value == 0.0 {
+        0.0_f64.to_bits()
+    } else {
+        value.to_bits()
+    };
+    output.extend_from_slice(&bits.to_le_bytes());
+}
+
 pub fn route_gradient_estimator(
     context: &EstimatorRoutingContext,
     candidates: &[GradientEstimatorCandidate],
@@ -395,6 +543,9 @@ pub fn route_gradient_estimator(
             branch_evidence_digest: candidate.branch_evidence_digest.clone(),
             validity_region_digest: candidate.validity_region_digest.clone(),
             regime: context.regime.clone(),
+            routing_configuration: config.clone(),
+            variance_evidence_digest: candidate.variance_evidence_digest.clone(),
+            bias_bound_evidence_digest: candidate.bias_bound_evidence_digest.clone(),
             mean_mse_upper_bound: mse,
             routing_score,
             cost_units: candidate.cost_units,
@@ -523,7 +674,9 @@ mod tests {
             coordinate_ids: vec!["joint-1".into(), "joint-2".into()],
             gradient: vec![0.1, -0.2],
             variance: vec![variance, variance],
+            variance_evidence_digest: digest('d'),
             absolute_bias_bound: vec![bias, bias],
+            bias_bound_evidence_digest: digest('e'),
             cost_units: 1.0,
             branch_id: None,
             branch_evidence_digest: None,
