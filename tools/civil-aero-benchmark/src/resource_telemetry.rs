@@ -401,7 +401,7 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     let header = "record_type,cgroup_id,memory_peak_reader_id,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_numerator_usec,cpu_core_hours_denominator_usec,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256";
     let mut output = format!("{header}\n");
     for (kind, snapshot) in [("start", start), ("end", end)] {
-        let mut row = vec![String::new(); 35];
+        let mut row = vec![String::new(); 36];
         row[0] = kind.to_owned();
         row[1] = snapshot.cgroup_id.clone();
         row[2] = snapshot.memory_peak_reader_id.clone();
@@ -424,7 +424,7 @@ pub fn cgroup_v2_resource_evidence_to_csv(
         output.push_str(&csv_row(row));
         output.push('\n');
     }
-    let mut row = vec![String::new(); 35];
+    let mut row = vec![String::new(); 36];
     row[0] = "report".to_owned();
     row[1] = report.cgroup_id.clone();
     row[19] = report.schema.clone();
@@ -443,7 +443,7 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     row[32] = report.start_snapshot_sha256.clone();
     row[33] = report.end_snapshot_sha256.clone();
     row[34] = report.evidence_level.clone();
-    row[35-1] = report.report_sha256.clone();
+    row[35] = report.report_sha256.clone();
     output.push_str(&csv_row(row));
     output.push('\n');
     output
