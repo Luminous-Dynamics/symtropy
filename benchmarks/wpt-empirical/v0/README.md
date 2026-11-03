@@ -99,3 +99,34 @@ The Purdue and Japan reports are field-trial families; the Kindl paper is an exp
 
 The full follow-on is tracked in [WPT-DYNAMIC-CO-DESIGN-001 #3452](https://github.com/Luminous-Dynamics/symtropy/issues/3452).
 
+## Room-scale and optical 2026 frontier additions
+
+Two more experimentally distinct technology families are now included.
+
+| Lane | System | Reported result | Comparison boundary |
+|---|---|---|---|
+| Room-scale magnetoquasistatic IPT | Sasatani et al. 2026 hierarchical resonators | 1.34 MHz; 15 mm receiver; up to 500 mW DC from 9 W input; about 5% DC-to-DC. In separate passive-link tests, >20% AC-to-AC at 50 mm relay-to-receiver separation and about 0.3% direct baseline. | Passive AC-to-AC results and full DC-to-DC system result are separate records. A relay-assisted field link is not equivalent to a static EV coupler. |
+| Optical laser power transfer | Yigit et al. 2026 | 20 m indoor free-space optical path; approximately 99 W delivered; 12.4% end-to-end efficiency; 95.96% laser-driver stage efficiency. | Laser-driver efficiency is a component metric; the 12.4% figure is full laser-to-electric system efficiency. |
+
+### Room-scale relay safety and scheduling
+
+The hierarchical-resonator paper also finds that activating multiple relays redistributes available power and can reduce per-node delivery. This makes the control problem a scheduling/allocation task, not just a resonator optimization task. The authors describe selective or time-multiplexed relay activation as a way to manage receiver demand.
+
+The article's exposure analysis is also an important caution: near the active relay, the external magnetic-field reference level can be locally exceeded, while simulated SAR in a simplified cylindrical human-equivalent phantom remains below the cited basic restrictions for the evaluated 500 mW condition. This is a model-specific dosimetric assessment—not measured human exposure and not a blanket compliance certification.
+
+### Expanded frontier summary
+
+The dataset now includes six distinct prototype families across:
+- static high-power EV IPT;
+- exposure-informed static DD-pad co-design;
+- dynamic heavy-duty roadway IPT;
+- public-road EV DWPT endurance;
+- room-scale magnetoquasistatic relay networks for miniature receivers;
+- indoor optical laser power transfer.
+
+These lanes are not a single efficiency leaderboard. The relevant service, power boundary, field exposure, geometry, duty cycle, load and operating context differ materially. The schema therefore retains a multi-measurement structure for each prototype and separate engineering metrics for field exposure, relay coupling, shielding and driver performance.
+
+Source additions:
+- Sasatani, Sample & Kawahara (2026), [npj Wireless Technology](https://doi.org/10.1038/s44459-026-00093-4), published 1 October 2026.
+- Yigit et al. (2026), [Optics and Laser Technology](https://doi.org/10.1016/j.optlastec.2026.115445), October 2026.
+
