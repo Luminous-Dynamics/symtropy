@@ -319,10 +319,7 @@ fn stop(
 ///
 /// This function is advisory evidence evaluation only. It does not issue
 /// commands, stop equipment, reset an emergency stop or authorize work.
-pub fn evaluate(
-    policy: &TracePolicy,
-    input_events: &[SafetyEvidenceEvent],
-) -> TemporalDecision {
+pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> TemporalDecision {
     let empty = BTreeMap::new();
     if !policy_is_valid(policy) {
         return make_decision(
@@ -422,9 +419,7 @@ pub fn evaluate(
                 &events_by_id,
             );
         }
-        if event.confidence_ppm > MAX_CONFIDENCE_PPM
-            || event.coverage_ppm > MAX_CONFIDENCE_PPM
-        {
+        if event.confidence_ppm > MAX_CONFIDENCE_PPM || event.coverage_ppm > MAX_CONFIDENCE_PPM {
             return inconsistent(policy, Reason::EventConfidenceMalformed, &events_by_id);
         }
         if !required_cells.contains(&event.cell) {
@@ -446,8 +441,7 @@ pub fn evaluate(
     // A source sequence identifies one acquisition frame. All cell records in
     // that frame share one source timestamp; source time cannot regress as the
     // sequence increases within the pinned source epoch.
-    let mut source_sequence_times =
-        BTreeMap::<(String, u64), BTreeMap<u64, u64>>::new();
+    let mut source_sequence_times = BTreeMap::<(String, u64), BTreeMap<u64, u64>>::new();
     let mut source_sequence_cells =
         BTreeMap::<(String, u64, u64, GridCell), SafetyEvidenceEvent>::new();
 
@@ -502,10 +496,8 @@ pub fn evaluate(
     }
 
     let mut results = Vec::new();
-    let mut modality_cells =
-        BTreeMap::<SensorModality, BTreeSet<GridCell>>::new();
-    let mut fault_domain_cells =
-        BTreeMap::<String, BTreeSet<GridCell>>::new();
+    let mut modality_cells = BTreeMap::<SensorModality, BTreeSet<GridCell>>::new();
+    let mut fault_domain_cells = BTreeMap::<String, BTreeSet<GridCell>>::new();
 
     let mut ordered_sources = policy.sources.iter().collect::<Vec<_>>();
     ordered_sources.sort_by(|left, right| left.sensor_id.cmp(&right.sensor_id));
@@ -545,11 +537,7 @@ pub fn evaluate(
                     return stop(policy, Reason::HumanPresent, results, &events_by_id);
                 }
                 ObservationState::Conflicting => {
-                    return inconsistent(
-                        policy,
-                        Reason::ConflictingHumanEvidence,
-                        &events_by_id,
-                    );
+                    return inconsistent(policy, Reason::ConflictingHumanEvidence, &events_by_id);
                 }
                 ObservationState::Unknown => {
                     saw_unknown = true;
@@ -751,13 +739,7 @@ fn baseline_events() -> Vec<SafetyEvidenceEvent> {
             GridCell { column: 0, row: 0 },
             GridCell { column: 1, row: 0 },
         ] {
-            events.push(event(
-                sensor,
-                1,
-                4_900,
-                cell,
-                ObservationState::Clear,
-            ));
+            events.push(event(sensor, 1, 4_900, cell, ObservationState::Clear));
         }
     }
     events
@@ -822,8 +804,10 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-human-present-{source}-{}",
-                cell.column);
+            let name = format!(
+                "TIME-{case_number:03}-human-present-{source}-{}",
+                cell.column
+            );
             let mut events = base.clone();
             events.push(event(
                 source,
@@ -845,16 +829,9 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-unknown-{source}-{}",
-                cell.column);
+            let name = format!("TIME-{case_number:03}-unknown-{source}-{}", cell.column);
             let mut events = base.clone();
-            events.push(event(
-                source,
-                2,
-                4_950,
-                cell,
-                ObservationState::Unknown,
-            ));
+            events.push(event(source, 2, 4_950, cell, ObservationState::Unknown));
             add_case(
                 &mut cases,
                 name,
@@ -868,8 +845,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-missing-{source}-{}",
-                cell.column);
+            let name = format!("TIME-{case_number:03}-missing-{source}-{}", cell.column);
             let mut events = base.clone();
             events.retain(|item| !(item.source_id == source && item.cell == cell));
             add_case(
@@ -885,8 +861,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-stale-{source}-{}",
-                cell.column);
+            let name = format!("TIME-{case_number:03}-stale-{source}-{}", cell.column);
             let mut events = base.clone();
             for source_event in &mut events {
                 if source_event.source_id == source {
@@ -907,8 +882,10 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-low-confidence-{source}-{}",
-                cell.column);
+            let name = format!(
+                "TIME-{case_number:03}-low-confidence-{source}-{}",
+                cell.column
+            );
             let mut events = base.clone();
             if let Some(latest) = events
                 .iter_mut()
@@ -929,8 +906,10 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-grid-mismatch-{source}-{}",
-                cell.column);
+            let name = format!(
+                "TIME-{case_number:03}-grid-mismatch-{source}-{}",
+                cell.column
+            );
             let mut events = base.clone();
             if let Some(latest) = events
                 .iter_mut()
@@ -951,8 +930,10 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-source-epoch-mismatch-{source}-{}",
-                cell.column);
+            let name = format!(
+                "TIME-{case_number:03}-source-epoch-mismatch-{source}-{}",
+                cell.column
+            );
             let mut events = base.clone();
             if let Some(latest) = events
                 .iter_mut()
@@ -973,8 +954,10 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
 
     for source in sources {
         for cell in cells {
-            let name = format!("TIME-{case_number:03}-calibration-mismatch-{source}-{}",
-                cell.column);
+            let name = format!(
+                "TIME-{case_number:03}-calibration-mismatch-{source}-{}",
+                cell.column
+            );
             let mut events = base.clone();
             if let Some(latest) = events
                 .iter_mut()
@@ -1066,10 +1049,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     );
 
     let mut events = base.clone();
-    events[0].cell = GridCell {
-        column: 9,
-        row: 9,
-    };
+    events[0].cell = GridCell { column: 9, row: 9 };
     add_case(
         &mut cases,
         "TIME-043-event-outside-declared-hazard-zone".to_owned(),
@@ -1177,13 +1157,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
             GridCell { column: 0, row: 0 },
             GridCell { column: 1, row: 0 },
         ] {
-            later_frame.push(event(
-                source,
-                2,
-                5_100,
-                cell,
-                ObservationState::Clear,
-            ));
+            later_frame.push(event(source, 2, 5_100, cell, ObservationState::Clear));
         }
     }
     events.extend(later_frame);
@@ -1270,8 +1244,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     );
 
     let mut single_modality_policy = base_policy.clone();
-    single_modality_policy.sources[1].modality =
-        single_modality_policy.sources[0].modality;
+    single_modality_policy.sources[1].modality = single_modality_policy.sources[0].modality;
     add_case(
         &mut cases,
         "TIME-056-policy-has-one-modality-only".to_owned(),
@@ -1333,7 +1306,10 @@ mod tests {
     #[test]
     fn frozen_trace_corpus_has_at_least_fifty_unique_cases() {
         let cases = frozen_trace_cases();
-        let ids = cases.iter().map(|case| case.id.as_str()).collect::<BTreeSet<_>>();
+        let ids = cases
+            .iter()
+            .map(|case| case.id.as_str())
+            .collect::<BTreeSet<_>>();
         assert!(cases.len() >= 50);
         assert_eq!(ids.len(), cases.len());
     }
@@ -1469,7 +1445,8 @@ mod tests {
         let decision = evaluate(&policy, &events);
         assert_eq!(decision.disposition, Disposition::WithinSyntheticEnvelope);
         assert_eq!(
-            decision.event_references
+            decision
+                .event_references
                 .iter()
                 .find(|reference| reference.event_id == events[0].event_id)
                 .map(|reference| reference.received_at_ms),
@@ -1488,10 +1465,7 @@ mod tests {
         let mut events = baseline_events();
         events[0].calibration_epoch = "changed".to_owned();
         let calibration = evaluate(&policy, &events);
-        assert_eq!(
-            calibration.reason,
-            Some(Reason::CalibrationEpochMismatch)
-        );
+        assert_eq!(calibration.reason, Some(Reason::CalibrationEpochMismatch));
     }
 
     #[test]
