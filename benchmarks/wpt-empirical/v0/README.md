@@ -170,3 +170,12 @@ This creates a useful near-matched industrial comparison against Zavrel's 65 kW 
 
 Primary research portal: https://research.utwente.nl/en/publications/on-the-efficiency-limits-and-electric-field-stresses-of-wireless-/
 
+## Standards revision watch: IEC/IEEE 63184
+
+A further standards-development item is now tracked separately from the published 2025 edition:
+
+- **Published edition:** IEC/IEEE 63184:2025 remains the active published standard. The IEC publication page states 3 kHz–30 MHz and stationary WPT; it specifies assessment procedures and measurement/computational methods for SAR, internal E-fields, current density and contact currents.
+- **Publisher wording discrepancy:** IEEE's standard landing page describes the objective as stationary and dynamic WPT and its overview text states 1 kHz–30 MHz, while the title, detailed scope and IEC publication page state 3 kHz–30 MHz. The IEEE page's detailed scope is stationary and inductive. Record the publisher wording rather than silently choosing a broader scope.
+- **Revision project:** IEEE lists P63184 as an Active PAR approved 10 September 2025 that will supersede 63184-2025. This is a revision project, not a published replacement standard as of 3 November 2026. Do not cite P63184 as normative compliance criteria or assume its intended changes have entered into force.
+
+This is a useful programme watch because the current published edition focuses on inductive WPT and says future versions will consider extended capacitive-WPT assessment guidance. The WPT benchmark should support standards versioning at the test-record level: a test must identify the edition, national adoption and assessment method actually used. Standards metadata is not evidence of compliance.
