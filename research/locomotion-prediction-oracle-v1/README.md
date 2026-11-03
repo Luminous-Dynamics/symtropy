@@ -10,8 +10,8 @@ A dependency-free Rust qualification slice for the Symtropy–Symthaea locomotio
 - Applies explicit resource ceilings: 64 models per intervention, 256 features per forecast and 64 provenance artifacts per model.
 - Checks that prediction commits precede the unblinding event in the same declared append-only evidence log.
 - Checks covariance symmetry and positive semidefiniteness, and rejects non-finite values.
-- Computes pairwise, noise-aware **mean-only** squared Mahalanobis separation. Model predictive and observation-difference covariance are used only to whiten differences between predicted means.
-- Reports whether all, some or none of the candidate pairs exceed the preregistered mean-separation threshold. It never silently chooses a winner.
+- Computes two independent screens: (1) mean-only squared Mahalanobis separation and (2) Gaussian predictive-distribution Bhattacharyya distance.
+- Reports separate all-pairs / some-pairs / no-pairs outcomes for mean separation and Gaussian-distribution separation. A result in one screen cannot silently override the other.
 
 ## What it deliberately does not do
 
@@ -29,23 +29,35 @@ For models i and j, V1 computes:
 
 Here μ is the predicted feature-mean vector, Σ_i and Σ_j are each model's predictive covariance, and Σ_obs,diff is the declared covariance of observation error in the difference. Cholesky factorization and triangular solves are used rather than an explicit matrix inverse.
 
-**Important limitation:** this is a mean-only separation heuristic. It uses covariance to scale the distance between predicted means, but it does not test covariance-only differences. Two forecasts with identical means and different covariance matrices return zero mean separation. The tests include this negative control. A future distribution-aware discriminator must compare full predictive distributions using a preregistered proper scoring or distributional distance and explicit cross-model covariance where forecast errors are paired/correlated.
+This is a mean-only screen. It uses covariance to scale the distance between predicted means but does not test covariance-only differences. Two forecasts with identical means and different covariance matrices return zero mean separation. This remains a useful, separately reported diagnostic rather than a full distribution test.
 
-The threshold minimum_pair_mean_d2 and regularizer lambda must be preregistered. The statistic assumes independent model-predictive errors; paired/correlated predictive errors need an explicit cross-model covariance term. It is not exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability. An AllPairsMeanSeparated status means only that every model pair's predicted means exceed this preregistered distance threshold; it is not evidence that the full predictive distributions differ or that one mechanism is true.
+## Gaussian predictive-distribution screen
+
+V1 also computes the Bhattacharyya distance between multivariate Gaussian predictive approximations:
+
+    D_B(i,j) = 1/8 · Δμᵀ Σ̄⁻¹ Δμ
+               + 1/2 · ln(det(Σ̄) / sqrt(det(Σ_i,obs) det(Σ_j,obs)))
+
+where Δμ = μ_i - μ_j, Σ_i,obs = Σ_i + Σ_obs + λI, Σ_j,obs = Σ_j + Σ_obs + λI, and Σ̄ = (Σ_i,obs + Σ_j,obs)/2. The observation covariance Σ_obs is supplied separately from Σ_obs,diff, which is used by the mean-only screen. Cholesky factorization, triangular solves and Cholesky log-determinants are used; no explicit matrix inverse is formed.
+
+This detects differences in both Gaussian means and covariance structures, including the covariance-only negative control. It is exact only under the multivariate-Gaussian approximation. It is not a nonparametric test of arbitrary predictive distributions, exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
+
+Both thresholds and the regularizer must be preregistered. V1 assumes independent model-predictive errors; paired/correlated predictive errors require an explicit cross-model covariance extension. A Gaussian-separated result does not establish that a mechanism is true or uniquely identified. An AllPairsMeanSeparated status means only that every model pair's predicted means exceed this preregistered distance threshold; it is not evidence that the full predictive distributions differ or that one mechanism is true.
 
 ## Synthetic oracle cases
 
-The unit tests cover:
+The 24 unit tests cover:
 - malformed and missing evidence references;
 - duplicate model IDs, intervention mismatch and feature-schema ordering;
 - invalid covariance and non-finite predictions;
 - connectome provenance requirements;
 - valid and invalid commit/unblinding order;
 - a known-answer Mahalanobis distance;
-- identical negative-control predictions and explicit no-mean-separation outcomes;
-- covariance-only model differences correctly remaining unresolved by the mean-only metric;
-- partial mean separation without forced winner selection;
-- all-pairs mean separation on synthetic known-answer candidates;
+- identical negative-control predictions and explicit no-mean-separation / no-Gaussian-separation outcomes;
+- covariance-only differences remaining unresolved under the mean metric but separated by the Gaussian Bhattacharyya metric;
+- known-answer one-dimensional Gaussian Bhattacharyya distance;
+- partial mean separation and all-pairs mean separation without forced winner selection;
+- uncertainty reducing both mean and Gaussian separation;
 - uncertainty reducing apparent model separation.
 
 ## Run
