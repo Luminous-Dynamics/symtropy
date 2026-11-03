@@ -544,3 +544,26 @@ Two new groups have been added:
 2. **AI data-centre IT-load protection:** workload ramp/burst replay, UPS/DC bus ride-through, priority shedding and cooling constraints, grid disturbance co-response, and flexible-load dispatch including deferred-work rebound and SLA constraints.
 
 The resulting matrix contains 32 cases. Pass thresholds remain null until the exact UNIFI V3 / applicable IEEE clause, utility agreement and mission-specific requirement are selected. Hardware claims still require physical evidence; HIL and model evidence remain separately labelled.
+
+
+## 24. Correlation-aware AI data-centre power and workload flexibility
+
+The benchmark matrix is now **10 groups / 37 cases / 22 source records**. The newest addition is `DC-GRID-COORD-001`, which treats large AI data centres as workload-driven, non-stationary, potentially spatially correlated grid loads—not independent constant-power blocks.
+
+New research inputs:
+- Elsayed et al., *Scientific Data* (3 June 2026), DOI 10.1038/s41597-026-07496-6: open high-resolution dataset with 32 H100/B200 8-GPU node training sessions and 40 RTX 3060 sessions, more than 1.8 million samples, 50 Hz detailed traces, power/utilization/memory/temperature measurements. Public data: https://doi.org/10.6084/m9.figshare.31654879
+- *Spatially Correlated Load Dynamics in AI Data-Center-Dominated Grids*, IEEE Transactions on Power Systems (31 August 2026), DOI 10.1109/TPWRS.2026.3729445: an IEEE 39-bus EMT study reports about 7× aggregate active-power variability and 11× frequency standard deviation for correlated versus independent loads in its studied conditions. Treat those ratios as study-specific, not universal.
+- Caprara et al., *International Journal of Electrical Power & Energy Systems* 178 (May 2026), DOI 10.1016/j.ijepes.2026.111940: LAD-Flex estimates up to 22% load shedding during flexibility windows using more than one million Alibaba cluster tasks; this is trace-based modelling, not a field trial.
+- Colangelo et al., *Nature Energy* 11 (2026), DOI 10.1038/s41560-025-01927-1: field demonstration on a 256-GPU cluster reduced power by 25% for 3 hours while maintaining declared AI QoS, with software orchestration and no hardware/storage additions.
+- *Empirically-Calibrated H100 Node Power Models for Accurate AI Training Energy Estimation*, DOI 10.1088/2753-3751/ae2486: reports 11.4% MAPE on its measured H100 domain versus 27–37% for TDP-based estimates.
+- *Wide-Area Power System Oscillations From Large-Scale AI Workloads*, IEEE Transactions on Power Systems (2026), DOI 10.1109/TPWRS.2026.3685506: studies periodic stochastic workload forcing on WECC 179-bus and NPCC 140-bus systems.
+
+The new five-case group covers raw high-resolution trace calibration/holdout, correlation-versus-independence fleet aggregation, workload spectral forcing of grid modes, latency-aware demand response with rebound/SLA tracking, and matched replication of the 25%-for-3-hours field envelope.
+
+Proposed internal research goals (not standards limits):
+- beat the 11.4% H100 power-model MAPE on a comparable held-out workload/hardware domain, then stretch below 8% with calibrated prediction intervals;
+- reproduce the 25%-for-3-hours field result under the same class of workload/QoS constraints, then test 30% for 3 hours without more energy per completed work or rebound peak;
+- match or exceed the Alibaba study's 22% modelled flexible-load envelope while preserving deadlines, tail latency, cooling margin and total completed work;
+- improve correlated multi-site aggregate P/frequency predictions against the independence assumption without using held-out future trace information.
+
+These targets must be compared at identical task mix, hardware, baseline, response time, QoS/SLA, cooling state, geography, grid signal and rebound horizon. A percentage load reduction is not a win if the system completes less work, consumes more total energy, violates deadlines, overuses cooling water or creates a later coincident peak.
