@@ -420,7 +420,28 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
         &mut Vec::with_capacity(LP_VARIABLE_COUNT),
         &mut best,
     );
-    let optimum = best?;
+    let mut optimum = best?;
+    // Canonicalize coordinates that no declared gradient observes. Their
+    // values cannot affect any branch derivative or the optimum margin.
+    for coordinate in 0..INPUT_DIMENSION {
+        if gradients
+            .iter()
+            .all(|gradient| gradient[coordinate] == rational(0))
+        {
+            optimum.direction[coordinate] = rational(0);
+        }
+    }
+    optimum.branch_upper_bounds = gradients
+        .iter()
+        .map(|gradient| {
+            gradient
+                .iter()
+                .zip(optimum.direction.iter())
+                .fold(rational(0), |sum, (coefficient, value)| {
+                    sum + coefficient * value
+                })
+        })
+        .collect();
     let worst_branch_upper = optimum.branch_upper_bounds.iter().max()?;
     if -worst_branch_upper.clone() != optimum.margin {
         return None;
@@ -676,14 +697,14 @@ mod tests {
         // One gradient box has a positive robust descent direction. Its lower
         // corner alone is an incomplete relaxation; the exact support oracle
         // adds the adverse upper endpoint when a proposed direction needs it.
-        let positive_box = interval_gradient([(1, 2), (0, 1), (0, 0), (0, 0), (0, 0), (0, 0)]);
+        let positive_box = interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)]);
         let positive = solve_robust_descent_interval_lp(&[positive_box])
             .expect("the exact interval LP certifies a common descent direction");
         assert_eq!(positive.margin, rational(1));
         assert_eq!(positive.branch_upper_bounds, vec![rational(-1)]);
         assert_eq!(
             gradient_box_support_upper(
-                &interval_gradient([(1, 2), (0, 1), (0, 0), (0, 0), (0, 0), (0, 0),]),
+                &interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0),]),
                 &positive.direction
             ),
             rational(-1)
