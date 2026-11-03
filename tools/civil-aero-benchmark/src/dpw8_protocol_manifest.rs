@@ -373,12 +373,27 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
         }
     }
     match source.state {
-        Dpw8SourceAdmissionState::NotAdmitted | Dpw8SourceAdmissionState::PermissionPending => {
+        Dpw8SourceAdmissionState::NotAdmitted => {
             if source.byte_length.is_some() || source.sha256.is_some() {
                 return Err(format!(
                     "DPW-8 source {} is not admitted but contains a digest/length",
                     source.source_id
                 ));
+            }
+        }
+        Dpw8SourceAdmissionState::PermissionPending => {
+            match (source.byte_length, source.sha256.as_deref()) {
+                (None, None) => {}
+                (Some(length), Some(value))
+                    if length > 0
+                        && is_digest(value)
+                        && source.source_revision != "not-yet-byte-pinned" => {}
+                _ => {
+                    return Err(format!(
+                        "DPW-8 source {} permission-pending byte metadata must be entirely absent or fully pinned",
+                        source.source_id
+                    ));
+                }
             }
         }
         Dpw8SourceAdmissionState::BytePinnedReferenceOnly
@@ -409,6 +424,26 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
     }
     if spec.angle_of_attack_degrees.iter().any(|value| !value.is_finite()) {
         return Err("DPW-8 angle-of-attack list contains a non-finite value".to_owned());
+    }
+    if spec.sidewall_boundary_condition.trim().is_empty() {
+        return Err("DPW-8 sidewall boundary condition must not be empty".to_owned());
+    }
+    for (name, value) in [
+        ("Mach", spec.mach),
+        ("chord Reynolds number", spec.chord_reynolds),
+        ("static temperature", spec.static_temperature_kelvin),
+        ("common farfield chords", spec.common_farfield_chords),
+        ("gamma", spec.gamma),
+        ("Prandtl number", spec.prandtl),
+        ("turbulent Prandtl number", spec.turbulent_prandtl),
+        ("farfield viscosity ratio", spec.farfield_kinematic_viscosity_ratio_chi),
+    ] {
+        if value.is_some_and(|value| !value.is_finite() || value <= 0.0) {
+            return Err(format!("DPW-8 {name} must be finite and positive when specified"));
+        }
+    }
+    if spec.residual_target_log10.is_some_and(|value| !value.is_finite() || value >= 0.0) {
+        return Err("DPW-8 log10 residual target must be finite and negative".to_owned());
     }
     let mut angles = spec.angle_of_attack_degrees.clone();
     angles.sort_by(f64::total_cmp);
@@ -444,6 +479,10 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 || spec.sutherland_law.is_some()
                 || spec.wall_thermal_condition.is_some()
                 || spec.residual_target_log10.is_some()
+                || spec.gamma.is_some()
+                || spec.prandtl.is_some()
+                || spec.turbulent_prandtl.is_some()
+                || spec.farfield_kinematic_viscosity_ratio_chi.is_some()
             {
                 return Err("V1a must not inherit V1c-only scatter-reprise settings".to_owned());
             }
@@ -463,11 +502,21 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 || spec.sutherland_law.is_some()
                 || spec.wall_thermal_condition.is_some()
                 || spec.residual_target_log10.is_some()
+                || spec.gamma.is_some()
+                || spec.prandtl.is_some()
+                || spec.turbulent_prandtl.is_some()
+                || spec.farfield_kinematic_viscosity_ratio_chi.is_some()
             {
                 return Err("V1b must not inherit V1c-only scatter-reprise settings".to_owned());
             }
         }
         Dpw8Oat15aLane::V1cScatterReductionReprise => {
+            if spec.mach.is_some()
+                || spec.chord_reynolds.is_some()
+                || spec.static_temperature_kelvin.is_some()
+            {
+                return Err("V1c base flow values are not separately stated in the admitted scatter-reprise subsection; do not invent them here".to_owned());
+            }
             if spec.angle_schedule != Dpw8AngleSchedule::NotSpecifiedByThisSource
                 || spec.angle_of_attack_degrees.len() != 0
                 || spec.grid_policy != Dpw8GridFamilyPolicy::UpdatedFamilyDefinitionMustBeAdmitted
