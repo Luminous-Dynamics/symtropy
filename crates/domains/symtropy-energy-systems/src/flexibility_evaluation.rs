@@ -215,14 +215,17 @@ impl FlexibilityEventContract {
 
 /// One aligned baseline/response interval from the same site and workload contract.
 ///
-/// Power values are facility-PCC import in kW. Work is an explicitly chosen
-/// application-specific completed-work unit; its specification must be frozen
-/// outside this primitive and identical for baseline and response.
+/// PCC values represent grid import. Facility-input values represent the
+/// complete electrical input at one frozen facility boundary, including grid,
+/// on-site generation and storage discharge, without adding nested meters.
+/// Work is an application-specific unit fixed by the comparison identity.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct FlexibilityEventSample {
     elapsed_ns: u64,
     baseline_pcc_import_kw: f64,
     response_pcc_import_kw: f64,
+    baseline_total_facility_input_kw: f64,
+    response_total_facility_input_kw: f64,
     baseline_completed_work_units: f64,
     response_completed_work_units: f64,
     response_p99_latency_ms: f64,
@@ -237,6 +240,8 @@ impl FlexibilityEventSample {
         elapsed_ns: u64,
         baseline_pcc_import_kw: f64,
         response_pcc_import_kw: f64,
+        baseline_total_facility_input_kw: f64,
+        response_total_facility_input_kw: f64,
         baseline_completed_work_units: f64,
         response_completed_work_units: f64,
         response_p99_latency_ms: f64,
@@ -251,6 +256,8 @@ impl FlexibilityEventSample {
         for (name, value) in [
             ("baseline PCC import", baseline_pcc_import_kw),
             ("response PCC import", response_pcc_import_kw),
+            ("baseline total facility input", baseline_total_facility_input_kw),
+            ("response total facility input", response_total_facility_input_kw),
             ("baseline completed work", baseline_completed_work_units),
             ("response completed work", response_completed_work_units),
             ("response p99 latency", response_p99_latency_ms),
@@ -268,6 +275,8 @@ impl FlexibilityEventSample {
             elapsed_ns,
             baseline_pcc_import_kw,
             response_pcc_import_kw,
+            baseline_total_facility_input_kw,
+            response_total_facility_input_kw,
             baseline_completed_work_units,
             response_completed_work_units,
             response_p99_latency_ms,
@@ -294,11 +303,11 @@ pub struct FlexibilityEvaluationReport {
     sample_count: usize,
     event_duration_ns: u64,
     rebound_duration_ns: u64,
-    baseline_event_energy_kwh: f64,
-    response_event_energy_kwh: f64,
-    baseline_total_energy_kwh: f64,
-    response_total_energy_kwh: f64,
-    event_power_reduction_fraction: f64,
+    baseline_event_grid_import_energy_kwh: f64,
+    response_event_grid_import_energy_kwh: f64,
+    baseline_total_facility_energy_kwh: f64,
+    response_total_facility_energy_kwh: f64,
+    event_grid_import_reduction_fraction: f64,
     baseline_completed_work_units: f64,
     response_completed_work_units: f64,
     work_loss_fraction: f64,
@@ -339,24 +348,24 @@ impl FlexibilityEvaluationReport {
         self.rebound_duration_ns
     }
 
-    pub const fn baseline_event_energy_kwh(&self) -> f64 {
-        self.baseline_event_energy_kwh
+    pub const fn baseline_event_grid_import_energy_kwh(&self) -> f64 {
+        self.baseline_event_grid_import_energy_kwh
     }
 
-    pub const fn response_event_energy_kwh(&self) -> f64 {
-        self.response_event_energy_kwh
+    pub const fn response_event_grid_import_energy_kwh(&self) -> f64 {
+        self.response_event_grid_import_energy_kwh
     }
 
-    pub const fn baseline_total_energy_kwh(&self) -> f64 {
-        self.baseline_total_energy_kwh
+    pub const fn baseline_total_facility_energy_kwh(&self) -> f64 {
+        self.baseline_total_facility_energy_kwh
     }
 
-    pub const fn response_total_energy_kwh(&self) -> f64 {
-        self.response_total_energy_kwh
+    pub const fn response_total_facility_energy_kwh(&self) -> f64 {
+        self.response_total_facility_energy_kwh
     }
 
-    pub const fn event_power_reduction_fraction(&self) -> f64 {
-        self.event_power_reduction_fraction
+    pub const fn event_grid_import_reduction_fraction(&self) -> f64 {
+        self.event_grid_import_reduction_fraction
     }
 
     pub const fn baseline_completed_work_units(&self) -> f64 {
@@ -457,10 +466,10 @@ pub fn evaluate_flexibility_event(
     let event_duration_ns = contract.event_end_ns - contract.event_start_ns;
     let rebound_duration_ns = contract.rebound_end_ns - contract.event_end_ns;
 
-    let mut baseline_event_energy_kwh = 0.0;
-    let mut response_event_energy_kwh = 0.0;
-    let mut baseline_total_energy_kwh = 0.0;
-    let mut response_total_energy_kwh = 0.0;
+    let mut baseline_event_grid_import_energy_kwh = 0.0;
+    let mut response_event_grid_import_energy_kwh = 0.0;
+    let mut baseline_total_facility_energy_kwh = 0.0;
+    let mut response_total_facility_energy_kwh = 0.0;
     let mut baseline_completed_work_units = 0.0;
     let mut response_completed_work_units = 0.0;
     let mut baseline_rebound_peak_kw: f64 = 0.0;
@@ -489,14 +498,22 @@ pub fn evaluate_flexibility_event(
             });
         }
 
-        let baseline_energy = sample.baseline_pcc_import_kw * interval_hours;
-        let response_energy = sample.response_pcc_import_kw * interval_hours;
-        if !baseline_energy.is_finite() || !response_energy.is_finite() {
+        let baseline_grid_energy = sample.baseline_pcc_import_kw * interval_hours;
+        let response_grid_energy = sample.response_pcc_import_kw * interval_hours;
+        let baseline_facility_energy =
+            sample.baseline_total_facility_input_kw * interval_hours;
+        let response_facility_energy =
+            sample.response_total_facility_input_kw * interval_hours;
+        if !baseline_grid_energy.is_finite()
+            || !response_grid_energy.is_finite()
+            || !baseline_facility_energy.is_finite()
+            || !response_facility_energy.is_finite()
+        {
             return Err(FlexibilityEvaluationError::EnergyOverflow { index });
         }
 
-        baseline_total_energy_kwh += baseline_energy;
-        response_total_energy_kwh += response_energy;
+        baseline_total_facility_energy_kwh += baseline_facility_energy;
+        response_total_facility_energy_kwh += response_facility_energy;
         baseline_completed_work_units += sample.baseline_completed_work_units;
         response_completed_work_units += sample.response_completed_work_units;
         maximum_response_p99_latency_ms =
@@ -508,8 +525,8 @@ pub fn evaluate_flexibility_event(
             maximum_response_temperature_c.max(sample.response_peak_temperature_c);
 
         if sample.elapsed_ns() < contract.event_end_ns {
-            baseline_event_energy_kwh += baseline_energy;
-            response_event_energy_kwh += response_energy;
+            baseline_event_grid_import_energy_kwh += baseline_grid_energy;
+            response_event_grid_import_energy_kwh += response_grid_energy;
         } else {
             baseline_rebound_peak_kw =
                 baseline_rebound_peak_kw.max(sample.baseline_pcc_import_kw);
@@ -519,10 +536,10 @@ pub fn evaluate_flexibility_event(
     }
 
     for (name, value) in [
-        ("baseline event energy", baseline_event_energy_kwh),
-        ("response event energy", response_event_energy_kwh),
-        ("baseline total energy", baseline_total_energy_kwh),
-        ("response total energy", response_total_energy_kwh),
+        ("baseline event energy", baseline_event_grid_import_energy_kwh),
+        ("response event energy", response_event_grid_import_energy_kwh),
+        ("baseline total energy", baseline_total_facility_energy_kwh),
+        ("response total energy", response_total_facility_energy_kwh),
         ("baseline completed work", baseline_completed_work_units),
         ("response completed work", response_completed_work_units),
     ] {
@@ -534,8 +551,8 @@ pub fn evaluate_flexibility_event(
         }
     }
 
-    if baseline_event_energy_kwh <= 0.0
-        || baseline_total_energy_kwh <= 0.0
+    if baseline_event_grid_import_energy_kwh <= 0.0
+        || baseline_total_facility_energy_kwh <= 0.0
         || baseline_completed_work_units <= 0.0
         || response_completed_work_units <= 0.0
     {
@@ -545,17 +562,17 @@ pub fn evaluate_flexibility_event(
         return Err(FlexibilityEvaluationError::ZeroBaselineReboundPeak);
     }
 
-    let event_power_reduction_fraction =
-        1.0 - (response_event_energy_kwh / baseline_event_energy_kwh);
+    let event_grid_import_reduction_fraction =
+        1.0 - (response_event_grid_import_energy_kwh / baseline_event_grid_import_energy_kwh);
     let work_loss_fraction =
         (1.0 - (response_completed_work_units / baseline_completed_work_units)).max(0.0);
-    let baseline_energy_per_work = baseline_total_energy_kwh / baseline_completed_work_units;
-    let response_energy_per_work = response_total_energy_kwh / response_completed_work_units;
+    let baseline_energy_per_work = baseline_total_facility_energy_kwh / baseline_completed_work_units;
+    let response_energy_per_work = response_total_facility_energy_kwh / response_completed_work_units;
     let energy_per_work_ratio = response_energy_per_work / baseline_energy_per_work;
     let rebound_peak_ratio = response_rebound_peak_kw / baseline_rebound_peak_kw;
 
     for (name, value) in [
-        ("event power reduction fraction", event_power_reduction_fraction),
+        ("event power reduction fraction", event_grid_import_reduction_fraction),
         ("work loss fraction", work_loss_fraction),
         ("energy per work ratio", energy_per_work_ratio),
         ("rebound peak ratio", rebound_peak_ratio),
@@ -569,7 +586,7 @@ pub fn evaluate_flexibility_event(
     }
 
     let power_reduction_pass =
-        event_power_reduction_fraction >= contract.minimum_power_reduction_fraction;
+        event_grid_import_reduction_fraction >= contract.minimum_power_reduction_fraction;
     let work_completion_pass = work_loss_fraction <= contract.maximum_work_loss_fraction;
     let energy_per_work_pass = energy_per_work_ratio <= contract.maximum_energy_per_work_ratio;
     let rebound_pass = rebound_peak_ratio <= contract.maximum_rebound_peak_ratio;
@@ -590,11 +607,11 @@ pub fn evaluate_flexibility_event(
         sample_count: samples.len(),
         event_duration_ns,
         rebound_duration_ns,
-        baseline_event_energy_kwh,
-        response_event_energy_kwh,
-        baseline_total_energy_kwh,
-        response_total_energy_kwh,
-        event_power_reduction_fraction,
+        baseline_event_grid_import_energy_kwh,
+        response_event_grid_import_energy_kwh,
+        baseline_total_facility_energy_kwh,
+        response_total_facility_energy_kwh,
+        event_grid_import_reduction_fraction,
         baseline_completed_work_units,
         response_completed_work_units,
         work_loss_fraction,
@@ -787,6 +804,8 @@ mod tests {
                     index as u64 * HOUR_NS,
                     1_000.0,
                     response_power[index],
+                    1_000.0,
+                    response_power[index],
                     100.0,
                     response_work[index],
                     p99_latency_ms,
@@ -817,11 +836,37 @@ mod tests {
         assert_eq!(report.identity().event_id(), "EVENT-TEST-001");
         assert_eq!(report.identity().work_unit_id(), "training-steps-v1");
         assert_eq!(report.sample_evidence_ids().len(), 4);
-        assert!((report.event_power_reduction_fraction() - 0.25).abs() < 1e-12);
+        assert!((report.event_grid_import_reduction_fraction() - 0.25).abs() < 1e-12);
         assert_eq!(report.event_duration_ns(), 3 * HOUR_NS);
         assert!((report.rebound_peak_ratio() - 1.0).abs() < 1e-12);
         assert!(report.energy_per_work_ratio() < 1.0);
         assert_eq!(report.response_completed_work_units(), 400.0);
+    }
+
+    #[test]
+    fn separates_grid_import_reduction_from_total_facility_energy_savings() {
+        let mut input = samples(
+            [750.0, 750.0, 750.0],
+            1_000.0,
+            [100.0, 100.0, 100.0],
+            100.0,
+            50.0,
+            0,
+            70.0,
+        );
+        // A battery supplies the difference at the facility boundary. Grid
+        // import falls, but total facility electrical input is unchanged.
+        for sample in &mut input[..3] {
+            sample.response_total_facility_input_kw = 1_000.0;
+        }
+
+        let report = evaluate_flexibility_event(&contract(), &input).unwrap();
+
+        assert!(report.power_reduction_pass());
+        assert!((report.event_grid_import_reduction_fraction() - 0.25).abs() < 1e-12);
+        assert!((report.energy_per_work_ratio() - 1.0).abs() < 1e-12);
+        assert!(!report.work_completion_pass() == false);
+        assert!(report.passed());
     }
 
     #[test]
@@ -949,6 +994,8 @@ mod tests {
         );
         input[1] = FlexibilityEventSample::new(
             HOUR_NS + 1,
+            1_000.0,
+            750.0,
             1_000.0,
             750.0,
             100.0,
