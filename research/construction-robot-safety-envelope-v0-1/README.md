@@ -21,8 +21,9 @@ profile, operational domain and a digest-bound site coverage grid. The evaluator
   fault domains;
 - human-presence evidence bound to the exact contributing sensor IDs, its own
   source digest, timestamp, confidence and spatial coverage;
-- a site-specific required-cell map for the human hazard zone; every required
-  cell must be covered by the fused evidence and independently covered by the
+- a site-specific required-cell map for the human hazard zone, identified by a
+  SHA-256 grid reference bound to the site frame/revision; every required cell
+  must be covered by the fused evidence and independently covered by the
   required number of sensor modalities and fault domains;
 - required ODD conditions with explicit units, bounds, source references and
   maximum ages;
@@ -35,9 +36,12 @@ class. Each decision records the exact expected policy subject and the observed
 runtime subject separately, along with the policy digest reference, operating
 mode, evaluation/observation timestamps and sorted source references for the
 coverage grid, every sensor, human-detection receipt and ODD condition. The
-coverage-grid digest pins the declared site-local coordinate frame, grid
-revision and cell identities. The references are not signatures or
-byte-authentication receipts. The evaluator never sends a
+coverage-grid digest is an opaque reference intended to pin the declared
+site-local coordinate frame, grid revision, origin/resolution metadata and cell
+identities. The code checks reference equality and cell-set logic; it does not
+fetch the grid bytes, verify geometry, ray-cast sensor fields of view, model
+occlusion, prove calibration or authenticate signatures. The references are
+not byte-authentication receipts. The evaluator never sends a
 command or changes a physical state.
 
 ## Paradigm shift
@@ -84,7 +88,7 @@ external authority and this evaluator cannot clear the latch.
 
 ## Frozen corpus
 
-The V1 corpus contains 54 named synthetic cases and 42 authored Rust tests. It includes:
+The V1 corpus contains 58 named synthetic cases and 46 authored Rust tests. It includes:
 
 - clear and near-boundary observations;
 - separation breach and fast human approach;
@@ -93,9 +97,10 @@ The V1 corpus contains 54 named synthetic cases and 42 authored Rust tests. It i
   sensor modalities remain healthy;
 - common-mode sensing failure and insufficient independent fault domains;
 - contradictory, unknown, stale and low-confidence human tracking;
-- no-human claims with inadequate percentage coverage, uncovered zone cells,
-  unsupported fused cells, mismatched grid revisions, stale receipts, missing
-  sensor identity, common-mode evidence and single-modality evidence;
+- human-detection claims with inadequate percentage coverage, uncovered zone
+  cells, unsupported fused cells, duplicate/unknown cells, mismatched grid
+  revisions, stale receipts, missing sensor identity, common-mode evidence and
+  single-modality evidence;
 - speed, acceleration and maintenance-mode violations;
 - heartbeat loss, clock uncertainty and future/stale observations;
 - exact machine, tool, task, site, policy and standards bindings;
@@ -225,6 +230,7 @@ Report, never collapse into one score:
 - required-zone cell coverage recall, uncovered-cell detection and false
   coverage claims (target: zero unsupported cells);
 - complete-zone coverage for each required modality and independent fault domain;
+- detection of unknown/duplicate cell identities and coverage-grid revision drift;
 - hard-stop and hold detection recall (target: 100% on frozen controls);
 - false-stop / unnecessary interruption rate;
 - stale, missing, contradictory, misbound and out-of-domain detection;
