@@ -9323,6 +9323,7 @@ name = "symtropy-physics"
 version = "0.2.1"
 dependencies = [
  "arrayvec",
+ "blake3",
  "criterion",
  "nalgebra 0.34.2",
  "proptest",
