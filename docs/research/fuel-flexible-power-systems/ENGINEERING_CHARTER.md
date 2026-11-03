@@ -567,3 +567,17 @@ Proposed internal research goals (not standards limits):
 - improve correlated multi-site aggregate P/frequency predictions against the independence assumption without using held-out future trace information.
 
 These targets must be compared at identical task mix, hardware, baseline, response time, QoS/SLA, cooling state, geography, grid signal and rebound horizon. A percentage load reduction is not a win if the system completes less work, consumes more total energy, violates deadlines, overuses cooling water or creates a later coincident peak.
+
+
+## 25. AI data-centre flexibility as a coupled compute-energy plant
+
+The dedicated implementation programme is [AI-DATA-CENTER-FLEX-001 #3435](https://github.com/Luminous-Dynamics/symtropy/issues/3435). It composes the 37-case benchmark matrix and focuses on the coupled dispatch of:
+- workload scheduling / deferral / migration and accelerator power caps;
+- cooling, thermal inertia and water;
+- UPS, battery, AC/DC distribution and protection;
+- onsite generation and grid-interactive converters;
+- grid signals, tariff, local electricity emissions and rebound.
+
+The benchmark now has direct public research references for measured GPU load, correlation, power models and demand response. We should target the published 11.4% H100 power-model MAPE, 22% trace-model load deferral and 25%-for-3-hours field flexibility envelope as comparable baselines. Stretch targets (e.g. <8% model MAPE or ≥30% for 3 hours) are internal research goals, not standards or demonstrated capabilities.
+
+A core anti-gaming rule is now explicit: **power reduction only counts when useful compute completed, QoS, thermal/cooling safety, total energy, grid response and rebound all remain within the frozen contract.**
