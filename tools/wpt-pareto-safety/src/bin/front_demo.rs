@@ -8,14 +8,14 @@ use wpt_pareto_safety::{
 fn main() -> Result<(), Box<dyn Error>> {
     let plan = EvaluationPlan::new(
         vec![
-            Objective::new("efficiency_percent", ObjectiveDirection::Maximize)?,
-            Objective::new("load_power_w", ObjectiveDirection::Maximize)?,
-            Objective::new("shield_loss_w", ObjectiveDirection::Minimize)?,
+            Objective::new("efficiency_percent", ObjectiveDirection::Maximize, "%")?,
+            Objective::new("load_power_w", ObjectiveDirection::Maximize, "W")?,
+            Objective::new("shield_loss_w", ObjectiveDirection::Minimize, "W")?,
         ],
         vec![
             HardConstraint::new(
                 "illustrative_exposure_screen",
-                "magnetic_field_ua_per_m",
+                "magnetic_field_a_per_m",
                 ConstraintSense::AtMost,
                 21.0,
                 "A/m",
@@ -32,38 +32,38 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let candidates = vec![
         Candidate::new("high-efficiency-unsafe", [
-            ("efficiency_percent", Interval::new(98.5, 99.0)?),
-            ("load_power_w", Interval::new(90_000.0, 95_000.0)?),
-            ("shield_loss_w", Interval::new(1.0, 1.5)?),
-            ("magnetic_field_ua_per_m", Interval::new(22.0, 23.0)?),
-            ("temperature_rise_c", Interval::new(30.0, 35.0)?),
+            ("efficiency_percent", Interval::new(98.5, 99.0)?, "%"),
+            ("load_power_w", Interval::new(90_000.0, 95_000.0)?, "W"),
+            ("shield_loss_w", Interval::new(1.0, 1.5)?, "W"),
+            ("magnetic_field_a_per_m", Interval::new(22.0, 23.0)?, "A/m"),
+            ("temperature_rise_c", Interval::new(30.0, 35.0)?, "degC"),
         ])?,
         Candidate::new("uncertain-exposure", [
-            ("efficiency_percent", Interval::new(96.0, 97.0)?),
-            ("load_power_w", Interval::new(75_000.0, 80_000.0)?),
-            ("shield_loss_w", Interval::new(2.0, 3.0)?),
-            ("magnetic_field_ua_per_m", Interval::new(20.0, 22.0)?),
-            ("temperature_rise_c", Interval::new(30.0, 35.0)?),
+            ("efficiency_percent", Interval::new(96.0, 97.0)?, "%"),
+            ("load_power_w", Interval::new(75_000.0, 80_000.0)?, "W"),
+            ("shield_loss_w", Interval::new(2.0, 3.0)?, "W"),
+            ("magnetic_field_a_per_m", Interval::new(20.0, 22.0)?, "A/m"),
+            ("temperature_rise_c", Interval::new(30.0, 35.0)?, "degC"),
         ])?,
         Candidate::new("feasible-a", [
-            ("efficiency_percent", Interval::new(94.0, 95.0)?),
-            ("load_power_w", Interval::new(65_000.0, 70_000.0)?),
-            ("shield_loss_w", Interval::new(4.0, 5.0)?),
-            ("magnetic_field_ua_per_m", Interval::new(15.0, 16.0)?),
-            ("temperature_rise_c", Interval::new(30.0, 35.0)?),
+            ("efficiency_percent", Interval::new(94.0, 95.0)?, "%"),
+            ("load_power_w", Interval::new(65_000.0, 70_000.0)?, "W"),
+            ("shield_loss_w", Interval::new(4.0, 5.0)?, "W"),
+            ("magnetic_field_a_per_m", Interval::new(15.0, 16.0)?, "A/m"),
+            ("temperature_rise_c", Interval::new(30.0, 35.0)?, "degC"),
         ])?,
         Candidate::new("feasible-b", [
-            ("efficiency_percent", Interval::new(95.5, 96.0)?),
-            ("load_power_w", Interval::new(70_000.0, 72_000.0)?),
-            ("shield_loss_w", Interval::new(3.0, 3.5)?),
-            ("magnetic_field_ua_per_m", Interval::new(17.0, 18.0)?),
-            ("temperature_rise_c", Interval::new(32.0, 36.0)?),
+            ("efficiency_percent", Interval::new(95.5, 96.0)?, "%"),
+            ("load_power_w", Interval::new(70_000.0, 72_000.0)?, "W"),
+            ("shield_loss_w", Interval::new(3.0, 3.5)?, "W"),
+            ("magnetic_field_a_per_m", Interval::new(17.0, 18.0)?, "A/m"),
+            ("temperature_rise_c", Interval::new(32.0, 36.0)?, "degC"),
         ])?,
         Candidate::new("missing-field", [
-            ("efficiency_percent", Interval::new(95.0, 96.0)?),
-            ("load_power_w", Interval::new(68_000.0, 71_000.0)?),
-            ("shield_loss_w", Interval::new(4.0, 4.5)?),
-            ("temperature_rise_c", Interval::new(32.0, 36.0)?),
+            ("efficiency_percent", Interval::new(95.0, 96.0)?, "%"),
+            ("load_power_w", Interval::new(68_000.0, 71_000.0)?, "W"),
+            ("shield_loss_w", Interval::new(4.0, 4.5)?, "W"),
+            ("temperature_rise_c", Interval::new(32.0, 36.0)?, "degC"),
         ])?,
     ];
 
