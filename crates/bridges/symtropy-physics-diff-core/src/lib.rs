@@ -984,7 +984,7 @@ pub enum DifferentialLineageError {
     MissingRequiredLane(DifferentialLaneKind),
     UnexpectedLane(DifferentialLaneKind),
     DuplicateLaneId(String),
-    DuplicateBackendId(String),
+    DuplicateBackendProfile(String),
     MissingTrace(String),
     UnexpectedTrace(String),
     InvalidTrace {
@@ -1028,7 +1028,7 @@ impl std::fmt::Display for DifferentialLineageError {
             Self::MissingRequiredLane(kind) => write!(f, "required lane {kind:?} is missing"),
             Self::UnexpectedLane(kind) => write!(f, "lane {kind:?} is not allowed by the pinned policy"),
             Self::DuplicateLaneId(id) => write!(f, "duplicate lane ID {id:?}"),
-            Self::DuplicateBackendId(id) => write!(f, "duplicate backend ID {id:?}; a cross-backend comparison requires distinct backend identities"),
+            Self::DuplicateBackendProfile(id) => write!(f, "duplicate backend run profile {id:?}; duplicate runs do not create a second backend lineage"),
             Self::MissingTrace(id) => write!(f, "observation trace for lane {id:?} is missing"),
             Self::UnexpectedTrace(id) => write!(f, "observation trace {id:?} has no manifest lane"),
             Self::InvalidTrace { lane_id, error } => {
@@ -1154,7 +1154,7 @@ pub fn audit_differential_lineage(
 
     let mut lanes = BTreeMap::<String, &DifferentialLaneBinding>::new();
     let mut lane_kinds = BTreeSet::new();
-    let mut backend_ids = BTreeSet::new();
+    let mut backend_profiles = BTreeSet::new();
     for lane in &manifest.lanes {
         if lane.lane_id.trim().is_empty() {
             return Err(DifferentialLineageError::DuplicateLaneId(lane.lane_id.clone()));
@@ -1163,8 +1163,14 @@ pub fn audit_differential_lineage(
             return Err(DifferentialLineageError::DuplicateLaneId(lane.lane_id.clone()));
         }
         lane_kinds.insert(lane.lane_kind);
-        if !backend_ids.insert(lane.run_identity.backend_id.clone()) {
-            return Err(DifferentialLineageError::DuplicateBackendId(
+        let backend_profile = (
+            lane.run_identity.backend_id.clone(),
+            lane.run_identity.backend_version.clone(),
+            lane.run_identity.solver_profile.clone(),
+            lane.run_identity.configuration_digest.clone(),
+        );
+        if !backend_profiles.insert(backend_profile) {
+            return Err(DifferentialLineageError::DuplicateBackendProfile(
                 lane.run_identity.backend_id.clone(),
             ));
         }
@@ -1289,7 +1295,9 @@ pub fn audit_differential_lineage(
                     unknown_kinds.insert(dependency.kind);
                     incomplete_lanes.insert(lane_id.clone());
                 }
-                LineageDependencyEvidence::NotApplicable { .. } => {}
+                LineageDependencyEvidence::NotApplicable { .. } => {
+                    unknown_kinds.insert(dependency.kind);
+                }
             }
         }
         lane_identity_sets.insert(lane_id.clone(), identities);
@@ -1310,7 +1318,6 @@ pub fn audit_differential_lineage(
     let mut separation_findings = Vec::new();
     let mut any_blocked_separation = false;
     for kind in &policy.mandatory_separation_kinds {
-        let mut union = BTreeSet::new();
         let mut lanes_with_unknown_identity = Vec::new();
         let mut lanes_with_incomplete_inventory = Vec::new();
         let mut intersection: Option<BTreeSet<String>> = None;
@@ -1321,7 +1328,6 @@ pub fn audit_differential_lineage(
                 .and_then(|items| items.get(kind))
                 .cloned()
                 .unwrap_or_default();
-            union.extend(identities.iter().cloned());
             intersection = Some(match intersection {
                 None => identities,
                 Some(previous) => previous.intersection(&identities).cloned().collect(),
