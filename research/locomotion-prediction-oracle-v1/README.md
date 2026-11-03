@@ -57,7 +57,7 @@ Both thresholds and the regularizer must be preregistered. An all-pairs-separate
 
 ## Synthetic oracle cases
 
-The 32 unit tests cover malformed provenance, duplicated model IDs/artifact roles, intervention mismatch, feature-schema ordering, invalid covariances and non-finite forecasts; connectome-family/evidence-tier consistency; generic embodied non-connectome baselines; model-family/evidence-tier consistency; body/physics and measured-evaluation artifact requirements; model-count and feature-dimension limits; artifact-count limits; symmetry of the Gaussian distance; valid and invalid prediction/unblinding chronology; known-answer mean and Gaussian distances; identical forecasts; covariance-only differences; partial/all-pairs separation; uncertainty scaling; model-count resource limits; and invalid policies.
+The 35 unit tests cover malformed provenance, duplicated model IDs/artifact roles, intervention mismatch, feature-schema ordering, invalid covariances and non-finite forecasts; connectome-family/evidence-tier consistency; generic embodied non-connectome baselines; model-family/evidence-tier consistency; body/physics and measured-evaluation artifact requirements; model-count and feature-dimension limits; model/evaluation artifact-count limits; non-connectome perturbation-grounded baselines; independent-replication artifact requirements; symmetry of the Gaussian distance; valid and invalid prediction/unblinding chronology; known-answer mean and Gaussian distances; identical forecasts; covariance-only differences; partial/all-pairs separation; uncertainty scaling; model-count resource limits; and invalid policies.
 
 All tests are synthetic. They establish only that the implementation follows its local contract on the authored fixtures.
 
