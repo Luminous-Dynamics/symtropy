@@ -923,6 +923,57 @@ mod tests {
     }
 
     #[test]
+    fn every_region_requires_an_exactly_scoped_evidence_reference() {
+        let mut wrong_scope = manifest();
+        wrong_scope.evidence_refs[0].scope_sha256 = digest('e');
+        assert!(seal_applicability_domain_manifest(wrong_scope)
+            .expect_err("wrong evidence scope must reject")
+            .contains("scoped to a different"));
+
+        let mut missing_reference = manifest();
+        missing_reference.regions[0].supporting_evidence_ids[0] =
+            "not-present".to_owned();
+        assert!(seal_applicability_domain_manifest(missing_reference)
+            .expect_err("missing evidence reference must reject")
+            .contains("references missing evidence ID"));
+
+        let mut orphan_reference = manifest();
+        orphan_reference.evidence_refs.push(ApplicabilityEvidenceRef {
+            evidence_id: "orphan".to_owned(),
+            evidence_kind: "validation_observation_fixture".to_owned(),
+            source_ref: "synthetic://orphan".to_owned(),
+            license_applicability: "synthetic-ci-fixture-only".to_owned(),
+            artifact_sha256: digest('e'),
+            scope_sha256: digest('f'),
+        });
+        assert!(seal_applicability_domain_manifest(orphan_reference)
+            .expect_err("orphan evidence reference must reject")
+            .contains("unused by every region"));
+    }
+
+    #[test]
+    fn geometry_family_and_flow_regime_are_exact_categorical_gates() {
+        let m = manifest();
+        let mut changed_geometry = query(0.72);
+        changed_geometry.geometry_family = "different-airfoil-family".to_owned();
+        assert_eq!(
+            assess_applicability_domain(&m, &changed_geometry)
+                .unwrap()
+                .status,
+            ApplicabilityStatus::OutOfDomain
+        );
+
+        let mut changed_regime = query(0.72);
+        changed_regime.flow_regime = "buffet_unsteady".to_owned();
+        assert_eq!(
+            assess_applicability_domain(&m, &changed_regime)
+                .unwrap()
+                .status,
+            ApplicabilityStatus::OutOfDomain
+        );
+    }
+
+    #[test]
     fn assessment_replays_from_exact_manifest_and_query() {
         let m = manifest();
         let q = query(0.72);
