@@ -65,13 +65,13 @@ mod tests {
     fn reproduces_patent_speed_and_superluminal_ratio_arithmetically() {
         let result = audit();
         assert_eq!(result.stated_speed_m_per_s, 471_240_000.0);
-        assert!((result.speed_ratio_to_c - 1.571_? ).abs() < 1e-3);
+        assert!((result.speed_ratio_to_c - 1.571_887_442_2 ).abs() < 1e-3);
     }
 
     #[test]
     fn patent_speed_and_interval_imply_about_one_earth_circumference() {
         let result = audit();
-        assert!((result.implied_round_trip_distance_m - 39_? ).abs() < 1.0);
+        assert!((result.implied_round_trip_distance_m - 39_980_001.6 ).abs() < 1.0);
         assert!((result.path_to_circumference_ratio - 1.0).abs() < 0.003);
     }
 
