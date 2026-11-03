@@ -568,7 +568,21 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
                 .saturating_sub(last_source_time_ms);
             maximum_age_ms = maximum_age_ms.max(latest_age_ms);
 
-            if latest_age_ms > policy.maximum_event_age_ms {
+            // A positive or conflicting observation inside the declared
+            // evidence window remains material even if the newest frame is stale.
+            for sample in &history {
+                if sample.state == ObservationState::HumanPresent {
+                    return stop(policy, Reason::HumanPresent, results, &events_by_id);
+                }
+                if sample.state == ObservationState::Conflicting {
+                    return inconsistent(policy, Reason::ConflictingHumanEvidence, &events_by_id);
+                }
+            }
+
+            if latest_age_ms > policy.maximum_event_age_ms
+                || (policy.required_evidence_window_ms > 0
+                    && latest_age_ms > policy.maximum_inter_sample_gap_ms)
+            {
                 saw_stale = true;
                 continue;
             }
@@ -600,12 +614,6 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
 
             let mut source_has_complete_clear_window = true;
             for event in &history {
-                if event.state == ObservationState::HumanPresent {
-                    return stop(policy, Reason::HumanPresent, results, &events_by_id);
-                }
-                if event.state == ObservationState::Conflicting {
-                    return inconsistent(policy, Reason::ConflictingHumanEvidence, &events_by_id);
-                }
                 if event.state == ObservationState::Unknown {
                     saw_unknown = true;
                     source_has_complete_clear_window = false;
@@ -1548,6 +1556,47 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
         Disposition::StopRequiredBySyntheticPolicy,
     );
 
+    let mut events = window_baseline.clone();
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = match item.source_sequence {
+                1 => 4_700,
+                2 => 4_800,
+                _ => 4_890,
+            };
+            item.received_at_ms = item.source_time_ms + 5;
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-070-trailing-observation-gap-exceeds-limit".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline;
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = match item.source_sequence {
+                1 => 4_600,
+                2 => 4_700,
+                _ => 4_800,
+            };
+            item.received_at_ms = item.source_time_ms + 5;
+            if item.source_sequence == 3 && item.cell == (GridCell { column: 0, row: 0 }) {
+                item.state = ObservationState::HumanPresent;
+            }
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-071-stale-latest-frame-cannot-erase-human-presence-in-window".to_owned(),
+        window_policy,
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
     cases
 }
 
@@ -1795,6 +1844,53 @@ mod tests {
         let policy = window_policy();
         let decision = evaluate(&policy, &window_events());
         assert_eq!(decision.disposition, Disposition::WithinSyntheticEnvelope);
+    }
+
+    #[test]
+    fn trailing_gap_is_bounded_by_inter_sample_limit() {
+        let policy = window_policy();
+        let mut events = window_events();
+        for item in &mut events {
+            if item.source_id == "lidar-front" {
+                item.source_time_ms = match item.source_sequence {
+                    1 => 4_700,
+                    2 => 4_800,
+                    _ => 4_890,
+                };
+                item.received_at_ms = item.source_time_ms + 5;
+            }
+        }
+        let decision = evaluate(&policy, &events);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reason, Some(Reason::CellEvidenceStale));
+    }
+
+    #[test]
+    fn human_present_inside_window_survives_stale_latest_frame() {
+        let policy = window_policy();
+        let mut events = window_events();
+        for item in &mut events {
+            if item.source_id == "lidar-front" {
+                item.source_time_ms = match item.source_sequence {
+                    1 => 4_600,
+                    2 => 4_700,
+                    _ => 4_800,
+                };
+                item.received_at_ms = item.source_time_ms + 5;
+                if item.source_sequence == 3 && item.cell == (GridCell { column: 0, row: 0 }) {
+                    item.state = ObservationState::HumanPresent;
+                }
+            }
+        }
+        let decision = evaluate(&policy, &events);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reason, Some(Reason::HumanPresent));
     }
 
     #[test]
