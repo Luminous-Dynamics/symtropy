@@ -1,0 +1,479 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/measurement.schema.json",
+  "title": "Typed WPT Measurement Record v1",
+  "description": "A typed observation whose physical quantity, measurement purpose, provenance, statistic and system boundary are explicit. This schema describes records; comparison eligibility additionally requires semantic validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "measurement_id",
+    "system_id",
+    "quantity_kind",
+    "measurement_purpose",
+    "raw_measurement",
+    "normalized_measurement",
+    "boundary",
+    "statistic",
+    "evidence",
+    "conditions",
+    "source_refs",
+    "qualification",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-measurement-v1"
+    },
+    "measurement_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$",
+      "minLength": 3
+    },
+    "system_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$",
+      "minLength": 3
+    },
+    "quantity_kind": {
+      "enum": [
+        "electrical_real_power",
+        "useful_load_power",
+        "delivered_energy",
+        "energy_per_distance",
+        "end_to_end_efficiency",
+        "subsystem_efficiency",
+        "service_energy_replenishment_ratio",
+        "electric_field_strength",
+        "magnetic_field_strength",
+        "magnetic_flux_density",
+        "specific_absorption_rate",
+        "internal_electric_field",
+        "current_density",
+        "contact_current",
+        "mutual_inductance",
+        "coupling_coefficient",
+        "quality_factor",
+        "temperature",
+        "temperature_rise",
+        "uptime_fraction",
+        "fault_rate",
+        "false_trigger_rate",
+        "control_latency",
+        "signal_to_noise_ratio",
+        "bit_error_rate",
+        "data_rate"
+      ]
+    },
+    "measurement_purpose": {
+      "enum": [
+        "system_transfer_performance",
+        "subsystem_characterization",
+        "vehicle_service_outcome",
+        "human_exposure_assessment",
+        "thermal_performance",
+        "operational_reliability",
+        "communications_performance",
+        "environmental_context"
+      ]
+    },
+    "raw_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "upper_value",
+        "unit",
+        "qualifier",
+        "reported_text"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualifier": {
+          "enum": [
+            "EXACT",
+            "APPROX",
+            "GREATER_THAN",
+            "LESS_THAN",
+            "RANGE",
+            "NOT_REPORTED"
+          ]
+        },
+        "reported_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "normalized_measurement": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "upper_value",
+        "unit",
+        "conversion_id",
+        "dimension"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "upper_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dimension": {
+          "enum": [
+            "dimensionless",
+            "power",
+            "energy",
+            "energy_per_distance",
+            "electric_field",
+            "magnetic_field",
+            "magnetic_flux_density",
+            "specific_absorption_rate",
+            "inductance",
+            "temperature",
+            "time",
+            "rate",
+            "frequency",
+            "data_rate"
+          ]
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary_class",
+        "measurement_point",
+        "input_plane",
+        "output_plane",
+        "included_stages",
+        "excluded_stages",
+        "boundary_signature"
+      ],
+      "properties": {
+        "boundary_class": {
+          "enum": [
+            "whole_system",
+            "subsystem",
+            "passive_link",
+            "vehicle_service",
+            "component",
+            "field_probe",
+            "communications_link",
+            "not_applicable"
+          ]
+        },
+        "measurement_point": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_plane": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "output_plane": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "included_stages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "excluded_stages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 0
+        },
+        "boundary_signature": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "statistic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "window_s",
+        "sample_count"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "instantaneous",
+            "peak",
+            "rms",
+            "mean",
+            "median",
+            "p95",
+            "integral",
+            "steady_state",
+            "reported_unspecified",
+            "not_applicable"
+          ]
+        },
+        "window_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "method",
+        "source_locator",
+        "uncertainty"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "MEASURED",
+            "AUTHOR_CALCULATED",
+            "SIMULATED",
+            "SECONDARY_REPORTED",
+            "UNKNOWN"
+          ]
+        },
+        "method": {
+          "enum": [
+            "instrumented_measurement",
+            "author_reported_measurement",
+            "calculation_from_reported_values",
+            "numerical_model",
+            "secondary_extraction",
+            "not_reported"
+          ]
+        },
+        "source_locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "lower",
+            "upper",
+            "coverage_factor",
+            "instrument_calibration"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "standard",
+                "expanded",
+                "confidence_interval",
+                "reported_range",
+                "not_reported"
+              ]
+            },
+            "lower": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "upper": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "coverage_factor": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "instrument_calibration": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frequency_hz",
+        "transfer_gap_m",
+        "load_power_w",
+        "operating_duration_s",
+        "waveform",
+        "alignment",
+        "thermal_state",
+        "medium"
+      ],
+      "properties": {
+        "frequency_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "transfer_gap_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "load_power_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "operating_duration_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "waveform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "thermal_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "medium": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "role",
+          "locator"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "PRIMARY_PUBLICATION",
+              "SURVEY_SECONDARY",
+              "STANDARD",
+              "DATASET",
+              "OTHER"
+            ]
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "qualification": {
+      "enum": [
+        "QUALIFIED_RECORD",
+        "BOUNDARY_INCOMPLETE",
+        "SOURCE_CLAIM_ONLY",
+        "MODEL_ONLY",
+        "UNRESOLVED",
+        "NOT_COMPARABLE"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
