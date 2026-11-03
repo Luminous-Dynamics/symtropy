@@ -16,7 +16,8 @@
     "power_quality",
     "safety",
     "artifact_refs",
-    "result"
+    "result",
+    "resonant_networks"
   ],
   "properties": {
     "schema_version": {
@@ -60,7 +61,8 @@
         "hardware_revision",
         "controller_revision",
         "power_rating_w",
-        "configuration_digest"
+        "configuration_digest",
+        "concurrent_resonant_networks_allowed"
       ],
       "properties": {
         "system_id": {
@@ -104,6 +106,12 @@
             "null"
           ],
           "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "concurrent_resonant_networks_allowed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -739,6 +747,114 @@
         },
         "notes": {
           "type": "string"
+        }
+      }
+    },
+    "resonant_networks": {
+      "type": "array",
+      "description": "Per-branch records. An uncommanded resonant network may still carry induced circulating current; measure it rather than treating INACTIVE as zero.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "network_id",
+          "nominal_frequency_hz",
+          "commanded_state",
+          "isolation_switch_state",
+          "current_rms_a",
+          "current_peak_a",
+          "continuous_current_limit_a",
+          "voltage_rms_v",
+          "voltage_limit_v",
+          "thermal_maximum_c",
+          "measurement_method",
+          "artifact_sha256"
+        ],
+        "properties": {
+          "network_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nominal_frequency_hz": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "commanded_state": {
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "TRANSITIONING",
+              "ISOLATED",
+              "UNKNOWN"
+            ]
+          },
+          "isolation_switch_state": {
+            "enum": [
+              "OPEN",
+              "CLOSED",
+              "FAULT",
+              "NOT_PRESENT",
+              "UNKNOWN"
+            ]
+          },
+          "current_rms_a": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "current_peak_a": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "continuous_current_limit_a": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "voltage_rms_v": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "voltage_limit_v": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "thermal_maximum_c": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "measurement_method": {
+            "enum": [
+              "MEASURED",
+              "SIMULATED",
+              "NOT_REPORTED"
+            ]
+          },
+          "artifact_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
         }
       }
     }
