@@ -2290,6 +2290,35 @@ impl ExperimentProtocolV0_1 {
                 "unexpected BattLeDIM dataset identity",
             ));
         }
+
+        let battledim_network = manifest_string(
+            manifest_field(battledim, "network", battledim_path)?,
+            &format!("{battledim_path}.network"),
+        )?;
+        if battledim_network
+            != "L-Town hypothetical network derived from a real Cyprus water-distribution network"
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.network"),
+                "preserve the L-Town/Cyprus network identity",
+            ));
+        }
+        let training_period = manifest_string(
+            manifest_field(battledim, "training_period", battledim_path)?,
+            &format!("{battledim_path}.training_period"),
+        )?;
+        let evaluation_period = manifest_string(
+            manifest_field(battledim, "evaluation_period", battledim_path)?,
+            &format!("{battledim_path}.evaluation_period"),
+        )?;
+        if training_period != "2018-01-01T00:00/2018-12-31T23:55"
+            || evaluation_period != "2019-01-01T00:00/2019-12-31T23:55"
+        {
+            return Err(ManifestAdapterError::new(
+                battledim_path,
+                "BattLeDIM must preserve the 2018 training and public 2019 evaluation periods",
+            ));
+        }
         let battledim_step = manifest_u64(
             manifest_field(battledim, "time_step_minutes", battledim_path)?,
             &format!("{battledim_path}.time_step_minutes"),
@@ -2368,6 +2397,71 @@ impl ExperimentProtocolV0_1 {
             return Err(ManifestAdapterError::new(
                 format!("{slovak_path}.dataset_id"),
                 "unexpected Slovak weak-label dataset identity",
+            ));
+        }
+
+        let slovak_network = manifest_string(
+            manifest_field(slovak, "network", slovak_path)?,
+            &format!("{slovak_path}.network"),
+        )?;
+        if slovak_network != "one anonymized Slovak utility distribution zone" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.network"),
+                "preserve the single-zone utility scope",
+            ));
+        }
+        let slovak_timezone = manifest_string(
+            manifest_field(slovak, "timezone", slovak_path)?,
+            &format!("{slovak_path}.timezone"),
+        )?;
+        if slovak_timezone != "Europe/Bratislava" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.timezone"),
+                "preserve the source timezone",
+            ));
+        }
+        let slovak_coverage = manifest_string(
+            manifest_field(slovak, "data_coverage", slovak_path)?,
+            &format!("{slovak_path}.data_coverage"),
+        )?;
+        if slovak_coverage != "2021-12-31T23:00/2022-12-30T23:00" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.data_coverage"),
+                "unexpected public-record time coverage",
+            ));
+        }
+        let feature_representation = manifest_string(
+            manifest_field(slovak, "feature_representation", slovak_path)?,
+            &format!("{slovak_path}.feature_representation"),
+        )?;
+        if !feature_representation.contains("precomputed standardized anomaly scores")
+            || !feature_representation.contains("raw telemetry")
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.feature_representation"),
+                "public release limitations must state that features are precomputed and raw telemetry is unavailable",
+            ));
+        }
+        let label_definition = manifest_string(
+            manifest_field(slovak, "label", slovak_path)?,
+            &format!("{slovak_path}.label"),
+        )?;
+        if !label_definition.starts_with("fault_d7:")
+            || !label_definition.contains("plus-or-minus seven-day window")
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.label"),
+                "fault_d7 must remain a plus-or-minus seven-day operational label, not exact onset",
+            ));
+        }
+        let leakage_risk = manifest_string(
+            manifest_field(slovak, "leakage_risk", slovak_path)?,
+            &format!("{slovak_path}.leakage_risk"),
+        )?;
+        if !leakage_risk.contains("feature selection conditioned on the fault label") {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.leakage_risk"),
+                "label-conditioned feature selection limitation must be explicit",
             ));
         }
         let slovak_step = manifest_u64(
@@ -2949,6 +3043,34 @@ mod tests {
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. })
                 if path.ends_with("independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_battledim_period_relabeling() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["external_evaluation_lanes"]
+            ["L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA"]["evaluation_period"] =
+            "2018-01-01T00:00/2018-12-31T23:55".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path.ends_with("external_evaluation_lanes.L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_exact_onset_relabeling_of_slovak_fault_d7() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["external_evaluation_lanes"]
+            ["L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY"]["label"] =
+            "fault_d7: exact leak onset".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path.ends_with(".label")
         ));
     }
 
