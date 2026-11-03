@@ -194,7 +194,14 @@ impl JointLimitDetector {
 
         let gap = sample.tick - previous.tick;
         if gap > self.config.maximum_sample_gap_ticks {
-            self.armed = !self.config.beyond_trigger(sample.angle_urad);
+            // A missing interval must not bypass the release hysteresis of an
+            // already-fired detector. Preserve its latch until the actual
+            // release boundary is observed.
+            self.armed = if self.armed {
+                !self.config.beyond_trigger(sample.angle_urad)
+            } else {
+                self.config.beyond_release(sample.angle_urad)
+            };
             self.previous = Some(sample);
             return Err(DetectorError::SampleGapExceeded);
         }
@@ -319,6 +326,23 @@ mod tests {
         );
         assert!(!detector.is_armed());
         assert_eq!(detector.last_sample_tick(), Some(12));
+    }
+
+    #[test]
+    fn sampling_gap_does_not_bypass_latched_hysteresis() {
+        let mut detector =
+            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        detector.observe(sample(1, 900_000)).expect("initial");
+        assert!(detector.observe(sample(2, 1_000_000)).expect("crossing").is_some());
+        assert_eq!(
+            detector.observe(sample(20, 980_000)),
+            Err(DetectorError::SampleGapExceeded)
+        );
+        assert!(!detector.is_armed());
+        assert_eq!(detector.observe(sample(21, 960_000)), Ok(None));
+        assert!(!detector.is_armed());
+        assert_eq!(detector.observe(sample(22, 950_000)), Ok(None));
+        assert!(detector.is_armed());
     }
 
     #[test]
