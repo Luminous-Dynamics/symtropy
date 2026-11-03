@@ -106,6 +106,7 @@ or authenticate those bytes.
 - one expected-answer lineage reused by both lanes blocks the mandatory
   expected-answer separation;
 - a partial inventory or unknown solver lineage remains indeterminate;
+- in a three-lane portfolio, a dependency identity shared by any pair blocks a mandatory separation even when a third lane has a distinct identity;
 - duplicate dependency identities do not multiply evidence;
 - invalid trace, scenario substitution, policy digest and artifact digest
   controls reject;
