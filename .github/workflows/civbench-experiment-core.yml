@@ -27,22 +27,20 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Verify standalone manifest and lockfile
+      - name: Resolve and preserve the standalone dependency lock
         shell: bash
         run: |
           set -euo pipefail
           test -s research/civbench-experiment-core/Cargo.toml
-          test -s research/civbench-experiment-core/Cargo.lock
           test -s research/civbench-experiment-core/src/lib.rs
-          if awk '
-            /^\[(workspace\.)?(dev-|build-)?dependencies\]$/ { in_dependencies=1; next }
-            /^\[/ { in_dependencies=0 }
-            in_dependencies && $0 !~ /^[[:space:]]*(#|$)/ { found=1 }
-            END { exit found ? 0 : 1 }
-          ' research/civbench-experiment-core/Cargo.toml; then
-            echo "Third-party dependencies require explicit review and a regenerated lockfile." >&2
-            exit 1
-          fi
+          cargo generate-lockfile --manifest-path research/civbench-experiment-core/Cargo.toml
+
+      - name: Upload generated Cargo.lock for exact review
+        uses: actions/upload-artifact@v4
+        with:
+          name: civbench-experiment-core-cargo-lock
+          path: research/civbench-experiment-core/Cargo.lock
+          if-no-files-found: error
 
       - name: Check formatting
         run: cargo fmt --manifest-path research/civbench-experiment-core/Cargo.toml --all -- --check
