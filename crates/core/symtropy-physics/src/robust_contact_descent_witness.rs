@@ -1057,6 +1057,16 @@ mod tests {
     }
 
     #[test]
+    fn oversized_gradient_polytope_abstains_before_vertex_flattening() {
+        let zero_vertex: RationalVector =
+            std::array::from_fn(|_| rational(0));
+        let oversized = RationalGradientPolytope {
+            vertices: vec![zero_vertex; MAX_POLYTOPE_VERTICES + 1],
+        };
+        assert!(solve_robust_descent_polytope_lp(&[oversized]).is_none());
+    }
+
+    #[test]
     fn correlated_gradient_polytope_preserves_a_direction_lost_by_box_hulling() {
         // The two vertices are anticorrelated: each has directional derivative
         // -1 along (1,1), but their independent coordinate box also contains
