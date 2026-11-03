@@ -1,8 +1,8 @@
 # CivBench Experiment Core
 
-A small, dependency-free Rust qualification library for the Johannesburg CivBench experiment protocol.
+A small, standalone Rust qualification library for the Johannesburg CivBench experiment protocol.
 
-This crate is deliberately **not** another simulator. It does not run EPANET, model hydraulics, parse the public JSON manifest, select policy, optimize sensors, or authorize water operations. It checks the contracts around a comparison so that later results cannot silently mix different exogenous shocks, initial states, topologies, model families, time grids or budgets.
+This crate is deliberately **not** another simulator. It does not run EPANET, model hydraulics, select policy, optimize sensors, or authorize water operations. It parses and semantically validates the pinned JSON protocol manifest, then checks the contracts around a comparison so that later results cannot silently mix different exogenous shocks, initial states, topologies, model families, time grids or budgets. JSON Schema validation remains a separate prerequisite; the Rust adapter validates the decision-critical semantics after that schema check.
 
 ## What it implements
 
@@ -77,12 +77,12 @@ cargo clippy --manifest-path research/civbench-experiment-core/Cargo.toml --all-
 cargo doc --manifest-path research/civbench-experiment-core/Cargo.toml --no-deps --locked
 ~~~
 
-The crate has no third-party dependencies. Its exact-path workflow is [.github/workflows/civbench-experiment-core.yml](../../.github/workflows/civbench-experiment-core.yml), which runs formatting, locked check/test, strict Clippy and documentation builds for this standalone crate.
+The crate has one direct third-party dependency, `serde_json`, for JSON parsing; `Cargo.lock` pins its full dependency graph. Its exact-path workflow is [.github/workflows/civbench-experiment-core.yml](../../.github/workflows/civbench-experiment-core.yml), which runs formatting, locked check/test, strict Clippy and documentation builds for this standalone crate.
 
 ## Limitations and claim ceiling
 
 - This crate validates pair/ledger/receipt contracts; it does not execute scenario simulation or calculate hydraulic truth.
-- The JSON protocol manifest and this Rust API are not yet bound by a generated schema adapter.
+ - The JSON Schema and Rust semantic adapter are hand-maintained rather than generated from one source. Keep the fixture/schema/API parity test as a required change gate, and do not assume that parser success substitutes for validating against the pinned JSON Schema.
 - Candidate/evaluator process isolation is a deployment responsibility; a Rust type boundary alone is not a security sandbox.
 - Passing unit tests establishes only the declared software invariants.
 - No field data, municipal operational authority, water-quality guarantee or causal service-impact claim is created by this crate.
