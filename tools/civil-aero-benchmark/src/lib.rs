@@ -20,6 +20,7 @@ pub mod interval_calibration;
 pub mod optimizer_qualification;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
+pub mod policy_falsification;
 pub mod reference_data;
 pub mod risk_aware_claim_gate;
 pub mod risk_credibility;
