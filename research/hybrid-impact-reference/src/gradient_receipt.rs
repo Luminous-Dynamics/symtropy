@@ -121,6 +121,10 @@ pub struct QualifiedGradientReceipt {
     pub verification_receipt_digest: Option<String>,
     /// Required for UNAVAILABLE results.
     pub abstention_reason: Option<AbstentionReason>,
+    /// True when this result differentiates an event-time / event-surface map.
+    /// Exact/directional/set-valued results then require a strictly positive
+    /// independently established lower bound on the absolute transversality.
+    pub requires_transversality: bool,
     pub metrics: GradientMetrics,
 }
 
@@ -150,6 +154,8 @@ pub enum GradientReceiptError {
     UnexpectedAbstentionReason,
     MissingAbstentionReason,
     SurrogateCannotClaimExactQualification,
+    InvalidTransversalityMargin,
+    UnexpectedVerifierBinding,
 }
 
 impl QualifiedGradientReceipt {
@@ -179,7 +185,7 @@ impl QualifiedGradientReceipt {
         }
         validate_optional_identifier(self.estimator_id.as_deref())?;
         validate_optional_identifier(self.verifier_id.as_deref())?;
-        validate_optional_identifier(self.bias_evidence_reference.as_deref())?;
+        validate_optional_reference(self.bias_evidence_reference.as_deref())?;
 
         if self.verifier_id.is_some() != self.verification_receipt_digest.is_some() {
             return Err(GradientReceiptError::IncompleteVerifierBinding);
@@ -208,7 +214,8 @@ impl QualifiedGradientReceipt {
                 if self.abstention_reason.is_some() {
                     return Err(GradientReceiptError::UnexpectedAbstentionReason);
                 }
-                validate_branch_responses(&self.responses, true, false)?;
+                validate_branch_responses(&self.responses, true, true, false)?;
+                validate_transversality(self.requires_transversality, &self.metrics)?;
             }
             GradientKind::DirectionalSet => {
                 if self.responses.len() < 2 {
@@ -223,7 +230,8 @@ impl QualifiedGradientReceipt {
                 if self.abstention_reason.is_some() {
                     return Err(GradientReceiptError::UnexpectedAbstentionReason);
                 }
-                validate_branch_responses(&self.responses, true, true)?;
+                validate_branch_responses(&self.responses, true, true, true)?;
+                validate_transversality(self.requires_transversality, &self.metrics)?;
             }
             GradientKind::SetValued => {
                 if self.responses.len() < 2 {
@@ -238,7 +246,8 @@ impl QualifiedGradientReceipt {
                 if self.abstention_reason.is_some() {
                     return Err(GradientReceiptError::UnexpectedAbstentionReason);
                 }
-                validate_branch_responses(&self.responses, true, false)?;
+                validate_branch_responses(&self.responses, true, true, false)?;
+                validate_transversality(self.requires_transversality, &self.metrics)?;
             }
             GradientKind::Surrogate => {
                 if self.responses.len() != 1 {
@@ -253,7 +262,7 @@ impl QualifiedGradientReceipt {
                 if self.abstention_reason.is_some() {
                     return Err(GradientReceiptError::UnexpectedAbstentionReason);
                 }
-                validate_branch_responses(&self.responses, false, false)?;
+                validate_branch_responses(&self.responses, false, false, false)?;
             }
             GradientKind::Unavailable => {
                 if !self.responses.is_empty() {
@@ -266,7 +275,7 @@ impl QualifiedGradientReceipt {
                     return Err(GradientReceiptError::SurrogateCannotClaimExactQualification);
                 }
                 if self.verifier_id.is_some() {
-                    return Err(GradientReceiptError::UnexpectedAbstentionReason);
+                    return Err(GradientReceiptError::UnexpectedVerifierBinding);
                 }
             }
         }
@@ -329,6 +338,7 @@ impl QualifiedGradientReceipt {
             &mut output,
             canonical.verification_receipt_digest.as_deref(),
         );
+        output.push(u8::from(canonical.requires_transversality));
         match canonical.abstention_reason {
             Some(reason) => {
                 output.push(1);
@@ -357,6 +367,7 @@ impl QualifiedGradientReceipt {
 
 fn validate_branch_responses(
     responses: &[GradientResponse],
+    require_branch_identity: bool,
     require_validity_region: bool,
     require_direction: bool,
 ) -> Result<(), GradientReceiptError> {
@@ -364,12 +375,16 @@ fn validate_branch_responses(
     let mut direction_ids = Vec::new();
 
     for response in responses {
-        let branch_id = response
-            .branch_id
-            .as_deref()
-            .ok_or(GradientReceiptError::MissingBranchIdentity)?;
-        validate_identifier(branch_id)?;
-        branch_ids.push(branch_id);
+        match response.branch_id.as_deref() {
+            Some(branch_id) => {
+                validate_identifier(branch_id)?;
+                branch_ids.push(branch_id);
+            }
+            None if require_branch_identity => {
+                return Err(GradientReceiptError::MissingBranchIdentity);
+            }
+            None => {}
+        }
 
         if require_direction {
             let direction_id = response
@@ -418,13 +433,29 @@ fn validate_branch_responses(
         }
     }
 
-    branch_ids.sort_unstable();
-    if branch_ids.windows(2).any(|pair| pair[0] == pair[1]) {
-        return Err(GradientReceiptError::DuplicateBranchIdentity);
+    if !require_direction {
+        branch_ids.sort_unstable();
+        if branch_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(GradientReceiptError::DuplicateBranchIdentity);
+        }
     }
     direction_ids.sort_unstable();
     if direction_ids.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(GradientReceiptError::DuplicateDirectionIdentity);
+    }
+    Ok(())
+}
+
+fn validate_transversality(
+    required: bool,
+    metrics: &GradientMetrics,
+) -> Result<(), GradientReceiptError> {
+    if required
+        && metrics
+            .transversality_abs_margin
+            .is_none_or(|margin| margin <= 0.0)
+    {
+        return Err(GradientReceiptError::InvalidTransversalityMargin);
     }
     Ok(())
 }
@@ -463,6 +494,13 @@ fn validate_identifier(value: &str) -> Result<(), GradientReceiptError> {
         .any(|character| character.is_whitespace() || character == '/' || character == '\\')
     {
         return Err(GradientReceiptError::InvalidIdentifier);
+    }
+    Ok(())
+}
+
+fn validate_optional_reference(value: Option<&str>) -> Result<(), GradientReceiptError> {
+    if value.is_some_and(|reference| reference.trim().is_empty()) {
+        return Err(GradientReceiptError::EmptyIdentifier);
     }
     Ok(())
 }
@@ -549,6 +587,7 @@ mod tests {
             verifier_id: Some("independent-gradient-checker-v1".into()),
             verification_receipt_digest: Some(digest('9')),
             abstention_reason: None,
+            requires_transversality: false,
             metrics: metrics(),
         }
     }
@@ -644,6 +683,7 @@ mod tests {
         });
         receipt.estimator_id = Some("contacts-from-distance-ste-v1".into());
         receipt.bias_evidence_reference = Some("artifact://gradient-bias-report".into());
+        receipt.responses[0].branch_id = None;
         receipt.verifier_id = None;
         receipt.verification_receipt_digest = None;
 
@@ -747,4 +787,21 @@ mod tests {
         receipt.responses = vec![second, first];
         assert_eq!(canonical, receipt.canonical_bytes());
     }
+    #[test]
+    fn event_sensitive_exact_gradient_requires_positive_transversality_margin() {
+        let mut receipt = base_receipt(GradientKind::BranchLocal);
+        receipt.responses.push(branch_response("impact", 0.5));
+        receipt.requires_transversality = true;
+        receipt.metrics.transversality_abs_margin = Some(0.0);
+
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::InvalidTransversalityMargin)
+        );
+
+        receipt.metrics.transversality_abs_margin = Some(1.0e-6);
+        receipt.validate().expect("strictly positive transversality bound");
+    }
+
+
 }
