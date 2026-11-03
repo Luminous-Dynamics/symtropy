@@ -426,6 +426,7 @@ fn adjudication_manifest_bytes(
 
 fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
     let mut bytes = Vec::new();
+    let source_operation_count = report.source_operation_count.to_string();
     for value in [
         report.schema.as_str(),
         report.frame_id.as_str(),
@@ -434,7 +435,7 @@ fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
         report.source_replicate_id.as_str(),
         report.source_candidate_frame_sha256.as_str(),
         report.source_operation_ledger_sha256.as_str(),
-        report.source_operation_count.to_string().as_str(),
+        source_operation_count.as_str(),
         report.source_admission_frame_receipt_sha256.as_str(),
         report.selection_design.as_str(),
         report.selection_design_sha256.as_str(),
