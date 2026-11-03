@@ -133,7 +133,7 @@ impl ApplicabilityStatus {
         }
     }
 
-    /// True only for a declared dense/sparse support region. Boundary regions remain review-only.
+    /// True when the query falls inside any explicit region, including a boundary/review region.
     pub fn is_inside_declared_support(self) -> bool {
         matches!(
             self,
