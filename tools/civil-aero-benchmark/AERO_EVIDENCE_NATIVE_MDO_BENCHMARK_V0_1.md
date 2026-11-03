@@ -199,6 +199,8 @@ For SU2 cases, the benchmark manifest must record the entire configured stopping
 
 For periodic/unsteady cases, iterative convergence, windowed time-average convergence, sample-length sufficiency, frequency/spectral convergence and time-step refinement remain distinct gates. A configuration preflight only proves compatibility/recognition; it does not prove the flow is statistically stationary or adequately sampled.
 
+For the pinned SU2 v8.6.0 implementation, `COutput::MonitorTimeConvergence` begins updating the windowed Cauchy series at `WINDOW_START_ITER` and only permits the convergence decision after `WINDOW_START_ITER + max(CONV_WINDOW_STARTITER, CONV_WINDOW_CAUCHY_ELEMS)`. Thus the startup delay and minimum Cauchy-series fill overlap; they are not added. This is version-specific behavior verified against the [v8.6.0 source](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/output/COutput.cpp). Keep the formula covered by an exact-source regression fixture and re-verify it whenever the SU2 pin changes.
+
 ## Cost-to-decision accounting
 
 The benchmark's primary resource unit should be **measured total decision cost**, not a raw count of CFD runs. Maintain a vector rather than hiding cost in one scalar:
