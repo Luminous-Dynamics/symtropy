@@ -23,7 +23,8 @@
     "limitations",
     "outcome_contract",
     "leak_benchmark_contract",
-    "cyberphysical_resilience_contract"
+    "cyberphysical_resilience_contract",
+    "network_interference_contract"
   ],
   "properties": {
     "$schema": {
@@ -1136,6 +1137,217 @@
               "const": true
             },
             "independent_safety_interlocks_and_rollback_required": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "network_interference_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "claim_boundary",
+        "assignment_units",
+        "exposure_mappings",
+        "uncertainty_contract",
+        "estimands",
+        "assignment_designs",
+        "comparison_methods",
+        "perturbations",
+        "metrics",
+        "aspirational_targets",
+        "hard_gates"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "0.1.0"
+        },
+        "claim_boundary": {
+          "type": "string"
+        },
+        "assignment_units": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "exposure_mappings": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mapping_id",
+              "description"
+            ],
+            "properties": {
+              "mapping_id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "uncertainty_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate_networks_required",
+            "network_mapping_digest_required",
+            "plausible_network_completions_required_when_partial",
+            "at_least_one_candidate_network_correct_not_assumed",
+            "if_exposure_mapping_unsupported"
+          ],
+          "properties": {
+            "candidate_networks_required": {
+              "type": "boolean",
+              "const": true
+            },
+            "network_mapping_digest_required": {
+              "type": "boolean",
+              "const": true
+            },
+            "plausible_network_completions_required_when_partial": {
+              "type": "boolean",
+              "const": true
+            },
+            "at_least_one_candidate_network_correct_not_assumed": {
+              "type": "boolean",
+              "const": true
+            },
+            "if_exposure_mapping_unsupported": {
+              "type": "string"
+            }
+          }
+        },
+        "estimands": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "direct_effect",
+              "spillover_effect",
+              "direct_spillover_interaction",
+              "total_network_effect",
+              "displacement_harm",
+              "whole_system_service_effect"
+            ]
+          }
+        },
+        "assignment_designs": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "comparison_methods": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "perturbations": {
+          "type": "array",
+          "minItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 11,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "aspirational_targets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correctly_specified_network_absolute_standardized_bias_at_most",
+            "nominal_95_percent_interval_coverage_minimum",
+            "nominal_95_percent_interval_coverage_maximum",
+            "null_type_i_error_maximum",
+            "misspecified_mapping_bounds_target"
+          ],
+          "properties": {
+            "correctly_specified_network_absolute_standardized_bias_at_most": {
+              "type": "number",
+              "const": 0.1
+            },
+            "nominal_95_percent_interval_coverage_minimum": {
+              "type": "number",
+              "const": 0.93
+            },
+            "nominal_95_percent_interval_coverage_maximum": {
+              "type": "number",
+              "const": 0.97
+            },
+            "null_type_i_error_maximum": {
+              "type": "number",
+              "const": 0.05
+            },
+            "misspecified_mapping_bounds_target": {
+              "type": "string"
+            }
+          }
+        },
+        "hard_gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dma_boundaries_not_assumed_to_eliminate_interference",
+            "exposure_map_and_network_digest_frozen_before_outcome_inspection",
+            "multiple_plausible_mappings_tested_when_network_uncertain",
+            "report_direct_spillover_total_and_displacement_separately",
+            "no_point_identification_when_exposure_is_unsupported",
+            "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance",
+            "essential_service_and_water_quality_floors_remain_hard_constraints"
+          ],
+          "properties": {
+            "dma_boundaries_not_assumed_to_eliminate_interference": {
+              "type": "boolean",
+              "const": true
+            },
+            "exposure_map_and_network_digest_frozen_before_outcome_inspection": {
+              "type": "boolean",
+              "const": true
+            },
+            "multiple_plausible_mappings_tested_when_network_uncertain": {
+              "type": "boolean",
+              "const": true
+            },
+            "report_direct_spillover_total_and_displacement_separately": {
+              "type": "boolean",
+              "const": true
+            },
+            "no_point_identification_when_exposure_is_unsupported": {
+              "type": "boolean",
+              "const": true
+            },
+            "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance": {
+              "type": "boolean",
+              "const": true
+            },
+            "essential_service_and_water_quality_floors_remain_hard_constraints": {
               "type": "boolean",
               "const": true
             }
