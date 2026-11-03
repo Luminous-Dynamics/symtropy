@@ -325,9 +325,13 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "current_rms_a",
             "current_peak_a",
             "continuous_current_limit_a",
+            "current_peak_limit_a",
             "voltage_rms_v",
+            "voltage_peak_v",
             "voltage_limit_v",
+            "voltage_peak_limit_v",
             "thermal_maximum_c",
+            "thermal_limit_c",
             "measurement_method",
             "artifact_sha256",
         ],
@@ -820,15 +824,29 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                             "resonant_networks[{index}].commanded_state: steady-state run cannot contain transitioning/unknown network"
                         ));
                     }
+                    if switch_state == "UNKNOWN" {
+                        errors.push(format!(
+                            "resonant_networks[{index}].isolation_switch_state: switch state must be known"
+                        ));
+                    }
                     let current = number_at(network, &["current_rms_a"]);
                     let current_limit =
                         number_at(network, &["continuous_current_limit_a"]);
+                    let current_peak = number_at(network, &["current_peak_a"]);
+                    let current_peak_limit =
+                        number_at(network, &["current_peak_limit_a"]);
                     let voltage = number_at(network, &["voltage_rms_v"]);
                     let voltage_limit = number_at(network, &["voltage_limit_v"]);
-                    if !number_at(network, &["thermal_maximum_c"]).is_some() {
-                        errors.push(format!(
-                            "resonant_networks[{index}].thermal_maximum_c: branch temperature required"
-                        ));
+                    let voltage_peak = number_at(network, &["voltage_peak_v"]);
+                    let voltage_peak_limit =
+                        number_at(network, &["voltage_peak_limit_v"]);
+                    let temperature = number_at(network, &["thermal_maximum_c"]);
+                    let temperature_limit = number_at(network, &["thermal_limit_c"]);
+                    match (temperature, temperature_limit) {
+                        (Some(value), Some(limit)) if value <= limit => {}
+                        _ => errors.push(format!(
+                            "resonant_networks[{index}]: temperature missing or exceeds branch thermal limit"
+                        )),
                     }
                     if method != "MEASURED" {
                         errors.push(format!(
@@ -849,10 +867,22 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                                 "resonant_networks[{index}]: active branch current missing or exceeds continuous rating"
                             )),
                         }
+                        match (current_peak, current_peak_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: active branch peak current missing or exceeds peak rating"
+                            )),
+                        }
                         match (voltage, voltage_limit) {
                             (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
                             _ => errors.push(format!(
                                 "resonant_networks[{index}]: active branch voltage missing or exceeds rated voltage"
+                            )),
+                        }
+                        match (voltage_peak, voltage_peak_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: active branch peak voltage missing or exceeds peak rating"
                             )),
                         }
                     } else if state == "INACTIVE" || state == "ISOLATED" {
@@ -869,10 +899,22 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                                 "resonant_networks[{index}]: inactive branch current and continuous rating are required"
                             )),
                         }
+                        match (current_peak, current_peak_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: inactive branch peak current missing or exceeds peak rating"
+                            )),
+                        }
                         match (voltage, voltage_limit) {
                             (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
                             _ => errors.push(format!(
                                 "resonant_networks[{index}]: inactive branch voltage missing or exceeds rated voltage"
+                            )),
+                        }
+                        match (voltage_peak, voltage_peak_limit) {
+                            (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
+                            _ => errors.push(format!(
+                                "resonant_networks[{index}]: inactive branch peak voltage missing or exceeds peak rating"
                             )),
                         }
                     } else {
@@ -1055,9 +1097,13 @@ mod tests {
                 "current_rms_a": 22.0,
                 "current_peak_a": 31.1,
                 "continuous_current_limit_a": 31.4,
+                "current_peak_limit_a": 44.4,
                 "voltage_rms_v": 724.0,
+                "voltage_peak_v": 1_024.0,
                 "voltage_limit_v": 1_000.0,
+                "voltage_peak_limit_v": 1_400.0,
                 "thermal_maximum_c": 64.0,
+                "thermal_limit_c": 100.0,
                 "measurement_method": "MEASURED",
                 "artifact_sha256": "c".repeat(64)
             },
@@ -1069,9 +1115,13 @@ mod tests {
                 "current_rms_a": 0.2,
                 "current_peak_a": 0.3,
                 "continuous_current_limit_a": 94.2,
+                "current_peak_limit_a": 133.2,
                 "voltage_rms_v": 10.0,
+                "voltage_peak_v": 14.2,
                 "voltage_limit_v": 2_400.0,
+                "voltage_peak_limit_v": 3_400.0,
                 "thermal_maximum_c": 35.0,
+                "thermal_limit_c": 100.0,
                 "measurement_method": "MEASURED",
                 "artifact_sha256": "d".repeat(64)
             }
@@ -1216,6 +1266,22 @@ mod tests {
         manifest["resonant_networks"][1]["voltage_rms_v"] = json!(400.0);
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("exactly one active branch")));
+    }
+
+    #[test]
+    fn rejects_resonant_branch_peak_current_over_rating() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][0]["current_peak_a"] = json!(50.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("peak current missing or exceeds peak rating")));
+    }
+
+    #[test]
+    fn rejects_resonant_branch_temperature_over_limit() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][0]["thermal_maximum_c"] = json!(105.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("exceeds branch thermal limit")));
     }
 
     #[test]
