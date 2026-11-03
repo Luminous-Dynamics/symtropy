@@ -611,3 +611,24 @@ The six synthetic oracle fixtures are:
 - [AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json](data/AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json)
 
 They include the published 25%-for-3-hours style of field reference, a battery-shift event with no site energy saving, under-delivered work, rebound spike, energy-per-work regression and SLA/thermal violation. These are synthetic accounting oracles, not field results.
+
+
+## 28. Independent workload-schedule feasibility verification
+
+Dependent implementation [PR #3443](https://github.com/Luminous-Dynamics/symtropy/pull/3443) adds a deterministic verifier for proposed compute schedules. It is deliberately **not** a scheduler or optimizer: EDF, MILP, MPC or a learned policy may produce a proposal, but the independent verifier checks whether the proposal actually satisfies its declared contract.
+
+It checks:
+- release/deadline windows and complete delivered work;
+- work-unit identity and maximum per-slot job work;
+- non-preemptible contiguous execution;
+- checkpointable pause/resume overhead, converted to slot power and energy;
+- deferrable workload allocation;
+- compute capacity per slot;
+- total facility input power;
+- residual grid import after declared non-grid supply;
+- cooling power capacity;
+- integrated facility/grid/cooling energy.
+
+The verifier's source contract distinguishes base non-compute load, base cooling, job IT power, job cooling, checkpoint energy and committed non-grid supply. It does not allow an optimizer to hide checkpoint energy or cooling behind a lower PCC import value.
+
+The synthetic oracle pack is [AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json](data/AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json) with [schema](data/AI_WORKLOAD_SCHEDULE_SCHEMA_2026-11-03.json). Five cases cover a feasible two-job schedule, grid-cap failure, cooling-cap failure, non-preemptible fragmentation and checkpointable pause/resume. Manual arithmetic reconstruction gives zero discrepancies. These fixtures validate feasibility accounting, not schedule optimality or physical data-centre performance.
