@@ -41,7 +41,7 @@ fn dimension_for_unit(unit: &str) -> Option<&'static str> {
         "%" | "1" | "dB" => Some("dimensionless"),
         "W" | "mW" | "kW" | "MW" | "VA" | "var" => Some("power"),
         "J" | "kJ" | "Wh" | "kWh" => Some("energy"),
-        "Wh/km" | "kWh/100km" => Some("energy_per_distance"),
+        "Wh/km" | "kWh/km" | "kWh/100km" => Some("energy_per_distance"),
         "V/m" | "kV/m" => Some("electric_field"),
         "A/m" => Some("magnetic_field"),
         "T" | "mT" | "uT" | "μT" | "µT" => Some("magnetic_flux_density"),
@@ -64,7 +64,7 @@ fn validate_measurement(m: &Value) -> Vec<String> {
     let q = text(m, "quantity_kind").unwrap_or("");
     let purpose = text(m, "measurement_purpose").unwrap_or("");
     let expected_purpose = match q {
-        "service_energy_replenishment_ratio" => Some("vehicle_service_outcome"),
+        "service_energy_replenishment_ratio" | "energy_per_distance" => Some("vehicle_service_outcome"),
         "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
         | "specific_absorption_rate" | "internal_electric_field" | "current_density"
         | "contact_current" => Some("human_exposure_assessment"),
@@ -106,6 +106,16 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         let unit = text(norm, "unit").unwrap_or("");
         if expected != declared || dimension_for_unit(unit) != Some(declared) {
             errors.push(format!("{id}: normalized unit/dimension mismatch"));
+        }
+        if raw_unit == "kWh/km" && unit == "Wh/km" {
+            if let (Some(raw), Some(converted)) = (value, n(m, &["normalized_measurement", "value"])) {
+                if (converted - raw * 1000.0).abs() > 1e-8 {
+                    errors.push(format!("{id}: kWh/km normalization is not raw*1000"));
+                }
+            }
+            if text(norm, "conversion_id") != Some("kwh_to_wh_per_km_v1") {
+                errors.push(format!("{id}: missing kwh_to_wh_per_km_v1 conversion id"));
+            }
         }
         if raw_unit == "%" && unit == "1" {
             if let (Some(raw), Some(converted)) = (value, n(m, &["normalized_measurement", "value"])) {
@@ -247,6 +257,9 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     if intent == "rank_efficiency" && !matches!(lq, "end_to_end_efficiency" | "subsystem_efficiency") {
         reasons.insert("QUANTITY_KIND_MISMATCH".into());
     }
+    if intent == "rank_energy_per_distance" && lq != "energy_per_distance" {
+        reasons.insert("QUANTITY_KIND_MISMATCH".into());
+    }
 
     if intent == "rank_efficiency" {
         match (
@@ -359,7 +372,7 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         compare_condition(left_field, right_field, "averaging_window_s", &mut reasons);
     }
 
-    if intent == "rank_efficiency" || intent == "compare_exposure" {
+    if intent == "rank_efficiency" || intent == "compare_exposure" || intent == "rank_energy_per_distance" {
         let lc = left.get("conditions").unwrap_or(&Value::Null);
         let rc = right.get("conditions").unwrap_or(&Value::Null);
         compare_condition(lc, rc, "frequency_hz", &mut reasons);
@@ -376,6 +389,23 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
             compare_condition(lc, rc, "load_power_w", &mut reasons);
         }
         compare_condition(lc, rc, "operating_duration_s", &mut reasons);
+        if intent == "rank_energy_per_distance" {
+            for field in [
+                "route_distance_km",
+                "vehicle_speed_mean_mps",
+                "transmitter_pitch_m",
+                "vehicle_energy_demand_wh_km",
+            ] {
+                compare_condition(lc, rc, field, &mut reasons);
+            }
+            for field in ["operating_mode", "vehicle_profile_id", "drive_cycle_id"] {
+                match (text(lc, field), text(rc, field)) {
+                    (Some(a), Some(b)) if a == b => {}
+                    (Some(_), Some(_)) => { reasons.insert("OPERATING_CONDITION_MISMATCH".into()); }
+                    _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+                }
+            }
+        }
         for field in ["waveform", "alignment", "thermal_state", "medium"] {
             compare_string_condition(lc, rc, field, &mut reasons);
         }
@@ -591,6 +621,7 @@ mod tests {
         assert_eq!(dimension_for_unit("μT"), Some("magnetic_flux_density"));
         assert_eq!(dimension_for_unit("V/m"), Some("electric_field"));
         assert_eq!(dimension_for_unit("W"), Some("power"));
+        assert_eq!(dimension_for_unit("kWh/km"), Some("energy_per_distance"));
         assert_eq!(dimension_for_unit("%"), Some("dimensionless"));
         assert_eq!(dimension_for_quantity("apparent_power"), Some("power"));
         assert_eq!(dimension_for_quantity("reactive_power"), Some("power"));
@@ -602,6 +633,24 @@ mod tests {
         let mut m = sample("wrong-unit", 95.0);
         m["raw_measurement"]["unit"] = json!("W");
         assert!(validate_measurement(&m).iter().any(|e| e.contains("expects dimension")));
+    }
+
+
+    #[test]
+    fn validates_kwh_per_km_normalization() {
+        let mut m = sample("KWH-PER-KM", 140.0);
+        m["quantity_kind"] = json!("energy_per_distance");
+        m["measurement_purpose"] = json!("vehicle_service_outcome");
+        m["raw_measurement"]["value"] = json!(0.14);
+        m["raw_measurement"]["unit"] = json!("kWh/km");
+        m["normalized_measurement"]["value"] = json!(140.0);
+        m["normalized_measurement"]["unit"] = json!("Wh/km");
+        m["normalized_measurement"]["conversion_id"] = json!("kwh_to_wh_per_km_v1");
+        m["normalized_measurement"]["dimension"] = json!("energy_per_distance");
+        assert!(validate_measurement(&m).is_empty(), "{:#?}", validate_measurement(&m));
+
+        m["normalized_measurement"]["value"] = json!(0.14);
+        assert!(validate_measurement(&m).iter().any(|e| e.contains("kWh/km normalization")));
     }
 
     #[test]
