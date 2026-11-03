@@ -166,3 +166,11 @@ Proposed targets:
 - **Shared hardware advantage:** show total system size/mass/cost and lifecycle maintenance separately from electrical efficiency; verify that a shared inverter/LCL network has a net benefit after switching/coupling/thermal overhead.
 
 The current literature references include a 4.60 kW five-mode prototype with all modes >80% DC-to-DC (Liu et al., DOI 10.1109/TIE.2026.3697464), a 6.6 kW six-mode dual-channel prototype with reported maximum DC-to-DC efficiencies 90.27–94.48% (DOI 10.1109/TPEL.2026.3689138), and a two-channel series transmitter array demonstrating 4 kW aggregate output at up to 95.7% maximum efficiency (Singhal et al., DOI 10.1109/TIE.2025.3605456). These are small-scale/architecture demonstrations; not a matched comparison to the 50 kW bus prototypes.
+
+## 9. Multi-channel and power-class interoperability qualification
+
+The source set now includes Liu's scalable five-mode multichannel IPT, Liu's six-mode dual-channel power-class prototype, Wang's combined WPT/LVDC receiver, and Singhal's simultaneous two-EV series transmitter array. These demonstrate architecture options, not a single comparable operating point.
+
+See [WPT-MULTI-RECEIVER-001 #3473](https://github.com/Luminous-Dynamics/symtropy/issues/3473) for the scenario corpus and acceptance plan. The benchmark should track independently: per-channel real power, aggregate power, cross-regulation, inactive-channel leakage, mode switching, activation authorization, fairness, partial-load efficiency and source-to-load energy.
+
+The key comparison trap is exposed by the new frozen case: Singhal's 95.7% maximum at 4 kW aggregate output is not directly rankable against Zavrel's 92.7% whole-WCS at 65 kW. It is a different power point and still has insufficiently documented meter planes and statistics. No one-number ranking is warranted.
