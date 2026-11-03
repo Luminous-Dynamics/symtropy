@@ -17,7 +17,8 @@
     "safety",
     "artifact_refs",
     "result",
-    "resonant_networks"
+    "resonant_networks",
+    "cyber_physical_security"
   ],
   "properties": {
     "schema_version": {
@@ -886,6 +887,138 @@
               "null"
             ]
           }
+        }
+      }
+    },
+    "cyber_physical_security": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Cyber-physical controls and test outcomes for receiver admission, command integrity, sensor trust and safe fallback. Boolean fields are evidence claims and must be backed by artifacts in a qualified run.",
+      "required": [
+        "communication_mode",
+        "authentication_method",
+        "mutual_authentication",
+        "replay_protection",
+        "receiver_identity_bound",
+        "firmware_integrity_verified",
+        "sensor_plausibility_checks",
+        "spoofed_receiver_rejected",
+        "replay_message_rejected",
+        "sensor_tampering_detected",
+        "communication_loss_fallback",
+        "p99_message_latency_ms",
+        "max_message_jitter_ms",
+        "max_message_age_ms",
+        "security_artifact_sha256"
+      ],
+      "properties": {
+        "communication_mode": {
+          "enum": [
+            "NETWORKED",
+            "LOCAL_ONLY",
+            "NONE",
+            "UNKNOWN"
+          ]
+        },
+        "authentication_method": {
+          "enum": [
+            "PKI_MUTUAL",
+            "TLS_MUTUAL",
+            "LOCAL_AUTH",
+            "NOT_APPLICABLE",
+            "UNKNOWN"
+          ]
+        },
+        "mutual_authentication": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "replay_protection": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "receiver_identity_bound": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "firmware_integrity_verified": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "sensor_plausibility_checks": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "spoofed_receiver_rejected": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "replay_message_rejected": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "sensor_tampering_detected": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_RUN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "communication_loss_fallback": {
+          "enum": [
+            "SAFE_DEENERGIZE",
+            "LOCAL_SAFE_CONTROL",
+            "UNSAFE",
+            "NOT_RUN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "p99_message_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_message_jitter_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_message_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "security_artifact_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     }
