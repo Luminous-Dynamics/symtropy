@@ -30,7 +30,12 @@ profile and operational domain. The evaluator then checks:
 - mode-specific speed and acceleration limits.
 
 The evaluator emits a typed disposition, reasons and a requested response
-class. It never sends a command or changes a physical state.
+class. Each decision records the exact expected policy subject and the observed
+runtime subject separately, along with the policy digest reference, operating
+mode, evaluation/observation timestamps and sorted source references for every
+sensor, human-detection receipt and ODD condition considered. The references are
+not signatures or byte-authentication receipts. The evaluator never sends a
+command or changes a physical state.
 
 ## Paradigm shift
 
@@ -72,7 +77,7 @@ external authority and this evaluator cannot clear the latch.
 
 ## Frozen corpus
 
-The V1 corpus contains 47 named synthetic cases and 35 authored Rust tests. It includes:
+The V1 corpus contains 47 named synthetic cases and 36 authored Rust tests. It includes:
 
 - clear and near-boundary observations;
 - separation breach and fast human approach;
@@ -110,14 +115,31 @@ The dedicated workflow pins Rust 1.96.0 and runs on Linux, macOS and Windows.
 This crate does not claim compliance with any standard. Applicability is
 machine-, task-, jurisdiction- and integration-specific.
 
+- [ISO 19014-1:2026](https://www.iso.org/standard/87988.html) through
+  [ISO 19014-5:2026](https://www.iso.org/ics/53.100/x/) were published in
+  October 2026 for the functional safety of earth-moving machinery. The series
+  addresses required machine performance levels, achieved safety-control-system
+  performance, environmental testing, software/data transmission and tables of
+  required levels. The relevant scope is earth-moving machinery defined in
+  ISO 6165; it is not a generic construction-robot certification route.
+- [ISO 17757:2019](https://www.iso.org/standard/76126.html) remains current
+  after 2024 confirmation and directly addresses autonomous/semi-autonomous
+  earth-moving and mobile-mining machine systems and their defined environments.
 - [ISO 10218-1:2025](https://www.iso.org/standard/73933.html) and
-  [ISO 10218-2:2025](https://www.iso.org/standard/73934.html) are the current
-  published industrial-robot safety editions. Their scope should not be
-  assumed to cover every construction machine or jobsite integration.
+  [ISO 10218-2:2025](https://www.iso.org/standard/73934.html) are current
+  industrial-robot and application/cell safety standards. Their scope should
+  not be assumed to cover every construction machine or jobsite integration.
 - [ISO 3691-4:2023](https://www.iso.org/standard/83545.html) is the published
   driverless-industrial-truck standard. Its third edition is under development
   as ISO/DIS 3691-4 at stage 40.60; the draft is not a published standard or a
   silently applicable legal requirement ([ISO project status](https://www.iso.org/standard/88615.html)).
+- [ISO 12100:2010](https://www.iso.org/standard/51528.html) remains the
+  published general machinery risk-assessment and risk-reduction framework;
+  [ISO 13849-1:2023](https://www.iso.org/standard/73481.html) addresses
+  safety-related parts of control systems. Neither is replaced by this evaluator.
+- [ANSI/A3 R15.08-1-2020 (R2026)](https://webstore.ansi.org/standards/ria/ANSIA3R15082020R2026)
+  and R15.08-2:2023 are relevant industrial-mobile-robot manufacturer and
+  application/integration references, not a universal heavy-construction profile.
 - The [2026 ISARC analysis of 12 standards](https://doi.org/10.22260/ISARC2026/0104)
   identifies human-machine separation, mode-aware behaviour, sensor monitoring,
   fail-safe response, progressive mitigation and context-dependent validation.
@@ -135,7 +157,13 @@ safeguards.
 ## Comparison plan
 
 Compare matched observations and the same declared machine/task/site profiles
-against these baselines:
+against these baselines. First select the applicable machine-family framework:
+ISO 19014 for in-scope earth-moving machinery, ISO 17757 for autonomous and
+semi-autonomous earth-moving/mining systems, ISO 3691-4 or ANSI/A3 R15.08 for
+in-scope driverless/industrial mobile robots, and ISO 10218 for industrial robot
+applications. A standards applicability matrix must be completed by competent
+engineers for the actual configuration and jurisdiction; merely storing a
+standard identifier is not a conformity assessment.
 
 | Baseline | Policy |
 |---|---|
@@ -182,8 +210,14 @@ physical safety rates.
 
 A meaningful industry comparison must use the same machine, payload, tool,
 site, operating mode, task, safeguard configuration and acceptance criteria.
-Vendor marketing figures and synthetic oracle accuracy are not comparable
-with measured jobsite productivity or certified protective performance.
+For earth-moving machines, benchmark required and achieved machine performance
+levels and software/data-transmission safety evidence under the applicable
+ISO 19014 framework; for mobile robots and industrial cells, use the relevant
+standard-specific safety functions and integration evidence. Never compare a
+synthetic classification rate to an achieved MPL/PL/SIL or infer certification
+from this crate. Vendor marketing figures and synthetic oracle accuracy are
+not comparable with measured jobsite productivity or certified protective
+performance.
 
 ## Ownership boundaries
 
