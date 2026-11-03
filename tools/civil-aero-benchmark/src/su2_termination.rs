@@ -314,6 +314,20 @@ fn classify_full_log(
     classify_exit_section(exit_summary, protocol)
 }
 
+fn unique_exact_message_line<'a>(section: &'a str, message: &str) -> Result<&'a str, String> {
+    let matches = section
+        .lines()
+        .filter(|line| line.trim() == message)
+        .collect::<Vec<_>>();
+    if matches.len() != 1 {
+        return Err(format!(
+            "expected exactly one native SU2 terminal line {message:?}, found {}",
+            matches.len()
+        ));
+    }
+    Ok(matches[0])
+}
+
 fn classify_exit_section(
     section: &str,
     protocol: &crate::su2_field_preflight::Su2ConvergenceProtocol,
@@ -434,7 +448,8 @@ fn classify_exit_section(
                     vec![INTERRUPTED.to_owned()],
                 )
             } else if section.contains(WINDOW_SUCCESS) {
-                let success_digest = sha256_hex(WINDOW_SUCCESS.as_bytes())?;
+                let success_line = unique_exact_message_line(section, WINDOW_SUCCESS)?;
+                let success_digest = sha256_hex(success_line.as_bytes())?;
                 (
                     "time_window".to_owned(),
                     "time_window_native_criteria_satisfied".to_owned(),
@@ -449,7 +464,7 @@ fn classify_exit_section(
                             summary_line_sha256: success_digest.clone(),
                         })
                         .collect(),
-                    vec![WINDOW_SUCCESS.to_owned()],
+                    vec![success_line.to_owned()],
                 )
             } else if section.contains(TIME_LIMIT) {
                 (
@@ -611,7 +626,10 @@ mod tests {
             classify_exit_section(section, &steady_protocol()).expect("classify success");
         assert_eq!(classification, "steady_native_criteria_satisfied");
         assert_eq!(criteria.len(), 2);
-        assert!(criteria.iter().all(|row| row.status == "passed"));
+        assert!(criteria.iter().all(|row| {
+            row.status == "passed"
+                && row.evidence_scope == Su2NativeCriterionEvidenceScope::PerFieldNativeSummaryRow
+        }));
     }
 
     #[test]
@@ -784,6 +802,10 @@ mod tests {
                 && row.evidence_scope
                     == Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner
                 && row.reported_field == "AGGREGATE_WINDOW_SUCCESS_BANNER"
+                && row.summary_line_sha256 == sha256_hex(
+                    b"All windowed time-averaged convergence criteria are fullfilled."
+                )
+                .expect("hash exact aggregate banner")
         }));
         assert_eq!(
             criteria
@@ -791,6 +813,18 @@ mod tests {
                 .map(|row| row.configured_field.as_str())
                 .collect::<Vec<_>>(),
             vec!["TAVG_DRAG", "TAVG_LIFT"]
+        );
+
+        let duplicate_banner = concat!(
+            "----------------------------- Solver Exit -------------------------------\\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\\n",
+            "-------------------------------------------------------------------------\\n",
+        );
+        assert!(
+            classify_exit_section(duplicate_banner, &window_protocol())
+                .expect_err("duplicate aggregate banner rejected")
+                .contains("found 2")
         );
 
         let limited = concat!(
