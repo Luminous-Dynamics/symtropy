@@ -266,3 +266,7 @@ The review describes how these threats can propagate into phase desynchronizatio
 
 Primary review: https://doi.org/10.1002/ese3.70608
 
+### Temperature-dependent ferrite margin derivation
+
+The bidirectional paper reports a calculated maximum ferrite flux density of 376 mT and cites saturation thresholds of 530 mT at 25°C and 410 mT at 100°C. Using those source-stated values, the nominal flux utilization is 376/530 = 71.0% at 25°C and 376/410 = 91.7% at 100°C. The hot-reference margin is therefore only 8.3%. These ratios are derived from the authors' model/value citations; they are not independent flux measurements or a claim of observed saturation. They motivate the typed v1 requirement to record a temperature-specific Bsat(T) curve and the proposed <=80% peak-flux design target.
+
