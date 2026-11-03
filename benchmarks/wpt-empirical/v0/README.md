@@ -217,7 +217,7 @@ Two experimental prototype families are added:
 
 The PV/storage/WPT module-reuse paper and the 2026 interoperability review are source-only entries at this stage. The former's accessible abstract supplies an experimentally validated architecture but no numerical performance figures; the latter is secondary literature, not an experiment.
 
-Updated parent-catalogue totals at this revision: **27 source records, 13 prototype families, 27 measurement records and 22 auxiliary engineering metrics**. These are record counts, not independent operating points or a matched-condition leaderboard. The 20 kW converter-stage DC-DC result, aligned bidirectional grid/battery ranges, 50 kW bus pad and 65 kW back-to-back WCS remain separate comparison lanes until meter boundaries, test windows and operating conditions are reconciled.
+Updated parent-catalogue totals at this revision: **27 source records, 13 prototype families, 27 measurement records and 45 auxiliary engineering metrics**. These are record counts, not independent operating points or a matched-condition leaderboard. The 20 kW converter-stage DC-DC result, aligned bidirectional grid/battery ranges, 50 kW bus pad and 65 kW back-to-back WCS remain separate comparison lanes until meter boundaries, test windows and operating conditions are reconciled.
 
 Primary abstracts and review record:
 - https://doi.org/10.1109/TPEL.2026.3688006
