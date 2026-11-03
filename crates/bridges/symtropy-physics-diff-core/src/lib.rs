@@ -1613,4 +1613,268 @@ mod tests {
             }),
         );
     }
+
+
+    fn lineage_identity(backend_id: &str, backend_version: &str, configuration: &str) -> RunIdentity {
+        RunIdentity::new(
+            "free-fall-paired-v1",
+            "a".repeat(64),
+            backend_id,
+            backend_version,
+            "fixed-step-semi-implicit",
+            configuration,
+            1.0 / 60.0,
+        )
+    }
+
+    fn lineage_trace(identity: &RunIdentity) -> ObservationTrace {
+        let mut trace = ObservationTrace::new(identity.clone());
+        let mut first = ObservationFrame::new(identity.clone(), 0, 0.0);
+        first.bodies.push(body("ball/main"));
+        trace.push(first).expect("first paired frame");
+        let mut second = ObservationFrame::new(identity.clone(), 60, 1.0);
+        second.bodies.push(body("ball/main"));
+        trace.push(second).expect("second paired frame");
+        trace
+    }
+
+    fn known_lineage(kind: LineageDependencyKind, identity: &str) -> LineageDependency {
+        LineageDependency {
+            kind,
+            evidence: LineageDependencyEvidence::Known {
+                identity: identity.to_owned(),
+                evidence_refs: vec![format!("receipt:{identity}")],
+            },
+        }
+    }
+
+    fn lineage_lane(
+        lane_id: &str,
+        lane_kind: DifferentialLaneKind,
+        backend_id: &str,
+        backend_version: &str,
+        configuration: &str,
+        implementation: &str,
+        expected_answer: &str,
+        trace_digest: char,
+    ) -> (DifferentialLaneBinding, ObservationTrace) {
+        let run_identity = lineage_identity(backend_id, backend_version, configuration);
+        let dependencies = vec![
+            known_lineage(LineageDependencyKind::SolverImplementation, implementation),
+            known_lineage(LineageDependencyKind::ExpectedAnswer, expected_answer),
+            known_lineage(LineageDependencyKind::ObservationAdapter, "shared:canonical-observation-adapter-v1"),
+            known_lineage(LineageDependencyKind::RunnerImage, "shared:ci-runner-image-v3"),
+        ];
+        let lane = DifferentialLaneBinding {
+            lane_id: lane_id.to_owned(),
+            lane_kind,
+            run_identity: run_identity.clone(),
+            observation_trace_sha256: trace_digest.to_string().repeat(64),
+            dependency_inventory: DependencyInventoryStatus::CompleteAsserted,
+            dependencies,
+        };
+        let trace = lineage_trace(&run_identity);
+        (lane, trace)
+    }
+
+    fn differential_lineage_fixture() -> (
+        DifferentialLineageManifest,
+        BTreeMap<String, ObservationTrace>,
+        DifferentialLineagePolicy,
+    ) {
+        let (native, native_trace) = lineage_lane(
+            "native",
+            DifferentialLaneKind::NativeSolver,
+            "symtropy-native",
+            "0.2.1",
+            &"1".repeat(64),
+            "source:native-solver-tree-01",
+            "source:native-analytic-oracle-01",
+            '1',
+        );
+        let (reference, reference_trace) = lineage_lane(
+            "rapier",
+            DifferentialLaneKind::ExternalReference,
+            "rapier",
+            "0.18.0",
+            &"2".repeat(64),
+            "source:rapier-bridge-tree-01",
+            "source:reference-oracle-tree-02",
+            '2',
+        );
+        let manifest = DifferentialLineageManifest {
+            schema_version: DIFFERENTIAL_LINEAGE_SCHEMA_VERSION,
+            comparison_id: "free-fall-native-vs-rapier-018".to_owned(),
+            shared_scenario_id: "free-fall-paired-v1".to_owned(),
+            shared_scenario_digest: "a".repeat(64),
+            lanes: vec![native, reference],
+            canonical_assurance: CanonicalAssuranceBindings::default(),
+        };
+        let traces = BTreeMap::from([
+            ("native".to_owned(), native_trace),
+            ("rapier".to_owned(), reference_trace),
+        ]);
+        let policy = DifferentialLineagePolicy {
+            digest: "c".repeat(64),
+            required_lanes: BTreeSet::from([
+                DifferentialLaneKind::NativeSolver,
+                DifferentialLaneKind::ExternalReference,
+            ]),
+            mandatory_separation_kinds: BTreeSet::from([
+                LineageDependencyKind::SolverImplementation,
+                LineageDependencyKind::ExpectedAnswer,
+            ]),
+        };
+        (manifest, traces, policy)
+    }
+
+    #[test]
+    fn paired_lineage_binds_same_subject_and_keeps_shared_execution_domains_visible() {
+        let (manifest, traces, policy) = differential_lineage_fixture();
+        let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
+            .expect("valid paired lineage manifest");
+        assert_eq!(
+            report.disposition,
+            DifferentialLineageDisposition::DeclaredSeparationsObserved
+        );
+        assert_eq!(report.shared_scenario_id, "free-fall-paired-v1");
+        assert_eq!(report.shared_scenario_digest, "a".repeat(64));
+        assert!(report.shared_dependencies.iter().any(|dependency| {
+            dependency.kind == LineageDependencyKind::RunnerImage
+                && dependency.identity == "shared:ci-runner-image-v3"
+        }));
+        assert!(report.shared_dependencies.iter().any(|dependency| {
+            dependency.kind == LineageDependencyKind::ObservationAdapter
+                && dependency.identity == "shared:canonical-observation-adapter-v1"
+        }));
+        assert_eq!(
+            report.unbound_canonical_assurance_owners,
+            vec!["QUAL-001E", "ASSURE-PORTFOLIO-CUT-001", "LEX-NET-030"]
+        );
+    }
+
+    #[test]
+    fn paired_lineage_rejects_a_trace_from_a_different_scenario() {
+        let (manifest, mut traces, policy) = differential_lineage_fixture();
+        let mut wrong = traces.get("rapier").expect("reference trace").clone();
+        let identity = lineage_identity("rapier", "0.18.0", &"2".repeat(64));
+        let mut frame = ObservationFrame::new(identity.clone(), 0, 0.0);
+        frame.bodies.push(body("ball/main"));
+        let mut replacement = ObservationTrace::new(identity);
+        replacement.push(frame).expect("valid alternative trace");
+        wrong = replacement;
+        traces.insert("rapier".to_owned(), wrong);
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
+            Err(DifferentialLineageError::TraceScenarioMismatch("rapier".to_owned()))
+        );
+    }
+
+    #[test]
+    fn same_expected_answer_lineage_is_not_mistaken_for_independent_oracles() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        let native_expected = manifest.lanes[0]
+            .dependencies
+            .iter()
+            .find(|item| item.kind == LineageDependencyKind::ExpectedAnswer)
+            .expect("native expected-answer dependency")
+            .clone();
+        let reference_expected = manifest.lanes[1]
+            .dependencies
+            .iter_mut()
+            .find(|item| item.kind == LineageDependencyKind::ExpectedAnswer)
+            .expect("reference expected-answer dependency");
+        *reference_expected = native_expected;
+
+        let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
+            .expect("shared expected-answer lineage is reportable");
+        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert!(report.separation_findings.iter().any(|finding| {
+            finding.kind == LineageDependencyKind::ExpectedAnswer
+                && finding.disposition == SeparationDisposition::Shared
+                && finding.shared_identities == vec!["source:native-analytic-oracle-01".to_owned()]
+        }));
+    }
+
+    #[test]
+    fn incomplete_or_unknown_solver_lineage_is_not_promoted_to_separation() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.lanes[0].dependency_inventory = DependencyInventoryStatus::Partial;
+        manifest.lanes[0].dependencies.push(LineageDependency {
+            kind: LineageDependencyKind::SolverImplementation,
+            evidence: LineageDependencyEvidence::Unknown {
+                reason: "transitive helper lineage was not enumerated".to_owned(),
+            },
+        });
+        let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
+            .expect("unknown lineage remains a reportable indeterminate");
+        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert!(report.incomplete_lanes.contains(&"native".to_owned()));
+        assert!(report.separation_findings.iter().any(|finding| {
+            finding.kind == LineageDependencyKind::SolverImplementation
+                && finding.disposition == SeparationDisposition::UnknownOrIncomplete
+        }));
+    }
+
+    #[test]
+    fn duplicate_node_ids_and_replays_do_not_create_extra_lanes_or_dependencies() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        let duplicate = manifest.lanes[0].dependencies[0].clone();
+        manifest.lanes[0].dependencies.push(duplicate);
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
+            Err(DifferentialLineageError::DuplicateDependencyIdentity {
+                lane_id: "native".to_owned(),
+                kind: LineageDependencyKind::SolverImplementation,
+                identity: "source:native-solver-tree-01".to_owned(),
+            })
+        );
+    }
+
+    #[test]
+    fn policy_digest_and_trace_artifact_commitments_are_checked() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.lanes[0].observation_trace_sha256 = "not-a-digest".to_owned();
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
+            Err(DifferentialLineageError::InvalidDigest("observation_trace_sha256"))
+        );
+
+        let (manifest, traces, policy) = differential_lineage_fixture();
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &"d".repeat(64)),
+            Err(DifferentialLineageError::PolicyDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn canonical_assurance_bindings_require_digest_shape_but_do_not_claim_verification() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.canonical_assurance.lexnet030_graph_sha256 = Some("not-hex".to_owned());
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
+            Err(DifferentialLineageError::InvalidDigest("lexnet030_graph_sha256"))
+        );
+
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.canonical_assurance.lexnet030_graph_sha256 = Some("d".repeat(64));
+        let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
+            .expect("digest-bound graph reference");
+        assert!(!report.unbound_canonical_assurance_owners.contains(&"LEX-NET-030"));
+    }
+
+    #[test]
+    fn identical_lane_backend_profiles_are_rejected() {
+        let (mut manifest, traces, policy) = differential_lineage_fixture();
+        manifest.lanes[1].run_identity = manifest.lanes[0].run_identity.clone();
+        let trace = lineage_trace(&manifest.lanes[0].run_identity);
+        let mut traces = traces;
+        traces.insert("rapier".to_owned(), trace);
+        assert_eq!(
+            audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
+            Err(DifferentialLineageError::DuplicateBackendProfile(
+                "symtropy-native".to_owned()
+            ))
+        );
+    }
 }
