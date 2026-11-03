@@ -423,8 +423,11 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     match (start, end) {
         (Some(start), Some(end)) if end > start => {}
         _ => errors.push(
-            "metrology.window_start_utc/window_end_utc: require ordered UTC timestamps in YYYY-MM-DDTHH:MM:SSZ"
-                .into(),
+            concat!(
+                "metrology.window_start_utc/window_end_utc: require ordered UTC timestamps ",
+                "in YYYY-MM-DDTHH:MM:SSZ"
+            )
+            .into(),
         ),
     }
     if !number_at(manifest, &["metrology", "sample_rate_hz"]).is_some_and(|v| v > 0.0) {
@@ -451,7 +454,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             for (index, meter) in meters.iter().enumerate() {
                 let id = string_at(meter, &["meter_id"]).unwrap_or("");
                 if !nonempty(Some(id)) || !meter_ids.insert(id.to_owned()) {
-                    errors.push(format!("metrology.meters[{index}].meter_id: missing or duplicate"));
+                    errors.push(format!(
+                        "metrology.meters[{index}].meter_id: missing or duplicate"
+                    ));
                 }
                 match string_at(meter, &["role"]) {
                     Some("SOURCE" | "PRIMARY") => has_source_meter = true,
@@ -478,7 +483,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 }
                 if !number_at(meter, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
                     errors.push(format!(
-                        "metrology.meters[{index}].uncertainty_pct: nonnegative uncertainty required"
+                        concat!(
+                            "metrology.meters[{index}].uncertainty_pct: ",
+                            "nonnegative uncertainty required"
+                        )
                     ));
                 }
                 if !number_at(meter, &["bandwidth_hz"]).is_some_and(|v| v > 0.0) {
@@ -529,7 +537,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     has_input_plane = true;
                     if !number_at(plane, &["real_power_w"]).is_some_and(|v| v > 0.0) {
                         errors.push(format!(
-                            "metrology.measurement_planes[{index}].real_power_w: positive source-side real power required"
+                            concat!(
+                                "metrology.measurement_planes[{index}].real_power_w: ",
+                                "positive source-side real power required"
+                            )
                         ));
                     }
                 }
@@ -539,7 +550,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 if is_output {
                     if !number_at(plane, &["real_power_w"]).is_some_and(|v| v >= 0.0) {
                         errors.push(format!(
-                            "metrology.measurement_planes[{index}].real_power_w: measured real power required"
+                            concat!(
+                                "metrology.measurement_planes[{index}].real_power_w: ",
+                                "measured real power required"
+                            )
                         ));
                     }
                     if !number_at(plane, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
@@ -577,12 +591,17 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             for (index, term) in terms.iter().enumerate() {
                 let stage = string_at(term, &["stage_id"]).unwrap_or("");
                 if !nonempty(Some(stage)) || !loss_ids.insert(stage.to_owned()) {
-                    errors.push(format!("energy_balance.loss_terms[{index}].stage_id: missing or duplicate"));
+                    errors.push(format!(
+                        "energy_balance.loss_terms[{index}].stage_id: missing or duplicate"
+                    ));
                 }
                 match number_at(term, &["energy_j"]) {
                     Some(value) if value >= 0.0 => loss_total += value,
                     _ => errors.push(format!(
-                        "energy_balance.loss_terms[{index}].energy_j: measured/calculated nonnegative energy required"
+                        concat!(
+                            "energy_balance.loss_terms[{index}].energy_j: ",
+                            "measured/calculated nonnegative energy required"
+                        )
                     )),
                 }
                 if !matches!(
@@ -590,7 +609,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     Some("MEASURED" | "AUTHOR_CALCULATED" | "MODEL_DERIVED")
                 ) {
                     errors.push(format!(
-                        "energy_balance.loss_terms[{index}].evidence_kind: unknown/inferred losses cannot qualify"
+                        concat!(
+                            "energy_balance.loss_terms[{index}].evidence_kind: ",
+                            "unknown/inferred losses cannot qualify"
+                        )
                     ));
                 }
             }
@@ -618,13 +640,20 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             let tolerance = (source.abs() * uncertainty / 100.0).max(1e-6);
             if (calculated_residual - residual).abs() > tolerance {
                 errors.push(format!(
-                    "energy_balance.residual_energy_j: ledger mismatch; calculated {calculated_residual:.9}, reported {residual:.9} (tolerance {tolerance:.9})"
+                    concat!(
+                        "energy_balance.residual_energy_j: ledger mismatch; calculated ",
+                        "{calculated_residual:.9}, reported {residual:.9} ",
+                        "(tolerance {tolerance:.9})"
+                    )
                 ));
             }
             let calculated_fraction = calculated_residual.abs() / source * 100.0;
             if (calculated_fraction - fraction).abs() > 1e-6 {
                 errors.push(format!(
-                    "energy_balance.residual_fraction_pct: expected absolute calculated residual fraction {calculated_fraction:.9}, got {fraction:.9}"
+                    concat!(
+                        "energy_balance.residual_fraction_pct: expected absolute calculated ",
+                        "residual fraction {calculated_fraction:.9}, got {fraction:.9}"
+                    )
                 ));
             }
             let residual_limit = if string_at(manifest, &["conditions", "thermal_state"])
@@ -636,12 +665,18 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             };
             if calculated_fraction > residual_limit {
                 errors.push(format!(
-                    "energy_balance.residual_fraction_pct: calculated {calculated_fraction:.6}% exceeds proposed {residual_limit:.3}% qualification target"
+                    concat!(
+                        "energy_balance.residual_fraction_pct: calculated {calculated_fraction:.6}% ",
+                        "exceeds proposed {residual_limit:.3}% qualification target"
+                    )
                 ));
             }
         }
         _ => errors.push(
-            "energy_balance: source/useful/stored/residual energies, residual fraction and expanded uncertainty must be numeric"
+            concat!(
+                "energy_balance: source/useful/stored/residual energies, residual fraction ",
+                "and expanded uncertainty must be numeric"
+            )
                 .into(),
         ),
     }
@@ -675,7 +710,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         ),
     ];
     if !nonempty(string_at(manifest, &["safety", "standard_edition"])) {
-        errors.push("safety.standard_edition: declare applicable standard/edition or assessment basis".into());
+        errors.push(
+            "safety.standard_edition: declare applicable standard/edition or assessment basis".into(),
+        );
     }
     for (field, passed) in safety_checks {
         if !passed {
@@ -718,7 +755,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         if !number_at(manifest, &["power_quality", "primary_current_thd_pct"])
             .is_some_and(|value| value >= 0.0)
         {
-            errors.push("power_quality.primary_current_thd_pct: required for inductive/capacitive/hybrid WPT".into());
+            errors.push(
+                "power_quality.primary_current_thd_pct: required for inductive/capacitive/hybrid WPT"
+                    .into(),
+            );
         }
         if !number_at(manifest, &["power_quality", "thd_measurement_bandwidth_hz"])
             .is_some_and(|value| value > 0.0)
@@ -859,7 +899,8 @@ mod tests {
         manifest["power_quality"]["switching_frequency_hz"] = json!(85_000.0);
         manifest["power_quality"]["zvs_observed"] = json!(true);
 
-        manifest["safety"]["standard_edition"] = json!("synthetic test basis; not a real certification");
+        manifest["safety"]["standard_edition"] =
+            json!("synthetic test basis; not a real certification");
         manifest["safety"]["exposure_assessment_status"] = json!("ASSESSED");
         manifest["safety"]["foreign_object_detection"] = json!("PASS");
         manifest["safety"]["unauthorized_receiver"] = json!("PASS");
@@ -867,11 +908,24 @@ mod tests {
         manifest["safety"]["thermal_maximum_c"] = json!(70.0);
 
         manifest["artifact_refs"] = json!([
-            {"artifact_type":"RAW_WAVEFORM","uri":"artifact://synthetic/raw","sha256": "a".repeat(64),"media_type":"application/octet-stream","description":"Synthetic known-truth waveform placeholder; not measured data."},
-            {"artifact_type":"CALIBRATION_CERTIFICATE","uri":"artifact://synthetic/calibration","sha256": "b".repeat(64),"media_type":"application/pdf","description":"Synthetic known-truth calibration placeholder; not a real certificate."}
+            {
+                "artifact_type": "RAW_WAVEFORM",
+                "uri": "artifact://synthetic/raw",
+                "sha256": "a".repeat(64),
+                "media_type": "application/octet-stream",
+                "description": "Synthetic known-truth waveform placeholder; not measured data."
+            },
+            {
+                "artifact_type": "CALIBRATION_CERTIFICATE",
+                "uri": "artifact://synthetic/calibration",
+                "sha256": "b".repeat(64),
+                "media_type": "application/pdf",
+                "description": "Synthetic known-truth calibration placeholder; not a real certificate."
+            }
         ]);
         manifest["result"]["qualification"] = json!("QUALIFIED");
-        manifest["result"]["notes"] = json!("Synthetic unit-test fixture only; not a physical experiment.");
+        manifest["result"]["notes"] =
+            json!("Synthetic unit-test fixture only; not a physical experiment.");
         manifest
     }
 
@@ -976,7 +1030,13 @@ mod tests {
     fn rejects_missing_raw_waveform_artifact() {
         let mut manifest = qualified_fixture();
         manifest["artifact_refs"] = json!([
-            {"artifact_type":"CALIBRATION_CERTIFICATE","uri":"artifact://synthetic/calibration","sha256":"b".repeat(64),"media_type":"application/pdf","description":"Synthetic placeholder."}
+            {
+                "artifact_type": "CALIBRATION_CERTIFICATE",
+                "uri": "artifact://synthetic/calibration",
+                "sha256": "b".repeat(64),
+                "media_type": "application/pdf",
+                "description": "Synthetic placeholder."
+            }
         ]);
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("RAW_WAVEFORM artifact required")));
