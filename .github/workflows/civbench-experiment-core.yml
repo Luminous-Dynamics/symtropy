@@ -27,23 +27,39 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Resolve and preserve the standalone dependency lock
+      - name: Verify the committed standalone dependency lock
         shell: bash
         run: |
           set -euo pipefail
           test -s research/civbench-experiment-core/Cargo.toml
+          test -s research/civbench-experiment-core/Cargo.lock
           test -s research/civbench-experiment-core/src/lib.rs
-          cargo generate-lockfile --manifest-path research/civbench-experiment-core/Cargo.toml
-
-      - name: Upload generated Cargo.lock for exact review
-        uses: actions/upload-artifact@v4
-        with:
-          name: civbench-experiment-core-cargo-lock
-          path: research/civbench-experiment-core/Cargo.lock
-          if-no-files-found: error
+          cargo metadata --locked --manifest-path research/civbench-experiment-core/Cargo.toml --no-deps >/dev/null
+          git diff --exit-code -- research/civbench-experiment-core/Cargo.lock
 
       - name: Check formatting
+        id: format_check
+        continue-on-error: true
         run: cargo fmt --manifest-path research/civbench-experiment-core/Cargo.toml --all -- --check
+
+      - name: Export rustfmt repair source for review
+        if: steps.format_check.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/civbench-experiment-core/Cargo.toml --all
+          mkdir -p /tmp/civbench-rustfmt
+          cp research/civbench-experiment-core/src/lib.rs /tmp/civbench-rustfmt/lib.rs
+          git diff --no-ext-diff --unified=3 -- research/civbench-experiment-core/src/lib.rs > /tmp/civbench-rustfmt/rustfmt.diff
+          test -s /tmp/civbench-rustfmt/rustfmt.diff
+
+      - name: Upload rustfmt repair source
+        if: steps.format_check.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: civbench-rustfmt-repair
+          path: /tmp/civbench-rustfmt/
+          if-no-files-found: error
 
       - name: Check all targets with locked dependencies
         run: cargo check --locked --manifest-path research/civbench-experiment-core/Cargo.toml --all-targets
@@ -56,3 +72,9 @@ jobs:
 
       - name: Build documentation without dependencies
         run: cargo doc --locked --manifest-path research/civbench-experiment-core/Cargo.toml --no-deps
+
+      - name: Require formatting to be committed (diagnostic repair runs must remain red)
+        if: steps.format_check.outcome == 'failure'
+        run: |
+          echo "The rustfmt repair artifact is diagnostic only; commit the formatted source and rerun."
+          exit 1
