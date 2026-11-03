@@ -856,12 +856,23 @@ mod tests {
     #[test]
     fn overlapping_regions_are_never_resolved_by_best_case_precedence() {
         let mut m = manifest();
-        m.regions.push(region(
+        let overlap = region(
             "overlap",
             0.71,
             0.73,
             ApplicabilitySupportClass::Sparse,
-        ));
+        );
+        let overlap_evidence_id = overlap.supporting_evidence_ids[0].clone();
+        let overlap_scope = region_scope_sha256(&m, &overlap).unwrap();
+        m.evidence_refs.push(ApplicabilityEvidenceRef {
+            evidence_id: overlap_evidence_id,
+            evidence_kind: "validation_observation_fixture".to_owned(),
+            source_ref: "synthetic://aero-applicability/overlap".to_owned(),
+            license_applicability: "synthetic-ci-fixture-only".to_owned(),
+            artifact_sha256: digest('e'),
+            scope_sha256: overlap_scope,
+        });
+        m.regions.push(overlap);
         m = seal_applicability_domain_manifest(m).unwrap();
         let result = assess_applicability_domain(&m, &query(0.72)).unwrap();
         assert_eq!(
@@ -916,7 +927,8 @@ mod tests {
         );
 
         let mut tampered = m.clone();
-        tampered.quantity_unit = "coefficient-unit-drift".to_owned();
+        tampered.evidence_refs[0].license_applicability =
+            "silently-changed-license-scope".to_owned();
         assert!(verify_applicability_domain_manifest(&tampered)
             .expect_err("tampered manifest must reject")
             .contains("digest mismatch"));
