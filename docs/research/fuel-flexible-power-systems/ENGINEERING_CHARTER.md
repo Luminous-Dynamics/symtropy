@@ -594,3 +594,20 @@ They explicitly bind each power observation to a timebase, site, workload (where
 Cross-site correlation requires synchronized clocks with measured error below a declared tolerance and a minimum common timestamp count. A PTP/NTP label alone is insufficient; the actual alignment error and shared samples must be checked. The fixtures include a valid aligned multi-site case, a nested meter double-count rejection and an unsynchronized clock rejection.
 
 A Rust implementation is being developed in [AI data-centre trace validation PR #3437](https://github.com/Luminous-Dynamics/symtropy/pull/3437). Its 11 unit tests cover meter lineage, cross-site alignment, common timestamps, workload/site joins, sample ordering and sign conventions. This is structural/ingestion validation only; it does not authenticate meter calibration or establish real grid correlations.
+
+
+## 27. Matched-service flexibility evaluation
+
+The evaluator work is in dependent draft [PR #3438](https://github.com/Luminous-Dynamics/symtropy/pull/3438), based on the trace validator #3437. It evaluates a grid-interactive compute event over a frozen baseline, response and rebound horizon.
+
+Two electrical boundaries are deliberately distinct:
+- **Grid response:** active import at the facility point of connection (PCC), used to assess the requested grid-support response.
+- **Facility energy per work:** total electrical input at one declared non-overlapping facility service boundary, including grid, onsite generation and storage discharge, used to assess energy per completed unit of compute.
+
+This prevents a battery from making PCC import fall while hiding battery discharge and claiming an efficiency improvement. The report also enforces identical workload/work-unit identity, completed work, response p99 latency, deadline misses, peak thermal limit, sample timing and rebound peak. Every sample retains an evidence ID and the result carries baseline/response configuration digests.
+
+The six synthetic oracle fixtures are:
+- [AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json](data/AI_FLEXIBILITY_EVENT_FIXTURES_2026-11-03.json)
+- [AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json](data/AI_FLEXIBILITY_EVENT_SCHEMA_2026-11-03.json)
+
+They include the published 25%-for-3-hours style of field reference, a battery-shift event with no site energy saving, under-delivered work, rebound spike, energy-per-work regression and SLA/thermal violation. These are synthetic accounting oracles, not field results.
