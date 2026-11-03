@@ -152,3 +152,43 @@ The graph does not invent a total order or treat overlapping/singleton-equal
 times as simultaneous. The graph cap bounds the O(n²) pairwise classification
 cost. A later joint-event certificate must establish simultaneity and joint
 reset semantics independently.
+
+
+## Loss-aware hybrid-physics projection receipt
+
+The `projection_receipt` module defines a consumer-side receipt for projecting
+a Symthaea `ScientificModel.v0.2` with `HYBRID_DYNAMICS.v0.1` into a target
+Symtropy model. It carries projection identity and loss accounting only; it
+does not parse or redefine the source PhysicsIR and does not prove semantic
+equivalence.
+
+The receipt binds source model and hybrid digests, target model digest,
+projection implementation/configuration digests, target schema, and an
+independently extracted inventory of source semantic IDs.
+
+Every source semantic ID must have exactly one ledger entry:
+- PRESERVED: a target semantic ID is present;
+- TRANSFORMED: a target ID and equivalence-evidence reference are present;
+- APPROXIMATED: a target ID and uncertainty/bounds evidence reference are present;
+- EXTERNALIZED: an external artifact reference is present, without a target ID;
+- UNSUPPORTED: no target ID or evidence reference is asserted;
+- UNPROVEN: a proposed target or external mapping may be recorded but remains
+  explicitly unqualified.
+
+The validator rejects missing/extra/duplicate ledger entries, stale source
+model/hybrid digests, malformed digests, and treatment/field combinations that
+would overstate preservation. `validate_source_binding` compares the receipt
+against a separately extracted semantic inventory; the receipt's own list is
+not accepted as its own authority.
+
+A verification receipt binding is optional but must include both verifier
+identity and receipt digest. This module checks presence and syntax only; it
+does not authenticate the verifier or establish that a claimed equivalence
+proof is sound.
+
+Canonical bytes sort source IDs and entries and use length-prefixed fields.
+They are deterministic and unambiguous; callers compute and record the chosen
+cryptographic digest over those bytes separately.
+
+This is the first receipt/coverage slice for PHYS-HYBRID-PROJECTION-001. It
+does not yet implement a parser or the actual point-impact model lowering.
