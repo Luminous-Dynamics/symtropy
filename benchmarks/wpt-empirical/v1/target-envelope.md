@@ -277,3 +277,9 @@ Proposed synthetic/bench qualification objectives (not achieved):
 
 Security, safety, availability and efficiency form a constrained Pareto surface. A higher transfer efficiency never compensates for unauthorized power flow, replay acceptance, sensor-trust failure or unsafe fallback.
 
+## 10. Temperature-aware core flux and saturation margin
+
+For each resonant network, publish the ferrite/core material, saturation-versus-temperature curve and worst-case peak flux. Target peak flux <=80% of the saturation threshold at maximum measured core temperature (20% hot-state margin). Include uncertainty, temperature gradients, material lot variation and waveform distortion; do not use the room-temperature saturation number to qualify a thermally soaked system.
+
+The 2026 bidirectional prototype paper reports a calculated 376 mT core flux and cited ferrite saturation values of 530 mT at 25°C and 410 mT at 100°C. From these values, utilization rises from 71.0% to 91.7% at the hot reference, leaving 8.3% nominal margin to the cited hot threshold. This is a source-based calculation, not a measured failure. The proposed 80% limit is a research design target, not a standard requirement.
+
