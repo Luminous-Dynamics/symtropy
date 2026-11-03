@@ -122,6 +122,7 @@ fn direction_l1_norm(direction: &RationalVector) -> BigRational {
 
 const LP_VARIABLE_COUNT: usize = INPUT_DIMENSION + 1;
 const MAX_ACTIVE_SETS: usize = 250_000;
+const CORNERS_PER_GRADIENT_BOX: usize = 1 << INPUT_DIMENSION;
 
 type LpVector = [BigRational; LP_VARIABLE_COUNT];
 
@@ -536,7 +537,13 @@ fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpO
         .collect();
     let mut cut_owners: Vec<usize> = (0..branches.len()).collect();
 
-    for _ in 0..MAX_ACTIVE_SETS {
+    // Each box has at most 2^6 distinct rational vertices. Every
+    // nonterminal iteration adds at least one previously unseen adverse
+    // corner, so this bound is sufficient for finite termination.
+    let max_cut_iterations = CORNERS_PER_GRADIENT_BOX
+        .checked_mul(branches.len())?
+        .saturating_add(1);
+    for _ in 0..max_cut_iterations {
         let mut optimum = solve_robust_descent_lp(&cuts)?;
         let required_upper = -optimum.margin.clone();
         let mut new_cuts = Vec::new();
