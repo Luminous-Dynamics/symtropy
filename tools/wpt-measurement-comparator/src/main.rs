@@ -22,12 +22,12 @@ fn n(v: &Value, keys: &[&str]) -> Option<f64> {
 
 fn dimension_for_quantity(q: &str) -> Option<&'static str> {
     match q {
-        "electrical_real_power" | "useful_load_power" => Some("power"),
+        "electrical_real_power" | "apparent_power" | "reactive_power" | "useful_load_power" => Some("power"),
         "delivered_energy" => Some("energy"),
         "energy_per_distance" => Some("energy_per_distance"),
         "end_to_end_efficiency" | "subsystem_efficiency"
         | "service_energy_replenishment_ratio" | "coupling_coefficient"
-        | "quality_factor" | "uptime_fraction" | "signal_to_noise_ratio"
+        | "quality_factor" | "power_factor" | "uptime_fraction" | "signal_to_noise_ratio"
         | "bit_error_rate" => Some("dimensionless"),
         "electric_field_strength" | "internal_electric_field" => Some("electric_field"),
         "magnetic_field_strength" => Some("magnetic_field"),
@@ -157,6 +157,19 @@ fn validate_measurement(m: &Value) -> Vec<String> {
     if q == "service_energy_replenishment_ratio" && text(boundary, "boundary_class") != Some("vehicle_service") {
         errors.push(format!("{id}: service ratio requires vehicle_service boundary"));
     }
+    let is_field_quantity = matches!(
+        q,
+        "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
+            | "specific_absorption_rate" | "internal_electric_field" | "current_density"
+            | "contact_current"
+    );
+    match (is_field_quantity, m.get("field_observation")) {
+        (true, Some(Value::Object(_))) => {}
+        (true, _) => errors.push(format!("{id}: field quantity requires a field_observation object")),
+        (false, Some(Value::Null)) => {}
+        (false, None) => errors.push(format!("{id}: field_observation field is required (null for non-field quantities)")),
+        (false, Some(_)) => errors.push(format!("{id}: non-field quantity must not carry field_observation metadata")),
+    }
     if matches!(q, "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
         | "specific_absorption_rate" | "internal_electric_field" | "current_density" | "contact_current")
         && text(boundary, "boundary_class") != Some("field_probe")
@@ -247,6 +260,34 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         }
         if text(m.get("evidence").unwrap_or(&Value::Null), "kind") == Some("UNKNOWN") {
             reasons.insert("SOURCE_QUALIFICATION_INSUFFICIENT".into());
+        }
+    }
+
+    let is_field_comparison = matches!(
+        lq,
+        "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
+            | "specific_absorption_rate" | "internal_electric_field" | "current_density"
+            | "contact_current"
+    );
+    if is_field_comparison {
+        for measurement in [left, right] {
+            let field = measurement.get("field_observation").unwrap_or(&Value::Null);
+            let position = field.get("position_m").unwrap_or(&Value::Null);
+            let complete = field.is_object()
+                && text(field, "probe_method").is_some_and(|method| method == "MEASURED" || method == "SIMULATED" || method == "COMBINED")
+                && ["x", "y", "z"].iter().all(|axis| position.get(*axis).and_then(Value::as_f64).is_some())
+                && text(field, "orientation").is_some()
+                && text(field, "reference_frame").is_some()
+                && text(field, "spatial_region").is_some()
+                && text(field, "averaging_method").is_some_and(|method| method != "not_reported");
+            if !complete {
+                reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into());
+            }
+        }
+        if text(left.get("field_observation").unwrap_or(&Value::Null), "probe_method")
+            != text(right.get("field_observation").unwrap_or(&Value::Null), "probe_method")
+        {
+            reasons.insert("EVIDENCE_KIND_MISMATCH".into());
         }
     }
 
