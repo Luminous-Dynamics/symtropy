@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/comparison-case.schema.json",
+  "title": "WPT Measurement Comparability Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "left_measurement_id",
+    "right_measurement_id",
+    "comparison_intent",
+    "expected_disposition",
+    "expected_reasons",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-comparison-case-v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+    },
+    "left_measurement_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "right_measurement_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "comparison_intent": {
+      "enum": [
+        "rank_efficiency",
+        "compare_useful_power",
+        "compare_vehicle_service",
+        "compare_exposure",
+        "compare_reliability",
+        "generic_numeric_ranking"
+      ]
+    },
+    "expected_disposition": {
+      "enum": [
+        "COMPARABLE",
+        "NOT_COMPARABLE",
+        "UNRESOLVED"
+      ]
+    },
+    "expected_reasons": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "QUANTITY_KIND_MISMATCH",
+          "PURPOSE_MISMATCH",
+          "BOUNDARY_CLASS_MISMATCH",
+          "INPUT_PLANE_MISMATCH",
+          "OUTPUT_PLANE_MISMATCH",
+          "STAGE_SET_MISMATCH",
+          "STATISTIC_MISMATCH",
+          "EVIDENCE_KIND_MISMATCH",
+          "DIMENSION_MISMATCH",
+          "BOUNDARY_INFORMATION_MISSING",
+          "OPERATING_CONDITION_MISMATCH",
+          "SOURCE_QUALIFICATION_INSUFFICIENT"
+        ]
+      },
+      "minItems": 1
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
