@@ -693,8 +693,7 @@ impl fmt::Display for FlexibilityEvaluationError {
                 rebound_end_ns,
             } => write!(
                 f,
-                "invalid flexibility event/rebound windows: event [{event_start_ns}, {event_end_ns}), \
-                 rebound ends at {rebound_end_ns}"
+                "invalid event window [{event_start_ns}, {event_end_ns}); rebound ends at {rebound_end_ns}"
             ),
             Self::InvalidSampleInterval { sample_interval_ns } => write!(
                 f,
@@ -1036,6 +1035,23 @@ mod tests {
             evaluate_flexibility_event(&contract(), &zero_work),
             Err(FlexibilityEvaluationError::ZeroBaselineOrWork)
         ));
+        assert!(
+            FlexibilityEventIdentity::new(
+                " ",
+                "service",
+                "work",
+                "pcc",
+                "sha256:baseline",
+                "sha256:response",
+            )
+            .is_err()
+        );
+        assert!(
+            FlexibilityEventSample::new(
+                0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0, 50.0, " "
+            )
+            .is_err()
+        );
         assert!(
             FlexibilityEventContract::new(
                 identity(),
