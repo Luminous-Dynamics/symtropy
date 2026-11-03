@@ -20,9 +20,7 @@ use crate::su2_field_preflight::Su2FieldPreflightReport;
 use crate::su2_history::{Su2HistoryReport, verify_su2_history_import};
 use crate::su2_mesh::{Su2MeshSpacing2d, derive_su2_characteristic_spacing_2d, inspect_su2_mesh};
 use crate::su2_run_binding::{Su2RunInputBindings, Su2RunLineageBinding};
-use crate::su2_verified_run_bundle::{
-    Su2VerifiedRunBundleInputs, create_su2_verified_run_bundle,
-};
+use crate::su2_verified_run_bundle::{Su2VerifiedRunBundleInputs, create_su2_verified_run_bundle};
 
 pub const SU2_GRID_FAMILY_SCHEMA: &str = "su2-lineage-bound-grid-family/0.2.0";
 pub const SU2_GRID_SPACING_DEFINITION_2D: &str =
@@ -688,10 +686,11 @@ mod tests {
     use crate::external_solver::{ExternalSolverRequest, StagedInputSpec, execute_external_solver};
     use crate::integrity::sha256_file;
     use crate::su2_boundary_audit::{Su2BoundaryOptionSpec, audit_su2_boundary_markers};
-    use crate::su2_field_preflight::audit_su2_field_preflight;
     use crate::su2_convergence_screen::{
         ConvergenceCriteria, MonitorCriterion, ResidualAcceptance, ResidualCriterion,
         screen_su2_history,
+    };
+    use crate::su2_field_preflight::audit_su2_field_preflight;
     };
     use crate::su2_history::{Su2HistoryField, Su2HistorySchema, import_su2_history};
     use crate::su2_run_binding::bind_su2_run_lineage;
@@ -878,12 +877,15 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
             residuals: ["RMS_DENSITY", "RMS_MOMENTUM-X"]
                 .into_iter()
                 .map(|column| {
-                    let (maximum_final_log10_residual, minimum_log10_reduction, maximum_terminal_span_log10) =
-                        if column == "RMS_DENSITY" {
-                            (-8.0, 0.5, 1.0)
-                        } else {
-                            (-8.0, 6.0, 2.0)
-                        };
+                    let (
+                        maximum_final_log10_residual,
+                        minimum_log10_reduction,
+                        maximum_terminal_span_log10,
+                    ) = if column == "RMS_DENSITY" {
+                        (-8.0, 0.5, 1.0)
+                    } else {
+                        (-8.0, 6.0, 2.0)
+                    };
                     ResidualCriterion {
                         column: column.to_owned(),
                         unit: "log10(residual)".to_owned(),
@@ -1131,18 +1133,18 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
             bundle.unsteady_inner_screen_sha256,
             inner_screen.screen_sha256
         );
-        crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(
-            &bundle_inputs,
-            &bundle,
-        )
-        .expect("replay complete SU2 run bundle");
+        crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(&bundle_inputs, &bundle)
+            .expect("replay complete SU2 run bundle");
         assert_eq!(bundle.resource_evidence.unknown_measurement_count(), 4);
         assert_eq!(
             bundle.resource_evidence_sha256.len(),
             64,
             "resource evidence has a canonical digest"
         );
-        assert_eq!(report.members[0].verified_run_bundle_sha256, bundle.bundle_sha256);
+        assert_eq!(
+            report.members[0].verified_run_bundle_sha256,
+            bundle.bundle_sha256
+        );
 
         #[cfg(target_os = "linux")]
         {
@@ -1195,8 +1197,7 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
                 String::from_utf8_lossy(&preflight_oracle.stderr)
             );
             assert!(
-                String::from_utf8_lossy(&preflight_oracle.stdout)
-                    .contains("window_enabled=True")
+                String::from_utf8_lossy(&preflight_oracle.stdout).contains("window_enabled=True")
             );
 
             let oracle = std::process::Command::new("python3")
