@@ -1305,7 +1305,9 @@
         "energy_sufficiency_ratio",
         "segment_activation_success_fraction",
         "speed_profile_sha256",
-        "segment_event_log_sha256"
+        "segment_event_log_sha256",
+        "vehicle_dc_energy_per_km_wh_km",
+        "roadway_idle_energy_per_km_wh_km"
       ],
       "properties": {
         "profile_id": {
@@ -1472,6 +1474,20 @@
             "null"
           ],
           "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "vehicle_dc_energy_per_km_wh_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "roadway_idle_energy_per_km_wh_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     }
