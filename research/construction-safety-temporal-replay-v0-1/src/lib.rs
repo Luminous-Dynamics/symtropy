@@ -77,6 +77,7 @@ pub enum Reason {
     ModalityCoverageIncomplete,
     FaultDomainCoverageIncomplete,
     InterSensorTimeSkewExceeded,
+    EvidenceWindowIncomplete,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +98,8 @@ pub struct TracePolicy {
     pub coverage_grid_sha256: String,
     pub evaluated_at_ms: u64,
     pub maximum_event_age_ms: u64,
+    pub required_evidence_window_ms: u64,
+    pub maximum_inter_sample_gap_ms: u64,
     pub maximum_clock_uncertainty_ms: u64,
     pub maximum_inter_sensor_skew_ms: u64,
     pub minimum_confidence_ppm: u32,
@@ -146,6 +149,9 @@ pub struct CellResult {
     pub newest_source_time_ms: u64,
     pub oldest_source_time_ms: u64,
     pub maximum_event_age_ms: u64,
+    pub evidence_window_start_ms: u64,
+    pub maximum_observation_gap_ms: u64,
+    pub temporal_sample_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -189,6 +195,8 @@ fn policy_is_valid(policy: &TracePolicy) -> bool {
         || !is_sha256_reference(&policy.policy_sha256)
         || !is_sha256_reference(&policy.coverage_grid_sha256)
         || policy.maximum_event_age_ms == 0
+        || (policy.required_evidence_window_ms > 0
+            && policy.maximum_inter_sample_gap_ms == 0)
         || policy.minimum_confidence_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_coverage_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_independent_modalities == 0
@@ -502,22 +510,28 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
     let mut ordered_sources = policy.sources.iter().collect::<Vec<_>>();
     ordered_sources.sort_by(|left, right| left.sensor_id.cmp(&right.sensor_id));
 
+    let evidence_window_start_ms = policy
+        .evaluated_at_ms
+        .saturating_sub(policy.required_evidence_window_ms);
+
     for cell in &required_cells {
         let mut clear_sources = Vec::new();
         let mut clear_times = Vec::new();
         let mut cell_modalities = BTreeSet::new();
         let mut cell_fault_domains = BTreeSet::new();
         let mut maximum_age_ms = 0u64;
+        let mut maximum_observation_gap_ms = 0u64;
+        let mut temporal_sample_count = 0usize;
         let mut saw_stale = false;
         let mut saw_low_confidence = false;
         let mut saw_unknown = false;
 
         for source in &ordered_sources {
             let key = (source.sensor_id.clone(), *cell);
-            let Some(event) = latest.get(&key) else {
+            let Some(latest_event) = latest.get(&key) else {
                 continue;
             };
-            if event.source_time_ms > policy.evaluated_at_ms {
+            if latest_event.source_time_ms > policy.evaluated_at_ms {
                 return stop(
                     policy,
                     Reason::SourceEventAfterEvaluationCutoff,
@@ -525,36 +539,93 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
                     &events_by_id,
                 );
             }
-            let age_ms = policy.evaluated_at_ms.saturating_sub(event.source_time_ms);
-            maximum_age_ms = maximum_age_ms.max(age_ms);
-            if age_ms > policy.maximum_event_age_ms {
+
+            let history = if policy.required_evidence_window_ms == 0 {
+                vec![latest_event]
+            } else {
+                let mut samples = events_by_id
+                    .values()
+                    .filter(|event| {
+                        event.source_id == source.sensor_id
+                            && event.cell == *cell
+                            && event.source_time_ms >= evidence_window_start_ms
+                            && event.source_time_ms <= policy.evaluated_at_ms
+                    })
+                    .collect::<Vec<_>>();
+                samples.sort_by_key(|event| event.source_sequence);
+                samples
+            };
+
+            if history.is_empty() {
                 saw_stale = true;
                 continue;
             }
 
-            match event.state {
-                ObservationState::HumanPresent => {
-                    return stop(policy, Reason::HumanPresent, results, &events_by_id);
-                }
-                ObservationState::Conflicting => {
-                    return inconsistent(policy, Reason::ConflictingHumanEvidence, &events_by_id);
-                }
-                ObservationState::Unknown => {
-                    saw_unknown = true;
-                    continue;
-                }
-                ObservationState::Clear => {}
+            let first_source_time_ms = history[0].source_time_ms;
+            let last_source_time_ms = history[history.len() - 1].source_time_ms;
+            let latest_age_ms = policy
+                .evaluated_at_ms
+                .saturating_sub(last_source_time_ms);
+            maximum_age_ms = maximum_age_ms.max(latest_age_ms);
+
+            if latest_age_ms > policy.maximum_event_age_ms {
+                saw_stale = true;
+                continue;
             }
 
-            if event.confidence_ppm < policy.minimum_confidence_ppm
-                || event.coverage_ppm < policy.minimum_coverage_ppm
-            {
-                saw_low_confidence = true;
+            if policy.required_evidence_window_ms > 0 {
+                if first_source_time_ms.saturating_sub(evidence_window_start_ms)
+                    > policy.maximum_inter_sample_gap_ms
+                {
+                    saw_stale = true;
+                    continue;
+                }
+
+                let mut sample_gap_exceeded = false;
+                for pair in history.windows(2) {
+                    let gap_ms = pair[1]
+                        .source_time_ms
+                        .saturating_sub(pair[0].source_time_ms);
+                    maximum_observation_gap_ms = maximum_observation_gap_ms.max(gap_ms);
+                    if gap_ms > policy.maximum_inter_sample_gap_ms {
+                        sample_gap_exceeded = true;
+                        break;
+                    }
+                }
+                if sample_gap_exceeded {
+                    saw_stale = true;
+                    continue;
+                }
+            }
+
+            let mut source_has_complete_clear_window = true;
+            for event in &history {
+                if event.state == ObservationState::HumanPresent {
+                    return stop(policy, Reason::HumanPresent, results, &events_by_id);
+                }
+                if event.state == ObservationState::Conflicting {
+                    return inconsistent(policy, Reason::ConflictingHumanEvidence, &events_by_id);
+                }
+                if event.state == ObservationState::Unknown {
+                    saw_unknown = true;
+                    source_has_complete_clear_window = false;
+                    continue;
+                }
+                if event.confidence_ppm < policy.minimum_confidence_ppm
+                    || event.coverage_ppm < policy.minimum_coverage_ppm
+                {
+                    saw_low_confidence = true;
+                    source_has_complete_clear_window = false;
+                }
+            }
+
+            if !source_has_complete_clear_window {
                 continue;
             }
 
             clear_sources.push(source.sensor_id.clone());
-            clear_times.push(event.source_time_ms);
+            clear_times.push(last_source_time_ms);
+            temporal_sample_count += history.len();
             cell_modalities.insert(source.modality);
             cell_fault_domains.insert(source.fault_domain.clone());
         }
@@ -578,8 +649,10 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
                 Reason::CellEvidenceStale
             } else if saw_low_confidence {
                 Reason::CellConfidenceInsufficient
-            } else {
+            } else if saw_unknown {
                 Reason::CellEvidenceUnknown
+            } else {
+                Reason::CellEvidenceMissing
             };
             return stop(policy, reason, results, &events_by_id);
         }
@@ -615,6 +688,9 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
             newest_source_time_ms,
             oldest_source_time_ms,
             maximum_event_age_ms: maximum_age_ms,
+            evidence_window_start_ms,
+            maximum_observation_gap_ms,
+            temporal_sample_count,
         });
     }
 
@@ -668,6 +744,8 @@ fn base_policy() -> TracePolicy {
         coverage_grid_sha256: digest('b'),
         evaluated_at_ms: 5_000,
         maximum_event_age_ms: 500,
+        required_evidence_window_ms: 0,
+        maximum_inter_sample_gap_ms: 0,
         maximum_clock_uncertainty_ms: 20,
         maximum_inter_sensor_skew_ms: 100,
         minimum_confidence_ppm: 900_000,
