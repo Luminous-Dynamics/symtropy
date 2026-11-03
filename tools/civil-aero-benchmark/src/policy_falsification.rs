@@ -909,10 +909,20 @@ mod tests {
             operation_id: operation.to_owned(),
             operation_kind: kind.to_owned(),
             fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
-            aerodynamic_condition_calls_attempted: u64::from(matches!(kind, "high_fidelity" | "low_fidelity")),
-            aerodynamic_condition_calls_succeeded: u64::from(
-                matches!(kind, "high_fidelity" | "low_fidelity") && success
-            ),
+            aerodynamic_condition_calls_attempted: if matches!(kind, "high_fidelity" | "low_fidelity") {
+                1
+            } else {
+                0
+            },
+            aerodynamic_condition_calls_succeeded: if matches!(
+                kind,
+                "high_fidelity" | "low_fidelity"
+            ) && success
+            {
+                1
+            } else {
+                0
+            },
             cost_units: 1.0,
             budget_cap_units: 100.0,
             wall_seconds: 2.0,
