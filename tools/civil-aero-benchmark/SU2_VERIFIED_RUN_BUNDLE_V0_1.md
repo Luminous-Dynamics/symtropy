@@ -47,15 +47,20 @@ The bundle builder replays the reports from the original run directories. It rej
 
 The geometry is production-bound because the dry-run field and boundary checks need the configuration and mesh, but do not themselves authenticate the geometry file. Its identity is taken from the production run's staged-input receipt.
 
-## Scheduler-signal termination guard
+## Native termination and co-terminal time limits
 
-SU2 v8.6.0's SIGTERM handler writes `Interrupt signal (N) received, saving files and exiting.` before the driver's `Solver Exit` summary. In unsteady mode, the driver can print the normal time-window message without exposing the separate interruption flag in that summary. Therefore the termination auditor inspects the entire receipt-bound stdout/stderr byte stream, not only the text after `Solver Exit`.
+SU2 v8.6.0's single-zone time driver evaluates `TimeConvergence`, `FinalTimeReached` and `MaxIterationsReached` independently. It can therefore print the window-success banner and, in the same `Solver Exit` section, a final-time or maximum-time-iterations message. Those messages are compatible: the configured window criteria were met, and a run limit was also reached. The classifier records this as `time_window_native_criteria_satisfied_with_coincident_limit` rather than incorrectly rejecting it as contradictory.
 
-Any well-formed SU2 signal-handler line produces an `interrupted` classification and prevents admission, even when a time-window success banner is also present. A malformed line beginning with the signal-handler prefix is rejected as unclassified output. The independent Python oracle applies the same rule to the exact receipt-bound full logs.
+When no window-success banner is present, a final-time and/or time-iteration limit is a non-converged termination. Both limits may be reported together and are classified as `time_limits_reached_before_window_convergence`. Steady-mode success and iteration-limit messages remain mutually exclusive in the pinned driver and their coexistence is still rejected.
 
-Pinned source references:
-- https://github.com/su2code/SU2/blob/6c0e5c5c720936b175c4004e57332884443437f5/SU2_CFD/src/output/COutput.cpp
-- https://github.com/su2code/SU2/blob/6c0e5c5c720936b175c4004e57332884443437f5/SU2_CFD/src/drivers/CSinglezoneDriver.cpp
+The signal guard remains stricter. SU2 v8.6.0's SIGTERM handler writes `Interrupt signal (N) received, saving files and exiting.` before the driver's `Solver Exit` summary. In unsteady mode, the driver can print the normal time-window message without exposing the separate interruption flag in that summary. Therefore the termination auditor inspects the entire receipt-bound stdout/stderr byte stream, not only the text after `Solver Exit`. Any well-formed signal-handler line produces an `interrupted` classification and prevents admission, even when a success banner is also present. A malformed line beginning with the signal-handler prefix is rejected as unclassified output.
+
+Pinned SU2 v8.6.0 source references:
+- [COutput.cpp: signal handler and time-window convergence monitor](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/output/COutput.cpp#L54-L60)
+- [COutput.cpp: time-window start, Cauchy accumulation and max-delay rule](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/output/COutput.cpp#L1060-L1128)
+- [CSinglezoneDriver.cpp: independent time-window and stop-limit messages](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/drivers/CSinglezoneDriver.cpp#L292-L309)
+- [CSinglezoneDriver.cpp: steady exit and native per-field summary](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/drivers/CSinglezoneDriver.cpp#L278-L290)
+- Source blob SHA-256/SHA-1 identifiers returned by the GitHub content API: `COutput.cpp 1101d0a903cba6c1a35b367ba81c2ccd547f519a`, `CSinglezoneDriver.cpp b1283979a72822cdc80dd2dcb5cffd9d02cefa8e`. These are blob identities, not a source build attestation.
 
 ## Resource observations
 
