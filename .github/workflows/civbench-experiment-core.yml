@@ -34,8 +34,13 @@ jobs:
           test -s research/civbench-experiment-core/Cargo.toml
           test -s research/civbench-experiment-core/Cargo.lock
           test -s research/civbench-experiment-core/src/lib.rs
-          if grep -Eq '^[[:space:]]*[^#[:space:]].*=[[:space:]]*\{?[[:space:]]*version' research/civbench-experiment-core/Cargo.toml; then
-            echo "Dependency declarations require explicit review and a regenerated lockfile." >&2
+          if awk '
+            /^\[(workspace\.)?(dev-|build-)?dependencies\]$/ { in_dependencies=1; next }
+            /^\[/ { in_dependencies=0 }
+            in_dependencies && $0 !~ /^[[:space:]]*(#|$)/ { found=1 }
+            END { exit found ? 0 : 1 }
+          ' research/civbench-experiment-core/Cargo.toml; then
+            echo "Third-party dependencies require explicit review and a regenerated lockfile." >&2
             exit 1
           fi
 
