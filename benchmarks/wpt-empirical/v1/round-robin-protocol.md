@@ -192,3 +192,33 @@ Each branch record must include its frequency, commanded state, isolation-switch
 
 This protocol addition is motivated by the 2026 multi-vehicle BIPT paper's modelled 17 A induced current in an inactive 85 kHz loop and 4 A in an inactive 20 kHz loop. Those values are simulation findings, not measured currents; they motivate the test, not a claim about a finished product.
 
+## 13. Cyber-physical security and deterministic safe fallback
+
+A WPT session is a physical energy-control authority. Receiver identity, requested direction/power class, frequency-network selection, battery voltage, alignment state and power commands must be authenticated or independently validated before energization. A secure transport channel alone does not prove that sensor inputs, firmware, freshness or local receiver identity are trustworthy.
+
+Record and test:
+- communication mode: networked, local-only or none;
+- authentication method and mutual-authentication state;
+- replay/freshness protection (nonce, timestamp or monotonic sequence);
+- receiver identity binding to an authorized power class, direction and frequency network;
+- firmware/controller integrity measurement and signed update/secure-boot state;
+- sensor plausibility and cross-checks for current, voltage, phase, alignment and temperature;
+- spoofed receiver, replay command and sensor-tampering detection outcomes;
+- message p99 latency, maximum jitter and maximum permitted message age;
+- loss-of-communication fallback and de-energization/local-safe-control response.
+
+For a qualified networked run, require authenticated identities and fresh command/session state, replay protection, integrity-verified firmware, sensor plausibility checks, positive rejection of spoofed receivers and replayed commands, detected sensor tampering, measured latency/jitter, and a declared safe fallback. The test artifact must bind the exact firmware/controller digest, security configuration and attack-injection report to the run manifest.
+
+A communication-free controller may avoid network latency but is not exempt from receiver authorization, trusted sensing, firmware integrity or fault-safe behavior. It must establish those properties locally and test equivalent spoofing/sensor manipulation scenarios.
+
+Threat cases include:
+- forged receiver identity or spoofed vehicle power class;
+- replayed request that forces unwanted direction/frequency transition;
+- stale or delayed voltage/SoC/frequency command;
+- manipulated current/phase sensor that drives the system out of ZVS or induces circulating current;
+- modified firmware or protection thresholds;
+- communication loss, denial of service or intermittent EMI-corrupted messages;
+- revoked/expired credentials and clock desynchronization.
+
+Hard rule: ambiguous identity, stale/unauthenticated command, compromised firmware, implausible sensor state or failed isolation confirmation must not lead to energization or direction/frequency switching. The system must enter a documented safe state or a rigorously bounded local-safe-control mode. This protocol is a benchmark design, not a cybersecurity certification or authorization to perform real attacks against live infrastructure.
+
