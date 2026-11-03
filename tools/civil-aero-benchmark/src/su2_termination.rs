@@ -719,11 +719,11 @@ mod tests {
         assert_eq!(mode, "unsteady_no_window");
         assert_eq!(classification, "unsupported_unsteady_termination_protocol");
         assert!(criteria.is_empty());
-        assert!(messages.is_empty());
+        assert_eq!(messages, vec![TIME_LIMIT.to_owned()]);
     }
 
     #[test]
-    fn scheduler_sigterm_before_window_success_is_always_interrupted() {
+    fn scheduler_sigterm_and_window_success_banner_are_contradictory() {
         let full_log = concat!(
             "SU2 startup output\n",
             "Interrupt signal (15) received, saving files and exiting.\n",
@@ -735,12 +735,9 @@ mod tests {
         let (_, classification, criteria, messages) =
             classify_full_log(full_log, section, &window_protocol())
                 .expect("classify scheduler signal");
-        assert_eq!(classification, "interrupted");
+        assert_eq!(classification, "contradictory_terminal_messages");
         assert!(criteria.is_empty());
-        assert_eq!(
-            messages,
-            vec!["Interrupt signal (15) received, saving files and exiting."]
-        );
+        assert_eq!(messages.len(), 2);
     }
 
     #[test]
@@ -760,7 +757,7 @@ mod tests {
     }
 
     #[test]
-    fn steady_signal_handler_line_before_exit_section_overrides_success() {
+    fn steady_signal_and_success_banner_are_contradictory() {
         let full_log = concat!(
             "Interrupt signal (15) received, saving files and exiting.\n",
             "----------------------------- Solver Exit -------------------------------\n",
@@ -771,21 +768,22 @@ mod tests {
             "-------------------------------------------------------------------------\n",
         );
         let section = exit_section(full_log).expect("find Solver Exit section");
-        let (_, classification, criteria, _) =
+        let (_, classification, criteria, messages) =
             classify_full_log(full_log, section, &steady_protocol())
                 .expect("classify scheduler signal");
-        assert_eq!(classification, "interrupted");
+        assert_eq!(classification, "contradictory_terminal_messages");
         assert!(criteria.is_empty());
+        assert_eq!(messages.len(), 2);
     }
 
     #[test]
     fn scheduler_signal_before_success_banner_is_recorded_as_contradictory() {
         let section = concat!(
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All convergence criteria satisfied.\\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All convergence criteria satisfied.\n",
         );
         let full_log = format!(
-            "{}15{}\\n{section}",
+            "{}15{}\n{section}",
             SIGNAL_INTERRUPT_PREFIX, SIGNAL_INTERRUPT_SUFFIX
         );
         let (_, classification, rows, messages) =
@@ -799,9 +797,9 @@ mod tests {
     #[test]
     fn contradictory_terminal_messages_are_never_classified_as_converged() {
         let steady = concat!(
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All convergence criteria satisfied.\\n",
-            "Maximum number of iterations reached (ITER = 1000).\\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All convergence criteria satisfied.\n",
+            "Maximum number of iterations reached (ITER = 1000).\n",
         );
         let (_, steady_class, steady_rows, steady_messages) =
             classify_exit_section(steady, &steady_protocol())
@@ -811,9 +809,9 @@ mod tests {
         assert_eq!(steady_messages.len(), 2);
 
         let window = concat!(
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All windowed time-averaged convergence criteria are fullfilled.\\n",
-            "Interrupt signal received, exiting before the convergence criteria were satisfied.\\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\n",
+            "Interrupt signal received, exiting before the convergence criteria were satisfied.\n",
         );
         let (_, window_class, window_rows, window_messages) =
             classify_exit_section(window, &window_protocol())
@@ -827,7 +825,7 @@ mod tests {
     fn time_window_success_can_coincide_with_a_configured_run_limit() {
         for limit in [TIME_LIMIT, TIME_ITERATION_LIMIT] {
             let section = format!(
-                "----------------------------- Solver Exit -------------------------------\\n{WINDOW_SUCCESS}\\n{limit}\\n-------------------------------------------------------------------------\\n"
+                "----------------------------- Solver Exit -------------------------------\n{WINDOW_SUCCESS}\n{limit}\n-------------------------------------------------------------------------\n"
             );
             let (_, classification, criteria, messages) =
                 classify_exit_section(&section, &window_protocol())
@@ -864,7 +862,7 @@ mod tests {
         }
 
         let section = format!(
-            "----------------------------- Solver Exit -------------------------------\\n{WINDOW_SUCCESS}\\n{TIME_LIMIT}\\n{TIME_ITERATION_LIMIT}\\n-------------------------------------------------------------------------\\n"
+            "----------------------------- Solver Exit -------------------------------\n{WINDOW_SUCCESS}\n{TIME_LIMIT}\n{TIME_ITERATION_LIMIT}\n-------------------------------------------------------------------------\n"
         );
         let (_, classification, criteria, messages) =
             classify_exit_section(&section, &window_protocol())
@@ -924,10 +922,10 @@ mod tests {
         );
 
         let duplicate_banner = concat!(
-            "----------------------------- Solver Exit -------------------------------\\n",
-            "All windowed time-averaged convergence criteria are fullfilled.\\n",
-            "All windowed time-averaged convergence criteria are fullfilled.\\n",
-            "-------------------------------------------------------------------------\\n",
+            "----------------------------- Solver Exit -------------------------------\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\n",
+            "All windowed time-averaged convergence criteria are fullfilled.\n",
+            "-------------------------------------------------------------------------\n",
         );
         assert!(
             classify_exit_section(duplicate_banner, &window_protocol())
