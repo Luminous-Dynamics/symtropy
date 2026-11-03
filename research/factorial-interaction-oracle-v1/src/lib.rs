@@ -653,7 +653,10 @@ mod tests {
         assert_eq!(result.animal_count, 2);
         assert_eq!(result.session_count, 3);
         assert!((result.population.a.mean - 6.0).abs() < 1.0e-12);
-        assert!((result.population.a.standard_deviation.expect("sd") - 2.8284271247461903).abs() < 1.0e-12);
+        assert!(
+            (result.population.a.standard_deviation.expect("sd") - 2.8284271247461903).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
