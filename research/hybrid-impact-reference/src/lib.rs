@@ -67,6 +67,7 @@ pub mod bounce_sequence;
 pub mod event_localization;
 pub mod event_order;
 pub mod frictional_contact;
+pub mod gradient_receipt;
 pub mod projection_receipt;
 
 fn finite(value: f64) -> bool {
