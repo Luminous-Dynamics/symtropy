@@ -480,7 +480,10 @@ impl ActorPolicy for CautiousPausePolicy {
         observation: &AllowedActorObservation,
     ) -> Result<ActorTransition, PolicyError> {
         prior.validate(self.bounds)?;
-        if prior.last_decision_tick.is_some_and(|last| observation.tick <= last) {
+        if prior
+            .last_decision_tick
+            .is_some_and(|last| observation.tick <= last)
+        {
             return Err(PolicyError::NonMonotonicTick);
         }
         let ttc = observation.observed_ttc_after_delay(self.reaction_delay_ticks);
@@ -582,7 +585,10 @@ impl ActorPolicy for CommittedAfterEntryPolicy {
         observation: &AllowedActorObservation,
     ) -> Result<ActorTransition, PolicyError> {
         prior.validate(self.bounds)?;
-        if prior.last_decision_tick.is_some_and(|last| observation.tick <= last) {
+        if prior
+            .last_decision_tick
+            .is_some_and(|last| observation.tick <= last)
+        {
             return Err(PolicyError::NonMonotonicTick);
         }
         let mut result = match prior.mode {
@@ -902,7 +908,8 @@ mod tests {
 
     #[test]
     fn scenario_state_restoration_validates_mode_and_speed_setpoint() {
-        let restored = ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, None, bounds()).unwrap();
+        let restored =
+            ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, None, bounds()).unwrap();
         assert_eq!(restored.mode(), ActorMode::Crossing);
         assert_eq!(restored.target_forward_speed_mps(), 1.2);
 
@@ -925,7 +932,10 @@ mod tests {
                 &ttc_view(10, CueStatus::Observed, Some(4.0)),
             )
             .unwrap();
-        assert_eq!(first.next_state().last_decision_tick(), Some(ScenarioTick(10)));
+        assert_eq!(
+            first.next_state().last_decision_tick(),
+            Some(ScenarioTick(10))
+        );
 
         for tick in [10, 9] {
             assert_eq!(
@@ -945,19 +955,18 @@ mod tests {
             1.0,
             Some(ScenarioTick(42)),
             bounds(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(restored.last_decision_tick(), Some(ScenarioTick(42)));
         assert_eq!(
-            cautious().transition(
-                restored,
-                &ttc_view(42, CueStatus::Observed, Some(4.0)),
-            ),
+            cautious().transition(restored, &ttc_view(42, CueStatus::Observed, Some(4.0)),),
             Err(PolicyError::NonMonotonicTick)
         );
-        assert!(cautious().transition(
-            restored,
-            &ttc_view(43, CueStatus::Observed, Some(4.0)),
-        ).is_ok());
+        assert!(
+            cautious()
+                .transition(restored, &ttc_view(43, CueStatus::Observed, Some(4.0)),)
+                .is_ok()
+        );
     }
 
     #[test]
