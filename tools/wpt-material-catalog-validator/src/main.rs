@@ -374,7 +374,7 @@ fn validate_material(
         return Err(format!("{label}.catalogue_type: unsupported type {catalogue_type}"));
     }
     required_string(material, "material_family", &label)?;
-    optional_string(material, "composition_description", &label)?;
+    let _composition_description = optional_string(material, "composition_description", &label)?;
     let grade = optional_string(material, "grade", &label)?;
     let manufacturer = optional_string(material, "manufacturer", &label)?;
     required_string(material, "notes", &label)?;
