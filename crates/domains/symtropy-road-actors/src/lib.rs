@@ -37,7 +37,7 @@ impl ActorPolicyState {
     pub const fn waiting() -> Self {
         Self {
             mode: ActorMode::Waiting,
-            forward_speed_mps: 0.0,
+            target_forward_speed_mps: 0.0,
         }
     }
 
@@ -879,6 +879,23 @@ mod tests {
         );
         assert_eq!(
             cautious().transition(ActorPolicyState::new(ActorMode::Waiting, 1.0), &view),
+            Err(PolicyError::InvalidActorState)
+        );
+    }
+
+    #[test]
+    fn scenario_state_restoration_validates_mode_and_speed_setpoint() {
+        let restored =
+            ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, bounds()).unwrap();
+        assert_eq!(restored.mode(), ActorMode::Crossing);
+        assert_eq!(restored.target_forward_speed_mps(), 1.2);
+
+        assert_eq!(
+            ActorPolicyState::from_scenario(ActorMode::Waiting, 0.5, bounds()),
+            Err(PolicyError::InvalidActorState)
+        );
+        assert_eq!(
+            ActorPolicyState::from_scenario(ActorMode::Crossing, 2.0, bounds()),
             Err(PolicyError::InvalidActorState)
         );
     }
