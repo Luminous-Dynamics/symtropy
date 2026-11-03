@@ -313,3 +313,29 @@ Proposed goals (not achieved or standards thresholds):
 - Publish infrastructure idle energy per lane-hour and per vehicle-km, not just energy transfer during an active vehicle crossing.
 
 Industry baseline: Purdue/INDOT describes 85 coils embedded in a quarter-mile roadway and field delivery from 50 to 190 kW at up to 65 mph, with approximately 85% roadway-inverter-DC-bus to vehicle-DC-bus efficiency at rated power. The 2026 SS/LCC comparative paper reports 0.14 and 0.15 kWh/km in simulation against an assumed vehicle demand of 0.129 kWh/km at 90 km/h. Our benchmark improvement is to require the route profile, energy meter boundaries, battery energy, propulsion use, segment activations and uncertainty to be present before accepting a mission-level claim.
+
+
+## 12. Foreign-object detection and active thermal suppression
+
+### Current evidence and SOTA
+
+- MIT sensor-array FOD: 120 channels, 13 engineered features, 17,800 pre-transfer frames; best reported live cross-session accuracy 98% (49/50) after feature engineering, versus 62% raw RF (31/50). The 75-80 ms reported pipeline is classifier latency, not confirmed power-stage de-energization latency.
+- Active-transfer FOD from the same study is promising but small and controlled. Some displayed percentage values do not reconcile exactly with confusion counts; preserve the discrepancy and do not treat it as safety proof.
+- Active DeMag: reported 76% lower 25 mm coin temperature rise after 600 s (56.6 °C to 13.7 °C), with reported overall efficiency 94.06% at 1.5 kW and 95.07% at 3.3 kW. Auxiliary-inverter energy boundaries need full-text extraction.
+
+### Proposed targets (not achieved, not standards limits)
+
+1. At least 10,000 object-and-session-held-out hazardous-object positive cases and 10,000 held-out negative cases, with zero false negatives. For 0 misses in 10,000 independent positive trials, the exact one-sided 95% upper bound on miss probability is approximately 0.03%. Repeated frames from one object/session are correlated and must not be represented as 10,000 independent objects.
+2. Split by object identity, acquisition session and ultimately laboratory/site. Report per-material, size and position errors. Random-frame-only splits do not support safety claims.
+3. p99 detection decision latency <=50 ms on target edge hardware, improving on the published 75-80 ms host pipeline; measure safe-de-energization latency separately.
+4. Localization median error <=5 mm and p95 <=10 mm on a declared spatial grid, with calibrated uncertainty.
+5. Expected calibration error <=2%; 100% abstention on unknown materials, failed sensors, out-of-domain signals or localization uncertainty crossing the safe/unsafe boundary.
+6. Validate the same held-out object suite before transfer and during full declared power, frequency, misalignment, temperature and EMI conditions. Do not retune thresholds on the held-out set.
+7. Target >=85% reduction in object temperature rise against a matched baseline (the cited DeMag paper reports 76% for its coin case), across multiple materials and geometries.
+8. Compare DeMag ON/OFF at matched useful output and common meter planes. Include auxiliary inverter, sensing, cooling and standby energy. Proposed system-efficiency penalty <=0.5 percentage point while meeting the thermal constraint.
+9. On actuator, thermal-sensor, localization or branch-health fault, de-energize safely. Continued transfer is allowed only inside an independently validated object/material/location/power envelope.
+10. Reproduce across at least three laboratories with unseen object/material sets, inter-lab uncertainty, frozen code/configuration digests and independent thermal ground truth.
+
+### Paradigm shift
+
+Co-design the MIT sensor geometry, resonant magnetic field, ferrite/shield thermal path and active DeMag coils as one constrained system. Optimize an uncertainty-aware safety envelope rather than raw classification accuracy or nominal transfer efficiency. A safe action may be INHIBIT, DERATE, ACTIVE_DEMAG or ABSTAIN; continued transfer is acceptable only when object material, localization, thermal horizon and mitigation health are inside a validated envelope.
