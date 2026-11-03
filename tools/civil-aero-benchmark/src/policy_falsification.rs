@@ -21,8 +21,8 @@ use crate::policy_benchmark::{
 use crate::integrity::sha256_hex;
 use crate::policy_benchmark::{PolicyBenchmarkRow, verify_policy_benchmark_source_receipt};
 
-pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.1.0";
-pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_admitted_candidate_frame_with_separate_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
+pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.2.0";
+pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_upstream_scorecard_candidate_frame_and_complete_operation_ledger_receipt_replayed_with_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeasibilityAdjudicationMethod {
