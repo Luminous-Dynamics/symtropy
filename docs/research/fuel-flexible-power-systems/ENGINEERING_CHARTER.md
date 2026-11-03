@@ -526,3 +526,21 @@ The first synthetic graph fixtures are [WELL_TO_SERVICE_FIXTURES_2026-11-03.json
 The synthetic battery fixture uses 100 kWh metered electricity, 90 kWh delivered DC and the 2024 DFFE NGGEF 0.960 kgCO2e/kWh. It computes 96 kgCO2e at the declared Scope 2 input boundary and 1.0667 kgCO2e per delivered kWh. Battery manufacturing/end-of-life are explicitly excluded. This is an accounting fixture, not a South African battery lifecycle assessment.
 
 The design principle is **service comparability first; primary-energy and lifecycle comparability second**. A result may validly compare delivered service while reporting primary energy or lifecycle emissions as unresolved when the upstream carrier pathway is incomplete.
+
+
+## 23. Grid-forming and AI data-centre benchmark upgrade — UNIFI V3 / IEEE 2800.2
+
+The grid resilience benchmark has been upgraded from 7 groups / 24 cases to **9 groups / 32 cases**, using the current 2026 standards baseline and new frequency-domain / IT-load tests.
+
+New source records:
+- **UNIFI GFM Specifications V3**, NLR/TP-5D00-98381, DOI 10.2172/3016250. The 66-page 2026 report defines vendor-agnostic system and inverter requirements. V3 introduces frequency-domain criteria and quantitative pass/fail tests in addition to time-domain tests. Use the exact V3 test clauses and criteria; the benchmark deliberately does not invent threshold values. https://www.nlr.gov/docs/fy26osti/98381.pdf
+- **IEEE P2800.1** is an active PAR, approved 10 December 2025, for functional capabilities and performance of power-electronic grid-forming equipment; it is not yet a published standard. https://standards.ieee.org/ieee/2800.1/12387/
+- **IEEE 2800.2-2026** is a published active recommended practice, published 30 June 2026, for plant-level test and verification procedures demonstrating applicable IEEE 2800 conformity for bulk-power IBR plants. It is distinct from P2800.1 and does not replace microgrid-controller or islanding standards. https://standards.ieee.org/ieee/2800.2/10616/
+- **IEEE Data Center Design for IT Load Protection white paper**, published 10 September 2026, covers AC/DC/hybrid distribution, redundancy, load priority, system/personnel protection, AI workload consumption, disturbance response, cooling and grid interaction. https://standards.ieee.org/ieee/White_Paper/12663/
+- IEEE's Data Centers Standards Needs activity highlights fast-changing load time constants, grid interconnection, demand/forecast uncertainty, local generation and microgrids as cross-domain gaps. https://standards.ieee.org/industry-connections/activities/data-centers-standards-needs-analysis-and-recommendations/
+
+Two new groups have been added:
+1. **Frequency-domain GFM stability:** converter impedance/admittance scans, weak-grid impedance interaction, and multi-vendor fleet interaction scans. Preserve full complex frequency-response data, operating point, scan band, model validity and uncertainty. A time-domain pass alone cannot prove small-signal stability.
+2. **AI data-centre IT-load protection:** workload ramp/burst replay, UPS/DC bus ride-through, priority shedding and cooling constraints, grid disturbance co-response, and flexible-load dispatch including deferred-work rebound and SLA constraints.
+
+The resulting matrix contains 32 cases. Pass thresholds remain null until the exact UNIFI V3 / applicable IEEE clause, utility agreement and mission-specific requirement are selected. Hardware claims still require physical evidence; HIL and model evidence remain separately labelled.
