@@ -158,4 +158,38 @@ mod tests {
         let lossless = Medium::new(10.0, 1.0, 0.0).unwrap();
         assert_eq!(hemispherical_electrode_impedance(0.0, 0.1, lossless), Err(ModelError::InvalidDerivedValue));
     }
+    #[test]
+    fn two_electrode_dc_limit_matches_point_source_geometry_factor() {
+        let medium = Medium::new(10.0, 1.0, 0.01).unwrap();
+        let impedance = two_hemispherical_electrode_impedance_approx(
+            0.0, 0.1, 0.1, 10.0, medium,
+        ).unwrap();
+        let expected = (1.0 / 0.1 + 1.0 / 0.1 - 2.0 / 10.0)
+            / (2.0 * PI * 0.01);
+        assert!((impedance.re_ohms - expected).abs() / expected < 1e-12);
+        assert_eq!(impedance.im_ohms, 0.0);
+    }
+
+    #[test]
+    fn two_electrode_mutual_term_reduces_impedance() {
+        let medium = Medium::new(10.0, 1.0, 0.01).unwrap();
+        let close = two_hemispherical_electrode_impedance_approx(
+            0.0, 0.1, 0.1, 10.0, medium,
+        ).unwrap();
+        let far = two_hemispherical_electrode_impedance_approx(
+            0.0, 0.1, 0.1, 1.0e8, medium,
+        ).unwrap();
+        assert!(close.re_ohms < far.re_ohms);
+        assert!((far.re_ohms - 1.0 / (PI * 0.1 * 0.01)).abs() < 1e-5);
+    }
+
+    #[test]
+    fn two_electrode_approximation_rejects_near_geometry() {
+        let medium = Medium::new(10.0, 1.0, 0.01).unwrap();
+        assert_eq!(
+            two_hemispherical_electrode_impedance_approx(0.0, 0.1, 0.1, 0.5, medium),
+            Err(ModelError::InvalidGeometry)
+        );
+    }
+
 }
