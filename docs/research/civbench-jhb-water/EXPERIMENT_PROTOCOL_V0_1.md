@@ -577,3 +577,52 @@ Water distribution resilience depends on both the hydraulic plant and the cyber 
 - Promotion beyond M3 requires a threat model, asset/identity inventory, independent red-team review in a contained environment, safety-case evidence and a rollback/incident-response exercise. M4 additionally requires prospective, independently verified service outcomes and bounded authority.
 
 This track complements (and does not replace) the G/M/I water-service experiment. It connects the governance of observations and actions to the integrity of the physical system without duplicating Symtropy's experiment core, Sol-Atlas's hydraulic ownership or Mycelix's authority/appeal responsibilities.
+
+
+## 22. Network interference: water systems are not independent treatment clusters
+
+A district-metered area (DMA) is an accounting/operational boundary, not proof of causal isolation. Pressure control, repair, storage operation, demand allocation and network reconfiguration can change hydraulic conditions outside the directly treated area. A neighboring DMA may receive a spillover benefit or displaced shortage. Ordinary treated-versus-control comparisons can therefore be contaminated even when assignment is geographically separated.
+
+Recent causal-method research offers four relevant directions: direct/indirect effect separation in stepped-wedge settings (O'Malley, Bobak & Barnato, 2026); bias analysis and multi-network estimators when the true interference graph is uncertain (Weinstein & Nevo, 2026); partial-identification bounds under misspecified exposure mappings (Schröder et al., 2026 preprint); and rooted-network exposure that avoids collapsing all connectivity into a small, potentially misspecified neighbor statistic (Auerbach, 2026). Single-network inference with partially observed networks is also an active area (Wilkins-Reeves et al., UAI 2026). None is a validated water-network solution without domain-specific adaptation. References: [Weinstein & Nevo](https://doi.org/10.1093/biomtc/ujag023), [Schröder et al.](https://arxiv.org/abs/2602.03459), [Auerbach](https://doi.org/10.3982/QE2484), [Wilkins-Reeves et al.](https://proceedings.mlr.press/v337/wilkins-reeves26a.html), [O'Malley et al.](https://doi.org/10.1016/j.socnet.2026.04.017).
+
+### Six distinct estimands
+
+1. **Direct effect:** effect of treating the target DMA/node at a fixed, declared exposure to treatments elsewhere.
+2. **Spillover effect:** effect on an untreated DMA/node as neighboring or hydraulically connected units receive treatment.
+3. **Direct × spillover interaction:** whether the direct treatment effect changes with exposure to treated neighbors.
+4. **Total network effect:** the outcome change under a complete network-level policy assignment, including direct and indirect effects.
+5. **Displacement harm:** shortage, pressure deficit, loss, cost or response burden shifted to neighboring or downstream groups.
+6. **Whole-system service effect:** system-level safe/equitable service trajectory including all affected units, not only the intervention footprint.
+
+Do not assume that a DMA-level treatment effect equals the system effect. Do not let a local improvement erase harm displaced across a pressure zone, storage boundary or downstream neighborhood.
+
+### Exposure-map ensemble, not one guessed adjacency matrix
+
+Freeze a primary exposure map before inspecting outcomes, but challenge it against a registered set of plausible mechanisms:
+
+- **Topological adjacency:** a useful baseline, not a sufficient hydraulic influence model.
+- **Hydraulic influence:** pressure/flow sensitivities and feasible response paths under a pinned and qualified physical model.
+- **Directed flow paths:** upstream/downstream and time-resolved flow exposure under a declared operating regime.
+- **Shared supply/storage:** common reservoir, pump, pressure-zone, valve and supply-boundary exposure.
+- **Rooted local network:** retain local graph context instead of reducing influence to one neighbor count.
+
+When the network map is incomplete, preserve multiple plausible completions and their digests. Evaluate the result under each candidate network. If one credible map reverses the sign or substantially changes magnitude, report mapping sensitivity and partial-identification bounds. If no defensible exposure map or plausible completion exists, the direct/spillover causal effect is indeterminate—not point-identified by the absence of a recorded edge.
+
+### Designs to benchmark
+
+- Oracle network/exposure assignment with known truth (simulation method-validation only).
+- Naive no-interference estimator as a required negative control.
+- Graph-clustered assignment with explicit buffer and residual cross-cluster exposure.
+- Two-stage randomized treatment saturation to identify direct and spillover response across treatment intensities, where service-safe and ethically authorized.
+- Randomized rollout timing only for interventions where timing can be varied without withholding a known necessary essential-water repair or compromising safety.
+- Matched whole-network scenario pairs for physical simulation, using the same shock schedule and baseline conditions.
+
+A real city water system may be one connected physical network rather than many exchangeable independent clusters. Therefore, test the design first in known-truth simulations; use observational, phased or whole-system designs when randomization would deny essential service or is not physically/ethically feasible. Never randomize withholding of a known necessary water-quality or safety intervention.
+
+### Robustness benchmark and aspirational targets
+
+Compare oracle exposure; topology-only; hydraulic sensitivity; directed flow; rooted-network; multi-candidate network estimators; partial-identification bounds; and the naive no-interference negative control. Perturb edge presence, flow direction, valve/pressure boundaries, demand/roughness, pump/reservoir state, map missingness and spillover/carryover.
+
+Report direct, spillover, interaction and total-effect bias separately; nominal interval coverage; Type-I error under null treatments; interval width; mapping sensitivity; displaced harm; worst-group service and whole-system service. Proposed targets are aspirational qualification thresholds, not claimed SOTA: absolute standardized bias ≤0.10 on correctly specified networks; 93–97% empirical coverage for nominal 95% intervals; Type-I error ≤5%; and at least 95% truth coverage for sensitivity bounds under registered misspecification, with bound width published. Coverage alone is insufficient—a vacuous interval that contains everything is not useful. Do not declare a robust method without reporting both coverage and interval width.
+
+The exact network/pressure model, topology digest, exposure-map family, assignment unit, buffer logic and all estimand definitions must be frozen before outcome inspection. If topology uncertainty is material, the result is a set of effects/bounds, not a single precise point estimate. This is a causal-evaluation contribution; Sol-Atlas still owns physical network modelling, and Mycelix still owns legitimate authority, appeal and agency constraints.
