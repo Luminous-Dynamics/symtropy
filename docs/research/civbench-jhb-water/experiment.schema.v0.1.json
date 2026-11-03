@@ -1159,7 +1159,8 @@
         "perturbations",
         "metrics",
         "aspirational_targets",
-        "hard_gates"
+        "hard_gates",
+        "source_refs"
       ],
       "properties": {
         "version": {
@@ -1351,6 +1352,14 @@
               "type": "boolean",
               "const": true
             }
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
           }
         }
       }
