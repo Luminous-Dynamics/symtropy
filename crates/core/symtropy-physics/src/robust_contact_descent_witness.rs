@@ -651,6 +651,129 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
     certificate_verified.then_some(optimum)
 }
 
+const MAX_POLYTOPE_VERTICES: usize = 128;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct RationalGradientPolytope {
+    /// Exact vertices of a closed convex polytope in the six-dimensional
+    /// input-gradient frame. The robust support of a linear objective is
+    /// attained at one of these vertices.
+    vertices: Vec<RationalVector>,
+}
+
+fn rational_gradient_dot(
+    gradient: &RationalVector,
+    direction: &RationalVector,
+) -> BigRational {
+    gradient
+        .iter()
+        .zip(direction.iter())
+        .fold(rational(0), |sum, (coefficient, value)| {
+            sum + coefficient * value
+        })
+}
+
+fn gradient_polytope_support_upper(
+    polytope: &RationalGradientPolytope,
+    direction: &RationalVector,
+) -> Option<BigRational> {
+    polytope
+        .vertices
+        .iter()
+        .map(|vertex| rational_gradient_dot(vertex, direction))
+        .max()
+}
+
+/// Independently replay a primal/dual certificate over a finite union of
+/// rational gradient polytopes. The convex hull of each listed vertex set is
+/// the declared uncertainty set; because the objective is linear, checking
+/// every vertex is sufficient and preserves coordinate correlations.
+fn verify_robust_descent_polytope_certificate(
+    polytopes: &[RationalGradientPolytope],
+    optimum: &ExactLpOptimum,
+) -> bool {
+    if polytopes.is_empty()
+        || polytopes.iter().any(|polytope| polytope.vertices.is_empty())
+        || optimum.gradient_cuts.len() != optimum.gradient_cut_owners.len()
+        || optimum.branch_upper_bounds.len() != polytopes.len()
+    {
+        return false;
+    }
+
+    let mut expected_vertices = Vec::new();
+    let mut expected_owners = Vec::new();
+    for (owner, polytope) in polytopes.iter().enumerate() {
+        expected_vertices.extend(polytope.vertices.iter().cloned());
+        expected_owners.extend(std::iter::repeat_n(owner, polytope.vertices.len()));
+    }
+    if expected_vertices.len() > MAX_POLYTOPE_VERTICES
+        || optimum.gradient_cuts != expected_vertices
+        || optimum.gradient_cut_owners != expected_owners
+    {
+        return false;
+    }
+
+    let actual_branch_supports: Vec<BigRational> = polytopes
+        .iter()
+        .filter_map(|polytope| gradient_polytope_support_upper(polytope, &optimum.direction))
+        .collect();
+    let required_upper = -optimum.margin.clone();
+    if actual_branch_supports.len() != polytopes.len()
+        || actual_branch_supports != optimum.branch_upper_bounds
+        || actual_branch_supports.iter().max() != Some(&required_upper)
+    {
+        return false;
+    }
+
+    let constraints = robust_descent_constraints(&expected_vertices);
+    let candidate: LpVector = std::array::from_fn(|index| {
+        if index == INPUT_DIMENSION {
+            optimum.margin.clone()
+        } else {
+            optimum.direction[index].clone()
+        }
+    });
+    verify_exact_lp_certificate(
+        &constraints,
+        &optimum.dual_constraint_indices,
+        &optimum.dual_multipliers,
+        &candidate,
+    )
+}
+
+/// Solve robust descent over a finite union of exact rational gradient
+/// polytopes. The point-gradient LP's exact primal/dual certificate proves the
+/// optimum over every listed vertex; the convex-hull argument extends the
+/// support bound to every point in each declared polytope. Correlated input
+/// derivatives are therefore retained instead of independently boxifying
+/// their coordinates. Cap exhaustion returns None (abstention).
+fn solve_robust_descent_polytope_lp(
+    polytopes: &[RationalGradientPolytope],
+) -> Option<ExactLpOptimum> {
+    if polytopes.is_empty() || polytopes.iter().any(|polytope| polytope.vertices.is_empty()) {
+        return None;
+    }
+
+    let mut vertices = Vec::new();
+    let mut owners = Vec::new();
+    for (owner, polytope) in polytopes.iter().enumerate() {
+        vertices.extend(polytope.vertices.iter().cloned());
+        owners.extend(std::iter::repeat_n(owner, polytope.vertices.len()));
+    }
+    if vertices.len() > MAX_POLYTOPE_VERTICES {
+        return None;
+    }
+
+    let mut optimum = solve_robust_descent_lp(&vertices)?;
+    optimum.gradient_cut_owners = owners;
+    optimum.branch_upper_bounds = polytopes
+        .iter()
+        .map(|polytope| gradient_polytope_support_upper(polytope, &optimum.direction))
+        .collect::<Option<Vec<_>>>()?;
+
+    verify_robust_descent_polytope_certificate(polytopes, &optimum).then_some(optimum)
+}
+
 fn candidate_for_direction(
     branches: &[GradientBox],
     direction: RationalVector,
@@ -916,6 +1039,62 @@ mod tests {
             &branches,
             &candidate.direction,
             &candidate.margin
+        ));
+    }
+
+    #[test]
+    fn correlated_gradient_polytope_preserves_a_direction_lost_by_box_hulling() {
+        // The two vertices are anticorrelated: each has directional derivative
+        // -1 along (1,1), but their independent coordinate box also contains
+        // the impossible corner (1,1), whose derivative is +2.
+        let polytope = RationalGradientPolytope {
+            vertices: vec![
+                [rational(-2), rational(1), rational(0), rational(0), rational(0), rational(0)],
+                [rational(1), rational(-2), rational(0), rational(0), rational(0), rational(0)],
+            ],
+        };
+        let polytopes = [polytope];
+        let optimum = solve_robust_descent_polytope_lp(&polytopes)
+            .expect("the exact correlated-polytope LP finds a common descent direction");
+        assert_eq!(
+            optimum.direction,
+            [
+                rational(1),
+                rational(1),
+                rational(0),
+                rational(0),
+                rational(0),
+                rational(0)
+            ]
+        );
+        assert_eq!(optimum.margin, rational(1));
+        assert_eq!(optimum.branch_upper_bounds, vec![rational(-1)]);
+        assert!(verify_robust_descent_polytope_certificate(&polytopes, &optimum));
+
+        let box_hull = interval_gradient([(-2, 1), (-2, 1), (0, 0), (0, 0), (0, 0), (0, 0)]);
+        assert_eq!(
+            gradient_box_support_upper(&box_hull, &optimum.direction),
+            rational(2)
+        );
+        assert!(!verify_robust_descent(
+            &[box_hull],
+            &optimum.direction,
+            &rational(1)
+        ));
+
+        // Corrupt either the vertex lineage or the dual proof: independent
+        // replay must reject both rather than silently widening or trusting it.
+        let mut corrupted_lineage = optimum.clone();
+        corrupted_lineage.gradient_cut_owners[0] = 1;
+        assert!(!verify_robust_descent_polytope_certificate(
+            &polytopes,
+            &corrupted_lineage
+        ));
+        let mut corrupted_dual = optimum.clone();
+        corrupted_dual.dual_multipliers[0] += rational(1);
+        assert!(!verify_robust_descent_polytope_certificate(
+            &polytopes,
+            &corrupted_dual
         ));
     }
 
