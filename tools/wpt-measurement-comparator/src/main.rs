@@ -198,6 +198,37 @@ fn compare_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTr
     }
 }
 
+fn compare_string_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTreeSet<String>) {
+    match (text(left, field), text(right, field)) {
+        (Some(a), Some(b)) if a == b => {}
+        (Some(_), Some(_)) => { reasons.insert("OPERATING_CONDITION_MISMATCH".into()); }
+        _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+    }
+}
+
+fn compare_statistic(left: &Value, right: &Value, reasons: &mut BTreeSet<String>) {
+    let lkind = text(left, "kind").unwrap_or("");
+    let rkind = text(right, "kind").unwrap_or("");
+    if lkind == "reported_unspecified" || rkind == "reported_unspecified" || lkind.is_empty() || rkind.is_empty() {
+        reasons.insert("STATISTIC_UNSPECIFIED".into());
+        return;
+    }
+    if lkind != rkind {
+        reasons.insert("STATISTIC_MISMATCH".into());
+        return;
+    }
+    match (left.get("window_s").and_then(Value::as_f64), right.get("window_s").and_then(Value::as_f64)) {
+        (Some(a), Some(b)) if (a-b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
+        (Some(_), Some(_)) => { reasons.insert("STATISTIC_MISMATCH".into()); }
+        _ => { reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into()); }
+    }
+    match (left.get("sample_count").and_then(Value::as_u64), right.get("sample_count").and_then(Value::as_u64)) {
+        (Some(a), Some(b)) if a == b => {}
+        (Some(_), Some(_)) => { reasons.insert("STATISTIC_MISMATCH".into()); }
+        _ => { reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into()); }
+    }
+}
+
 pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (String, Vec<String>) {
     let mut reasons = BTreeSet::new();
     let lq = text(left, "quantity_kind").unwrap_or("");
@@ -225,7 +256,15 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         if li != ri { reasons.insert("INPUT_PLANE_MISMATCH".into()); }
         if lo != ro { reasons.insert("OUTPUT_PLANE_MISMATCH".into()); }
     }
-    if text(lb, "stage_set_status") != Some("COMPLETE")
+    let field_boundary = text(lb, "boundary_class") == Some("field_probe")
+        && text(rb, "boundary_class") == Some("field_probe");
+    if field_boundary {
+        if text(lb, "stage_set_status") != Some("NOT_APPLICABLE")
+            || text(rb, "stage_set_status") != Some("NOT_APPLICABLE")
+        {
+            reasons.insert("BOUNDARY_INFORMATION_MISSING".into());
+        }
+    } else if text(lb, "stage_set_status") != Some("COMPLETE")
         || text(rb, "stage_set_status") != Some("COMPLETE")
     {
         reasons.insert("BOUNDARY_INFORMATION_MISSING".into());
@@ -237,13 +276,7 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
 
     let ls = left.get("statistic").unwrap_or(&Value::Null);
     let rs = right.get("statistic").unwrap_or(&Value::Null);
-    let lstat = text(ls, "kind").unwrap_or("");
-    let rstat = text(rs, "kind").unwrap_or("");
-    if lstat == "reported_unspecified" || rstat == "reported_unspecified" || lstat.is_empty() || rstat.is_empty() {
-        reasons.insert("STATISTIC_UNSPECIFIED".into());
-    } else if lstat != rstat {
-        reasons.insert("STATISTIC_MISMATCH".into());
-    }
+    compare_statistic(ls, rs, &mut reasons);
 
     if text(left.get("evidence").unwrap_or(&Value::Null), "kind")
         != text(right.get("evidence").unwrap_or(&Value::Null), "kind")
@@ -284,25 +317,48 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
                 reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into());
             }
         }
-        if text(left.get("field_observation").unwrap_or(&Value::Null), "probe_method")
-            != text(right.get("field_observation").unwrap_or(&Value::Null), "probe_method")
-        {
+        let left_field = left.get("field_observation").unwrap_or(&Value::Null);
+        let right_field = right.get("field_observation").unwrap_or(&Value::Null);
+        if text(left_field, "probe_method") != text(right_field, "probe_method") {
             reasons.insert("EVIDENCE_KIND_MISMATCH".into());
         }
+        for key in ["orientation", "reference_frame", "spatial_region", "averaging_method"] {
+            match (text(left_field, key), text(right_field, key)) {
+                (Some(a), Some(b)) if a == b => {}
+                (Some(_), Some(_)) => { reasons.insert("FIELD_GEOMETRY_MISMATCH".into()); }
+                _ => { reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into()); }
+            }
+        }
+        let lp = left_field.get("position_m").unwrap_or(&Value::Null);
+        let rp = right_field.get("position_m").unwrap_or(&Value::Null);
+        for axis in ["x", "y", "z"] {
+            match (lp.get(axis).and_then(Value::as_f64), rp.get(axis).and_then(Value::as_f64)) {
+                (Some(a), Some(b)) if (a-b).abs() <= 1e-9 => {}
+                (Some(_), Some(_)) => { reasons.insert("FIELD_GEOMETRY_MISMATCH".into()); }
+                _ => { reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into()); }
+            }
+        }
+        compare_condition(left_field, right_field, "averaging_window_s", &mut reasons);
     }
 
-    if intent == "rank_efficiency" {
+    if intent == "rank_efficiency" || intent == "compare_exposure" {
         let lc = left.get("conditions").unwrap_or(&Value::Null);
         let rc = right.get("conditions").unwrap_or(&Value::Null);
         compare_condition(lc, rc, "frequency_hz", &mut reasons);
         compare_condition(lc, rc, "transfer_gap_m", &mut reasons);
-        compare_condition(lc, rc, "load_power_w", &mut reasons);
+        if intent == "rank_efficiency" {
+            compare_condition(lc, rc, "load_power_w", &mut reasons);
+        }
+        compare_condition(lc, rc, "operating_duration_s", &mut reasons);
+        for field in ["waveform", "alignment", "thermal_state", "medium"] {
+            compare_string_condition(lc, rc, field, &mut reasons);
+        }
     }
 
     let decisive = [
         "QUANTITY_KIND_MISMATCH","PURPOSE_MISMATCH","BOUNDARY_CLASS_MISMATCH",
         "INPUT_PLANE_MISMATCH","OUTPUT_PLANE_MISMATCH","STAGE_SET_MISMATCH",
-        "STATISTIC_MISMATCH","EVIDENCE_KIND_MISMATCH","OPERATING_CONDITION_MISMATCH"
+        "STATISTIC_MISMATCH","EVIDENCE_KIND_MISMATCH","OPERATING_CONDITION_MISMATCH","FIELD_GEOMETRY_MISMATCH"
     ];
     let disposition = if reasons.iter().any(|r| decisive.contains(&r.as_str())) {
         "NOT_COMPARABLE"
@@ -470,15 +526,17 @@ mod tests {
                 "included_stages": ["inverter", "coupler", "rectifier"],
                 "excluded_stages": ["mains", "battery"]
             },
-            "statistic": {"kind": "steady_state"},
+            "statistic": {"kind": "steady_state", "window_s": 60.0, "sample_count": 600},
             "evidence": {
                 "kind": "MEASURED",
-                "uncertainty": {"kind": "expanded", "lower": 0.1, "upper": 0.1}
+                "uncertainty": {"kind": "expanded", "lower": 0.1, "upper": 0.1, "coverage_factor": 2.0}
             },
             "qualification": "QUALIFIED_RECORD",
             "conditions": {
                 "frequency_hz": 85000.0, "transfer_gap_m": 0.16,
-                "load_power_w": 50000.0
+                "load_power_w": 50000.0, "operating_duration_s": 60.0,
+                "waveform": "sinusoidal", "alignment": "nominal",
+                "thermal_state": "steady_state", "medium": "air"
             }
         })
     }
