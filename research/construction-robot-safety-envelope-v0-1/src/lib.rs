@@ -396,9 +396,7 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
 
     let mut critical_ids = BTreeSet::new();
     if policy.critical_sensor_ids.iter().any(|id| {
-        !non_empty(id)
-            || id.len() > MAX_IDENTIFIER_BYTES
-            || !critical_ids.insert(id.as_str())
+        !non_empty(id) || id.len() > MAX_IDENTIFIER_BYTES || !critical_ids.insert(id.as_str())
     }) {
         return false;
     }
@@ -527,11 +525,7 @@ fn make_decision(
     }
 }
 
-fn stop(
-    policy: &SafetyPolicy,
-    observation: &RuntimeObservation,
-    reason: Reason,
-) -> SafetyDecision {
+fn stop(policy: &SafetyPolicy, observation: &RuntimeObservation, reason: Reason) -> SafetyDecision {
     make_decision(
         policy,
         observation,
@@ -545,11 +539,7 @@ fn stop(
     )
 }
 
-fn hold(
-    policy: &SafetyPolicy,
-    observation: &RuntimeObservation,
-    reason: Reason,
-) -> SafetyDecision {
+fn hold(policy: &SafetyPolicy, observation: &RuntimeObservation, reason: Reason) -> SafetyDecision {
     make_decision(
         policy,
         observation,
@@ -642,7 +632,9 @@ fn human_evidence_status(
     if evidence.observed_at_ms > observation.evaluated_at_ms {
         return Err(Reason::HumanEvidenceMalformed);
     }
-    if observation.evaluated_at_ms.saturating_sub(evidence.observed_at_ms)
+    if observation
+        .evaluated_at_ms
+        .saturating_sub(evidence.observed_at_ms)
         > policy.maximum_sensor_age_ms
     {
         return Err(Reason::HumanTrackStale);
@@ -665,7 +657,9 @@ fn human_evidence_status(
         .copied()
         .collect::<BTreeSet<_>>();
     if detected_cells.len() != evidence.covered_cells.len()
-        || detected_cells.iter().any(|cell| !required_cells.contains(cell))
+        || detected_cells
+            .iter()
+            .any(|cell| !required_cells.contains(cell))
     {
         return Err(Reason::CoverageCellsMalformed);
     }
@@ -674,10 +668,8 @@ fn human_evidence_status(
     }
 
     let mut sensor_ids = BTreeSet::new();
-    let mut fault_domain_coverage =
-        BTreeMap::<String, BTreeSet<CoverageCell>>::new();
-    let mut modality_coverage =
-        BTreeMap::<SensorModality, BTreeSet<CoverageCell>>::new();
+    let mut fault_domain_coverage = BTreeMap::<String, BTreeSet<CoverageCell>>::new();
+    let mut modality_coverage = BTreeMap::<SensorModality, BTreeSet<CoverageCell>>::new();
     let mut source_covered_cells = BTreeSet::new();
 
     for sensor_id in &evidence.contributing_sensor_ids {
@@ -712,7 +704,9 @@ fn human_evidence_status(
             .copied()
             .collect::<BTreeSet<_>>();
         if sensor_cells.len() != sensor.covered_cells.len()
-            || sensor_cells.iter().any(|cell| !required_cells.contains(cell))
+            || sensor_cells
+                .iter()
+                .any(|cell| !required_cells.contains(cell))
         {
             return Err(Reason::CoverageCellsMalformed);
         }
@@ -753,8 +747,7 @@ fn condition_is_supported(
     policy: &SafetyPolicy,
     observation: &RuntimeObservation,
 ) -> Result<(), Reason> {
-    if observation.odd_conditions.len() > MAX_ODD_CONDITIONS
-        || !conditions_are_unique(observation)
+    if observation.odd_conditions.len() > MAX_ODD_CONDITIONS || !conditions_are_unique(observation)
     {
         return Err(Reason::OddConditionSetMalformed);
     }
@@ -793,19 +786,14 @@ fn condition_is_supported(
         if value.age_ms > limit.maximum_age_ms {
             return Err(Reason::OddConditionStale);
         }
-        if value.value_milli < limit.minimum_milli
-            || value.value_milli > limit.maximum_milli
-        {
+        if value.value_milli < limit.minimum_milli || value.value_milli > limit.maximum_milli {
             return Err(Reason::OddConditionOutsideEnvelope);
         }
     }
     Ok(())
 }
 
-fn sensor_status(
-    policy: &SafetyPolicy,
-    observation: &RuntimeObservation,
-) -> Result<bool, Reason> {
+fn sensor_status(policy: &SafetyPolicy, observation: &RuntimeObservation) -> Result<bool, Reason> {
     if !sensors_are_well_formed(observation) {
         return Err(Reason::SensorSetMalformed);
     }
@@ -855,10 +843,7 @@ fn sensor_status(
 ///
 /// This is an advisory evidence evaluator, not a safety function. It does not
 /// issue commands, stop equipment, reset an emergency stop, or authorize work.
-pub fn evaluate(
-    policy: &SafetyPolicy,
-    observation: &RuntimeObservation,
-) -> SafetyDecision {
+pub fn evaluate(policy: &SafetyPolicy, observation: &RuntimeObservation) -> SafetyDecision {
     // External hard-stop state takes precedence over uncertainty elsewhere.
     match observation.emergency_stop {
         EmergencyStopSignal::Active => {
@@ -874,8 +859,7 @@ pub fn evaluate(
         return stop(policy, observation, Reason::EmergencyModeRequested);
     }
     if observation.mode == OperatingMode::Maintenance
-        && (observation.motion.motion_command_present
-            || observation.motion.speed_mm_s > 0)
+        && (observation.motion.motion_command_present || observation.motion.speed_mm_s > 0)
     {
         return stop(policy, observation, Reason::MaintenanceMotionDetected);
     }
@@ -908,7 +892,9 @@ pub fn evaluate(
     {
         return inconsistent(policy, observation, Reason::ObservationFromFuture);
     }
-    if observation.evaluated_at_ms.saturating_sub(observation.observed_at_ms)
+    if observation
+        .evaluated_at_ms
+        .saturating_sub(observation.observed_at_ms)
         > policy.maximum_state_age_ms
     {
         return stop(policy, observation, Reason::StateObservationStale);
@@ -985,8 +971,7 @@ pub fn evaluate(
                 .saturating_add(policy.stopping_distance_mm as u128)
                 .saturating_add(policy.uncertainty_margin_mm as u128)
                 .saturating_add(approach_distance);
-            let conservative_distance =
-                distance_mm.saturating_sub(position_uncertainty_mm) as u128;
+            let conservative_distance = distance_mm.saturating_sub(position_uncertainty_mm) as u128;
 
             if conservative_distance <= required_distance {
                 return stop(policy, observation, Reason::HumanSeparationBreached);
@@ -1148,10 +1133,7 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
             OperatingMode::Maintenance,
             OperatingMode::Recovery,
         ],
-        critical_sensor_ids: vec![
-            "lidar-front".to_owned(),
-            "localization-unit".to_owned(),
-        ],
+        critical_sensor_ids: vec!["lidar-front".to_owned(), "localization-unit".to_owned()],
         odd_conditions: vec![
             OddConditionLimit {
                 condition_id: "visibility".to_owned(),
@@ -1208,10 +1190,7 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
             conflicting_tracks: false,
         },
         human_detection: HumanDetectionEvidence {
-            contributing_sensor_ids: vec![
-                "lidar-front".to_owned(),
-                "camera-front".to_owned(),
-            ],
+            contributing_sensor_ids: vec!["lidar-front".to_owned(), "camera-front".to_owned()],
             source_sha256: digest('9'),
             observed_at_ms: 4_990,
             coverage_ppm: 980_000,
@@ -1235,11 +1214,11 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 coverage_ppm: 980_000,
                 coverage_grid_sha256: digest('2'),
                 covered_cells: vec![
-                CoverageCell { column: 0, row: 0 },
-                CoverageCell { column: 0, row: 1 },
-                CoverageCell { column: 1, row: 0 },
-                CoverageCell { column: 1, row: 1 },
-            ],
+                    CoverageCell { column: 0, row: 0 },
+                    CoverageCell { column: 0, row: 1 },
+                    CoverageCell { column: 1, row: 0 },
+                    CoverageCell { column: 1, row: 1 },
+                ],
                 calibration_current: true,
                 source_sha256: digest('b'),
             },
@@ -1266,11 +1245,11 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 coverage_ppm: 980_000,
                 coverage_grid_sha256: digest('2'),
                 covered_cells: vec![
-                CoverageCell { column: 0, row: 0 },
-                CoverageCell { column: 0, row: 1 },
-                CoverageCell { column: 1, row: 0 },
-                CoverageCell { column: 1, row: 1 },
-            ],
+                    CoverageCell { column: 0, row: 0 },
+                    CoverageCell { column: 0, row: 1 },
+                    CoverageCell { column: 1, row: 0 },
+                    CoverageCell { column: 1, row: 1 },
+                ],
                 calibration_current: true,
                 source_sha256: digest('d'),
             },
@@ -1828,10 +1807,8 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
 
     let mut observation = base_observation.clone();
     observation.human = HumanObservation::NoHumanDetected;
-    observation.human_detection.contributing_sensor_ids = vec![
-        "lidar-front".to_owned(),
-        "unknown-sensor".to_owned(),
-    ];
+    observation.human_detection.contributing_sensor_ids =
+        vec!["lidar-front".to_owned(), "unknown-sensor".to_owned()];
     add_case(
         &mut cases,
         "SAFE-044-no-human-claim-with-unresolved-sensor-source",
@@ -1853,10 +1830,8 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
 
     let mut observation = base_observation.clone();
     observation.human = HumanObservation::NoHumanDetected;
-    observation.human_detection.contributing_sensor_ids = vec![
-        "lidar-front".to_owned(),
-        "camera-front".to_owned(),
-    ];
+    observation.human_detection.contributing_sensor_ids =
+        vec!["lidar-front".to_owned(), "camera-front".to_owned()];
     observation.sensors[2].fault_domain = observation.sensors[0].fault_domain.clone();
     add_case(
         &mut cases,
@@ -1868,10 +1843,8 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
 
     let mut observation = base_observation.clone();
     observation.human = HumanObservation::NoHumanDetected;
-    observation.human_detection.contributing_sensor_ids = vec![
-        "lidar-front".to_owned(),
-        "localization-unit".to_owned(),
-    ];
+    observation.human_detection.contributing_sensor_ids =
+        vec!["lidar-front".to_owned(), "localization-unit".to_owned()];
     observation.sensors[1].modality = SensorModality::Lidar;
     observation.sensors[1].fault_domain = "independent-navigation-power".to_owned();
     add_case(
@@ -1934,10 +1907,10 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     );
 
     let mut observation = base_observation.clone();
-    observation.human_detection.covered_cells.push(CoverageCell {
-        column: 9,
-        row: 9,
-    });
+    observation
+        .human_detection
+        .covered_cells
+        .push(CoverageCell { column: 9, row: 9 });
     add_case(
         &mut cases,
         "SAFE-053-human-receipt-includes-cell-outside-pinned-zone",
@@ -1959,10 +1932,10 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
 
     let mut observation = base_observation.clone();
     observation.human_detection.covered_cells.pop();
-    observation.human_detection.covered_cells.push(CoverageCell {
-        column: 0,
-        row: 0,
-    });
+    observation
+        .human_detection
+        .covered_cells
+        .push(CoverageCell { column: 0, row: 0 });
     add_case(
         &mut cases,
         "SAFE-055-duplicate-cell-in-human-coverage-receipt",
@@ -1972,10 +1945,9 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     );
 
     let mut observation = base_observation.clone();
-    observation.sensors[2].covered_cells.push(CoverageCell {
-        column: 0,
-        row: 0,
-    });
+    observation.sensors[2]
+        .covered_cells
+        .push(CoverageCell { column: 0, row: 0 });
     add_case(
         &mut cases,
         "SAFE-056-duplicate-cell-in-sensor-coverage-source",
@@ -2144,7 +2116,9 @@ mod tests {
     #[test]
     fn duplicate_odd_condition_ids_fail_closed() {
         let (policy, mut observation) = baseline();
-        observation.odd_conditions.push(observation.odd_conditions[0].clone());
+        observation
+            .odd_conditions
+            .push(observation.odd_conditions[0].clone());
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
     }
@@ -2366,10 +2340,7 @@ mod tests {
             decision.disposition,
             Disposition::StopRequiredBySyntheticPolicy
         );
-        assert_eq!(
-            decision.reasons,
-            vec![Reason::HumanEvidenceSensorMissing]
-        );
+        assert_eq!(decision.reasons, vec![Reason::HumanEvidenceSensorMissing]);
     }
 
     #[test]
@@ -2424,10 +2395,7 @@ mod tests {
             decision.disposition,
             Disposition::StopRequiredBySyntheticPolicy
         );
-        assert_eq!(
-            decision.reasons,
-            vec![Reason::HumanModalityRegionUncovered]
-        );
+        assert_eq!(decision.reasons, vec![Reason::HumanModalityRegionUncovered]);
     }
 
     #[test]
@@ -2436,10 +2404,7 @@ mod tests {
         observation.tool_revision = "unexpected-tool-revision".to_owned();
         let decision = evaluate(&policy, &observation);
 
-        assert_eq!(
-            decision.disposition,
-            Disposition::EvidenceInconsistent
-        );
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
         assert_eq!(
             decision.expected_subject.tool_revision,
             policy.tool_revision
@@ -2480,13 +2445,16 @@ mod tests {
             source_id: "human-detection".to_owned(),
             source_sha256: observation.human_detection.source_sha256.clone(),
         });
-        expected.extend(observation.odd_conditions.iter().map(|condition| {
-            EvidenceReference {
-                role: EvidenceRole::OperatingCondition,
-                source_id: condition.condition_id.clone(),
-                source_sha256: condition.source_sha256.clone(),
-            }
-        }));
+        expected.extend(
+            observation
+                .odd_conditions
+                .iter()
+                .map(|condition| EvidenceReference {
+                    role: EvidenceRole::OperatingCondition,
+                    source_id: condition.condition_id.clone(),
+                    source_sha256: condition.source_sha256.clone(),
+                }),
+        );
         expected.sort();
         assert_eq!(decision.evidence_references, expected);
     }
@@ -2500,10 +2468,7 @@ mod tests {
             decision.disposition,
             Disposition::StopRequiredBySyntheticPolicy
         );
-        assert_eq!(
-            decision.reasons,
-            vec![Reason::HumanEvidenceRegionUncovered]
-        );
+        assert_eq!(decision.reasons, vec![Reason::HumanEvidenceRegionUncovered]);
     }
 
     #[test]
@@ -2515,10 +2480,7 @@ mod tests {
             decision.disposition,
             Disposition::StopRequiredBySyntheticPolicy
         );
-        assert_eq!(
-            decision.reasons,
-            vec![Reason::HumanModalityRegionUncovered]
-        );
+        assert_eq!(decision.reasons, vec![Reason::HumanModalityRegionUncovered]);
     }
 
     #[test]
