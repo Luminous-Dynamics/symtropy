@@ -41,7 +41,7 @@ An interaction contrast is scale-dependent. A nonzero interaction on a raw linea
 
 ## Synthetic tests
 
-The 12 tests cover known-answer recovery of all main and interaction effects, zero-interaction negative controls, equal-animal weighting despite unequal session counts, input-order invariance, missing-cell and insufficient-replicate rejection, duplicate trial IDs, non-finite outcomes, digest checks, minimum animal/replicate checks and duplicate factor IDs.
+The 13 tests cover known-answer recovery of all main and interaction effects, zero-interaction negative controls, equal-animal weighting despite unequal session counts, input-order invariance, missing-cell and insufficient-replicate rejection, duplicate trial IDs, non-finite outcomes and summary-overflow rejection, digest checks, minimum animal/replicate checks and duplicate factor IDs.
 
 All results are synthetic and establish only the local contrast implementation.
 
