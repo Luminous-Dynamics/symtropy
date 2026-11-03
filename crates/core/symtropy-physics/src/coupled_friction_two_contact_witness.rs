@@ -2991,14 +2991,13 @@ mod double_sliding_direction_oracle {
             }
         });
         let zero = BigRational::from_integer(BigInt::from(0_u8));
-        let separation = branch_difference
-            .iter()
-            .zip(direction.iter())
-            .fold(RationalInterval::point(zero), |total, (difference, coefficient)| {
-                let coefficient =
-                    BigRational::from_integer(BigInt::from(*coefficient));
+        let separation = branch_difference.iter().zip(direction.iter()).fold(
+            RationalInterval::point(zero),
+            |total, (difference, coefficient)| {
+                let coefficient = BigRational::from_integer(BigInt::from(*coefficient));
                 total.add(&difference.scale(&coefficient))
-            });
+            },
+        );
         (separation.lower > BigRational::from_integer(BigInt::from(0_u8)))
             .then_some((direction, separation.lower))
     }
@@ -3247,8 +3246,10 @@ mod double_sliding_direction_oracle {
         // overlaps zero, the selector must abstain rather than invent a
         // separating experiment.
         let overlapping: [RationalInterval; 6] = std::array::from_fn(|_| {
-            RationalInterval::new(-BigRational::from_integer(BigInt::from(1_u8)),
-                                  BigRational::from_integer(BigInt::from(1_u8)))
+            RationalInterval::new(
+                -BigRational::from_integer(BigInt::from(1_u8)),
+                BigRational::from_integer(BigInt::from(1_u8)),
+            )
         });
         assert!(maximum_box_separation_direction(&overlapping).is_none());
     }
