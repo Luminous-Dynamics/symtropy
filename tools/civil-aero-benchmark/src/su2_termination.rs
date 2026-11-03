@@ -343,103 +343,104 @@ fn classify_exit_section(
             Vec::new(),
         ));
     }
-    let classification =
-        match &protocol.window {
-            Su2WindowConvergenceProtocol::Disabled => {
-                if section.contains(INTERRUPTED) {
-                    (
-                        "steady".to_owned(),
-                        "interrupted".to_owned(),
-                        Vec::new(),
-                        vec![INTERRUPTED.to_owned()],
-                    )
-                } else if section.contains(STEADY_ITERATION_LIMIT) {
-                    (
-                        "steady".to_owned(),
-                        "maximum_iterations_reached".to_owned(),
-                        Vec::new(),
-                        vec![STEADY_ITERATION_LIMIT.to_owned()],
-                    )
-                } else if section.contains(STEADY_SUCCESS) {
-                    match parse_steady_native_criteria(section, &protocol.steady_fields) {
-                        Ok(criteria) => {
-                            let passed = criteria.iter().all(|criterion| criterion.status == "passed");
-                            (
-                                "steady".to_owned(),
-                                if passed {
-                                    "steady_native_criteria_satisfied"
-                                } else {
-                                    "steady_native_criteria_not_satisfied"
-                                }
-                                .to_owned(),
-                                criteria,
-                                vec![STEADY_SUCCESS.to_owned()],
-                            )
-                        }
-                        Err(error) => (
-                            "steady".to_owned(),
-                            "unclassified_native_steady_summary".to_owned(),
-                            Vec::new(),
-                            vec![error],
-                        ),
-                    }
-                } else {
-                    (
-                        "steady".to_owned(),
-                        "unclassified_steady_termination".to_owned(),
-                        Vec::new(),
-                        Vec::new(),
-                    )
-                }
-            }
-            Su2WindowConvergenceProtocol::Enabled { fields, .. } => {
-                if section.contains(INTERRUPTED) {
-                    (
-                        "time_window".to_owned(),
-                        "interrupted".to_owned(),
-                        Vec::new(),
-                        vec![INTERRUPTED.to_owned()],
-                    )
-                } else if section.contains(WINDOW_SUCCESS) {
-                    let success_digest = sha256_hex(WINDOW_SUCCESS.as_bytes())?;
-                    (
-                        "time_window".to_owned(),
-                        "time_window_native_criteria_satisfied".to_owned(),
-                        fields
+    let classification = match &protocol.window {
+        Su2WindowConvergenceProtocol::Disabled => {
+            if section.contains(INTERRUPTED) {
+                (
+                    "steady".to_owned(),
+                    "interrupted".to_owned(),
+                    Vec::new(),
+                    vec![INTERRUPTED.to_owned()],
+                )
+            } else if section.contains(STEADY_ITERATION_LIMIT) {
+                (
+                    "steady".to_owned(),
+                    "maximum_iterations_reached".to_owned(),
+                    Vec::new(),
+                    vec![STEADY_ITERATION_LIMIT.to_owned()],
+                )
+            } else if section.contains(STEADY_SUCCESS) {
+                match parse_steady_native_criteria(section, &protocol.steady_fields) {
+                    Ok(criteria) => {
+                        let passed = criteria
                             .iter()
-                            .map(|field| Su2NativeCriterionResult {
-                                configured_field: field.clone(),
-                                reported_field: field.clone(),
-                                status: "passed".to_owned(),
-                                summary_line_sha256: success_digest.clone(),
-                            })
-                            .collect(),
-                        vec![WINDOW_SUCCESS.to_owned()],
-                    )
-                } else if section.contains(TIME_LIMIT) {
-                    (
-                        "time_window".to_owned(),
-                        "maximum_time_reached".to_owned(),
+                            .all(|criterion| criterion.status == "passed");
+                        (
+                            "steady".to_owned(),
+                            if passed {
+                                "steady_native_criteria_satisfied"
+                            } else {
+                                "steady_native_criteria_not_satisfied"
+                            }
+                            .to_owned(),
+                            criteria,
+                            vec![STEADY_SUCCESS.to_owned()],
+                        )
+                    }
+                    Err(error) => (
+                        "steady".to_owned(),
+                        "unclassified_native_steady_summary".to_owned(),
                         Vec::new(),
-                        vec![TIME_LIMIT.to_owned()],
-                    )
-                } else if section.contains(TIME_ITERATION_LIMIT) {
-                    (
-                        "time_window".to_owned(),
-                        "maximum_time_iterations_reached".to_owned(),
-                        Vec::new(),
-                        vec![TIME_ITERATION_LIMIT.to_owned()],
-                    )
-                } else {
-                    (
-                        "time_window".to_owned(),
-                        "unclassified_time_window_termination".to_owned(),
-                        Vec::new(),
-                        Vec::new(),
-                    )
+                        vec![error],
+                    ),
                 }
+            } else {
+                (
+                    "steady".to_owned(),
+                    "unclassified_steady_termination".to_owned(),
+                    Vec::new(),
+                    Vec::new(),
+                )
             }
-        };
+        }
+        Su2WindowConvergenceProtocol::Enabled { fields, .. } => {
+            if section.contains(INTERRUPTED) {
+                (
+                    "time_window".to_owned(),
+                    "interrupted".to_owned(),
+                    Vec::new(),
+                    vec![INTERRUPTED.to_owned()],
+                )
+            } else if section.contains(WINDOW_SUCCESS) {
+                let success_digest = sha256_hex(WINDOW_SUCCESS.as_bytes())?;
+                (
+                    "time_window".to_owned(),
+                    "time_window_native_criteria_satisfied".to_owned(),
+                    fields
+                        .iter()
+                        .map(|field| Su2NativeCriterionResult {
+                            configured_field: field.clone(),
+                            reported_field: field.clone(),
+                            status: "passed".to_owned(),
+                            summary_line_sha256: success_digest.clone(),
+                        })
+                        .collect(),
+                    vec![WINDOW_SUCCESS.to_owned()],
+                )
+            } else if section.contains(TIME_LIMIT) {
+                (
+                    "time_window".to_owned(),
+                    "maximum_time_reached".to_owned(),
+                    Vec::new(),
+                    vec![TIME_LIMIT.to_owned()],
+                )
+            } else if section.contains(TIME_ITERATION_LIMIT) {
+                (
+                    "time_window".to_owned(),
+                    "maximum_time_iterations_reached".to_owned(),
+                    Vec::new(),
+                    vec![TIME_ITERATION_LIMIT.to_owned()],
+                )
+            } else {
+                (
+                    "time_window".to_owned(),
+                    "unclassified_time_window_termination".to_owned(),
+                    Vec::new(),
+                    Vec::new(),
+                )
+            }
+        }
+    };
     Ok(classification)
 }
 
