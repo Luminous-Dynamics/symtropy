@@ -339,4 +339,53 @@ mod tests {
             1.0e-14,
         );
     }
+    #[test]
+    fn event_relocalized_one_sided_gradient_converges_at_first_order() {
+        let map = point_impact_saltation(-2.0, 2.0, 0.5, 0.0)
+            .expect("base transversal impact");
+        let terminal_time = 0.25;
+        let base = post_event_terminal_state(0.0, -2.0, 2.0, 0.5, terminal_time);
+        let expected = [
+            map.saltation_matrix[0][0] + terminal_time * map.saltation_matrix[1][0],
+            map.saltation_matrix[1][0],
+        ];
+        let perturbations = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5];
+        let mut previous_error = f64::INFINITY;
+
+        for epsilon in perturbations {
+            // The helper independently solves the positive impact time for
+            // every perturbed height; it does not reuse the nominal event time.
+            let perturbed =
+                post_event_terminal_state(epsilon, -2.0, 2.0, 0.5, terminal_time);
+            let finite_difference = [
+                (perturbed[0] - base[0]) / epsilon,
+                (perturbed[1] - base[1]) / epsilon,
+            ];
+            let error = ((finite_difference[0] - expected[0]).powi(2)
+                + (finite_difference[1] - expected[1]).powi(2))
+            .sqrt();
+
+            assert!(error < previous_error / 5.0);
+            previous_error = error;
+        }
+    }
+
+    #[test]
+    fn event_time_derivative_converges_with_relocalized_events() {
+        let expected = 0.5_f64;
+        let perturbations = [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5];
+        let mut previous_error = f64::INFINITY;
+
+        for epsilon in perturbations {
+            let speed = (-2.0_f64).powi(2).mul_add(1.0, 2.0 * 2.0 * epsilon).sqrt();
+            let event_time = 2.0 * epsilon / (speed - (-2.0));
+            let finite_difference = event_time / epsilon;
+            let error = (finite_difference - expected).abs();
+
+            assert!(error < previous_error / 5.0);
+            previous_error = error;
+        }
+    }
+
+
 }
