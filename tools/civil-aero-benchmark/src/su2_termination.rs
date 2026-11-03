@@ -878,7 +878,7 @@ mod tests {
     #[test]
     fn multiple_time_limits_without_window_success_are_nonconverged_not_contradictory() {
         let section = format!(
-            "----------------------------- Solver Exit -------------------------------\\n{TIME_LIMIT}\\n{TIME_ITERATION_LIMIT}\\n-------------------------------------------------------------------------\\n"
+            "----------------------------- Solver Exit -------------------------------\n{TIME_LIMIT}\n{TIME_ITERATION_LIMIT}\n-------------------------------------------------------------------------\n"
         );
         let (_, classification, criteria, messages) =
             classify_exit_section(&section, &window_protocol())
