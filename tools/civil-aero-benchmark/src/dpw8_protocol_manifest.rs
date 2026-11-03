@@ -7,11 +7,9 @@
 use crate::integrity::sha256_hex;
 
 pub const DPW8_PROTOCOL_MANIFEST_SCHEMA: &str = "dpw8-oat15a-protocol-manifest/0.1.0";
-pub const DPW8_PROTOCOL_EVIDENCE_LEVEL: &str =
-    "canonical_protocol_spec_and_source_admission_state_not_solver_execution_or_physical_validation";
+pub const DPW8_PROTOCOL_EVIDENCE_LEVEL: &str = "canonical_protocol_spec_and_source_admission_state_not_solver_execution_or_physical_validation";
 
-pub const DPW8_TEST_CASES_URL: &str =
-    "https://www.aiaa-dpw.org/TestCases/testcases.html";
+pub const DPW8_TEST_CASES_URL: &str = "https://www.aiaa-dpw.org/TestCases/testcases.html";
 pub const DPW8_GEOMETRY_POLICY_URL: &str = "https://www.aiaa-dpw.org/geometry.html";
 pub const DPW8_GRID_INDEX_URL: &str = "https://dpw.larc.nasa.gov/DPW8/ONERA_OAT15A/";
 
@@ -66,9 +64,7 @@ pub enum Dpw8GridFamilyPolicy {
 impl Dpw8GridFamilyPolicy {
     fn as_str(self) -> &'static str {
         match self {
-            Self::SixLevelsFourRequiredSixDesirable => {
-                "six_levels_four_required_six_desirable"
-            }
+            Self::SixLevelsFourRequiredSixDesirable => "six_levels_four_required_six_desirable",
             Self::UpdatedFamilyDefinitionMustBeAdmitted => {
                 "updated_family_definition_must_be_admitted"
             }
@@ -114,7 +110,8 @@ impl Dpw8SourceAdmissionState {
     fn is_byte_pinned(self) -> bool {
         matches!(
             self,
-            Self::BytePinnedReferenceOnly | Self::BytePinnedRedistributionPermissionDocumentReferenced
+            Self::BytePinnedReferenceOnly
+                | Self::BytePinnedRedistributionPermissionDocumentReferenced
         )
     }
 
@@ -330,7 +327,9 @@ impl Dpw8Oat15aProtocolManifest {
     /// This reports protocol-source readiness only. Per-grid/experimental artifact admission and
     /// actual solver runs are separate gates.
     pub fn protocol_sources_byte_pinned(&self) -> bool {
-        self.sources.iter().all(|source| source.state.is_byte_pinned())
+        self.sources
+            .iter()
+            .all(|source| source.state.is_byte_pinned())
     }
 
     /// Geometry redistribution is allowed only when the geometry source itself was admitted
@@ -341,8 +340,14 @@ impl Dpw8Oat15aProtocolManifest {
         self.sources.iter().any(|source| {
             source.source_kind == "geometry_ip_and_acknowledgement_policy"
                 && source.state.has_permission_document_reference()
-                && source.permission_evidence_reference.as_deref().is_some_and(|value| !value.trim().is_empty())
-                && source.permission_evidence_sha256.as_deref().is_some_and(is_digest)
+                && source
+                    .permission_evidence_reference
+                    .as_deref()
+                    .is_some_and(|value| !value.trim().is_empty())
+                && source
+                    .permission_evidence_sha256
+                    .as_deref()
+                    .is_some_and(is_digest)
         })
     }
 }
@@ -378,7 +383,10 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
         ("source_url", source.source_url.as_str()),
         ("source_kind", source.source_kind.as_str()),
         ("source_revision", source.source_revision.as_str()),
-        ("license_applicability", source.license_applicability.as_str()),
+        (
+            "license_applicability",
+            source.license_applicability.as_str(),
+        ),
         ("acknowledgement", source.acknowledgement.as_str()),
     ] {
         if value.trim().is_empty() {
@@ -423,7 +431,10 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
         }
         Dpw8SourceAdmissionState::BytePinnedReferenceOnly => {
             if source.byte_length.is_none_or(|length| length == 0)
-                || source.sha256.as_deref().is_none_or(|value| !is_digest(value))
+                || source
+                    .sha256
+                    .as_deref()
+                    .is_none_or(|value| !is_digest(value))
                 || source.source_revision == "not-yet-byte-pinned"
                 || source.permission_evidence_reference.is_some()
                 || source.permission_evidence_sha256.is_some()
@@ -436,10 +447,19 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
         }
         Dpw8SourceAdmissionState::BytePinnedRedistributionPermissionDocumentReferenced => {
             if source.byte_length.is_none_or(|length| length == 0)
-                || source.sha256.as_deref().is_none_or(|value| !is_digest(value))
+                || source
+                    .sha256
+                    .as_deref()
+                    .is_none_or(|value| !is_digest(value))
                 || source.source_revision == "not-yet-byte-pinned"
-                || source.permission_evidence_reference.as_deref().is_none_or(|value| value.trim().is_empty())
-                || source.permission_evidence_sha256.as_deref().is_none_or(|value| !is_digest(value))
+                || source
+                    .permission_evidence_reference
+                    .as_deref()
+                    .is_none_or(|value| value.trim().is_empty())
+                || source
+                    .permission_evidence_sha256
+                    .as_deref()
+                    .is_none_or(|value| !is_digest(value))
             {
                 return Err(format!(
                     "DPW-8 source {} has no complete pinned permission-document reference",
@@ -452,7 +472,9 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
         && (source.acknowledgement != "ONERA"
             || !source.license_applicability.contains("ONERA retains"))
     {
-        return Err("ONERA geometry source must retain ONERA attribution and IP conditions".to_owned());
+        return Err(
+            "ONERA geometry source must retain ONERA attribution and IP conditions".to_owned(),
+        );
     }
     Ok(())
 }
@@ -461,7 +483,11 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
     if spec.flow_mode != spec.lane.flow_mode() {
         return Err("DPW-8 lane and flow-mode identity disagree".to_owned());
     }
-    if spec.angle_of_attack_degrees.iter().any(|value| !value.is_finite()) {
+    if spec
+        .angle_of_attack_degrees
+        .iter()
+        .any(|value| !value.is_finite())
+    {
         return Err("DPW-8 angle-of-attack list contains a non-finite value".to_owned());
     }
     if spec.sidewall_boundary_condition.trim().is_empty() {
@@ -475,13 +501,21 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
         ("gamma", spec.gamma),
         ("Prandtl number", spec.prandtl),
         ("turbulent Prandtl number", spec.turbulent_prandtl),
-        ("farfield viscosity ratio", spec.farfield_kinematic_viscosity_ratio_chi),
+        (
+            "farfield viscosity ratio",
+            spec.farfield_kinematic_viscosity_ratio_chi,
+        ),
     ] {
         if value.is_some_and(|value| !value.is_finite() || value <= 0.0) {
-            return Err(format!("DPW-8 {name} must be finite and positive when specified"));
+            return Err(format!(
+                "DPW-8 {name} must be finite and positive when specified"
+            ));
         }
     }
-    if spec.residual_target_log10.is_some_and(|value| !value.is_finite() || value >= 0.0) {
+    if spec
+        .residual_target_log10
+        .is_some_and(|value| !value.is_finite() || value >= 0.0)
+    {
         return Err("DPW-8 log10 residual target must be finite and negative".to_owned());
     }
     let mut angles = spec.angle_of_attack_degrees.clone();
@@ -493,7 +527,10 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
         Dpw8AngleSchedule::ExactOfficialList => {
             if angles.is_empty() || angles != spec.angle_of_attack_degrees {
                 // Exact protocol order is the specified order; no silent row reordering.
-                return Err("DPW-8 official angle schedule must be non-empty and strictly increasing".to_owned());
+                return Err(
+                    "DPW-8 official angle schedule must be non-empty and strictly increasing"
+                        .to_owned(),
+                );
             }
         }
         Dpw8AngleSchedule::NotSpecifiedByThisSource => {
@@ -511,7 +548,9 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 || spec.grid_policy != Dpw8GridFamilyPolicy::SixLevelsFourRequiredSixDesirable
                 || spec.sidewall_boundary_condition != "periodic"
             {
-                return Err("DPW-8 V1a settings differ from the admitted official protocol".to_owned());
+                return Err(
+                    "DPW-8 V1a settings differ from the admitted official protocol".to_owned(),
+                );
             }
             if spec.common_farfield_chords.is_some()
                 || spec.turbulence_model.is_some()
@@ -534,7 +573,9 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 || spec.grid_policy != Dpw8GridFamilyPolicy::SixLevelsFourRequiredSixDesirable
                 || spec.sidewall_boundary_condition != "periodic"
             {
-                return Err("DPW-8 V1b settings differ from the admitted official protocol".to_owned());
+                return Err(
+                    "DPW-8 V1b settings differ from the admitted official protocol".to_owned(),
+                );
             }
             if spec.common_farfield_chords.is_some()
                 || spec.turbulence_model.is_some()
@@ -570,7 +611,10 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 || spec.turbulent_prandtl != Some(0.9)
                 || spec.farfield_kinematic_viscosity_ratio_chi != Some(3.0)
             {
-                return Err("DPW-8 V1c settings differ from the admitted scatter-reduction protocol".to_owned());
+                return Err(
+                    "DPW-8 V1c settings differ from the admitted scatter-reduction protocol"
+                        .to_owned(),
+                );
             }
         }
     }
@@ -594,8 +638,13 @@ fn canonical_bytes(manifest: &Dpw8Oat15aProtocolManifest) -> Vec<u8> {
     ] {
         append_string(&mut bytes, value);
     }
-    bytes.push(u8::from(manifest.geometry_acknowledgement_required_each_share));
-    append_u64(&mut bytes, manifest.spec.angle_of_attack_degrees.len() as u64);
+    bytes.push(u8::from(
+        manifest.geometry_acknowledgement_required_each_share,
+    ));
+    append_u64(
+        &mut bytes,
+        manifest.spec.angle_of_attack_degrees.len() as u64,
+    );
     for value in &manifest.spec.angle_of_attack_degrees {
         bytes.extend_from_slice(&value.to_bits().to_le_bytes());
     }
@@ -614,8 +663,14 @@ fn canonical_bytes(manifest: &Dpw8Oat15aProtocolManifest) -> Vec<u8> {
     }
     for value in [
         manifest.spec.turbulence_model.as_deref().unwrap_or(""),
-        manifest.spec.sutherland_law.map_or("", |v| if v { "true" } else { "false" }),
-        manifest.spec.wall_thermal_condition.map_or("", Dpw8WallThermalCondition::as_str),
+        manifest
+            .spec
+            .sutherland_law
+            .map_or("", |v| if v { "true" } else { "false" }),
+        manifest
+            .spec
+            .wall_thermal_condition
+            .map_or("", Dpw8WallThermalCondition::as_str),
     ] {
         append_string(&mut bytes, value);
     }
@@ -633,7 +688,10 @@ fn canonical_bytes(manifest: &Dpw8Oat15aProtocolManifest) -> Vec<u8> {
             source.license_applicability.as_str(),
             source.acknowledgement.as_str(),
             source.sha256.as_deref().unwrap_or(""),
-            source.permission_evidence_reference.as_deref().unwrap_or(""),
+            source
+                .permission_evidence_reference
+                .as_deref()
+                .unwrap_or(""),
             source.permission_evidence_sha256.as_deref().unwrap_or(""),
         ] {
             append_string(&mut bytes, value);
@@ -661,9 +719,13 @@ pub fn seal_dpw8_oat15a_manifest(
         || manifest.geometry_designation != "ONERA OAT15A"
         || manifest.geometry_ip_holder != "ONERA"
         || !manifest.geometry_acknowledgement_required_each_share
-        || !manifest.geometry_share_condition.contains("acknowledge ONERA each time")
+        || !manifest
+            .geometry_share_condition
+            .contains("acknowledge ONERA each time")
     {
-        return Err("DPW-8 ONERA geometry designation/attribution/IP contract is incomplete".to_owned());
+        return Err(
+            "DPW-8 ONERA geometry designation/attribution/IP contract is incomplete".to_owned(),
+        );
     }
     validate_spec(&manifest.spec)?;
     let mut ids = std::collections::BTreeSet::new();
@@ -679,16 +741,16 @@ pub fn seal_dpw8_oat15a_manifest(
         "dpw8-onera-oat15a-grid-index",
     ] {
         if !ids.contains(required) {
-            return Err(format!("DPW-8 manifest is missing required source {required}"));
+            return Err(format!(
+                "DPW-8 manifest is missing required source {required}"
+            ));
         }
     }
     manifest.manifest_sha256 = sha256_hex(&canonical_bytes(&manifest))?;
     Ok(manifest)
 }
 
-pub fn verify_dpw8_oat15a_manifest(
-    manifest: &Dpw8Oat15aProtocolManifest,
-) -> Result<(), String> {
+pub fn verify_dpw8_oat15a_manifest(manifest: &Dpw8Oat15aProtocolManifest) -> Result<(), String> {
     let sealed = seal_dpw8_oat15a_manifest(manifest.clone())?;
     if sealed != *manifest {
         return Err("DPW-8 protocol manifest canonical digest mismatch".to_owned());
@@ -696,10 +758,11 @@ pub fn verify_dpw8_oat15a_manifest(
     Ok(())
 }
 
-pub fn dpw8_oat15a_protocol_sources_byte_pinned(
-    manifest: &Dpw8Oat15aProtocolManifest,
-) -> bool {
-    manifest.sources.iter().all(|source| source.state.is_byte_pinned())
+pub fn dpw8_oat15a_protocol_sources_byte_pinned(manifest: &Dpw8Oat15aProtocolManifest) -> bool {
+    manifest
+        .sources
+        .iter()
+        .all(|source| source.state.is_byte_pinned())
 }
 
 pub fn dpw8_oat15a_geometry_permission_document_referenced(
@@ -734,7 +797,9 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
     row[2] = manifest.protocol_revision.clone();
     row[3] = manifest.geometry_designation.clone();
     row[4] = manifest.geometry_ip_holder.clone();
-    row[5] = manifest.geometry_acknowledgement_required_each_share.to_string();
+    row[5] = manifest
+        .geometry_acknowledgement_required_each_share
+        .to_string();
     row[6] = manifest.geometry_share_condition.clone();
     row[7] = manifest.evidence_level.clone();
     row[8] = manifest.spec.lane.as_str().to_owned();
@@ -783,13 +848,22 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
         row[28] = source.source_url.clone();
         row[29] = source.source_kind.clone();
         row[30] = source.state.as_str().to_owned();
-        row[31] = source.byte_length.map(|value| value.to_string()).unwrap_or_default();
+        row[31] = source
+            .byte_length
+            .map(|value| value.to_string())
+            .unwrap_or_default();
         row[32] = source.sha256.clone().unwrap_or_default();
         row[33] = source.source_revision.clone();
         row[34] = source.license_applicability.clone();
         row[35] = source.acknowledgement.clone();
-        row[36] = source.permission_evidence_reference.clone().unwrap_or_default();
-        row[37] = source.permission_evidence_sha256.clone().unwrap_or_default();
+        row[36] = source
+            .permission_evidence_reference
+            .clone()
+            .unwrap_or_default();
+        row[37] = source
+            .permission_evidence_sha256
+            .clone()
+            .unwrap_or_default();
         output.push_str(&csv_row(row));
         output.push('\n');
     }
@@ -806,14 +880,20 @@ mod tests {
 
     #[test]
     fn v1a_and_v1b_remain_distinct_protocols_and_angle_schedules() {
-        let v1a = seal_dpw8_oat15a_manifest(manifest(
-            Dpw8Oat15aLane::V1aSteadyGridConvergencePolar,
-        )).unwrap();
-        let v1b = seal_dpw8_oat15a_manifest(manifest(
-            Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet,
-        )).unwrap();
-        assert_eq!(v1a.spec.angle_of_attack_degrees, vec![1.36, 1.50, 2.50, 3.00, 3.10]);
-        assert_eq!(v1b.spec.angle_of_attack_degrees, vec![3.25, 3.40, 3.50, 3.60, 3.90]);
+        let v1a =
+            seal_dpw8_oat15a_manifest(manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar))
+                .unwrap();
+        let v1b =
+            seal_dpw8_oat15a_manifest(manifest(Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet))
+                .unwrap();
+        assert_eq!(
+            v1a.spec.angle_of_attack_degrees,
+            vec![1.36, 1.50, 2.50, 3.00, 3.10]
+        );
+        assert_eq!(
+            v1b.spec.angle_of_attack_degrees,
+            vec![3.25, 3.40, 3.50, 3.60, 3.90]
+        );
         assert_eq!(v1a.spec.flow_mode, "steady");
         assert_eq!(v1b.spec.flow_mode, "unsteady");
         assert_ne!(v1a.manifest_sha256, v1b.manifest_sha256);
@@ -821,10 +901,12 @@ mod tests {
 
     #[test]
     fn v1c_preserves_scatter_settings_and_does_not_invent_aoa_points() {
-        let v1c = seal_dpw8_oat15a_manifest(manifest(
-            Dpw8Oat15aLane::V1cScatterReductionReprise,
-        )).unwrap();
-        assert_eq!(v1c.spec.angle_schedule, Dpw8AngleSchedule::NotSpecifiedByThisSource);
+        let v1c = seal_dpw8_oat15a_manifest(manifest(Dpw8Oat15aLane::V1cScatterReductionReprise))
+            .unwrap();
+        assert_eq!(
+            v1c.spec.angle_schedule,
+            Dpw8AngleSchedule::NotSpecifiedByThisSource
+        );
         assert!(v1c.spec.angle_of_attack_degrees.is_empty());
         assert_eq!(v1c.spec.common_farfield_chords, Some(1000.0));
         assert_eq!(v1c.spec.residual_target_log10, Some(-10.0));
@@ -835,9 +917,11 @@ mod tests {
     fn cross_lane_protocol_substitution_fails_closed() {
         let mut v1a = manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar);
         v1a.spec = dpw8_oat15a_v1b_spec();
-        assert!(seal_dpw8_oat15a_manifest(v1a)
-            .expect_err("V1b settings must not enter V1a")
-            .contains("lane and flow-mode identity disagree"));
+        assert!(
+            seal_dpw8_oat15a_manifest(v1a)
+                .expect_err("V1b settings must not enter V1a")
+                .contains("lane and flow-mode identity disagree")
+        );
         let mut v1b = manifest(Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet);
         v1b.spec = dpw8_oat15a_v1a_spec();
         assert!(seal_dpw8_oat15a_manifest(v1b).is_err());
@@ -853,20 +937,22 @@ mod tests {
 
     #[test]
     fn source_admission_is_explicit_and_does_not_assume_geometry_redistribution() {
-        let v1a = seal_dpw8_oat15a_manifest(manifest(
-            Dpw8Oat15aLane::V1aSteadyGridConvergencePolar,
-        )).unwrap();
+        let v1a =
+            seal_dpw8_oat15a_manifest(manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar))
+                .unwrap();
         assert!(!dpw8_oat15a_protocol_sources_byte_pinned(&v1a));
         assert!(!dpw8_oat15a_geometry_permission_document_referenced(&v1a));
     }
 
     #[test]
     fn tampered_source_or_lane_changes_canonical_manifest_identity() {
-        let original = seal_dpw8_oat15a_manifest(manifest(
-            Dpw8Oat15aLane::V1cScatterReductionReprise,
-        )).unwrap();
+        let original =
+            seal_dpw8_oat15a_manifest(manifest(Dpw8Oat15aLane::V1cScatterReductionReprise))
+                .unwrap();
         let mut tampered = original.clone();
-        tampered.geometry_share_condition.push_str("; omit attribution");
+        tampered
+            .geometry_share_condition
+            .push_str("; omit attribution");
         assert!(verify_dpw8_oat15a_manifest(&tampered).is_err());
     }
 
@@ -886,9 +972,11 @@ mod tests {
         geometry.permission_evidence_reference =
             Some("internal-review://onera-oat15a-redistribution-decision".to_owned());
         geometry.permission_evidence_sha256 = Some("b".repeat(64));
-        let manifest = seal_dpw8_oat15a_manifest(manifest)
-            .expect("well-formed permission-document reference");
-        assert!(dpw8_oat15a_geometry_permission_document_referenced(&manifest));
+        let manifest =
+            seal_dpw8_oat15a_manifest(manifest).expect("well-formed permission-document reference");
+        assert!(dpw8_oat15a_geometry_permission_document_referenced(
+            &manifest
+        ));
 
         let mut missing_digest = manifest.clone();
         let geometry = missing_digest
@@ -944,7 +1032,11 @@ mod tests {
     #[test]
     fn byte_pinned_source_requires_revision_digest_and_length() {
         let mut v1a = manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar);
-        let source = v1a.sources.iter_mut().find(|s| s.source_id == "dpw8-test-case-definition").unwrap();
+        let source = v1a
+            .sources
+            .iter_mut()
+            .find(|s| s.source_id == "dpw8-test-case-definition")
+            .unwrap();
         source.state = Dpw8SourceAdmissionState::BytePinnedReferenceOnly;
         assert!(seal_dpw8_oat15a_manifest(v1a).is_err());
     }
