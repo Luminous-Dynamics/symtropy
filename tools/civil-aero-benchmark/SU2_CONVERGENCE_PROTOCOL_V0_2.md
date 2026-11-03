@@ -66,6 +66,8 @@ SU2 v8.6.0 was released on 30 October 2026. Its release notes include:
 
 The native termination auditor remains intentionally receipt-bound to the complete stdout/stderr bytes and separately identifies process success, interruption and protocol-specific native convergence. A human-readable success banner is not promoted without checking the full log and the exact protocol.
 
+The two SU2 modes expose different native evidence shapes. Steady termination prints a table with one convergence row per configured field, so the auditor requires exactly one matching row for every `CONV_FIELD`. Time-window termination prints one aggregate `All windowed time-averaged convergence criteria are fullfilled.` message after SU2 has combined the result of every configured `CONV_WINDOW_FIELD`. The auditor records that as one aggregate-scope event linked to the exact configured field list; it does not claim SU2 printed separate per-field rows. The independent post-run history screen still produces its own per-field results.
+
 For performance comparisons, pin and record the exact executable digest, source tag/commit, build/compiler identity, linked libraries, OpenMP configuration, thread count and CPU affinity. A v8.6.0 result is not silently interchangeable with the historical v8.0.1 DPW participant reproduction lane. Keep separate compatibility lanes and compare only after matching physical problem identity.
 
 References:
