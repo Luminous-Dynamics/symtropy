@@ -176,3 +176,19 @@ This file and the accompanying schema/template are research artifacts. There is 
 The full-text paper's Table 1 maps the three vehicle-side assemblies to distinct compatibility envelopes: 6 kW / 380–440 V / 190–210 mm / 85 kHz; 11 kW / 600–700 V / 160–180 mm / 85 kHz; 30 kW / 420–610 V / 270–290 mm / 20 kHz. The ground assembly uses two independently enabled resonant networks, while the grid interface has four parallel low-power modules with adaptive activation.
 
 Use these as the initial class configuration fixtures. Benchmark frequency-network isolation and switching, all battery-voltage endpoints, clearances, module activation counts, reverse-flow operation, misalignment, load transients and safety response. Do not claim that the article's aggregate efficiency ranges are per-class measured points.
+
+## 12. Multi-frequency resonant-network isolation
+
+For a system with multiple selectable resonant networks, record each branch separately. An INACTIVE command is not evidence of zero current: mutual inductance and closed compensation paths may induce circulating current in a nominally inactive network.
+
+Each branch record must include its frequency, commanded state, isolation-switch state, measured RMS/peak current, continuous current rating, RMS voltage and voltage rating, thermal maximum, measurement method and raw-evidence digest.
+
+- For a qualified physical test, every active and inactive branch requires measured current/voltage/temperature evidence.
+- For a non-concurrent design, exactly one branch is ACTIVE during steady transfer; all other branches must be INACTIVE or ISOLATED, not UNKNOWN or TRANSITIONING.
+- Proposed steady-state inactive-branch current target: <=1% of that branch's continuous RMS current rating. Capture transient peak current separately and enforce component ratings under switching/fault conditions.
+- A simulated branch current is a model result, not a physical measurement and cannot qualify the run.
+- Record switching energy, delay, contact resistance, switch state, thermal rise and relay failure modes. Test stuck-open, stuck-closed, welded contact, sensor disagreement and control/communication loss.
+- If simultaneous multi-frequency operation is intentionally supported, declare it in the system configuration and qualify each active network and all cross-coupled branches independently.
+
+This protocol addition is motivated by the 2026 multi-vehicle BIPT paper's modelled 17 A induced current in an inactive 85 kHz loop and 4 A in an inactive 20 kHz loop. Those values are simulation findings, not measured currents; they motivate the test, not a claim about a finished product.
+
