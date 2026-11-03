@@ -22,6 +22,8 @@ pub enum MetricError {
     NonFiniteConstraintLimit,
     EmptyCandidateId,
     EmptyMetricName,
+    EmptyUnit,
+    UnitMismatch(String),
     EmptyObjectiveSet,
     EmptyConstraintName,
     DuplicateObjectiveMetric,
@@ -38,6 +40,8 @@ impl fmt::Display for MetricError {
             Self::NonFiniteConstraintLimit => f.write_str("constraint limit must be finite"),
             Self::EmptyCandidateId => f.write_str("candidate ID must not be empty"),
             Self::EmptyMetricName => f.write_str("metric name must not be empty"),
+            Self::EmptyUnit => f.write_str("metric unit must not be empty"),
+            Self::UnitMismatch(metric) => write!(f, "metric unit does not match the declared unit: {metric}"),
             Self::EmptyObjectiveSet => f.write_str("at least one Pareto objective is required"),
             Self::EmptyConstraintName => f.write_str("constraint name must not be empty"),
             Self::DuplicateObjectiveMetric => f.write_str("objective metric names must be unique"),
@@ -74,38 +78,57 @@ impl Interval {
     }
 }
 
-/// A candidate design and its reported metric intervals.
+/// A metric interval and its explicitly declared unit. No conversion is performed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MetricValue {
+    pub interval: Interval,
+    pub unit: String,
+}
+
+impl MetricValue {
+    pub fn new(interval: Interval, unit: impl Into<String>) -> Result<Self, MetricError> {
+        let unit = unit.into();
+        if unit.trim().is_empty() {
+            return Err(MetricError::EmptyUnit);
+        }
+        Ok(Self { interval, unit })
+    }
+}
+
+/// A candidate design and its reported, unit-labelled metric intervals.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Candidate {
     pub id: String,
-    pub metrics: BTreeMap<String, Interval>,
+    pub metrics: BTreeMap<String, MetricValue>,
 }
 
 impl Candidate {
-    pub fn new<I, K>(id: impl Into<String>, metrics: I) -> Result<Self, MetricError>
+    pub fn new<I, K, U>(id: impl Into<String>, metrics: I) -> Result<Self, MetricError>
     where
-        I: IntoIterator<Item = (K, Interval)>,
+        I: IntoIterator<Item = (K, Interval, U)>,
         K: Into<String>,
+        U: Into<String>,
     {
         let id = id.into();
         if id.trim().is_empty() {
             return Err(MetricError::EmptyCandidateId);
         }
         let mut indexed = BTreeMap::new();
-        for (name, interval) in metrics {
+        for (name, interval, unit) in metrics {
             let name = name.into();
             if name.trim().is_empty() {
                 return Err(MetricError::EmptyMetricName);
             }
-            if indexed.insert(name, interval).is_some() {
+            let value = MetricValue::new(interval, unit)?;
+            if indexed.insert(name, value).is_some() {
                 return Err(MetricError::DuplicateCandidateMetric);
             }
         }
         Ok(Self { id, metrics: indexed })
     }
 
-    pub fn metric(&self, name: &str) -> Option<Interval> {
-        self.metrics.get(name).copied()
+    pub fn metric(&self, name: &str) -> Option<&MetricValue> {
+        self.metrics.get(name)
     }
 }
 
@@ -119,15 +142,20 @@ pub enum ObjectiveDirection {
 pub struct Objective {
     pub metric: String,
     pub direction: ObjectiveDirection,
+    pub unit: String,
 }
 
 impl Objective {
-    pub fn new(metric: impl Into<String>, direction: ObjectiveDirection) -> Result<Self, MetricError> {
+    pub fn new(metric: impl Into<String>, direction: ObjectiveDirection, unit: impl Into<String>) -> Result<Self, MetricError> {
         let metric = metric.into();
+        let unit = unit.into();
         if metric.trim().is_empty() {
             return Err(MetricError::EmptyMetricName);
         }
-        Ok(Self { metric, direction })
+        if unit.trim().is_empty() {
+            return Err(MetricError::EmptyUnit);
+        }
+        Ok(Self { metric, direction, unit })
     }
 }
 
@@ -162,8 +190,11 @@ impl HardConstraint {
         if name.trim().is_empty() {
             return Err(MetricError::EmptyConstraintName);
         }
-        if metric.trim().is_empty() || unit.trim().is_empty() {
+        if metric.trim().is_empty() {
             return Err(MetricError::EmptyMetricName);
+        }
+        if unit.trim().is_empty() {
+            return Err(MetricError::EmptyUnit);
         }
         if !limit.is_finite() {
             return Err(MetricError::NonFiniteConstraintLimit);
@@ -171,10 +202,14 @@ impl HardConstraint {
         Ok(Self { name, metric, sense, limit, unit })
     }
 
-    fn evaluate(&self, interval: Option<Interval>) -> ConstraintOutcome {
-        let Some(interval) = interval else {
+    fn evaluate(&self, value: Option<&MetricValue>) -> ConstraintOutcome {
+        let Some(value) = value else {
             return ConstraintOutcome::Missing;
         };
+        if value.unit != self.unit {
+            return ConstraintOutcome::UnitMismatch;
+        }
+        let interval = value.interval;
         match self.sense {
             ConstraintSense::AtMost => {
                 if interval.upper <= self.limit {
@@ -204,12 +239,26 @@ pub enum ConstraintOutcome {
     Violated,
     Uncertain,
     Missing,
+    UnitMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstraintFinding {
     pub name: String,
     pub outcome: ConstraintOutcome,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MeasurementAvailability {
+    Present,
+    Missing,
+    UnitMismatch,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectiveFinding {
+    pub metric: String,
+    pub availability: MeasurementAvailability,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -225,6 +274,7 @@ pub struct CandidateEvaluation {
     pub candidate_id: String,
     pub disposition: Disposition,
     pub constraints: Vec<ConstraintFinding>,
+    pub objectives: Vec<ObjectiveFinding>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -273,15 +323,28 @@ pub fn evaluate_candidate(candidate: &Candidate, plan: &EvaluationPlan) -> Candi
         }
     }).collect();
 
+    let objectives: Vec<_> = plan.objectives.iter().map(|objective| {
+        let availability = match candidate.metric(&objective.metric) {
+            None => MeasurementAvailability::Missing,
+            Some(value) if value.unit != objective.unit => MeasurementAvailability::UnitMismatch,
+            Some(_) => MeasurementAvailability::Present,
+        };
+        ObjectiveFinding { metric: objective.metric.clone(), availability }
+    }).collect();
+
     let violation = constraints.iter().any(|x| x.outcome == ConstraintOutcome::Violated);
-    let missing_constraint = constraints.iter().any(|x| x.outcome == ConstraintOutcome::Missing);
+    let missing_or_mismatched_constraint = constraints.iter().any(|x| {
+        matches!(x.outcome, ConstraintOutcome::Missing | ConstraintOutcome::UnitMismatch)
+    });
     let uncertain_constraint = constraints.iter().any(|x| x.outcome == ConstraintOutcome::Uncertain);
-    let missing_objective = plan.objectives.iter().any(|x| candidate.metric(&x.metric).is_none());
+    let missing_or_mismatched_objective = objectives.iter().any(|x| {
+        x.availability != MeasurementAvailability::Present
+    });
 
     // A proven violation outranks other missing evidence; never call it safe.
     let disposition = if violation {
         Disposition::Infeasible
-    } else if missing_constraint || missing_objective {
+    } else if missing_or_mismatched_constraint || missing_or_mismatched_objective {
         Disposition::NotEvaluable
     } else if uncertain_constraint {
         Disposition::Uncertain
@@ -293,6 +356,7 @@ pub fn evaluate_candidate(candidate: &Candidate, plan: &EvaluationPlan) -> Candi
         candidate_id: candidate.id.clone(),
         disposition,
         constraints,
+        objectives,
     }
 }
 
@@ -309,9 +373,18 @@ pub fn robustly_dominates(
             .ok_or_else(|| MetricError::MissingMetric(objective.metric.clone()))?;
         let bv = b.metric(&objective.metric)
             .ok_or_else(|| MetricError::MissingMetric(objective.metric.clone()))?;
+        if av.unit != objective.unit || bv.unit != objective.unit {
+            return Err(MetricError::UnitMismatch(objective.metric.clone()));
+        }
         let (no_worse, strictly) = match objective.direction {
-            ObjectiveDirection::Maximize => (av.lower >= bv.upper, av.lower > bv.upper),
-            ObjectiveDirection::Minimize => (av.upper <= bv.lower, av.upper < bv.lower),
+            ObjectiveDirection::Maximize => (
+                av.interval.lower >= bv.interval.upper,
+                av.interval.lower > bv.interval.upper,
+            ),
+            ObjectiveDirection::Minimize => (
+                av.interval.upper <= bv.interval.lower,
+                av.interval.upper < bv.interval.lower,
+            ),
         };
         if !no_worse {
             return Ok(false);
