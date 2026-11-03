@@ -215,10 +215,36 @@ pub enum CueStatus {
     Unsupported,
 }
 
+/// Provenance linking a policy cue to a stable source registry and event ID.
+/// These identifiers provide traceability, not a claim that the source is true.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ObservationProvenance {
+    source_id: std::num::NonZeroU64,
+    event_id: std::num::NonZeroU64,
+}
+
+impl ObservationProvenance {
+    pub fn new(source_id: u64, event_id: u64) -> Option<Self> {
+        Some(Self {
+            source_id: std::num::NonZeroU64::new(source_id)?,
+            event_id: std::num::NonZeroU64::new(event_id)?,
+        })
+    }
+
+    pub const fn source_id(self) -> u64 {
+        self.source_id.get()
+    }
+
+    pub const fn event_id(self) -> u64 {
+        self.event_id.get()
+    }
+}
+
 /// A cue's source observation time and actor-delivery time are distinct.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ObservationCue {
     kind: CueKind,
+    provenance: ObservationProvenance,
     status: CueStatus,
     value: Option<CueValue>,
     observed_tick: Option<ScenarioTick>,
@@ -228,12 +254,14 @@ pub struct ObservationCue {
 impl ObservationCue {
     pub fn observed(
         kind: CueKind,
+        provenance: ObservationProvenance,
         value: CueValue,
         observed_tick: ScenarioTick,
         delivered_tick: ScenarioTick,
     ) -> Self {
         Self {
             kind,
+            provenance,
             status: CueStatus::Observed,
             value: Some(value),
             observed_tick: Some(observed_tick),
@@ -243,12 +271,14 @@ impl ObservationCue {
 
     pub fn stale(
         kind: CueKind,
+        provenance: ObservationProvenance,
         last_value: CueValue,
         observed_tick: ScenarioTick,
         delivered_tick: ScenarioTick,
     ) -> Self {
         Self {
             kind,
+            provenance,
             status: CueStatus::Stale,
             value: Some(last_value),
             observed_tick: Some(observed_tick),
@@ -258,11 +288,13 @@ impl ObservationCue {
 
     pub const fn unavailable(
         kind: CueKind,
+        provenance: ObservationProvenance,
         status: CueStatus,
         delivered_tick: ScenarioTick,
     ) -> Self {
         Self {
             kind,
+            provenance,
             status,
             value: None,
             observed_tick: None,
@@ -272,6 +304,9 @@ impl ObservationCue {
 
     pub const fn kind(self) -> CueKind {
         self.kind
+    }
+    pub const fn provenance(self) -> ObservationProvenance {
+        self.provenance
     }
     pub const fn status(self) -> CueStatus {
         self.status
@@ -695,12 +730,17 @@ mod tests {
     fn committed() -> CommittedAfterEntryPolicy {
         CommittedAfterEntryPolicy::new(bounds(), 1.5, 1).unwrap()
     }
+    fn provenance(event_id: u64) -> ObservationProvenance {
+        ObservationProvenance::new(1, event_id).unwrap()
+    }
+
     fn ttc_view(tick: u64, status: CueStatus, value: Option<f64>) -> AllowedActorObservation {
         let cue = match (status, value) {
             (CueStatus::Observed, Some(v)) => {
                 let delivered = ScenarioTick(tick.saturating_sub(1));
                 ObservationCue::observed(
                     CueKind::EgoTimeToConflictSeconds,
+                    provenance(701),
                     CueValue::TimeToConflictSeconds(v),
                     delivered,
                     delivered,
@@ -708,18 +748,35 @@ mod tests {
             }
             (CueStatus::Stale, Some(v)) => ObservationCue::stale(
                 CueKind::EgoTimeToConflictSeconds,
+                provenance(702),
                 CueValue::TimeToConflictSeconds(v),
                 ScenarioTick(tick.saturating_sub(2)),
                 ScenarioTick(tick.saturating_sub(1)),
             ),
             (kind, None) => ObservationCue::unavailable(
                 CueKind::EgoTimeToConflictSeconds,
+                provenance(703),
                 kind,
                 ScenarioTick(tick),
             ),
             _ => panic!("invalid test fixture"),
         };
         AllowedActorObservation::new(ScenarioTick(tick), vec![cue]).unwrap()
+    }
+
+    #[test]
+    fn observation_provenance_requires_nonzero_source_and_event_ids() {
+        assert_eq!(ObservationProvenance::new(0, 1), None);
+        assert_eq!(ObservationProvenance::new(1, 0), None);
+        let source_event = provenance(7);
+        let cue = ObservationCue::unavailable(
+            CueKind::EgoTimeToConflictSeconds,
+            source_event,
+            CueStatus::Missing,
+            ScenarioTick(8),
+        );
+        assert_eq!(cue.provenance().source_id(), 1);
+        assert_eq!(cue.provenance().event_id(), 7);
     }
 
     #[test]
@@ -753,12 +810,14 @@ mod tests {
             vec![
                 ObservationCue::observed(
                     CueKind::EgoSpeedMetresPerSecond,
+                    provenance(704),
                     CueValue::SpeedMetresPerSecond(4.0),
                     ScenarioTick(2),
                     ScenarioTick(2),
                 ),
                 ObservationCue::observed(
                     CueKind::EgoRangeMetres,
+                    provenance(705),
                     CueValue::DistanceMetres(8.0),
                     ScenarioTick(2),
                     ScenarioTick(2),
@@ -770,11 +829,13 @@ mod tests {
         let duplicate = vec![
             ObservationCue::unavailable(
                 CueKind::EgoRangeMetres,
+                provenance(706),
                 CueStatus::Missing,
                 ScenarioTick(2),
             ),
             ObservationCue::unavailable(
                 CueKind::EgoRangeMetres,
+                provenance(707),
                 CueStatus::Occluded,
                 ScenarioTick(2),
             ),
@@ -803,6 +864,7 @@ mod tests {
     fn future_undelivered_and_observation_after_delivery_are_rejected() {
         let cue = ObservationCue::observed(
             CueKind::EgoRangeMetres,
+            provenance(708),
             CueValue::DistanceMetres(8.0),
             ScenarioTick(4),
             ScenarioTick(6),
@@ -813,6 +875,7 @@ mod tests {
         );
         let cue = ObservationCue::observed(
             CueKind::EgoRangeMetres,
+            provenance(709),
             CueValue::DistanceMetres(8.0),
             ScenarioTick(6),
             ScenarioTick(5),
@@ -828,6 +891,7 @@ mod tests {
         for number in [f64::NAN, f64::INFINITY, -0.1] {
             let cue = ObservationCue::observed(
                 CueKind::EgoRangeMetres,
+                provenance(710),
                 CueValue::DistanceMetres(number),
                 ScenarioTick(1),
                 ScenarioTick(1),
@@ -836,6 +900,7 @@ mod tests {
         }
         let cue = ObservationCue::observed(
             CueKind::EgoRangeMetres,
+            provenance(711),
             CueValue::TimeToConflictSeconds(1.0),
             ScenarioTick(1),
             ScenarioTick(1),
@@ -851,6 +916,7 @@ mod tests {
         let policy = cautious();
         let cue = ObservationCue::observed(
             CueKind::EgoTimeToConflictSeconds,
+            provenance(712),
             CueValue::TimeToConflictSeconds(8.0),
             ScenarioTick(4),
             ScenarioTick(5),
