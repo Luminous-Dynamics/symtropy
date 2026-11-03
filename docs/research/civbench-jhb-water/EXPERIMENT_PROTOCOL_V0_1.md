@@ -482,6 +482,26 @@ Several current papers use a 500-scenario Hanoi subset, which should be preserve
 
 Even with 0/120 false positives observed, the one-sided 95% exact binomial upper confidence limit for the underlying FPR is approximately **2.47%**, not zero. A finite test set cannot establish a population FPR of exactly zero.
 
+### New integrated digital-twin comparator (separate from a universal SOTA claim)
+
+Li & Gao (Scientific Reports, published 24 October 2026) connect hydraulic-state assimilation, leak detection, graph-based localization and pressure regulation through one digital twin. The paper reports pooled in-house F1 0.916 and Top-5 hit rate 0.816, compared with 0.836 and 0.573 for its strongest baseline. On the independent BattLeDIM 2019 validation set, F1 is 0.818 and Top-5 hit rate falls by about twenty percentage points. Its C-Town pressure-regulation case reports leakage reduction of 37.5% versus 24.6% for uniform depressurization while retaining 99.4% service compliance. These are important paper-specific reference values, not direct CivBench wins: exact topology, sensors, labels, splits, operating threshold and service constraints must be reconstructed before numeric comparison. The paper also identifies state assimilation as a load-bearing ablation and notes limits around network scale, transient hydraulics and dense instrumentation. Reference: [Li & Gao, 2026](https://doi.org/10.1038/s41598-026-73010-y).
+
+CivBench should reproduce this architecture as a *coupled baseline*: (1) state estimation/recalibration, (2) residual and change detection, (3) calibrated node/pipe posterior ranking, and (4) constrained pressure-control decisions. Ablate state assimilation independently. Score the whole loop by verified leakage reduction, service compliance, false-dispatch burden, detection/localization delay and transfer degradation—not by pooled F1 alone. Do not infer that more sensing or lower pressure is always better.
+
+### External real-utility temporal-anomaly dataset (not LeakDB localization)
+
+Babela, Munk & Munková (Scientific Data, 17 April 2026) publish an anonymized one-zone Slovak utility dataset covering 2022: 8,737 hourly records with 18 precomputed anomaly-score features derived from hydraulic, energy and environmental streams. Maintenance-system fault records are projected into a binary `fault_d7` label spanning a ±7-day window around the recorded fault. The published release provides derived scores rather than raw SCADA/energy/environmental streams, and the paper states that no custom source code is included. Conventional flow and pressure variables were not retained among the 18 features because they did not meet that dataset's association screen. Reference: [Babela et al., 2026](https://doi.org/10.1038/s41597-026-07203-5); [public dataset](https://doi.org/10.5281/zenodo.15096167).
+
+Treat this as a **single-zone, weakly labelled temporal-anomaly transfer dataset**, not as LeakDB, a pipe-localization benchmark, a hydraulic calibration corpus or representative multi-utility field validation. The absence of `fault_d7 = 1` means no confirmed record fell in that window; it does not prove the network was leak-free. A ±7-day label mixes pre-report and post-report signatures and is not an exact leak-onset timestamp. Therefore:
+
+- Separate pre-report early-warning evaluation from post-report event detection; never let post-report records contribute to a predictive lead-time claim.
+- Use event-level temporal partitions. Group all records/windows linked to one maintenance event, and purge at least the full ±7-day label span plus any model lookback/recovery window at split boundaries.
+- Treat unconfirmed periods as unlabelled/unknown or use a defensible positive-unlabelled design; do not silently score them as true negatives.
+- Refit every learned transform, feature screen, normalizer, calibration and threshold on training/calibration partitions only. Because the public release contains precomputed anomaly scores and not the raw data/code, split-safe reconstruction of the published preprocessing cannot currently be verified; this limitation must accompany any result.
+- Report event-level sensitivity, false alert episodes per zone-day, lead-time distribution, calibration/abstention, and confirmed-work-order verification. Do not use pointwise accuracy as the principal outcome.
+
+This dataset is a valuable external reality check for time-series anomaly handling and weak-label discipline, but it cannot establish pipe-level location or the causal service benefit of an intervention.
+
 ### Three non-interchangeable evaluation lanes
 
 1. **L0 — paper reproduction:** reproduce each paper's own 500-scenario Hanoi subset, labels, sensor configuration, preprocessing, threshold and baseline as closely as available artifacts permit. Record unavailable artifacts and every protocol difference. Numeric comparisons are “reproduction” only when split, labels, sensor placement and operating threshold are matched.
