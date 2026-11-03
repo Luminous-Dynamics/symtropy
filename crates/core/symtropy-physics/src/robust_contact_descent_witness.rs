@@ -654,7 +654,9 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
     certificate_verified.then_some(optimum)
 }
 
-const MAX_POLYTOPE_VERTICES: usize = 128;
+// At 11 vertices the point LP has 23 constraints and 23 choose 7 =
+// 245,157 active sets; 12 vertices exceed the 250,000-set reference budget.
+const MAX_POLYTOPE_VERTICES: usize = 11;
 
 fn checked_polytope_vertex_count(polytopes: &[RationalGradientPolytope]) -> Option<usize> {
     polytopes
