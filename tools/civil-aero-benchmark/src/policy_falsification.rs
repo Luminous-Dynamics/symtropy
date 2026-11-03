@@ -13,7 +13,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::budget::LedgerOperation;
 use crate::integrity::sha256_hex;
+use crate::policy_benchmark::{PolicyBenchmarkRow, verify_policy_benchmark_source_receipt};
 
 pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.1.0";
 pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_admitted_candidate_frame_with_separate_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
@@ -216,6 +218,9 @@ pub struct PolicyFeasibilityAuditReport {
     pub schema: String,
     pub frame_id: String,
     pub policy_id: String,
+    pub source_candidate_frame_sha256: String,
+    pub source_operation_ledger_sha256: String,
+    pub source_admission_frame_receipt_sha256: String,
     pub selection_design: String,
     pub selection_design_sha256: String,
     pub selection_plan_sha256: Option<String>,
@@ -249,6 +254,10 @@ pub struct PolicyFeasibilityAuditInputs<'a> {
     pub design: &'a AdjudicationSelectionDesign,
     pub admitted_candidates: &'a [AdmittedCandidateFrameEntry],
     pub adjudications: &'a [IndependentFeasibilityAdjudication],
+    /// Exact upstream scorecard row returned by evaluate_policy_benchmark.
+    pub source_scorecard_row: &'a PolicyBenchmarkRow,
+    /// Complete policy/task/replicate operation slice used to create that scorecard row.
+    pub source_operation_ledger: &'a [LedgerOperation],
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -292,6 +301,34 @@ fn candidate_frame_bytes(
             candidate.task_id.as_str(),
             candidate.replicate_id.as_str(),
             candidate.policy_id.as_str(),
+            candidate.operation_id.as_str(),
+            candidate.output_sha256.as_str(),
+            candidate.admission_receipt_sha256.as_str(),
+            candidate.admission_verifier_id.as_str(),
+            candidate.admission_verifier_sha256.as_str(),
+            candidate.scope_sha256.as_str(),
+        ] {
+            append_string(&mut bytes, value);
+        }
+    }
+    bytes
+}
+
+fn source_admitted_candidate_frame_bytes(
+    task_id: &str,
+    replicate_id: &str,
+    policy_id: &str,
+    candidates: &BTreeMap<String, &AdmittedCandidateFrameEntry>,
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    append_string(&mut bytes, "aero-policy-admitted-candidate-frame/0.1.0");
+    append_string(&mut bytes, task_id);
+    append_string(&mut bytes, replicate_id);
+    append_string(&mut bytes, policy_id);
+    append_u64(&mut bytes, candidates.len() as u64);
+    for (candidate_id, candidate) in candidates {
+        for value in [
+            candidate_id.as_str(),
             candidate.operation_id.as_str(),
             candidate.output_sha256.as_str(),
             candidate.admission_receipt_sha256.as_str(),
@@ -384,6 +421,9 @@ fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
         report.schema.as_str(),
         report.frame_id.as_str(),
         report.policy_id.as_str(),
+        report.source_candidate_frame_sha256.as_str(),
+        report.source_operation_ledger_sha256.as_str(),
+        report.source_admission_frame_receipt_sha256.as_str(),
         report.selection_design.as_str(),
         report.selection_design_sha256.as_str(),
         report.selection_plan_sha256.as_deref().unwrap_or(""),
@@ -442,6 +482,19 @@ pub fn evaluate_policy_feasibility_audit(
         return Err("policy_id and frame_id must be non-empty".to_owned());
     }
     inputs.design.validate()?;
+
+    let source_row = inputs.source_scorecard_row;
+    if source_row.policy_id != inputs.policy_id
+        || source_row.replicate_id.trim().is_empty()
+        || source_row.task_id.trim().is_empty()
+        || source_row.admitted_candidates != inputs.admitted_candidates.len()
+    {
+        return Err(
+            "source policy benchmark row does not match the complete downstream candidate frame"
+                .to_owned(),
+        );
+    }
+    verify_policy_benchmark_source_receipt(source_row, inputs.source_operation_ledger)?;
 
     let mut candidate_map = BTreeMap::<String, &AdmittedCandidateFrameEntry>::new();
     let mut operations = BTreeSet::<(String, String, String, String)>::new();
@@ -507,6 +560,18 @@ pub fn evaluate_policy_feasibility_audit(
         }
     }
 
+    let source_candidate_frame_sha256 = sha256_hex(&source_admitted_candidate_frame_bytes(
+        &source_row.task_id,
+        &source_row.replicate_id,
+        &source_row.policy_id,
+        &candidate_map,
+    ))?;
+    if source_candidate_frame_sha256 != source_row.admitted_candidate_frame_sha256 {
+        return Err(
+            "downstream admitted-candidate frame differs from the upstream policy scorecard"
+                .to_owned(),
+        );
+    }
     let candidate_frame_sha256 = sha256_hex(&candidate_frame_bytes(
         inputs.policy_id,
         inputs.frame_id,
@@ -665,6 +730,9 @@ pub fn evaluate_policy_feasibility_audit(
         schema: POLICY_FEASIBILITY_AUDIT_SCHEMA.to_owned(),
         frame_id: inputs.frame_id.to_owned(),
         policy_id: inputs.policy_id.to_owned(),
+        source_candidate_frame_sha256,
+        source_operation_ledger_sha256: source_row.operation_ledger_sha256.clone(),
+        source_admission_frame_receipt_sha256: source_row.admission_frame_receipt_sha256.clone(),
         selection_design: inputs.design.as_str().to_owned(),
         selection_design_sha256: sha256_hex(&selection_design_bytes(inputs.design))?,
         selection_plan_sha256: inputs.design.selection_references().0.map(str::to_owned),
@@ -732,12 +800,15 @@ fn append_csv_row(output: &mut String, values: &[String]) {
 }
 
 pub fn report_to_csv(report: &PolicyFeasibilityAuditReport) -> String {
-    let header = "schema,frame_id,policy_id,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
+    let header = "schema,frame_id,policy_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
     let mut output = format!("{header}\n");
     let summary = vec![
         report.schema.clone(),
         report.frame_id.clone(),
         report.policy_id.clone(),
+        report.source_candidate_frame_sha256.clone(),
+        report.source_operation_ledger_sha256.clone(),
+        report.source_admission_frame_receipt_sha256.clone(),
         report.selection_design.clone(),
         report.selection_design_sha256.clone(),
         report.selection_plan_sha256.clone().unwrap_or_default(),
