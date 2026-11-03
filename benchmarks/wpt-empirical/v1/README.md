@@ -107,3 +107,5 @@ Every v1 record now includes `field_observation`. It is null only for non-field 
 ### Quantity separation
 
 The quantity vocabulary now distinguishes `electrical_real_power`, `apparent_power`, `reactive_power` and `power_factor`. They may share compatible SI dimensions at the base-unit level, but remain distinct engineering quantities and cannot be substituted for one another. Peak/average/RMS is a separate statistic, not a different unit.
+ 
+The comparator now also checks the statistical window/sample count when a statistic is specified, and for field-to-field comparison it requires probe method, 3D position, orientation, reference frame, spatial region and averaging method to match. Unknown geometry or method remains UNRESOLVED; known differences produce a field-geometry mismatch. A frozen case keeps Riekerk's 13.86 μT abstract scalar unqualified for exposure comparison.
