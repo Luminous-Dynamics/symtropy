@@ -15,6 +15,60 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ScenarioTick(pub u64);
 
+/// Stable scenario-level actor identity, independent of runtime body handles.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ScenarioActorId(String);
+
+impl ScenarioActorId {
+    pub const MAX_LEN: usize = 96;
+
+    /// Accepts a bounded ASCII identifier with an alphanumeric first byte.
+    /// Runtime body handles must never be used as scenario identity.
+    pub fn new(value: impl Into<String>) -> Result<Self, ActorIdError> {
+        let value = value.into();
+        if value.is_empty() {
+            return Err(ActorIdError::Empty);
+        }
+        if value.len() > Self::MAX_LEN {
+            return Err(ActorIdError::TooLong);
+        }
+        if !value.is_ascii() {
+            return Err(ActorIdError::NonAscii);
+        }
+        let bytes = value.as_bytes();
+        if !bytes[0].is_ascii_alphanumeric() {
+            return Err(ActorIdError::InvalidStartCharacter);
+        }
+        if !bytes.iter().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b':')
+        }) {
+            return Err(ActorIdError::InvalidCharacter);
+        }
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ActorIdError {
+    Empty,
+    TooLong,
+    NonAscii,
+    InvalidStartCharacter,
+    InvalidCharacter,
+}
+
+impl fmt::Display for ActorIdError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{self:?}")
+    }
+}
+
+impl std::error::Error for ActorIdError {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ActorMode {
     Waiting,
@@ -662,6 +716,21 @@ mod tests {
             _ => panic!("invalid test fixture"),
         };
         AllowedActorObservation::new(ScenarioTick(tick), vec![cue]).unwrap()
+    }
+
+    #[test]
+    fn scenario_actor_ids_are_stable_ascii_and_bounded() {
+        let id = ScenarioActorId::new("pedestrian_001").unwrap();
+        assert_eq!(id.as_str(), "pedestrian_001");
+        assert_eq!(id, ScenarioActorId::new("pedestrian_001").unwrap());
+        assert_eq!(ScenarioActorId::new(""), Err(ActorIdError::Empty));
+        assert_eq!(ScenarioActorId::new("pédestrian"), Err(ActorIdError::NonAscii));
+        assert_eq!(ScenarioActorId::new("_ego"), Err(ActorIdError::InvalidStartCharacter));
+        assert_eq!(ScenarioActorId::new("ego/0"), Err(ActorIdError::InvalidCharacter));
+        assert_eq!(
+            ScenarioActorId::new("a".repeat(ScenarioActorId::MAX_LEN + 1)),
+            Err(ActorIdError::TooLong)
+        );
     }
 
     #[test]
