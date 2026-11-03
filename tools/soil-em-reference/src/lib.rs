@@ -1,3 +1,5 @@
+pub mod electrode;
+
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -59,9 +61,9 @@ impl std::error::Error for ModelError {}
 /// Homogeneous, isotropic, linear medium.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Medium {
-    pub relative_permittivity: f64,
-    pub relative_permeability: f64,
-    pub conductivity_s_per_m: f64,
+    relative_permittivity: f64,
+    relative_permeability: f64,
+    conductivity_s_per_m: f64,
 }
 
 impl Medium {
@@ -80,6 +82,18 @@ impl Medium {
             return Err(ModelError::InvalidConductivity);
         }
         Ok(Self { relative_permittivity, relative_permeability, conductivity_s_per_m })
+    }
+
+    pub fn relative_permittivity(self) -> f64 {
+        self.relative_permittivity
+    }
+
+    pub fn relative_permeability(self) -> f64 {
+        self.relative_permeability
+    }
+
+    pub fn conductivity_s_per_m(self) -> f64 {
+        self.conductivity_s_per_m
     }
 
     pub fn permittivity_f_per_m(self) -> f64 {
