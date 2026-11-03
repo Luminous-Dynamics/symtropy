@@ -13,7 +13,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::budget::LedgerOperation;
+use crate::budget::{LEDGER_INPUT_HEADER, LedgerOperation};
 use crate::policy_benchmark::{
     CandidateAdmissionStatus, CandidateObservation, PolicyBenchmarkRow, PolicyBenchmarkTask,
     evaluate_policy_benchmark,
@@ -228,6 +228,7 @@ pub struct PolicyFeasibilityAuditReport {
     pub source_replicate_id: String,
     pub source_candidate_frame_sha256: String,
     pub source_operation_ledger_sha256: String,
+    pub source_operation_count: usize,
     pub source_admission_frame_receipt_sha256: String,
     pub selection_design: String,
     pub selection_design_sha256: String,
@@ -433,6 +434,7 @@ fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
         report.source_replicate_id.as_str(),
         report.source_candidate_frame_sha256.as_str(),
         report.source_operation_ledger_sha256.as_str(),
+        report.source_operation_count.to_string().as_str(),
         report.source_admission_frame_receipt_sha256.as_str(),
         report.selection_design.as_str(),
         report.selection_design_sha256.as_str(),
@@ -753,6 +755,7 @@ pub fn evaluate_policy_feasibility_audit(
         source_replicate_id: source_row.replicate_id.clone(),
         source_candidate_frame_sha256,
         source_operation_ledger_sha256: source_row.operation_ledger_sha256.clone(),
+        source_operation_count: source_row.operation_count,
         source_admission_frame_receipt_sha256: source_row.admission_frame_receipt_sha256.clone(),
         selection_design: inputs.design.as_str().to_owned(),
         selection_design_sha256: sha256_hex(&selection_design_bytes(inputs.design))?,
@@ -821,7 +824,7 @@ fn append_csv_row(output: &mut String, values: &[String]) {
 }
 
 pub fn report_to_csv(report: &PolicyFeasibilityAuditReport) -> String {
-    let header = "schema,frame_id,policy_id,source_task_id,source_replicate_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
+    let header = "schema,frame_id,policy_id,source_task_id,source_replicate_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_operation_count,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
     let mut output = format!("{header}\n");
     let summary = vec![
         report.schema.clone(),
@@ -831,6 +834,7 @@ pub fn report_to_csv(report: &PolicyFeasibilityAuditReport) -> String {
         report.source_replicate_id.clone(),
         report.source_candidate_frame_sha256.clone(),
         report.source_operation_ledger_sha256.clone(),
+        report.source_operation_count.to_string(),
         report.source_admission_frame_receipt_sha256.clone(),
         report.selection_design.clone(),
         report.selection_design_sha256.clone(),
@@ -947,9 +951,34 @@ mod tests {
         }
     }
 
+    fn operation_ledger_csv(operations: &[LedgerOperation]) -> String {
+        let mut output = format!("{LEDGER_INPUT_HEADER}\\n");
+        for operation in operations {
+            output.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{},{}\\n",
+                operation.task_id,
+                operation.replicate_id,
+                operation.policy_id,
+                operation.operation_id,
+                operation.operation_kind,
+                operation.fidelity,
+                operation.aerodynamic_condition_calls_attempted,
+                operation.aerodynamic_condition_calls_succeeded,
+                operation.cost_units,
+                operation.budget_cap_units,
+                operation.wall_seconds,
+                operation.cpu_seconds,
+                operation.success,
+                operation.output_sha256,
+                operation.reason_code
+            ));
+        }
+        output
+    }
+
     fn source_scorecard_for_frame(
         frame_candidates: &[AdmittedCandidateFrameEntry],
-    ) -> (PolicyBenchmarkRow, Vec<LedgerOperation>, String) {
+    ) -> (PolicyBenchmarkRow, Vec<LedgerOperation>, String, String) {
         let task_id = "airfoil-family-a";
         let target_replicate = "seed-1";
         let target_policy = "symtropy-voi";
@@ -1033,7 +1062,12 @@ mod tests {
                 && row.replicate_id == target_replicate
                 && row.policy_id == target_policy
         }).expect("target scorecard row").clone();
-        (row, operations, crate::policy_benchmark::report_to_csv(&report))
+        (
+            row,
+            operations.clone(),
+            crate::policy_benchmark::report_to_csv(&report),
+            operation_ledger_csv(&operations),
+        )
     }
 
     fn candidate(
@@ -1120,8 +1154,12 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256,
         };
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1232,8 +1270,12 @@ mod tests {
             selection_plan_sha256: digest('7'),
             selection_receipt_sha256: digest('8'),
         };
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1273,8 +1315,12 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1308,8 +1354,12 @@ mod tests {
         );
         wrong_scope.scope_sha256 = digest('9');
         let wrong_scope_adjudications = [wrong_scope.clone()];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1328,8 +1378,12 @@ mod tests {
         wrong_scope.scope_sha256 = candidates[0].scope_sha256.clone();
         wrong_scope.output_sha256 = digest('0');
         let wrong_output_adjudications = [wrong_scope.clone()];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1352,8 +1406,12 @@ mod tests {
             'e',
         );
         let same_verifier_adjudications = [same_verifier];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1385,8 +1443,12 @@ mod tests {
             "independent-verifier",
             'e',
         )];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1410,8 +1472,12 @@ mod tests {
             selection_receipt_sha256: digest('8'),
         };
         let shared_receipt_adjudications = [shared_receipt];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1429,8 +1495,12 @@ mod tests {
 
         let duplicate = adjudications[0].clone();
         let duplicate_adjudications = [adjudications[0].clone(), duplicate];
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
@@ -1454,8 +1524,12 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
-        let (source_scorecard_row, source_operation_ledger, _source_scorecard_csv) =
-            source_scorecard_for_frame(&candidates);
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
