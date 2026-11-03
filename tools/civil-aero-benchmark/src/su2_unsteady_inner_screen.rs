@@ -95,9 +95,11 @@ fn required_terminal_iteration(
     convergence_start_iter: u64,
     cauchy_elements: u64,
 ) -> Result<u64, String> {
+    // Match SU2 v8.6.0 COutput::MonitorTimeConvergence: the Cauchy difference
+    // series is filled from WINDOW_START_ITER while the start delay elapses.
+    // Monitoring is permitted at WINDOW_START_ITER + max(delay, series length).
     window_start_iter
-        .checked_add(convergence_start_iter)
-        .and_then(|monitor_start| monitor_start.checked_add(cauchy_elements))
+        .checked_add(convergence_start_iter.max(cauchy_elements))
         .ok_or_else(|| "window convergence iteration range overflowed".to_owned())
 }
 
@@ -362,10 +364,12 @@ mod tests {
     use super::required_terminal_iteration;
 
     #[test]
-    fn window_coverage_adds_monitor_delay_and_cauchy_sample_count() {
-        assert_eq!(required_terminal_iteration(500, 10, 10).unwrap(), 520);
-        assert_eq!(required_terminal_iteration(500, 15, 10).unwrap(), 525);
-        assert_eq!(required_terminal_iteration(500, 10, 15).unwrap(), 525);
+    fn window_coverage_matches_pinned_su2_overlap_of_delay_and_cauchy_series() {
+        // SU2 starts the Cauchy series at WINDOW_START_ITER; it accumulates during
+        // CONV_WINDOW_STARTITER, so these two durations overlap rather than add.
+        assert_eq!(required_terminal_iteration(500, 10, 10).unwrap(), 510);
+        assert_eq!(required_terminal_iteration(500, 15, 10).unwrap(), 515);
+        assert_eq!(required_terminal_iteration(500, 10, 15).unwrap(), 515);
     }
 
     #[test]
