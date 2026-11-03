@@ -377,7 +377,7 @@ mod tests {
         let mut previous_error = f64::INFINITY;
 
         for epsilon in perturbations {
-            let speed = (-2.0_f64).powi(2).mul_add(1.0, 2.0 * 2.0 * epsilon).sqrt();
+            let speed = (4.0_f64 + 4.0 * epsilon).sqrt();
             let event_time = 2.0 * epsilon / (speed - (-2.0));
             let finite_difference = event_time / epsilon;
             let error = (finite_difference - expected).abs();
