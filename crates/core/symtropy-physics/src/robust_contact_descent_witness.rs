@@ -397,7 +397,8 @@ fn enumerate_lp_active_sets(
         let Some(candidate) = solve_active_lp_constraints(constraints, active_indices) else {
             return;
         };
-        let Some(dual_multipliers) = solve_active_lp_dual_constraints(constraints, active_indices) else {
+        let Some(dual_multipliers) = solve_active_lp_dual_constraints(constraints, active_indices)
+        else {
             return;
         };
         if !verify_exact_lp_certificate(constraints, active_indices, &dual_multipliers, &candidate)
