@@ -667,6 +667,92 @@ pub fn dpw8_oat15a_geometry_redistribution_permitted(
     manifest.geometry_redistribution_permitted()
 }
 
+fn csv_escape(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
+fn csv_row(fields: Vec<String>) -> String {
+    fields
+        .iter()
+        .map(|field| csv_escape(field))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn optional_f64(value: Option<f64>) -> String {
+    value.map(|number| number.to_string()).unwrap_or_default()
+}
+
+/// Normalized protocol/source export for an independent non-Rust oracle.
+pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> String {
+    let header = "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,source_revision,license_applicability,acknowledgement";
+    let mut output = format!("{header}\n");
+    let mut row = vec![String::new(); 37];
+    row[0] = "manifest".to_owned();
+    row[1] = manifest.schema.clone();
+    row[2] = manifest.protocol_revision.clone();
+    row[3] = manifest.geometry_designation.clone();
+    row[4] = manifest.geometry_ip_holder.clone();
+    row[5] = manifest.geometry_acknowledgement_required_each_share.to_string();
+    row[6] = manifest.geometry_share_condition.clone();
+    row[7] = manifest.evidence_level.clone();
+    row[8] = manifest.spec.lane.as_str().to_owned();
+    row[9] = manifest.spec.flow_mode.clone();
+    row[10] = manifest.spec.angle_schedule.as_str().to_owned();
+    row[11] = manifest
+        .spec
+        .angle_of_attack_degrees
+        .iter()
+        .map(|value| value.to_string())
+        .collect::<Vec<_>>()
+        .join(";");
+    row[12] = optional_f64(manifest.spec.mach);
+    row[13] = optional_f64(manifest.spec.chord_reynolds);
+    row[14] = optional_f64(manifest.spec.static_temperature_kelvin);
+    row[15] = manifest.spec.grid_policy.as_str().to_owned();
+    row[16] = manifest.spec.sidewall_boundary_condition.clone();
+    row[17] = optional_f64(manifest.spec.common_farfield_chords);
+    row[18] = manifest.spec.turbulence_model.clone().unwrap_or_default();
+    row[19] = manifest
+        .spec
+        .sutherland_law
+        .map(|value| value.to_string())
+        .unwrap_or_default();
+    row[20] = manifest
+        .spec
+        .wall_thermal_condition
+        .map(Dpw8WallThermalCondition::as_str)
+        .unwrap_or_default()
+        .to_owned();
+    row[21] = optional_f64(manifest.spec.residual_target_log10);
+    row[22] = optional_f64(manifest.spec.gamma);
+    row[23] = optional_f64(manifest.spec.prandtl);
+    row[24] = optional_f64(manifest.spec.turbulent_prandtl);
+    row[25] = optional_f64(manifest.spec.farfield_kinematic_viscosity_ratio_chi);
+    row[26] = manifest.manifest_sha256.clone();
+    output.push_str(&csv_row(row));
+    output.push('\n');
+
+    let mut sources = manifest.sources.iter().collect::<Vec<_>>();
+    sources.sort_by(|left, right| left.source_id.cmp(&right.source_id));
+    for source in sources {
+        let mut row = vec![String::new(); 37];
+        row[0] = "source".to_owned();
+        row[28] = source.source_id.clone();
+        row[29] = source.source_url.clone();
+        row[30] = source.source_kind.clone();
+        row[31] = source.state.as_str().to_owned();
+        row[32] = source.byte_length.map(|value| value.to_string()).unwrap_or_default();
+        row[33] = source.sha256.clone().unwrap_or_default();
+        row[34] = source.source_revision.clone();
+        row[35] = source.license_applicability.clone();
+        row[36] = source.acknowledgement.clone();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+    }
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
