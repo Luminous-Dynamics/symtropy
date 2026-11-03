@@ -222,3 +222,9 @@ Threat cases include:
 
 Hard rule: ambiguous identity, stale/unauthenticated command, compromised firmware, implausible sensor state or failed isolation confirmation must not lead to energization or direction/frequency switching. The system must enter a documented safe state or a rigorously bounded local-safe-control mode. This protocol is a benchmark design, not a cybersecurity certification or authorization to perform real attacks against live infrastructure.
 
+## 14. Frozen cyber-physical negative-control corpus
+
+The companion file `cyber-physical-scenarios.jsonl` defines ten scenario IDs and their preconditions, synthetic stimulus, expected safe response and failure condition. Each qualified run must include one result per ID. Outcomes are PASS or explicitly justified NOT_APPLICABLE; FAIL or NOT_RUN cannot qualify. A passing outcome must carry a SHA-256 evidence digest, and NOT_APPLICABLE must include a reason.
+
+The scenarios cover receiver spoofing, command replay, stale commands, firmware integrity, phase-sensor injection, current-sensor tampering, timing jitter, communication DoS/loss, certificate revocation and resonant isolation switch mismatch. They are deterministic test specifications, not instructions to attack a live charger or grid. Tests must run in an authorized isolated environment with safe, non-energized or approved hardware-in-the-loop fixtures.
+
