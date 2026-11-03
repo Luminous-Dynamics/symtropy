@@ -237,6 +237,10 @@ pub struct IndividualScorecard {
     pub episodes_with_numerical_failures: usize,
     pub episodes_with_physics_violations: usize,
     pub episodes_with_unclassified_failures: usize,
+    pub functional_recovery_episodes: usize,
+    pub mechanism_restoration_episodes: usize,
+    pub compensation_without_mechanism_restoration_episodes: usize,
+    pub unobserved_mechanism_recovery_episodes: usize,
     pub hard_failure_gate_passed: bool,
 }
 
@@ -1104,6 +1108,33 @@ fn score_scenario(
             .iter()
             .filter(|episode| episode.unclassified_failure_count > 0)
             .count();
+        let functional_recovery_episodes = individual_episodes
+            .iter()
+            .filter(|episode| matches!(episode.recovery, RecoveryStatus::Recovered { .. }))
+            .count();
+        let mechanism_restoration_episodes = individual_episodes
+            .iter()
+            .filter(|episode| {
+                matches!(episode.mechanism_recovery, MechanismRecoveryStatus::Restored { .. })
+            })
+            .count();
+        let compensation_without_mechanism_restoration_episodes = individual_episodes
+            .iter()
+            .filter(|episode| {
+                matches!(episode.recovery, RecoveryStatus::Recovered { .. })
+                    && matches!(
+                        episode.mechanism_recovery,
+                        MechanismRecoveryStatus::NotRestoredByHorizon
+                            | MechanismRecoveryStatus::NotRestoredBeforeTermination
+                    )
+            })
+            .count();
+        let unobserved_mechanism_recovery_episodes = individual_episodes
+            .iter()
+            .filter(|episode| {
+                matches!(episode.mechanism_recovery, MechanismRecoveryStatus::Unobserved)
+            })
+            .count();
 
         individual_success_rates.push(individual_success_rate);
         individual_mean_task_scores.push(individual_mean_task_score);
@@ -1117,6 +1148,10 @@ fn score_scenario(
             episodes_with_numerical_failures,
             episodes_with_physics_violations,
             episodes_with_unclassified_failures,
+            functional_recovery_episodes,
+            mechanism_restoration_episodes,
+            compensation_without_mechanism_restoration_episodes,
+            unobserved_mechanism_recovery_episodes,
             hard_failure_gate_passed: episodes_with_numerical_failures == 0
                 && episodes_with_physics_violations == 0
                 && episodes_with_unclassified_failures == 0,
@@ -1855,6 +1890,14 @@ mod tests {
         assert_eq!(row.mechanism_not_restored_by_horizon_episodes, 1);
         assert_eq!(row.compensation_without_mechanism_restoration_episodes, 1);
         assert_eq!(row.joint_function_and_mechanism_recovery_episodes, 1);
+        assert_eq!(
+            row.individual_scorecards[0].compensation_without_mechanism_restoration_episodes,
+            1
+        );
+        assert_eq!(
+            row.individual_scorecards[1].mechanism_restoration_episodes,
+            1
+        );
     }
 
     #[test]
