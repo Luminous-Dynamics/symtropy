@@ -346,6 +346,12 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "voltage_peak_limit_v",
             "thermal_maximum_c",
             "thermal_limit_c",
+            "core_material_id",
+            "core_saturation_curve_ref",
+            "core_temperature_c",
+            "core_flux_density_peak_t",
+            "core_flux_density_limit_t",
+            "core_flux_assessment_method",
             "measurement_method",
             "artifact_sha256",
         ],
@@ -894,6 +900,57 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                             "resonant_networks[{index}]: temperature missing or exceeds branch thermal limit"
                         )),
                     }
+                    let core_method =
+                        string_at(network, &["core_flux_assessment_method"]).unwrap_or("NOT_REPORTED");
+                    let core_material = string_at(network, &["core_material_id"]);
+                    let core_curve = string_at(network, &["core_saturation_curve_ref"]);
+                    let core_temperature = number_at(network, &["core_temperature_c"]);
+                    let core_flux = number_at(network, &["core_flux_density_peak_t"]);
+                    let core_saturation =
+                        number_at(network, &["core_flux_density_limit_t"]);
+                    match core_method {
+                        "MEASURED" | "CALCULATED_FROM_MEASURED_WAVEFORM" => {
+                            if !nonempty(core_material) || !nonempty(core_curve) {
+                                errors.push(format!(
+                                    "resonant_networks[{index}]: core material and saturation curve reference required"
+                                ));
+                            }
+                            match (core_temperature, temperature) {
+                                (Some(core_temp), Some(max_temp)) if core_temp <= max_temp => {}
+                                _ => errors.push(format!(
+                                    "resonant_networks[{index}]: core temperature missing or above declared branch maximum"
+                                )),
+                            }
+                            match (core_flux, core_saturation) {
+                                (Some(peak), Some(limit)) if limit > 0.0 => {
+                                    let utilization = peak / limit * 100.0;
+                                    if utilization > 80.0 {
+                                        errors.push(format!(
+                                            "resonant_networks[{index}]: core flux utilization {utilization:.3}% exceeds proposed hot-state 80.000% limit"
+                                        ));
+                                    }
+                                }
+                                _ => errors.push(format!(
+                                    "resonant_networks[{index}]: peak core flux and temperature-specific saturation limit required"
+                                )),
+                            }
+                        }
+                        "NOT_APPLICABLE" => {
+                            if core_material.is_some()
+                                || core_curve.is_some()
+                                || core_temperature.is_some()
+                                || core_flux.is_some()
+                                || core_saturation.is_some()
+                            {
+                                errors.push(format!(
+                                    "resonant_networks[{index}]: NOT_APPLICABLE core method must not carry core material/flux values"
+                                ));
+                            }
+                        }
+                        _ => errors.push(format!(
+                            "resonant_networks[{index}].core_flux_assessment_method: physical qualification requires measured flux or calculation from measured waveform"
+                        )),
+                    }
                     if method != "MEASURED" {
                         errors.push(format!(
                             "resonant_networks[{index}].measurement_method: physical branch qualification requires MEASURED evidence"
@@ -1354,6 +1411,12 @@ mod tests {
                 "voltage_peak_limit_v": 1_400.0,
                 "thermal_maximum_c": 64.0,
                 "thermal_limit_c": 100.0,
+                "core_material_id": "synthetic MnZn ferrite",
+                "core_saturation_curve_ref": "synthetic Bsat(T) test curve",
+                "core_temperature_c": 64.0,
+                "core_flux_density_peak_t": 0.30,
+                "core_flux_density_limit_t": 0.45,
+                "core_flux_assessment_method": "CALCULATED_FROM_MEASURED_WAVEFORM",
                 "measurement_method": "MEASURED",
                 "artifact_sha256": "c".repeat(64)
             },
@@ -1372,6 +1435,12 @@ mod tests {
                 "voltage_peak_limit_v": 3_400.0,
                 "thermal_maximum_c": 35.0,
                 "thermal_limit_c": 100.0,
+                "core_material_id": "synthetic MnZn ferrite",
+                "core_saturation_curve_ref": "synthetic Bsat(T) test curve",
+                "core_temperature_c": 35.0,
+                "core_flux_density_peak_t": 0.10,
+                "core_flux_density_limit_t": 0.45,
+                "core_flux_assessment_method": "CALCULATED_FROM_MEASURED_WAVEFORM",
                 "measurement_method": "MEASURED",
                 "artifact_sha256": "d".repeat(64)
             }
@@ -1638,6 +1707,23 @@ mod tests {
         manifest["resonant_networks"][0]["current_peak_a"] = json!(50.0);
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("peak current missing or exceeds peak rating")));
+    }
+
+
+    #[test]
+    fn rejects_core_flux_above_proposed_hot_state_margin() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][0]["core_flux_density_peak_t"] = json!(0.40);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("exceeds proposed hot-state 80.000% limit")));
+    }
+
+    #[test]
+    fn rejects_simulation_only_core_flux_for_physical_qualification() {
+        let mut manifest = qualified_fixture();
+        manifest["resonant_networks"][0]["core_flux_assessment_method"] = json!("SIMULATED");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("calculation from measured waveform")));
     }
 
     #[test]
