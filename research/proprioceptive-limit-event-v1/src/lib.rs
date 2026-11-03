@@ -60,7 +60,7 @@ pub enum DetectorError {
     SampleGapExceeded,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JointLimitDetector {
     config: LimitDetectorConfig,
     previous: Option<JointAngleSample>,
