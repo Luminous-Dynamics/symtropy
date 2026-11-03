@@ -8,6 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::budget::{LedgerOperation, PolicyBudgetSummary, summarize_matched_budget};
+use crate::integrity::sha256_hex;
 
 const ADMITTED_STATUS: &str = "admitted";
 const NOT_ADMITTED_STATUS: &str = "not_admitted";
@@ -52,6 +53,11 @@ pub struct CandidateObservation {
     pub admission_status: CandidateAdmissionStatus,
     /// Digest of CfdEvidenceChainReceipt.receipt_sha256 or another explicitly documented admission/constraint receipt. This is not a signature; the policy scorecard does not authenticate the receipt.
     pub admission_receipt_sha256: String,
+    /// Exact claim scope and verifier identity for the admitted feasibility assertion.
+    /// All three are absent for a not-admitted candidate.
+    pub scope_sha256: Option<String>,
+    pub admission_verifier_id: Option<String>,
+    pub admission_verifier_sha256: Option<String>,
     /// Present only when admission succeeded.
     pub feasible: Option<bool>,
     /// Present only when admission succeeded; both objectives are lower-is-better.
@@ -103,11 +109,147 @@ pub struct PolicyBenchmarkRow {
     pub validated_hypervolume_per_high_fidelity_condition_call: Option<f64>,
     pub normalized_hypervolume_per_high_fidelity_condition_call: Option<f64>,
     pub evidence_level: &'static str,
+    /// Canonical frame of every admitted candidate in this exact policy/task/replicate row.
+    /// Private to the crate so consumers must obtain the row from the scorecard evaluator.
+    pub(crate) admitted_candidate_frame_sha256: String,
+    /// Canonical digest of every operation in the source policy/task/replicate ledger row.
+    pub(crate) operation_ledger_sha256: String,
+    /// Receipt over the two source digests, group identity and admitted-candidate count.
+    pub(crate) admission_frame_receipt_sha256: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PolicyBenchmarkReport {
     pub rows: Vec<PolicyBenchmarkRow>,
+}
+
+fn append_source_string(bytes: &mut Vec<u8>, value: &str) {
+    bytes.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+}
+
+fn append_source_f64(bytes: &mut Vec<u8>, value: f64) {
+    bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+}
+
+fn admitted_candidate_frame_bytes(
+    task_id: &str,
+    replicate_id: &str,
+    policy_id: &str,
+    candidates: &BTreeMap<String, &CandidateObservation>,
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    append_source_string(&mut bytes, "aero-policy-admitted-candidate-frame/0.1.0");
+    append_source_string(&mut bytes, task_id);
+    append_source_string(&mut bytes, replicate_id);
+    append_source_string(&mut bytes, policy_id);
+    bytes.extend_from_slice(&(candidates.len() as u64).to_le_bytes());
+    for (candidate_id, candidate) in candidates {
+        for value in [
+            candidate_id.as_str(),
+            candidate.operation_id.as_str(),
+            candidate.output_sha256.as_str(),
+            candidate.admission_receipt_sha256.as_str(),
+            candidate.admission_verifier_id.as_deref().unwrap_or(""),
+            candidate.admission_verifier_sha256.as_deref().unwrap_or(""),
+            candidate.scope_sha256.as_deref().unwrap_or(""),
+        ] {
+            append_source_string(&mut bytes, value);
+        }
+    }
+    bytes
+}
+
+fn source_operation_ledger_bytes(
+    task_id: &str,
+    replicate_id: &str,
+    policy_id: &str,
+    operations: &[&LedgerOperation],
+) -> Vec<u8> {
+    let mut ordered = operations.to_vec();
+    ordered.sort_by(|a, b| a.operation_id.cmp(&b.operation_id));
+    let mut bytes = Vec::new();
+    append_source_string(&mut bytes, "aero-policy-operation-ledger/0.1.0");
+    append_source_string(&mut bytes, task_id);
+    append_source_string(&mut bytes, replicate_id);
+    append_source_string(&mut bytes, policy_id);
+    bytes.extend_from_slice(&(ordered.len() as u64).to_le_bytes());
+    for operation in ordered {
+        for value in [
+            operation.task_id.as_str(),
+            operation.replicate_id.as_str(),
+            operation.policy_id.as_str(),
+            operation.operation_id.as_str(),
+            operation.operation_kind.as_str(),
+            operation.fidelity.as_str(),
+            operation.output_sha256.as_str(),
+            operation.reason_code.as_str(),
+        ] {
+            append_source_string(&mut bytes, value);
+        }
+        for value in [
+            operation.aerodynamic_condition_calls_attempted,
+            operation.aerodynamic_condition_calls_succeeded,
+        ] {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        append_source_f64(&mut bytes, operation.cost_units);
+        append_source_f64(&mut bytes, operation.budget_cap_units);
+        append_source_f64(&mut bytes, operation.wall_seconds);
+        append_source_f64(&mut bytes, operation.cpu_seconds);
+        bytes.push(u8::from(operation.success));
+    }
+    bytes
+}
+
+fn admission_frame_receipt_bytes(row: &PolicyBenchmarkRow) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    append_source_string(&mut bytes, "aero-policy-admission-frame-receipt/0.1.0");
+    append_source_string(&mut bytes, row.task_id.as_str());
+    append_source_string(&mut bytes, row.replicate_id.as_str());
+    append_source_string(&mut bytes, row.policy_id.as_str());
+    append_source_string(&mut bytes, row.admitted_candidate_frame_sha256.as_str());
+    append_source_string(&mut bytes, row.operation_ledger_sha256.as_str());
+    bytes.extend_from_slice(&(row.admitted_candidates as u64).to_le_bytes());
+    append_source_string(&mut bytes, row.evidence_level);
+    bytes
+}
+
+/// Recompute the source operation ledger and admission-frame receipt before using a scorecard
+/// row to qualify a downstream false-feasible audit. This proves consistency with the exact
+/// operation slice and scorecard row supplied; it does not authenticate the original ledger.
+pub(crate) fn verify_policy_benchmark_source_receipt(
+    row: &PolicyBenchmarkRow,
+    operations: &[LedgerOperation],
+) -> Result<(), String> {
+    let group_operations = operations
+        .iter()
+        .filter(|operation| {
+            operation.task_id == row.task_id
+                && operation.replicate_id == row.replicate_id
+                && operation.policy_id == row.policy_id
+        })
+        .collect::<Vec<_>>();
+    if group_operations.len() != row.operation_count {
+        return Err("source operation ledger count differs from policy benchmark row".to_owned());
+    }
+    let ledger_digest = sha256_hex(&source_operation_ledger_bytes(
+        &row.task_id,
+        &row.replicate_id,
+        &row.policy_id,
+        &group_operations,
+    ))?;
+    if ledger_digest != row.operation_ledger_sha256 {
+        return Err("source operation ledger digest differs from policy benchmark row".to_owned());
+    }
+    if sha256_hex(&admission_frame_receipt_bytes(row))? != row.admission_frame_receipt_sha256 {
+        return Err("policy benchmark admission-frame receipt digest mismatch".to_owned());
+    }
+    Ok(())
+}
+
+pub(crate) fn admission_frame_receipt_digest(row: &PolicyBenchmarkRow) -> Result<String, String> {
+    sha256_hex(&admission_frame_receipt_bytes(row))
 }
 
 pub fn evaluate_policy_benchmark(
@@ -256,6 +398,24 @@ pub fn evaluate_policy_benchmark(
                         candidate.candidate_id
                     ));
                 }
+                if candidate
+                    .scope_sha256
+                    .as_deref()
+                    .is_none_or(|value| !is_sha256_hex(value))
+                    || candidate
+                        .admission_verifier_sha256
+                        .as_deref()
+                        .is_none_or(|value| !is_sha256_hex(value))
+                    || candidate
+                        .admission_verifier_id
+                        .as_deref()
+                        .is_none_or(|value| value.trim().is_empty())
+                {
+                    return Err(format!(
+                        "admitted candidate {} requires exact scope and verifier identity/digest",
+                        candidate.candidate_id
+                    ));
+                }
                 let feasible = candidate.feasible.ok_or_else(|| {
                     format!(
                         "admitted candidate {} has no constraint-feasibility result",
@@ -294,6 +454,9 @@ pub fn evaluate_policy_benchmark(
             }
             CandidateAdmissionStatus::NotAdmitted => {
                 if candidate.admission_receipt_sha256 != "-"
+                    || candidate.scope_sha256.is_some()
+                    || candidate.admission_verifier_id.is_some()
+                    || candidate.admission_verifier_sha256.is_some()
                     || candidate.feasible.is_some()
                     || candidate.objective_1.is_some()
                     || candidate.objective_2.is_some()
@@ -352,7 +515,7 @@ pub fn evaluate_policy_benchmark(
         let mut feasible_admitted_candidates = 0;
         let mut feasible_points = Vec::new();
 
-        for candidate in observations {
+        for candidate in &observations {
             match candidate.admission_status {
                 CandidateAdmissionStatus::Admitted => {
                     admitted_candidates += 1;
@@ -408,7 +571,33 @@ pub fn evaluate_policy_benchmark(
             ));
         }
 
-        rows.push(PolicyBenchmarkRow {
+        let admitted_frame = observations
+            .iter()
+            .copied()
+            .filter(|candidate| candidate.admission_status == CandidateAdmissionStatus::Admitted)
+            .map(|candidate| (candidate.candidate_id.clone(), candidate))
+            .collect::<BTreeMap<_, _>>();
+        let admitted_candidate_frame_sha256 = sha256_hex(&admitted_candidate_frame_bytes(
+            &budget.task_id,
+            &budget.replicate_id,
+            &budget.policy_id,
+            &admitted_frame,
+        ))?;
+        let group_operations = operations
+            .iter()
+            .filter(|operation| {
+                operation.task_id == budget.task_id
+                    && operation.replicate_id == budget.replicate_id
+                    && operation.policy_id == budget.policy_id
+            })
+            .collect::<Vec<_>>();
+        let operation_ledger_sha256 = sha256_hex(&source_operation_ledger_bytes(
+            &budget.task_id,
+            &budget.replicate_id,
+            &budget.policy_id,
+            &group_operations,
+        ))?;
+        let mut row = PolicyBenchmarkRow {
             task_id: budget.task_id,
             replicate_id: budget.replicate_id,
             policy_id: budget.policy_id,
@@ -477,7 +666,12 @@ pub fn evaluate_policy_benchmark(
                 None
             },
             evidence_level: "caller_bound_admission_receipt_scorecard_not_solver_validation",
-        });
+            admitted_candidate_frame_sha256,
+            operation_ledger_sha256,
+            admission_frame_receipt_sha256: String::new(),
+        };
+        row.admission_frame_receipt_sha256 = admission_frame_receipt_digest(&row)?;
+        rows.push(row);
     }
 
     Ok(PolicyBenchmarkReport { rows })
@@ -591,13 +785,13 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed,validated_hypervolume_per_high_fidelity_condition_call,normalized_hypervolume_per_high_fidelity_condition_call";
+pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed,validated_hypervolume_per_high_fidelity_condition_call,normalized_hypervolume_per_high_fidelity_condition_call,admitted_candidate_frame_sha256,operation_ledger_sha256,admission_frame_receipt_sha256";
 
 pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
     let mut output = format!("{POLICY_BENCHMARK_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\\n",
             csv_escape(&row.task_id),
             csv_escape(&row.replicate_id),
             csv_escape(&row.policy_id),
@@ -643,7 +837,10 @@ pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
                 .unwrap_or_default(),
             row.normalized_hypervolume_per_high_fidelity_condition_call
                 .map(|value| format!("{value:.12}"))
-                .unwrap_or_default()
+                .unwrap_or_default(),
+            row.admitted_candidate_frame_sha256,
+            row.operation_ledger_sha256,
+            row.admission_frame_receipt_sha256
         ));
     }
     output
@@ -769,6 +966,13 @@ mod tests {
                 CandidateAdmissionStatus::NotAdmitted
             },
             admission_receipt_sha256: receipt.to_owned(),
+            scope_sha256: if admitted { Some(digest('c')) } else { None },
+            admission_verifier_id: if admitted {
+                Some("admission-verifier-v1".to_owned())
+            } else {
+                None
+            },
+            admission_verifier_sha256: if admitted { Some(digest('b')) } else { None },
             feasible,
             objective_1,
             objective_2,

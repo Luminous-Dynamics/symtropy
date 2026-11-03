@@ -92,7 +92,7 @@ A metric is unavailable when its source measurement is unavailable; do not subst
 
 The existing `policy_benchmark` v0.1 scorecard consumes `CandidateObservation.feasible` and an admission receipt supplied by the orchestration caller. Its evidence level is explicitly `caller_bound_admission_receipt_scorecard_not_solver_validation`. Its `validated_hypervolume` field therefore means *admission-receipt-qualified feasible hypervolume under the benchmark's declared policy*, not independently falsified feasibility, ASME V&V 20 validation, experimental validation, or airworthiness evidence.
 
-The separate [policy falsification audit v0.1](./AERO_FALSE_FEASIBILITY_AUDIT_V0_1.md) consumes an exact frame of all admitted candidates and a separate independent-adjudication ledger. It reports:
+The separate [policy falsification audit v0.1](./AERO_FALSE_FEASIBILITY_AUDIT_V0_2.md) consumes an exact frame of all admitted candidates and a separate independent-adjudication ledger. It reports:
 - a lower bound: known falsified-infeasible candidates / all admitted candidates;
 - a worst-case upper bound: (known falsified + inconclusive + unassessed) / all admitted candidates;
 - a resolved-only false-feasible fraction, explicitly conditional and potentially selection-biased.

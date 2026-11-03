@@ -1,4 +1,4 @@
-# Independent false-feasible audit v0.1
+# Independent false-feasible audit v0.2
 
 ## Purpose
 
@@ -77,17 +77,26 @@ The report binds:
 
 Replay recomputes the frame digest, verifies candidate/output/scope links, checks declared adjudicator separation, recomputes the adjudication manifest and rebuilds the report digest.
 
-## Output and replay
+## Upstream source-scorecard binding (v0.2)
 
-The report binds:
-- exact candidate-frame digest;
-- selection-design digest and source selection receipt;
-- adjudication-manifest digest;
-- counts for confirmed, falsified, inconclusive, unassessed and resolved candidates;
-- lower, upper and resolved-only false-feasible rates;
-- one CSV row per candidate, including explicit unassessed rows.
+The downstream audit requires the exact `PolicyBenchmarkRow` produced by `evaluate_policy_benchmark` and the complete operation-ledger slice for that row's task, replicate and policy. A free-standing, self-consistent candidate list is not sufficient source evidence.
 
-Replay recomputes the frame digest, verifies candidate/output/scope links, checks declared adjudicator separation, recomputes the adjudication manifest and rebuilds the report digest.
+The scorecard row carries crate-private canonical fields:
+- admitted candidate-frame SHA-256;
+- full operation-ledger SHA-256 (successful and failed operations, high- and low-fidelity);
+- an admission-frame receipt digest binding those hashes to the group identity, admitted count and scorecard evidence ceiling.
+
+The falsification evaluator:
+1. checks that the source row's policy, task, replicate and admitted count match the downstream request;
+2. replays the full operation-ledger digest and source admission-frame receipt;
+3. independently rebuilds the admitted-candidate frame from the downstream entries and requires an exact digest match;
+4. retains source task, replicate, frame, ledger, operation count and receipt digests in the audit report and canonical report digest.
+
+The independent Python oracle receives three separate inputs: the audit CSV, the upstream scorecard CSV and the complete source operation-ledger CSV. It independently recomputes the admitted-frame digest, operation-ledger digest and source admission-frame receipt before verifying the false-feasible bounds and final report digest.
+
+This detects candidate omission and same-count candidate substitution relative to the exact upstream scorecard row, and detects operation-ledger deletion, addition or mutation relative to the source receipt. It does **not** authenticate the original ledger's storage, solver output, admission verifier executable, adjudicator identity or verifier independence. The scorecard and input ledger remain caller-supplied source records; stronger authenticity requires a separately trusted signing/attestation and storage policy.
+
+The schema is `aero-policy-feasibility-audit/0.2.0`; v0.1 reports do not satisfy the source-binding contract.
 
 ## What the metric means — and does not mean
 

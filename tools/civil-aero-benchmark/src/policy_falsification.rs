@@ -13,10 +13,16 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::budget::{LEDGER_INPUT_HEADER, LedgerOperation};
+use crate::policy_benchmark::{
+    CandidateAdmissionStatus, CandidateObservation, PolicyBenchmarkRow, PolicyBenchmarkTask,
+    evaluate_policy_benchmark,
+};
 use crate::integrity::sha256_hex;
+use crate::policy_benchmark::{PolicyBenchmarkRow, verify_policy_benchmark_source_receipt};
 
-pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.1.0";
-pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_admitted_candidate_frame_with_separate_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
+pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.2.0";
+pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_upstream_scorecard_candidate_frame_and_complete_operation_ledger_receipt_replayed_with_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeasibilityAdjudicationMethod {
@@ -203,19 +209,17 @@ impl AdjudicationSelectionDesign {
     }
 }
 
-pub struct PolicyFeasibilityAuditRequest<'a> {
-    pub policy_id: &'a str,
-    pub frame_id: &'a str,
-    pub design: &'a AdjudicationSelectionDesign,
-    pub admitted_candidates: &'a [AdmittedCandidateFrameEntry],
-    pub adjudications: &'a [IndependentFeasibilityAdjudication],
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct PolicyFeasibilityAuditReport {
     pub schema: String,
     pub frame_id: String,
     pub policy_id: String,
+    pub source_task_id: String,
+    pub source_replicate_id: String,
+    pub source_candidate_frame_sha256: String,
+    pub source_operation_ledger_sha256: String,
+    pub source_operation_count: usize,
+    pub source_admission_frame_receipt_sha256: String,
     pub selection_design: String,
     pub selection_design_sha256: String,
     pub selection_plan_sha256: Option<String>,
@@ -249,6 +253,10 @@ pub struct PolicyFeasibilityAuditInputs<'a> {
     pub design: &'a AdjudicationSelectionDesign,
     pub admitted_candidates: &'a [AdmittedCandidateFrameEntry],
     pub adjudications: &'a [IndependentFeasibilityAdjudication],
+    /// Exact upstream scorecard row returned by evaluate_policy_benchmark.
+    pub source_scorecard_row: &'a PolicyBenchmarkRow,
+    /// Complete policy/task/replicate operation slice used to create that scorecard row.
+    pub source_operation_ledger: &'a [LedgerOperation],
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -292,6 +300,34 @@ fn candidate_frame_bytes(
             candidate.task_id.as_str(),
             candidate.replicate_id.as_str(),
             candidate.policy_id.as_str(),
+            candidate.operation_id.as_str(),
+            candidate.output_sha256.as_str(),
+            candidate.admission_receipt_sha256.as_str(),
+            candidate.admission_verifier_id.as_str(),
+            candidate.admission_verifier_sha256.as_str(),
+            candidate.scope_sha256.as_str(),
+        ] {
+            append_string(&mut bytes, value);
+        }
+    }
+    bytes
+}
+
+fn source_admitted_candidate_frame_bytes(
+    task_id: &str,
+    replicate_id: &str,
+    policy_id: &str,
+    candidates: &BTreeMap<String, &AdmittedCandidateFrameEntry>,
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    append_string(&mut bytes, "aero-policy-admitted-candidate-frame/0.1.0");
+    append_string(&mut bytes, task_id);
+    append_string(&mut bytes, replicate_id);
+    append_string(&mut bytes, policy_id);
+    append_u64(&mut bytes, candidates.len() as u64);
+    for (candidate_id, candidate) in candidates {
+        for value in [
+            candidate_id.as_str(),
             candidate.operation_id.as_str(),
             candidate.output_sha256.as_str(),
             candidate.admission_receipt_sha256.as_str(),
@@ -380,10 +416,17 @@ fn adjudication_manifest_bytes(
 
 fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
     let mut bytes = Vec::new();
+    let source_operation_count = report.source_operation_count.to_string();
     for value in [
         report.schema.as_str(),
         report.frame_id.as_str(),
         report.policy_id.as_str(),
+        report.source_task_id.as_str(),
+        report.source_replicate_id.as_str(),
+        report.source_candidate_frame_sha256.as_str(),
+        report.source_operation_ledger_sha256.as_str(),
+        source_operation_count.as_str(),
+        report.source_admission_frame_receipt_sha256.as_str(),
         report.selection_design.as_str(),
         report.selection_design_sha256.as_str(),
         report.selection_plan_sha256.as_deref().unwrap_or(""),
@@ -443,9 +486,31 @@ pub fn evaluate_policy_feasibility_audit(
     }
     inputs.design.validate()?;
 
+    let source_row = inputs.source_scorecard_row;
+    if source_row.policy_id != inputs.policy_id
+        || source_row.replicate_id.trim().is_empty()
+        || source_row.task_id.trim().is_empty()
+        || source_row.admitted_candidates != inputs.admitted_candidates.len()
+    {
+        return Err(
+            "source policy benchmark row does not match the complete downstream candidate frame"
+                .to_owned(),
+        );
+    }
+    verify_policy_benchmark_source_receipt(source_row, inputs.source_operation_ledger)?;
+
     let mut candidate_map = BTreeMap::<String, &AdmittedCandidateFrameEntry>::new();
     let mut operations = BTreeSet::<(String, String, String, String)>::new();
     for candidate in inputs.admitted_candidates {
+        if candidate.task_id != source_row.task_id
+            || candidate.replicate_id != source_row.replicate_id
+            || candidate.policy_id != source_row.policy_id
+        {
+            return Err(format!(
+                "candidate {} does not belong to the exact source scorecard row",
+                candidate.candidate_id
+            ));
+        }
         if candidate.policy_id != inputs.policy_id {
             return Err(format!(
                 "candidate {} belongs to policy {}, not {}",
@@ -507,6 +572,18 @@ pub fn evaluate_policy_feasibility_audit(
         }
     }
 
+    let source_candidate_frame_sha256 = sha256_hex(&source_admitted_candidate_frame_bytes(
+        &source_row.task_id,
+        &source_row.replicate_id,
+        &source_row.policy_id,
+        &candidate_map,
+    ))?;
+    if source_candidate_frame_sha256 != source_row.admitted_candidate_frame_sha256 {
+        return Err(
+            "downstream admitted-candidate frame differs from the upstream policy scorecard"
+                .to_owned(),
+        );
+    }
     let candidate_frame_sha256 = sha256_hex(&candidate_frame_bytes(
         inputs.policy_id,
         inputs.frame_id,
@@ -665,6 +742,12 @@ pub fn evaluate_policy_feasibility_audit(
         schema: POLICY_FEASIBILITY_AUDIT_SCHEMA.to_owned(),
         frame_id: inputs.frame_id.to_owned(),
         policy_id: inputs.policy_id.to_owned(),
+        source_task_id: source_row.task_id.clone(),
+        source_replicate_id: source_row.replicate_id.clone(),
+        source_candidate_frame_sha256,
+        source_operation_ledger_sha256: source_row.operation_ledger_sha256.clone(),
+        source_operation_count: source_row.operation_count,
+        source_admission_frame_receipt_sha256: source_row.admission_frame_receipt_sha256.clone(),
         selection_design: inputs.design.as_str().to_owned(),
         selection_design_sha256: sha256_hex(&selection_design_bytes(inputs.design))?,
         selection_plan_sha256: inputs.design.selection_references().0.map(str::to_owned),
@@ -732,12 +815,18 @@ fn append_csv_row(output: &mut String, values: &[String]) {
 }
 
 pub fn report_to_csv(report: &PolicyFeasibilityAuditReport) -> String {
-    let header = "schema,frame_id,policy_id,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
+    let header = "schema,frame_id,policy_id,source_task_id,source_replicate_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_operation_count,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
     let mut output = format!("{header}\n");
     let summary = vec![
         report.schema.clone(),
         report.frame_id.clone(),
         report.policy_id.clone(),
+        report.source_task_id.clone(),
+        report.source_replicate_id.clone(),
+        report.source_candidate_frame_sha256.clone(),
+        report.source_operation_ledger_sha256.clone(),
+        report.source_operation_count.to_string(),
+        report.source_admission_frame_receipt_sha256.clone(),
         report.selection_design.clone(),
         report.selection_design_sha256.clone(),
         report.selection_plan_sha256.clone().unwrap_or_default(),
@@ -802,6 +891,184 @@ mod tests {
 
     fn digest(byte: char) -> String {
         std::iter::repeat_n(byte, 64).collect()
+    }
+
+    fn source_operation(
+        task: &str,
+        replicate: &str,
+        policy: &str,
+        operation: &str,
+        kind: &str,
+        output: char,
+        success: bool,
+    ) -> LedgerOperation {
+        LedgerOperation {
+            task_id: task.to_owned(),
+            replicate_id: replicate.to_owned(),
+            policy_id: policy.to_owned(),
+            operation_id: operation.to_owned(),
+            operation_kind: kind.to_owned(),
+            fidelity: if kind == "high_fidelity" { "high" } else { "low" }.to_owned(),
+            aerodynamic_condition_calls_attempted: if matches!(kind, "high_fidelity" | "low_fidelity") {
+                1
+            } else {
+                0
+            },
+            aerodynamic_condition_calls_succeeded: if matches!(
+                kind,
+                "high_fidelity" | "low_fidelity"
+            ) && success
+            {
+                1
+            } else {
+                0
+            },
+            cost_units: 1.0,
+            budget_cap_units: 100.0,
+            wall_seconds: 2.0,
+            cpu_seconds: 1.0,
+            success,
+            output_sha256: if success { digest(output) } else { "-".to_owned() },
+            reason_code: if success { "-".to_owned() } else { "synthetic_solver_failure".to_owned() },
+        }
+    }
+
+    fn source_observation(candidate: &AdmittedCandidateFrameEntry) -> CandidateObservation {
+        CandidateObservation {
+            task_id: candidate.task_id.clone(),
+            replicate_id: candidate.replicate_id.clone(),
+            policy_id: candidate.policy_id.clone(),
+            operation_id: candidate.operation_id.clone(),
+            candidate_id: candidate.candidate_id.clone(),
+            output_sha256: candidate.output_sha256.clone(),
+            admission_status: CandidateAdmissionStatus::Admitted,
+            admission_receipt_sha256: candidate.admission_receipt_sha256.clone(),
+            scope_sha256: Some(candidate.scope_sha256.clone()),
+            admission_verifier_id: Some(candidate.admission_verifier_id.clone()),
+            admission_verifier_sha256: Some(candidate.admission_verifier_sha256.clone()),
+            feasible: Some(true),
+            objective_1: Some(0.02),
+            objective_2: Some(500.0),
+        }
+    }
+
+    fn operation_ledger_csv(operations: &[LedgerOperation]) -> String {
+        let mut output = format!("{LEDGER_INPUT_HEADER}\\n");
+        for operation in operations {
+            output.push_str(&format!(
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\\n",
+                operation.task_id,
+                operation.replicate_id,
+                operation.policy_id,
+                operation.operation_id,
+                operation.operation_kind,
+                operation.fidelity,
+                operation.aerodynamic_condition_calls_attempted,
+                operation.aerodynamic_condition_calls_succeeded,
+                operation.cost_units,
+                operation.budget_cap_units,
+                operation.wall_seconds,
+                operation.cpu_seconds,
+                operation.success,
+                operation.output_sha256,
+                operation.reason_code
+            ));
+        }
+        output
+    }
+
+    fn source_scorecard_for_frame(
+        frame_candidates: &[AdmittedCandidateFrameEntry],
+    ) -> (PolicyBenchmarkRow, Vec<LedgerOperation>, String, String) {
+        let task_id = "airfoil-family-a";
+        let target_replicate = "seed-1";
+        let target_policy = "symtropy-voi";
+        let task = PolicyBenchmarkTask {
+            task_id: task_id.to_owned(),
+            objective_1_name: "drag_coefficient".to_owned(),
+            objective_2_name: "mission_energy_wh".to_owned(),
+            ideal_point_1: 0.0,
+            ideal_point_2: 0.0,
+            reference_point_1: 0.1,
+            reference_point_2: 1000.0,
+        };
+        let mut operations = Vec::new();
+        let mut observations = Vec::new();
+        for replicate in ["seed-1", "seed-2"] {
+            for policy in ["symtropy-voi", "baseline"] {
+                let is_source_group = replicate == target_replicate && policy == target_policy;
+                if is_source_group && !frame_candidates.is_empty() {
+                    for candidate in frame_candidates {
+                        let output = candidate.output_sha256.as_bytes()[0] as char;
+                        operations.push(source_operation(
+                            task_id, replicate, policy, &candidate.operation_id,
+                            "high_fidelity", output, true,
+                        ));
+                        observations.push(source_observation(candidate));
+                    }
+                } else {
+                    let output = if is_source_group { '9' } else if policy == "baseline" { '8' } else { '7' };
+                    let operation_id = format!("synthetic-{replicate}-{policy}");
+                    operations.push(source_operation(
+                        task_id, replicate, policy, &operation_id,
+                        "high_fidelity", output, true,
+                    ));
+                    if is_source_group {
+                        observations.push(CandidateObservation {
+                            task_id: task_id.to_owned(),
+                            replicate_id: replicate.to_owned(),
+                            policy_id: policy.to_owned(),
+                            operation_id,
+                            candidate_id: "synthetic-not-admitted".to_owned(),
+                            output_sha256: digest(output),
+                            admission_status: CandidateAdmissionStatus::NotAdmitted,
+                            admission_receipt_sha256: "-".to_owned(),
+                            scope_sha256: None,
+                            admission_verifier_id: None,
+                            admission_verifier_sha256: None,
+                            feasible: None,
+                            objective_1: None,
+                            objective_2: None,
+                        });
+                    } else {
+                        let synthetic = AdmittedCandidateFrameEntry {
+                            task_id: task_id.to_owned(),
+                            replicate_id: replicate.to_owned(),
+                            policy_id: policy.to_owned(),
+                            candidate_id: format!("synthetic-{replicate}-{policy}"),
+                            operation_id,
+                            output_sha256: digest(output),
+                            admission_receipt_sha256: digest('a'),
+                            admission_verifier_id: "admission-verifier-v1".to_owned(),
+                            admission_verifier_sha256: digest('b'),
+                            scope_sha256: digest('c'),
+                        };
+                        observations.push(source_observation(&synthetic));
+                    }
+                }
+                operations.push(source_operation(
+                    task_id, replicate, policy, &format!("low-{replicate}-{policy}"),
+                    "low_fidelity", if policy == "baseline" { '5' } else { '4' }, true,
+                ));
+                operations.push(source_operation(
+                    task_id, replicate, policy, &format!("failed-{replicate}-{policy}"),
+                    "high_fidelity", '0', false,
+                ));
+            }
+        }
+        let report = evaluate_policy_benchmark(&[task], &operations, &observations)
+            .expect("synthetic source policy scorecard");
+        let row = report.rows.iter().find(|row| {
+            row.task_id == task_id
+                && row.replicate_id == target_replicate
+                && row.policy_id == target_policy
+        }).expect("target scorecard row").clone();
+        (
+            row,
+            operations.clone(),
+            crate::policy_benchmark::report_to_csv(&report),
+            operation_ledger_csv(&operations),
+        )
     }
 
     fn candidate(
@@ -888,14 +1155,74 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256,
         };
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            source_scorecard_csv,
+            source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("full census audit");
+
+        // A self-consistent downstream digest is not enough: omission, same-count substitution
+        // and ledger mutation must still be caught against the source scorecard receipt.
+        let omitted_candidates = candidates[..2].to_vec();
+        let omitted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &omitted_candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_request)
+                .expect_err("omitted admitted candidate must be rejected")
+                .contains("source policy benchmark row does not match")
+        );
+
+        let mut substituted_candidates = candidates.clone();
+        substituted_candidates[1].output_sha256 = digest('9');
+        let substituted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted_candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&substituted_request)
+                .expect_err("same-count substituted output must be rejected")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut altered_ledger = source_operation_ledger.clone();
+        altered_ledger[0].cost_units += 0.25;
+        let altered_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &altered_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&altered_ledger_request)
+                .expect_err("tampered source operation ledger must be rejected")
+                .contains("source operation ledger digest differs")
+        );
         assert_eq!(report.admitted_candidate_count, 3);
         assert_eq!(report.adjudicated_candidate_count, 3);
         assert_eq!(report.confirmed_feasible_count, 1);
@@ -944,16 +1271,32 @@ mod tests {
                 "policy-feasibility-oracle-{}-{nonce}.csv",
                 std::process::id()
             ));
+            let scorecard_path = std::env::temp_dir().join(format!(
+                "policy-scorecard-oracle-{}-{nonce}.csv",
+                std::process::id()
+            ));
+            let ledger_path = std::env::temp_dir().join(format!(
+                "policy-ledger-oracle-{}-{nonce}.csv",
+                std::process::id()
+            ));
             std::fs::write(&csv_path, &csv).expect("write audit CSV for independent oracle");
+            std::fs::write(&scorecard_path, &source_scorecard_csv)
+                .expect("write upstream policy scorecard");
+            std::fs::write(&ledger_path, &source_operation_ledger_csv)
+                .expect("write complete source operation ledger");
             let oracle = std::process::Command::new("python3")
                 .arg(concat!(
                     env!("CARGO_MANIFEST_DIR"),
                     "/scripts/verify-policy-feasibility-independent.py"
                 ))
                 .arg(&csv_path)
+                .arg(&scorecard_path)
+                .arg(&ledger_path)
                 .output()
                 .expect("run independent policy-feasibility oracle");
             let _ = std::fs::remove_file(&csv_path);
+            let _ = std::fs::remove_file(&scorecard_path);
+            let _ = std::fs::remove_file(&ledger_path);
             assert!(
                 oracle.status.success(),
                 "independent policy oracle failed: {}",
@@ -965,6 +1308,108 @@ mod tests {
             );
         }
         verify_policy_feasibility_audit(&request, &report).expect("audit replay");
+    }
+
+    #[test]
+    fn source_scorecard_receipt_rejects_omission_substitution_and_ledger_tampering() {
+        let candidates = vec![
+            candidate("c1", "op1", '1', 'a'),
+            candidate("c2", "op2", '2', 'b'),
+        ];
+        let frame = "campaign-2026-source-frame-negative-controls";
+        let design = AdjudicationSelectionDesign::FullCensus {
+            sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
+        };
+        let (source_scorecard_row, source_operation_ledger, _, _) =
+            source_scorecard_for_frame(&candidates);
+
+        let omitted = vec![candidates[0].clone()];
+        let omitted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &omitted,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_request)
+                .expect_err("omitting one admitted candidate must fail")
+                .contains("source policy benchmark row does not match")
+        );
+
+        let mut substituted = candidates.clone();
+        substituted[1].output_sha256 = digest('9');
+        let substituted_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&substituted_request)
+                .expect_err("same-count candidate substitution must fail")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut substituted_scope = candidates.clone();
+        substituted_scope[0].scope_sha256 = digest('9');
+        let scope_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &substituted_scope,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&scope_request)
+                .expect_err("same-count scope substitution must fail")
+                .contains("differs from the upstream policy scorecard")
+        );
+
+        let mut altered_ledger = source_operation_ledger.clone();
+        altered_ledger[0].cost_units += 0.25;
+        let altered_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &altered_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&altered_ledger_request)
+                .expect_err("mutating one source operation must fail")
+                .contains("source operation ledger digest differs")
+        );
+
+        let mut omitted_ledger = source_operation_ledger.clone();
+        let low_fidelity_index = omitted_ledger
+            .iter()
+            .position(|operation| operation.operation_id == "low-seed-1-symtropy-voi")
+            .expect("source group low-fidelity operation");
+        omitted_ledger.remove(low_fidelity_index);
+        let omitted_ledger_request = PolicyFeasibilityAuditInputs {
+            policy_id: "symtropy-voi",
+            frame_id: frame,
+            design: &design,
+            admitted_candidates: &candidates,
+            adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &omitted_ledger,
+        };
+        assert!(
+            evaluate_policy_feasibility_audit(&omitted_ledger_request)
+                .expect_err("omitting a low/failed source operation must fail")
+                .contains("source operation ledger count differs")
+        );
     }
 
     #[test]
@@ -996,12 +1441,20 @@ mod tests {
             selection_plan_sha256: digest('7'),
             selection_receipt_sha256: digest('8'),
         };
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("sampled audit");
         assert_eq!(report.adjudicated_candidate_count, 2);
@@ -1033,12 +1486,20 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1064,12 +1525,20 @@ mod tests {
         );
         wrong_scope.scope_sha256 = digest('9');
         let wrong_scope_adjudications = [wrong_scope.clone()];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &wrong_scope_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1080,12 +1549,20 @@ mod tests {
         wrong_scope.scope_sha256 = candidates[0].scope_sha256.clone();
         wrong_scope.output_sha256 = digest('0');
         let wrong_output_adjudications = [wrong_scope.clone()];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &wrong_output_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1100,12 +1577,20 @@ mod tests {
             'e',
         );
         let same_verifier_adjudications = [same_verifier];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &same_verifier_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1129,12 +1614,20 @@ mod tests {
             "independent-verifier",
             'e',
         )];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1150,12 +1643,20 @@ mod tests {
             selection_receipt_sha256: digest('8'),
         };
         let shared_receipt_adjudications = [shared_receipt];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &correct_design,
             admitted_candidates: &candidates,
             adjudications: &shared_receipt_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1165,12 +1666,20 @@ mod tests {
 
         let duplicate = adjudications[0].clone();
         let duplicate_adjudications = [adjudications[0].clone(), duplicate];
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &correct_design,
             admitted_candidates: &candidates,
             adjudications: &duplicate_adjudications,
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         assert!(
             evaluate_policy_feasibility_audit(&request)
@@ -1186,12 +1695,20 @@ mod tests {
         let design = AdjudicationSelectionDesign::FullCensus {
             sampling_frame_sha256: frame_digest("symtropy-voi", frame, &candidates),
         };
+        let (
+            source_scorecard_row,
+            source_operation_ledger,
+            _source_scorecard_csv,
+            _source_operation_ledger_csv,
+        ) = source_scorecard_for_frame(&candidates);
         let request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
             design: &design,
             admitted_candidates: &candidates,
             adjudications: &[],
+            source_scorecard_row: &source_scorecard_row,
+            source_operation_ledger: &source_operation_ledger,
         };
         let report = evaluate_policy_feasibility_audit(&request).expect("empty frame is defined");
         assert_eq!(report.false_feasible_rate_lower_bound, None);
