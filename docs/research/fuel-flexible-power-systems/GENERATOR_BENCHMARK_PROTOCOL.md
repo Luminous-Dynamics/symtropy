@@ -286,6 +286,22 @@ Published reference metrics:
 
 Proposed internal stretch goals are <8% H100 power-model MAPE on matched held-out data and ≥30% sustained reduction for 3 h under the same workload/SLA envelope, without increased energy per completed work or rebound peak. The published reference values are study-bound and are not guaranteed industry-wide thresholds.
 
+### 5.9 AI workload trace and meter-hierarchy contract
+
+Use:
+- [AI_DATA_CENTER_WORKLOAD_TRACE_SCHEMA_2026-11-03.json](data/AI_DATA_CENTER_WORKLOAD_TRACE_SCHEMA_2026-11-03.json)
+- [AI_DATA_CENTER_WORKLOAD_TRACE_FIXTURES_2026-11-03.json](data/AI_DATA_CENTER_WORKLOAD_TRACE_FIXTURES_2026-11-03.json)
+
+The schema binds timestamp/timebase, site, workload/SLA, measurement point and parent meter, power sample, calibration ID and evidence ID. This prevents a common power-accounting error: adding nested node/UPS readings to a facility-PCC total that already includes them.
+
+For cross-site correlation, require:
+1. declared PTP/NTP synchronization;
+2. measured clock alignment error no greater than the predeclared tolerance;
+3. sufficient exact common sample timestamps across the selected site meters;
+4. frozen meter-boundary selection and no nested ancestor/descendant pair in one sum.
+
+Three synthetic fixtures cover a valid aligned fleet trace, a nested PCC+UPS double-count rejection and a clock-alignment rejection. The Rust validator in PR #3436 implements these guards and has 11 unit tests. A data-contract PASS is not proof of physical meter accuracy or of empirical cross-site dependence.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
