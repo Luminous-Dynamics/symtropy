@@ -127,7 +127,7 @@
           "measurement_point_id": "A-PCC",
           "power_w": 1500000,
           "power_uncertainty_w": 7500,
-          "evidence_id": "SYNTH-PCC-A-0"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 20000000,
@@ -135,7 +135,7 @@
           "measurement_point_id": "A-PCC",
           "power_w": 1510000,
           "power_uncertainty_w": 7550,
-          "evidence_id": "SYNTH-PCC-A-1"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 40000000,
@@ -143,7 +143,7 @@
           "measurement_point_id": "A-PCC",
           "power_w": 1495000,
           "power_uncertainty_w": 7475,
-          "evidence_id": "SYNTH-PCC-A-2"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 0,
@@ -159,7 +159,7 @@
           "memory_utilization_fraction": 0.88,
           "queue_depth": 4,
           "completed_work_delta": 128,
-          "evidence_id": "SYNTH-NODE-A-0"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 20000000,
@@ -175,7 +175,7 @@
           "memory_utilization_fraction": 0.89,
           "queue_depth": 4,
           "completed_work_delta": 128,
-          "evidence_id": "SYNTH-NODE-A-1"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 40000000,
@@ -191,7 +191,7 @@
           "memory_utilization_fraction": 0.87,
           "queue_depth": 3,
           "completed_work_delta": 128,
-          "evidence_id": "SYNTH-NODE-A-2"
+          "evidence_id": "SYNTH-METER-A"
         },
         {
           "elapsed_ns": 0,
@@ -199,7 +199,7 @@
           "measurement_point_id": "B-PCC",
           "power_w": 2200000,
           "power_uncertainty_w": 11000,
-          "evidence_id": "SYNTH-PCC-B-0"
+          "evidence_id": "SYNTH-METER-B"
         },
         {
           "elapsed_ns": 20000000,
@@ -207,7 +207,7 @@
           "measurement_point_id": "B-PCC",
           "power_w": 2190000,
           "power_uncertainty_w": 10950,
-          "evidence_id": "SYNTH-PCC-B-1"
+          "evidence_id": "SYNTH-METER-B"
         },
         {
           "elapsed_ns": 40000000,
@@ -215,7 +215,7 @@
           "measurement_point_id": "B-PCC",
           "power_w": 2210000,
           "power_uncertainty_w": 11050,
-          "evidence_id": "SYNTH-PCC-B-2"
+          "evidence_id": "SYNTH-METER-B"
         },
         {
           "elapsed_ns": 0,
@@ -231,7 +231,7 @@
           "memory_utilization_fraction": 0.76,
           "queue_depth": 0,
           "completed_work_delta": 512,
-          "evidence_id": "SYNTH-NODE-B-0"
+          "evidence_id": "SYNTH-METER-B"
         },
         {
           "elapsed_ns": 20000000,
@@ -247,7 +247,7 @@
           "memory_utilization_fraction": 0.78,
           "queue_depth": 0,
           "completed_work_delta": 512,
-          "evidence_id": "SYNTH-NODE-B-1"
+          "evidence_id": "SYNTH-METER-B"
         },
         {
           "elapsed_ns": 40000000,
@@ -263,7 +263,7 @@
           "memory_utilization_fraction": 0.77,
           "queue_depth": 0,
           "completed_work_delta": 512,
-          "evidence_id": "SYNTH-NODE-B-2"
+          "evidence_id": "SYNTH-METER-B"
         }
       ],
       "control_events": [
@@ -408,7 +408,7 @@
           "measurement_point_id": "C-PCC",
           "power_w": 1000000,
           "power_uncertainty_w": 5000,
-          "evidence_id": "SYNTH-C-PCC-0"
+          "evidence_id": "SYNTH-METER-C"
         },
         {
           "elapsed_ns": 0,
@@ -416,7 +416,7 @@
           "measurement_point_id": "C-UPS",
           "power_w": 800000,
           "power_uncertainty_w": 8000,
-          "evidence_id": "SYNTH-C-UPS-0"
+          "evidence_id": "SYNTH-METER-C"
         }
       ],
       "control_events": [],
@@ -514,7 +514,7 @@
           "measurement_point_id": "D-PCC",
           "power_w": 900000,
           "power_uncertainty_w": 4500,
-          "evidence_id": "SYNTH-D-0"
+          "evidence_id": "SYNTH-METER-D"
         },
         {
           "elapsed_ns": 0,
@@ -522,7 +522,7 @@
           "measurement_point_id": "E-PCC",
           "power_w": 1100000,
           "power_uncertainty_w": 5500,
-          "evidence_id": "SYNTH-E-0"
+          "evidence_id": "SYNTH-METER-E"
         }
       ],
       "control_events": [],
