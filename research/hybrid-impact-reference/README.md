@@ -192,3 +192,37 @@ cryptographic digest over those bytes separately.
 
 This is the first receipt/coverage slice for PHYS-HYBRID-PROJECTION-001. It
 does not yet implement a parser or the actual point-impact model lowering.
+
+
+## One-dimensional Coulomb stick/slip branch oracle
+
+The `frictional_contact` module is an algebraic reference for a point mass on
+a horizontal plane under a tangential force. It implements the static-cone
+criterion and positive/negative kinetic branches without time stepping.
+
+At an exact static threshold, both the static response and incipient kinetic
+slip response are retained:
+- If `mu_static == mu_kinetic`, acceleration is continuous but kinked; the
+  module returns both one-sided derivatives, 0 on the stick side and 1/m on
+  the slip side.
+- If `mu_static > mu_kinetic`, acceleration jumps at slip onset. The module
+  reports the signed jump and deliberately supplies no finite single
+  derivative. It never averages the stick and slip branch derivatives.
+
+A caller-supplied absolute force tolerance is bound into deterministic model
+identity bytes. If a floating-point force lies within that band but is not
+exactly at the mathematical boundary, the result is `NearBoundary` and the
+oracle abstains instead of promoting the input to exact equality.
+
+The fixture distinguishes:
+- strict interior stick;
+- positive and negative overload/sliding;
+- exact positive/negative threshold;
+- continuous-kink versus discontinuous branch switching;
+- frictionless zero-coefficient limit;
+- unresolved near-boundary inputs and invalid parameters.
+
+This is a branch-local algebraic oracle, not a Coulomb differential inclusion
+solver, multi-contact solver, or physical validation result. It contributes
+the frictional contact benchmark lane in PHYS-DIFF-CONTACT-GRAD-001 #3425 and
+the stick/slip boundary work tracked by PHYS-FRICTION-BRANCH-001 #3436.
