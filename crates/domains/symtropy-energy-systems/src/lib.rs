@@ -19,6 +19,7 @@ mod duty_cycle;
 mod fuel;
 mod matched_service;
 mod service_contract;
+mod trace_validation;
 
 pub use batch_duty_cycle::{
     BatchBoundDutyCycle, BatchBoundDutyCycleResult, BatchDutyCycleError,
@@ -43,6 +44,12 @@ pub use service_contract::{
     ServiceDeliveryTolerance, ServiceInterface, ServiceOutputEvidence,
     ServiceOutputEvidenceClass, TypedServiceComparison, TypedServiceComparisonSegment,
     TypedServiceDemandContract, TypedServiceDemandSegment, compare_delivered_service,
+};
+pub use trace_validation::{
+    DataCenterPowerTrace, PowerAggregationSelection, PowerMeasurementBoundary,
+    PowerMeasurementPoint, PowerMeasurementRole, PowerSignConvention, PowerTraceError,
+    PowerTraceSample, PowerTraceValidationReport, TraceClockType, TraceSite, TraceTimebase,
+    TraceWorkloadSession,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
