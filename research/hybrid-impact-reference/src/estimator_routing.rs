@@ -79,6 +79,8 @@ pub enum ContactRegime {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GradientEstimatorCandidate {
     pub estimator_id: String,
+    /// Exact estimator implementation/build identity.
+    pub estimator_implementation_digest: String,
     pub kind: EstimatorKind,
     /// Objective/estimand identity. Mixing objectives is invalid even if the
     /// gradient coordinates happen to look compatible.
@@ -119,6 +121,9 @@ pub struct EstimatorRouterConfig {
 pub struct EstimatorRoutingContext {
     pub objective_digest: String,
     pub normalization_digest: String,
+    /// Independent evidence identifying the contact-regime / branch classifier
+    /// result consumed by this routing decision.
+    pub regime_evidence_digest: String,
     pub coordinate_ids: Vec<String>,
     pub regime: ContactRegime,
 }
@@ -126,6 +131,7 @@ pub struct EstimatorRoutingContext {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SelectedEstimator {
     pub estimator_id: String,
+    pub estimator_implementation_digest: String,
     pub kind: EstimatorKind,
     pub objective_digest: String,
     pub normalization_digest: String,
@@ -139,6 +145,7 @@ pub struct SelectedEstimator {
     pub validity_region_digest: Option<String>,
     /// Regime evidence that governed admission of the selected estimator.
     pub regime: ContactRegime,
+    pub regime_evidence_digest: String,
     /// Exact router thresholds and admissibility switches used for this decision.
     pub routing_configuration: EstimatorRouterConfig,
     pub variance_evidence_digest: String,
@@ -157,16 +164,18 @@ impl SelectedEstimator {
         let mut output = Vec::new();
         push_string(&mut output, GRADIENT_ROUTING_SCHEMA);
         push_string(&mut output, &self.estimator_id);
+        push_string(&mut output, &self.estimator_implementation_digest);
         push_string(&mut output, self.kind.tag());
         push_string(&mut output, &self.objective_digest);
         push_string(&mut output, &self.normalization_digest);
+        push_string(&mut output, &self.regime_evidence_digest);
 
+        encode_f64_vector(&mut output, &self.gradient);
+        encode_f64_vector(&mut output, &self.variance);
+        encode_f64_vector(&mut output, &self.absolute_bias_bound);
         push_len(&mut output, self.coordinate_ids.len());
-        for (index, coordinate_id) in self.coordinate_ids.iter().enumerate() {
+        for coordinate_id in &self.coordinate_ids {
             push_string(&mut output, coordinate_id);
-            push_f64(&mut output, self.gradient[index]);
-            push_f64(&mut output, self.variance[index]);
-            push_f64(&mut output, self.absolute_bias_bound[index]);
         }
 
         push_optional_string(&mut output, self.branch_id.as_deref());
@@ -210,6 +219,8 @@ pub enum EstimatorRoutingError {
     InvalidConfiguration,
     InvalidObjectiveDigest,
     InvalidEstimatorIdentity,
+    InvalidEstimatorImplementationDigest,
+    InvalidRegimeEvidenceDigest,
     InvalidBranchIdentity,
     InvalidCoordinateRoster,
     InvalidCandidateShape,
@@ -257,6 +268,9 @@ impl GradientEstimatorCandidate {
         }
         if !is_lower_hex_digest(&self.objective_digest) {
             return Err(EstimatorRoutingError::InvalidObjectiveDigest);
+        }
+        if !is_lower_hex_digest(&self.estimator_implementation_digest) {
+            return Err(EstimatorRoutingError::InvalidEstimatorImplementationDigest);
         }
         if self.objective_digest != context.objective_digest {
             return Err(EstimatorRoutingError::MixedObjective);
@@ -451,6 +465,13 @@ fn push_optional_string(output: &mut Vec<u8>, value: Option<&str>) {
     }
 }
 
+fn encode_f64_vector(output: &mut Vec<u8>, values: &[f64]) {
+    push_len(output, values.len());
+    for value in values {
+        push_f64(output, *value);
+    }
+}
+
 fn push_f64(output: &mut Vec<u8>, value: f64) {
     let bits = if value == 0.0 {
         0.0_f64.to_bits()
@@ -547,6 +568,7 @@ pub fn route_gradient_estimator(
 
         let selected = SelectedEstimator {
             estimator_id: candidate.estimator_id.clone(),
+            estimator_implementation_digest: candidate.estimator_implementation_digest.clone(),
             kind: candidate.kind,
             objective_digest: candidate.objective_digest.clone(),
             normalization_digest: candidate.normalization_digest.clone(),
@@ -558,6 +580,7 @@ pub fn route_gradient_estimator(
             branch_evidence_digest: candidate.branch_evidence_digest.clone(),
             validity_region_digest: candidate.validity_region_digest.clone(),
             regime: context.regime.clone(),
+            regime_evidence_digest: context.regime_evidence_digest.clone(),
             routing_configuration: config.clone(),
             variance_evidence_digest: candidate.variance_evidence_digest.clone(),
             bias_bound_evidence_digest: candidate.bias_bound_evidence_digest.clone(),
@@ -669,6 +692,7 @@ mod tests {
         EstimatorRoutingContext {
             objective_digest: digest('a'),
             normalization_digest: digest('f'),
+            regime_evidence_digest: digest('9'),
             coordinate_ids: vec!["joint-1".into(), "joint-2".into()],
             regime,
         }
@@ -688,6 +712,7 @@ mod tests {
     fn candidate(estimator_id: &str, kind: EstimatorKind, bias: f64, variance: f64) -> GradientEstimatorCandidate {
         GradientEstimatorCandidate {
             estimator_id: estimator_id.into(),
+            estimator_implementation_digest: digest('c'),
             kind,
             objective_digest: digest('a'),
             normalization_digest: digest('f'),
@@ -958,6 +983,50 @@ mod tests {
             route_gradient_estimator(&context, &candidates, &config()).unwrap(),
             EstimatorDecision::Abstained(RoutingAbstention::NoAdmissibleEstimator)
         );
+    }
+
+
+    #[test]
+    fn regime_classifier_and_estimator_implementation_are_identity_bound() {
+        let ctx = context(ContactRegime::Nonsmooth {
+            reason: NonsmoothReason::StickSlipTransition,
+        });
+        let mut invalid_context = ctx.clone();
+        invalid_context.regime_evidence_digest = "unbound".into();
+        assert_eq!(
+            route_gradient_estimator(&invalid_context, &[], &config()),
+            Err(EstimatorRoutingError::InvalidRegimeEvidenceDigest)
+        );
+
+        let mut invalid_candidate =
+            candidate("missing-implementation", EstimatorKind::ScoreFunction, 0.0, 1.0e-3);
+        invalid_candidate.estimator_implementation_digest = "unbound".into();
+        assert_eq!(
+            route_gradient_estimator(&ctx, &[invalid_candidate], &config()),
+            Err(EstimatorRoutingError::InvalidEstimatorImplementationDigest)
+        );
+    }
+
+    #[test]
+    fn selected_decision_bytes_bind_regime_evidence_and_estimator_build() {
+        let ctx = context(ContactRegime::SmoothSingleBranch {
+            branch_id: "stick".into(),
+            branch_evidence_digest: digest('b'),
+            validity_region_digest: digest('c'),
+        });
+        let result = route_gradient_estimator(&ctx, &[exact_candidate()], &config()).unwrap();
+        let EstimatorDecision::Selected(selected) = result else {
+            panic!("expected selected estimate");
+        };
+        let original = selected.canonical_bytes();
+
+        let mut altered = selected.clone();
+        altered.regime_evidence_digest = digest('0');
+        assert_ne!(original, altered.canonical_bytes());
+
+        let mut altered = selected.clone();
+        altered.estimator_implementation_digest = digest('0');
+        assert_ne!(original, altered.canonical_bytes());
     }
 
 
