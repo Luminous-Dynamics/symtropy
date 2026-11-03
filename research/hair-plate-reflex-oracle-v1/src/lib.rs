@@ -90,7 +90,7 @@ pub enum SynapseSign {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MovementDirection {
     Anterior,
     Posterior,
@@ -461,12 +461,8 @@ impl HairPlateInventory {
 
 impl HairPlatePrediction {
     pub fn validate(&self) -> Result<(), OracleError> {
-        for (value, label) in [
-            (&self.plate_id, "plate_id"),
-        ] {
-            if !valid_identifier(value) {
-                return Err(OracleError::InvalidIdentifier(label));
-            }
+        if !valid_identifier(&self.plate_id) {
+            return Err(OracleError::InvalidIdentifier("plate_id"));
         }
         for (digest, label) in [
             (&self.model_sha256, "model"),
