@@ -82,7 +82,7 @@ The crate has one direct third-party dependency, `serde_json`, for JSON parsing;
 ## Limitations and claim ceiling
 
 - This crate validates pair/ledger/receipt contracts; it does not execute scenario simulation or calculate hydraulic truth.
- - The JSON Schema and Rust semantic adapter are hand-maintained rather than generated from one source. Keep the fixture/schema/API parity test as a required change gate, and do not assume that parser success substitutes for validating against the pinned JSON Schema.
+- The JSON Schema and Rust semantic adapter are hand-maintained rather than generated from one source. Keep the fixture/schema/API parity test as a required change gate, and do not assume that parser success substitutes for validating against the pinned JSON Schema.
 - Candidate/evaluator process isolation is a deployment responsibility; a Rust type boundary alone is not a security sandbox.
 - Passing unit tests establishes only the declared software invariants.
 - No field data, municipal operational authority, water-quality guarantee or causal service-impact claim is created by this crate.
@@ -114,7 +114,7 @@ The crate parses the pinned CivBench experiment protocol JSON through a typed se
 The adapter checks:
 - supported protocol identity/version and explicit lifecycle status;
 - unique source, stage, estimand and dataset IDs;
-- G/M/I/H factor cardinalities (4/5/4/4);
+- G/M/I intervention semantics, H blocking-stratum semantics, and factor cardinalities (4/5/4/4);
 - the eleven expected benchmark lanes and twelve estimands;
 - all seven outcome evidence statuses, no-zero-fill behavior and evidence-class parity for paired deltas;
 - LeakDB paper-reproduction/full-corpus dataset identities, topology labels, scenario counts and source references;
@@ -122,8 +122,8 @@ The adapter checks:
 - complete-scenario split, train/validation/calibration/sealed-test partitions, train-only model/transform fitting, calibration-only threshold/calibration, evaluator-only test labels and frozen split/archive digests;
 - fail-closed provenance requirements.
 
-A manifest with lifecycle status `design_only_pre_registration_pending` is parsed for inspection but returns `confirmatory_eligible = false`. A `locked_pre_registration` manifest must carry a non-empty registry URI, UTC lock timestamp, valid SHA-256 lock digest and signature. A syntactically valid JSON document cannot promote itself to confirmatory status by changing its status string alone.
+A manifest with lifecycle status `design_only_pre_registration_pending` is parsed for inspection but returns `pre_registration_receipt_shape_valid = false`. A `locked_pre_registration` manifest must carry an HTTPS registry URI, an RFC 3339 UTC timestamp ending in `Z`, a non-zero SHA-256 lock digest and a non-empty signature field. The adapter exposes only whether those fields have a valid syntactic shape; it does **not** authenticate the signature or verify the registry record. A syntactically valid JSON document cannot promote itself to confirmatory status by changing its status string alone.
 
-This is semantic contract validation after JSON Schema validation, not cryptographic signature verification or an immutable registry implementation. The caller must verify the registry signature and lock timestamp before treating the receipt as authoritative.
+This is semantic contract validation after JSON Schema validation, not cryptographic signature verification or an immutable registry implementation. An independent registry verifier must authenticate the signature and immutable lock record before the manifest can be admitted to a confirmatory run.
 
-The adapter adds negative tests for unsupported versions, factor-cardinality drift, threshold fitting on sealed test, unknown source references and a locked status without a receipt.
+The adapter tests unsupported versions, intervention/stratum semantic drift, factor-cardinality drift, threshold fitting on sealed test, unknown source references, invalid UTC lock timestamps, and receipt-shape handling without implying cryptographic verification.
