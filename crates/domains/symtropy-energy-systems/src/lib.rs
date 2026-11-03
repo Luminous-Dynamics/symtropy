@@ -16,6 +16,7 @@ use serde::Serialize;
 mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
+mod flexibility_evaluation;
 mod fuel;
 mod matched_service;
 mod service_contract;
@@ -30,10 +31,15 @@ pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
 };
+pub use flexibility_evaluation::{
+    FlexibilityEventContract, FlexibilityEventIdentity, FlexibilityEventSample,
+    FlexibilityEvaluationError, FlexibilityEvaluationReport, evaluate_flexibility_event,
+};
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
 };
+
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
