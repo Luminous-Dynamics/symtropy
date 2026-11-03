@@ -17,6 +17,8 @@ It complements:
 ## What it computes
 
 - Per-model/per-scenario scorecards; it does not pool easy and hard scenarios.
+- Separate declarations for model family, model evidence tier and evaluation tier.
+- Explicit connectome/source/sensor/effector provenance for connectome claims and a muscle-map digest for muscle-actuated claims.
 - Success rate, mean task score and lower-tail CVaR under a preregistered tail fraction.
 - Progress, pose/joint error, slip, energy and actuator-saturation metrics.
 - Recovery counts with right-censored non-recovery and unobserved recovery kept distinct.
@@ -56,7 +58,7 @@ not a confidence interval or a substitute for reporting the raw score distributi
 
 ## Synthetic tests
 
-The 15 tests cover lower-tail catastrophic failures, recovery censoring and missingness, worst-stratum separation, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics failures, outcome/termination consistency, duplicate trials, evidence-tier checks, protocol mismatch, measured-data requirements and minimum individual counts.
+The 17 tests cover lower-tail catastrophic failures, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics failures, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
