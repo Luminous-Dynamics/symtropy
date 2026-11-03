@@ -768,7 +768,11 @@
           "voltage_limit_v",
           "thermal_maximum_c",
           "measurement_method",
-          "artifact_sha256"
+          "artifact_sha256",
+          "current_peak_limit_a",
+          "voltage_peak_v",
+          "voltage_peak_limit_v",
+          "thermal_limit_c"
         ],
         "properties": {
           "network_id": {
@@ -854,6 +858,33 @@
               "null"
             ],
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "current_peak_limit_a": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "voltage_peak_v": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "voltage_peak_limit_v": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "thermal_limit_c": {
+            "type": [
+              "number",
+              "null"
+            ]
           }
         }
       }
