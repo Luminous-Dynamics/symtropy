@@ -340,7 +340,10 @@ mod tests {
         // Either experiment alone leaves an observationally identical pair.
         for candidate in &experiments {
             let outcomes = observation_outcome_masks(candidate, 0b111);
-            assert!(outcomes.iter().all(|mask| mask_population(*mask) >= 2));
+            assert!(
+                outcomes.iter().any(|mask| mask_population(*mask) > 1),
+                "no single experiment separates all hypotheses"
+            );
         }
 
         let policy = synthesize_policy(3, &experiments, 1, 10_000)
