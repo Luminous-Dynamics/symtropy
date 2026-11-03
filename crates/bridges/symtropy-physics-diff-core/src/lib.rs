@@ -850,8 +850,6 @@ impl std::fmt::Display for ObservationError {
 
 impl std::error::Error for ObservationError {}
 
-
-
 /// Version of the Symtropy-specific differential-run lineage sidecar.
 /// This extends the canonical ObservationTrace contract; it is not a second
 /// observation schema or a generic independence framework.
@@ -1017,43 +1015,78 @@ impl std::fmt::Display for DifferentialLineageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnsupportedSchemaVersion(version) => {
-                write!(f, "unsupported differential lineage schema version {version}")
+                write!(
+                    f,
+                    "unsupported differential lineage schema version {version}"
+                )
             }
             Self::EmptyComparisonId => write!(f, "comparison ID must not be empty"),
             Self::EmptySharedScenarioIdentity => {
                 write!(f, "shared scenario ID and digest must not be empty")
             }
-            Self::InvalidDigest(field) => write!(f, "{field} must be a 64-character SHA-256 hex digest"),
+            Self::InvalidDigest(field) => {
+                write!(f, "{field} must be a 64-character SHA-256 hex digest")
+            }
             Self::PolicyDigestMismatch => write!(f, "differential lineage policy digest mismatch"),
             Self::MissingRequiredLane(kind) => write!(f, "required lane {kind:?} is missing"),
-            Self::UnexpectedLane(kind) => write!(f, "lane {kind:?} is not allowed by the pinned policy"),
+            Self::UnexpectedLane(kind) => {
+                write!(f, "lane {kind:?} is not allowed by the pinned policy")
+            }
             Self::DuplicateLaneId(id) => write!(f, "duplicate lane ID {id:?}"),
-            Self::DuplicateBackendProfile(id) => write!(f, "duplicate backend run profile {id:?}; duplicate runs do not create a second backend lineage"),
+            Self::DuplicateBackendProfile(id) => write!(
+                f,
+                "duplicate backend run profile {id:?}; duplicate runs do not create a second backend lineage"
+            ),
             Self::MissingTrace(id) => write!(f, "observation trace for lane {id:?} is missing"),
             Self::UnexpectedTrace(id) => write!(f, "observation trace {id:?} has no manifest lane"),
             Self::InvalidTrace { lane_id, error } => {
-                write!(f, "observation trace for lane {lane_id:?} is invalid: {error}")
+                write!(
+                    f,
+                    "observation trace for lane {lane_id:?} is invalid: {error}"
+                )
             }
             Self::TraceIdentityMismatch(id) => {
-                write!(f, "trace identity for lane {id:?} differs from its manifest binding")
+                write!(
+                    f,
+                    "trace identity for lane {id:?} differs from its manifest binding"
+                )
             }
             Self::TraceScenarioMismatch(id) => {
-                write!(f, "trace for lane {id:?} does not use the shared scenario subject")
+                write!(
+                    f,
+                    "trace for lane {id:?} does not use the shared scenario subject"
+                )
             }
             Self::EmptyDependencyIdentity { lane_id, kind } => {
-                write!(f, "lane {lane_id:?} has an empty known identity for {kind:?}")
+                write!(
+                    f,
+                    "lane {lane_id:?} has an empty known identity for {kind:?}"
+                )
             }
             Self::MissingDependencyEvidence { lane_id, kind } => {
                 write!(f, "lane {lane_id:?} has no evidence reference for {kind:?}")
             }
             Self::EmptyUnknownReason { lane_id, kind } => {
-                write!(f, "lane {lane_id:?} has an empty unknown/not-applicable reason for {kind:?}")
+                write!(
+                    f,
+                    "lane {lane_id:?} has an empty unknown/not-applicable reason for {kind:?}"
+                )
             }
-            Self::DuplicateDependencyIdentity { lane_id, kind, identity } => {
-                write!(f, "lane {lane_id:?} duplicates {kind:?} identity {identity:?}")
+            Self::DuplicateDependencyIdentity {
+                lane_id,
+                kind,
+                identity,
+            } => {
+                write!(
+                    f,
+                    "lane {lane_id:?} duplicates {kind:?} identity {identity:?}"
+                )
             }
             Self::EmptyRequiredPolicy => {
-                write!(f, "pinned policy requires at least native and external-reference lanes and one mandatory separation kind")
+                write!(
+                    f,
+                    "pinned policy requires at least native and external-reference lanes and one mandatory separation kind"
+                )
             }
         }
     }
@@ -1137,7 +1170,9 @@ pub fn audit_differential_lineage(
         return Err(DifferentialLineageError::EmptySharedScenarioIdentity);
     }
     if !is_sha256_hex(&manifest.shared_scenario_digest) {
-        return Err(DifferentialLineageError::InvalidDigest("shared_scenario_digest"));
+        return Err(DifferentialLineageError::InvalidDigest(
+            "shared_scenario_digest",
+        ));
     }
     if !is_sha256_hex(&policy.digest)
         || !is_sha256_hex(pinned_policy_digest)
@@ -1145,8 +1180,12 @@ pub fn audit_differential_lineage(
     {
         return Err(DifferentialLineageError::PolicyDigestMismatch);
     }
-    if !policy.required_lanes.contains(&DifferentialLaneKind::NativeSolver)
-        || !policy.required_lanes.contains(&DifferentialLaneKind::ExternalReference)
+    if !policy
+        .required_lanes
+        .contains(&DifferentialLaneKind::NativeSolver)
+        || !policy
+            .required_lanes
+            .contains(&DifferentialLaneKind::ExternalReference)
         || policy.mandatory_separation_kinds.is_empty()
     {
         return Err(DifferentialLineageError::EmptyRequiredPolicy);
@@ -1157,10 +1196,14 @@ pub fn audit_differential_lineage(
     let mut backend_profiles = BTreeSet::new();
     for lane in &manifest.lanes {
         if lane.lane_id.trim().is_empty() {
-            return Err(DifferentialLineageError::DuplicateLaneId(lane.lane_id.clone()));
+            return Err(DifferentialLineageError::DuplicateLaneId(
+                lane.lane_id.clone(),
+            ));
         }
         if lanes.insert(lane.lane_id.clone(), lane).is_some() {
-            return Err(DifferentialLineageError::DuplicateLaneId(lane.lane_id.clone()));
+            return Err(DifferentialLineageError::DuplicateLaneId(
+                lane.lane_id.clone(),
+            ));
         }
         lane_kinds.insert(lane.lane_kind);
         let backend_profile = (
@@ -1178,14 +1221,16 @@ pub fn audit_differential_lineage(
             return Err(DifferentialLineageError::UnexpectedLane(lane.lane_kind));
         }
         if !is_sha256_hex(&lane.observation_trace_sha256) {
-            return Err(DifferentialLineageError::InvalidDigest("observation_trace_sha256"));
+            return Err(DifferentialLineageError::InvalidDigest(
+                "observation_trace_sha256",
+            ));
         }
-        lane.run_identity.validate().map_err(|error| {
-            DifferentialLineageError::InvalidTrace {
+        lane.run_identity
+            .validate()
+            .map_err(|error| DifferentialLineageError::InvalidTrace {
                 lane_id: lane.lane_id.clone(),
                 error,
-            }
-        })?;
+            })?;
         if lane.run_identity.scenario_id != manifest.shared_scenario_id
             || lane.run_identity.scenario_digest != manifest.shared_scenario_digest
         {
@@ -1208,7 +1253,9 @@ pub fn audit_differential_lineage(
                         });
                     }
                     if evidence_refs.is_empty()
-                        || evidence_refs.iter().any(|reference| reference.trim().is_empty())
+                        || evidence_refs
+                            .iter()
+                            .any(|reference| reference.trim().is_empty())
                     {
                         return Err(DifferentialLineageError::MissingDependencyEvidence {
                             lane_id: lane.lane_id.clone(),
@@ -1238,7 +1285,9 @@ pub fn audit_differential_lineage(
 
     for required_lane in &policy.required_lanes {
         if !lane_kinds.contains(required_lane) {
-            return Err(DifferentialLineageError::MissingRequiredLane(*required_lane));
+            return Err(DifferentialLineageError::MissingRequiredLane(
+                *required_lane,
+            ));
         }
     }
     if traces.len() != lanes.len() {
@@ -1254,23 +1303,30 @@ pub fn audit_differential_lineage(
         let trace = traces
             .get(lane_id)
             .ok_or_else(|| DifferentialLineageError::MissingTrace(lane_id.clone()))?;
-        trace.validate().map_err(|error| DifferentialLineageError::InvalidTrace {
-            lane_id: lane_id.clone(),
-            error,
-        })?;
+        trace
+            .validate()
+            .map_err(|error| DifferentialLineageError::InvalidTrace {
+                lane_id: lane_id.clone(),
+                error,
+            })?;
         if trace.identity != lane.run_identity {
-            return Err(DifferentialLineageError::TraceIdentityMismatch(lane_id.clone()));
+            return Err(DifferentialLineageError::TraceIdentityMismatch(
+                lane_id.clone(),
+            ));
         }
         if trace.identity.scenario_id != manifest.shared_scenario_id
             || trace.identity.scenario_digest != manifest.shared_scenario_digest
         {
-            return Err(DifferentialLineageError::TraceScenarioMismatch(lane_id.clone()));
+            return Err(DifferentialLineageError::TraceScenarioMismatch(
+                lane_id.clone(),
+            ));
         }
     }
 
     let mut identity_lanes = BTreeMap::<(LineageDependencyKind, String), BTreeSet<String>>::new();
     let mut incomplete_lanes = BTreeSet::new();
-    let mut lane_identity_sets = BTreeMap::<String, BTreeMap<LineageDependencyKind, BTreeSet<String>>>::new();
+    let mut lane_identity_sets =
+        BTreeMap::<String, BTreeMap<LineageDependencyKind, BTreeSet<String>>>::new();
     let mut lane_unknown_kinds = BTreeMap::<String, BTreeSet<LineageDependencyKind>>::new();
 
     for (lane_id, lane) in &lanes {
@@ -1345,7 +1401,10 @@ pub fn audit_differential_lineage(
             }
         }
 
-        let shared_identities = intersection.unwrap_or_default().into_iter().collect::<Vec<_>>();
+        let shared_identities = intersection
+            .unwrap_or_default()
+            .into_iter()
+            .collect::<Vec<_>>();
         let disposition = if !shared_identities.is_empty() {
             SeparationDisposition::Shared
         } else if !lanes_with_unknown_identity.is_empty()
@@ -1384,11 +1443,26 @@ pub fn audit_differential_lineage(
     }
 
     for (field, value) in [
-        ("qual001e_profile_sha256", canonical_assurance.qual001e_profile_sha256.as_deref()),
-        ("qual001e_policy_sha256", canonical_assurance.qual001e_policy_sha256.as_deref()),
-        ("assure_cut_profile_sha256", canonical_assurance.assure_cut_profile_sha256.as_deref()),
-        ("assure_cut_policy_sha256", canonical_assurance.assure_cut_policy_sha256.as_deref()),
-        ("lexnet030_graph_sha256", canonical_assurance.lexnet030_graph_sha256.as_deref()),
+        (
+            "qual001e_profile_sha256",
+            canonical_assurance.qual001e_profile_sha256.as_deref(),
+        ),
+        (
+            "qual001e_policy_sha256",
+            canonical_assurance.qual001e_policy_sha256.as_deref(),
+        ),
+        (
+            "assure_cut_profile_sha256",
+            canonical_assurance.assure_cut_profile_sha256.as_deref(),
+        ),
+        (
+            "assure_cut_policy_sha256",
+            canonical_assurance.assure_cut_policy_sha256.as_deref(),
+        ),
+        (
+            "lexnet030_graph_sha256",
+            canonical_assurance.lexnet030_graph_sha256.as_deref(),
+        ),
     ] {
         if value.is_some_and(|digest| !is_sha256_hex(digest)) {
             return Err(DifferentialLineageError::InvalidDigest(field));
@@ -1614,8 +1688,11 @@ mod tests {
         );
     }
 
-
-    fn lineage_identity(backend_id: &str, backend_version: &str, configuration: &str) -> RunIdentity {
+    fn lineage_identity(
+        backend_id: &str,
+        backend_version: &str,
+        configuration: &str,
+    ) -> RunIdentity {
         RunIdentity::new(
             "free-fall-paired-v1",
             "a".repeat(64),
@@ -1662,11 +1739,26 @@ mod tests {
         let dependencies = vec![
             known_lineage(LineageDependencyKind::SolverImplementation, implementation),
             known_lineage(LineageDependencyKind::ExpectedAnswer, expected_answer),
-            known_lineage(LineageDependencyKind::ScenarioGenerator, "shared:scenario-generator-v1"),
-            known_lineage(LineageDependencyKind::ObservationAdapter, "shared:canonical-observation-adapter-v1"),
-            known_lineage(LineageDependencyKind::RunnerImage, "shared:ci-runner-image-v3"),
-            known_lineage(LineageDependencyKind::CompilerToolchain, "shared:rust-toolchain-profile-v1"),
-            known_lineage(LineageDependencyKind::ExecutionProvider, "shared:github-hosted-runner-domain"),
+            known_lineage(
+                LineageDependencyKind::ScenarioGenerator,
+                "shared:scenario-generator-v1",
+            ),
+            known_lineage(
+                LineageDependencyKind::ObservationAdapter,
+                "shared:canonical-observation-adapter-v1",
+            ),
+            known_lineage(
+                LineageDependencyKind::RunnerImage,
+                "shared:ci-runner-image-v3",
+            ),
+            known_lineage(
+                LineageDependencyKind::CompilerToolchain,
+                "shared:rust-toolchain-profile-v1",
+            ),
+            known_lineage(
+                LineageDependencyKind::ExecutionProvider,
+                "shared:github-hosted-runner-domain",
+            ),
         ];
         let lane = DifferentialLaneBinding {
             lane_id: lane_id.to_owned(),
@@ -1781,7 +1873,9 @@ mod tests {
         traces.insert("rapier".to_owned(), wrong);
         assert_eq!(
             audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
-            Err(DifferentialLineageError::TraceScenarioMismatch("rapier".to_owned()))
+            Err(DifferentialLineageError::TraceScenarioMismatch(
+                "rapier".to_owned()
+            ))
         );
     }
 
@@ -1803,7 +1897,10 @@ mod tests {
 
         let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
             .expect("shared expected-answer lineage is reportable");
-        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            DifferentialLineageDisposition::Indeterminate
+        );
         assert!(report.separation_findings.iter().any(|finding| {
             finding.kind == LineageDependencyKind::ExpectedAnswer
                 && finding.disposition == SeparationDisposition::Shared
@@ -1823,7 +1920,10 @@ mod tests {
         });
         let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
             .expect("unknown lineage remains a reportable indeterminate");
-        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            DifferentialLineageDisposition::Indeterminate
+        );
         assert!(report.incomplete_lanes.contains(&"native".to_owned()));
         assert!(report.separation_findings.iter().any(|finding| {
             finding.kind == LineageDependencyKind::SolverImplementation
@@ -1852,7 +1952,9 @@ mod tests {
         manifest.lanes[0].observation_trace_sha256 = "not-a-digest".to_owned();
         assert_eq!(
             audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
-            Err(DifferentialLineageError::InvalidDigest("observation_trace_sha256"))
+            Err(DifferentialLineageError::InvalidDigest(
+                "observation_trace_sha256"
+            ))
         );
 
         let (manifest, traces, policy) = differential_lineage_fixture();
@@ -1868,14 +1970,20 @@ mod tests {
         manifest.canonical_assurance.lexnet030_graph_sha256 = Some("not-hex".to_owned());
         assert_eq!(
             audit_differential_lineage(&manifest, &traces, &policy, &policy.digest),
-            Err(DifferentialLineageError::InvalidDigest("lexnet030_graph_sha256"))
+            Err(DifferentialLineageError::InvalidDigest(
+                "lexnet030_graph_sha256"
+            ))
         );
 
         let (mut manifest, traces, policy) = differential_lineage_fixture();
         manifest.canonical_assurance.lexnet030_graph_sha256 = Some("d".repeat(64));
         let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
             .expect("digest-bound graph reference");
-        assert!(!report.unbound_canonical_assurance_owners.contains(&"LEX-NET-030"));
+        assert!(
+            !report
+                .unbound_canonical_assurance_owners
+                .contains(&"LEX-NET-030")
+        );
     }
 
     #[test]
