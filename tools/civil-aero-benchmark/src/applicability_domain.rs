@@ -266,7 +266,10 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
             ("evidence_id", evidence.evidence_id.as_str()),
             ("evidence_kind", evidence.evidence_kind.as_str()),
             ("source_ref", evidence.source_ref.as_str()),
-            ("license_applicability", evidence.license_applicability.as_str()),
+            (
+                "license_applicability",
+                evidence.license_applicability.as_str(),
+            ),
         ] {
             require_nonempty(value, name)?;
         }
