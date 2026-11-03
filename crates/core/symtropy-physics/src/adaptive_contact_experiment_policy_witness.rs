@@ -267,6 +267,9 @@ impl<'a> PolicySynthesizer<'a> {
 struct SynthesizedPolicy {
     root_state: PolicyState,
     value: PolicyValue,
+    /// Freeze the exact experiment catalog used during synthesis so runtime
+    /// execution cannot accidentally replay actions against reordered inputs.
+    experiments: Vec<Experiment>,
     /// Maps each reachable remaining-hypotheses/unused-experiments state to the
     /// next experiment. Unmapped states are terminal/abstention leaves.
     selected_actions: HashMap<PolicyState, usize>,
@@ -284,7 +287,6 @@ impl SynthesizedPolicy {
         &self,
         state: PolicyState,
         experiment_index: usize,
-        experiments: &[Experiment],
         observation: &BigRational,
     ) -> Option<PolicyState> {
         if self.next_experiment(state) != Some(experiment_index) {
@@ -295,7 +297,7 @@ impl SynthesizedPolicy {
         if available_experiments & experiment_bit == 0 {
             return None;
         }
-        let experiment = experiments.get(experiment_index)?;
+        let experiment = self.experiments.get(experiment_index)?;
         let survivors =
             surviving_hypotheses_for_observation(experiment, hypotheses, observation);
         (survivors != 0).then_some((survivors, available_experiments & !experiment_bit))
@@ -351,6 +353,7 @@ fn synthesize_policy(
     Ok(SynthesizedPolicy {
         root_state,
         value,
+        experiments: experiments.to_vec(),
         selected_actions: synthesizer.selected_actions,
     })
 }
@@ -408,18 +411,17 @@ mod tests {
             .advance_after_observation(
                 policy.root_state,
                 0,
-                &experiments,
                 &rational(0),
             )
             .expect("the first observation belongs to h0 and h1");
         assert_eq!(after_first, (0b011, 0b10));
         let after_second = policy
-            .advance_after_observation(after_first, 1, &experiments, &rational(2))
+            .advance_after_observation(after_first, 1, &rational(2))
             .expect("the second observation identifies h1");
         assert_eq!(after_second, (0b010, 0));
         assert!(
             policy
-                .advance_after_observation(policy.root_state, 0, &experiments, &rational(9))
+                .advance_after_observation(policy.root_state, 0, &rational(9))
                 .is_none(),
             "an impossible observation must fail closed"
         );
