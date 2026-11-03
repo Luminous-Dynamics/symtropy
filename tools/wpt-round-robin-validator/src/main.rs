@@ -994,19 +994,19 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     {
         errors.push("cyber_physical_security.sensor_plausibility_checks: trusted sensor cross-checks required".into());
     }
-    if string_at(security, "spoofed_receiver_rejected") != Some("PASS") {
+    if string_at(security, &["spoofed_receiver_rejected"]) != Some("PASS") {
         errors.push("cyber_physical_security.spoofed_receiver_rejected: spoofed receiver must be rejected".into());
     }
-    if string_at(security, "sensor_tampering_detected") != Some("PASS") {
+    if string_at(security, &["sensor_tampering_detected"]) != Some("PASS") {
         errors.push("cyber_physical_security.sensor_tampering_detected: sensor tampering must be detected".into());
     }
     if !matches!(
-        string_at(security, "communication_loss_fallback"),
+        string_at(security, &["communication_loss_fallback"]),
         Some("SAFE_DEENERGIZE" | "LOCAL_SAFE_CONTROL")
     ) {
         errors.push("cyber_physical_security.communication_loss_fallback: safe fallback required".into());
     }
-    let security_digest = string_at(security, "security_artifact_sha256");
+    let security_digest = string_at(security, &["security_artifact_sha256"]);
     if !security_digest.is_some_and(valid_sha256) {
         errors.push("cyber_physical_security.security_artifact_sha256: attack-test evidence digest required".into());
     }
@@ -1039,12 +1039,12 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 errors.push("cyber_physical_security.replay_protection: fresh nonce/timestamp/sequence required".into());
             }
             if !matches!(
-                string_at(security, "freshness_mechanism"),
+                string_at(security, &["freshness_mechanism"]),
                 Some("NONCE" | "TIMESTAMP" | "MONOTONIC_SEQUENCE" | "COMBINED")
             ) {
                 errors.push("cyber_physical_security.freshness_mechanism: replay-safe freshness mechanism required".into());
             }
-            if string_at(security, "replay_message_rejected") != Some("PASS") {
+            if string_at(security, &["replay_message_rejected"]) != Some("PASS") {
                 errors.push("cyber_physical_security.replay_message_rejected: replay control test must pass".into());
             }
             let latency = number_at(manifest, &["cyber_physical_security", "p99_message_latency_ms"]);
@@ -1066,7 +1066,7 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         }
         "LOCAL_ONLY" => {
             if !matches!(
-                string_at(security, "freshness_mechanism"),
+                string_at(security, &["freshness_mechanism"]),
                 Some("NOT_APPLICABLE" | "UNKNOWN")
             ) {
                 errors.push("cyber_physical_security.freshness_mechanism: declare local-only freshness applicability".into());
@@ -1075,21 +1075,21 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 errors.push("cyber_physical_security.authentication_method: LOCAL_AUTH or NOT_APPLICABLE required for local-only control".into());
             }
             if !matches!(
-                string_at(security, "replay_message_rejected"),
+                string_at(security, &["replay_message_rejected"]),
                 Some("PASS" | "NOT_APPLICABLE")
             ) {
                 errors.push("cyber_physical_security.replay_message_rejected: declare local replay test disposition".into());
             }
         }
         "NONE" => {
-            if string_at(security, "freshness_mechanism") != Some("NOT_APPLICABLE") {
+            if string_at(security, &["freshness_mechanism"]) != Some("NOT_APPLICABLE") {
                 errors.push("cyber_physical_security.freshness_mechanism: NOT_APPLICABLE required with no communications".into());
             }
             if authentication_method != "NOT_APPLICABLE" {
                 errors.push("cyber_physical_security.authentication_method: NOT_APPLICABLE required with no communications".into());
             }
             if !matches!(
-                string_at(security, "replay_message_rejected"),
+                string_at(security, &["replay_message_rejected"]),
                 Some("NOT_APPLICABLE")
             ) {
                 errors.push("cyber_physical_security.replay_message_rejected: NOT_APPLICABLE required with no communications".into());
