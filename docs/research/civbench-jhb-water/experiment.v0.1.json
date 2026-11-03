@@ -969,6 +969,12 @@
       "no_point_identification_when_exposure_is_unsupported": true,
       "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance": true,
       "essential_service_and_water_quality_floors_remain_hard_constraints": true
-    }
+    },
+    "source_refs": [
+      "WEINSTEIN_NEVO_MISSPECIFIED_INTERFERENCE_2026",
+      "SCHRODER_OPRESCU_FEUERRIEGEL_KALLUS_PARTIAL_ID_2026",
+      "AUERBACH_LOCAL_CAUSAL_NETWORK_INTERFERENCE_2026",
+      "WILKINS_REEVES_SINGLE_NETWORK_PARTIAL_DATA_UAI_2026"
+    ]
   }
 }
