@@ -6,6 +6,7 @@
 //! authenticated by this crate.
 
 pub mod budget;
+pub mod applicability_domain;
 pub mod cfd_admission;
 pub mod claim_admission;
 pub mod cmo_step_pilot;
