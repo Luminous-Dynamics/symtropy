@@ -96,6 +96,56 @@
       "uri": "https://docs.nlr.gov/docs/fy26osti/96886.pdf",
       "evidence_class": "national_laboratory_multi_vendor_hardware_experiment_report",
       "notes": "Presentation authored under the National Renewable Energy Laboratory name before its 1 Dec 2025 renaming to National Laboratory of the Rockies. Five integration scenarios combine up to 7 GFM inverters (760 kVA), 4 GFL inverters (340 kVA), one synchronous genset and controllable loads; test matrix explores 0–100% inverter-based resources and 0–69% GFM share. Report notes ROCOF failures at 68% and 100% GFM asset-mix scenarios and unequal power sharing/instability in the highest-GFM case."
+    },
+    {
+      "source_id": "UNIFI_GFM_V3_2026",
+      "title": "UNIFI Specifications for Grid-Forming Inverter-Based Resources: Version 3",
+      "publisher": "National Laboratory of the Rockies / UNIFI Consortium",
+      "publication_id": "NLR/TP-5D00-98381",
+      "published_at": "2026",
+      "uri": "https://www.nlr.gov/docs/fy26osti/98381.pdf",
+      "doi": "10.2172/3016250",
+      "evidence_class": "national_laboratory_consensus_specification",
+      "notes": "Defines vendor-agnostic system-level and inverter-functional requirements. The V3 programme adds frequency-domain criteria and quantitative pass/fail tests; use the exact document tables, model assumptions and test clauses for limits. No thresholds are paraphrased or invented here."
+    },
+    {
+      "source_id": "IEEE_P2800_1",
+      "title": "IEEE P2800.1 — Recommended Practice for Functional Capabilities and Performance of Grid-Forming Equipment in IBR/CBR",
+      "publisher": "IEEE Standards Association",
+      "uri": "https://standards.ieee.org/ieee/2800.1/12387/",
+      "evidence_class": "active_standard_project",
+      "status": "active_PAR_not_published_standard",
+      "published_at": null,
+      "notes": "Active PAR approved 10 December 2025. Complements IEEE 2800; covers technical minimum GFM capabilities/performance and model-based test procedures/criteria for power-electronic IBR/CBR equipment. Does not apply to GFM equipment without a power-electronic interface."
+    },
+    {
+      "source_id": "IEEE_2800_2_2026",
+      "title": "IEEE 2800.2-2026 — Recommended Practice for Test and Verification Procedures for Inverter-Based Resources Interconnecting with Bulk Power Systems",
+      "publisher": "IEEE Standards Association",
+      "uri": "https://standards.ieee.org/ieee/2800.2/10616/",
+      "evidence_class": "published_standard_reference",
+      "status": "active_standard",
+      "published_at": "2026-06-30",
+      "board_approval_date": "2026-02-12",
+      "notes": "Published 30 June 2026. Defines plant-level conformity assessment procedures to verify IEEE 2800 conformity for IBR plants interconnected to transmission/sub-transmission bulk power systems. Distinct from P2800.1 and from microgrid-controller / islanded operation standards."
+    },
+    {
+      "source_id": "IEEE_DATA_CENTER_IT_PROTECTION_2026",
+      "title": "Review of Industry Efforts and Standards: Data Center Design for IT Load Protection",
+      "publisher": "IEEE Standards Association",
+      "uri": "https://standards.ieee.org/ieee/White_Paper/12663/",
+      "evidence_class": "published_industry_standards_white_paper",
+      "published_at": "2026-09-10",
+      "notes": "Published white paper covering AC/DC/hybrid distribution, redundancy/load priority, system/personnel protection, AI workload consumption patterns, disturbance response, cooling and grid interaction. Identifies need for measurable interoperability definitions."
+    },
+    {
+      "source_id": "IEEE_DATA_CENTER_STANDARDS_ACTIVITY_2026",
+      "title": "Data Centers: Standards Needs Analysis and Recommendations",
+      "publisher": "IEEE Standards Association",
+      "uri": "https://standards.ieee.org/industry-connections/activities/data-centers-standards-needs-analysis-and-recommendations/",
+      "evidence_class": "industry_standards_needs_activity",
+      "published_at": "2026",
+      "notes": "IEEE identifies fast-changing data-centre load time constants, grid-interconnection challenges, local power needs, microgrids, forecasting uncertainty and co-location as standards needs."
     }
   ],
   "test_groups": [
@@ -635,6 +685,202 @@
           ],
           "acceptance_threshold": null,
           "threshold_source_required": true
+        }
+      ]
+    },
+    {
+      "group_id": "GFM-FREQUENCY-DOMAIN-001",
+      "name": "Frequency-domain stability and impedance interaction",
+      "purpose": "Add UNIFI V3 frequency-domain capability assessment to the existing time-domain HIL matrix. Freeze the frequency band, operating point, model assumptions and pass/fail criteria from the applicable UNIFI V3 / IEEE project clause before testing.",
+      "source_ids": [
+        "UNIFI_GFM_V3_2026",
+        "IEEE_P2800_1"
+      ],
+      "cases": [
+        {
+          "test_id": "GFM-FREQ-01",
+          "name": "Converter sequence-impedance / admittance frequency scan",
+          "test_type": "HIL_required",
+          "scan_method": "Use the frequency-domain perturbation and scan method specified by the selected UNIFI V3 clause; declare the injected signal, operating point, frequency band and measurement reference before test.",
+          "frequency_band_policy": "No universal band is hard-coded. Freeze the exact band from the applicable UNIFI V3 specification, model-validity envelope and declared system interaction frequencies.",
+          "measured_channels": [
+            "positive_sequence_impedance_magnitude_phase",
+            "negative_sequence_impedance_magnitude_phase_when_applicable",
+            "d_axis_q_axis_impedance_when_applicable",
+            "resonance_peaks",
+            "uncertainty_by_frequency",
+            "test_operating_point",
+            "configuration_digest"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Store the full complex frequency-response data, not just a pass/fail summary. Do not mix sequence-domain and dq-domain conventions without recording transforms and reference directions."
+        },
+        {
+          "test_id": "GFM-FREQ-02",
+          "name": "Weak-grid converter-to-network impedance interaction",
+          "test_type": "HIL_required",
+          "scan_method": "Repeat the declared frequency scan across a frozen set of grid-impedance / short-circuit-strength cases and operating points.",
+          "frequency_band_policy": "Frequency sweep and grid-strength points must follow the applicable UNIFI V3 / project acceptance source and the network model's declared validity range.",
+          "measured_channels": [
+            "grid_impedance_frequency_response",
+            "converter_impedance_frequency_response",
+            "impedance_ratio_or_minor_loop_gain",
+            "resonance_frequency",
+            "stability_margin_metric",
+            "sensitivity_to_operating_point",
+            "uncertainty_by_frequency"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "A stable time-domain step response does not replace small-signal frequency-domain assessment; reconcile the two evidence streams."
+        },
+        {
+          "test_id": "GFM-FREQ-03",
+          "name": "Multi-vendor grid-forming control interaction scan",
+          "test_type": "HIL_required",
+          "scan_method": "Scan individual devices and the combined fleet under the same frozen network and operating point; compare isolated and interconnected response.",
+          "frequency_band_policy": "Freeze frequency bands and pass/fail metrics from the UNIFI V3 clause and declared fleet/network use case.",
+          "measured_channels": [
+            "per_vendor_impedance_response",
+            "combined_system_response",
+            "resonance_amplification",
+            "inter_unit_coupling",
+            "damping_or_stability_metric",
+            "active_reactive_power_sharing",
+            "uncertainty_by_frequency"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Tests whether a multi-vendor mix creates emergent resonance or weak damping that is invisible in single-device testing."
+        }
+      ]
+    },
+    {
+      "group_id": "DC-IT-PROTECTION-001",
+      "name": "Data-centre IT-load protection and AI workload power transients",
+      "purpose": "Treat the data centre as a dynamic grid customer as well as an energy consumer. Test the end-to-end chain from grid point of connection through UPS, DC distribution and cooling to protected IT load, while exposing rapid AI workload ramps and power-quality disturbances.",
+      "source_ids": [
+        "IEEE_DATA_CENTER_IT_PROTECTION_2026",
+        "IEEE_DATA_CENTER_STANDARDS_ACTIVITY_2026",
+        "IEEE_P3710_1",
+        "OCP_DC_DISTRIBUTION"
+      ],
+      "cases": [
+        {
+          "test_id": "DC-IT-01",
+          "name": "AI workload ramp and burst replay",
+          "test_type": "HIL_then_physical",
+          "preconditions": [
+            "freeze workload/power trace and version",
+            "define IT load, rack bus and grid point-of-connection measurement points",
+            "record UPS, storage, converter and cooling state"
+          ],
+          "measured_channels": [
+            "IT_load_power_trace",
+            "rack_bus_voltage",
+            "PCC_active_power",
+            "PCC_reactive_power",
+            "ramp_rate",
+            "peak_power",
+            "harmonics",
+            "voltage_excursion",
+            "storage_power_response",
+            "cooling_auxiliary_power"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Use a real anonymized workload-derived trace when permitted; otherwise label a synthetic trace. Do not infer grid impact from rack-level power alone."
+        },
+        {
+          "test_id": "DC-IT-02",
+          "name": "UPS and DC-bus ride-through during source disturbance",
+          "test_type": "HIL_then_physical",
+          "preconditions": [
+            "declare AC/DC topology and bypass path",
+            "freeze critical and non-critical load priorities",
+            "declare energy reserve and autonomy target"
+          ],
+          "measured_channels": [
+            "IT_load_interruption_duration",
+            "unserved_IT_energy",
+            "UPS_transfer_time",
+            "DC_bus_voltage",
+            "battery_power",
+            "reserve_state_of_charge",
+            "converter_current",
+            "protection_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Distinguish UPS ride-through, battery autonomy, source transfer and generator start. One does not prove the others."
+        },
+        {
+          "test_id": "DC-IT-03",
+          "name": "Load priority, shedding and restoration with cooling constraints",
+          "test_type": "HIL_then_physical",
+          "preconditions": [
+            "declare critical IT tiers",
+            "declare cooling and thermal safety constraints",
+            "freeze restoration order and interlocks"
+          ],
+          "measured_channels": [
+            "critical_load_served_fraction",
+            "noncritical_load_shed",
+            "restoration_timeline",
+            "thermal_margin",
+            "cooling_power",
+            "unserved_IT_energy",
+            "recovery_events"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true
+        },
+        {
+          "test_id": "DC-IT-04",
+          "name": "Grid disturbance and data-centre co-response",
+          "test_type": "HIL_required",
+          "preconditions": [
+            "declare grid code and utility operating envelope",
+            "freeze workload power caps and response policies",
+            "define no-break IT protection requirements"
+          ],
+          "measured_channels": [
+            "PCC_voltage_waveform",
+            "PCC_frequency",
+            "PCC_active_power",
+            "PCC_reactive_power",
+            "IT_load_protection_state",
+            "workload_power_cap",
+            "grid_support_response",
+            "communications_latency"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "Measure the grid-facing response and IT-facing protection outcome together. A grid-support action must not silently compromise the protected IT service."
+        },
+        {
+          "test_id": "DC-IT-05",
+          "name": "Flexible-load dispatch without SLA or thermal violation",
+          "test_type": "HIL_required",
+          "preconditions": [
+            "define workload service-level agreement",
+            "declare thermal and cooling safety constraints",
+            "freeze allowed dispatch window and recovery obligations"
+          ],
+          "measured_channels": [
+            "dispatch_energy",
+            "work_completed",
+            "SLA_violation_count",
+            "deadline_miss_count",
+            "cooling_energy",
+            "thermal_margin",
+            "rebound_peak",
+            "grid_cost_or_tariff_response"
+          ],
+          "acceptance_threshold": null,
+          "threshold_source_required": true,
+          "notes": "A claimed demand-response resource must account for deferred work and rebound, not only instantaneous load reduction."
         }
       ]
     }
