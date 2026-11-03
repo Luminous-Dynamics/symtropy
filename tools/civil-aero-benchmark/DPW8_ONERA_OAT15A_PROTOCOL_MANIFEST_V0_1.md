@@ -59,13 +59,13 @@ The experimental reference paper is for personal use and must not be reposted or
 
 ## Source-admission states
 
-Every required source begins as `not_admitted`. A byte-pinned reference-only state records exact length, SHA-256 and revision while retaining redistribution restrictions. A byte-pinned redistributable state is only valid if the actual permission basis has been separately established. Permission-pending bytes may be hashed for internal audit but cannot be treated as admitted or redistributable.
+Every required source begins as `not_admitted`. A byte-pinned reference-only state records exact length, SHA-256 and revision while retaining redistribution restrictions. The separate `byte_pinned_redistribution_permission_document_referenced` state requires a second permission-document reference and SHA-256. This records that a reviewer-supplied permission document was referenced; it does **not** mean the software has legally determined that the document grants permission, authenticated its issuer, or independently validated its scope. Permission-pending bytes may be hashed for internal audit but cannot be treated as admitted or redistributable.
 
 Source URL presence is not source admission. A mutable web directory is not a pinned grid. Every grid member and experimental data artifact needs its own byte digest, source revision and applicability/permission decision.
 
 ## Independent replay
 
-The independent Python oracle recomputes the canonical manifest digest, checks lane-specific values, verifies source admission metadata, and rejects:
+The Rust test invokes the independent Python standard-library oracle at `scripts/verify-dpw8-protocol-independent.py` for all three lanes. The oracle recomputes the canonical manifest digest, checks lane-specific values, verifies source admission metadata and permission-document references, and rejects:
 - V1a/V1b angle-list substitution;
 - V1c inheriting an inferred AoA list;
 - V1c scatter settings missing or changed;
