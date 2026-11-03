@@ -1658,6 +1658,19 @@ pub struct ExternalEvaluationLaneDescriptor {
     pub source_ids: Vec<String>,
 }
 
+/// Validated summary of the distinct cyber-physical resilience benchmark track.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CyberPhysicalResilienceDescriptor {
+    /// Registered benchmark resource identifiers.
+    pub resource_ids: Vec<String>,
+    /// C1-C3 evaluation lane identifiers.
+    pub evaluation_lane_ids: Vec<String>,
+    /// Disjoint event classes retained by the protocol.
+    pub event_classes: Vec<String>,
+    /// Non-composite benchmark metrics.
+    pub metrics: Vec<String>,
+}
+
 /// Validated projection of CivBench experiment protocol v0.1.
 ///
 /// This adapter validates the decision-critical manifest contract used by
@@ -1690,6 +1703,8 @@ pub struct ExperimentProtocolV0_1 {
     pub leak_datasets: Vec<LeakDatasetDescriptor>,
     /// External SCADA and weak-label evaluation lanes.
     pub external_evaluation_lanes: Vec<ExternalEvaluationLaneDescriptor>,
+    /// Separate cyber-physical resilience benchmark contract.
+    pub cyberphysical_resilience: CyberPhysicalResilienceDescriptor,
 }
 
 /// Error returned when a JSON protocol manifest fails semantic validation.
@@ -2576,6 +2591,199 @@ impl ExperimentProtocolV0_1 {
             },
         ];
 
+        let cyber_path = "$.cyberphysical_resilience_contract";
+        let cyber = manifest_field(&root, "cyberphysical_resilience_contract", "$")?;
+        let cyber_version = manifest_string(
+            manifest_field(cyber, "version", cyber_path)?,
+            "$.cyberphysical_resilience_contract.version",
+        )?;
+        if cyber_version != "0.1.0" {
+            return Err(ManifestAdapterError::new(
+                "$.cyberphysical_resilience_contract.version",
+                "unsupported cyber-physical contract version",
+            ));
+        }
+
+        let resource_values = manifest_field(
+            cyber,
+            "benchmark_resources",
+            cyber_path,
+        )?;
+        let resource_entries = manifest_array(
+            resource_values,
+            "$.cyberphysical_resilience_contract.benchmark_resources",
+        )?;
+        if resource_entries.len() != 3 {
+            return Err(ManifestAdapterError::new(
+                "$.cyberphysical_resilience_contract.benchmark_resources",
+                "exactly three distinct research resources are registered in v0.1",
+            ));
+        }
+        let resource_ids = manifest_object_ids(
+            resource_values,
+            "$.cyberphysical_resilience_contract.benchmark_resources",
+            "resource_id",
+        )?;
+        let expected_resources = [
+            ("WDSEventDB", "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025"),
+            ("ACG_Water_Testbed_2026", "ACG_WATER_TESTBED_2026"),
+            ("WDT_Chronological_Benchmark_2026", "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026"),
+        ];
+        for (resource_id, expected_source) in expected_resources {
+            let entry = resource_entries
+                .iter()
+                .find(|entry| {
+                    entry.get("resource_id").and_then(serde_json::Value::as_str)
+                        == Some(resource_id)
+                })
+                .ok_or_else(|| {
+                    ManifestAdapterError::new(
+                        "$.cyberphysical_resilience_contract.benchmark_resources",
+                        format!("required resource {resource_id} is missing"),
+                    )
+                })?;
+            let source_id = manifest_string(
+                manifest_field(
+                    entry,
+                    "source_id",
+                    "$.cyberphysical_resilience_contract.benchmark_resources",
+                )?,
+                "$.cyberphysical_resilience_contract.benchmark_resources.source_id",
+            )?;
+            if source_id != expected_source || !source_ids.contains(&source_id) {
+                return Err(ManifestAdapterError::new(
+                    "$.cyberphysical_resilience_contract.benchmark_resources.source_id",
+                    format!("resource {resource_id} must cite known source {expected_source}"),
+                ));
+            }
+            manifest_string(
+                manifest_field(entry, "claim_limit", "$.cyberphysical_resilience_contract.benchmark_resources")?,
+                "$.cyberphysical_resilience_contract.benchmark_resources.claim_limit",
+            )?;
+            let event_labels = manifest_string_array(
+                manifest_field(entry, "event_classes", "$.cyberphysical_resilience_contract.benchmark_resources")?,
+                "$.cyberphysical_resilience_contract.benchmark_resources.event_classes",
+            )?;
+            if event_labels.is_empty() {
+                return Err(ManifestAdapterError::new(
+                    "$.cyberphysical_resilience_contract.benchmark_resources.event_classes",
+                    "each resource must declare its supported event classes",
+                ));
+            }
+        }
+
+        let event_classes = manifest_string_array(
+            manifest_field(cyber, "event_classes", cyber_path)?,
+            "$.cyberphysical_resilience_contract.event_classes",
+        )?;
+        let required_event_classes = [
+            "leak",
+            "sensor_failure",
+            "communication_anomaly",
+            "cyberattack",
+            "process_drift",
+            "unknown",
+        ];
+        if event_classes.len() != required_event_classes.len()
+            || required_event_classes.iter().any(|expected| {
+                !event_classes.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                "$.cyberphysical_resilience_contract.event_classes",
+                "leak, sensor failure, communication anomaly, cyberattack, process drift and unknown must remain distinct",
+            ));
+        }
+
+        let evaluation_lanes = manifest_field(
+            cyber,
+            "evaluation_lanes",
+            cyber_path,
+        )?;
+        let lane_ids = vec![
+            "C1_event_discrimination".to_owned(),
+            "C2_cyber_to_physical_propagation".to_owned(),
+            "C3_control_and_resilience_comparison".to_owned(),
+        ];
+        let expected_lane_resources = [
+            ("C1_event_discrimination", vec!["WDSEventDB", "WDT_Chronological_Benchmark_2026"]),
+            ("C2_cyber_to_physical_propagation", vec!["ACG_Water_Testbed_2026"]),
+            ("C3_control_and_resilience_comparison", vec!["WDSEventDB", "ACG_Water_Testbed_2026", "WDT_Chronological_Benchmark_2026"]),
+        ];
+        for (lane_id, expected_ids) in expected_lane_resources {
+            let lane = manifest_field(evaluation_lanes, lane_id, "$.cyberphysical_resilience_contract.evaluation_lanes")?;
+            let lane_path = format!("$.cyberphysical_resilience_contract.evaluation_lanes.{lane_id}");
+            let task = manifest_string(
+                manifest_field(lane, "task", &lane_path)?,
+                &format!("{lane_path}.task"),
+            )?;
+            let _ = task;
+            let ids = manifest_string_array(
+                manifest_field(lane, "resource_ids", &lane_path)?,
+                &format!("{lane_path}.resource_ids"),
+            )?;
+            if ids.len() != expected_ids.len()
+                || expected_ids.iter().any(|expected| !ids.iter().any(|value| value == expected))
+                || ids.iter().any(|id| !resource_ids.contains(id))
+            {
+                return Err(ManifestAdapterError::new(
+                    format!("{lane_path}.resource_ids"),
+                    "lane must use exactly its registered benchmark resources",
+                ));
+            }
+        }
+
+        let metrics = manifest_string_array(
+            manifest_field(cyber, "metrics", cyber_path)?,
+            "$.cyberphysical_resilience_contract.metrics",
+        )?;
+        let required_metrics = [
+            "event_precision_recall",
+            "event_onset_delay",
+            "false_alarm_episodes_per_system_day",
+            "calibration_and_abstention",
+            "physical_consequence_exposure",
+            "time_to_safe_state",
+            "recovery_time",
+            "service_deficit",
+        ];
+        if metrics.len() != required_metrics.len()
+            || required_metrics.iter().any(|expected| {
+                !metrics.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                "$.cyberphysical_resilience_contract.metrics",
+                "all eight non-composite event and physical-outcome metrics are required",
+            ));
+        }
+
+        let hard_gates = manifest_field(cyber, "hard_gates", cyber_path)?;
+        for gate in [
+            "no_live_plc_or_production_scada",
+            "human_authorization_required_for_operational_actions",
+            "keep_leak_sensor_failure_and_attack_labels_distinct",
+            "do_not_infer_malicious_intent_from_anomaly_alone",
+            "benchmark_score_never_grants_actuation_authority",
+            "independent_safety_interlocks_and_rollback_required",
+        ] {
+            let path = format!("{cyber_path}.hard_gates.{gate}");
+            let enabled = manifest_bool(manifest_field(hard_gates, gate, &format!("{cyber_path}.hard_gates"))?, &path)?;
+            if !enabled {
+                return Err(ManifestAdapterError::new(
+                    path,
+                    "cyber-physical evaluation hard gates cannot be disabled",
+                ));
+            }
+        }
+
+        let cyberphysical_resilience = CyberPhysicalResilienceDescriptor {
+            resource_ids,
+            evaluation_lane_ids: lane_ids,
+            event_classes,
+            metrics,
+        };
+
         let confidence = manifest_field(
             leak,
             "confidence_contract",
@@ -2812,6 +3020,7 @@ impl ExperimentProtocolV0_1 {
             benchmark_lanes,
             leak_datasets,
             external_evaluation_lanes,
+            cyberphysical_resilience,
         })
     }
 }
@@ -2858,6 +3067,10 @@ mod tests {
         assert_eq!(manifest.benchmark_lanes.len(), 11);
         assert_eq!(manifest.leak_datasets.len(), 3);
         assert_eq!(manifest.external_evaluation_lanes.len(), 2);
+        assert_eq!(manifest.cyberphysical_resilience.resource_ids.len(), 3);
+        assert_eq!(manifest.cyberphysical_resilience.evaluation_lane_ids.len(), 3);
+        assert_eq!(manifest.cyberphysical_resilience.event_classes.len(), 6);
+        assert_eq!(manifest.cyberphysical_resilience.metrics.len(), 8);
         assert!(manifest.external_evaluation_lanes.iter().any(|lane| {
             lane.dataset_id == "BATTLEDIM_L_TOWN_2018_2019"
                 && lane.time_step_minutes == 5
@@ -3071,6 +3284,59 @@ mod tests {
         assert!(matches!(
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. }) if path.ends_with(".label")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_live_plc_cyber_benchmark_scope() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["cyberphysical_resilience_contract"]["hard_gates"]["no_live_plc_or_production_scada"] = false.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path.ends_with("no_live_plc_or_production_scada")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unknown_cyber_benchmark_source() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["cyberphysical_resilience_contract"]["benchmark_resources"][0]["source_id"] =
+            "UNKNOWN_SOURCE".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("benchmark_resources.source_id")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_cyber_lane_resource_substitution() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["cyberphysical_resilience_contract"]["evaluation_lanes"]
+            ["C2_cyber_to_physical_propagation"]["resource_ids"][0] = "WDSEventDB".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("C2_cyber_to_physical_propagation.resource_ids")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_merged_cyber_and_leak_event_classes() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["cyberphysical_resilience_contract"]["event_classes"]
+            .as_array_mut().unwrap().retain(|value| value != "cyberattack");
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path.ends_with("event_classes")
         ));
     }
 
