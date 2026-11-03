@@ -35,27 +35,33 @@ impl FlexibilityEventIdentity {
         baseline_configuration_digest: impl Into<String>,
         response_configuration_digest: impl Into<String>,
     ) -> Result<Self, FlexibilityEvaluationError> {
-        let fields = [
-            ("event ID", event_id.into()),
-            ("service contract ID", service_contract_id.into()),
-            ("work unit ID", work_unit_id.into()),
-            ("measurement boundary ID", measurement_boundary_id.into()),
-            ("baseline configuration digest", baseline_configuration_digest.into()),
-            ("response configuration digest", response_configuration_digest.into()),
-        ];
-        for (name, value) in &fields {
+        let event_id = event_id.into();
+        let service_contract_id = service_contract_id.into();
+        let work_unit_id = work_unit_id.into();
+        let measurement_boundary_id = measurement_boundary_id.into();
+        let baseline_configuration_digest = baseline_configuration_digest.into();
+        let response_configuration_digest = response_configuration_digest.into();
+
+        for (name, value) in [
+            ("event ID", event_id.as_str()),
+            ("service contract ID", service_contract_id.as_str()),
+            ("work unit ID", work_unit_id.as_str()),
+            ("measurement boundary ID", measurement_boundary_id.as_str()),
+            ("baseline configuration digest", baseline_configuration_digest.as_str()),
+            ("response configuration digest", response_configuration_digest.as_str()),
+        ] {
             if value.trim().is_empty() {
                 return Err(FlexibilityEvaluationError::MissingIdentity { name });
             }
         }
-        let mut values = fields.into_iter().map(|(_, value)| value);
+
         Ok(Self {
-            event_id: values.next().unwrap(),
-            service_contract_id: values.next().unwrap(),
-            work_unit_id: values.next().unwrap(),
-            measurement_boundary_id: values.next().unwrap(),
-            baseline_configuration_digest: values.next().unwrap(),
-            response_configuration_digest: values.next().unwrap(),
+            event_id,
+            service_contract_id,
+            work_unit_id,
+            measurement_boundary_id,
+            baseline_configuration_digest,
+            response_configuration_digest,
         })
     }
 
@@ -659,18 +665,22 @@ impl fmt::Display for FlexibilityEvaluationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { name } => write!(f, "{name} must not be empty"),
-            Self::MissingEvidenceId => write!(f, "flexibility sample evidence ID must not be empty"),
+            Self::MissingEvidenceId => {
+                write!(f, "flexibility sample evidence ID must not be empty")
+            }
             Self::InvalidWindow {
                 event_start_ns,
                 event_end_ns,
                 rebound_end_ns,
             } => write!(
                 f,
-                "invalid flexibility event/rebound windows: event [{event_start_ns}, {event_end_ns}), rebound ends at {rebound_end_ns}"
+                "invalid flexibility event/rebound windows: event [{event_start_ns}, {event_end_ns}), \
+                 rebound ends at {rebound_end_ns}"
             ),
             Self::InvalidSampleInterval { sample_interval_ns } => write!(
                 f,
-                "sample interval {sample_interval_ns} ns is zero or does not divide the event/rebound windows"
+                "sample interval {sample_interval_ns} ns is zero or does not divide \
+                 the event/rebound windows"
             ),
             Self::InvalidConstraint { name, value } => {
                 write!(f, "{name} has invalid value {value}")
@@ -691,7 +701,8 @@ impl fmt::Display for FlexibilityEvaluationError {
                 observed_elapsed_ns,
             } => write!(
                 f,
-                "flexibility sample {index} timestamp mismatch: expected {expected_elapsed_ns}, observed {observed_elapsed_ns}"
+                "flexibility sample {index} timestamp mismatch: expected {expected_elapsed_ns}, \
+                 observed {observed_elapsed_ns}"
             ),
             Self::EnergyOverflow { index } => {
                 write!(f, "energy calculation overflowed at sample {index}")
@@ -803,6 +814,9 @@ mod tests {
         let report = evaluate_flexibility_event(&contract(), &input).unwrap();
 
         assert!(report.passed());
+        assert_eq!(report.identity().event_id(), "EVENT-TEST-001");
+        assert_eq!(report.identity().work_unit_id(), "training-steps-v1");
+        assert_eq!(report.sample_evidence_ids().len(), 4);
         assert!((report.event_power_reduction_fraction() - 0.25).abs() < 1e-12);
         assert_eq!(report.event_duration_ns(), 3 * HOUR_NS);
         assert!((report.rebound_peak_ratio() - 1.0).abs() < 1e-12);
@@ -849,6 +863,7 @@ mod tests {
     #[test]
     fn rejects_energy_per_completed_work_regression_even_when_peak_limit_is_relaxed() {
         let relaxed_rebound = FlexibilityEventContract::new(
+            identity(),
             0,
             3 * HOUR_NS,
             4 * HOUR_NS,
@@ -973,11 +988,25 @@ mod tests {
             Err(FlexibilityEvaluationError::ZeroBaselineOrWork)
         ));
         assert!(
-            FlexibilityEventContract::new(3, 2, 4, 1, 0.25, 0.01, 1.0, 1.05, 100.0, 0, 80.0)
+            FlexibilityEventContract::new(
+                identity(),
+                3,
+                2,
+                4,
+                1,
+                0.25,
+                0.01,
+                1.0,
+                1.05,
+                100.0,
+                0,
+                80.0
+            )
                 .is_err()
         );
         assert!(
             FlexibilityEventContract::new(
+                identity(),
                 0,
                 3 * HOUR_NS,
                 4 * HOUR_NS,
