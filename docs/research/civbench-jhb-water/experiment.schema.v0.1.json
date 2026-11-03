@@ -21,7 +21,8 @@
     "provenance_receipt",
     "promotion_gates",
     "limitations",
-    "outcome_contract"
+    "outcome_contract",
+    "leak_benchmark_contract"
   ],
   "properties": {
     "$schema": {
@@ -467,6 +468,302 @@
         }
       },
       "additionalProperties": false
+    },
+    "leak_benchmark_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "dataset_inventory",
+        "evaluation_lanes",
+        "split_contract",
+        "metrics",
+        "published_baselines",
+        "confidence_contract"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "dataset_inventory": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/leakDataset"
+          }
+        },
+        "evaluation_lanes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "L0_paper_reproduction",
+            "L1_full_corpus_scenario_holdout",
+            "L2_cross_topology_transfer"
+          ],
+          "properties": {
+            "L0_paper_reproduction": {
+              "type": "object",
+              "required": [
+                "dataset_id",
+                "rule",
+                "comparison_claim"
+              ],
+              "properties": {
+                "dataset_id": {
+                  "type": "string"
+                },
+                "rule": {
+                  "type": "string"
+                },
+                "comparison_claim": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "L1_full_corpus_scenario_holdout": {
+              "type": "object",
+              "required": [
+                "dataset_ids",
+                "rule"
+              ],
+              "properties": {
+                "dataset_ids": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "rule": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "L2_cross_topology_transfer": {
+              "type": "object",
+              "required": [
+                "topology_pairs",
+                "rule",
+                "claim_limit"
+              ],
+              "properties": {
+                "topology_pairs": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "rule": {
+                  "type": "string"
+                },
+                "claim_limit": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "split_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit_of_split",
+            "group_related_scenario_families",
+            "related_fields",
+            "split_before",
+            "partitions",
+            "fit_rules",
+            "test_label_access",
+            "frozen_split_manifest_required",
+            "source_archive_digest_required",
+            "adaptive_submission_budget"
+          ],
+          "properties": {
+            "unit_of_split": {
+              "type": "string",
+              "const": "complete_scenario"
+            },
+            "group_related_scenario_families": {
+              "type": "boolean",
+              "const": true
+            },
+            "related_fields": {
+              "type": "array",
+              "minItems": 6,
+              "items": {
+                "type": "string"
+              }
+            },
+            "split_before": {
+              "type": "array",
+              "minItems": 7,
+              "items": {
+                "type": "string"
+              }
+            },
+            "partitions": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "string"
+              }
+            },
+            "fit_rules": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "transforms",
+                "hyperparameters",
+                "probability_calibration",
+                "operating_threshold",
+                "sensor_placement",
+                "sealed_test"
+              ],
+              "properties": {
+                "transforms": {
+                  "type": "string"
+                },
+                "hyperparameters": {
+                  "type": "string"
+                },
+                "probability_calibration": {
+                  "type": "string"
+                },
+                "operating_threshold": {
+                  "type": "string"
+                },
+                "sensor_placement": {
+                  "type": "string"
+                },
+                "sealed_test": {
+                  "type": "string"
+                }
+              }
+            },
+            "test_label_access": {
+              "type": "string"
+            },
+            "frozen_split_manifest_required": {
+              "type": "boolean",
+              "const": true
+            },
+            "source_archive_digest_required": {
+              "type": "boolean",
+              "const": true
+            },
+            "adaptive_submission_budget": {
+              "type": "string"
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scenario_event_detection",
+            "time_series",
+            "localization",
+            "operations"
+          ],
+          "properties": {
+            "scenario_event_detection": {
+              "type": "array",
+              "minItems": 10,
+              "items": {
+                "type": "string"
+              }
+            },
+            "time_series": {
+              "type": "array",
+              "minItems": 5,
+              "items": {
+                "type": "string"
+              }
+            },
+            "localization": {
+              "type": "array",
+              "minItems": 8,
+              "items": {
+                "type": "string"
+              }
+            },
+            "operations": {
+              "type": "array",
+              "minItems": 8,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "published_baselines": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "paper_id",
+              "dataset_id",
+              "reported",
+              "threshold_calibration_status",
+              "code_status",
+              "comparability_limit"
+            ],
+            "properties": {
+              "paper_id": {
+                "type": "string"
+              },
+              "dataset_id": {
+                "type": "string"
+              },
+              "reported": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "threshold_calibration_status": {
+                "type": "string"
+              },
+              "code_status": {
+                "type": "string"
+              },
+              "comparability_limit": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "confidence_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "zero_false_positive_interpretation",
+            "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent",
+            "report_exact_binomial_interval"
+          ],
+          "properties": {
+            "zero_false_positive_interpretation": {
+              "type": "string"
+            },
+            "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent": {
+              "type": "number"
+            },
+            "report_exact_binomial_interval": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -494,6 +791,46 @@
         }
       },
       "additionalProperties": false
+    },
+    "leakDataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "topology",
+        "scenario_count",
+        "label_resolution",
+        "role",
+        "source_refs"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string"
+        },
+        "topology": {
+          "type": "string"
+        },
+        "scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "label_resolution": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "subset_identity": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
