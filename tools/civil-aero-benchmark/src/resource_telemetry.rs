@@ -26,6 +26,8 @@ pub struct CgroupV2Snapshot {
     pub memory_peak_bytes: u64,
     /// Stable identity of the one open memory.peak FD used for both observations.
     pub memory_peak_reader_id: String,
+    /// fcntl(F_GETFL) flags from the memory.peak FD; O_ACCMODE must be O_RDONLY (0).
+    pub memory_peak_reader_flags: u64,
     /// Exact cgroup2 mount-options bytes; local-only memory.events semantics are rejected.
     pub cgroup2_mount_options_sha256: String,
     pub oom_events: u64,
@@ -197,6 +199,7 @@ fn report_canonical_bytes(report: &CgroupV2ResourceReport) -> Vec<u8> {
 pub fn parse_cgroup_v2_snapshot(
     cgroup_id: &str,
     memory_peak_reader_id: &str,
+    memory_peak_reader_flags: u64,
     cgroup2_mount_options: &str,
     monotonic_time_ns: u64,
     cpu_stat: &str,
@@ -209,6 +212,10 @@ pub fn parse_cgroup_v2_snapshot(
     }
     if memory_peak_reader_id.trim().is_empty() {
         return Err("memory.peak reader identity must not be empty".to_owned());
+    }
+    // Linux O_ACCMODE is 3 and O_RDONLY is 0. Preserve the full F_GETFL value.
+    if memory_peak_reader_flags & 0b11 != 0 {
+        return Err("memory.peak descriptor must be opened read-only".to_owned());
     }
     if cgroup2_mount_options.trim().is_empty() {
         return Err("cgroup2 mount options must not be empty".to_owned());
@@ -239,6 +246,7 @@ pub fn parse_cgroup_v2_snapshot(
         cpu_system_usec: required_counter(&cpu, "system_usec", "cpu.stat")?,
         memory_peak_bytes: memory,
         memory_peak_reader_id: memory_peak_reader_id.to_owned(),
+        memory_peak_reader_flags,
         cgroup2_mount_options_sha256: sha256_hex(cgroup2_mount_options.as_bytes())?,
         oom_events: required_counter(&events, "oom", "memory.events")?,
         oom_kill_events: required_counter(&events, "oom_kill", "memory.events")?,
@@ -296,6 +304,15 @@ pub fn derive_cgroup_v2_resource_report(
     }
     if start.memory_peak_reader_id != end.memory_peak_reader_id {
         return Err("memory.peak samples were read through different file descriptors".to_owned());
+    }
+    if start.memory_peak_reader_flags != end.memory_peak_reader_flags {
+        return Err("memory.peak reader flags changed between resource snapshots".to_owned());
+    }
+    if start.memory_peak_reader_flags & 0b11 != 0 {
+        return Err("memory.peak descriptor is not read-only".to_owned());
+    }
+    if start.memory_peak_bytes != 0 {
+        return Err("memory.peak baseline is nonzero; use a fresh operation cgroup or reset before baseline".to_owned());
     }
     if start.cgroup2_mount_options_sha256 != end.cgroup2_mount_options_sha256 {
         return Err("cgroup2 mount options changed between resource snapshots".to_owned());
