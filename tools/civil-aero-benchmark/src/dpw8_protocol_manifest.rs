@@ -95,7 +95,7 @@ impl Dpw8WallThermalCondition {
 pub enum Dpw8SourceAdmissionState {
     NotAdmitted,
     BytePinnedReferenceOnly,
-    BytePinnedRedistributionPermitted,
+    BytePinnedRedistributionPermissionDocumentReferenced,
     PermissionPending,
 }
 
@@ -104,7 +104,9 @@ impl Dpw8SourceAdmissionState {
         match self {
             Self::NotAdmitted => "not_admitted",
             Self::BytePinnedReferenceOnly => "byte_pinned_reference_only",
-            Self::BytePinnedRedistributionPermitted => "byte_pinned_redistribution_permitted",
+            Self::BytePinnedRedistributionPermissionDocumentReferenced => {
+                "byte_pinned_redistribution_permission_document_referenced"
+            }
             Self::PermissionPending => "permission_pending",
         }
     }
@@ -116,8 +118,10 @@ impl Dpw8SourceAdmissionState {
         )
     }
 
-    fn permits_redistribution(self) -> bool {
-        self == Self::BytePinnedRedistributionPermitted
+    /// This only records that a permission-document reference was supplied. It is not a legal
+    /// determination, a signature check, or proof that the referenced document grants permission.
+    fn has_permission_document_reference(self) -> bool {
+        self == Self::BytePinnedRedistributionPermissionDocumentReferenced
     }
 }
 
@@ -135,6 +139,9 @@ pub struct Dpw8SourceAdmission {
     /// license verifier; actual permission remains a separately adjudicated source-admission step.
     pub license_applicability: String,
     pub acknowledgement: String,
+    /// Optional source reference for a permission document; its bytes are separately digest-bound.
+    pub permission_evidence_reference: Option<String>,
+    pub permission_evidence_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -199,6 +206,8 @@ fn source_shell(
         source_revision: "not-yet-byte-pinned".to_owned(),
         license_applicability: license_applicability.to_owned(),
         acknowledgement: acknowledgement.to_owned(),
+        permission_evidence_reference: None,
+        permission_evidence_sha256: None,
     }
 }
 
@@ -326,10 +335,14 @@ impl Dpw8Oat15aProtocolManifest {
 
     /// Geometry redistribution is allowed only when the geometry source itself was admitted
     /// under an explicit redistribution permission state.
-    pub fn geometry_redistribution_permitted(&self) -> bool {
+    /// True only when a permission-document reference and digest are recorded. This is not
+    /// legal authorization; an independent person must review the referenced terms.
+    pub fn geometry_permission_document_referenced(&self) -> bool {
         self.sources.iter().any(|source| {
             source.source_kind == "geometry_ip_and_acknowledgement_policy"
-                && source.state.permits_redistribution()
+                && source.state.has_permission_document_reference()
+                && source.permission_evidence_reference.as_deref().is_some_and(|value| !value.trim().is_empty())
+                && source.permission_evidence_sha256.as_deref().is_some_and(is_digest)
         })
     }
 }
@@ -396,14 +409,28 @@ fn validate_source(source: &Dpw8SourceAdmission) -> Result<(), String> {
                 }
             }
         }
-        Dpw8SourceAdmissionState::BytePinnedReferenceOnly
-        | Dpw8SourceAdmissionState::BytePinnedRedistributionPermitted => {
+        Dpw8SourceAdmissionState::BytePinnedReferenceOnly => {
             if source.byte_length.is_none_or(|length| length == 0)
                 || source.sha256.as_deref().is_none_or(|value| !is_digest(value))
                 || source.source_revision == "not-yet-byte-pinned"
+                || source.permission_evidence_reference.is_some()
+                || source.permission_evidence_sha256.is_some()
             {
                 return Err(format!(
-                    "DPW-8 source {} claims byte admission without revision, nonzero length and SHA-256",
+                    "DPW-8 source {} reference-only admission has malformed byte or permission metadata",
+                    source.source_id
+                ));
+            }
+        }
+        Dpw8SourceAdmissionState::BytePinnedRedistributionPermissionDocumentReferenced => {
+            if source.byte_length.is_none_or(|length| length == 0)
+                || source.sha256.as_deref().is_none_or(|value| !is_digest(value))
+                || source.source_revision == "not-yet-byte-pinned"
+                || source.permission_evidence_reference.as_deref().is_none_or(|value| value.trim().is_empty())
+                || source.permission_evidence_sha256.as_deref().is_none_or(|value| !is_digest(value))
+            {
+                return Err(format!(
+                    "DPW-8 source {} has no complete pinned permission-document reference",
                     source.source_id
                 ));
             }
@@ -594,6 +621,8 @@ fn canonical_bytes(manifest: &Dpw8Oat15aProtocolManifest) -> Vec<u8> {
             source.license_applicability.as_str(),
             source.acknowledgement.as_str(),
             source.sha256.as_deref().unwrap_or(""),
+            source.permission_evidence_reference.as_deref().unwrap_or(""),
+            source.permission_evidence_sha256.as_deref().unwrap_or(""),
         ] {
             append_string(&mut bytes, value);
         }
@@ -661,10 +690,10 @@ pub fn dpw8_oat15a_protocol_sources_byte_pinned(
     manifest.sources.iter().all(|source| source.state.is_byte_pinned())
 }
 
-pub fn dpw8_oat15a_geometry_redistribution_permitted(
+pub fn dpw8_oat15a_geometry_permission_document_referenced(
     manifest: &Dpw8Oat15aProtocolManifest,
 ) -> bool {
-    manifest.geometry_redistribution_permitted()
+    manifest.geometry_permission_document_referenced()
 }
 
 fn csv_escape(value: &str) -> String {
