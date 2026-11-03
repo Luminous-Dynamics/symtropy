@@ -1,0 +1,731 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/test-run.schema.json",
+  "title": "WPT Round-Robin Test Run Manifest v1",
+  "description": "A reproducibility manifest for one WPT test run. Null values preserve unknowns; schema validation does not certify the physical validity or safety of a run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "protocol",
+    "system",
+    "conditions",
+    "metrology",
+    "energy_balance",
+    "power_quality",
+    "safety",
+    "artifact_refs",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-test-run-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "version",
+        "revision"
+      ],
+      "properties": {
+        "protocol_id": {
+          "const": "WPT-RR-01"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system_id",
+        "technology",
+        "topology",
+        "hardware_revision",
+        "controller_revision",
+        "power_rating_w"
+      ],
+      "properties": {
+        "system_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "technology": {
+          "enum": [
+            "IPT",
+            "CPT",
+            "RF_MICROWAVE",
+            "OPTICAL",
+            "HYBRID",
+            "OTHER"
+          ]
+        },
+        "topology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "power_rating_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "power_class",
+        "commanded_power_w",
+        "frequency_hz",
+        "transfer_gap_m",
+        "offset_x_m",
+        "offset_y_m",
+        "offset_z_m",
+        "yaw_deg",
+        "receiver_count",
+        "active_receiver_count",
+        "battery_voltage_v",
+        "load_profile_id",
+        "ambient_temperature_c",
+        "relative_humidity_pct",
+        "thermal_state"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "GRID_TO_VEHICLE",
+            "VEHICLE_TO_GRID",
+            "UNIDIRECTIONAL",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "power_class": {
+          "enum": [
+            "6_KW",
+            "11_KW",
+            "30_KW",
+            "HIGH_POWER",
+            "OTHER",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "commanded_power_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "frequency_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "transfer_gap_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "offset_x_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "offset_y_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "offset_z_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yaw_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "receiver_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_receiver_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "battery_voltage_v": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "load_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ambient_temperature_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "relative_humidity_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "thermal_state": {
+          "enum": [
+            "COLD_START",
+            "TRANSIENT",
+            "STEADY_STATE",
+            "THERMAL_SOAK",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "metrology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_start_utc",
+        "window_end_utc",
+        "sample_rate_hz",
+        "synchronization_error_s",
+        "power_basis",
+        "meters",
+        "measurement_planes"
+      ],
+      "properties": {
+        "window_start_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "window_end_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sample_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "synchronization_error_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "power_basis": {
+          "enum": [
+            "REAL_POWER",
+            "APPARENT_POWER_ONLY",
+            "MIXED",
+            "UNKNOWN"
+          ]
+        },
+        "meters": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "meter_id",
+              "role",
+              "model",
+              "calibration_reference",
+              "calibration_due_utc",
+              "bandwidth_hz",
+              "phase_error_deg",
+              "uncertainty_pct"
+            ],
+            "properties": {
+              "meter_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "SOURCE",
+                  "PRIMARY",
+                  "RECEIVER",
+                  "BATTERY",
+                  "AUXILIARY",
+                  "THERMAL",
+                  "FIELD",
+                  "OTHER"
+                ]
+              },
+              "model": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "calibration_reference": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "calibration_due_utc": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "bandwidth_hz": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "exclusiveMinimum": 0
+              },
+              "phase_error_deg": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "uncertainty_pct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "measurement_planes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "plane_id",
+              "role",
+              "real_power_w",
+              "apparent_power_va",
+              "reactive_power_var",
+              "voltage_rms_v",
+              "current_rms_a",
+              "power_factor",
+              "uncertainty_pct"
+            ],
+            "properties": {
+              "plane_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "MAINS_AC_INPUT",
+                  "SYSTEM_DC_INPUT",
+                  "PRIMARY_DC_BUS",
+                  "INVERTER_AC_OUTPUT",
+                  "RESONANT_LINK_AC_INPUT",
+                  "RECEIVER_AC_OUTPUT",
+                  "RECTIFIED_DC_OUTPUT",
+                  "BATTERY_DC_TERMINAL",
+                  "USEFUL_LOAD_DC",
+                  "AUXILIARY",
+                  "OTHER"
+                ]
+              },
+              "real_power_w": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "apparent_power_va": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "reactive_power_var": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "voltage_rms_v": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "current_rms_a": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "power_factor": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": -1,
+                "maximum": 1
+              },
+              "uncertainty_pct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "energy_balance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_energy_j",
+        "useful_energy_j",
+        "loss_terms",
+        "stored_energy_delta_j",
+        "residual_energy_j",
+        "residual_fraction_pct",
+        "expanded_uncertainty_pct"
+      ],
+      "properties": {
+        "source_energy_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "useful_energy_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "loss_terms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "stage_id",
+              "energy_j",
+              "evidence_kind"
+            ],
+            "properties": {
+              "stage_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "energy_j": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "evidence_kind": {
+                "enum": [
+                  "MEASURED",
+                  "AUTHOR_CALCULATED",
+                  "MODEL_DERIVED",
+                  "INFERRED",
+                  "UNKNOWN"
+                ]
+              }
+            }
+          }
+        },
+        "stored_energy_delta_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "residual_energy_j": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "residual_fraction_pct": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "expanded_uncertainty_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "power_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_current_thd_pct",
+        "secondary_current_thd_pct",
+        "voltage_thd_pct",
+        "thd_measurement_bandwidth_hz",
+        "thd_window_s",
+        "switching_frequency_hz",
+        "zvs_observed"
+      ],
+      "properties": {
+        "primary_current_thd_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "secondary_current_thd_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "voltage_thd_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "thd_measurement_bandwidth_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "thd_window_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "switching_frequency_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "zvs_observed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_edition",
+        "exposure_assessment_status",
+        "foreign_object_detection",
+        "unauthorized_receiver",
+        "communication_loss_response",
+        "thermal_maximum_c"
+      ],
+      "properties": {
+        "standard_edition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exposure_assessment_status": {
+          "enum": [
+            "NOT_ASSESSED",
+            "INCOMPLETE",
+            "ASSESSED"
+          ]
+        },
+        "foreign_object_detection": {
+          "enum": [
+            "NOT_RUN",
+            "PASS",
+            "FAIL",
+            "INCOMPLETE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "unauthorized_receiver": {
+          "enum": [
+            "NOT_RUN",
+            "PASS",
+            "FAIL",
+            "INCOMPLETE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "communication_loss_response": {
+          "enum": [
+            "NOT_RUN",
+            "SAFE_DEENERGIZE",
+            "UNSAFE",
+            "INCOMPLETE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "thermal_maximum_c": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "artifact_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_type",
+          "uri",
+          "sha256",
+          "media_type",
+          "description"
+        ],
+        "properties": {
+          "artifact_type": {
+            "enum": [
+              "RAW_WAVEFORM",
+              "CALIBRATION_CERTIFICATE",
+              "THERMAL_DATA",
+              "FIELD_MAP",
+              "FIRMWARE",
+              "ANALYSIS_CODE",
+              "REPORT",
+              "OTHER"
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "media_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qualification",
+        "deviations",
+        "notes"
+      ],
+      "properties": {
+        "qualification": {
+          "enum": [
+            "NOT_RUN",
+            "INCOMPLETE",
+            "QUALIFIED",
+            "NOT_COMPARABLE",
+            "MODEL_ONLY",
+            "REJECTED"
+          ]
+        },
+        "deviations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
