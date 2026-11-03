@@ -1148,4 +1148,49 @@ mod tests {
         altered.status = ApplicabilityStatus::OutOfDomain;
         assert!(verify_applicability_assessment(&m, &q, &altered).is_err());
     }
+
+    #[cfg(unix)]
+    #[test]
+    fn independent_python_oracle_replays_manifest_query_and_assessment() {
+        let m = manifest();
+        let q = query(0.77);
+        let assessment = assess_applicability_domain(&m, &q).unwrap();
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "aero-applicability-oracle-{}-{nonce}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).expect("create oracle fixture");
+        let manifest_path = root.join("manifest.csv");
+        let query_path = root.join("query.csv");
+        let assessment_path = root.join("assessment.csv");
+        std::fs::write(&manifest_path, applicability_manifest_to_csv(&m))
+            .expect("write manifest CSV");
+        std::fs::write(&query_path, applicability_query_to_csv(&q))
+            .expect("write query CSV");
+        std::fs::write(
+            &assessment_path,
+            applicability_assessment_to_csv(&assessment),
+        )
+        .expect("write assessment CSV");
+        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/verify-aero-applicability-independent.py");
+        let output = std::process::Command::new("python3")
+            .arg(script)
+            .arg(&manifest_path)
+            .arg(&query_path)
+            .arg(&assessment_path)
+            .output()
+            .expect("run independent Python oracle");
+        assert!(
+            output.status.success(),
+            "independent applicability oracle failed: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        std::fs::remove_dir_all(root).expect("remove oracle fixture");
+    }
 }
