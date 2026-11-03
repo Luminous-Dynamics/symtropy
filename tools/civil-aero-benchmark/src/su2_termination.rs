@@ -45,7 +45,7 @@ impl Su2NativeCriterionEvidenceScope {
 pub struct Su2NativeCriterionResult {
     /// The configured field supported by this native evidence.
     pub configured_field: String,
-    /// The emitted field label for a steady row, or the explicit aggregate sentinel for window success.
+    /// Literal SU2 row label for steady criteria, or the explicit aggregate sentinel for window success.
     pub reported_field: String,
     /// Whether this is a literal per-field row or a deduction from SU2's aggregate window-success banner.
     pub evidence_scope: Su2NativeCriterionEvidenceScope,
