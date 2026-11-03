@@ -153,15 +153,15 @@ pub struct PairSeparation {
     pub model_a: String,
     pub model_b: String,
     pub mean_d2: f64,
-    pub resolved: bool,
+    pub mean_separated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DiscriminationResult {
     pub status: DiscriminationStatus,
     pub minimum_pair_mean_d2: f64,
-    pub resolved_pair_count: usize,
-    pub unresolved_pair_count: usize,
+    pub mean_separated_pair_count: usize,
+    pub unmean_separated_pair_count: usize,
     pub pairwise: Vec<PairSeparation>,
 }
 
@@ -468,7 +468,7 @@ fn cholesky_positive_definite(
     Ok(lower)
 }
 
-fn pairwise_d2(
+fn pairwise_mean_d2(
     left: &ModelForecast,
     right: &ModelForecast,
     pairwise_observation_difference_covariance: &[Vec<f64>],
@@ -533,7 +533,7 @@ pub fn screen_intervention(
         for right_index in (left_index + 1)..batch.forecasts.len() {
             let left = &batch.forecasts[left_index];
             let right = &batch.forecasts[right_index];
-            let mean_d2 = pairwise_d2(
+            let mean_d2 = pairwise_mean_d2(
                 left,
                 right,
                 &batch.pairwise_observation_difference_covariance,
@@ -543,21 +543,21 @@ pub fn screen_intervention(
                 model_a: left.model_id.clone(),
                 model_b: right.model_id.clone(),
                 mean_d2,
-                resolved: mean_d2 >= policy.minimum_pair_mean_d2,
+                mean_separated: mean_d2 >= policy.minimum_pair_mean_d2,
             });
         }
     }
 
-    let resolved_pair_count = pairwise.iter().filter(|pair| pair.resolved).count();
-    let unresolved_pair_count = pairwise.len() - resolved_pair_count;
+    let mean_separated_pair_count = pairwise.iter().filter(|pair| pair.mean_separated).count();
+    let unmean_separated_pair_count = pairwise.len() - mean_separated_pair_count;
     let minimum_pair_mean_d2 = pairwise
         .iter()
         .map(|pair| pair.mean_d2)
         .fold(f64::INFINITY, f64::min);
 
-    let status = if unresolved_pair_count == 0 {
+    let status = if unmean_separated_pair_count == 0 {
         DiscriminationStatus::AllPairsMeanSeparated
-    } else if resolved_pair_count == 0 {
+    } else if mean_separated_pair_count == 0 {
         DiscriminationStatus::NoPairsMeanSeparated
     } else {
         DiscriminationStatus::SomePairsMeanSeparated
@@ -566,8 +566,8 @@ pub fn screen_intervention(
     Ok(DiscriminationResult {
         status,
         minimum_pair_mean_d2,
-        resolved_pair_count,
-        unresolved_pair_count,
+        mean_separated_pair_count,
+        unmean_separated_pair_count,
         pairwise,
     })
 }
@@ -820,8 +820,8 @@ mod tests {
         ]);
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
         assert_eq!(result.status, DiscriminationStatus::SomePairsMeanSeparated);
-        assert_eq!(result.resolved_pair_count, 2);
-        assert_eq!(result.unresolved_pair_count, 1);
+        assert_eq!(result.mean_separated_pair_count, 2);
+        assert_eq!(result.unmean_separated_pair_count, 1);
     }
 
     #[test]
@@ -833,8 +833,8 @@ mod tests {
         ]);
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
         assert_eq!(result.status, DiscriminationStatus::AllPairsMeanSeparated);
-        assert_eq!(result.resolved_pair_count, 3);
-        assert_eq!(result.unresolved_pair_count, 0);
+        assert_eq!(result.mean_separated_pair_count, 3);
+        assert_eq!(result.unmean_separated_pair_count, 0);
     }
 
     #[test]
@@ -906,7 +906,8 @@ mod tests {
         let mut candidate = forecast("connectome-model", vec![0.0], 0.1);
         candidate.evidence_tier = EvidenceTier::ConnectomeConstrained;
         add_connectome_artifacts(&mut candidate);
-        candidate.provenance.artifacts.push(candidate.provenance.artifacts[0].clone());
+        let duplicate_role = candidate.provenance.artifacts[0].clone();
+        candidate.provenance.artifacts.push(duplicate_role);
         assert_eq!(
             validate_prediction_batch(&batch(vec![
                 candidate,
