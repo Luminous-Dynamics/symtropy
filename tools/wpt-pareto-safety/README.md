@@ -2,7 +2,7 @@
 
 An independent, dependency-free Rust reference for engineering design ranking
 where safety and operating limits are hard constraints and measurements have
-explicit uncertainty intervals.
+explicit uncertainty intervals and explicit units.
 
 ## Core rule
 
@@ -36,7 +36,10 @@ For a lower-bound constraint x >= L:
 - Violated if interval.upper < L.
 - Uncertain otherwise.
 
-Intervals must be finite and ordered. An exact reported value can be
+Intervals must be finite and ordered. Every candidate metric, Pareto objective
+and hard constraint declares a unit string; unit mismatches are NotEvaluable,
+not implicitly converted. Convert values explicitly before evaluation and
+preserve the raw value and conversion provenance in the calling system. An exact reported value can be
 represented as a zero-width interval. Unknown uncertainty must not be replaced
 with a zero-width interval because that would manufacture precision.
 
@@ -92,7 +95,7 @@ not regulatory values, and no physical WPT system is being evaluated.
 
 ## Qualification status
 
-Twelve Rust unit tests are authored, including non-compensatory safety
+Fourteen Rust unit tests are authored, including non-compensatory safety
 violations, interval overlap, missingness, inclusive boundaries, robust
 dominance, overlap non-dominance, feasible-only fronts, deterministic ordering,
 duplicate identifiers and invalid intervals.
