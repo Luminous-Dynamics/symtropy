@@ -105,3 +105,25 @@ A rejected/deferred decision is a valid terminal state but cannot be followed by
 This v0.1 API handles one event per stage in a linear chain. It does not yet model branched work orders, partial repairs, repeated observations or multi-crew work graphs. Such workflows require a versioned event-graph extension rather than weakening this validator.
 
 The chain validator does not verify the factual quality of observation data, whether the human had legal authority, whether a repair physically succeeded, or whether the service outcome was caused by the action. It verifies that the declared evidence sequence is complete and internally linked. Those other questions require independent evidence and a governed evaluation.
+
+
+### 6. Machine-readable protocol adapter
+
+The crate parses the pinned CivBench experiment protocol JSON through a typed semantic adapter. The fixture is stored at `tests/fixtures/experiment.v0.1.json`, copied from the reviewed protocol PR rather than reconstructed by test code.
+
+The adapter checks:
+- supported protocol identity/version and explicit lifecycle status;
+- unique source, stage, estimand and dataset IDs;
+- G/M/I/H factor cardinalities (4/5/4/4);
+- the eleven expected benchmark lanes and twelve estimands;
+- all seven outcome evidence statuses, no-zero-fill behavior and evidence-class parity for paired deltas;
+- LeakDB paper-reproduction/full-corpus dataset identities, topology labels, scenario counts and source references;
+- L0/L1/L2 evaluation lanes;
+- complete-scenario split, train/validation/calibration/sealed-test partitions, train-only model/transform fitting, calibration-only threshold/calibration, evaluator-only test labels and frozen split/archive digests;
+- fail-closed provenance requirements.
+
+A manifest with lifecycle status `design_only_pre_registration_pending` is parsed for inspection but returns `confirmatory_eligible = false`. A `locked_pre_registration` manifest must carry a non-empty registry URI, UTC lock timestamp, valid SHA-256 lock digest and signature. A syntactically valid JSON document cannot promote itself to confirmatory status by changing its status string alone.
+
+This is semantic contract validation after JSON Schema validation, not cryptographic signature verification or an immutable registry implementation. The caller must verify the registry signature and lock timestamp before treating the receipt as authoritative.
+
+The adapter adds negative tests for unsupported versions, factor-cardinality drift, threshold fitting on sealed test, unknown source references and a locked status without a receipt.
