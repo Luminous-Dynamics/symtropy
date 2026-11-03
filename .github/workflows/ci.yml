@@ -93,13 +93,17 @@ jobs:
       run: cargo run --locked -p wpt-empirical-validator -- "${{ github.workspace }}"
 
     - name: Test WPT measurement comparator
+      if: hashFiles('tools/wpt-measurement-comparator/Cargo.toml') != ''
       run: cargo test --locked -p wpt-measurement-comparator
 
     - name: Validate WPT typed measurements and comparison fixtures
+      if: hashFiles('tools/wpt-measurement-comparator/Cargo.toml') != ''
       run: cargo run --locked -p wpt-measurement-comparator -- "${{ github.workspace }}"
 
     - name: Test WPT round-robin manifest validator
+      if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo test --locked -p wpt-round-robin-validator
 
     - name: Validate NOT_RUN round-robin manifest template
+      if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo run --locked -p wpt-round-robin-validator -- benchmarks/wpt-empirical/v1/test-run.example.json
