@@ -97,7 +97,10 @@
           "minLength": 1
         },
         "published_at": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "publication_id": {
           "type": "string"
@@ -110,6 +113,13 @@
         },
         "notes": {
           "type": "string"
+        },
+        "doi": {
+          "type": "string"
+        },
+        "board_approval_date": {
+          "type": "string",
+          "format": "date"
         }
       },
       "additionalProperties": true
@@ -161,6 +171,22 @@
         },
         "notes": {
           "type": "string"
+        },
+        "scan_method": {
+          "type": "string"
+        },
+        "frequency_band_policy": {
+          "type": "string"
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reference_testbed": {
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "additionalProperties": true
