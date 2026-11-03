@@ -344,16 +344,30 @@ pub fn audit(root: &Path) -> Result<Value, Box<dyn Error>> {
         let intent = text(case, "comparison_intent").unwrap_or("");
         let (actual, reasons) = compare_measurements(left, right, intent);
         let expected = text(case, "expected_disposition").unwrap_or("");
-        let matches = actual == expected;
+        let expected_reasons: BTreeSet<String> = case
+            .get("expected_reasons")
+            .and_then(Value::as_array)
+            .map(|items| items.iter().filter_map(Value::as_str).map(str::to_owned).collect())
+            .unwrap_or_default();
+        let actual_reasons: BTreeSet<String> = reasons.iter().cloned().collect();
+        let missing_expected_reasons: Vec<String> = expected_reasons
+            .difference(&actual_reasons)
+            .cloned()
+            .collect();
+        let matches = actual == expected && missing_expected_reasons.is_empty();
         if !matches {
-            mismatches.push(format!("{cid}: expected {expected}, got {actual} ({})", reasons.join(",")));
+            mismatches.push(format!(
+                "{cid}: expected {expected} with reasons {:?}, got {actual} with reasons {:?}; missing expected reasons {:?}",
+                expected_reasons, reasons, missing_expected_reasons
+            ));
         }
         results.push(json!({
             "case_id": cid,
             "actual": actual,
             "expected": expected,
             "matches_expected": matches,
-            "reasons": reasons
+            "reasons": reasons,
+            "missing_expected_reasons": missing_expected_reasons
         }));
     }
 
