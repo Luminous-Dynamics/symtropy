@@ -9,11 +9,11 @@ import struct
 import sys
 from pathlib import Path
 
-SCHEMA = "aero-policy-feasibility-audit/0.1.0"
+SCHEMA = "aero-policy-feasibility-audit/0.2.0"
 EVIDENCE = (
-    "exact_admitted_candidate_frame_with_separate_caller_declared_independent_"
-    "adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_"
-    "independence_or_physical_certification"
+    "exact_upstream_scorecard_candidate_frame_and_complete_operation_ledger_receipt_"
+    "replayed_with_caller_declared_independent_adjudication_and_worst_case_unresolved_"
+    "bounds_not_authenticated_verifier_independence_or_physical_certification"
 )
 
 
