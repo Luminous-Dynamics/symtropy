@@ -261,3 +261,19 @@ Proposed qualification targets:
 
 The 1% inactive-branch target is a proposed research threshold, not a standard limit or an achieved result. It must be applied to each branch's own continuous current rating, not to the active branch or the system's aggregate current.
 
+## 9. Cyber-physical resilience as a hard benchmark dimension
+
+A 2026 BWPT review frames modelling, control, communication and cybersecurity as a coupled system. It identifies spoofing/replay, firmware manipulation, inductive sensor-data injection, timing/latency exploitation, credential compromise, DoS and grid-side command injection as paths into control instability, loss of ZVS, increased circulating current, unintended V2G and thermal stress. (Elumalai et al., DOI 10.1002/ese3.70608.)
+
+Proposed synthetic/bench qualification objectives (not achieved):
+- 100% rejection of a frozen corpus of forged receiver identities, stale/replayed commands and unauthorized power-class/direction requests.
+- No frequency-network selection unless receiver identity, authenticated session, requested power class and physical alignment agree.
+- All replay/freshness checks bind nonce/timestamp/sequence to session identity, direction, power class, frequency and expiry; stale state cannot be reused after reconnection.
+- Firmware integrity and protection-threshold configuration are measured and tied to the run manifest; modified firmware causes a fail-safe rejection.
+- Sensor cross-checks detect injected current/voltage/phase/alignment/temperature disagreement before control actuation; the safe fallback must not depend solely on the compromised sensor.
+- Networked-mode p99 latency and maximum jitter are measured at each load/mode transition; timeouts lead to safe de-energization or a qualified local-safe mode.
+- A denial-of-service or EMI-corrupted communication test may reduce service availability but must not cause unintended energization, reverse power flow, switch chatter or resonant-network co-activation.
+- Report energy/efficiency impact of security controls separately from cryptographic CPU load, communication standby, sensing and fault-response energy.
+
+Security, safety, availability and efficiency form a constrained Pareto surface. A higher transfer efficiency never compensates for unauthorized power flow, replay acceptance, sensor-trust failure or unsafe fallback.
+
