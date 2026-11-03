@@ -415,7 +415,9 @@ fn classify_exit_section(
             return match parse_steady_native_criteria(section, &protocol.steady_fields) {
                 Ok(criteria) => {
                     let passed = !criteria.is_empty()
-                        && criteria.iter().all(|criterion| criterion.status == "passed");
+                        && criteria
+                            .iter()
+                            .all(|criterion| criterion.status == "passed");
                     Ok((
                         "steady".to_owned(),
                         if passed {
@@ -835,7 +837,11 @@ mod tests {
                 "time_window_native_criteria_satisfied_with_coincident_limit"
             );
             assert_eq!(criteria.len(), 2);
-            assert!(criteria.iter().all(|criterion| criterion.status == "passed"));
+            assert!(
+                criteria
+                    .iter()
+                    .all(|criterion| criterion.status == "passed")
+            );
             assert_eq!(messages.len(), 2);
             let report = Su2TerminationReport {
                 schema: SU2_TERMINATION_SCHEMA.to_owned(),
