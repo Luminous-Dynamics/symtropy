@@ -179,3 +179,25 @@ A further standards-development item is now tracked separately from the publishe
 - **Revision project:** IEEE lists P63184 as an Active PAR approved 10 September 2025 that will supersede 63184-2025. This is a revision project, not a published replacement standard as of 3 November 2026. Do not cite P63184 as normative compliance criteria or assume its intended changes have entered into force.
 
 This is a useful programme watch because the current published edition focuses on inductive WPT and says future versions will consider extended capacitive-WPT assessment guidance. The WPT benchmark should support standards versioning at the test-record level: a test must identify the edition, national adoption and assessment method actually used. Standards metadata is not evidence of compliance.
+
+## Modular power-class and multi-receiver 2026 industry frontier
+
+Four new prototype families broaden the benchmark beyond single-receiver high-power pads:
+
+| Family | Source-reported result | Why it matters / why not mixed with 50 kW bus lane |
+|---|---|---|
+| Liu et al. scalable multichannel IPT | 4.60 kW scaled prototype; all five tested modes report DC-to-DC efficiency above 80%; high efficiency retained under misalignment | Power-class scalability and modular coupler interoperability; mode-wise points and exact test conditions are not reported in the abstract. DOI 10.1109/TIE.2026.3697464. |
+| Liu et al. dual-channel reconfigurable IPT | 6.6 kW downscaled prototype; six maximum DC-to-DC efficiencies reported in abstract order: 90.27, 90.33, 91.25, 91.37, 91.71 and 94.48% | SAE WPT1/WPT2/WPT3 interoperability, two channels and misalignment tolerance; exact mode-to-class mapping and mode output powers require full text. DOI 10.1109/TPEL.2026.3689138. |
+| Wang et al. integrated WPT/LVDC | WPT mode: 6.8 kW at 96.5%; separate LVDC mode: 1 kW at 89.1% | Reuses receiver bridge, resonant elements, core and coils to provide an extra wired LVDC function. LVDC efficiency is not WPT efficiency. DOI 10.1109/TPEL.2026.3704859. |
+| Singhal et al. modular series transmitter array | Two independent simultaneous EV receiver channels; 4 kW total output; maximum 95.7% efficiency at equal loads | Shared EVSE/inverter and LCL network can activate channels independently without cross-regulation. DOI 10.1109/TIE.2025.3605456. |
+
+A related 96-page 2026 TU Delft doctoral dissertation by Calvin Riekerk, *Modular Wireless Power Transfer System for EV Opportunity Charging* (DOI 10.4233/uuid:022e25d4-7c01-4a4b-91e9-4c7608096121), is registered as contextual bibliography for the existing Riekerk bus family, not counted as another independent experiment. Its abstract covers modular topology, converter choices, high-voltage stress, inter-/cross-coupling and neutral-point-clamped converters; the thesis itself has not been transcribed into the benchmark.
+
+These additions create a new evaluation lane: **modular interoperability and multi-receiver operation**. Report per-mode power/efficiency, aggregate output, channel fairness, cross-regulation, channel isolation, shared-vs-per-channel overhead, power-class switching latency and partial-load performance. Do not compare a 4–7 kW downscaled topology directly with 50 kW bus opportunity charging on nominal efficiency alone.
+
+Primary-source publisher abstracts and records:
+- https://doi.org/10.1109/TIE.2026.3697464
+- https://doi.org/10.1109/TPEL.2026.3689138
+- https://doi.org/10.1109/TPEL.2026.3704859
+- https://doi.org/10.1109/TIE.2025.3605456
+- https://doi.org/10.4233/uuid:022e25d4-7c01-4a4b-91e9-4c7608096121
