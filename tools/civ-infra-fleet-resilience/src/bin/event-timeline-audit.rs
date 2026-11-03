@@ -122,10 +122,17 @@ struct Counts {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+struct EventInvalidation {
+    case_id: String,
+    targets: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 struct EvaluatorTick {
     tick: u64,
     injected_event_ids: Vec<String>,
     events_injected_but_not_yet_observable: Vec<String>,
+    invalidations_in_effect: Vec<EventInvalidation>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -140,6 +147,8 @@ struct PolicyTick {
     tick: u64,
     visible_event_ids: Vec<String>,
     newly_observed_events: Vec<NewlyObservedEvent>,
+    known_invalidations_in_effect: Vec<EventInvalidation>,
+    latent_invalidations_in_effect: Vec<EventInvalidation>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -248,10 +257,19 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
                 .filter(|case| case.injection_tick <= tick && case.observable_tick > tick)
                 .map(|case| case.case_id.clone())
                 .collect();
+            let invalidations_in_effect = cases
+                .iter()
+                .filter(|case| case.injection_tick <= tick)
+                .map(|case| EventInvalidation {
+                    case_id: case.case_id.clone(),
+                    targets: case.invalidates.clone(),
+                })
+                .collect();
             EvaluatorTick {
                 tick,
                 injected_event_ids,
                 events_injected_but_not_yet_observable,
+                invalidations_in_effect,
             }
         })
         .collect();
@@ -274,10 +292,28 @@ fn verify_fixture_bytes(input_bytes: &[u8]) -> Result<TimelineReport, Vec<String
                     event: case.event.as_str().to_string(),
                 })
                 .collect();
+            let known_invalidations_in_effect = cases
+                .iter()
+                .filter(|case| case.observable_tick <= tick)
+                .map(|case| EventInvalidation {
+                    case_id: case.case_id.clone(),
+                    targets: case.invalidates.clone(),
+                })
+                .collect();
+            let latent_invalidations_in_effect = cases
+                .iter()
+                .filter(|case| case.injection_tick <= tick && case.observable_tick > tick)
+                .map(|case| EventInvalidation {
+                    case_id: case.case_id.clone(),
+                    targets: case.invalidates.clone(),
+                })
+                .collect();
             PolicyTick {
                 tick,
                 visible_event_ids,
                 newly_observed_events,
+                known_invalidations_in_effect,
+                latent_invalidations_in_effect,
             }
         })
         .collect();
@@ -376,6 +412,13 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                 case.case_id
             ));
         }
+        if case.invalidates.is_empty() {
+            errors.push(format!(
+                "{}: each disturbance must declare at least one invalidation target",
+                case.case_id
+            ));
+        }
+        let mut invalidation_targets = BTreeSet::new();
         if case
             .affected_resources
             .iter()
@@ -398,6 +441,14 @@ fn validate_fixture(fixture: &Fixture) -> Vec<String> {
                 "{}: disturbance references must not contain empty IDs",
                 case.case_id
             ));
+        }
+        for target in &case.invalidates {
+            if !invalidation_targets.insert(target.as_str()) {
+                errors.push(format!(
+                    "{}: duplicate invalidation target: {target}",
+                    case.case_id
+                ));
+            }
         }
         maximum_tick = maximum_tick
             .max(case.observable_tick)
@@ -450,6 +501,7 @@ mod tests {
     fn delayed_event_is_evaluator_known_but_policy_hidden_until_observed() {
         let bytes = EMBEDDED_FIXTURE.as_bytes();
         let report = verify_fixture_bytes(bytes).expect("fixture must validate");
+        let evaluator_tick_one = &report.evaluator_timeline[1];
         let evaluator_tick_two = &report.evaluator_timeline[2];
         let policy_tick_three = &report.policy_timeline[3];
         let policy_tick_four = &report.policy_timeline[4];
@@ -483,6 +535,44 @@ mod tests {
                 && item.observed_at_tick == 4
                 && item.event == "workface_geometry_revision_changed"
         }));
+
+        let has_target = |entries: &[EventInvalidation], case_id: &str, target: &str| {
+            entries
+                .iter()
+                .any(|entry| entry.case_id == case_id && entry.targets.iter().any(|id| id == target))
+        };
+        // The evaluator knows the geometry revision changed at injection tick 2.
+        // The policy knows the listed derivations are stale only at observation tick 4.
+        assert!(!has_target(
+            &evaluator_tick_one.invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
+        assert!(has_target(
+            &evaluator_tick_two.invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
+        assert!(!has_target(
+            &policy_tick_three.known_invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
+        assert!(has_target(
+            &policy_tick_three.latent_invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
+        assert!(has_target(
+            &policy_tick_four.known_invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
+        assert!(!has_target(
+            &policy_tick_four.latent_invalidations_in_effect,
+            "R-008",
+            "site-snapshot"
+        ));
     }
 
     #[test]
@@ -490,6 +580,33 @@ mod tests {
         let mut candidate: serde_json::Value = serde_json::from_str(EMBEDDED_FIXTURE).unwrap();
         candidate["disturbance_cases"][0]["event"] =
             serde_json::Value::String("unknown_event_kind".to_string());
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        assert!(verify_fixture_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn duplicate_invalidation_target_in_one_event_is_rejected() {
+        let mut candidate = fixture();
+        let case = candidate
+            .disturbance_cases
+            .iter_mut()
+            .find(|case| case.case_id == "R-008")
+            .unwrap();
+        case.invalidates.push("site-snapshot".to_string());
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        assert!(verify_fixture_bytes(&bytes).is_err());
+    }
+
+    #[test]
+    fn missing_invalidation_targets_are_rejected() {
+        let mut candidate = fixture();
+        candidate
+            .disturbance_cases
+            .iter_mut()
+            .find(|case| case.case_id == "R-008")
+            .unwrap()
+            .invalidates
+            .clear();
         let bytes = serde_json::to_vec(&candidate).unwrap();
         assert!(verify_fixture_bytes(&bytes).is_err());
     }
