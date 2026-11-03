@@ -121,6 +121,22 @@
         "evidence_class": "systematic_review_and_benchmark_244_records_71_DL_studies",
         "assurance": "review and paper-specific benchmark; treat reported results by task/split, not as one universal leaderboard",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "LI_GAO_INTEGRATED_LEAK_PRESSURE_TWIN_2026",
+        "uri": "https://doi.org/10.1038/s41598-026-73010-y",
+        "period": "published_2026-10-24",
+        "evidence_class": "published_integrated_digital_twin_case_study",
+        "assurance": "Reports pooled in-house F1 0.916 and Top-5 hit rate 0.816; independent BattLeDIM validation retains F1 0.818 with approximately 20 percentage-point Top-5 hit-rate loss; results are paper-specific and not a matched CivBench leaderboard result",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "BABELA_MUNK_MUNKOVA_SLOVAK_WDN_DATASET_2026",
+        "uri": "https://doi.org/10.1038/s41597-026-07203-5",
+        "period": "published_2026-04-17_data_year_2022",
+        "evidence_class": "published_real_utility_anonymized_temporal_dataset",
+        "assurance": "One anonymized distribution zone and 8,737 hourly records; 18 precomputed anomaly-score features and OIS fault labels within +/-7-day windows; unlabelled periods are not proven leak-free; public release does not include raw telemetry or source code, and label-associated feature selection cannot be assumed split-safe",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -626,4 +642,3 @@
     }
   }
 }
-
