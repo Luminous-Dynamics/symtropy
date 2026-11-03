@@ -1047,7 +1047,10 @@ WINDOW_CAUCHY_CRIT= NO
             report.convergence_protocol.window,
             Su2WindowConvergenceProtocol::Disabled
         );
-        assert!(report.to_csv().contains(",YES,NO,,"));
+        let csv = report.to_csv();
+        let row = csv.lines().nth(1).expect("preflight CSV data row");
+        assert!(row.contains(",YES,NO,\"\","));
+        assert!(row.contains(",\"ITER;RMS_RES;AERO_COEFF\","));
         fs::remove_dir_all(root).expect("remove unsteady endpoint fixture");
     }
 
