@@ -1637,6 +1637,27 @@ pub struct LeakDatasetDescriptor {
     pub scenario_count: usize,
 }
 
+/// One external evaluation lane whose evidence semantics differ from LeakDB.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalEvaluationLaneDescriptor {
+    /// Stable evaluation lane identifier.
+    pub lane_id: String,
+    /// Stable dataset identifier.
+    pub dataset_id: String,
+    /// Sampling interval in minutes.
+    pub time_step_minutes: u64,
+    /// Record count when the public dataset has a fixed row count.
+    pub record_count: Option<usize>,
+    /// Number of public derived features, when applicable.
+    pub feature_count: Option<usize>,
+    /// Whether the dataset supports pipe-level localization.
+    pub pipe_localization_supported: bool,
+    /// Whether the evaluation data are a secret, blind holdout.
+    pub blind_holdout: bool,
+    /// Source inventory identifiers backing the lane.
+    pub source_ids: Vec<String>,
+}
+
 /// Validated projection of CivBench experiment protocol v0.1.
 ///
 /// This adapter validates the decision-critical manifest contract used by
@@ -1667,6 +1688,8 @@ pub struct ExperimentProtocolV0_1 {
     pub benchmark_lanes: Vec<String>,
     /// LeakDB dataset inventory.
     pub leak_datasets: Vec<LeakDatasetDescriptor>,
+    /// External SCADA and weak-label evaluation lanes.
+    pub external_evaluation_lanes: Vec<ExternalEvaluationLaneDescriptor>,
 }
 
 /// Error returned when a JSON protocol manifest fails semantic validation.
@@ -1723,6 +1746,24 @@ fn manifest_string(
         .ok_or_else(|| {
             ManifestAdapterError::new(path, "expected a non-empty string")
         })
+}
+
+fn manifest_u64(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<u64, ManifestAdapterError> {
+    value.as_u64().ok_or_else(|| {
+        ManifestAdapterError::new(path, "expected a non-negative integer")
+    })
+}
+
+fn manifest_bool(
+    value: &serde_json::Value,
+    path: &str,
+) -> Result<bool, ManifestAdapterError> {
+    value
+        .as_bool()
+        .ok_or_else(|| ManifestAdapterError::new(path, "expected a boolean"))
 }
 
 fn manifest_array<'a>(
@@ -2226,6 +2267,221 @@ impl ExperimentProtocolV0_1 {
             )?;
         }
 
+        let external_lanes = manifest_field(
+            leak,
+            "external_evaluation_lanes",
+            "$.leak_benchmark_contract",
+        )?;
+
+        let battledim_path =
+            "$.leak_benchmark_contract.external_evaluation_lanes.L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA";
+        let battledim = manifest_field(
+            external_lanes,
+            "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA",
+            "$.leak_benchmark_contract.external_evaluation_lanes",
+        )?;
+        let battledim_id = manifest_string(
+            manifest_field(battledim, "dataset_id", battledim_path)?,
+            &format!("{battledim_path}.dataset_id"),
+        )?;
+        if battledim_id != "BATTLEDIM_L_TOWN_2018_2019" {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.dataset_id"),
+                "unexpected BattLeDIM dataset identity",
+            ));
+        }
+        let battledim_step = manifest_u64(
+            manifest_field(battledim, "time_step_minutes", battledim_path)?,
+            &format!("{battledim_path}.time_step_minutes"),
+        )?;
+        if battledim_step != 5 {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.time_step_minutes"),
+                "BattLeDIM SCADA sampling interval must be five minutes",
+            ));
+        }
+        let battledim_sensor_path = format!("{battledim_path}.sensor_inventory");
+        let battledim_sensors =
+            manifest_field(battledim, "sensor_inventory", battledim_path)?;
+        for (key, expected) in [
+            ("tank_level", 1_u64),
+            ("flow", 3_u64),
+            ("pressure", 33_u64),
+            ("area_c_amr", 82_u64),
+        ] {
+            let actual = manifest_u64(
+                manifest_field(battledim_sensors, key, &battledim_sensor_path)?,
+                &format!("{battledim_sensor_path}.{key}"),
+            )?;
+            if actual != expected {
+                return Err(ManifestAdapterError::new(
+                    format!("{battledim_sensor_path}.{key}"),
+                    format!("expected {expected}"),
+                ));
+            }
+        }
+        let battledim_task = manifest_string(
+            manifest_field(battledim, "task", battledim_path)?,
+            &format!("{battledim_path}.task"),
+        )?;
+        if battledim_task != "event_detection_and_leak_localization_with_operational_costs" {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.task"),
+                "unexpected BattLeDIM evaluation task",
+            ));
+        }
+        let battledim_holdout = manifest_string(
+            manifest_field(battledim, "holdout_status", battledim_path)?,
+            &format!("{battledim_path}.holdout_status"),
+        )?;
+        if battledim_holdout != "public_historical_external_evaluation_not_secret_or_blind" {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.holdout_status"),
+                "public historical data must not be described as a blind holdout",
+            ));
+        }
+        let battledim_source_ids = manifest_string_array(
+            manifest_field(battledim, "source_refs", battledim_path)?,
+            &format!("{battledim_path}.source_refs"),
+        )?;
+        if battledim_source_ids.len() < 2
+            || battledim_source_ids.iter().any(|id| !source_ids.contains(id))
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{battledim_path}.source_refs"),
+                "external lane must cite at least two known source records",
+            ));
+        }
+
+        let slovak_path =
+            "$.leak_benchmark_contract.external_evaluation_lanes.L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY";
+        let slovak = manifest_field(
+            external_lanes,
+            "L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY",
+            "$.leak_benchmark_contract.external_evaluation_lanes",
+        )?;
+        let slovak_id = manifest_string(
+            manifest_field(slovak, "dataset_id", slovak_path)?,
+            &format!("{slovak_path}.dataset_id"),
+        )?;
+        if slovak_id != "SLOVAK_2022_ONE_ZONE_HOURLY_ANOMALY_SCORES" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.dataset_id"),
+                "unexpected Slovak weak-label dataset identity",
+            ));
+        }
+        let slovak_step = manifest_u64(
+            manifest_field(slovak, "time_step_minutes", slovak_path)?,
+            &format!("{slovak_path}.time_step_minutes"),
+        )?;
+        let slovak_records = manifest_u64(
+            manifest_field(slovak, "record_count", slovak_path)?,
+            &format!("{slovak_path}.record_count"),
+        )?;
+        let slovak_features = manifest_u64(
+            manifest_field(slovak, "feature_count", slovak_path)?,
+            &format!("{slovak_path}.feature_count"),
+        )?;
+        let slovak_label_window = manifest_u64(
+            manifest_field(slovak, "label_window_days", slovak_path)?,
+            &format!("{slovak_path}.label_window_days"),
+        )?;
+        if slovak_step != 60
+            || slovak_records != 8_737
+            || slovak_features != 18
+            || slovak_label_window != 7
+        {
+            return Err(ManifestAdapterError::new(
+                slovak_path,
+                "Slovak lane must preserve its 8,737 hourly, 18-feature, +/-7-day identity",
+            ));
+        }
+        let localization_supported = manifest_bool(
+            manifest_field(slovak, "pipe_localization_supported", slovak_path)?,
+            &format!("{slovak_path}.pipe_localization_supported"),
+        )?;
+        if localization_supported {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.pipe_localization_supported"),
+                "weak-label zone data do not support pipe-level localization",
+            ));
+        }
+        let slovak_task = manifest_string(
+            manifest_field(slovak, "task", slovak_path)?,
+            &format!("{slovak_path}.task"),
+        )?;
+        if slovak_task != "weak_label_temporal_anomaly_and_lead_time_only" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.task"),
+                "unexpected Slovak evaluation task",
+            ));
+        }
+        let slovak_holdout = manifest_string(
+            manifest_field(slovak, "holdout_status", slovak_path)?,
+            &format!("{slovak_path}.holdout_status"),
+        )?;
+        if slovak_holdout != "public_single_zone_processed_dataset_not_blind_holdout" {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.holdout_status"),
+                "public processed data must not be described as a blind holdout",
+            ));
+        }
+        let negative_semantics = manifest_string(
+            manifest_field(slovak, "negative_semantics", slovak_path)?,
+            &format!("{slovak_path}.negative_semantics"),
+        )?;
+        if !negative_semantics.contains("not_proof_of_leak_free_state") {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.negative_semantics"),
+                "unconfirmed windows must not be treated as verified negatives",
+            ));
+        }
+        let slovak_source_ids = manifest_string_array(
+            manifest_field(slovak, "source_refs", slovak_path)?,
+            &format!("{slovak_path}.source_refs"),
+        )?;
+        if slovak_source_ids.is_empty()
+            || slovak_source_ids.iter().any(|id| !source_ids.contains(id))
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{slovak_path}.source_refs"),
+                "external lane must cite known source records",
+            ));
+        }
+
+        let external_evaluation_lanes = vec![
+            ExternalEvaluationLaneDescriptor {
+                lane_id: "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA".to_owned(),
+                dataset_id: battledim_id,
+                time_step_minutes: battledim_step,
+                record_count: None,
+                feature_count: None,
+                pipe_localization_supported: true,
+                blind_holdout: false,
+                source_ids: battledim_source_ids,
+            },
+            ExternalEvaluationLaneDescriptor {
+                lane_id: "L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY".to_owned(),
+                dataset_id: slovak_id,
+                time_step_minutes: slovak_step,
+                record_count: Some(usize::try_from(slovak_records).map_err(|_| {
+                    ManifestAdapterError::new(
+                        format!("{slovak_path}.record_count"),
+                        "record count exceeds platform range",
+                    )
+                })?),
+                feature_count: Some(usize::try_from(slovak_features).map_err(|_| {
+                    ManifestAdapterError::new(
+                        format!("{slovak_path}.feature_count"),
+                        "feature count exceeds platform range",
+                    )
+                })?),
+                pipe_localization_supported: false,
+                blind_holdout: false,
+                source_ids: slovak_source_ids,
+            },
+        ];
+
         let split = manifest_field(
             leak,
             "split_contract",
@@ -2423,6 +2679,7 @@ impl ExperimentProtocolV0_1 {
             estimand_ids,
             benchmark_lanes,
             leak_datasets,
+            external_evaluation_lanes,
         })
     }
 }
@@ -2468,6 +2725,20 @@ mod tests {
         assert_eq!(manifest.estimand_ids.len(), 12);
         assert_eq!(manifest.benchmark_lanes.len(), 11);
         assert_eq!(manifest.leak_datasets.len(), 3);
+        assert_eq!(manifest.external_evaluation_lanes.len(), 2);
+        assert!(manifest.external_evaluation_lanes.iter().any(|lane| {
+            lane.dataset_id == "BATTLEDIM_L_TOWN_2018_2019"
+                && lane.time_step_minutes == 5
+                && lane.pipe_localization_supported
+                && !lane.blind_holdout
+        }));
+        assert!(manifest.external_evaluation_lanes.iter().any(|lane| {
+            lane.dataset_id == "SLOVAK_2022_ONE_ZONE_HOURLY_ANOMALY_SCORES"
+                && lane.record_count == Some(8_737)
+                && lane.feature_count == Some(18)
+                && !lane.pipe_localization_supported
+                && !lane.blind_holdout
+        }));
         assert!(manifest.leak_datasets.iter().any(|dataset| {
             dataset.dataset_id == "LEAKDB_HANOI_1000" && dataset.scenario_count == 1000
         }));
@@ -2582,6 +2853,49 @@ mod tests {
         assert!(matches!(
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. }) if path == "$.factors.H.kind"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_battledim_sensor_inventory_drift() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["external_evaluation_lanes"]
+            ["L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA"]["sensor_inventory"]["pressure"] = 32.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("sensor_inventory.pressure")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_slovak_pipe_localization_claim() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["external_evaluation_lanes"]
+            ["L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY"]["pipe_localization_supported"] = true.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("pipe_localization_supported")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unknown_external_lane_source() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["leak_benchmark_contract"]["external_evaluation_lanes"]
+            ["L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY"]["source_refs"][0] =
+            "UNKNOWN_SOURCE".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("source_refs")
         ));
     }
 
