@@ -55,6 +55,7 @@ A unit or property test verifies an identity or invariant with explicit
 numerical tolerance. Examples:
 
 - `RᵀR = I` and `det(R) = +1` for generated rotations.
+- Orthogonal-frame equivariance: rotating initial position, velocity, and acceleration together must rotate the integrated trajectory by the same `SO(D)` transform.
 - Support points maximize the dot product for known primitives.
 - Antiparallel vector alignment maps the source vector to the target.
 - Wedge products are antisymmetric.
@@ -75,7 +76,7 @@ Required first suite:
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
 
-The included `free_fall_validation` example is the reference format. The fail-closed `free_fall_convergence_gate` additionally checks the exact semi-implicit Euler position-error and mechanical-energy-drift predictions across four timesteps in 2D, 3D, and 4D.
+The included `free_fall_validation` example is the reference format. The fail-closed `free_fall_convergence_gate` additionally checks the exact semi-implicit Euler position-error and mechanical-energy-drift predictions across four timesteps in 2D, 3D, and 4D. The integrator tests separately compare a trajectory with a rotated copy under a generic deterministic `SO(D)` rotor in 2D, 3D, and 4D. This checks frame equivariance, not physical accuracy or rotational inertia.
 
 ### Tier C — Independent implementation comparison
 
