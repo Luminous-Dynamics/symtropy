@@ -14,7 +14,8 @@
     "prototype",
     "measurements",
     "source_refs",
-    "data_status"
+    "data_status",
+    "claim_audit"
   ],
   "properties": {
     "schema_version": {
@@ -489,6 +490,54 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "claim_audit": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id",
+          "source_locator",
+          "claim_text",
+          "metric_label",
+          "status",
+          "notes"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          },
+          "source_locator": {
+            "type": "string"
+          },
+          "claim_text": {
+            "type": "string"
+          },
+          "metric_label": {
+            "type": "string"
+          },
+          "value_percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "status": {
+            "enum": [
+              "RECONCILED",
+              "DISCREPANCY",
+              "AMBIGUOUS_BOUNDARY",
+              "UNRESOLVED"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
       }
     }
   }
