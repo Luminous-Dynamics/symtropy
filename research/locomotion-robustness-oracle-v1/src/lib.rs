@@ -461,7 +461,8 @@ fn validate_episode(
     {
         return Err(RobustnessError::EvidenceTierMismatch);
     }
-    if record.model_evidence_tier >= ModelEvidenceTier::ConnectomeConstrained
+    if (is_connectome_family(record.model_family)
+        || record.model_evidence_tier == ModelEvidenceTier::ConnectomeConstrained)
         && (record.connectome_sha256.is_none()
             || record.biological_source_sha256.is_none()
             || record.sensor_mapping_sha256.is_none()
@@ -476,9 +477,13 @@ fn validate_episode(
     {
         return Err(RobustnessError::MissingEvidenceArtifact("muscle_mapping"));
     }
+    if record.model_evidence_tier >= ModelEvidenceTier::PerturbationGrounded
+        && record.biological_source_sha256.is_none()
+    {
+        return Err(RobustnessError::MissingEvidenceArtifact("biological_source"));
+    }
     if record.model_evidence_tier == ModelEvidenceTier::PerturbationGrounded
-        && (record.evaluation_tier < EvaluationTier::MeasuredIntervention
-            || record.biological_source_sha256.is_none())
+        && record.evaluation_tier < EvaluationTier::MeasuredIntervention
     {
         return Err(RobustnessError::EvidenceTierMismatch);
     }
@@ -1206,6 +1211,11 @@ mod tests {
             code_sha256: digest('8'),
             parameter_sha256: digest('9'),
             controller_config_sha256: if model_id == "candidate" { digest('a') } else { digest('b') },
+            connectome_sha256: Some(digest('f')),
+            biological_source_sha256: Some(digest('1')),
+            sensor_mapping_sha256: Some(digest('2')),
+            effector_mapping_sha256: Some(digest('3')),
+            muscle_mapping_sha256: None,
             raw_trajectory_sha256: digest('c'),
             metric_payload_sha256: digest('d'),
             run_receipt_sha256: digest('e'),
@@ -1396,6 +1406,45 @@ mod tests {
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
             Err(RobustnessError::EvidenceTierMismatch)
+        );
+    }
+
+    #[test]
+    fn connectome_model_requires_all_mapping_artifacts() {
+        let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
+        invalid.sensor_mapping_sha256 = None;
+        assert_eq!(
+            analyze_robustness(&protocol(), &[invalid]),
+            Err(RobustnessError::MissingEvidenceArtifact("connectome_or_mapping"))
+        );
+    }
+
+    #[test]
+    fn muscle_actuated_model_requires_a_muscle_mapping_artifact() {
+        let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
+        invalid.model_family = ModelFamily::MuscleActuatedController;
+        invalid.model_evidence_tier = ModelEvidenceTier::Phenomenological;
+        invalid.muscle_mapping_sha256 = None;
+        assert_eq!(
+            analyze_robustness(&protocol(), &[invalid]),
+            Err(RobustnessError::MissingEvidenceArtifact("muscle_mapping"))
+        );
+    }
+
+    #[test]
+    fn perturbation_grounded_non_connectome_model_requires_biological_source_and_data() {
+        let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
+        invalid.model_family = ModelFamily::LearnedController;
+        invalid.model_evidence_tier = ModelEvidenceTier::PerturbationGrounded;
+        invalid.connectome_sha256 = None;
+        invalid.sensor_mapping_sha256 = None;
+        invalid.effector_mapping_sha256 = None;
+        invalid.measured_dataset_sha256 = Some(digest('m'));
+        invalid.evaluation_tier = EvaluationTier::MeasuredIntervention;
+        invalid.biological_source_sha256 = None;
+        assert_eq!(
+            analyze_robustness(&protocol(), &[invalid]),
+            Err(RobustnessError::MissingEvidenceArtifact("biological_source"))
         );
     }
 
