@@ -555,14 +555,17 @@ fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpO
             let support_upper = gradient_box_support_upper(gradient, &optimum.direction);
             if support_upper > required_upper {
                 let corner = adverse_box_corner(gradient, &optimum.direction);
-                if cuts.contains(&corner)
-                    || new_cuts.iter().any(|(candidate, _)| *candidate == corner)
-                {
+                if cuts.contains(&corner) {
                     // A previously enforced exact corner cannot violate its
                     // own LP constraint; treat this as an internal inconsistency.
                     return None;
                 }
-                new_cuts.push((corner, branch_index));
+                // One identical rational corner can be adverse for multiple
+                // boxes. Its single LP row is sufficient for the shared point;
+                // full support for every source box is verified independently.
+                if !new_cuts.iter().any(|(candidate, _)| *candidate == corner) {
+                    new_cuts.push((corner, branch_index));
+                }
             }
         }
 
@@ -1184,6 +1187,17 @@ mod tests {
             &no_descent.gradient_cuts,
             &[rational_fraction(1, 2), rational_fraction(1, 2)]
         ));
+    }
+
+    #[test]
+    fn identical_gradient_boxes_share_adverse_corners_without_false_abstention() {
+        let make_box = || interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)]);
+        let branches = [make_box(), make_box()];
+        let optimum = solve_robust_descent_interval_lp(&branches)
+            .expect("identical boxes may share one adverse corner cut");
+        assert_eq!(optimum.branch_upper_bounds, vec![rational(-1), rational(-1)]);
+        assert!(verify_robust_descent_interval_lp_certificate(&branches, &optimum));
+        assert!(optimum.gradient_cuts.len() < 2 * CORNERS_PER_GRADIENT_BOX);
     }
 
     #[test]
