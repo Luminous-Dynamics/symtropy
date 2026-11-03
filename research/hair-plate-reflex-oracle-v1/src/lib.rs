@@ -202,6 +202,8 @@ pub struct HairPlatePrediction {
     /// Reflex predictions are conditional on this exact intervention and assay context.
     pub reflex_intervention: Option<InterventionKind>,
     pub reflex_context_id: Option<String>,
+    /// Exact experiment/scope identity used when a complete assay found no reflex.
+    pub reflex_assay_scope_id: Option<String>,
     pub predicted_reflex_direction: Option<MovementDirection>,
     pub predicted_motor_targets: Vec<PredictedMotorTarget>,
 }
@@ -250,6 +252,7 @@ pub enum OracleError {
     InvalidTuningCurve,
     InvalidConnectomeOutput,
     InvalidReflexOutcome,
+    EvidenceScopeMismatch,
     DuplicateIdentity(&'static str),
     EmptyInventory,
     ResourceLimitExceeded,
@@ -548,6 +551,11 @@ impl HairPlatePrediction {
                 .as_ref()
                 .is_some_and(|id| !valid_identifier(id))
             || self.reflex_intervention.is_some() != self.reflex_context_id.is_some()
+            || self.reflex_intervention.is_some() != self.reflex_assay_scope_id.is_some()
+            || self
+                .reflex_assay_scope_id
+                .as_ref()
+                .is_some_and(|id| !valid_identifier(id))
             || self.predicted_reflex_direction.is_some()
                 && self.reflex_intervention.is_none()
         {
@@ -711,14 +719,17 @@ pub fn evaluate_prediction(
     let reflex_scope = match (
         prediction.reflex_intervention,
         prediction.reflex_context_id.as_deref(),
+        prediction.reflex_assay_scope_id.as_deref(),
     ) {
-        (Some(intervention), Some(context_id)) => Some((intervention, context_id)),
-        (None, None) => None,
+        (Some(intervention), Some(context_id), Some(scope_id)) => {
+            Some((intervention, context_id, scope_id))
+        }
+        (None, None, None) => None,
         _ => return Err(OracleError::InvalidPrediction),
     };
 
     let observed_scoped_reflexes = match (&record.reflex_outcomes, reflex_scope) {
-        (Evidence::Observed { value, .. }, Some((intervention, context_id))) => Some(
+        (Evidence::Observed { value, .. }, Some((intervention, context_id, _))) => Some(
             value
                 .iter()
                 .filter(|outcome| {
@@ -733,18 +744,26 @@ pub fn evaluate_prediction(
     let (reflex_presence_correct, reflex_presence_unscorable) =
         match (&record.reflex_outcomes, reflex_scope) {
             (Evidence::Observed { .. }, Some(_)) => {
-                let observed_present = observed_scoped_reflexes
-                    .as_ref()
-                    .is_some_and(|outcomes| !outcomes.is_empty());
+                match observed_scoped_reflexes.as_ref() {
+                    Some(outcomes) if !outcomes.is_empty() => (
+                        Some(prediction.predicted_reflex_direction.is_some()),
+                        None,
+                    ),
+                    _ => (None, Some(UnscorableReason::UnknownEvidence)),
+                }
+            }
+            (
+                Evidence::ExplicitlyAbsent { scope_id, .. },
+                Some((_, _, predicted_scope_id)),
+            ) => {
+                if scope_id != predicted_scope_id {
+                    return Err(OracleError::EvidenceScopeMismatch);
+                }
                 (
-                    Some(observed_present == prediction.predicted_reflex_direction.is_some()),
+                    Some(prediction.predicted_reflex_direction.is_none()),
                     None,
                 )
             }
-            (Evidence::ExplicitlyAbsent { .. }, Some(_)) => (
-                Some(prediction.predicted_reflex_direction.is_none()),
-                None,
-            ),
             (Evidence::Unknown { .. }, _) => (
                 None,
                 Some(UnscorableReason::UnknownEvidence),
@@ -765,7 +784,9 @@ pub fn evaluate_prediction(
             observed_scoped_reflexes.as_ref(),
             prediction.predicted_reflex_direction,
         ) {
-            (Evidence::Observed { .. }, Some(outcomes), Some(predicted)) if !outcomes.is_empty() => {
+            (Evidence::Observed { .. }, Some(outcomes), Some(predicted))
+                if !outcomes.is_empty() =>
+            {
                 let directions = outcomes
                     .iter()
                     .map(|outcome| outcome.movement_direction)
@@ -921,6 +942,7 @@ mod tests {
             predicted_joint_limit_angle_rad: Some(0.75),
             reflex_intervention: Some(InterventionKind::OptogeneticActivation),
             reflex_context_id: Some("standing-v1".to_string()),
+            reflex_assay_scope_id: Some("activation-standing-v1".to_string()),
             predicted_reflex_direction: Some(MovementDirection::Posterior),
             predicted_motor_targets: vec![
                 PredictedMotorTarget {
@@ -1003,7 +1025,7 @@ mod tests {
         };
         input.reflex_outcomes = Evidence::ExplicitlyAbsent {
             search_receipt_sha256: digest('8'),
-            scope_id: "complete-standing-reflex-assay-v1".to_string(),
+            scope_id: "activation-standing-v1".to_string(),
         };
         let mut absent_prediction = prediction();
         absent_prediction.predicted_threshold_definition_id = None;
@@ -1137,10 +1159,42 @@ mod tests {
     }
 
     #[test]
+    fn observed_outcomes_do_not_turn_an_unmeasured_context_into_negative_evidence() {
+        let input = record();
+        let mut different_context = prediction();
+        different_context.reflex_intervention = Some(InterventionKind::OptogeneticSilencing);
+        different_context.reflex_context_id = Some("walking-v1".to_string());
+        different_context.reflex_assay_scope_id = Some("silencing-walking-v1".to_string());
+        let result =
+            evaluate_prediction(&input, &different_context).expect("unmeasured assay scope");
+        assert_eq!(result.reflex_presence_correct, None);
+        assert_eq!(
+            result.reflex_presence_unscorable,
+            Some(UnscorableReason::UnknownEvidence)
+        );
+    }
+
+    #[test]
+    fn explicit_reflex_absence_requires_exact_assay_scope_match() {
+        let mut input = record();
+        input.reflex_outcomes = Evidence::ExplicitlyAbsent {
+            search_receipt_sha256: digest('8'),
+            scope_id: "activation-standing-v1".to_string(),
+        };
+        let mut invalid = prediction();
+        invalid.reflex_assay_scope_id = Some("different-assay-scope".to_string());
+        assert_eq!(
+            evaluate_prediction(&input, &invalid),
+            Err(OracleError::EvidenceScopeMismatch)
+        );
+    }
+
+    #[test]
     fn rejects_reflex_direction_prediction_without_intervention_and_context() {
         let mut invalid = prediction();
         invalid.reflex_intervention = None;
         invalid.reflex_context_id = None;
+        invalid.reflex_assay_scope_id = None;
         assert_eq!(invalid.validate(), Err(OracleError::InvalidPrediction));
     }
 
