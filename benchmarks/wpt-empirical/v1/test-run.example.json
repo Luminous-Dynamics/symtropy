@@ -12,7 +12,8 @@
     "topology": "TBD",
     "hardware_revision": "TBD",
     "controller_revision": null,
-    "power_rating_w": null
+    "power_rating_w": null,
+    "configuration_digest": null
   },
   "conditions": {
     "direction": "NOT_APPLICABLE",
@@ -47,7 +48,8 @@
         "calibration_due_utc": null,
         "bandwidth_hz": null,
         "phase_error_deg": null,
-        "uncertainty_pct": null
+        "uncertainty_pct": null,
+        "calibration_valid_from_utc": null
       },
       {
         "meter_id": "TEMPLATE-METER-OUTPUT",
@@ -57,7 +59,8 @@
         "calibration_due_utc": null,
         "bandwidth_hz": null,
         "phase_error_deg": null,
-        "uncertainty_pct": null
+        "uncertainty_pct": null,
+        "calibration_valid_from_utc": null
       }
     ],
     "measurement_planes": [
