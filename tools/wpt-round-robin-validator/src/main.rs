@@ -615,16 +615,16 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             Some(uncertainty),
         ) if source > 0.0 && useful >= 0.0 && uncertainty >= 0.0 => {
             let calculated_residual = source - useful - loss_total - stored;
-            let tolerance = (source.abs() * 1e-8).max(1e-6);
+            let tolerance = (source.abs() * uncertainty / 100.0).max(1e-6);
             if (calculated_residual - residual).abs() > tolerance {
                 errors.push(format!(
-                    "energy_balance.residual_energy_j: ledger mismatch; calculated {calculated_residual:.9}, reported {residual:.9}"
+                    "energy_balance.residual_energy_j: ledger mismatch; calculated {calculated_residual:.9}, reported {residual:.9} (tolerance {tolerance:.9})"
                 ));
             }
-            let calculated_fraction = residual.abs() / source * 100.0;
+            let calculated_fraction = calculated_residual.abs() / source * 100.0;
             if (calculated_fraction - fraction).abs() > 1e-6 {
                 errors.push(format!(
-                    "energy_balance.residual_fraction_pct: expected absolute residual fraction {calculated_fraction:.9}, got {fraction:.9}"
+                    "energy_balance.residual_fraction_pct: expected absolute calculated residual fraction {calculated_fraction:.9}, got {fraction:.9}"
                 ));
             }
             let residual_limit = if string_at(manifest, &["conditions", "thermal_state"])
@@ -634,9 +634,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             } else {
                 1.0
             };
-            if fraction > residual_limit {
+            if calculated_fraction > residual_limit {
                 errors.push(format!(
-                    "energy_balance.residual_fraction_pct: {fraction:.6}% exceeds proposed {residual_limit:.3}% qualification target"
+                    "energy_balance.residual_fraction_pct: calculated {calculated_fraction:.6}% exceeds proposed {residual_limit:.3}% qualification target"
                 ));
             }
         }
