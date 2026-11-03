@@ -31,8 +31,10 @@ The primary paper reports materially different measurements that must not be col
 | Back-to-back | 150 mm | ~58 kW | 97.5% | P_DC1 to P_DC2, back-to-back chain |
 | Back-to-back | 200 mm | >70 kW | 96.3% | P_DC1 to P_DC2, back-to-back chain |
 | Back-to-back | 250 mm | <60 kW | 95.3% | P_DC1 to P_DC2, back-to-back chain |
-| Control comparison | 200 mm | 65 kW rated test | 92.7% | Whole WCS efficiency, eta_WCS |
-| Control comparison | 200 mm | 65 kW rated test | 95.5% | DC-to-DC subchain efficiency, eta_DC-DC |
+| Control comparison | Not stated in Table VII | 65 kW test condition | 92.7% | Whole WCS efficiency, eta_WCS |
+| Control comparison | Not stated in Table VII | 65 kW test condition | 95.5% | DC-to-DC subchain efficiency, eta_DC-DC |
+
+Table VII does not report individual input/output watt values, transfer gap or frequency for those two control-comparison rows; those fields remain null rather than being inferred from the adjacent 20 cm full-power waveform or from the prototype nominal frequency.
 
 Important paper-internal reconciliation flag: the abstract says “overall system efficiency exceeding 95.5%”, while Table VII at 65 kW distinguishes 95.5% eta_DC-DC from 92.7% eta_WCS. The record preserves both statements and does not silently reinterpret the abstract. A reviewer must resolve the precise operating point/boundary before promoting the abstract phrase to a comparable metric.
 
