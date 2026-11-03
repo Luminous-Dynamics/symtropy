@@ -227,3 +227,22 @@ Efficiency gains do not compensate for exposure, EMC, thermal, fault-containment
 
 All targets in this section are development targets. None is evidence of a tested Symtropy design or a standards-mandated threshold.
 
+### 7. Frequency-polymorphic vehicle interoperability
+
+The full text of the 2026 bidirectional interoperability study (DOI 10.1016/j.geits.2025.100307), Table 1, specifies three different vehicle assemblies:
+
+| VA | Rated power | Battery-voltage range | Nominal voltage | Ground-clearance range | Frequency |
+|---|---:|---:|---:|---:|---:|
+| 6 kW | 6 kW | 380–440 V | 400 V | 190–210 mm | 85 kHz |
+| 11 kW | 11 kW | 600–700 V | 660 V | 160–180 mm | 85 kHz |
+| 30 kW | 30 kW | 420–610 V | 550 V | 270–290 mm | 20 kHz |
+
+The paper describes two independently enabled ground-side resonant networks for the 85 kHz and 20 kHz frequency bands, plus a four-module adaptive front-end converter. This is stronger than simple power-class switching: interoperability spans frequency, battery-voltage, clearance and compensation regimes.
+
+Proposed benchmark targets (not achieved):
+- Demonstrate 6/11 kW at 85 kHz and 30 kW at 20 kHz with the same ground-side platform, and publish separate class/frequency response surfaces.
+- Verify isolation between the two resonant networks during activation, deactivation, fault and mode transition; no inactive-network overcurrent or unintended receiver energization.
+- Sweep each class across its full declared battery-voltage range and mechanical ground-clearance range; publish efficiency, output regulation, reactive power, THD, coil current, thermal stress and exposure in the same operating grid.
+- Test module activation counts 1/2/3/4 across load, power-class changes and reverse power flow; report fixed overhead, switching transients and energy cost of transitions rather than assuming module shedding is efficient.
+- Target ≥99.99% correct frequency-network and converter-module transitions across 10,000 scripted synthetic/bench events, with all faults and safe-state transitions enumerated.
+- Do not assign 91.7–94.3% or 89.5–93.5% range endpoints to individual vehicle assemblies until the primary result plots/tables establish the mapping.
