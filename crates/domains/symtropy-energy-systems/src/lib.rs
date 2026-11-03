@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod flexibility_evaluation;
 mod matched_service;
 mod service_contract;
 mod trace_validation;
@@ -34,6 +35,11 @@ pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
 };
+pub use flexibility_evaluation::{
+    FlexibilityEventContract, FlexibilityEventSample, FlexibilityEvaluationError,
+    FlexibilityEvaluationReport, evaluate_flexibility_event,
+};
+
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
