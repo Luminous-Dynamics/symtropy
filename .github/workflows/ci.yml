@@ -83,5 +83,8 @@ jobs:
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
 
+    - name: Test WPT empirical validator
+      run: cargo test --locked -p wpt-empirical-validator
+
     - name: Validate WPT empirical dataset
       run: cargo run --locked -p wpt-empirical-validator -- "${{ github.workspace }}"
