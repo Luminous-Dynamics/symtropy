@@ -292,3 +292,21 @@ Official publisher pages:
 - https://saemobilus.sae.org/standards/j3072_202406-interconnection-requirements-onboard-grid-support-inverter-systems
 - https://saemobilus.sae.org/standards/j28363_202402-use-cases-plug-vehicle-communication-a-distributed-energy-resource
 
+
+### IEC PAS standards added to the applicability map
+
+The IEC now has separate published PAS documents for stationary high-power and dynamic WPT; these must not be collapsed into IEC 61980-3's stationary baseline:
+
+| Document | Published scope | What it adds to this benchmark | Claim ceiling |
+|---|---|---|---|
+| IEC PAS 61980-4:2025 | Stationary high-power magnetic-field WPT off-board equipment | High-power stationary electrical safety, operating conditions, basic communications if needed, positioning and EMC | Off-board stationary high-power scope only; vehicle-side and grid/jurisdiction requirements still need their own sources |
+| IEC PAS 61980-5:2024 | Dynamic magnetic-field WPT off-board equipment for vehicles in motion | Dynamic roadway operating conditions, power transfer, electrical safety and EMC | Dynamic off-board system scope; pair with ISO 5474-4/-6 vehicle-side requirements |
+| IEC PAS 61980-6:2025 | Dynamic WPT communications, positioning and related activities | Session/communication and positioning behaviour as vehicle traverses energized segments | The published page explicitly lists bidirectional power transfer as under consideration; do not claim bidirectional dynamic requirements are defined by this PAS |
+
+This corrects an earlier simplification: IEC 61980-3:2022 remains the stationary off-board baseline, but later PAS publications now address high-power stationary and dynamic equipment/communications in separate parts.
+
+### New thermal and dynamic case-study evidence
+
+The catalogue now includes:
+- **11.1 kW magnetothermal mitigation prototype:** magnetic flux bridge made from magnetic conductive powder at ferrite-block air gaps; authors report 31.3% lower maximum ferrite temperature, 8.1% lower maximum leakage flux and 2.06% higher system efficiency. The abstract does not say whether 2.06% is a percentage-point or relative increase and provides no absolute start/end efficiency; retain this ambiguity.
+- **2026 SS/LCC highway DWPT simulation:** at 90 km/h and 510 km, simulated SS and LCC energy transfers are 0.14 and 0.15 kWh/km against assumed vehicle consumption 0.129 kWh/km. No prototype or field test is reported; this is a simulation-only case and remains separate from Purdue/INDOT's 50–190 kW, up-to-65-mph measured roadway testbed.
