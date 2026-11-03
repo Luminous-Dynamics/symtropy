@@ -93,3 +93,17 @@ The boundary object now carries controlled `input_plane_kind` and `output_plane_
 Every record also declares `stage_set_status`: `COMPLETE`, `INCOMPLETE`, `UNKNOWN` or `NOT_APPLICABLE`. A strict efficiency comparison is unresolved until both stage sets and both measurement planes are sufficiently identified. A boundary signature is not a substitute for source evidence; it is an identity aid.
 
 The comparison reason vocabulary now also includes `STATISTIC_UNSPECIFIED`, `UNCERTAINTY_NOT_REPORTED` and `OPERATING_CONDITION_INCOMPLETE`.
+
+## Metrology engine and field-probe evidence contract (v1.2 draft)
+
+A Rust executable now consumes the v1 records and frozen comparison cases. It validates quantity-to-unit dimensions, raw qualifier/range coherence, percentage and μT-to-T normalization, source/prototype foreign keys, and strict comparison eligibility. Every case must match its expected disposition and include the expected explanatory reason codes. The checked-in synthetic unit tests cover a positive comparable pair, boundary rejection, unknown meter-plane unresolved outcomes, unit errors and bad normalization.
+
+The comparator is intentionally conservative: it requires identical controlled plane roles, complete and identical stage-inclusion sets, matching statistic kind and matching frequency/gap/load conditions for efficiency ranking. Missing operating conditions or unreported statistic/uncertainty keep a result unresolved. The free-text meter description is preserved for human review; it is never used as a substitute for typed metrology.
+
+### Field-probe metadata
+
+Every v1 record now includes `field_observation`. It is null only for non-field quantities. Field/exposure quantities require a probe record that identifies method (measured/simulated/combined/unknown), probe model, position, orientation, reference frame, spatial region, averaging method and averaging window. Unknown values remain null and must keep the claim unqualified. A reported scalar in μT is not an exposure assessment or compliance result without the field geometry and assessment context.
+
+### Quantity separation
+
+The quantity vocabulary now distinguishes `electrical_real_power`, `apparent_power`, `reactive_power` and `power_factor`. They may share compatible SI dimensions at the base-unit level, but remain distinct engineering quantities and cannot be substituted for one another. Peak/average/RMS is a separate statistic, not a different unit.
