@@ -90,7 +90,7 @@ pub struct PredictionBatch {
     pub event_log_id: String,
     pub commit_sequence: u64,
     /// Observation/measurement covariance for the declared feature vector.
-    pub observation_covariance: Vec<Vec<f64>>,
+    pub pairwise_observation_difference_covariance: Vec<Vec<f64>>,
     pub forecasts: Vec<ModelForecast>,
 }
 
@@ -267,9 +267,11 @@ fn validate_covariance(matrix: &[Vec<f64>]) -> Result<(), ValidationError> {
         }
     }
 
-    let scale = (0..dimension)
-        .map(|index| matrix[index][index].abs())
-        .fold(1.0_f64, f64::max);
+    let scale = matrix
+        .iter()
+        .flat_map(|row| row.iter())
+        .map(|value| value.abs())
+        .fold(1.0e-300_f64, f64::max);
     let tolerance = scale * 1.0e-10;
 
     for row in 0..dimension {
@@ -325,9 +327,9 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
         return Err(ValidationError::TooFewModels);
     }
 
-    validate_covariance(&batch.observation_covariance)?;
+    validate_covariance(&batch.pairwise_observation_difference_covariance)?;
 
-    let dimension = batch.observation_covariance.len();
+    let dimension = batch.pairwise_observation_difference_covariance.len();
     let mut model_ids = BTreeSet::new();
     let mut canonical_feature_ids: Option<&[String]> = None;
 
@@ -436,7 +438,7 @@ fn cholesky_positive_definite(
 fn pairwise_d2(
     left: &ModelForecast,
     right: &ModelForecast,
-    observation_covariance: &[Vec<f64>],
+    pairwise_observation_difference_covariance: &[Vec<f64>],
     regularization: f64,
 ) -> Result<f64, ValidationError> {
     let dimension = left.mean.len();
@@ -446,7 +448,7 @@ fn pairwise_d2(
         for column in 0..dimension {
             pooled[row][column] = left.covariance[row][column]
                 + right.covariance[row][column]
-                + observation_covariance[row][column];
+                + pairwise_observation_difference_covariance[row][column];
         }
         pooled[row][row] += regularization;
     }
@@ -474,9 +476,11 @@ fn pairwise_d2(
 /// Compute pairwise noise-aware model separation for a single intervention.
 ///
 /// This is a screening heuristic based on squared Mahalanobis distance using
-/// the sum of both predictive covariances and the observation covariance. It
-/// is not expected information gain, a likelihood-ratio test, a p-value, or a
-/// posterior probability that any model is true.
+/// the sum of both predictive covariances and the covariance of observation
+/// error in their difference. It assumes independent model-predictive errors;
+/// correlated paired errors require an explicit cross-model covariance term.
+/// It is not expected information gain, a likelihood-ratio test, a p-value, or
+/// a posterior probability that any model is true.
 pub fn screen_intervention(
     batch: &PredictionBatch,
     policy: DiscriminationPolicy,
@@ -498,7 +502,7 @@ pub fn screen_intervention(
             let d2 = pairwise_d2(
                 left,
                 right,
-                &batch.observation_covariance,
+                &batch.pairwise_observation_difference_covariance,
                 policy.covariance_regularization,
             )?;
             pairwise.push(PairSeparation {
@@ -590,7 +594,7 @@ mod tests {
             commit_receipt_sha256: digest(),
             event_log_id: "evidence-log-1".to_string(),
             commit_sequence: 20,
-            observation_covariance: diagonal_covariance(dimension, 0.0),
+            pairwise_observation_difference_covariance: diagonal_covariance(dimension, 0.0),
             forecasts,
         }
     }
@@ -809,8 +813,8 @@ mod tests {
             forecast("model-a", vec![0.0], 100.0),
             forecast("model-b", vec![2.0], 100.0),
         ]);
-        let precise_result = screen_intervention(&precise, policy(0.01)).expect("precise");
-        let uncertain_result = screen_intervention(&uncertain, policy(0.01)).expect("uncertain");
+        let precise_result = screen_intervention(&precise, policy(0.05)).expect("precise");
+        let uncertain_result = screen_intervention(&uncertain, policy(0.05)).expect("uncertain");
         assert!(precise_result.minimum_pair_d2 > uncertain_result.minimum_pair_d2);
         assert_eq!(precise_result.status, DiscriminationStatus::FullySeparated);
         assert_eq!(uncertain_result.status, DiscriminationStatus::Unresolved);
@@ -825,6 +829,17 @@ mod tests {
         assert_eq!(
             validate_prediction_batch(&candidate),
             Err(ValidationError::NonFiniteValue)
+        );
+    }
+
+    #[test]
+    fn rejects_forecast_committed_after_batch() {
+        let mut second = forecast("model-b", vec![1.0], 0.1);
+        second.commit_sequence = 21;
+        let candidate = batch(vec![forecast("model-a", vec![0.0], 0.1), second]);
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::ForecastCommittedAfterBatch)
         );
     }
 
