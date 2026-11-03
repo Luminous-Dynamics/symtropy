@@ -226,6 +226,7 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "installation_type",
             "rated_apparent_power_va",
             "vehicle_category",
+            "onboard_secondary_device_count",
         ],
         "conditions",
         &mut errors,
@@ -1153,6 +1154,37 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 }
 
 
+
+                if document_id == "ISO/PAS 5474-6" && edition == "2025"
+                    && applicability == "NORMATIVE_REQUIREMENT"
+                {
+                    let mode = string_at(manifest, &["conditions", "operating_mode"]);
+                    let vehicle_category = string_at(manifest, &["conditions", "vehicle_category"]);
+                    let secondary_devices = at(
+                        manifest,
+                        &["conditions", "onboard_secondary_device_count"],
+                    )
+                    .and_then(Value::as_u64);
+                    if !matches!(mode, Some("STATIC" | "DYNAMIC")) {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO/PAS 5474-6:2025 normative use requires STATIC or DYNAMIC vehicle-side operation"
+                        ));
+                    }
+                    if !matches!(
+                        vehicle_category,
+                        Some("HEAVY_DUTY" | "PASSENGER_CAR" | "LIGHT_COMMERCIAL")
+                    ) {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO/PAS 5474-6:2025 requires a declared road-vehicle category in its intended application"
+                        ));
+                    }
+                    if secondary_devices != Some(1) {
+                        errors.push(format!(
+                            "standards_basis[{index}]: ISO/PAS 5474-6:2025 does not cover multiple onboard secondary devices in this edition"
+                        ));
+                    }
+                }
+
                 if document_id == "ISO 5474-4" && edition == "2025"
                     && applicability == "NORMATIVE_REQUIREMENT"
                 {
@@ -1742,6 +1774,7 @@ mod tests {
         manifest["conditions"]["operating_mode"] = json!("STATIC");
         manifest["conditions"]["installation_type"] = json!("SURFACE_MOUNTED");
         manifest["conditions"]["vehicle_category"] = json!("PASSENGER_CAR");
+        manifest["conditions"]["onboard_secondary_device_count"] = json!(1);
         manifest["motion_profile"]["profile_id"] = json!("STATIC-KNOWN-TRUTH-NO-ROUTE");
 
         manifest["conditions"]["rated_apparent_power_va"] = json!(12_100.0);
@@ -2044,6 +2077,7 @@ mod tests {
             "installation_type",
             "rated_apparent_power_va",
             "vehicle_category",
+            "onboard_secondary_device_count",
         ]
         .iter()
         .map(|s| s.to_string())
@@ -2565,6 +2599,31 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("does not specify bidirectional power transfer")));
     }
 
+
+
+    #[test]
+    fn accepts_iso_pas_5474_6_single_receiver_dynamic_heavy_duty_scope() {
+        let mut manifest = dynamic_fixture();
+        manifest["conditions"]["vehicle_category"] = json!("HEAVY_DUTY");
+        manifest["conditions"]["onboard_secondary_device_count"] = json!(1);
+        manifest["standards_basis"][0]["document_id"] = json!("ISO/PAS 5474-6");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(!errors.iter().any(|e| e.contains("ISO/PAS 5474-6:2025")));
+    }
+
+    #[test]
+    fn rejects_iso_pas_5474_6_multiple_onboard_secondary_devices() {
+        let mut manifest = dynamic_fixture();
+        manifest["conditions"]["vehicle_category"] = json!("HEAVY_DUTY");
+        manifest["conditions"]["onboard_secondary_device_count"] = json!(2);
+        manifest["standards_basis"][0]["document_id"] = json!("ISO/PAS 5474-6");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("does not cover multiple onboard secondary devices")));
+    }
 
     #[test]
     fn rejects_iso_5474_4_normative_claim_for_reverse_wpt() {
