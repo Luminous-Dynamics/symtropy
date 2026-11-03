@@ -24,7 +24,7 @@ It complements:
 - Explicit connectome/source/sensor/effector provenance for connectome claims and a muscle-map digest for muscle-actuated claims.
 - Success rate, mean task score and lower-tail CVaR under a preregistered tail fraction.
 - Progress, pose/joint error, slip, energy and actuator-saturation metrics.
-- Separate functional recovery and mechanism restoration, with independent preregistered normalized-state tolerances and a pinned mechanism-state schema.
+- Separate functional recovery and mechanism restoration, with independent preregistered normalized-state tolerances and a mechanism-state schema digest pinned in the preregistered protocol.
 - Compensation classification when task function returns but the measured neural/sensory/motor/effector mechanism does not; joint function+mechanism recovery is reported separately.
 - Recovery counts with right-censored non-recovery and unobserved recovery kept distinct for both dimensions.
 - Separate numerical, physical, fall and unclassified failure counts.
@@ -36,7 +36,7 @@ It complements:
 
 A perturbation scenario is not automatically a biological ablation. Missing a software sensor channel is an observation-channel intervention unless the source mapping and biological manipulation are declared independently.
 
-Functional recovery means the preregistered task/functional state returned within its declared normalized distance threshold and sustained the required dwell protocol upstream. Mechanism restoration is a separate normalized distance over a versioned mechanism-state schema covering declared neural, sensory, motor and effector variables. If function recovers while the measured mechanism remains outside its equivalence margin, V1 reports compensation without mechanism restoration. This is a descriptive classification, not proof that a particular alternate pathway caused compensation; causal attribution still requires selective intervention/blockade and matched controls. The mechanism-state schema, normalization and tolerances are part of the frozen protocol.
+Functional recovery means the preregistered task/functional state returned within its declared normalized distance threshold and sustained the required dwell protocol upstream. Mechanism restoration is a separate normalized distance over a versioned mechanism-state schema covering declared neural, sensory, motor and effector variables. If function recovers while the measured mechanism remains outside its equivalence margin, V1 reports compensation without mechanism restoration. This is a descriptive classification, not proof that a particular alternate pathway caused compensation; causal attribution still requires selective intervention/blockade and matched controls. The mechanism-state schema digest, normalization and tolerances are part of the frozen protocol and are checked against each episode receipt; post hoc schema drift is rejected.
 
 Functional and mechanism recovery latencies are reported separately and only for observed returns to their respective preregistered equivalence margins. Failure to return by the horizon is right-censored; unobserved state channels are a separate category. Neither is assigned an invented finite latency. Recovery labels inconsistent with their normalized-state distance or schema are rejected.
 
@@ -53,7 +53,7 @@ Each episode binds:
 - scenario, individual, trial, seed and initial state;
 - body model, morphology, physics, environment, sensor schema, solver, hardware, controller, code and parameter references;
 - trajectory, metric payload and run receipt;
-- functional recovery status/deviation and mechanism recovery status/deviation, with a mechanism-state schema digest whenever mechanism recovery is assessed;
+- functional recovery status/deviation and mechanism recovery status/deviation, with a mechanism-state schema digest whenever mechanism recovery is assessed, exactly matching the schema pinned in the benchmark protocol;
 - task score, outcome/termination, recovery/censoring, raw motion/energy/saturation metrics and hard failure counts.
 
 Digest strings are references supplied by an upstream evidence authority. This crate validates their syntax and required presence, not signatures or the contents of the referenced artifacts.
@@ -74,7 +74,7 @@ neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
 
-The 24 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, functional versus mechanism recovery, compensation without mechanism restoration, invalid recovery-distance/status pairs, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
+The 25 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, functional versus mechanism recovery, compensation without mechanism restoration, invalid recovery-distance/status pairs, post hoc mechanism-schema drift rejection, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
