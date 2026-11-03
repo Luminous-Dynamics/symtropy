@@ -1464,8 +1464,8 @@ mod tests {
     #[test]
     fn dryad_metadata_rejects_digest_length_that_disagrees_with_algorithm() {
         let mut metadata = dryad_file_metadata();
-        if let Some(digest) = &mut metadata.provider_digest {
-            digest.value = digest('d');
+        if let Some(provider_digest) = &mut metadata.provider_digest {
+            provider_digest.value = digest('d');
         }
         assert_eq!(
             metadata.validate(),
