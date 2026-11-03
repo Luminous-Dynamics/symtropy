@@ -535,8 +535,9 @@ mod tests {
             .contains("different cgroup"));
 
         let contaminated_baseline = snapshot(2_000, 200, 160, 40, 900, 0, 0);
+        let same_cgroup_end = snapshot(3_000, 300, 240, 60, 1200, 0, 0);
         assert!(
-            derive_cgroup_v2_resource_report(&contaminated_baseline, &wrong_id)
+            derive_cgroup_v2_resource_report(&contaminated_baseline, &same_cgroup_end)
                 .expect_err("a reused cgroup peak baseline must reject")
                 .contains("baseline is nonzero")
         );
