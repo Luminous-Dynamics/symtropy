@@ -75,7 +75,8 @@ sensor, the reducer then requires:
 - a first observation no later than the declared maximum gap after the window
   starts;
 - subsequent source-time gaps no larger than the configured maximum;
-- a latest observation still within the normal freshness bound at the cutoff;
+- a latest observation within both the normal freshness bound and configured
+  maximum trailing-gap limit at the cutoff;
 - clear, sufficiently confident and sufficiently covered observations
   throughout the window.
 
@@ -122,17 +123,18 @@ For each exact policy-required hazard-zone cell, V1:
    entire required zone.
 7. Checks inter-sensor source-time skew at each cell.
 8. Optionally requires a complete source-time evidence window per cell, with a
-   bounded leading gap, bounded inter-sample gaps, a fresh final sample and no
-   unknown/low-confidence/human-present sample within the window.
+   bounded leading gap, bounded inter-sample and trailing gaps, a fresh final
+   sample and no unknown/low-confidence/human-present sample within the window.
 9. Emits cell-level source IDs, modality/fault-domain coverage, source-time
-   bounds, maximum age, maximum observation gap and temporal sample count.
+   bounds, maximum age, maximum leading/inter-sample/trailing observation gap
+   and temporal sample count.
 
 A clear claim for one part of a work zone cannot be averaged into coverage of a
 blind cell elsewhere.
 
 ## Frozen trace corpus
 
-V1 defines **69 named synthetic traces** and **17 authored Rust unit tests**.
+V1 defines **71 named synthetic traces** and **19 authored Rust unit tests**.
 The trace corpus includes:
 
 - synchronized clear baseline and arrival-order permutations;
@@ -150,10 +152,11 @@ The trace corpus includes:
 - a new cutoff that can consume a later, complete clear frame;
 - per-cell inter-sensor skew;
 - full clear evidence windows, leading blind intervals, excessive inter-sample
-  gaps, missing middle frames and stale final samples;
+  and trailing gaps, missing middle frames and stale final samples;
 - human-present, unknown and low-confidence observations that occur inside a
-  window and are followed by later clear snapshots;
-- exact maximum-gap boundary behaviour;
+  window and are followed by later clear snapshots, including stale latest frames
+  that must not erase an in-window hazard observation;
+- exact maximum-gap boundary behaviour and stale-positive precedence;
 - single-modality and common-mode-only profiles;
 - empty event batch and duplicate policy sensor identities.
 
