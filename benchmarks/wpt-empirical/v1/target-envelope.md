@@ -295,3 +295,21 @@ A standards score must be scope-qualified before it contributes to any performan
 - Distinguish standard applicability, test method borrowed, self-assessment, and independent certification in reports.
 
 The goal is not standards name-dropping. It is a machine-checkable boundary between what was required, what was tested, what was merely referenced and what remains outside the published scope.
+
+
+## 12. Dynamic WPT mission-level targets
+
+The primary dynamic outcome is not peak power; it is whether a real vehicle mission can maintain its battery energy while accounting for roadway energy and segment reliability.
+
+Proposed goals (not achieved or standards thresholds):
+- Energy sufficiency ratio >=1.00 on the declared reference mission (battery energy accepted from roadway divided by propulsion energy over the same route). Stretch goal >=1.10 for a declared reserve margin.
+- Publish vehicle-side energy delivered in Wh/km and net battery Wh/km with measured meter planes; do not report peak kW as a proxy for energy sufficiency.
+- 0 unauthorized/false segment energizations across the frozen negative-control and route event corpus.
+- Segment activation success >=99.999% across >=1,000,000 controlled state transitions, with false activations reported separately and always treated as a fail.
+- No single segment dropout may be hidden by averaging: report count, duration, route location, lost energy and recovery.
+- Net vehicle DC energy per km repeatability <=2% coefficient of variation across labs for the same speed/profile, receiver geometry and instrument boundary.
+- Route/source-to-battery energy balance residual <=0.5% steady and <=1% dynamic, alongside expanded measurement uncertainty and per-stage loss ledger.
+- Endurance availability >=99.9% only after a declared mission profile, accumulated energized hours, weather exposure and maintenance plan are defined.
+- Publish infrastructure idle energy per lane-hour and per vehicle-km, not just energy transfer during an active vehicle crossing.
+
+Industry baseline: Purdue/INDOT describes 85 coils embedded in a quarter-mile roadway and field delivery from 50 to 190 kW at up to 65 mph, with approximately 85% roadway-inverter-DC-bus to vehicle-DC-bus efficiency at rated power. The 2026 SS/LCC comparative paper reports 0.14 and 0.15 kWh/km in simulation against an assumed vehicle demand of 0.129 kWh/km at 90 km/h. Our benchmark improvement is to require the route profile, energy meter boundaries, battery energy, propulsion use, segment activations and uncertainty to be present before accepting a mission-level claim.
