@@ -261,3 +261,23 @@ The standards applicability rules must identify the vehicle class, measured appa
 - SAE J2954/3: J2954_202408 points dynamic applications to a separate workstream. Until a published edition is identified, record PLANNED_NOT_ISSUED and never treat it as normative.
 
 A standard name in a source list or manifest does not mean a product is compliant. INDEPENDENTLY_CERTIFIED requires a certification artifact and issuing body; SELF_ASSESSED requires the exact assessment evidence and claim scope. NO_CLAIM is the default.
+
+
+## 17. Dynamic roadway energy-sufficiency and segment-event protocol
+
+The dynamic run manifest carries a frozen profile ID and speed-profile digest, route distance/time, mean/min/max speed, maximum longitudinal acceleration, transmitter pitch, segment counts, activation attempts, missed activations and false activations, roadway source joules, vehicle DC-received joules, battery-energy gain, propulsion-energy use, idle roadway energy, Wh/km, net battery Wh/km and energy-sufficiency ratio. The segment-event log must be separately hashed.
+
+For a qualified DYNAMIC run:
+- The route profile must be explicit and shared by comparator runs; a 90 km/h constant-speed simulation case cannot be silently compared with a measured variable-speed freight cycle.
+- Recompute roadway Wh/km = vehicle DC-received joules / 3,600 / route km.
+- Recompute net battery Wh/km = (battery energy gain − propulsion energy use) / 3,600 / route km.
+- Recompute energy-sufficiency ratio = battery energy gain / propulsion energy use for the exact same cycle.
+- Recompute segment activation success fraction = (activation attempts − missed activations) / activation attempts.
+- Roadway DC-source energy must be at least vehicle DC-received energy. Separately account roadway idle energy while no authorized receiver is in the coupling zone.
+- False/unauthorized activations are a hard fail; do not average them into a high availability score.
+- Preserve missed activations, transient dropouts and segment transition delay as event data, not just a time-averaged efficiency.
+- DYNAMIC and STATIC are separate test strata. Do not put speed or dwell time into the static efficiency comparison.
+
+The initial profile set should include: constant 90 km/h controlled comparison; variable speed freight mission; stop/start/queueing; acceleration and deceleration; differing inter-vehicle headways; receiver gap/misalignment sweep; wet pavement and seasonal temperature. Every profile needs a stable ID and SHA-256 digest.
+
+The reported 2026 Colombo et al. SS/LCC study is simulation-only: under its 90 km/h, 510 km case, SS reports 0.14 kWh/km and LCC 0.15 kWh/km against 0.129 kWh/km assumed vehicle demand. Those values demonstrate the usefulness of the route-energy metric, but they are not field results and do not qualify a real roadway. The Purdue/INDOT field system is a distinct measured context: 50–190 kW at up to 65 mph with end-to-end DC-bus efficiency around 85% at rated power. Peak kW and efficiency alone do not establish a vehicle mission energy-sufficiency ratio without the route, propulsion and battery energy traces.
