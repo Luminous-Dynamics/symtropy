@@ -100,6 +100,7 @@ pub enum FactorialError {
     EmptyObservations,
     ResourceLimitExceeded,
     NonFiniteResponse,
+    NonFiniteSummary,
     DuplicateTrialId,
     TooFewAnimals { observed: usize, minimum: usize },
     TooFewReplicates {
@@ -248,80 +249,98 @@ fn multiply_signs(signs: &[f64; 3], factors: &[usize]) -> f64 {
 
 fn calculate_session_contrasts(
     means: &BTreeMap<FactorialCell, f64>,
-) -> FactorialContrasts {
-    let mut sums = [0.0_f64; 7];
+) -> Result<FactorialContrasts, FactorialError> {
+    let combinations: [&[usize]; 7] = [
+        &[0],
+        &[1],
+        &[2],
+        &[0, 1],
+        &[0, 2],
+        &[1, 2],
+        &[0, 1, 2],
+    ];
+    let mut positive: [Vec<f64>; 7] = std::array::from_fn(|_| Vec::with_capacity(4));
+    let mut negative: [Vec<f64>; 7] = std::array::from_fn(|_| Vec::with_capacity(4));
 
     for cell in FactorialCell::all() {
         let response = means[&cell];
         let signs = cell.signs();
-        let combinations: [&[usize]; 7] = [
-            &[0],
-            &[1],
-            &[2],
-            &[0, 1],
-            &[0, 2],
-            &[1, 2],
-            &[0, 1, 2],
-        ];
         for (index, factors) in combinations.iter().enumerate() {
-            sums[index] += multiply_signs(&signs, factors) * response;
+            if multiply_signs(&signs, factors) > 0.0 {
+                positive[index].push(response);
+            } else {
+                negative[index].push(response);
+            }
         }
     }
 
-    // In a balanced 2^3 design, each conventional factorial effect is
-    // one quarter of the signed sum across the eight cell means.
-    FactorialContrasts {
-        a: sums[0] * 0.25,
-        b: sums[1] * 0.25,
-        c: sums[2] * 0.25,
-        ab: sums[3] * 0.25,
-        ac: sums[4] * 0.25,
-        bc: sums[5] * 0.25,
-        abc: sums[6] * 0.25,
+    // Each conventional factorial effect is the difference between the
+    // average cell means with positive and negative contrast signs.
+    let mut effects = [0.0_f64; 7];
+    for index in 0..7 {
+        effects[index] = mean(&positive[index])? - mean(&negative[index])?;
+        if !effects[index].is_finite() {
+            return Err(FactorialError::NonFiniteSummary);
+        }
     }
-}
 
-fn mean(values: &[f64]) -> f64 {
-    values.iter().sum::<f64>() / values.len() as f64
+    Ok(FactorialContrasts {
+        a: effects[0],
+        b: effects[1],
+        c: effects[2],
+        ab: effects[3],
+        ac: effects[4],
+        bc: effects[5],
+        abc: effects[6],
+    })
 }
-
-fn mean_contrasts(values: &[FactorialContrasts]) -> FactorialContrasts {
-    FactorialContrasts {
-        a: mean(&values.iter().map(|value| value.a).collect::<Vec<_>>()),
-        b: mean(&values.iter().map(|value| value.b).collect::<Vec<_>>()),
-        c: mean(&values.iter().map(|value| value.c).collect::<Vec<_>>()),
-        ab: mean(&values.iter().map(|value| value.ab).collect::<Vec<_>>()),
-        ac: mean(&values.iter().map(|value| value.ac).collect::<Vec<_>>()),
-        bc: mean(&values.iter().map(|value| value.bc).collect::<Vec<_>>()),
-        abc: mean(&values.iter().map(|value| value.abc).collect::<Vec<_>>()),
-    }
+fn mean_contrasts(
+    values: &[FactorialContrasts],
+) -> Result<FactorialContrasts, FactorialError> {
+    Ok(FactorialContrasts {
+        a: mean(&values.iter().map(|value| value.a).collect::<Vec<_>>())?,
+        b: mean(&values.iter().map(|value| value.b).collect::<Vec<_>>())?,
+        c: mean(&values.iter().map(|value| value.c).collect::<Vec<_>>())?,
+        ab: mean(&values.iter().map(|value| value.ab).collect::<Vec<_>>())?,
+        ac: mean(&values.iter().map(|value| value.ac).collect::<Vec<_>>())?,
+        bc: mean(&values.iter().map(|value| value.bc).collect::<Vec<_>>())?,
+        abc: mean(&values.iter().map(|value| value.abc).collect::<Vec<_>>())?,
+    })
 }
-
-fn estimate(values: &[f64]) -> ContrastEstimate {
-    let average = mean(values);
+fn estimate(values: &[f64]) -> Result<ContrastEstimate, FactorialError> {
+    let average = mean(values)?;
     let standard_deviation = if values.len() < 2 {
         None
     } else {
-        let squared_deviations = values
-            .iter()
-            .map(|value| {
-                let delta = value - average;
-                delta * delta
-            })
-            .sum::<f64>();
+        let mut squared_deviations = 0.0_f64;
+        for value in values {
+            let delta = value - average;
+            let squared = delta * delta;
+            squared_deviations += squared;
+            if !delta.is_finite() || !squared.is_finite() || !squared_deviations.is_finite() {
+                return Err(FactorialError::NonFiniteSummary);
+            }
+        }
         Some((squared_deviations / (values.len() - 1) as f64).sqrt())
     };
     let standard_error = standard_deviation.map(|value| value / (values.len() as f64).sqrt());
 
-    ContrastEstimate {
+    if standard_deviation.is_some_and(|value| !value.is_finite())
+        || standard_error.is_some_and(|value| !value.is_finite())
+    {
+        return Err(FactorialError::NonFiniteSummary);
+    }
+
+    Ok(ContrastEstimate {
         mean: average,
         standard_deviation,
         standard_error,
         animal_count: values.len(),
-    }
+    })
 }
-
-fn population_estimates(values: &[AnimalContrast]) -> PopulationContrasts {
+fn population_estimates(
+    values: &[AnimalContrast],
+) -> Result<PopulationContrasts, FactorialError> {
     let a = values.iter().map(|item| item.contrasts.a).collect::<Vec<_>>();
     let b = values.iter().map(|item| item.contrasts.b).collect::<Vec<_>>();
     let c = values.iter().map(|item| item.contrasts.c).collect::<Vec<_>>();
@@ -330,17 +349,16 @@ fn population_estimates(values: &[AnimalContrast]) -> PopulationContrasts {
     let bc = values.iter().map(|item| item.contrasts.bc).collect::<Vec<_>>();
     let abc = values.iter().map(|item| item.contrasts.abc).collect::<Vec<_>>();
 
-    PopulationContrasts {
-        a: estimate(&a),
-        b: estimate(&b),
-        c: estimate(&c),
-        ab: estimate(&ab),
-        ac: estimate(&ac),
-        bc: estimate(&bc),
-        abc: estimate(&abc),
-    }
+    Ok(PopulationContrasts {
+        a: estimate(&a)?,
+        b: estimate(&b)?,
+        c: estimate(&c)?,
+        ab: estimate(&ab)?,
+        ac: estimate(&ac)?,
+        bc: estimate(&bc)?,
+        abc: estimate(&abc)?,
+    })
 }
-
 /// Compute balanced factorial contrasts while preserving animal-level clustering.
 ///
 /// Each animal/session must contain all eight cells with at least the protocol's
@@ -443,10 +461,10 @@ pub fn analyze_factorial(
             }
 
             session_trial_count += values.len();
-            cell_means.insert(cell, mean(values));
+            cell_means.insert(cell, mean(values)?);
         }
 
-        let contrasts = calculate_session_contrasts(&cell_means);
+        let contrasts = calculate_session_contrasts(&cell_means)?;
         per_session.push(SessionContrast {
             animal_id: animal_id.clone(),
             session_id,
@@ -464,11 +482,11 @@ pub fn analyze_factorial(
         .map(|(animal_id, session_contrasts)| AnimalContrast {
             animal_id,
             session_count: session_contrasts.len(),
-            contrasts: mean_contrasts(&session_contrasts),
+            contrasts: mean_contrasts(&session_contrasts).expect("non-empty sessions and finite checked contrasts"),
         })
         .collect::<Vec<_>>();
 
-    let population = population_estimates(&per_animal);
+    let population = population_estimates(&per_animal)?;
     let trial_count = per_session.iter().map(|item| item.trial_count).sum();
 
     Ok(FactorialResult {
@@ -779,6 +797,28 @@ mod tests {
         assert_eq!(
             analyze_factorial(&invalid, &observations),
             Err(FactorialError::TooFewAnimals { observed: 1, minimum: 2 })
+        );
+    }
+
+    #[test]
+    fn rejects_finite_inputs_that_overflow_a_factorial_contrast() {
+        let mut observations = observations_for_session(
+            "fly-1",
+            "session-1",
+            0.0,
+            [0.0; 7],
+            2,
+        );
+        for observation in &mut observations {
+            observation.response = if observation.cell.a {
+                f64::MAX
+            } else {
+                -f64::MAX
+            };
+        }
+        assert_eq!(
+            analyze_factorial(&protocol(), &observations),
+            Err(FactorialError::NonFiniteSummary)
         );
     }
 
