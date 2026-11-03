@@ -823,6 +823,35 @@ fn baseline_events() -> Vec<SafetyEvidenceEvent> {
     events
 }
 
+fn window_policy() -> TracePolicy {
+    let mut policy = base_policy();
+    policy.required_evidence_window_ms = 200;
+    policy.maximum_inter_sample_gap_ms = 100;
+    policy.maximum_event_age_ms = 150;
+    policy
+}
+
+fn window_events() -> Vec<SafetyEvidenceEvent> {
+    let mut events = Vec::new();
+    for sensor in ["lidar-front", "camera-front"] {
+        for cell in [
+            GridCell { column: 0, row: 0 },
+            GridCell { column: 1, row: 0 },
+        ] {
+            for (sequence, source_time_ms) in [(1, 4_800), (2, 4_900), (3, 4_990)] {
+                events.push(event(
+                    sensor,
+                    sequence,
+                    source_time_ms,
+                    cell,
+                    ObservationState::Clear,
+                ));
+            }
+        }
+    }
+    events
+}
+
 fn add_case(
     cases: &mut Vec<TraceCase>,
     id: String,
@@ -1374,6 +1403,151 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
         Disposition::WithinSyntheticEnvelope,
     );
 
+    let window_policy = window_policy();
+    let window_baseline = window_events();
+    add_case(
+        &mut cases,
+        "TIME-060-complete-clear-evidence-window".to_owned(),
+        window_policy.clone(),
+        window_baseline.clone(),
+        Disposition::WithinSyntheticEnvelope,
+    );
+
+    let mut events = window_baseline.clone();
+    events.retain(|item| !(item.source_id == "lidar-front" && item.source_sequence == 1));
+    for item in &mut events {
+        if item.source_id == "lidar-front" && item.source_sequence == 2 {
+            item.source_time_ms = 4_901;
+            item.received_at_ms = 4_906;
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-061-leading-unobserved-window-gap".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline.clone();
+    for item in &mut events {
+        if item.source_id == "lidar-front" && item.source_sequence == 2 {
+            item.source_time_ms = 4_901;
+            item.received_at_ms = 4_906;
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-062-inter-sample-gap-exceeds-limit".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline.clone();
+    if let Some(sample) = events.iter_mut().find(|item| {
+        item.source_id == "lidar-front"
+            && item.source_sequence == 2
+            && item.cell == GridCell { column: 0, row: 0 }
+    }) {
+        sample.state = ObservationState::Unknown;
+    }
+    add_case(
+        &mut cases,
+        "TIME-063-unknown-state-inside-clear-window".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline.clone();
+    if let Some(sample) = events.iter_mut().find(|item| {
+        item.source_id == "lidar-front"
+            && item.source_sequence == 2
+            && item.cell == GridCell { column: 0, row: 0 }
+    }) {
+        sample.state = ObservationState::HumanPresent;
+    }
+    add_case(
+        &mut cases,
+        "TIME-064-human-present-cannot-be-erased-by-later-clear".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline.clone();
+    events.retain(|item| {
+        !(item.source_id == "camera-front"
+            && item.source_sequence == 2
+            && item.cell == GridCell { column: 1, row: 0 })
+    });
+    add_case(
+        &mut cases,
+        "TIME-065-missing-middle-frame-for-one-hazard-cell".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    add_case(
+        &mut cases,
+        "TIME-066-exact-maximum-inter-sample-gap".to_owned(),
+        window_policy.clone(),
+        window_baseline.clone(),
+        Disposition::WithinSyntheticEnvelope,
+    );
+
+    let mut events = window_baseline.clone();
+    if let Some(sample) = events.iter_mut().find(|item| {
+        item.source_id == "camera-front"
+            && item.source_sequence == 2
+            && item.cell == GridCell { column: 0, row: 0 }
+    }) {
+        sample.confidence_ppm = 100_000;
+    }
+    add_case(
+        &mut cases,
+        "TIME-067-low-confidence-sample-breaks-clear-window".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut events = window_baseline.clone();
+    for item in &mut events {
+        if item.source_id == "camera-front" && item.source_sequence == 2 {
+            item.source_time_ms = 4_700;
+            item.received_at_ms = 4_705;
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-068-source-time-regression-inside-evidence-window".to_owned(),
+        window_policy.clone(),
+        events,
+        Disposition::EvidenceInconsistent,
+    );
+
+    let mut events = window_baseline;
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = match item.source_sequence {
+                1 => 4_600,
+                2 => 4_700,
+                _ => 4_800,
+            };
+            item.received_at_ms = item.source_time_ms + 5;
+        }
+    }
+    add_case(
+        &mut cases,
+        "TIME-069-last-observation-too-old-for-cutoff".to_owned(),
+        window_policy,
+        events,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
     cases
 }
 
@@ -1544,6 +1718,83 @@ mod tests {
         events[0].calibration_epoch = "changed".to_owned();
         let calibration = evaluate(&policy, &events);
         assert_eq!(calibration.reason, Some(Reason::CalibrationEpochMismatch));
+    }
+
+    #[test]
+    fn complete_clear_window_reports_per_cell_temporal_depth() {
+        let policy = window_policy();
+        let decision = evaluate(&policy, &window_events());
+        assert_eq!(decision.disposition, Disposition::WithinSyntheticEnvelope);
+        assert_eq!(decision.cells.len(), policy.required_cells.len());
+        for cell in decision.cells {
+            assert_eq!(cell.evidence_window_start_ms, 4_800);
+            assert_eq!(cell.maximum_observation_gap_ms, 100);
+            assert_eq!(cell.temporal_sample_count, 6);
+        }
+    }
+
+    #[test]
+    fn leading_gap_cannot_be_hidden_by_a_fresh_latest_snapshot() {
+        let policy = window_policy();
+        let mut events = window_events();
+        events.retain(|item| !(item.source_id == "lidar-front" && item.source_sequence == 1));
+        for item in &mut events {
+            if item.source_id == "lidar-front" && item.source_sequence == 2 {
+                item.source_time_ms = 4_901;
+                item.received_at_ms = 4_906;
+            }
+        }
+        let decision = evaluate(&policy, &events);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reason, Some(Reason::CellEvidenceStale));
+    }
+
+    #[test]
+    fn human_present_inside_the_window_cannot_be_erased_by_later_clear() {
+        let policy = window_policy();
+        let mut events = window_events();
+        if let Some(sample) = events.iter_mut().find(|item| {
+            item.source_id == "lidar-front"
+                && item.source_sequence == 2
+                && item.cell == GridCell { column: 0, row: 0 }
+        }) {
+            sample.state = ObservationState::HumanPresent;
+        }
+        let decision = evaluate(&policy, &events);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reason, Some(Reason::HumanPresent));
+    }
+
+    #[test]
+    fn unknown_sample_inside_the_window_breaks_clear_evidence() {
+        let policy = window_policy();
+        let mut events = window_events();
+        if let Some(sample) = events.iter_mut().find(|item| {
+            item.source_id == "lidar-front"
+                && item.source_sequence == 2
+                && item.cell == GridCell { column: 0, row: 0 }
+        }) {
+            sample.state = ObservationState::Unknown;
+        }
+        let decision = evaluate(&policy, &events);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reason, Some(Reason::CellEvidenceUnknown));
+    }
+
+    #[test]
+    fn exactly_maximum_inter_sample_gap_is_admissible() {
+        let policy = window_policy();
+        let decision = evaluate(&policy, &window_events());
+        assert_eq!(decision.disposition, Disposition::WithinSyntheticEnvelope);
     }
 
     #[test]
