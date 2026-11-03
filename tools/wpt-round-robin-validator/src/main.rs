@@ -8,6 +8,19 @@ use std::error::Error;
 use std::fs;
 use std::process;
 
+const REQUIRED_SECURITY_SCENARIOS: &[&str] = &[
+    "WPT-SEC-AUTH-SPOOF-001",
+    "WPT-SEC-CMD-REPLAY-001",
+    "WPT-SEC-CMD-STALE-001",
+    "WPT-SEC-FW-INTEGRITY-001",
+    "WPT-SEC-SENSOR-PHASE-001",
+    "WPT-SEC-SENSOR-CURRENT-001",
+    "WPT-SEC-TIMING-JITTER-001",
+    "WPT-SEC-COMM-DOS-001",
+    "WPT-SEC-CERT-REVOKE-001",
+    "WPT-SEC-RESONANT-SWITCH-001",
+];
+
 const TOP_LEVEL: &[&str] = &[
     "schema_version",
     "run_id",
@@ -360,8 +373,15 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "max_accepted_command_age_ms",
             "security_artifact_sha256",
             "freshness_mechanism",
+            "security_scenario_results",
         ],
         "cyber_physical_security",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        at(manifest, &["cyber_physical_security", "security_scenario_results"]),
+        &["scenario_id", "outcome", "evidence_sha256", "notes"],
+        "cyber_physical_security.security_scenario_results",
         &mut errors,
     );
     exact_object_keys(
@@ -1010,6 +1030,62 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     if !security_digest.is_some_and(valid_sha256) {
         errors.push("cyber_physical_security.security_artifact_sha256: attack-test evidence digest required".into());
     }
+
+    let scenario_results = at(
+        manifest,
+        &["cyber_physical_security", "security_scenario_results"],
+    )
+    .and_then(Value::as_array);
+    match scenario_results {
+        Some(results) => {
+            let mut seen = BTreeSet::new();
+            for (index, result) in results.iter().enumerate() {
+                let id = string_at(result, &["scenario_id"]).unwrap_or("");
+                if !REQUIRED_SECURITY_SCENARIOS.contains(&id) || !seen.insert(id.to_owned()) {
+                    errors.push(format!(
+                        "cyber_physical_security.security_scenario_results[{index}].scenario_id: unknown or duplicate scenario"
+                    ));
+                }
+                let outcome = string_at(result, &["outcome"]).unwrap_or("NOT_RUN");
+                if !matches!(outcome, "PASS" | "NOT_APPLICABLE") {
+                    errors.push(format!(
+                        "cyber_physical_security.security_scenario_results[{index}].outcome: qualified run must PASS or justify NOT_APPLICABLE"
+                    ));
+                }
+                if outcome == "PASS"
+                    && !string_at(result, &["evidence_sha256"]).is_some_and(valid_sha256)
+                {
+                    errors.push(format!(
+                        "cyber_physical_security.security_scenario_results[{index}].evidence_sha256: passing scenario requires evidence digest"
+                    ));
+                }
+                if outcome == "NOT_APPLICABLE"
+                    && !nonempty(string_at(result, &["notes"]))
+                {
+                    errors.push(format!(
+                        "cyber_physical_security.security_scenario_results[{index}].notes: NOT_APPLICABLE requires reason"
+                    ));
+                }
+            }
+            for id in REQUIRED_SECURITY_SCENARIOS {
+                if !seen.contains(*id) {
+                    errors.push(format!(
+                        "cyber_physical_security.security_scenario_results: missing required scenario {id}"
+                    ));
+                }
+            }
+            if results.len() != REQUIRED_SECURITY_SCENARIOS.len() {
+                errors.push(format!(
+                    "cyber_physical_security.security_scenario_results: expected exactly {} unique scenarios",
+                    REQUIRED_SECURITY_SCENARIOS.len()
+                ));
+            }
+        }
+        None => errors.push(
+            "cyber_physical_security.security_scenario_results: scenario result array required".into()
+        ),
+    }
+
     let security_report_bound = manifest
         .get("artifact_refs")
         .and_then(Value::as_array)
@@ -1310,7 +1386,19 @@ mod tests {
             "max_message_age_ms": 20.0,
             "control_deadline_ms": 10.0,
             "max_accepted_command_age_ms": 25.0,
-            "security_artifact_sha256": "e".repeat(64)
+            "security_artifact_sha256": "e".repeat(64),
+            "security_scenario_results": [
+                {"scenario_id":"WPT-SEC-AUTH-SPOOF-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CMD-REPLAY-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CMD-STALE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-FW-INTEGRITY-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-SENSOR-PHASE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-SENSOR-CURRENT-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-TIMING-JITTER-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-COMM-DOS-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CERT-REVOKE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-RESONANT-SWITCH-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."}
+            ]
         });
 
         manifest["artifact_refs"] = json!([
@@ -1533,6 +1621,43 @@ mod tests {
         manifest["cyber_physical_security"]["freshness_mechanism"] = json!("UNKNOWN");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("replay-safe freshness mechanism required")));
+    }
+
+
+    #[test]
+    fn rejects_missing_required_security_scenario() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["security_scenario_results"]
+            .as_array_mut().unwrap().pop();
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("missing required scenario")));
+    }
+
+    #[test]
+    fn rejects_security_scenario_not_run() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["security_scenario_results"][0]["outcome"] =
+            json!("NOT_RUN");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("qualified run must PASS")));
+    }
+
+    #[test]
+    fn rejects_security_scenario_without_evidence_digest() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["security_scenario_results"][0]["evidence_sha256"] =
+            Value::Null;
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("passing scenario requires evidence digest")));
+    }
+
+    #[test]
+    fn rejects_duplicate_security_scenario_id() {
+        let mut manifest = qualified_fixture();
+        let id = manifest["cyber_physical_security"]["security_scenario_results"][0]["scenario_id"].clone();
+        manifest["cyber_physical_security"]["security_scenario_results"][1]["scenario_id"] = id;
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("unknown or duplicate scenario")));
     }
 
     #[test]
