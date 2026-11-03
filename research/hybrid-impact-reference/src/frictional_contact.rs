@@ -63,6 +63,12 @@ pub enum BoundarySensitivity {
     /// incipient slip. There is no finite classical/Clarke derivative across
     /// this discontinuity; the signed jump is reported instead.
     Discontinuous {
+        /// Local derivative on the static branch, with force as input.
+        stick_side_da_dforce: f64,
+        /// Local derivative on the kinetic-slip branch, with force as input.
+        slip_side_da_dforce: f64,
+        /// The branch-output jump at the threshold. A nonzero jump means there
+        /// is no single classical or Clarke derivative across the switch.
         signed_acceleration_jump_m_s2: f64,
     },
 }
@@ -260,6 +266,8 @@ impl CoulombContact1D {
                         / self.mass_kg,
                 )?;
                 BoundarySensitivity::Discontinuous {
+                    stick_side_da_dforce: 0.0,
+                    slip_side_da_dforce: 1.0 / self.mass_kg,
                     signed_acceleration_jump_m_s2: jump,
                 }
             };
@@ -402,6 +410,8 @@ mod tests {
                     acceleration_m_s2: 1.0,
                 },
                 sensitivity: BoundarySensitivity::Discontinuous {
+                    stick_side_da_dforce: 0.0,
+                    slip_side_da_dforce: 0.5,
                     signed_acceleration_jump_m_s2: 1.0,
                 },
             }
@@ -418,6 +428,8 @@ mod tests {
             ContactClassification::Boundary {
                 direction: SlipDirection::Negative,
                 sensitivity: BoundarySensitivity::Discontinuous {
+                    stick_side_da_dforce: 0.0,
+                    slip_side_da_dforce: 0.5,
                     signed_acceleration_jump_m_s2: -1.0,
                 },
                 ..
