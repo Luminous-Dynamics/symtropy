@@ -35,7 +35,8 @@
     "thermal_state": "UNKNOWN",
     "operating_mode": "UNKNOWN",
     "installation_type": "UNKNOWN",
-    "rated_apparent_power_va": null
+    "rated_apparent_power_va": null,
+    "vehicle_category": "UNKNOWN"
   },
   "metrology": {
     "window_start_utc": null,
