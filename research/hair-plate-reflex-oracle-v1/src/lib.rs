@@ -251,6 +251,8 @@ pub enum OracleError {
     PlateIdentityMismatch,
     PredictionIdentityMismatch,
     TrainingLeakage,
+    UnknownPlate(String),
+    CrossTaxonTrainingPlate(String),
     InvalidPrediction,
     NonFiniteMetric,
 }
@@ -435,6 +437,37 @@ impl HairPlateRecord {
 }
 
 impl HairPlateInventory {
+    /// Validate that a blind prediction's held-out and training plates are
+    /// members of this exact inventory and have the same declared taxon.
+    pub fn validate_prediction(
+        &self,
+        prediction: &HairPlatePrediction,
+    ) -> Result<(), OracleError> {
+        self.validate()?;
+        prediction.validate()?;
+
+        let records = self
+            .records
+            .iter()
+            .map(|record| (record.plate_id.as_str(), record))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let heldout = records
+            .get(prediction.plate_id.as_str())
+            .ok_or_else(|| OracleError::UnknownPlate(prediction.plate_id.clone()))?;
+
+        for training_plate_id in &prediction.training_plate_ids {
+            let training = records
+                .get(training_plate_id.as_str())
+                .ok_or_else(|| OracleError::UnknownPlate(training_plate_id.clone()))?;
+            if training.taxon_id != heldout.taxon_id {
+                return Err(OracleError::CrossTaxonTrainingPlate(
+                    training_plate_id.clone(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
     pub fn validate(&self) -> Result<(), OracleError> {
         if !valid_identifier(&self.inventory_id)
             || !valid_identifier(&self.dataset_id)
@@ -932,6 +965,38 @@ mod tests {
         assert_eq!(
             result.reflex_presence_unscorable,
             Some(UnscorableReason::UnknownEvidence)
+        );
+    }
+
+    #[test]
+    fn inventory_validates_heldout_and_training_membership() {
+        let mut heldout = record();
+        let mut training = record();
+        training.plate_id = "front-coxa-hp3".to_string();
+        training.record_sha256 = digest('9');
+
+        let inventory = HairPlateInventory {
+            inventory_id: "drosophila-hair-plate-v1".to_string(),
+            dataset_id: "fanc-v1-2-1".to_string(),
+            dataset_version: "1.2.1".to_string(),
+            inventory_sha256: digest('6'),
+            records: vec![heldout, training],
+        };
+        assert_eq!(inventory.validate_prediction(&prediction()), Ok(()));
+    }
+
+    #[test]
+    fn inventory_rejects_training_plate_missing_from_the_pinned_inventory() {
+        let inventory = HairPlateInventory {
+            inventory_id: "drosophila-hair-plate-v1".to_string(),
+            dataset_id: "fanc-v1-2-1".to_string(),
+            dataset_version: "1.2.1".to_string(),
+            inventory_sha256: digest('6'),
+            records: vec![record()],
+        };
+        assert_eq!(
+            inventory.validate_prediction(&prediction()),
+            Err(OracleError::UnknownPlate("front-coxa-hp3".to_string()))
         );
     }
 
