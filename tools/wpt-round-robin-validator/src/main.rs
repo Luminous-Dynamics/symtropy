@@ -2215,6 +2215,54 @@ mod tests {
         manifest["safety"]["unauthorized_receiver"] = json!("PASS");
         manifest["safety"]["communication_loss_response"] = json!("SAFE_DEENERGIZE");
         manifest["safety"]["thermal_maximum_c"] = json!(70.0);
+        manifest["foreign_object_assessment"] = json!({
+            "assessment_status": "QUALIFIED",
+            "sensor_modality": "HYBRID",
+            "pre_transfer_frame_count": 17_800,
+            "active_transfer_frame_count": 600,
+            "distinct_conductive_object_count": 10,
+            "distinct_nonconductive_object_count": 10,
+            "held_out_object_count": 10,
+            "held_out_session_count": 3,
+            "data_split_policy": "OBJECT_AND_SESSION_HELD_OUT",
+            "confusion_matrix": {
+                "true_positive": 10_000,
+                "true_negative": 10_000,
+                "false_positive": 0,
+                "false_negative": 0
+            },
+            "detection_recall_pct": 100.0,
+            "false_negative_rate_pct": 0.0,
+            "false_positive_rate_pct": 0.0,
+            "real_time_accuracy_pct": 100.0,
+            "p99_detection_latency_ms": 80.0,
+            "localization_error_p95_mm": 20.0,
+            "expected_calibration_error_pct": 2.0,
+            "ood_abstention_count": 1,
+            "sensor_fault_abstention_count": 1,
+            "mitigation_mode": "ACTIVE_DEMAG",
+            "auxiliary_energy_j": 250.0,
+            "max_object_temperature_rise_c": 13.7,
+            "thermal_ground_truth_method": "THERMOCOUPLE_AND_IR",
+            "scenario_corpus_sha256": "3".repeat(64),
+            "assessment_report_sha256": "1".repeat(64),
+            "scenario_results": [
+                {"scenario_id":"WPT-FOD-COIN-25MM-PRE-ENERGIZE","outcome":"PASS","expected_action":"INHIBIT_TRANSFER","observed_action":"INHIBIT_TRANSFER","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-COPPER-SHEET-100MM-PRE-ENERGIZE","outcome":"PASS","expected_action":"INHIBIT_TRANSFER","observed_action":"INHIBIT_TRANSFER","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-SMALL-FASTENER-FERRITE-EDGE","outcome":"PASS","expected_action":"INHIBIT_TRANSFER","observed_action":"INHIBIT_TRANSFER","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-MULTI-OBJECT-SET","outcome":"PASS","expected_action":"INHIBIT_TRANSFER","observed_action":"INHIBIT_TRANSFER","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-UNKNOWN-ALLOY-OOD","outcome":"PASS","expected_action":"ABSTAIN","observed_action":"ABSTAIN","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-SESSION-DRIFT","outcome":"PASS","expected_action":"ABSTAIN","observed_action":"ABSTAIN","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-ACTIVE-TRANSFER-EMI","outcome":"PASS","expected_action":"SAFE_DEENERGIZE","observed_action":"SAFE_DEENERGIZE","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-SENSOR-CHANNEL-LOSS","outcome":"PASS","expected_action":"ABSTAIN","observed_action":"ABSTAIN","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-AMBIGUOUS-LOCALIZATION","outcome":"PASS","expected_action":"ABSTAIN","observed_action":"ABSTAIN","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-DEMAG-QUALIFIED-COIN","outcome":"PASS","expected_action":"ACTIVATE_MITIGATION","observed_action":"ACTIVATE_MITIGATION","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-DEMAG-FAULT","outcome":"PASS","expected_action":"SAFE_DEENERGIZE","observed_action":"SAFE_DEENERGIZE","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-OBJECT-MOVEMENT","outcome":"PASS","expected_action":"SAFE_DEENERGIZE","observed_action":"SAFE_DEENERGIZE","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-THERMAL-SENSOR-FAULT","outcome":"PASS","expected_action":"SAFE_DEENERGIZE","observed_action":"SAFE_DEENERGIZE","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."},
+                {"scenario_id":"WPT-FOD-NO-OBJECT-NEGATIVE-CONTROL","outcome":"PASS","expected_action":"NO_FOD_ACTION","observed_action":"NO_FOD_ACTION","evidence_sha256":"1".repeat(64),"notes":"Synthetic known-truth unit-test fixture; not a physical FOD result."}
+            ]
+        });
         manifest["cyber_physical_security"] = json!({
             "communication_mode": "NETWORKED",
             "authentication_method": "PKI_MUTUAL",
@@ -2269,12 +2317,99 @@ mod tests {
                 "sha256": "e".repeat(64),
                 "media_type": "application/json",
                 "description": "Synthetic security-test placeholder; not a real attack report."
+            },
+            {
+                "artifact_type": "FOD_REPORT",
+                "uri": "artifact://synthetic/fod-report",
+                "sha256": "1".repeat(64),
+                "media_type": "application/json",
+                "description": "Synthetic FOD assessment placeholder; not a real qualification report."
+            },
+            {
+                "artifact_type": "FOD_THERMAL_DATA",
+                "uri": "artifact://synthetic/fod-thermal",
+                "sha256": "2".repeat(64),
+                "media_type": "application/octet-stream",
+                "description": "Synthetic thermal data placeholder; not a physical measurement."
             }
         ]);
         manifest["result"]["qualification"] = json!("QUALIFIED");
         manifest["result"]["notes"] =
             json!("Synthetic unit-test fixture only; not a physical experiment.");
         manifest
+    }
+
+
+    #[test]
+    fn frozen_fod_scenario_corpus_matches_validator_actions() {
+        let source = include_str!(
+            "../../../benchmarks/wpt-empirical/v1/foreign-object-scenarios.jsonl"
+        );
+        let mut actual = Vec::new();
+        for (index, line) in source.lines().enumerate() {
+            let record: Value = serde_json::from_str(line)
+                .unwrap_or_else(|error| panic!("FOD scenario line {}: {error}", index + 1));
+            assert_eq!(
+                string_at(&record, &["schema_version"]),
+                Some("wpt-fod-scenario-v1")
+            );
+            let id = string_at(&record, &["scenario_id"])
+                .expect("scenario_id required in FOD corpus");
+            let action = string_at(&record, &["expected_action"])
+                .expect("expected_action required in FOD corpus");
+            assert!(nonempty(string_at(&record, &["failure_condition"])));
+            assert!(nonempty(string_at(&record, &["notes"])));
+            actual.push((id.to_owned(), action.to_owned()));
+        }
+        actual.sort();
+        let mut expected = REQUIRED_FOD_SCENARIOS
+            .iter()
+            .map(|(id, action)| (id.to_string(), action.to_string()))
+            .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(actual, expected, "FOD scenario corpus and validator contract drifted");
+    }
+
+    #[test]
+    fn rejects_fod_qualification_with_any_false_negative() {
+        let mut manifest = qualified_fixture();
+        manifest["foreign_object_assessment"]["confusion_matrix"]["false_negative"] = json!(1);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires zero false negatives")));
+    }
+
+    #[test]
+    fn rejects_fod_rates_not_derived_from_confusion_matrix() {
+        let mut manifest = qualified_fixture();
+        manifest["foreign_object_assessment"]["real_time_accuracy_pct"] = json!(99.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("must equal confusion-matrix-derived value")));
+    }
+
+    #[test]
+    fn rejects_random_frame_split_for_fod_safety_qualification() {
+        let mut manifest = qualified_fixture();
+        manifest["foreign_object_assessment"]["data_split_policy"] = json!("RANDOM_FRAME_SPLIT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("OBJECT_AND_SESSION_HELD_OUT")));
+    }
+
+    #[test]
+    fn rejects_fod_scenario_with_wrong_safe_action() {
+        let mut manifest = qualified_fixture();
+        manifest["foreign_object_assessment"]["scenario_results"][0]["observed_action"] =
+            json!("NO_FOD_ACTION");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("does not match expected safe action")));
+    }
+
+    #[test]
+    fn rejects_fod_report_digest_not_bound_to_artifact() {
+        let mut manifest = qualified_fixture();
+        manifest["foreign_object_assessment"]["assessment_report_sha256"] =
+            json!("f".repeat(64));
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("must bind a FOD_REPORT artifact")));
     }
 
     #[test]
