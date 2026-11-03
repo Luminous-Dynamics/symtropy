@@ -167,9 +167,7 @@ impl HybridProjectionReceipt {
         }
 
         let mut entries = self.entries.iter().collect::<Vec<_>>();
-        entries.sort_by(|left, right| {
-            left.source_semantic_id.cmp(&right.source_semantic_id)
-        });
+        entries.sort_by(|left, right| left.source_semantic_id.cmp(&right.source_semantic_id));
         for entry in &entries {
             validate_semantic_id(&entry.source_semantic_id)?;
             if entry.note.trim().is_empty() {
@@ -368,7 +366,8 @@ mod tests {
                 target_semantic_id: Some("symtropy.guard.ground".into()),
                 treatment: ProjectionTreatment::Transformed,
                 evidence_reference: Some(digest('a')),
-                note: "Guard expression normalized; dimension and orientation equivalence checked.".into(),
+                note: "Guard expression normalized; dimension and orientation equivalence checked."
+                    .into(),
             },
             ProjectionLedgerEntry {
                 source_semantic_id: "reset.rebound".into(),
@@ -382,7 +381,8 @@ mod tests {
                 target_semantic_id: Some("symtropy.transition.rebound".into()),
                 treatment: ProjectionTreatment::Unproven,
                 evidence_reference: None,
-                note: "Target mapping exists but branch-domain equivalence is not yet verified.".into(),
+                note: "Target mapping exists but branch-domain equivalence is not yet verified."
+                    .into(),
             },
         ];
         HybridProjectionReceipt {
@@ -407,11 +407,7 @@ mod tests {
         let receipt = valid_receipt();
         receipt.validate().expect("valid receipt");
         receipt
-            .validate_source_binding(
-                &digest('b'),
-                &digest('c'),
-                &receipt.source_semantic_ids,
-            )
+            .validate_source_binding(&digest('b'), &digest('c'), &receipt.source_semantic_ids)
             .expect("source identities and semantic inventory match");
     }
 
@@ -450,7 +446,9 @@ mod tests {
         );
 
         let mut duplicate_entry = valid_receipt();
-        duplicate_entry.entries.push(duplicate_entry.entries[0].clone());
+        duplicate_entry
+            .entries
+            .push(duplicate_entry.entries[0].clone());
         assert_eq!(
             duplicate_entry.validate(),
             Err(ProjectionReceiptError::DuplicateLedgerEntry)
@@ -519,11 +517,19 @@ mod tests {
     fn stale_source_model_or_hybrid_digest_is_rejected() {
         let receipt = valid_receipt();
         assert_eq!(
-            receipt.validate_source_binding(&digest('0'), &digest('c'), &receipt.source_semantic_ids),
+            receipt.validate_source_binding(
+                &digest('0'),
+                &digest('c'),
+                &receipt.source_semantic_ids
+            ),
             Err(ProjectionReceiptError::SourceModelDigestMismatch)
         );
         assert_eq!(
-            receipt.validate_source_binding(&digest('b'), &digest('0'), &receipt.source_semantic_ids),
+            receipt.validate_source_binding(
+                &digest('b'),
+                &digest('0'),
+                &receipt.source_semantic_ids
+            ),
             Err(ProjectionReceiptError::SourceHybridDigestMismatch)
         );
     }
