@@ -81,6 +81,14 @@ pub struct StaticSolvePolicy {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StaticEquilibriumResult {
+    pub muscle_id: String,
+    pub parameter_sha256: String,
+    pub active_force_length_sha256: String,
+    pub passive_force_length_sha256: String,
+    pub tendon_force_length_sha256: String,
+    pub musculotendon_length_m: f64,
+    pub activation: f64,
+    pub solve_policy: StaticSolvePolicy,
     pub fiber_length_m: f64,
     pub tendon_length_m: f64,
     pub normalized_fiber_length: f64,
@@ -476,10 +484,10 @@ pub fn solve_static_equilibrium(
     }
 
     if lower_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-        return Ok(to_result(lower_eval, lower_fiber_length_m, 0));
+        return to_result(parameters, curves, musculotendon_length_m, activation, policy, lower_eval, lower_fiber_length_m, 0);
     }
     if upper_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-        return Ok(to_result(upper_eval, upper_fiber_length_m, 0));
+        return to_result(parameters, curves, musculotendon_length_m, activation, policy, upper_eval, upper_fiber_length_m, 0);
     }
 
     if lower_eval.residual_n.signum() == upper_eval.residual_n.signum() {
@@ -501,7 +509,7 @@ pub fn solve_static_equilibrium(
         )?;
 
         if middle_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-            return Ok(to_result(middle_eval, midpoint, iteration));
+            return to_result(parameters, curves, musculotendon_length_m, activation, policy, middle_eval, midpoint, iteration);
         }
 
         if middle_eval.residual_n.signum() == lower_eval.residual_n.signum() {
@@ -523,7 +531,7 @@ pub fn solve_static_equilibrium(
                 final_midpoint,
             )?;
             if final_eval.residual_n.abs() <= policy.force_residual_tolerance_n {
-                return Ok(to_result(final_eval, final_midpoint, iteration));
+                return to_result(parameters, curves, musculotendon_length_m, activation, policy, final_eval, final_midpoint, iteration);
             }
             return Err(MuscleError::ResidualToleranceUnmet {
                 residual_n: final_eval.residual_n,
@@ -540,12 +548,19 @@ pub fn solve_static_equilibrium(
 }
 
 fn to_result(
+    parameters: &MuscleParameters,
+    curves: &MuscleCurves,
+    musculotendon_length_m: f64,
+    activation: f64,
+    policy: StaticSolvePolicy,
     evaluation: ForceEvaluation,
     fiber_length_m: f64,
     iterations: u32,
 ) -> Result<StaticEquilibriumResult, MuscleError> {
     if [
         fiber_length_m,
+        musculotendon_length_m,
+        activation,
         evaluation.tendon_length_m,
         evaluation.normalized_fiber_length,
         evaluation.normalized_tendon_length,
@@ -562,6 +577,14 @@ fn to_result(
     }
 
     Ok(StaticEquilibriumResult {
+        muscle_id: parameters.muscle_id.clone(),
+        parameter_sha256: parameters.parameter_sha256.clone(),
+        active_force_length_sha256: curves.active_force_length.source_sha256.clone(),
+        passive_force_length_sha256: curves.passive_force_length.source_sha256.clone(),
+        tendon_force_length_sha256: curves.tendon_force_length.source_sha256.clone(),
+        musculotendon_length_m,
+        activation,
+        solve_policy: policy,
         fiber_length_m,
         tendon_length_m: evaluation.tendon_length_m,
         normalized_fiber_length: evaluation.normalized_fiber_length,
@@ -654,7 +677,13 @@ mod tests {
         )
         .expect("static equilibrium");
         assert!((result.fiber_length_m - 0.01).abs() < 1.0e-10);
-        assert!((result.tendon_length_m - 0.0105).abs() < 1.0e-10);
+        assert!((result.tendon_length_m - tendon_length).abs() < 1.0e-10);
+        assert_eq!(result.muscle_id, "foreleg-extensor-1");
+        assert_eq!(result.parameter_sha256, digest());
+        assert_eq!(result.active_force_length_sha256, digest());
+        assert_eq!(result.musculotendon_length_m, musculotendon_length);
+        assert_eq!(result.activation, 1.0);
+        assert_eq!(result.solve_policy, policy());
         assert!((result.fiber_force_n - 100.0).abs() < 1.0e-8);
         assert!((result.tendon_force_n - 100.0).abs() < 1.0e-8);
         assert!(result.force_residual_n.abs() <= 1.0e-8);
@@ -664,7 +693,8 @@ mod tests {
     fn pennation_uses_constant_thickness_geometry_and_cosine_projection() {
         let pennation = 30.0_f64.to_radians();
         let expected_cosine = pennation.cos();
-        let musculotendon_length = 0.01 * expected_cosine + 0.0105;
+        let tendon_length = 0.01 * (1.0 + 0.05 * expected_cosine);
+        let musculotendon_length = 0.01 * expected_cosine + tendon_length;
         let result = solve_static_equilibrium(
             &parameters(pennation),
             &curves(),
