@@ -13,7 +13,8 @@
     "hardware_revision": "TBD",
     "controller_revision": null,
     "power_rating_w": null,
-    "configuration_digest": null
+    "configuration_digest": null,
+    "concurrent_resonant_networks_allowed": null
   },
   "conditions": {
     "direction": "NOT_APPLICABLE",
@@ -119,5 +120,6 @@
     "qualification": "NOT_RUN",
     "deviations": [],
     "notes": "Template only. No physical WPT experiment, measurement, calibration or safety assessment is represented."
-  }
+  },
+  "resonant_networks": []
 }
