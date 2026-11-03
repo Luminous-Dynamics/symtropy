@@ -936,9 +936,10 @@ mod tests {
     #[test]
     fn rejects_residual_above_steady_state_target() {
         let mut manifest = qualified_fixture();
-        manifest["energy_balance"]["residual_energy_j"] = json!(400_000.0);
+        manifest["energy_balance"]["useful_energy_j"] = json!(39_000_000.0);
+        manifest["energy_balance"]["residual_energy_j"] = json!(700_000.0);
         manifest["energy_balance"]["residual_fraction_pct"] =
-            json!(400_000.0 / 43_200_000.0 * 100.0);
+            json!(700_000.0 / 43_200_000.0 * 100.0);
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("exceeds proposed 0.500%")));
     }
