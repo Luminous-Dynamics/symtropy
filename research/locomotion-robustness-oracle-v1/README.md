@@ -54,9 +54,9 @@ Digest strings are references supplied by an upstream evidence authority. This c
 
 ## Tail metrics
 
-For sorted scores (s_1 le dots le s_n), V1 reports the mean of the lowest
-(lceil n alpha ceil) scores, where (alpha) is preregistered in basis
-points. For example, 1000 basis points selects the worst 10%.
+For task scores sorted in ascending order, V1 reports the mean of the lowest
+ceil(n * alpha) scores, where alpha is preregistered in basis points. For
+example, 1000 basis points selects the worst 10%.
 
 Two tail estimates are returned:
 - **Episode-level CVaR:** each episode contributes equally, so additional trials increase that individual's weight.
