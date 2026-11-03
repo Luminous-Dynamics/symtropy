@@ -72,3 +72,30 @@ The JSON files have been parsed and the source references resolved during author
 ## Next work
 
 Expand the 133-paper survey at source-family/prototype-lineage granularity, manually transcribe a small stratified subset (power decade × transfer gap × IPT/CPT), dual-annotate every reported boundary, then compare retrieval/extraction baselines under identical source visibility and compute budgets. Only after extraction quality is demonstrated should the dataset be expanded automatically.
+
+## 2026 frontier additions (development records)
+
+The dataset now contains four prototype families: one static 65 kW IPT charger, one exposure-informed DD pad, one heavy-duty dynamic roadway system, and one public-road DWPT endurance trial. These are not rankable on a single axis.
+
+| Lane | System | Reported result | Important qualification |
+|---|---|---|---|
+| Static IPT | Zavrel et al. 2025 | Back-to-back 58 kW / 97.5% at 15 cm; >70 kW / 96.3% at 20 cm; <60 kW / 95.3% at 25 cm | Distinct P_DC1→P_DC2 back-to-back boundary; separate 65 kW Table VII reports eta_WCS 92.7%, eta_DC-DC 95.5%. |
+| Exposure-aware static IPT | Kindl et al. 2026 | >96% DC-to-DC at 20 cm, 85 kHz; ~56% less shielding loss; mutual inductance ~27.2–27.3 μH | Prototype efficiency measured; shielding and mutual-inductance changes from FEM/co-design; electric exposure screened in simulation. |
+| Dynamic roadway IPT | Purdue JTRP 2026 | 50–190 kW at up to 65 mph; efficiency approaching 85% | Abstract-level field-test envelope; input/output boundary, frequency, gap and per-speed efficiency not stated in abstract. |
+| Public-road dynamic IPT | Tokuriki et al. 2026 | ~10 kW delivered to moving EV; 63.3% of drive energy replenished; 18 months testing | 63.3% is a vehicle energy-offset metric, not link efficiency; no efficiency or frequency in abstract. |
+
+### The new benchmark paradigm
+
+Static link efficiency is only one part of field performance. The benchmark now treats these as independent, non-compensatory dimensions:
+
+- **Energy transfer:** useful load energy, exact input/output boundary, average versus peak power, energy delivered per distance travelled.
+- **Exposure and EMC:** measured versus simulated electric/magnetic fields, spatial paths, vehicle/person geometry, weighting, margin and uncertainty.
+- **Coupler and material performance:** mutual inductance, shielding losses, ferrite/conductor mass, temperature rise and thermal steady state.
+- **Dynamic operation:** speed, pad pitch, transition gaps, duty cycle, alignment tolerance, power continuity and control latency.
+- **Roadway reliability:** detection false positives/misses, coil availability, weather/season sensitivity, pavement aging, maintenance and uptime.
+- **Vehicle service:** fraction of traction energy replenished, net battery energy, and range contribution, separately from WPT conversion efficiency.
+
+The Purdue and Japan reports are field-trial families; the Kindl paper is an exposure-aware design/prototype family. They are intentionally not merged with the static bench charger record or with each other.
+
+The full follow-on is tracked in [WPT-DYNAMIC-CO-DESIGN-001 #3452](https://github.com/Luminous-Dynamics/symtropy/issues/3452).
+
