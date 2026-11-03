@@ -119,18 +119,18 @@ impl LimitDetectorConfig {
         Ok(())
     }
 
-    fn release_angle(&self) -> i64 {
+    fn release_angle(&self) -> Result<i64, DetectorError> {
         let hysteresis = i64::try_from(self.release_hysteresis_urad)
-            .expect("validated hysteresis is bounded by the i64 angle span");
+            .map_err(|_| DetectorError::InvalidConfiguration)?;
         match self.side {
             LimitSide::Lower => self
                 .trigger_angle_urad
                 .checked_add(hysteresis)
-                .expect("validated release angle cannot overflow"),
+                .ok_or(DetectorError::InvalidConfiguration),
             LimitSide::Upper => self
                 .trigger_angle_urad
                 .checked_sub(hysteresis)
-                .expect("validated release angle cannot overflow"),
+                .ok_or(DetectorError::InvalidConfiguration),
         }
     }
 
@@ -141,11 +141,12 @@ impl LimitDetectorConfig {
         }
     }
 
-    fn beyond_release(&self, angle_urad: i64) -> bool {
-        match self.side {
-            LimitSide::Lower => angle_urad >= self.release_angle(),
-            LimitSide::Upper => angle_urad <= self.release_angle(),
-        }
+    fn beyond_release(&self, angle_urad: i64) -> Result<bool, DetectorError> {
+        let release_angle = self.release_angle()?;
+        Ok(match self.side {
+            LimitSide::Lower => angle_urad >= release_angle,
+            LimitSide::Upper => angle_urad <= release_angle,
+        })
     }
 }
 
@@ -200,7 +201,7 @@ impl JointLimitDetector {
             self.armed = if self.armed {
                 !self.config.beyond_trigger(sample.angle_urad)
             } else {
-                self.config.beyond_release(sample.angle_urad)
+                self.config.beyond_release(sample.angle_urad)?
             };
             self.previous = Some(sample);
             return Err(DetectorError::SampleGapExceeded);
@@ -222,7 +223,7 @@ impl JointLimitDetector {
                 current_body_state_sha256: sample.body_state_sha256.clone(),
             })
         } else {
-            if !self.armed && self.config.beyond_release(sample.angle_urad) {
+            if !self.armed && self.config.beyond_release(sample.angle_urad)? {
                 self.armed = true;
             }
             None
