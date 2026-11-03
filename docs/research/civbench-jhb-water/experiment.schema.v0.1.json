@@ -284,7 +284,17 @@
         "interval",
         "multiple_testing",
         "confirmatory_holdout",
-        "uncertainty_types"
+        "uncertainty_types",
+        "independent_replication_unit",
+        "primary_outcome_rule",
+        "paired_power_approximation",
+        "planning_alpha",
+        "planning_power",
+        "co_primary_multiplicity_sensitivity",
+        "paired_standardized_effect_sensitivity",
+        "inference_rule",
+        "single_network_claim_limit",
+        "pilot_separation"
       ],
       "properties": {
         "unit_of_analysis": {
@@ -315,6 +325,62 @@
           "items": {
             "type": "string"
           }
+        },
+        "independent_replication_unit": {
+          "type": "string"
+        },
+        "primary_outcome_rule": {
+          "type": "string"
+        },
+        "paired_power_approximation": {
+          "type": "string"
+        },
+        "planning_alpha": {
+          "type": "number",
+          "const": 0.05
+        },
+        "planning_power": {
+          "type": "number",
+          "const": 0.8
+        },
+        "co_primary_multiplicity_sensitivity": {
+          "type": "string"
+        },
+        "paired_standardized_effect_sensitivity": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paired_effect_size_dz",
+              "approx_pairs_unadjusted",
+              "approx_pairs_twelve_co_primary_bonferroni"
+            ],
+            "properties": {
+              "paired_effect_size_dz": {
+                "type": "number"
+              },
+              "approx_pairs_unadjusted": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "approx_pairs_twelve_co_primary_bonferroni": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "inference_rule": {
+          "type": "string"
+        },
+        "single_network_claim_limit": {
+          "type": "string"
+        },
+        "pilot_separation": {
+          "type": "string"
         }
       },
       "additionalProperties": false
