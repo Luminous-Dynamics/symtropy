@@ -9,12 +9,13 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_CONFIDENCE_PPM: u32 = 1_000_000;
 const MAX_IDENTIFIER_BYTES: usize = 128;
 const MAX_SENSOR_RECORDS: usize = 128;
 const MAX_ODD_CONDITIONS: usize = 64;
+const MAX_COVERAGE_CELLS: usize = 4096;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OperationalDomain {
@@ -125,6 +126,12 @@ pub enum Reason {
     HumanEvidenceSensorMissing,
     HumanEvidenceSensorUnhealthy,
     HumanEvidenceCoverageInsufficient,
+    HumanEvidenceRegionUncovered,
+    HumanEvidenceCoverageUnsupported,
+    CoverageGridMismatch,
+    CoverageCellsMalformed,
+    HumanModalityRegionUncovered,
+    HumanFaultDomainRegionUncovered,
     HumanModalityDiversityInsufficient,
     HumanSeparationBreached,
     HumanSeparationNearBoundary,
@@ -149,6 +156,13 @@ pub struct OddConditionObservation {
     pub source_sha256: String,
 }
 
+/// Cell coordinate in the policy-pinned site coverage grid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CoverageCell {
+    pub column: u32,
+    pub row: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SensorEvidence {
     pub sensor_id: String,
@@ -159,6 +173,8 @@ pub struct SensorEvidence {
     pub age_ms: u64,
     pub confidence_ppm: u32,
     pub coverage_ppm: u32,
+    pub coverage_grid_sha256: String,
+    pub covered_cells: Vec<CoverageCell>,
     pub calibration_current: bool,
     pub source_sha256: String,
 }
@@ -171,6 +187,8 @@ pub struct HumanDetectionEvidence {
     pub source_sha256: String,
     pub observed_at_ms: u64,
     pub coverage_ppm: u32,
+    pub coverage_grid_sha256: String,
+    pub covered_cells: Vec<CoverageCell>,
     pub confidence_ppm: u32,
 }
 
@@ -208,6 +226,10 @@ pub struct SafetyPolicy {
     pub task_revision: String,
     pub site_snapshot_id: String,
     pub coordinate_frame: String,
+    /// Digest of the versioned site-local monitoring grid geometry and frame.
+    pub coverage_grid_sha256: String,
+    /// Required cells in the declared human hazard zone.
+    pub required_human_coverage_cells: Vec<CoverageCell>,
     pub jurisdiction: String,
     pub standards_profile: String,
     pub domain: OperationalDomain,
@@ -290,6 +312,7 @@ pub enum EvidenceRole {
     Sensor,
     HumanDetection,
     OperatingCondition,
+    CoverageGrid,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -347,12 +370,15 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
     if required_text
         .iter()
         .any(|value| !non_empty(value) || value.len() > MAX_IDENTIFIER_BYTES)
+        || !is_sha256_reference(&policy.coverage_grid_sha256)
     {
         return false;
     }
     if policy.valid_from_ms > policy.valid_until_ms
         || policy.odd_conditions.len() > MAX_ODD_CONDITIONS
         || policy.critical_sensor_ids.len() > MAX_SENSOR_RECORDS
+        || policy.required_human_coverage_cells.is_empty()
+        || policy.required_human_coverage_cells.len() > MAX_COVERAGE_CELLS
         || policy.maximum_state_age_ms == 0
         || policy.maximum_sensor_age_ms == 0
         || policy.maximum_heartbeat_age_ms == 0
@@ -373,6 +399,15 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
             || id.len() > MAX_IDENTIFIER_BYTES
             || !critical_ids.insert(id.as_str())
     }) {
+        return false;
+    }
+
+    let mut coverage_cells = BTreeSet::new();
+    if policy
+        .required_human_coverage_cells
+        .iter()
+        .any(|cell| !coverage_cells.insert(*cell))
+    {
         return false;
     }
 
@@ -430,6 +465,11 @@ fn make_decision(
             source_sha256: sensor.source_sha256.clone(),
         })
         .collect::<Vec<_>>();
+    evidence_references.push(EvidenceReference {
+        role: EvidenceRole::CoverageGrid,
+        source_id: "site-human-monitoring-grid".to_owned(),
+        source_sha256: policy.coverage_grid_sha256.clone(),
+    });
     evidence_references.push(EvidenceReference {
         role: EvidenceRole::HumanDetection,
         source_id: "human-detection".to_owned(),
@@ -563,6 +603,15 @@ fn sensors_are_well_formed(observation: &RuntimeObservation) -> bool {
             && non_empty(&sensor.fault_domain)
             && sensor.fault_domain.len() <= MAX_IDENTIFIER_BYTES
             && is_sha256_reference(&sensor.source_sha256)
+            && is_sha256_reference(&sensor.coverage_grid_sha256)
+            && sensor.covered_cells.len() <= MAX_COVERAGE_CELLS
+            && sensor
+                .covered_cells
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len()
+                == sensor.covered_cells.len()
             && sensor.confidence_ppm <= MAX_CONFIDENCE_PPM
             && sensor.coverage_ppm <= MAX_CONFIDENCE_PPM
             && ids.insert(sensor.sensor_id.as_str())
@@ -580,8 +629,12 @@ fn human_evidence_status(
         || !is_sha256_reference(&evidence.source_sha256)
         || evidence.coverage_ppm > MAX_CONFIDENCE_PPM
         || evidence.confidence_ppm > MAX_CONFIDENCE_PPM
+        || evidence.covered_cells.len() > MAX_COVERAGE_CELLS
     {
         return Err(Reason::HumanEvidenceMalformed);
+    }
+    if evidence.coverage_grid_sha256 != policy.coverage_grid_sha256 {
+        return Err(Reason::CoverageGridMismatch);
     }
     if evidence.observed_at_ms > observation.evaluated_at_ms {
         return Err(Reason::HumanEvidenceMalformed);
@@ -598,9 +651,32 @@ fn human_evidence_status(
         return Err(Reason::HumanTrackConfidenceInsufficient);
     }
 
+    let required_cells = policy
+        .required_human_coverage_cells
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let detected_cells = evidence
+        .covered_cells
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    if detected_cells.len() != evidence.covered_cells.len()
+        || detected_cells.iter().any(|cell| !required_cells.contains(cell))
+    {
+        return Err(Reason::CoverageCellsMalformed);
+    }
+    if !required_cells.is_subset(&detected_cells) {
+        return Err(Reason::HumanEvidenceRegionUncovered);
+    }
+
     let mut sensor_ids = BTreeSet::new();
-    let mut independent_fault_domains = BTreeSet::new();
-    let mut independent_modalities = BTreeSet::new();
+    let mut fault_domain_coverage =
+        BTreeMap::<String, BTreeSet<CoverageCell>>::new();
+    let mut modality_coverage =
+        BTreeMap::<SensorModality, BTreeSet<CoverageCell>>::new();
+    let mut source_covered_cells = BTreeSet::new();
+
     for sensor_id in &evidence.contributing_sensor_ids {
         if !non_empty(sensor_id)
             || sensor_id.len() > MAX_IDENTIFIER_BYTES
@@ -623,15 +699,49 @@ fn human_evidence_status(
         {
             return Err(Reason::HumanEvidenceSensorUnhealthy);
         }
-        independent_fault_domains.insert(sensor.fault_domain.as_str());
-        independent_modalities.insert(sensor.modality);
+        if sensor.coverage_grid_sha256 != policy.coverage_grid_sha256 {
+            return Err(Reason::CoverageGridMismatch);
+        }
+
+        let sensor_cells = sensor
+            .covered_cells
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if sensor_cells.len() != sensor.covered_cells.len()
+            || sensor_cells.iter().any(|cell| !required_cells.contains(cell))
+        {
+            return Err(Reason::CoverageCellsMalformed);
+        }
+        source_covered_cells.extend(sensor_cells.iter().copied());
+        fault_domain_coverage
+            .entry(sensor.fault_domain.clone())
+            .or_default()
+            .extend(sensor_cells.iter().copied());
+        modality_coverage
+            .entry(sensor.modality)
+            .or_default()
+            .extend(sensor_cells.iter().copied());
     }
 
-    if independent_fault_domains.len() < policy.minimum_independent_sensor_groups {
-        return Err(Reason::SensorDiversityInsufficient);
+    if !detected_cells.is_subset(&source_covered_cells) {
+        return Err(Reason::HumanEvidenceCoverageUnsupported);
     }
-    if independent_modalities.len() < policy.minimum_human_sensor_modalities {
-        return Err(Reason::HumanModalityDiversityInsufficient);
+
+    let complete_fault_domains = fault_domain_coverage
+        .values()
+        .filter(|cells| required_cells.is_subset(*cells))
+        .count();
+    if complete_fault_domains < policy.minimum_independent_sensor_groups {
+        return Err(Reason::HumanFaultDomainRegionUncovered);
+    }
+
+    let complete_modalities = modality_coverage
+        .values()
+        .filter(|cells| required_cells.is_subset(*cells))
+        .count();
+    if complete_modalities < policy.minimum_human_sensor_modalities {
+        return Err(Reason::HumanModalityRegionUncovered);
     }
     Ok(())
 }
@@ -819,7 +929,13 @@ pub fn evaluate(
     };
 
     if let Err(reason) = human_evidence_status(policy, observation) {
-        if reason == Reason::HumanEvidenceMalformed {
+        if matches!(
+            reason,
+            Reason::HumanEvidenceMalformed
+                | Reason::CoverageGridMismatch
+                | Reason::CoverageCellsMalformed
+                | Reason::HumanEvidenceCoverageUnsupported
+        ) {
             return inconsistent(policy, observation, reason);
         }
         return stop(policy, observation, reason);
@@ -990,6 +1106,13 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
         task_revision: "work-revision-2".to_owned(),
         site_snapshot_id: "site-grid-12".to_owned(),
         coordinate_frame: "site-local-mm".to_owned(),
+        coverage_grid_sha256: digest('2'),
+        required_human_coverage_cells: vec![
+            CoverageCell { column: 0, row: 0 },
+            CoverageCell { column: 0, row: 1 },
+            CoverageCell { column: 1, row: 0 },
+            CoverageCell { column: 1, row: 1 },
+        ],
         jurisdiction: "ZA".to_owned(),
         standards_profile: "za-construction-profile-2026-01".to_owned(),
         domain: OperationalDomain::Surface,
@@ -1089,6 +1212,13 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
             source_sha256: digest('9'),
             observed_at_ms: 4_990,
             coverage_ppm: 980_000,
+            coverage_grid_sha256: digest('2'),
+            covered_cells: vec![
+                CoverageCell { column: 0, row: 0 },
+                CoverageCell { column: 0, row: 1 },
+                CoverageCell { column: 1, row: 0 },
+                CoverageCell { column: 1, row: 1 },
+            ],
             confidence_ppm: 980_000,
         },
         sensors: vec![
@@ -1100,6 +1230,13 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 age_ms: 20,
                 confidence_ppm: 980_000,
                 coverage_ppm: 980_000,
+                coverage_grid_sha256: digest('2'),
+                covered_cells: vec![
+                CoverageCell { column: 0, row: 0 },
+                CoverageCell { column: 0, row: 1 },
+                CoverageCell { column: 1, row: 0 },
+                CoverageCell { column: 1, row: 1 },
+            ],
                 calibration_current: true,
                 source_sha256: digest('b'),
             },
@@ -1111,6 +1248,8 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 age_ms: 20,
                 confidence_ppm: 980_000,
                 coverage_ppm: 980_000,
+                coverage_grid_sha256: digest('2'),
+                covered_cells: Vec::new(),
                 calibration_current: true,
                 source_sha256: digest('c'),
             },
@@ -1122,6 +1261,13 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 age_ms: 20,
                 confidence_ppm: 980_000,
                 coverage_ppm: 980_000,
+                coverage_grid_sha256: digest('2'),
+                covered_cells: vec![
+                CoverageCell { column: 0, row: 0 },
+                CoverageCell { column: 0, row: 1 },
+                CoverageCell { column: 1, row: 0 },
+                CoverageCell { column: 1, row: 1 },
+            ],
                 calibration_current: true,
                 source_sha256: digest('d'),
             },
@@ -1133,6 +1279,8 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 age_ms: 20,
                 confidence_ppm: 980_000,
                 coverage_ppm: 980_000,
+                coverage_grid_sha256: digest('2'),
+                covered_cells: Vec::new(),
                 calibration_current: true,
                 source_sha256: digest('1'),
             },
