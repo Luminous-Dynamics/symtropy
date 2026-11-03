@@ -539,6 +539,60 @@
           }
         }
       }
+    },
+    "engineering_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "name",
+          "value",
+          "unit",
+          "evidence_kind",
+          "source_locator",
+          "notes"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "value_max": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "evidence_kind": {
+            "enum": [
+              "MEASURED",
+              "AUTHOR_CALCULATED",
+              "SIMULATED",
+              "SECONDARY_REPORTED",
+              "UNKNOWN"
+            ]
+          },
+          "source_locator": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
