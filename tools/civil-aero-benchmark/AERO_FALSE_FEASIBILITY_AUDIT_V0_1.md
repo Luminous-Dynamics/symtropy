@@ -77,18 +77,6 @@ The report binds:
 
 Replay recomputes the frame digest, verifies candidate/output/scope links, checks declared adjudicator separation, recomputes the adjudication manifest and rebuilds the report digest.
 
-## Output and replay
-
-The report binds:
-- exact candidate-frame digest;
-- selection-design digest and source selection receipt;
-- adjudication-manifest digest;
-- counts for confirmed, falsified, inconclusive, unassessed and resolved candidates;
-- lower, upper and resolved-only false-feasible rates;
-- one CSV row per candidate, including explicit unassessed rows.
-
-Replay recomputes the frame digest, verifies candidate/output/scope links, checks declared adjudicator separation, recomputes the adjudication manifest and rebuilds the report digest.
-
 ## Upstream source-scorecard binding (v0.2)
 
 The downstream audit requires the exact `PolicyBenchmarkRow` produced by `evaluate_policy_benchmark` and the complete operation-ledger slice for that row's task, replicate and policy. A free-standing, self-consistent candidate list is not sufficient source evidence.
