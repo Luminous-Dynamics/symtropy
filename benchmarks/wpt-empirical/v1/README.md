@@ -75,3 +75,13 @@ No claim of physical superiority, regulatory compliance or new Tesla transmissio
 - Whole-system result with unspecified exact meter planes: keep the requested external comparison unresolved until source evidence fills the boundary.
 
 The case file intentionally records the reason codes. A future comparator must return these dispositions from record semantics, not by looking up the case IDs.
+
+### Additional industrial frontier: Riekerk 50 kW bus IPT
+
+The v1 seed now includes three observations from Riekerk et al. (DOI 10.1109/JESTPE.2025.3631233):
+
+- Primary university abstract: 96.824–97.165% DC-to-DC efficiency under 100 mm X/Y misalignment on a 50 kW prototype.
+- Survey-secondary operating point: 50.96 kW, 97.16%, 85 kHz and 160 mm gap (Appendix A, Table A1).
+- Abstract-reported 13.86 μT stray field with quantity/geometry/method metadata still incomplete; evidence kind remains UNKNOWN and it is not a compliance result.
+
+A new frozen comparison case requires the Riekerk DC-to-DC range versus Zavrel's 95.5% DC-to-DC subchain to remain UNRESOLVED until meter planes, included stages and operating points are source-verified. Similar percentages and nominal power do not establish matched measurement boundaries.
