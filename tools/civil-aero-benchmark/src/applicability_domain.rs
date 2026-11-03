@@ -54,6 +54,16 @@ impl ApplicabilitySupportClass {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplicabilityEvidenceRef {
+    pub evidence_id: String,
+    pub evidence_kind: String,
+    pub source_ref: String,
+    pub license_applicability: String,
+    pub artifact_sha256: String,
+    pub scope_sha256: String,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApplicabilityDomainRegion {
     pub region_id: String,
@@ -61,6 +71,9 @@ pub struct ApplicabilityDomainRegion {
     pub flow_regime: String,
     pub support: ApplicabilitySupportClass,
     pub rationale: String,
+    /// Exact source/evidence records supporting this declared region. Digests bind bytes; they
+    /// do not authenticate source truth or independently prove the region is physically valid.
+    pub supporting_evidence_ids: Vec<String>,
     /// Exactly one inclusive interval is required for every feature in the manifest schema.
     pub bounds: Vec<ApplicabilityFeatureBound>,
 }
@@ -73,6 +86,8 @@ pub struct ApplicabilityDomainManifest {
     pub solver_identity_sha256: String,
     pub output_definition_sha256: String,
     pub feature_schema: Vec<ApplicabilityFeatureSpec>,
+    /// Evidence source references and artifact/scope digests for the admitted validation basis.
+    pub evidence_refs: Vec<ApplicabilityEvidenceRef>,
     /// Regions are a union, not a convex hull. Unsupported gaps stay unsupported.
     pub regions: Vec<ApplicabilityDomainRegion>,
     pub manifest_sha256: String,
@@ -118,12 +133,21 @@ impl ApplicabilityStatus {
         }
     }
 
-    pub fn is_validation_backed_support(self) -> bool {
+    /// True only for a declared dense/sparse support region. Boundary regions remain review-only.
+    pub fn is_inside_declared_support(self) -> bool {
         matches!(
             self,
             Self::SupportedWithinDeclaredDomain
                 | Self::SupportedButSparse
                 | Self::BoundaryOrRegimeTransition
+        )
+    }
+
+    /// Boundary/regime-transition points must not be promoted without a separate review policy.
+    pub fn may_support_claim_admission_without_boundary_review(self) -> bool {
+        matches!(
+            self,
+            Self::SupportedWithinDeclaredDomain | Self::SupportedButSparse
         )
     }
 }
@@ -198,12 +222,59 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
         }
     }
 
+    if manifest.evidence_refs.is_empty() {
+        return Err("applicability manifest must reference at least one evidence artifact".to_owned());
+    }
+    let mut evidence_by_id = BTreeMap::new();
+    for evidence in &manifest.evidence_refs {
+        for (name, value) in [
+            ("evidence_id", evidence.evidence_id.as_str()),
+            ("evidence_kind", evidence.evidence_kind.as_str()),
+            ("source_ref", evidence.source_ref.as_str()),
+            ("license_applicability", evidence.license_applicability.as_str()),
+        ] {
+            require_nonempty(value, name)?;
+        }
+        if !is_sha256(&evidence.artifact_sha256) || !is_sha256(&evidence.scope_sha256) {
+            return Err(format!(
+                "evidence {} artifact and scope identities must be lowercase SHA-256 digests",
+                evidence.evidence_id
+            ));
+        }
+        if evidence_by_id.insert(evidence.evidence_id.as_str(), evidence).is_some() {
+            return Err(format!("duplicate applicability evidence ID {}", evidence.evidence_id));
+        }
+    }
+
+    let mut used_evidence = BTreeSet::new();
     let mut region_ids = BTreeSet::new();
     for region in &manifest.regions {
         require_nonempty(&region.region_id, "region_id")?;
         require_nonempty(&region.geometry_family, "region geometry_family")?;
         require_nonempty(&region.flow_regime, "region flow_regime")?;
         require_nonempty(&region.rationale, "region rationale")?;
+        if region.supporting_evidence_ids.is_empty() {
+            return Err(format!(
+                "region {} must reference at least one supporting evidence artifact",
+                region.region_id
+            ));
+        }
+        let mut region_evidence_ids = BTreeSet::new();
+        for evidence_id in &region.supporting_evidence_ids {
+            if !evidence_by_id.contains_key(evidence_id.as_str()) {
+                return Err(format!(
+                    "region {} references missing evidence ID {}",
+                    region.region_id, evidence_id
+                ));
+            }
+            if !region_evidence_ids.insert(evidence_id.as_str()) {
+                return Err(format!(
+                    "region {} duplicates evidence ID {}",
+                    region.region_id, evidence_id
+                ));
+            }
+            used_evidence.insert(evidence_id.as_str());
+        }
         if !region_ids.insert(region.region_id.as_str()) {
             return Err(format!("duplicate applicability region {}", region.region_id));
         }
@@ -251,6 +322,9 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
             ));
         }
     }
+    if used_evidence.len() != evidence_by_id.len() {
+        return Err("applicability manifest contains an evidence reference unused by every region".to_owned());
+    }
     Ok(())
 }
 
@@ -271,6 +345,18 @@ fn canonical_manifest_bytes(manifest: &ApplicabilityDomainManifest) -> Vec<u8> {
         append_string(&mut bytes, &feature.unit);
     }
 
+    let mut evidence_refs = manifest.evidence_refs.iter().collect::<Vec<_>>();
+    evidence_refs.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+    append_u64(&mut bytes, evidence_refs.len() as u64);
+    for evidence in evidence_refs {
+        append_string(&mut bytes, &evidence.evidence_id);
+        append_string(&mut bytes, &evidence.evidence_kind);
+        append_string(&mut bytes, &evidence.source_ref);
+        append_string(&mut bytes, &evidence.license_applicability);
+        append_string(&mut bytes, &evidence.artifact_sha256);
+        append_string(&mut bytes, &evidence.scope_sha256);
+    }
+
     let mut regions = manifest.regions.iter().collect::<Vec<_>>();
     regions.sort_by(|left, right| left.region_id.cmp(&right.region_id));
     append_u64(&mut bytes, regions.len() as u64);
@@ -280,6 +366,12 @@ fn canonical_manifest_bytes(manifest: &ApplicabilityDomainManifest) -> Vec<u8> {
         append_string(&mut bytes, &region.flow_regime);
         append_string(&mut bytes, region.support.as_str());
         append_string(&mut bytes, &region.rationale);
+        let mut evidence_ids = region.supporting_evidence_ids.iter().collect::<Vec<_>>();
+        evidence_ids.sort();
+        append_u64(&mut bytes, evidence_ids.len() as u64);
+        for evidence_id in evidence_ids {
+            append_string(&mut bytes, evidence_id);
+        }
         let mut bounds = region.bounds.iter().collect::<Vec<_>>();
         bounds.sort_by(|left, right| left.name.cmp(&right.name));
         append_u64(&mut bytes, bounds.len() as u64);
@@ -585,6 +677,7 @@ mod tests {
             flow_regime: "transonic_steady".to_owned(),
             support,
             rationale: format!("synthetic fixture region {id}"),
+            supporting_evidence_ids: vec!["synthetic-validation".to_owned()],
             bounds: vec![
                 bound("mach", "1", lower_mach, upper_mach),
                 bound("reynolds", "1", 2.0e6, 4.0e6),
@@ -609,6 +702,14 @@ mod tests {
                     unit: "1".to_owned(),
                 },
             ],
+            evidence_refs: vec![ApplicabilityEvidenceRef {
+                evidence_id: "synthetic-validation".to_owned(),
+                evidence_kind: "validation_observation_fixture".to_owned(),
+                source_ref: "synthetic://aero-applicability-fixture".to_owned(),
+                license_applicability: "synthetic-ci-fixture-only".to_owned(),
+                artifact_sha256: digest('c'),
+                scope_sha256: digest('d'),
+            }],
             regions: vec![
                 region("dense-low", 0.70, 0.74, ApplicabilitySupportClass::Dense),
                 region(
@@ -672,9 +773,10 @@ mod tests {
             ApplicabilityStatus::BoundaryOrRegimeTransition
         );
         assert_eq!(sparse.status, ApplicabilityStatus::SupportedButSparse);
-        assert!(dense.status.is_validation_backed_support());
-        assert!(boundary.status.is_validation_backed_support());
-        assert!(sparse.status.is_validation_backed_support());
+        assert!(dense.status.may_support_claim_admission_without_boundary_review());
+        assert!(!boundary.status.may_support_claim_admission_without_boundary_review());
+        assert!(boundary.status.is_inside_declared_support());
+        assert!(sparse.status.may_support_claim_admission_without_boundary_review());
     }
 
     #[test]
