@@ -96,7 +96,8 @@ not regulatory values, and no physical WPT system is being evaluated.
 ## Qualification status
 
 Fourteen Rust unit tests are authored, including non-compensatory safety
-violations, interval overlap, missingness, inclusive boundaries, robust
+violations, interval overlap, missingness, unit mismatches, inclusive
+boundaries, robust
 dominance, overlap non-dominance, feasible-only fronts, deterministic ordering,
 duplicate identifiers and invalid intervals.
 
