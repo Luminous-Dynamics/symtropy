@@ -40,7 +40,8 @@ const TOP_LEVEL: &[&str] = &[
 ];
 
 fn at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
-    path.iter().try_fold(value, |current, key| current.get(*key))
+    path.iter()
+        .try_fold(value, |current, key| current.get(*key))
 }
 
 fn string_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
@@ -88,12 +89,7 @@ fn exact_array_item_keys(
         return;
     };
     for (index, item) in items.iter().enumerate() {
-        exact_object_keys(
-            Some(item),
-            expected,
-            &format!("{path}[{index}]"),
-            errors,
-        );
+        exact_object_keys(Some(item), expected, &format!("{path}[{index}]"), errors);
     }
 }
 
@@ -165,8 +161,7 @@ fn parse_utc_seconds(value: &str) -> Option<i64> {
     let year_of_era = adjusted_year - era * 400;
     let adjusted_month = month + if month > 2 { -3 } else { 9 };
     let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
-    let day_of_era =
-        year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     let days = era * 146_097 + day_of_era - 719_468;
     Some(days * 86_400 + hour * 3_600 + minute * 60 + second)
 }
@@ -423,7 +418,10 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
         &mut errors,
     );
     exact_array_item_keys(
-        at(manifest, &["cyber_physical_security", "security_scenario_results"]),
+        at(
+            manifest,
+            &["cyber_physical_security", "security_scenario_results"],
+        ),
         &["scenario_id", "outcome", "evidence_sha256", "notes"],
         "cyber_physical_security.security_scenario_results",
         &mut errors,
@@ -454,12 +452,7 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
 
     match string_at(manifest, &["result", "qualification"]) {
         Some(
-            "NOT_RUN"
-            | "INCOMPLETE"
-            | "QUALIFIED"
-            | "NOT_COMPARABLE"
-            | "MODEL_ONLY"
-            | "REJECTED",
+            "NOT_RUN" | "INCOMPLETE" | "QUALIFIED" | "NOT_COMPARABLE" | "MODEL_ONLY" | "REJECTED",
         ) => {}
         _ => errors.push("result.qualification: invalid or missing disposition".into()),
     }
@@ -503,7 +496,6 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         _ => errors.push("system.power_rating_w: positive rating required".into()),
     }
 
-
     let technology = string_at(manifest, &["system", "technology"]).unwrap_or("");
     let operating_mode =
         string_at(manifest, &["conditions", "operating_mode"]).unwrap_or("UNKNOWN");
@@ -518,7 +510,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         let pitch = number_at(motion, &["transmitter_pitch_m"]);
         let total_segments = at(motion, &["segment_count_total"]).and_then(Value::as_u64);
         let energized_segments = at(motion, &["segment_count_energized"]).and_then(Value::as_u64);
-        let activation_attempts = at(motion, &["segment_activation_attempts"]).and_then(Value::as_u64);
+        let activation_attempts =
+            at(motion, &["segment_activation_attempts"]).and_then(Value::as_u64);
         let missed = at(motion, &["segment_missed_activations"]).and_then(Value::as_u64);
         let false_activations = at(motion, &["false_activation_count"]).and_then(Value::as_u64);
 
@@ -531,7 +524,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             ("longitudinal_acceleration_abs_max_mps2", accel, false),
             ("transmitter_pitch_m", pitch, true),
         ] {
-            let valid = value.is_some_and(|v| v.is_finite() && (if positive { v > 0.0 } else { v >= 0.0 }));
+            let valid =
+                value.is_some_and(|v| v.is_finite() && (if positive { v > 0.0 } else { v >= 0.0 }));
             if !valid {
                 errors.push(format!("motion_profile.{field}: valid positive/nonnegative dynamic measurement required"));
             }
@@ -540,7 +534,12 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             (Some(min), Some(mean), Some(max)) if min <= mean && mean <= max => {}
             _ => errors.push("motion_profile: require speed_min <= speed_mean <= speed_max".into()),
         }
-        match (total_segments, energized_segments, activation_attempts, missed) {
+        match (
+            total_segments,
+            energized_segments,
+            activation_attempts,
+            missed,
+        ) {
             (Some(total), Some(energized), Some(attempts), Some(missed_count))
                 if total > 0 && energized <= total && attempts > 0 && missed_count <= attempts => {}
             _ => errors.push("motion_profile: invalid segment/activation event counts".into()),
@@ -561,7 +560,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             ("roadway_idle_energy_j", idle_j),
         ] {
             if !value.is_some_and(|v| v.is_finite() && v >= 0.0) {
-                errors.push(format!("motion_profile.{field}: nonnegative energy required"));
+                errors.push(format!(
+                    "motion_profile.{field}: nonnegative energy required"
+                ));
             }
         }
         if let (Some(source), Some(received)) = (source_j, dc_j) {
@@ -574,26 +575,56 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 errors.push("motion_profile.roadway_idle_energy_j: cannot exceed total roadway source energy".into());
             }
         }
-        if let (Some(distance_m), Some(received_j), Some(battery_gain), Some(propulsion), Some(idle)) =
-            (distance, dc_j, battery_j, propulsion_j, idle_j)
+        if let (
+            Some(distance_m),
+            Some(received_j),
+            Some(battery_gain),
+            Some(propulsion),
+            Some(idle),
+        ) = (distance, dc_j, battery_j, propulsion_j, idle_j)
         {
             if distance_m <= 0.0 || propulsion <= 0.0 {
                 errors.push("motion_profile: positive route distance and propulsion energy required for route normalization".into());
             }
-            let route_km = if distance_m > 0.0 { distance_m / 1000.0 } else { 1.0 };
+            let route_km = if distance_m > 0.0 {
+                distance_m / 1000.0
+            } else {
+                1.0
+            };
             let expected_wh_km = received_j / 3600.0 / route_km;
             let expected_net_wh_km = (battery_gain - propulsion) / 3600.0 / route_km;
-            let expected_sufficiency = if propulsion > 0.0 { battery_gain / propulsion } else { 0.0 };
+            let expected_sufficiency = if propulsion > 0.0 {
+                battery_gain / propulsion
+            } else {
+                0.0
+            };
             let expected_activation = match (activation_attempts, missed) {
-                (Some(attempts), Some(missed_count)) if attempts > 0 =>
-                    attempts.saturating_sub(missed_count) as f64 / attempts as f64,
+                (Some(attempts), Some(missed_count)) if attempts > 0 => {
+                    attempts.saturating_sub(missed_count) as f64 / attempts as f64
+                }
                 _ => 0.0,
             };
             let reported = [
-                ("roadway_energy_per_km_wh_km", number_at(motion, &["roadway_energy_per_km_wh_km"]), expected_wh_km),
-                ("battery_net_energy_per_km_wh_km", number_at(motion, &["battery_net_energy_per_km_wh_km"]), expected_net_wh_km),
-                ("energy_sufficiency_ratio", number_at(motion, &["energy_sufficiency_ratio"]), expected_sufficiency),
-                ("segment_activation_success_fraction", number_at(motion, &["segment_activation_success_fraction"]), expected_activation),
+                (
+                    "roadway_energy_per_km_wh_km",
+                    number_at(motion, &["roadway_energy_per_km_wh_km"]),
+                    expected_wh_km,
+                ),
+                (
+                    "battery_net_energy_per_km_wh_km",
+                    number_at(motion, &["battery_net_energy_per_km_wh_km"]),
+                    expected_net_wh_km,
+                ),
+                (
+                    "energy_sufficiency_ratio",
+                    number_at(motion, &["energy_sufficiency_ratio"]),
+                    expected_sufficiency,
+                ),
+                (
+                    "segment_activation_success_fraction",
+                    number_at(motion, &["segment_activation_success_fraction"]),
+                    expected_activation,
+                ),
             ];
             for (field, actual, expected) in reported {
                 match actual {
@@ -610,14 +641,19 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 errors.push("motion_profile: roadway source/idle energy ledger invalid".into());
             }
         } else {
-            errors.push("motion_profile: full source/vehicle/battery/propulsion energy ledger required".into());
+            errors.push(
+                "motion_profile: full source/vehicle/battery/propulsion energy ledger required"
+                    .into(),
+            );
         }
         if !string_at(motion, &["profile_id"]).is_some_and(|id| !id.trim().is_empty()) {
             errors.push("motion_profile.profile_id: frozen drive/route profile ID required".into());
         }
         for digest in ["speed_profile_sha256", "segment_event_log_sha256"] {
             if !string_at(motion, &[digest]).is_some_and(valid_sha256) {
-                errors.push(format!("motion_profile.{digest}: SHA-256 evidence digest required"));
+                errors.push(format!(
+                    "motion_profile.{digest}: SHA-256 evidence digest required"
+                ));
             }
         }
     } else if operating_mode == "STATIC" {
@@ -645,14 +681,18 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             "energy_sufficiency_ratio",
             "segment_activation_success_fraction",
         ];
-        if dynamic_numeric_fields.iter().any(|field| !motion.get(*field).is_some_and(Value::is_null))
+        if dynamic_numeric_fields
+            .iter()
+            .any(|field| !motion.get(*field).is_some_and(Value::is_null))
             || ["speed_profile_sha256", "segment_event_log_sha256"]
-                .iter().any(|field| !motion.get(*field).is_some_and(Value::is_null))
+                .iter()
+                .any(|field| !motion.get(*field).is_some_and(Value::is_null))
         {
             errors.push("motion_profile: all dynamic route metrics/digests must remain null for STATIC runs".into());
         }
     } else {
-        errors.push("conditions.operating_mode: STATIC or DYNAMIC required for QUALIFIED run".into());
+        errors
+            .push("conditions.operating_mode: STATIC or DYNAMIC required for QUALIFIED run".into());
     }
 
     if !matches!(
@@ -680,15 +720,13 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             errors.push(format!("{}: {predicate} value required", path.join(".")));
         }
     }
-    let receiver_count = at(manifest, &["conditions", "receiver_count"])
-        .and_then(Value::as_u64);
-    let active_count = at(manifest, &["conditions", "active_receiver_count"])
-        .and_then(Value::as_u64);
+    let receiver_count = at(manifest, &["conditions", "receiver_count"]).and_then(Value::as_u64);
+    let active_count =
+        at(manifest, &["conditions", "active_receiver_count"]).and_then(Value::as_u64);
     match (receiver_count, active_count) {
         (Some(total), Some(active)) if total > 0 && active > 0 && active <= total => {}
         _ => errors.push(
-            "conditions.receiver_count/active_receiver_count: require 0 < active <= total"
-                .into(),
+            "conditions.receiver_count/active_receiver_count: require 0 < active <= total".into(),
         ),
     }
     if string_at(manifest, &["conditions", "thermal_state"]) == Some("UNKNOWN") {
@@ -712,9 +750,7 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     if !number_at(manifest, &["metrology", "sample_rate_hz"]).is_some_and(|v| v > 0.0) {
         errors.push("metrology.sample_rate_hz: positive sample rate required".into());
     }
-    if !number_at(manifest, &["metrology", "synchronization_error_s"])
-        .is_some_and(|v| v >= 0.0)
-    {
+    if !number_at(manifest, &["metrology", "synchronization_error_s"]).is_some_and(|v| v >= 0.0) {
         errors.push("metrology.synchronization_error_s: nonnegative value required".into());
     }
     if string_at(manifest, &["metrology", "power_basis"]) != Some("REAL_POWER") {
@@ -749,10 +785,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         ));
                     }
                 }
-                let valid_from = string_at(meter, &["calibration_valid_from_utc"])
-                    .and_then(parse_utc_seconds);
-                let due = string_at(meter, &["calibration_due_utc"])
-                    .and_then(parse_utc_seconds);
+                let valid_from =
+                    string_at(meter, &["calibration_valid_from_utc"]).and_then(parse_utc_seconds);
+                let due = string_at(meter, &["calibration_due_utc"]).and_then(parse_utc_seconds);
                 match (valid_from, due, start, end) {
                     (Some(valid_from), Some(due), Some(start), Some(end))
                         if valid_from <= start && due >= end && due >= valid_from => {}
@@ -761,12 +796,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     )),
                 }
                 if !number_at(meter, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
-                    errors.push(format!(
-                        concat!(
-                            "metrology.meters[{index}].uncertainty_pct: ",
-                            "nonnegative uncertainty required"
-                        )
-                    ));
+                    errors.push(format!(concat!(
+                        "metrology.meters[{index}].uncertainty_pct: ",
+                        "nonnegative uncertainty required"
+                    )));
                 }
                 if !number_at(meter, &["bandwidth_hz"]).is_some_and(|v| v > 0.0) {
                     errors.push(format!(
@@ -815,12 +848,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 if is_input {
                     has_input_plane = true;
                     if !number_at(plane, &["real_power_w"]).is_some_and(|v| v > 0.0) {
-                        errors.push(format!(
-                            concat!(
-                                "metrology.measurement_planes[{index}].real_power_w: ",
-                                "positive source-side real power required"
-                            )
-                        ));
+                        errors.push(format!(concat!(
+                            "metrology.measurement_planes[{index}].real_power_w: ",
+                            "positive source-side real power required"
+                        )));
                     }
                 }
                 if is_output {
@@ -828,12 +859,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 }
                 if is_output {
                     if !number_at(plane, &["real_power_w"]).is_some_and(|v| v >= 0.0) {
-                        errors.push(format!(
-                            concat!(
-                                "metrology.measurement_planes[{index}].real_power_w: ",
-                                "measured real power required"
-                            )
-                        ));
+                        errors.push(format!(concat!(
+                            "metrology.measurement_planes[{index}].real_power_w: ",
+                            "measured real power required"
+                        )));
                     }
                     if !number_at(plane, &["uncertainty_pct"]).is_some_and(|v| v >= 0.0) {
                         errors.push(format!(
@@ -857,8 +886,7 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     let stored_delta = number_at(manifest, &["energy_balance", "stored_energy_delta_j"]);
     let reported_residual = number_at(manifest, &["energy_balance", "residual_energy_j"]);
     let residual_fraction = number_at(manifest, &["energy_balance", "residual_fraction_pct"]);
-    let expanded_uncertainty =
-        number_at(manifest, &["energy_balance", "expanded_uncertainty_pct"]);
+    let expanded_uncertainty = number_at(manifest, &["energy_balance", "expanded_uncertainty_pct"]);
     let loss_terms = manifest
         .get("energy_balance")
         .and_then(|value| value.get("loss_terms"))
@@ -876,23 +904,19 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 }
                 match number_at(term, &["energy_j"]) {
                     Some(value) if value >= 0.0 => loss_total += value,
-                    _ => errors.push(format!(
-                        concat!(
-                            "energy_balance.loss_terms[{index}].energy_j: ",
-                            "measured/calculated nonnegative energy required"
-                        )
-                    )),
+                    _ => errors.push(format!(concat!(
+                        "energy_balance.loss_terms[{index}].energy_j: ",
+                        "measured/calculated nonnegative energy required"
+                    ))),
                 }
                 if !matches!(
                     string_at(term, &["evidence_kind"]),
                     Some("MEASURED" | "AUTHOR_CALCULATED" | "MODEL_DERIVED")
                 ) {
-                    errors.push(format!(
-                        concat!(
-                            "energy_balance.loss_terms[{index}].evidence_kind: ",
-                            "unknown/inferred losses cannot qualify"
-                        )
-                    ));
+                    errors.push(format!(concat!(
+                        "energy_balance.loss_terms[{index}].evidence_kind: ",
+                        "unknown/inferred losses cannot qualify"
+                    )));
                 }
             }
         }
@@ -918,37 +942,30 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             let calculated_residual = source - useful - loss_total - stored;
             let tolerance = (source.abs() * uncertainty / 100.0).max(1e-6);
             if (calculated_residual - residual).abs() > tolerance {
-                errors.push(format!(
-                    concat!(
-                        "energy_balance.residual_energy_j: ledger mismatch; calculated ",
-                        "{calculated_residual:.9}, reported {residual:.9} ",
-                        "(tolerance {tolerance:.9})"
-                    )
-                ));
+                errors.push(format!(concat!(
+                    "energy_balance.residual_energy_j: ledger mismatch; calculated ",
+                    "{calculated_residual:.9}, reported {residual:.9} ",
+                    "(tolerance {tolerance:.9})"
+                )));
             }
             let calculated_fraction = calculated_residual.abs() / source * 100.0;
             if (calculated_fraction - fraction).abs() > 1e-6 {
-                errors.push(format!(
-                    concat!(
-                        "energy_balance.residual_fraction_pct: expected absolute calculated ",
-                        "residual fraction {calculated_fraction:.9}, got {fraction:.9}"
-                    )
-                ));
+                errors.push(format!(concat!(
+                    "energy_balance.residual_fraction_pct: expected absolute calculated ",
+                    "residual fraction {calculated_fraction:.9}, got {fraction:.9}"
+                )));
             }
-            let residual_limit = if string_at(manifest, &["conditions", "thermal_state"])
-                == Some("STEADY_STATE")
-            {
-                0.5
-            } else {
-                1.0
-            };
+            let residual_limit =
+                if string_at(manifest, &["conditions", "thermal_state"]) == Some("STEADY_STATE") {
+                    0.5
+                } else {
+                    1.0
+                };
             if calculated_fraction > residual_limit {
-                errors.push(format!(
-                    concat!(
-                        "energy_balance.residual_fraction_pct: calculated {calculated_fraction:.6}% ",
-                        "exceeds proposed {residual_limit:.3}% qualification target"
-                    )
-                ));
+                errors.push(format!(concat!(
+                    "energy_balance.residual_fraction_pct: calculated {calculated_fraction:.6}% ",
+                    "exceeds proposed {residual_limit:.3}% qualification target"
+                )));
             }
         }
         _ => errors.push(
@@ -956,15 +973,14 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 "energy_balance: source/useful/stored/residual energies, residual fraction ",
                 "and expanded uncertainty must be numeric"
             )
-                .into(),
+            .into(),
         ),
     }
 
     let safety_checks = [
         (
             "safety.exposure_assessment_status",
-            string_at(manifest, &["safety", "exposure_assessment_status"])
-                == Some("ASSESSED"),
+            string_at(manifest, &["safety", "exposure_assessment_status"]) == Some("ASSESSED"),
         ),
         (
             "safety.foreign_object_detection",
@@ -990,7 +1006,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     ];
     if !nonempty(string_at(manifest, &["safety", "standard_edition"])) {
         errors.push(
-            "safety.standard_edition: declare applicable standard/edition or assessment basis".into(),
+            "safety.standard_edition: declare applicable standard/edition or assessment basis"
+                .into(),
         );
     }
     for (field, passed) in safety_checks {
@@ -1002,9 +1019,7 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         errors.push("safety.thermal_maximum_c: thermal maximum required".into());
     }
 
-    let artifacts = manifest
-        .get("artifact_refs")
-        .and_then(Value::as_array);
+    let artifacts = manifest.get("artifact_refs").and_then(Value::as_array);
     let mut has_waveform = false;
     let mut has_calibration = false;
     match artifacts {
@@ -1017,7 +1032,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     errors.push(format!("artifact_refs[{index}].uri: required"));
                 }
                 if !string_at(artifact, &["sha256"]).is_some_and(valid_sha256) {
-                    errors.push(format!("artifact_refs[{index}].sha256: valid SHA-256 required"));
+                    errors.push(format!(
+                        "artifact_refs[{index}].sha256: valid SHA-256 required"
+                    ));
                 }
             }
         }
@@ -1030,14 +1047,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         errors.push("artifact_refs: CALIBRATION_CERTIFICATE artifact required".into());
     }
 
-
-
     // Standards applicability is a typed scope decision, not a document-name
     // assertion. In particular J2954_202408 does not cover reverse flow,
     // dynamic installations or power above its published 11 kVA scope.
-    let standard_basis = manifest
-        .get("standards_basis")
-        .and_then(Value::as_array);
+    let standard_basis = manifest.get("standards_basis").and_then(Value::as_array);
     match standard_basis {
         Some(records) if !records.is_empty() => {
             let mut seen_documents = BTreeSet::new();
@@ -1046,9 +1059,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 let edition = string_at(record, &["edition"]).unwrap_or("");
                 let applicability =
                     string_at(record, &["applicability"]).unwrap_or("OUT_OF_SCOPE_REFERENCE");
-                let claim =
-                    string_at(record, &["compliance_claim"]).unwrap_or("NO_CLAIM");
-                if !nonempty(Some(document_id)) || !nonempty(Some(edition))
+                let claim = string_at(record, &["compliance_claim"]).unwrap_or("NO_CLAIM");
+                if !nonempty(Some(document_id))
+                    || !nonempty(Some(edition))
                     || !seen_documents.insert((document_id.to_owned(), edition.to_owned()))
                 {
                     errors.push(format!(
@@ -1075,7 +1088,10 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         "standards_basis[{index}].applicability: unsupported classification"
                     ));
                 }
-                if !matches!(claim, "NO_CLAIM" | "SELF_ASSESSED" | "INDEPENDENTLY_CERTIFIED") {
+                if !matches!(
+                    claim,
+                    "NO_CLAIM" | "SELF_ASSESSED" | "INDEPENDENTLY_CERTIFIED"
+                ) {
                     errors.push(format!(
                         "standards_basis[{index}].compliance_claim: unsupported claim level"
                     ));
@@ -1108,7 +1124,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                             .and_then(Value::as_array)
                             .is_some_and(|artifacts| {
                                 artifacts.iter().any(|artifact| {
-                                    string_at(artifact, &["artifact_type"]) == Some("CERTIFICATION_EVIDENCE")
+                                    string_at(artifact, &["artifact_type"])
+                                        == Some("CERTIFICATION_EVIDENCE")
                                         && string_at(artifact, &["sha256"]) == digest
                                 })
                             });
@@ -1123,10 +1140,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
 
                 if document_id == "SAE J2954" && edition == "J2954_202408" {
                     let direction = string_at(manifest, &["conditions", "direction"]);
-                    let operating_mode =
-                        string_at(manifest, &["conditions", "operating_mode"]);
-                    let installation =
-                        string_at(manifest, &["conditions", "installation_type"]);
+                    let operating_mode = string_at(manifest, &["conditions", "operating_mode"]);
+                    let installation = string_at(manifest, &["conditions", "installation_type"]);
                     let apparent_power =
                         number_at(manifest, &["conditions", "rated_apparent_power_va"]);
                     if applicability == "NORMATIVE_REQUIREMENT" {
@@ -1153,18 +1168,15 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     }
                 }
 
-
-
-                if document_id == "ISO/PAS 5474-6" && edition == "2025"
+                if document_id == "ISO/PAS 5474-6"
+                    && edition == "2025"
                     && applicability == "NORMATIVE_REQUIREMENT"
                 {
                     let mode = string_at(manifest, &["conditions", "operating_mode"]);
                     let vehicle_category = string_at(manifest, &["conditions", "vehicle_category"]);
-                    let secondary_devices = at(
-                        manifest,
-                        &["conditions", "onboard_secondary_device_count"],
-                    )
-                    .and_then(Value::as_u64);
+                    let secondary_devices =
+                        at(manifest, &["conditions", "onboard_secondary_device_count"])
+                            .and_then(Value::as_u64);
                     if !matches!(mode, Some("STATIC" | "DYNAMIC")) {
                         errors.push(format!(
                             "standards_basis[{index}]: ISO/PAS 5474-6:2025 normative use requires STATIC or DYNAMIC vehicle-side operation"
@@ -1185,7 +1197,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     }
                 }
 
-                if document_id == "ISO 5474-4" && edition == "2025"
+                if document_id == "ISO 5474-4"
+                    && edition == "2025"
                     && applicability == "NORMATIVE_REQUIREMENT"
                 {
                     let mode = string_at(manifest, &["conditions", "operating_mode"]);
@@ -1217,7 +1230,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                     }
                 }
 
-                if document_id == "IEC PAS 61980-4" && edition == "2025"
+                if document_id == "IEC PAS 61980-4"
+                    && edition == "2025"
                     && applicability == "NORMATIVE_REQUIREMENT"
                     && string_at(manifest, &["conditions", "operating_mode"]) != Some("STATIC")
                 {
@@ -1225,7 +1239,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         "standards_basis[{index}]: IEC PAS 61980-4:2025 normative use requires STATIC high-power operation"
                     ));
                 }
-                if document_id == "IEC PAS 61980-5" && edition == "2024"
+                if document_id == "IEC PAS 61980-5"
+                    && edition == "2024"
                     && applicability == "NORMATIVE_REQUIREMENT"
                     && string_at(manifest, &["conditions", "operating_mode"]) != Some("DYNAMIC")
                 {
@@ -1242,7 +1257,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         ));
                     }
                     if applicability == "NORMATIVE_REQUIREMENT"
-                        && string_at(manifest, &["conditions", "direction"]) == Some("VEHICLE_TO_GRID")
+                        && string_at(manifest, &["conditions", "direction"])
+                            == Some("VEHICLE_TO_GRID")
                     {
                         errors.push(format!(
                             "standards_basis[{index}]: IEC PAS 61980-6:2025 does not specify bidirectional power transfer in this edition"
@@ -1262,16 +1278,15 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             }
         }
         _ => errors.push(
-            "standards_basis: qualified run requires an explicit versioned applicability record".into()
+            "standards_basis: qualified run requires an explicit versioned applicability record"
+                .into(),
         ),
     }
 
     // Resonant-network branches are first-class electrical ports. A network
     // commanded INACTIVE can still carry induced circulating current.
     if matches!(technology, "IPT" | "CPT" | "HYBRID") {
-        let networks = manifest
-            .get("resonant_networks")
-            .and_then(Value::as_array);
+        let networks = manifest.get("resonant_networks").and_then(Value::as_array);
         match networks {
             Some(networks) if !networks.is_empty() => {
                 let mut ids = BTreeSet::new();
@@ -1484,45 +1499,66 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         }
     }
 
-
     // WPT control is cyber-physical: authenticated commands and trusted sensors
     // must not be allowed to turn a network fault into unintended energy flow.
     let security = manifest
         .get("cyber_physical_security")
         .unwrap_or(&Value::Null);
-    let communication_mode =
-        string_at(security, &["communication_mode"]).unwrap_or("UNKNOWN");
+    let communication_mode = string_at(security, &["communication_mode"]).unwrap_or("UNKNOWN");
     let authentication_method =
         string_at(security, &["authentication_method"]).unwrap_or("UNKNOWN");
     if !matches!(communication_mode, "NETWORKED" | "LOCAL_ONLY" | "NONE") {
         errors.push("cyber_physical_security.communication_mode: known mode required".into());
     }
-    if !at(manifest, &["cyber_physical_security", "receiver_identity_bound"])
-        .and_then(Value::as_bool).unwrap_or(false)
+    if !at(
+        manifest,
+        &["cyber_physical_security", "receiver_identity_bound"],
+    )
+    .and_then(Value::as_bool)
+    .unwrap_or(false)
     {
-        errors.push("cyber_physical_security.receiver_identity_bound: receiver identity binding required".into());
+        errors.push(
+            "cyber_physical_security.receiver_identity_bound: receiver identity binding required"
+                .into(),
+        );
     }
-    if !at(manifest, &["cyber_physical_security", "firmware_integrity_verified"])
-        .and_then(Value::as_bool).unwrap_or(false)
+    if !at(
+        manifest,
+        &["cyber_physical_security", "firmware_integrity_verified"],
+    )
+    .and_then(Value::as_bool)
+    .unwrap_or(false)
     {
         errors.push("cyber_physical_security.firmware_integrity_verified: verified firmware integrity required".into());
     }
-    if !at(manifest, &["cyber_physical_security", "sensor_plausibility_checks"])
-        .and_then(Value::as_bool).unwrap_or(false)
+    if !at(
+        manifest,
+        &["cyber_physical_security", "sensor_plausibility_checks"],
+    )
+    .and_then(Value::as_bool)
+    .unwrap_or(false)
     {
         errors.push("cyber_physical_security.sensor_plausibility_checks: trusted sensor cross-checks required".into());
     }
     if string_at(security, &["spoofed_receiver_rejected"]) != Some("PASS") {
-        errors.push("cyber_physical_security.spoofed_receiver_rejected: spoofed receiver must be rejected".into());
+        errors.push(
+            "cyber_physical_security.spoofed_receiver_rejected: spoofed receiver must be rejected"
+                .into(),
+        );
     }
     if string_at(security, &["sensor_tampering_detected"]) != Some("PASS") {
-        errors.push("cyber_physical_security.sensor_tampering_detected: sensor tampering must be detected".into());
+        errors.push(
+            "cyber_physical_security.sensor_tampering_detected: sensor tampering must be detected"
+                .into(),
+        );
     }
     if !matches!(
         string_at(security, &["communication_loss_fallback"]),
         Some("SAFE_DEENERGIZE" | "LOCAL_SAFE_CONTROL")
     ) {
-        errors.push("cyber_physical_security.communication_loss_fallback: safe fallback required".into());
+        errors.push(
+            "cyber_physical_security.communication_loss_fallback: safe fallback required".into(),
+        );
     }
     let security_digest = string_at(security, &["security_artifact_sha256"]);
     if !security_digest.is_some_and(valid_sha256) {
@@ -1557,9 +1593,7 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         "cyber_physical_security.security_scenario_results[{index}].evidence_sha256: passing scenario requires evidence digest"
                     ));
                 }
-                if outcome == "NOT_APPLICABLE"
-                    && !nonempty(string_at(result, &["notes"]))
-                {
+                if outcome == "NOT_APPLICABLE" && !nonempty(string_at(result, &["notes"])) {
                     errors.push(format!(
                         "cyber_physical_security.security_scenario_results[{index}].notes: NOT_APPLICABLE requires reason"
                     ));
@@ -1580,7 +1614,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             }
         }
         None => errors.push(
-            "cyber_physical_security.security_scenario_results: scenario result array required".into()
+            "cyber_physical_security.security_scenario_results: scenario result array required"
+                .into(),
         ),
     }
 
@@ -1618,13 +1653,18 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             if !matches!(authentication_method, "PKI_MUTUAL" | "TLS_MUTUAL") {
                 errors.push("cyber_physical_security.authentication_method: mutual PKI/TLS required for networked control".into());
             }
-            if !at(manifest, &["cyber_physical_security", "mutual_authentication"])
-                .and_then(Value::as_bool).unwrap_or(false)
+            if !at(
+                manifest,
+                &["cyber_physical_security", "mutual_authentication"],
+            )
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
             {
                 errors.push("cyber_physical_security.mutual_authentication: networked session must authenticate both peers".into());
             }
             if !at(manifest, &["cyber_physical_security", "replay_protection"])
-                .and_then(Value::as_bool).unwrap_or(false)
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
             {
                 errors.push("cyber_physical_security.replay_protection: fresh nonce/timestamp/sequence required".into());
             }
@@ -1637,17 +1677,32 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             if string_at(security, &["replay_message_rejected"]) != Some("PASS") {
                 errors.push("cyber_physical_security.replay_message_rejected: replay control test must pass".into());
             }
-            let latency = number_at(manifest, &["cyber_physical_security", "p99_message_latency_ms"]);
-            let deadline = number_at(manifest, &["cyber_physical_security", "control_deadline_ms"]);
-            let jitter = number_at(manifest, &["cyber_physical_security", "max_message_jitter_ms"]);
+            let latency = number_at(
+                manifest,
+                &["cyber_physical_security", "p99_message_latency_ms"],
+            );
+            let deadline = number_at(
+                manifest,
+                &["cyber_physical_security", "control_deadline_ms"],
+            );
+            let jitter = number_at(
+                manifest,
+                &["cyber_physical_security", "max_message_jitter_ms"],
+            );
             let age = number_at(manifest, &["cyber_physical_security", "max_message_age_ms"]);
-            let max_age = number_at(manifest, &["cyber_physical_security", "max_accepted_command_age_ms"]);
+            let max_age = number_at(
+                manifest,
+                &["cyber_physical_security", "max_accepted_command_age_ms"],
+            );
             match (latency, deadline) {
                 (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
                 _ => errors.push("cyber_physical_security.p99_message_latency_ms: measured p99 latency must meet positive control deadline".into()),
             }
             if !jitter.is_some_and(|value| value >= 0.0) {
-                errors.push("cyber_physical_security.max_message_jitter_ms: measured jitter required".into());
+                errors.push(
+                    "cyber_physical_security.max_message_jitter_ms: measured jitter required"
+                        .into(),
+                );
             }
             match (age, max_age) {
                 (Some(value), Some(limit)) if limit > 0.0 && value <= limit => {}
@@ -1722,7 +1777,9 @@ pub fn validate_manifest(manifest: &Value) -> (String, Vec<String>) {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args();
-    let program = args.next().unwrap_or_else(|| "wpt-round-robin-validator".into());
+    let program = args
+        .next()
+        .unwrap_or_else(|| "wpt-round-robin-validator".into());
     let Some(path) = args.next() else {
         eprintln!("usage: {program} <test-run-manifest.json>");
         process::exit(2);
@@ -1977,12 +2034,10 @@ mod tests {
         manifest
     }
 
-
     #[test]
     fn frozen_security_scenario_corpus_matches_rust_required_ids() {
-        let source = include_str!(
-            "../../../benchmarks/wpt-empirical/v1/cyber-physical-scenarios.jsonl"
-        );
+        let source =
+            include_str!("../../../benchmarks/wpt-empirical/v1/cyber-physical-scenarios.jsonl");
         let mut ids = Vec::new();
         for (index, line) in source.lines().enumerate() {
             let record: Value = serde_json::from_str(line)
@@ -2005,9 +2060,11 @@ mod tests {
             .map(|id| id.to_string())
             .collect::<Vec<_>>();
         expected.sort();
-        assert_eq!(ids, expected, "frozen scenario IDs and validator contract drifted");
+        assert_eq!(
+            ids, expected,
+            "frozen scenario IDs and validator contract drifted"
+        );
     }
-
 
     #[test]
     fn run_schema_matches_validator_top_level_nested_fields_and_scenario_ids() {
@@ -2039,18 +2096,21 @@ mod tests {
         };
 
         let schema_top = unique_strings(&schema, &["required"]);
-        let validator_top = TOP_LEVEL.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
-        assert_eq!(schema_top, validator_top, "schema and validator top-level fields drifted");
+        let validator_top = TOP_LEVEL
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            schema_top, validator_top,
+            "schema and validator top-level fields drifted"
+        );
         assert_eq!(
             len_strings(&schema, &["required"]),
             schema_top.len(),
             "top-level schema contains duplicate required fields"
         );
 
-        let condition_keys = unique_strings(
-            &schema,
-            &["properties", "conditions", "required"],
-        );
+        let condition_keys = unique_strings(&schema, &["properties", "conditions", "required"]);
         assert_eq!(
             len_strings(&schema, &["properties", "conditions", "required"]),
             condition_keys.len(),
@@ -2092,7 +2152,10 @@ mod tests {
             &["properties", "resonant_networks", "items", "required"],
         );
         assert_eq!(
-            len_strings(&schema, &["properties", "resonant_networks", "items", "required"]),
+            len_strings(
+                &schema,
+                &["properties", "resonant_networks", "items", "required"]
+            ),
             resonant_keys.len(),
             "resonant network schema contains duplicate required fields"
         );
@@ -2133,7 +2196,10 @@ mod tests {
             &["properties", "cyber_physical_security", "required"],
         );
         assert_eq!(
-            len_strings(&schema, &["properties", "cyber_physical_security", "required"]),
+            len_strings(
+                &schema,
+                &["properties", "cyber_physical_security", "required"]
+            ),
             security_keys.len(),
             "cyber-physical security schema contains duplicate required fields"
         );
@@ -2171,7 +2237,10 @@ mod tests {
             &["properties", "standards_basis", "items", "required"],
         );
         assert_eq!(
-            len_strings(&schema, &["properties", "standards_basis", "items", "required"]),
+            len_strings(
+                &schema,
+                &["properties", "standards_basis", "items", "required"]
+            ),
             standards_keys.len(),
             "standards basis schema contains duplicate required fields"
         );
@@ -2195,11 +2264,7 @@ mod tests {
             "standards-basis schema and validator contract drifted"
         );
 
-
-        let motion_keys = unique_strings(
-            &schema,
-            &["properties", "motion_profile", "required"],
-        );
+        let motion_keys = unique_strings(&schema, &["properties", "motion_profile", "required"]);
         let validator_motion = [
             "profile_id",
             "route_distance_m",
@@ -2252,8 +2317,7 @@ mod tests {
             .map(|id| id.to_string())
             .collect::<BTreeSet<_>>();
         assert_eq!(
-            schema_scenarios,
-            validator_scenarios,
+            schema_scenarios, validator_scenarios,
             "run schema and security scenario gate drifted"
         );
         assert_eq!(example["schema_version"].as_str(), Some("wpt-test-run-v1"));
@@ -2283,7 +2347,11 @@ mod tests {
         let mut manifest = template();
         manifest["system"]["unreviewed_claim"] = json!("not allowed");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("system.unreviewed_claim: unexpected field")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("system.unreviewed_claim: unexpected field"))
+        );
     }
 
     #[test]
@@ -2296,8 +2364,7 @@ mod tests {
     #[test]
     fn rejects_expired_calibration() {
         let mut manifest = qualified_fixture();
-        manifest["metrology"]["meters"][0]["calibration_due_utc"] =
-            json!("2026-09-30T00:00:00Z");
+        manifest["metrology"]["meters"][0]["calibration_due_utc"] = json!("2026-09-30T00:00:00Z");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("calibration must cover")));
     }
@@ -2349,7 +2416,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][1]["measurement_method"] = json!("SIMULATED");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires MEASURED evidence")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires MEASURED evidence"))
+        );
     }
 
     #[test]
@@ -2357,7 +2428,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][1]["current_rms_a"] = json!(17.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("exceeds proposed 1.000% target")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("exceeds proposed 1.000% target"))
+        );
     }
 
     #[test]
@@ -2368,7 +2443,11 @@ mod tests {
         manifest["resonant_networks"][1]["current_rms_a"] = json!(12.0);
         manifest["resonant_networks"][1]["voltage_rms_v"] = json!(400.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("exactly one active branch")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("exactly one active branch"))
+        );
     }
 
     #[test]
@@ -2376,16 +2455,23 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][0]["current_peak_a"] = json!(50.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("peak current missing or exceeds peak rating")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("peak current missing or exceeds peak rating"))
+        );
     }
-
 
     #[test]
     fn rejects_core_flux_above_proposed_hot_state_margin() {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][0]["core_flux_density_peak_t"] = json!(0.40);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("exceeds proposed hot-state 80.000% limit")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("exceeds proposed hot-state 80.000% limit"))
+        );
     }
 
     #[test]
@@ -2393,7 +2479,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][0]["core_flux_assessment_method"] = json!("SIMULATED");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("calculation from measured waveform")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("calculation from measured waveform"))
+        );
     }
 
     #[test]
@@ -2401,7 +2491,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["resonant_networks"][0]["thermal_maximum_c"] = json!(105.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("exceeds branch thermal limit")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("exceeds branch thermal limit"))
+        );
     }
 
     #[test]
@@ -2412,13 +2506,16 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("faulted switch state")));
     }
 
-
     #[test]
     fn rejects_replayed_power_command_in_networked_mode() {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["replay_message_rejected"] = json!("FAIL");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("replay control test must pass")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("replay control test must pass"))
+        );
     }
 
     #[test]
@@ -2426,7 +2523,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["spoofed_receiver_rejected"] = json!("FAIL");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("spoofed receiver must be rejected")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("spoofed receiver must be rejected"))
+        );
     }
 
     #[test]
@@ -2434,7 +2535,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["p99_message_latency_ms"] = json!(12.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("must meet positive control deadline")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("must meet positive control deadline"))
+        );
     }
 
     #[test]
@@ -2450,16 +2555,23 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["firmware_integrity_verified"] = json!(false);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("verified firmware integrity required")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("verified firmware integrity required"))
+        );
     }
-
 
     #[test]
     fn rejects_missing_security_report_artifact_binding() {
         let mut manifest = qualified_fixture();
         manifest["artifact_refs"][2]["sha256"] = json!("f".repeat(64));
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("must bind a SECURITY_REPORT artifact")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("must bind a SECURITY_REPORT artifact"))
+        );
     }
 
     #[test]
@@ -2467,10 +2579,12 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["freshness_mechanism"] = json!("UNKNOWN");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("replay-safe freshness mechanism required")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("replay-safe freshness mechanism required"))
+        );
     }
-
-
 
     #[test]
     fn rejects_security_scenario_digest_not_bound_to_report() {
@@ -2478,16 +2592,26 @@ mod tests {
         manifest["cyber_physical_security"]["security_scenario_results"][0]["evidence_sha256"] =
             json!("f".repeat(64));
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("PASS evidence must bind the run SECURITY_REPORT digest")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("PASS evidence must bind the run SECURITY_REPORT digest"))
+        );
     }
 
     #[test]
     fn rejects_missing_required_security_scenario() {
         let mut manifest = qualified_fixture();
         manifest["cyber_physical_security"]["security_scenario_results"]
-            .as_array_mut().unwrap().pop();
+            .as_array_mut()
+            .unwrap()
+            .pop();
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("missing required scenario")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("missing required scenario"))
+        );
     }
 
     #[test]
@@ -2505,18 +2629,26 @@ mod tests {
         manifest["cyber_physical_security"]["security_scenario_results"][0]["evidence_sha256"] =
             Value::Null;
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("passing scenario requires evidence digest")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("passing scenario requires evidence digest"))
+        );
     }
 
     #[test]
     fn rejects_duplicate_security_scenario_id() {
         let mut manifest = qualified_fixture();
-        let id = manifest["cyber_physical_security"]["security_scenario_results"][0]["scenario_id"].clone();
+        let id = manifest["cyber_physical_security"]["security_scenario_results"][0]["scenario_id"]
+            .clone();
         manifest["cyber_physical_security"]["security_scenario_results"][1]["scenario_id"] = id;
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("unknown or duplicate scenario")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("unknown or duplicate scenario"))
+        );
     }
-
 
     #[test]
     fn rejects_j2954_normative_claim_for_bidirectional_operation() {
@@ -2524,7 +2656,11 @@ mod tests {
         manifest["conditions"]["direction"] = json!("VEHICLE_TO_GRID");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires GRID_TO_VEHICLE")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires GRID_TO_VEHICLE"))
+        );
     }
 
     #[test]
@@ -2533,9 +2669,12 @@ mod tests {
         manifest["conditions"]["rated_apparent_power_va"] = json!(30_000.0);
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("published <=11 kVA scope")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("published <=11 kVA scope"))
+        );
     }
-
 
     #[test]
     fn rejects_j2954_normative_claim_for_flush_mounted_installation() {
@@ -2544,7 +2683,11 @@ mod tests {
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         manifest["conditions"]["rated_apparent_power_va"] = json!(10_000.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires SURFACE_MOUNTED installation")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires SURFACE_MOUNTED installation"))
+        );
     }
 
     #[test]
@@ -2553,9 +2696,12 @@ mod tests {
         manifest["conditions"]["operating_mode"] = json!("DYNAMIC");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires STATIC operation")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires STATIC operation"))
+        );
     }
-
 
     #[test]
     fn rejects_j2954_3_as_normative_before_issued() {
@@ -2564,9 +2710,12 @@ mod tests {
         manifest["standards_basis"][0]["edition"] = json!("planned");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("tracked as planned/unissued")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("tracked as planned/unissued"))
+        );
     }
-
 
     #[test]
     fn rejects_iec_pas_61980_4_normative_claim_for_dynamic_run() {
@@ -2575,7 +2724,11 @@ mod tests {
         manifest["standards_basis"][0]["edition"] = json!("2025");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires STATIC high-power operation")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires STATIC high-power operation"))
+        );
     }
 
     #[test]
@@ -2585,7 +2738,11 @@ mod tests {
         manifest["standards_basis"][0]["edition"] = json!("2024");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("requires DYNAMIC operation")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("requires DYNAMIC operation"))
+        );
     }
 
     #[test]
@@ -2596,10 +2753,12 @@ mod tests {
         manifest["standards_basis"][0]["edition"] = json!("2025");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("does not specify bidirectional power transfer")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("does not specify bidirectional power transfer"))
+        );
     }
-
-
 
     #[test]
     fn accepts_iso_pas_5474_6_single_receiver_dynamic_heavy_duty_scope() {
@@ -2622,7 +2781,11 @@ mod tests {
         manifest["standards_basis"][0]["edition"] = json!("2025");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("does not cover multiple onboard secondary devices")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("does not cover multiple onboard secondary devices"))
+        );
     }
 
     #[test]
@@ -2645,7 +2808,11 @@ mod tests {
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         manifest["conditions"]["vehicle_category"] = json!("HEAVY_DUTY");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("limited to PASSENGER_CAR or LIGHT_COMMERCIAL")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("limited to PASSENGER_CAR or LIGHT_COMMERCIAL"))
+        );
     }
 
     #[test]
@@ -2654,20 +2821,27 @@ mod tests {
         manifest["standards_basis"][0]["document_id"] = json!("ISO 5474-4");
         manifest["standards_basis"][0]["edition"] = json!("2025");
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
-        manifest["standards_basis"].as_array_mut().unwrap().push(json!({
-            "document_id":"IEC PAS 61980-4",
-            "edition":"2025",
-            "applicability":"NORMATIVE_REQUIREMENT",
-            "scope_statement":"Synthetic high-power supply reference",
-            "provisions_tested":[],
-            "compliance_claim":"NO_CLAIM",
-            "evidence_sha256":null,
-            "issuing_body":null,
-            "certificate_id":null,
-            "notes":"Synthetic test only."
-        }));
+        manifest["standards_basis"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "document_id":"IEC PAS 61980-4",
+                "edition":"2025",
+                "applicability":"NORMATIVE_REQUIREMENT",
+                "scope_statement":"Synthetic high-power supply reference",
+                "provisions_tested":[],
+                "compliance_claim":"NO_CLAIM",
+                "evidence_sha256":null,
+                "issuing_body":null,
+                "certificate_id":null,
+                "notes":"Synthetic test only."
+            }));
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("excludes pairing its EV devices")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("excludes pairing its EV devices"))
+        );
     }
 
     #[test]
@@ -2688,9 +2862,12 @@ mod tests {
         manifest["standards_basis"][0]["issuing_body"] = json!("synthetic issuer");
         manifest["standards_basis"][0]["certificate_id"] = json!("synthetic certificate");
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("CERTIFICATION_EVIDENCE artifact")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("CERTIFICATION_EVIDENCE artifact"))
+        );
     }
-
 
     fn dynamic_fixture() -> Value {
         let mut manifest = qualified_fixture();
@@ -2736,7 +2913,11 @@ mod tests {
         let mut manifest = qualified_fixture();
         manifest["motion_profile"]["speed_mean_mps"] = json!(25.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("all dynamic route metrics/digests must remain null")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("all dynamic route metrics/digests must remain null"))
+        );
     }
 
     #[test]
@@ -2744,7 +2925,11 @@ mod tests {
         let mut manifest = dynamic_fixture();
         manifest["motion_profile"]["roadway_energy_per_km_wh_km"] = json!(600.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("does not match route energy/event ledger")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("does not match route energy/event ledger"))
+        );
     }
 
     #[test]
@@ -2752,7 +2937,11 @@ mod tests {
         let mut manifest = dynamic_fixture();
         manifest["motion_profile"]["false_activation_count"] = json!(1);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("zero false/unauthorized segment activations")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("zero false/unauthorized segment activations"))
+        );
     }
 
     #[test]
@@ -2760,7 +2949,11 @@ mod tests {
         let mut manifest = dynamic_fixture();
         manifest["motion_profile"]["speed_min_mps"] = json!(35.0);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("speed_min <= speed_mean <= speed_max")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("speed_min <= speed_mean <= speed_max"))
+        );
     }
 
     #[test]
@@ -2780,7 +2973,11 @@ mod tests {
             {"stage_id":"inverter","energy_j":1.0,"evidence_kind":"MEASURED"}
         ]);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("stage_id: missing or duplicate")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("stage_id: missing or duplicate"))
+        );
     }
 
     #[test]
@@ -2796,7 +2993,11 @@ mod tests {
             }
         ]);
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("RAW_WAVEFORM artifact required")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("RAW_WAVEFORM artifact required"))
+        );
     }
 
     #[test]
@@ -2812,7 +3013,11 @@ mod tests {
         let duplicate_id = manifest["metrology"]["meters"][0]["meter_id"].clone();
         manifest["metrology"]["meters"][1]["meter_id"] = duplicate_id;
         let (_, errors) = validate_manifest(&manifest);
-        assert!(errors.iter().any(|e| e.contains("meter_id: missing or duplicate")));
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("meter_id: missing or duplicate"))
+        );
     }
 
     #[test]
