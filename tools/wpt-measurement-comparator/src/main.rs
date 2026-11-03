@@ -248,6 +248,17 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         reasons.insert("QUANTITY_KIND_MISMATCH".into());
     }
 
+    if intent == "rank_efficiency" {
+        match (
+            left.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
+            right.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
+        ) {
+            (Some(a), Some(b)) if (a - b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
+            (Some(_), Some(_)) => { reasons.insert("POWER_CLASS_MISMATCH".into()); }
+            _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+        }
+    }
+
     let lb = left.get("boundary").unwrap_or(&Value::Null);
     let rb = right.get("boundary").unwrap_or(&Value::Null);
     if text(lb, "boundary_class") != text(rb, "boundary_class") {
@@ -353,6 +364,14 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         let rc = right.get("conditions").unwrap_or(&Value::Null);
         compare_condition(lc, rc, "frequency_hz", &mut reasons);
         compare_condition(lc, rc, "transfer_gap_m", &mut reasons);
+        for field in [
+            "transfer_gap_min_m",
+            "transfer_gap_max_m",
+            "vehicle_ground_clearance_min_m",
+            "vehicle_ground_clearance_max_m",
+        ] {
+            compare_condition(lc, rc, field, &mut reasons);
+        }
         if intent == "rank_efficiency" {
             compare_condition(lc, rc, "load_power_w", &mut reasons);
         }
@@ -365,7 +384,7 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     let decisive = [
         "QUANTITY_KIND_MISMATCH","PURPOSE_MISMATCH","BOUNDARY_CLASS_MISMATCH",
         "INPUT_PLANE_MISMATCH","OUTPUT_PLANE_MISMATCH","STAGE_SET_MISMATCH",
-        "STATISTIC_MISMATCH","EVIDENCE_KIND_MISMATCH","OPERATING_CONDITION_MISMATCH","FIELD_GEOMETRY_MISMATCH"
+        "STATISTIC_MISMATCH","EVIDENCE_KIND_MISMATCH","OPERATING_CONDITION_MISMATCH","POWER_CLASS_MISMATCH","FIELD_GEOMETRY_MISMATCH"
     ];
     let disposition = if reasons.iter().any(|r| decisive.contains(&r.as_str())) {
         "NOT_COMPARABLE"
