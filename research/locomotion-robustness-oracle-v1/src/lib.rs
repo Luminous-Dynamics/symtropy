@@ -356,6 +356,12 @@ pub struct PairedModelComparison {
     pub baseline_numerical_failure_episodes: usize,
     pub candidate_physics_violation_episodes: usize,
     pub baseline_physics_violation_episodes: usize,
+    pub candidate_functional_recovery_episodes: usize,
+    pub baseline_functional_recovery_episodes: usize,
+    pub candidate_mechanism_restoration_episodes: usize,
+    pub baseline_mechanism_restoration_episodes: usize,
+    pub candidate_compensation_without_mechanism_restoration_episodes: usize,
+    pub baseline_compensation_without_mechanism_restoration_episodes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -1557,6 +1563,12 @@ pub fn compare_paired_models(
     let mut baseline_numerical_failure_episodes = 0usize;
     let mut candidate_physics_violation_episodes = 0usize;
     let mut baseline_physics_violation_episodes = 0usize;
+    let mut candidate_functional_recovery_episodes = 0usize;
+    let mut baseline_functional_recovery_episodes = 0usize;
+    let mut candidate_mechanism_restoration_episodes = 0usize;
+    let mut baseline_mechanism_restoration_episodes = 0usize;
+    let mut candidate_compensation_without_mechanism_restoration_episodes = 0usize;
+    let mut baseline_compensation_without_mechanism_restoration_episodes = 0usize;
 
     for (key, candidate_episode) in &candidate {
         let baseline_episode = baseline.get(key).ok_or(RobustnessError::PairSetMismatch)?;
@@ -1591,6 +1603,42 @@ pub fn compare_paired_models(
         if baseline_episode.physics_violation_count > 0 {
             baseline_physics_violation_episodes += 1;
         }
+        if matches!(candidate_episode.recovery, RecoveryStatus::Recovered { .. }) {
+            candidate_functional_recovery_episodes += 1;
+        }
+        if matches!(baseline_episode.recovery, RecoveryStatus::Recovered { .. }) {
+            baseline_functional_recovery_episodes += 1;
+        }
+        if matches!(
+            candidate_episode.mechanism_recovery,
+            MechanismRecoveryStatus::Restored { .. }
+        ) {
+            candidate_mechanism_restoration_episodes += 1;
+        }
+        if matches!(
+            baseline_episode.mechanism_recovery,
+            MechanismRecoveryStatus::Restored { .. }
+        ) {
+            baseline_mechanism_restoration_episodes += 1;
+        }
+        if matches!(candidate_episode.recovery, RecoveryStatus::Recovered { .. })
+            && matches!(
+                candidate_episode.mechanism_recovery,
+                MechanismRecoveryStatus::NotRestoredByHorizon
+                    | MechanismRecoveryStatus::NotRestoredBeforeTermination
+            )
+        {
+            candidate_compensation_without_mechanism_restoration_episodes += 1;
+        }
+        if matches!(baseline_episode.recovery, RecoveryStatus::Recovered { .. })
+            && matches!(
+                baseline_episode.mechanism_recovery,
+                MechanismRecoveryStatus::NotRestoredByHorizon
+                    | MechanismRecoveryStatus::NotRestoredBeforeTermination
+            )
+        {
+            baseline_compensation_without_mechanism_restoration_episodes += 1;
+        }
     }
 
     let mut deltas_for_median = deltas.clone();
@@ -1614,6 +1662,12 @@ pub fn compare_paired_models(
         baseline_numerical_failure_episodes,
         candidate_physics_violation_episodes,
         baseline_physics_violation_episodes,
+        candidate_functional_recovery_episodes,
+        baseline_functional_recovery_episodes,
+        candidate_mechanism_restoration_episodes,
+        baseline_mechanism_restoration_episodes,
+        candidate_compensation_without_mechanism_restoration_episodes,
+        baseline_compensation_without_mechanism_restoration_episodes,
     })
 }
 
@@ -1857,6 +1911,37 @@ mod tests {
         assert_eq!(
             compare_paired_models(&protocol(), &episodes, "candidate", "baseline"),
             Err(RobustnessError::PairSetMismatch)
+        );
+    }
+
+    #[test]
+    fn paired_comparison_separates_task_score_from_mechanism_restoration() {
+        let mut episodes = vec![
+            episode("candidate", "trial-1", "fly-1", 0.95),
+            episode("baseline", "trial-1", "fly-1", 0.85),
+            episode("candidate", "trial-2", "fly-2", 0.95),
+            episode("baseline", "trial-2", "fly-2", 0.85),
+        ];
+        for candidate_index in [0, 2] {
+            episodes[candidate_index].mechanism_recovery =
+                MechanismRecoveryStatus::NotRestoredByHorizon;
+            episodes[candidate_index].mechanism_state_deviation_from_nominal = Some(0.3);
+        }
+
+        let result = compare_paired_models(&protocol(), &episodes, "candidate", "baseline")
+            .expect("paired comparison");
+        assert_eq!(result.candidate_wins, 2);
+        assert_eq!(result.candidate_functional_recovery_episodes, 2);
+        assert_eq!(result.baseline_functional_recovery_episodes, 2);
+        assert_eq!(result.candidate_mechanism_restoration_episodes, 0);
+        assert_eq!(result.baseline_mechanism_restoration_episodes, 2);
+        assert_eq!(
+            result.candidate_compensation_without_mechanism_restoration_episodes,
+            2
+        );
+        assert_eq!(
+            result.baseline_compensation_without_mechanism_restoration_episodes,
+            0
         );
     }
 
