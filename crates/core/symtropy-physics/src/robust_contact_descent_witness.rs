@@ -137,6 +137,9 @@ struct ExactLpOptimum {
     margin: BigRational,
     branch_upper_bounds: Vec<BigRational>,
     gradient_cuts: Vec<RationalVector>,
+    gradient_cut_owners: Vec<usize>,
+    dual_constraint_indices: Vec<usize>,
+    dual_multipliers: Vec<BigRational>,
 }
 
 fn robust_descent_constraints(gradients: &[RationalVector]) -> Vec<LpConstraint> {
@@ -392,7 +395,17 @@ fn enumerate_lp_active_sets(
         let Some(candidate) = solve_active_lp_constraints(constraints, active_indices) else {
             return;
         };
-        if !lp_constraints_satisfied(constraints, &candidate) {
+        let Some(dual_multipliers) =
+            solve_active_lp_dual_constraints(constraints, active_indices)
+        else {
+            return;
+        };
+        if !verify_exact_lp_certificate(
+            constraints,
+            active_indices,
+            &dual_multipliers,
+            &candidate,
+        ) {
             return;
         }
 
@@ -420,6 +433,9 @@ fn enumerate_lp_active_sets(
                 margin,
                 branch_upper_bounds,
                 gradient_cuts: gradients.to_vec(),
+                gradient_cut_owners: (0..gradients.len()).collect(),
+                dual_constraint_indices: active_indices.to_vec(),
+                dual_multipliers: dual_multipliers.to_vec(),
             });
         }
         return;
@@ -440,6 +456,60 @@ fn enumerate_lp_active_sets(
         enumerate_lp_active_sets(constraints, gradients, index + 1, active_indices, best);
         active_indices.pop();
     }
+}
+
+fn verify_robust_descent_interval_lp_certificate(
+    branches: &[GradientBox],
+    optimum: &ExactLpOptimum,
+) -> bool {
+    if branches.is_empty()
+        || optimum.gradient_cuts.len() != optimum.gradient_cut_owners.len()
+        || optimum.branch_upper_bounds.len() != branches.len()
+    {
+        return false;
+    }
+
+    let required_upper = -optimum.margin.clone();
+    let worst_support = optimum.branch_upper_bounds.iter().max();
+    if worst_support != Some(&required_upper) {
+        return false;
+    }
+
+    // Each generated point-gradient cut must be a member of its declared
+    // interval box, so the cut constraint is implied by the full robust box.
+    for (gradient_cut, owner) in optimum
+        .gradient_cuts
+        .iter()
+        .zip(optimum.gradient_cut_owners.iter())
+    {
+        let Some(branch) = branches.get(*owner) else {
+            return false;
+        };
+        if gradient_cut
+            .iter()
+            .zip(branch.iter())
+            .any(|(value, interval)| value < &interval.lower || value > &interval.upper)
+        {
+            return false;
+        }
+    }
+
+    let constraints = robust_descent_constraints(&optimum.gradient_cuts);
+    let candidate: LpVector = std::array::from_fn(|index| {
+        if index == INPUT_DIMENSION {
+            optimum.margin.clone()
+        } else {
+            optimum.direction[index].clone()
+        }
+    });
+    verify_exact_lp_certificate(
+        &constraints,
+        &optimum.dual_constraint_indices,
+        &optimum.dual_multipliers,
+        &candidate,
+    ) && branches.iter().all(|branch| {
+        gradient_box_support_upper(branch, &optimum.direction) <= required_upper
+    })
 }
 
 fn adverse_box_corner(gradient: &GradientBox, direction: &RationalVector) -> RationalVector {
@@ -467,22 +537,23 @@ fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpO
         .iter()
         .map(|gradient| std::array::from_fn(|coordinate| gradient[coordinate].lower.clone()))
         .collect();
+    let mut cut_owners: Vec<usize> = (0..branches.len()).collect();
 
     for _ in 0..MAX_ACTIVE_SETS {
         let mut optimum = solve_robust_descent_lp(&cuts)?;
         let required_upper = -optimum.margin.clone();
         let mut new_cuts = Vec::new();
 
-        for gradient in branches {
+        for (branch_index, gradient) in branches.iter().enumerate() {
             let support_upper = gradient_box_support_upper(gradient, &optimum.direction);
             if support_upper > required_upper {
                 let corner = adverse_box_corner(gradient, &optimum.direction);
-                if cuts.contains(&corner) || new_cuts.contains(&corner) {
+                if cuts.contains(&corner) || new_cuts.iter().any(|(candidate, _)| *candidate == corner) {
                     // A previously enforced exact corner cannot violate its
                     // own LP constraint; treat this as an internal inconsistency.
                     return None;
                 }
-                new_cuts.push(corner);
+                new_cuts.push((corner, branch_index));
             }
         }
 
@@ -491,18 +562,15 @@ fn solve_robust_descent_interval_lp(branches: &[GradientBox]) -> Option<ExactLpO
                 .iter()
                 .map(|gradient| gradient_box_support_upper(gradient, &optimum.direction))
                 .collect();
-            let worst_support = optimum
-                .branch_upper_bounds
-                .iter()
-                .max()
-                .expect("at least one branch box exists");
-            if -worst_support.clone() != optimum.margin {
-                return None;
-            }
-            return Some(optimum);
+            optimum.gradient_cut_owners = cut_owners;
+            return verify_robust_descent_interval_lp_certificate(branches, &optimum)
+                .then_some(optimum);
         }
 
-        cuts.extend(new_cuts);
+        for (corner, owner) in new_cuts {
+            cuts.push(corner);
+            cut_owners.push(owner);
+        }
     }
 
     None
@@ -558,11 +626,20 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
                 })
         })
         .collect();
-    let worst_branch_upper = optimum.branch_upper_bounds.iter().max()?;
-    if -worst_branch_upper.clone() != optimum.margin {
-        return None;
-    }
-    Some(optimum)
+    let candidate: LpVector = std::array::from_fn(|index| {
+        if index == INPUT_DIMENSION {
+            optimum.margin.clone()
+        } else {
+            optimum.direction[index].clone()
+        }
+    });
+    let certificate_verified = verify_exact_lp_certificate(
+        &constraints,
+        &optimum.dual_constraint_indices,
+        &optimum.dual_multipliers,
+        &candidate,
+    );
+    certificate_verified.then_some(optimum)
 }
 
 fn candidate_for_direction(
