@@ -82,3 +82,21 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # The patent arithmetic tool is a standalone package and is not part of
+    # the root workspace. Qualify it explicitly when its manifest is present.
+    - name: Format standalone Tesla patent audit
+      if: ${{ hashFiles('tools/tesla-patent-claim-audit/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all -- --check
+
+    - name: Test standalone Tesla patent audit
+      if: ${{ hashFiles('tools/tesla-patent-claim-audit/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all-targets --locked
+
+    - name: Clippy standalone Tesla patent audit
+      if: ${{ hashFiles('tools/tesla-patent-claim-audit/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --all-targets --locked -- -D warnings
+
+    - name: Execute Tesla patent arithmetic audit
+      if: ${{ hashFiles('tools/tesla-patent-claim-audit/Cargo.toml') != '' }}
+      run: cargo run --manifest-path tools/tesla-patent-claim-audit/Cargo.toml --release --locked --bin audit > patent-arithmetic.csv
