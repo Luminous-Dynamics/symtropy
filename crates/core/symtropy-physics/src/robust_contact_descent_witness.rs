@@ -963,7 +963,7 @@ mod tests {
         // Their exact half/half convex combination is a no-strict-descent
         // witness for this complete one-dimensional uncertainty box.
         let opposing_box = interval_gradient([(-1, 1), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]);
-        let no_descent = solve_robust_descent_interval_lp(&[opposing_box])
+        let no_descent = solve_robust_descent_interval_lp(&[opposing_box.clone()])
             .expect("the exact interval LP returns the optimum even when it is zero");
         assert_eq!(no_descent.margin, rational(0));
         assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
