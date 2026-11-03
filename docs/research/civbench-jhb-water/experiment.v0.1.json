@@ -749,5 +749,92 @@
         ]
       }
     }
+  },
+  "cyberphysical_resilience_contract": {
+    "version": "0.1.0",
+    "benchmark_resources": [
+      {
+        "resource_id": "WDSEventDB",
+        "source_id": "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025",
+        "evidence_class": "hardware_in_the_loop_testbed_dataset",
+        "claim_limit": "controlled sensor-instrumented testbed evidence, not utility deployment",
+        "event_classes": [
+          "cyberattack",
+          "leakage",
+          "sensor_failure"
+        ]
+      },
+      {
+        "resource_id": "ACG_Water_Testbed_2026",
+        "source_id": "ACG_WATER_TESTBED_2026",
+        "evidence_class": "controlled_cyber_physical_testbed",
+        "claim_limit": "offline controlled cyber-to-physical simulation only; no production PLC or utility access",
+        "event_classes": [
+          "cyberattack",
+          "communication_anomaly",
+          "process_deviation"
+        ]
+      },
+      {
+        "resource_id": "WDT_Chronological_Benchmark_2026",
+        "source_id": "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026",
+        "evidence_class": "paper_specific_chronological_testbed_case",
+        "claim_limit": "five-run paper-specific alarm-policy observation, not a universal model ranking",
+        "event_classes": [
+          "normal_operation",
+          "cyber_event",
+          "process_anomaly"
+        ]
+      }
+    ],
+    "evaluation_lanes": {
+      "C1_event_discrimination": {
+        "resource_ids": [
+          "WDSEventDB",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "separately discriminate leakage, sensor failure, communication anomaly, cyber event and normal operation where labels permit; preserve unknown/ambiguous events"
+      },
+      "C2_cyber_to_physical_propagation": {
+        "resource_ids": [
+          "ACG_Water_Testbed_2026"
+        ],
+        "task": "measure whether controlled cyber events propagate into process deviation, unsafe state, service deficit and water-quality excursion where modeled; never connect to live systems"
+      },
+      "C3_control_and_resilience_comparison": {
+        "resource_ids": [
+          "WDSEventDB",
+          "ACG_Water_Testbed_2026",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "compare nominal-only, cyber-only monitoring, process-aware detection, segmentation/least privilege and recovery policies under identical testbed event schedules"
+      }
+    },
+    "event_classes": [
+      "leak",
+      "sensor_failure",
+      "communication_anomaly",
+      "cyberattack",
+      "process_drift",
+      "unknown"
+    ],
+    "metrics": [
+      "event_precision_recall",
+      "event_onset_delay",
+      "false_alarm_episodes_per_system_day",
+      "calibration_and_abstention",
+      "physical_consequence_exposure",
+      "time_to_safe_state",
+      "recovery_time",
+      "service_deficit"
+    ],
+    "hard_gates": {
+      "no_live_plc_or_production_scada": true,
+      "human_authorization_required_for_operational_actions": true,
+      "keep_leak_sensor_failure_and_attack_labels_distinct": true,
+      "do_not_infer_malicious_intent_from_anomaly_alone": true,
+      "benchmark_score_never_grants_actuation_authority": true,
+      "independent_safety_interlocks_and_rollback_required": true
+    }
   }
 }
