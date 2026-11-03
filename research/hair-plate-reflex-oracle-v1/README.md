@@ -50,9 +50,32 @@ The oracle does not infer a missing motor mapping from morphology or nearest-nei
 
 The synthetic tests validate the contract and metric arithmetic only. They do not reproduce the CxHP8 paper or establish prediction accuracy on the other 41 hair plates.
 
+
+## Current source dossier (not yet materialized by this crate)
+
+The CxHP8 paper's data availability statement points to the Dryad deposit
+https://doi.org/10.5061/dryad.fxpnvx153 (published 2 September 2025, versioned
+deposit, approximately 11.71 GB, CC0-1.0). It contains calcium-imaging,
+optogenetic activation/silencing and treadmill kinematic datasets, including
+`R48A07_R20C06_GCaMP7f_tdTomato.parquet`, the `ChrimsonR` / `GtACR1`
+trial tables and chronic `kir_treadmill_dataset.csv` files. The associated
+analysis notebooks are released at
+https://github.com/Prattbuw/Hair_Plate_Paper/releases/tag/v1.0.0.
+
+The connectome data are separate sources: the paper used FANC CAVE
+materialization version 840 (timestamp 2024-01-17T08:10:01.179472) and FlyWire
+public release version 783. These exact version identifiers belong in a real
+source manifest; a generic "current connectome" label is not acceptable.
+
+Important coverage limit: the physiological and intervention datasets are
+primarily for the characterized CxHP8 plate. The other hair plates have
+morphology/connectivity-based predictions, not 41 equivalent independent
+physiology/perturbation datasets. The held-out-plate benchmark must preserve
+this difference and cannot call predictions confirmed reflex labels.
+
 ## Synthetic tests
 
-The 19 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
+The 23 tests cover a valid inventory, unknown-vs-absence semantics, explicitly absent target-set scoring, a known-answer joint limit/reflex/motor-sign fixture, threshold-definition matching, reflex assay-context scoping, exact absent-scope matching and unmeasured-context protection, held-out-plate leakage, malformed tuning curves, duplicate identities, invalid morphology/digests, malformed unknown evidence and inventory-bound training/holdout membership.
 
 ## References
 
