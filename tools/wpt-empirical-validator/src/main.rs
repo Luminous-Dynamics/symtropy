@@ -851,6 +851,46 @@ mod tests {
     }
 
     #[test]
+    fn schema_enforces_array_and_string_lengths() {
+        use serde_json::json;
+
+        let schema = json!({
+            "type": "object",
+            "required": ["label", "points"],
+            "properties": {
+                "label": {"type": "string", "minLength": 3},
+                "points": {
+                    "type": "array",
+                    "minItems": 2,
+                    "items": {"type": "number", "maximum": 10.0}
+                }
+            }
+        });
+        ensure_supported_schema(&schema, "$test").unwrap();
+
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0, 10.0]}),
+            &schema,
+            "$test"
+        ).is_ok());
+        assert!(validate_json_schema(
+            &json!({"label": "hi", "points": [0.0, 10.0]}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0]}),
+            &schema,
+            "$test"
+        ).is_err());
+        assert!(validate_json_schema(
+            &json!({"label": "coil", "points": [0.0, 10.1]}),
+            &schema,
+            "$test"
+        ).is_err());
+    }
+
+    #[test]
     fn unsupported_schema_keywords_fail_closed() {
         use serde_json::json;
 
