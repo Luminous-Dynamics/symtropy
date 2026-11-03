@@ -324,3 +324,17 @@ Its explicit exclusions matter:
 ISO 5474-4 is intended to pair with IEC 61980-1/-2/-3. It is not the vehicle-side standard for dynamic WPT; IEC PAS 61980-5/6 pair with ISO 5474-6. It is also not the vehicle-side compliance basis for the high-power IEC PAS 61980-4 supply-device scope. Thus the standards architecture is a matrix of complementary off-board and on-board requirements, not a single interchangeable WPT standard.
 
 This also means the 6/11/30 kW Zhang bidirectional research demonstration cannot be labelled ISO 5474-4 conformant simply because the paper demonstrates interoperability among vehicle assemblies. Its reverse-power direction, 30 kW / 20 kHz configuration, and system architecture must each be checked against actual in-scope clauses and the relevant off-board standards; this catalogue makes no conformity claim.
+
+
+### ISO/PAS 5474-6:2025 adds the heavy-duty vehicle-side lane
+
+The official ISO catalogue now provides ISO/PAS 5474-6:2025 (https://www.iso.org/standard/84305.html), a published PAS for on-board EV equipment for heavy-duty magnetic-field WPT. It covers both static and dynamic vehicle-side applications, safety, transferred power/efficiency, ground clearance, interoperability and test procedures; it is intended to operate with the IEC 61980 series.
+
+A critical limitation: this edition does **not** cover multiple secondary devices (the modular approach for higher power classes). That matters for higher-power multi-pad receivers. The source catalogue now separates:
+- **ISO 5474-4:2025:** passenger car/light commercial on-board device; static only; excludes reverse WPT and vehicle-side operation with IEC 61980-4 supply devices.
+- **ISO/PAS 5474-6:2025:** heavy-duty on-board device; static and dynamic; multi-secondary modular architectures not covered.
+- **IEC PAS 61980-4:2025:** stationary high-power off-board supply equipment.
+- **IEC PAS 61980-5:2024:** dynamic off-board supply equipment.
+- **IEC PAS 61980-6:2025:** dynamic off-board communication/positioning activities; bidirectional requirements remain under consideration.
+
+This makes the standards map a genuine vehicle-side/off-board matrix. A heavy-duty dynamic WPT system requires the applicable vehicle-side ISO/PAS 5474-6 and off-board IEC PAS 61980-5/6 assessments; a passenger/light-commercial static system follows ISO 5474-4 with IEC 61980-1/-2/-3 (and the applicable SAE interoperability scope). Neither chain alone proves the entire deployed system meets all jurisdictional grid, EMC, exposure or cybersecurity requirements.
