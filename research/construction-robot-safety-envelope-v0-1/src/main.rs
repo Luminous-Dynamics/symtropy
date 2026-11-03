@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use construction_robot_safety_envelope::{evaluate, frozen_cases, Disposition};
+use construction_robot_safety_envelope::{Disposition, evaluate, frozen_cases};
 
 fn main() {
     let cases = frozen_cases();
