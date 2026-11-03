@@ -96,7 +96,9 @@ pub struct PredictionBatch {
     pub commit_receipt_sha256: String,
     pub event_log_id: String,
     pub commit_sequence: u64,
-    /// Observation/measurement covariance for the declared feature vector.
+    /// Covariance of one measured feature vector for Gaussian forecasts.
+    pub observation_covariance: Vec<Vec<f64>>,
+    /// Covariance of observation error in a pairwise prediction difference.
     pub pairwise_observation_difference_covariance: Vec<Vec<f64>>,
     pub forecasts: Vec<ModelForecast>,
 }
@@ -123,6 +125,7 @@ pub enum ValidationError {
     NonFiniteValue,
     InvalidCovariance,
     NonPositiveDefinitePooledCovariance,
+    NegativeDistributionDistance,
     InvalidPolicy,
     ResourceLimitExceeded,
     DuplicateArtifactRole,
@@ -137,7 +140,9 @@ pub struct DiscriminationPolicy {
     /// Minimum pairwise mean-only squared Mahalanobis separation required to
     /// call a pair resolved for this benchmark. Freeze it before unblinding.
     pub minimum_pair_mean_d2: f64,
-    /// Fixed diagonal regularizer for the pooled covariance.
+    /// Minimum Gaussian Bhattacharyya distance for pairwise distribution separation.
+    pub minimum_gaussian_bhattacharyya_distance: f64,
+    /// Fixed diagonal regularizer added before covariance factorization.
     pub covariance_regularization: f64,
 }
 
@@ -151,12 +156,21 @@ pub enum DiscriminationStatus {
     NoPairsMeanSeparated,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GaussianDiscriminationStatus {
+    AllPairsGaussianSeparated,
+    SomePairsGaussianSeparated,
+    NoPairsGaussianSeparated,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PairSeparation {
     pub model_a: String,
     pub model_b: String,
     pub mean_d2: f64,
     pub mean_separated: bool,
+    pub gaussian_bhattacharyya_distance: f64,
+    pub gaussian_distributions_separated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -164,7 +178,11 @@ pub struct DiscriminationResult {
     pub status: DiscriminationStatus,
     pub minimum_pair_mean_d2: f64,
     pub mean_separated_pair_count: usize,
-    pub unmean_separated_pair_count: usize,
+    pub mean_unseparated_pair_count: usize,
+    pub gaussian_status: GaussianDiscriminationStatus,
+    pub minimum_pair_gaussian_bhattacharyya_distance: f64,
+    pub gaussian_separated_pair_count: usize,
+    pub gaussian_unseparated_pair_count: usize,
     pub pairwise: Vec<PairSeparation>,
 }
 
