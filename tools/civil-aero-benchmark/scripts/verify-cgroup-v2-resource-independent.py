@@ -13,7 +13,7 @@ EVIDENCE = (
     "raw_cgroup_v2_counter_snapshots_bound_to_process_tree_measure_cpu_and_peak_memory_not_gpu_or_energy"
 )
 HEADER = (
-    "record_type,cgroup_id,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,"
+    "record_type,cgroup_id,memory_peak_reader_id,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,"
     "memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,"
     "cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,"
     "snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,"
@@ -85,6 +85,8 @@ def snapshot_digest(row: dict[str, str]) -> str:
         row["memory_peak_sha256"],
         row["memory_events_sha256"],
         row["cgroup_events_sha256"],
+        row["memory_peak_reader_id"],
+        row["cgroup2_mount_options_sha256"],
     ):
         add_string(canonical, value)
     for key in (
@@ -129,6 +131,14 @@ def main() -> None:
                 "cgroup snapshot digest mismatch")
 
     require(start["cgroup_id"] == end["cgroup_id"], "cgroup identity mismatch")
+    require(
+        start["memory_peak_reader_id"] == end["memory_peak_reader_id"],
+        "memory.peak reader identity changed",
+    )
+    require(
+        start["cgroup2_mount_options_sha256"] == end["cgroup2_mount_options_sha256"],
+        "cgroup2 mount options changed",
+    )
     start_ns = parse_uint(start, "monotonic_time_ns")
     end_ns = parse_uint(end, "monotonic_time_ns")
     require(end_ns > start_ns, "monotonic interval must be positive")
