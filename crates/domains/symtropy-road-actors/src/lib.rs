@@ -40,7 +40,7 @@ impl ScenarioActorId {
             return Err(ActorIdError::InvalidStartCharacter);
         }
         if !bytes.iter().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.' | b':')
+            byte.is_ascii_alphanumeric() || matches!(*byte, b'_' | b'-' | b'.' | b':')
         }) {
             return Err(ActorIdError::InvalidCharacter);
         }
