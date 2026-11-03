@@ -870,6 +870,36 @@ mod tests {
         assert!(verify_dpw8_oat15a_manifest(&tampered).is_err());
     }
 
+    #[test]
+    fn geometry_permission_document_reference_is_not_inferred_from_source_url() {
+        let mut manifest = manifest(Dpw8Oat15aLane::V1aSteadyGridConvergencePolar);
+        let geometry = manifest
+            .sources
+            .iter_mut()
+            .find(|source| source.source_kind == "geometry_ip_and_acknowledgement_policy")
+            .unwrap();
+        geometry.state =
+            Dpw8SourceAdmissionState::BytePinnedRedistributionPermissionDocumentReferenced;
+        geometry.byte_length = Some(4096);
+        geometry.sha256 = Some("a".repeat(64));
+        geometry.source_revision = "permission-policy-review-v1".to_owned();
+        geometry.permission_evidence_reference =
+            Some("internal-review://onera-oat15a-redistribution-decision".to_owned());
+        geometry.permission_evidence_sha256 = Some("b".repeat(64));
+        let manifest = seal_dpw8_oat15a_manifest(manifest)
+            .expect("well-formed permission-document reference");
+        assert!(dpw8_oat15a_geometry_permission_document_referenced(&manifest));
+
+        let mut missing_digest = manifest.clone();
+        let geometry = missing_digest
+            .sources
+            .iter_mut()
+            .find(|source| source.source_kind == "geometry_ip_and_acknowledgement_policy")
+            .unwrap();
+        geometry.permission_evidence_sha256 = None;
+        assert!(seal_dpw8_oat15a_manifest(missing_digest).is_err());
+    }
+
     #[cfg(unix)]
     #[test]
     fn independent_python_oracle_replays_each_dpW8_protocol_lane() {
