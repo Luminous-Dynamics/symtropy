@@ -31,6 +31,7 @@ pub enum ActorMode {
 pub struct ActorPolicyState {
     mode: ActorMode,
     target_forward_speed_mps: f64,
+    last_decision_tick: Option<ScenarioTick>,
 }
 
 impl ActorPolicyState {
@@ -38,6 +39,7 @@ impl ActorPolicyState {
         Self {
             mode: ActorMode::Waiting,
             target_forward_speed_mps: 0.0,
+            last_decision_tick: None,
         }
     }
 
@@ -47,11 +49,15 @@ impl ActorPolicyState {
     pub const fn target_forward_speed_mps(self) -> f64 {
         self.target_forward_speed_mps
     }
+    pub const fn last_decision_tick(self) -> Option<ScenarioTick> {
+        self.last_decision_tick
+    }
 
     fn new(mode: ActorMode, target_forward_speed_mps: f64) -> Self {
         Self {
             mode,
             target_forward_speed_mps,
+            last_decision_tick: None,
         }
     }
 
@@ -60,9 +66,11 @@ impl ActorPolicyState {
     pub fn from_scenario(
         mode: ActorMode,
         target_forward_speed_mps: f64,
+        last_decision_tick: Option<ScenarioTick>,
         bounds: MotionBounds,
     ) -> Result<Self, PolicyError> {
-        let state = Self::new(mode, target_forward_speed_mps);
+        let mut state = Self::new(mode, target_forward_speed_mps);
+        state.last_decision_tick = last_decision_tick;
         state.validate(bounds)?;
         Ok(state)
     }
@@ -407,6 +415,7 @@ impl std::error::Error for ObservationError {}
 pub enum PolicyError {
     InvalidConfiguration,
     InvalidActorState,
+    NonMonotonicTick,
 }
 impl fmt::Display for PolicyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -471,8 +480,11 @@ impl ActorPolicy for CautiousPausePolicy {
         observation: &AllowedActorObservation,
     ) -> Result<ActorTransition, PolicyError> {
         prior.validate(self.bounds)?;
+        if prior.last_decision_tick.is_some_and(|last| observation.tick <= last) {
+            return Err(PolicyError::NonMonotonicTick);
+        }
         let ttc = observation.observed_ttc_after_delay(self.reaction_delay_ticks);
-        let result = match prior.mode {
+        let mut result = match prior.mode {
             ActorMode::Waiting => match ttc {
                 Some(seconds) if seconds >= self.entry_ttc_seconds => ActorTransition::new(
                     ActorAction::EnterCrossing,
@@ -526,6 +538,7 @@ impl ActorPolicy for CautiousPausePolicy {
                 prior,
             ),
         };
+        result.next_state.last_decision_tick = Some(observation.tick);
         Ok(result)
     }
 }
@@ -569,7 +582,10 @@ impl ActorPolicy for CommittedAfterEntryPolicy {
         observation: &AllowedActorObservation,
     ) -> Result<ActorTransition, PolicyError> {
         prior.validate(self.bounds)?;
-        let result = match prior.mode {
+        if prior.last_decision_tick.is_some_and(|last| observation.tick <= last) {
+            return Err(PolicyError::NonMonotonicTick);
+        }
+        let mut result = match prior.mode {
             ActorMode::Waiting => match observation
                 .observed_ttc_after_delay(self.reaction_delay_ticks)
             {
@@ -600,6 +616,7 @@ impl ActorPolicy for CommittedAfterEntryPolicy {
                 prior,
             ),
         };
+        result.next_state.last_decision_tick = Some(observation.tick);
         Ok(result)
     }
 }
@@ -885,18 +902,40 @@ mod tests {
 
     #[test]
     fn scenario_state_restoration_validates_mode_and_speed_setpoint() {
-        let restored = ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, bounds()).unwrap();
+        let restored = ActorPolicyState::from_scenario(ActorMode::Crossing, 1.2, None, bounds()).unwrap();
         assert_eq!(restored.mode(), ActorMode::Crossing);
         assert_eq!(restored.target_forward_speed_mps(), 1.2);
 
         assert_eq!(
-            ActorPolicyState::from_scenario(ActorMode::Waiting, 0.5, bounds()),
+            ActorPolicyState::from_scenario(ActorMode::Waiting, 0.5, None, bounds()),
             Err(PolicyError::InvalidActorState)
         );
         assert_eq!(
-            ActorPolicyState::from_scenario(ActorMode::Crossing, 2.0, bounds()),
+            ActorPolicyState::from_scenario(ActorMode::Crossing, 2.0, None, bounds()),
             Err(PolicyError::InvalidActorState)
         );
+    }
+
+    #[test]
+    fn policy_rejects_duplicate_and_backwards_decision_ticks() {
+        let policy = cautious();
+        let first = policy
+            .transition(
+                ActorPolicyState::waiting(),
+                &ttc_view(10, CueStatus::Observed, Some(4.0)),
+            )
+            .unwrap();
+        assert_eq!(first.next_state().last_decision_tick(), Some(ScenarioTick(10)));
+
+        for tick in [10, 9] {
+            assert_eq!(
+                policy.transition(
+                    first.next_state(),
+                    &ttc_view(tick, CueStatus::Observed, Some(4.0)),
+                ),
+                Err(PolicyError::NonMonotonicTick)
+            );
+        }
     }
 
     #[test]
