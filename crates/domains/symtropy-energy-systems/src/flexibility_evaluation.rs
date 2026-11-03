@@ -15,9 +15,79 @@ use core::fmt;
 
 use serde::Serialize;
 
+/// Immutable identity of the baseline/response comparison.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FlexibilityEventIdentity {
+    event_id: String,
+    service_contract_id: String,
+    work_unit_id: String,
+    measurement_boundary_id: String,
+    baseline_configuration_digest: String,
+    response_configuration_digest: String,
+}
+
+impl FlexibilityEventIdentity {
+    pub fn new(
+        event_id: impl Into<String>,
+        service_contract_id: impl Into<String>,
+        work_unit_id: impl Into<String>,
+        measurement_boundary_id: impl Into<String>,
+        baseline_configuration_digest: impl Into<String>,
+        response_configuration_digest: impl Into<String>,
+    ) -> Result<Self, FlexibilityEvaluationError> {
+        let fields = [
+            ("event ID", event_id.into()),
+            ("service contract ID", service_contract_id.into()),
+            ("work unit ID", work_unit_id.into()),
+            ("measurement boundary ID", measurement_boundary_id.into()),
+            ("baseline configuration digest", baseline_configuration_digest.into()),
+            ("response configuration digest", response_configuration_digest.into()),
+        ];
+        for (name, value) in &fields {
+            if value.trim().is_empty() {
+                return Err(FlexibilityEvaluationError::MissingIdentity { name });
+            }
+        }
+        let mut values = fields.into_iter().map(|(_, value)| value);
+        Ok(Self {
+            event_id: values.next().unwrap(),
+            service_contract_id: values.next().unwrap(),
+            work_unit_id: values.next().unwrap(),
+            measurement_boundary_id: values.next().unwrap(),
+            baseline_configuration_digest: values.next().unwrap(),
+            response_configuration_digest: values.next().unwrap(),
+        })
+    }
+
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+
+    pub fn service_contract_id(&self) -> &str {
+        &self.service_contract_id
+    }
+
+    pub fn work_unit_id(&self) -> &str {
+        &self.work_unit_id
+    }
+
+    pub fn measurement_boundary_id(&self) -> &str {
+        &self.measurement_boundary_id
+    }
+
+    pub fn baseline_configuration_digest(&self) -> &str {
+        &self.baseline_configuration_digest
+    }
+
+    pub fn response_configuration_digest(&self) -> &str {
+        &self.response_configuration_digest
+    }
+}
+
 /// Frozen event, rebound and service constraints for one flexibility test.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct FlexibilityEventContract {
+    identity: FlexibilityEventIdentity,
     event_start_ns: u64,
     event_end_ns: u64,
     rebound_end_ns: u64,
@@ -34,6 +104,7 @@ pub struct FlexibilityEventContract {
 impl FlexibilityEventContract {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        identity: FlexibilityEventIdentity,
         event_start_ns: u64,
         event_end_ns: u64,
         rebound_end_ns: u64,
@@ -100,6 +171,7 @@ impl FlexibilityEventContract {
         }
 
         Ok(Self {
+            identity,
             event_start_ns,
             event_end_ns,
             rebound_end_ns,
@@ -112,6 +184,10 @@ impl FlexibilityEventContract {
             maximum_deadline_misses,
             maximum_temperature_c,
         })
+    }
+
+    pub const fn identity(&self) -> &FlexibilityEventIdentity {
+        &self.identity
     }
 
     pub const fn event_start_ns(&self) -> u64 {
@@ -146,6 +222,7 @@ pub struct FlexibilityEventSample {
     response_p99_latency_ms: f64,
     response_deadline_misses: u64,
     response_peak_temperature_c: f64,
+    evidence_id: String,
 }
 
 impl FlexibilityEventSample {
@@ -159,7 +236,12 @@ impl FlexibilityEventSample {
         response_p99_latency_ms: f64,
         response_deadline_misses: u64,
         response_peak_temperature_c: f64,
+        evidence_id: impl Into<String>,
     ) -> Result<Self, FlexibilityEvaluationError> {
+        let evidence_id = evidence_id.into();
+        if evidence_id.trim().is_empty() {
+            return Err(FlexibilityEvaluationError::MissingEvidenceId);
+        }
         for (name, value) in [
             ("baseline PCC import", baseline_pcc_import_kw),
             ("response PCC import", response_pcc_import_kw),
@@ -185,17 +267,24 @@ impl FlexibilityEventSample {
             response_p99_latency_ms,
             response_deadline_misses,
             response_peak_temperature_c,
+            evidence_id,
         })
     }
 
     pub const fn elapsed_ns(&self) -> u64 {
         self.elapsed_ns
     }
+
+    pub fn evidence_id(&self) -> &str {
+        &self.evidence_id
+    }
 }
 
 /// Per-gate evaluation and the complete matched-horizon report.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct FlexibilityEvaluationReport {
+    identity: FlexibilityEventIdentity,
+    sample_evidence_ids: Vec<String>,
     sample_count: usize,
     event_duration_ns: u64,
     rebound_duration_ns: u64,
@@ -224,6 +313,14 @@ pub struct FlexibilityEvaluationReport {
 }
 
 impl FlexibilityEvaluationReport {
+    pub const fn identity(&self) -> &FlexibilityEventIdentity {
+        &self.identity
+    }
+
+    pub fn sample_evidence_ids(&self) -> &[String] {
+        &self.sample_evidence_ids
+    }
+
     pub const fn sample_count(&self) -> usize {
         self.sample_count
     }
@@ -365,8 +462,10 @@ pub fn evaluate_flexibility_event(
     let mut maximum_response_p99_latency_ms: f64 = 0.0;
     let mut response_deadline_misses = 0_u64;
     let mut maximum_response_temperature_c: f64 = 0.0;
+    let mut sample_evidence_ids = Vec::with_capacity(samples.len());
 
     for (index, sample) in samples.iter().enumerate() {
+        sample_evidence_ids.push(sample.evidence_id().to_string());
         let offset = u64::try_from(index)
             .ok()
             .and_then(|i| i.checked_mul(contract.sample_interval_ns))
@@ -480,6 +579,8 @@ pub fn evaluate_flexibility_event(
         && thermal_pass;
 
     Ok(FlexibilityEvaluationReport {
+        identity: contract.identity().clone(),
+        sample_evidence_ids,
         sample_count: samples.len(),
         event_duration_ns,
         rebound_duration_ns,
@@ -510,6 +611,10 @@ pub fn evaluate_flexibility_event(
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FlexibilityEvaluationError {
+    MissingIdentity {
+        name: &'static str,
+    },
+    MissingEvidenceId,
     InvalidWindow {
         event_start_ns: u64,
         event_end_ns: u64,
@@ -553,6 +658,8 @@ pub enum FlexibilityEvaluationError {
 impl fmt::Display for FlexibilityEvaluationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::MissingIdentity { name } => write!(f, "{name} must not be empty"),
+            Self::MissingEvidenceId => write!(f, "flexibility sample evidence ID must not be empty"),
             Self::InvalidWindow {
                 event_start_ns,
                 event_end_ns,
@@ -611,8 +718,21 @@ mod tests {
 
     const HOUR_NS: u64 = 3_600_000_000_000;
 
+    fn identity() -> FlexibilityEventIdentity {
+        FlexibilityEventIdentity::new(
+            "EVENT-TEST-001",
+            "SLA-CONTRACT-001",
+            "training-steps-v1",
+            "facility-pcc-001",
+            "sha256:baseline-config",
+            "sha256:response-config",
+        )
+        .unwrap()
+    }
+
     fn contract() -> FlexibilityEventContract {
         FlexibilityEventContract::new(
+            identity(),
             0,
             3 * HOUR_NS,
             4 * HOUR_NS,
@@ -661,6 +781,7 @@ mod tests {
                     p99_latency_ms,
                     if index == 0 { deadline_misses } else { 0 },
                     peak_temperature_c,
+                    format!("EVIDENCE-{index}"),
                 )
                 .unwrap()
             })
@@ -820,6 +941,7 @@ mod tests {
             50.0,
             0,
             70.0,
+            "EVIDENCE-MISALIGNED",
         )
         .unwrap();
 
