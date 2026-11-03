@@ -27,7 +27,17 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         | "power_factor"
         | "uptime_fraction"
         | "signal_to_noise_ratio"
-        | "bit_error_rate" => Some("dimensionless"),
+        | "bit_error_rate"
+        | "relative_temperature_reduction"
+        | "relative_leakage_flux_reduction"
+        | "relative_efficiency_improvement"
+        | "thermal_spatial_uniformity_improvement"
+        | "magnetic_flux_spatial_uniformity_improvement"
+        | "magnetothermal_equilibrium_improvement"
+        | "mutual_inductance_estimation_error"
+        | "equivalent_load_estimation_error"
+        | "output_prediction_mape"
+        | "cc_cv_regulation_error" => Some("dimensionless"),
         "electric_field_strength" | "internal_electric_field" => Some("electric_field"),
         "magnetic_field_strength" => Some("magnetic_field"),
         "magnetic_flux_density" => Some("magnetic_flux_density"),
@@ -37,7 +47,7 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         "mutual_inductance" => Some("inductance"),
         "temperature" | "temperature_rise" => Some("temperature"),
         "fault_rate" | "false_trigger_rate" => Some("rate"),
-        "control_latency" => Some("time"),
+        "control_latency" | "control_settling_time" => Some("time"),
         "data_rate" => Some("data_rate"),
         _ => None,
     }
@@ -84,7 +94,18 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         "signal_to_noise_ratio" | "bit_error_rate" | "data_rate" => {
             Some("communications_performance")
         }
-        "temperature" | "temperature_rise" => Some("thermal_performance"),
+        "temperature"
+        | "temperature_rise"
+        | "relative_temperature_reduction"
+        | "relative_leakage_flux_reduction"
+        | "thermal_spatial_uniformity_improvement"
+        | "magnetic_flux_spatial_uniformity_improvement"
+        | "magnetothermal_equilibrium_improvement" => Some("thermal_performance"),
+        "mutual_inductance_estimation_error"
+        | "equivalent_load_estimation_error"
+        | "output_prediction_mape"
+        | "cc_cv_regulation_error"
+        | "control_settling_time" => Some("control_performance"),
         "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency" => {
             Some("operational_reliability")
         }
