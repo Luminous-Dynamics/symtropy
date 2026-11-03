@@ -217,7 +217,7 @@ Current public results show why the tracks must remain separate:
 - Fail2Drive (April 2026) introduced 200 paired routes across 17 distribution-shift classes and reported a 22.8% average success-rate drop among evaluated models; this is closed-loop generalization.
 - NIST's 2026 measurement-science programme explicitly separates surrogate safety metrics, forward outcome prediction, counterfactual action comparison, and cross-scenario diagnosis. The Symthaea/Symtropy split should support this progression without claiming to duplicate NIST's physical validation.
 
-A recent October 2026 Bench2Drive audit, *Comfortably Stuck*, reports that the published comfort implementation can reward stationary time and identifies navigation-signal/harness confounds. Treat benchmark protocol and the evaluator itself as objects of red-team testing; do not assume a leaderboard score is measurement truth.
+The October 15, 2026 *Comfortably Stuck* audit reports that Bench2Drive's original comfort score correlated with stationary time at r = 0.97 across eight evaluated models; its proposed distance-based correction reduced that correlation to r = 0.06. The paper also reports that the default controller replaced model steering in more than half of frames in some scenarios and identifies train/evaluation navigation-target mismatch. These findings are specific to the audited protocol, models and scenarios—not a universal claim about every submission. Treat benchmark protocols and evaluators as objects of red-team testing; do not assume a leaderboard score is measurement truth.
 
 Links:
 - [AV2 multi-agent motion forecasting leaderboard](https://www.sota2.com/research/sota/multi-agent-motion-forecasting-on-argoverse-2-av2-test)
