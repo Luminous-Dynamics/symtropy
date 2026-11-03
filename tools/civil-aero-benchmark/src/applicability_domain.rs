@@ -185,6 +185,38 @@ fn append_f64(bytes: &mut Vec<u8>, value: f64) {
     bytes.extend_from_slice(&value.to_bits().to_le_bytes());
 }
 
+fn canonical_region_scope_bytes(
+    manifest: &ApplicabilityDomainManifest,
+    region: &ApplicabilityDomainRegion,
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    append_string(&mut bytes, "aero-applicability-region-scope/0.1.0");
+    append_string(&mut bytes, &manifest.model_id);
+    append_string(&mut bytes, &manifest.quantity);
+    append_string(&mut bytes, &manifest.quantity_unit);
+    append_string(&mut bytes, &manifest.solver_identity_sha256);
+    append_string(&mut bytes, &manifest.output_definition_sha256);
+    append_string(&mut bytes, &region.geometry_family);
+    append_string(&mut bytes, &region.flow_regime);
+    let mut bounds = region.bounds.iter().collect::<Vec<_>>();
+    bounds.sort_by(|left, right| left.name.cmp(&right.name));
+    append_u64(&mut bytes, bounds.len() as u64);
+    for bound in bounds {
+        append_string(&mut bytes, &bound.name);
+        append_string(&mut bytes, &bound.unit);
+        append_f64(&mut bytes, bound.lower_inclusive);
+        append_f64(&mut bytes, bound.upper_inclusive);
+    }
+    bytes
+}
+
+fn region_scope_sha256(
+    manifest: &ApplicabilityDomainManifest,
+    region: &ApplicabilityDomainRegion,
+) -> Result<String, String> {
+    sha256_hex(&canonical_region_scope_bytes(manifest, region))
+}
+
 fn require_nonempty(value: &str, name: &str) -> Result<(), String> {
     if value.trim().is_empty() {
         return Err(format!("{name} must not be empty"));
@@ -270,6 +302,15 @@ fn validate_manifest_payload(manifest: &ApplicabilityDomainManifest) -> Result<(
             if !region_evidence_ids.insert(evidence_id.as_str()) {
                 return Err(format!(
                     "region {} duplicates evidence ID {}",
+                    region.region_id, evidence_id
+                ));
+            }
+            let evidence = evidence_by_id
+                .get(evidence_id.as_str())
+                .expect("evidence existence checked above");
+            if evidence.scope_sha256 != region_scope_sha256(manifest, region)? {
+                return Err(format!(
+                    "region {} evidence {} is scoped to a different model/quantity/geometry/regime/feature envelope",
                     region.region_id, evidence_id
                 ));
             }
@@ -677,7 +718,7 @@ mod tests {
             flow_regime: "transonic_steady".to_owned(),
             support,
             rationale: format!("synthetic fixture region {id}"),
-            supporting_evidence_ids: vec!["synthetic-validation".to_owned()],
+            supporting_evidence_ids: vec![format!("synthetic-validation-{id}")],
             bounds: vec![
                 bound("mach", "1", lower_mach, upper_mach),
                 bound("reynolds", "1", 2.0e6, 4.0e6),
@@ -686,7 +727,7 @@ mod tests {
     }
 
     fn manifest() -> ApplicabilityDomainManifest {
-        seal_applicability_domain_manifest(ApplicabilityDomainManifest {
+        let mut manifest = ApplicabilityDomainManifest {
             model_id: "su2-v8.6.0-sa".to_owned(),
             quantity: "CD".to_owned(),
             quantity_unit: "1".to_owned(),
@@ -702,14 +743,7 @@ mod tests {
                     unit: "1".to_owned(),
                 },
             ],
-            evidence_refs: vec![ApplicabilityEvidenceRef {
-                evidence_id: "synthetic-validation".to_owned(),
-                evidence_kind: "validation_observation_fixture".to_owned(),
-                source_ref: "synthetic://aero-applicability-fixture".to_owned(),
-                license_applicability: "synthetic-ci-fixture-only".to_owned(),
-                artifact_sha256: digest('c'),
-                scope_sha256: digest('d'),
-            }],
+            evidence_refs: Vec::new(),
             regions: vec![
                 region("dense-low", 0.70, 0.74, ApplicabilitySupportClass::Dense),
                 region(
@@ -721,8 +755,22 @@ mod tests {
                 region("sparse-high", 0.80, 0.84, ApplicabilitySupportClass::Sparse),
             ],
             manifest_sha256: String::new(),
-        })
-        .expect("seal valid applicability manifest")
+        };
+        manifest.evidence_refs = manifest
+            .regions
+            .iter()
+            .map(|region| ApplicabilityEvidenceRef {
+                evidence_id: region.supporting_evidence_ids[0].clone(),
+                evidence_kind: "validation_observation_fixture".to_owned(),
+                source_ref: format!("synthetic://aero-applicability/{}", region.region_id),
+                license_applicability: "synthetic-ci-fixture-only".to_owned(),
+                artifact_sha256: digest('c'),
+                scope_sha256: region_scope_sha256(&manifest, region)
+                    .expect("compute exact region scope"),
+            })
+            .collect();
+        seal_applicability_domain_manifest(manifest)
+            .expect("seal valid applicability manifest")
     }
 
     fn query(mach: f64) -> ApplicabilityQuery {
