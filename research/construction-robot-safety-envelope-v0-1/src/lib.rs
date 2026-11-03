@@ -302,6 +302,7 @@ pub struct SubjectBinding {
     pub task_revision: String,
     pub site_snapshot_id: String,
     pub coordinate_frame: String,
+    pub coverage_grid_sha256: String,
     pub jurisdiction: String,
     pub standards_profile: String,
     pub domain: OperationalDomain,
@@ -500,6 +501,7 @@ fn make_decision(
             task_revision: policy.task_revision.clone(),
             site_snapshot_id: policy.site_snapshot_id.clone(),
             coordinate_frame: policy.coordinate_frame.clone(),
+            coverage_grid_sha256: policy.coverage_grid_sha256.clone(),
             jurisdiction: policy.jurisdiction.clone(),
             standards_profile: policy.standards_profile.clone(),
             domain: policy.domain,
@@ -513,6 +515,7 @@ fn make_decision(
             task_revision: observation.task_revision.clone(),
             site_snapshot_id: observation.site_snapshot_id.clone(),
             coordinate_frame: observation.coordinate_frame.clone(),
+            coverage_grid_sha256: observation.human_detection.coverage_grid_sha256.clone(),
             jurisdiction: observation.jurisdiction.clone(),
             standards_profile: observation.standards_profile.clone(),
             domain: observation.domain,
@@ -2399,6 +2402,14 @@ mod tests {
             "unexpected-tool-revision"
         );
         assert_eq!(decision.policy_sha256, policy.policy_sha256);
+        assert_eq!(
+            decision.expected_subject.coverage_grid_sha256,
+            policy.coverage_grid_sha256
+        );
+        assert_eq!(
+            decision.observed_subject.coverage_grid_sha256,
+            observation.human_detection.coverage_grid_sha256
+        );
         assert_eq!(decision.mode, observation.mode);
         assert_eq!(decision.evaluated_at_ms, observation.evaluated_at_ms);
         assert_eq!(decision.observed_at_ms, observation.observed_at_ms);
