@@ -370,9 +370,13 @@ def main() -> int:
 
     canonical = bytearray()
     for value in (
-        SCHEMA, summary["frame_id"], summary["policy_id"], design, selection_digest,
-        plan_sha, selection_receipt_sha, summary["sampling_frame_sha256"],
-        frame_digest, adjudication_digest, summary["status"], EVIDENCE,
+        SCHEMA, summary["frame_id"], summary["policy_id"],
+        summary["source_task_id"], summary["source_replicate_id"],
+        summary["source_candidate_frame_sha256"], summary["source_operation_ledger_sha256"],
+        summary["source_operation_count"], summary["source_admission_frame_receipt_sha256"],
+        design, selection_digest, plan_sha, selection_receipt_sha,
+        summary["sampling_frame_sha256"], frame_digest, adjudication_digest,
+        summary["status"], EVIDENCE,
     ):
         add_string(canonical, value)
     for count in (
