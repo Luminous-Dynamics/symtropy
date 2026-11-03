@@ -12,7 +12,7 @@ V1 includes:
 - first-order activation/deactivation state update using the exact exponential solution for piecewise-constant excitation;
 - a bounded bisection solver for static fiber-tendon force equilibrium;
 - validates all three curve tables once per solve; root-loop interpolation reuses the validated tables without rescanning their points on every iteration;
-- result receipts binding muscle ID, parameter/curve digests, musculotendon length, activation, solver policy, final fiber-length bracket, both endpoint residuals, force residual and iteration count;
+- result receipts binding muscle ID, parameter/curve digests, musculotendon length, activation, solver policy, final fiber-length bracket, both endpoint residuals, force residual and iteration count; result construction revalidates root-within-bracket, bracket-domain and endpoint sign/tolerance conditions;
 - typed no-bracket, degenerate-sampled-equilibrium, invalid-geometry, iteration-limit and tolerance failures.
 
 The static equilibrium equation is:
@@ -35,7 +35,7 @@ A static equilibrium may be underconstrained in a slack/no-force regime. V1 retu
 
 ## Synthetic tests
 
-The 13 tests cover known-answer zero-pennation equilibrium, constant-thickness pennation and cosine force projection, piecewise-linear interpolation, no extrapolation, malformed curve tables and digests, exact activation/deactivation updates, slack non-uniqueness, passive-only equilibrium, no-bracket rejection, impossible geometry, invalid policies and bounded iteration diagnostics.
+The 14 tests cover known-answer zero-pennation equilibrium, constant-thickness pennation and cosine force projection, piecewise-linear interpolation, no extrapolation, malformed curve tables and digests, exact activation/deactivation updates, slack non-uniqueness, passive-only equilibrium, no-bracket rejection, impossible geometry, invalid policies and bounded iteration diagnostics and rejection of a malformed root-bracket receipt.
 
 All fixtures are synthetic. They verify the local equation/solver contract only.
 
