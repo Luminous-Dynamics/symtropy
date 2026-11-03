@@ -254,6 +254,7 @@ pub struct DryadFileMetadata {
     pub dataset_doi: String,
     pub dataset_version_id: String,
     pub file_id: String,
+    pub api_version: String,
     pub path: String,
     pub size_bytes: u64,
     pub mime_type: String,
@@ -447,6 +448,7 @@ impl DryadFileMetadata {
         if !doi_valid
             || !valid_identifier(&self.dataset_version_id)
             || !valid_identifier(&self.file_id)
+            || self.api_version != "2.1.0"
             || !path_valid
             || self.size_bytes == 0
             || !valid_media_type(&self.mime_type)
@@ -841,6 +843,14 @@ impl HairPlateInventory {
                 || !artifact_digests.insert(artifact.sha256.as_str())
             {
                 return Err(OracleError::DuplicateIdentity("source_artifact"));
+            }
+        }
+
+        for artifact in &self.source_artifacts {
+            for parent_sha256 in &artifact.derived_from_sha256 {
+                if !artifact_digests.contains(parent_sha256.as_str()) {
+                    return Err(OracleError::InvalidSourceArtifact);
+                }
             }
         }
 
@@ -1438,6 +1448,7 @@ mod tests {
             dataset_doi: "doi:10.5061/dryad.fxpnvx153".to_string(),
             dataset_version_id: "version-123".to_string(),
             file_id: "file-456".to_string(),
+            api_version: "2.1.0".to_string(),
             path: "LacinHLTable_-_HL_table.csv".to_string(),
             size_bytes: 1_440,
             mime_type: "text/csv".to_string(),
@@ -1573,6 +1584,30 @@ mod tests {
                 "provider_digest_not_recomputed"
             ))
         );
+    }
+
+    #[test]
+    fn dryad_metadata_requires_the_supported_api_version() {
+        let mut metadata = dryad_file_metadata();
+        metadata.api_version = "2.0.0".to_string();
+        assert_eq!(
+            metadata.validate(),
+            Err(OracleError::InvalidDryadFileMetadata)
+        );
+    }
+
+    #[test]
+    fn derived_artifacts_require_parent_artifacts_to_exist_in_the_inventory() {
+        let mut input = inventory(vec![record()]);
+        let artifact = input
+            .source_artifacts
+            .iter_mut()
+            .find(|artifact| artifact.sha256 == digest('c'))
+            .expect("fixture source artifact exists");
+        artifact.custody_mode = SourceCustodyMode::DerivedFromSourceArtifacts;
+        artifact.derived_from_sha256 = vec![digest('d')];
+        artifact.transformation_sha256 = Some(digest('2'));
+        assert_eq!(input.validate(), Err(OracleError::InvalidSourceArtifact));
     }
 
     #[test]
