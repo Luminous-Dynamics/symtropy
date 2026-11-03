@@ -7,6 +7,7 @@ A dependency-free Rust qualification slice for the Symtropy–Symthaea locomotio
 - Validates a frozen prediction batch for one intervention and a common ordered feature schema.
 - Requires provenance digests for model, code, parameters, configuration, raw trajectories, feature summaries and forecast/batch receipts.
 - Enforces evidence-tier artifact requirements for connectome-constrained, in-silico embodied, perturbation-grounded and replicated-biological claims.
+- Applies explicit resource ceilings: 64 models per intervention, 256 features per forecast and 64 provenance artifacts per model.
 - Checks that prediction commits precede the unblinding event in the same declared append-only evidence log.
 - Checks covariance symmetry and positive semidefiniteness, and rejects non-finite values.
 - Computes pairwise, noise-aware **mean-only** squared Mahalanobis separation. Model predictive and observation-difference covariance are used only to whiten differences between predicted means.
@@ -30,7 +31,7 @@ Here μ is the predicted feature-mean vector, Σ_i and Σ_j are each model's pre
 
 **Important limitation:** this is a mean-only separation heuristic. It uses covariance to scale the distance between predicted means, but it does not test covariance-only differences. Two forecasts with identical means and different covariance matrices return zero mean separation. The tests include this negative control. A future distribution-aware discriminator must compare full predictive distributions using a preregistered proper scoring or distributional distance and explicit cross-model covariance where forecast errors are paired/correlated.
 
-The threshold minimum_pair_mean_d2 and regularizer lambda must be preregistered. The statistic assumes independent model-predictive errors; paired/correlated predictive errors need an explicit cross-model covariance term. It is not exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
+The threshold minimum_pair_mean_d2 and regularizer lambda must be preregistered. The statistic assumes independent model-predictive errors; paired/correlated predictive errors need an explicit cross-model covariance term. It is not exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability. An AllPairsMeanSeparated status means only that every model pair's predicted means exceed this preregistered distance threshold; it is not evidence that the full predictive distributions differ or that one mechanism is true.
 
 ## Synthetic oracle cases
 
