@@ -1051,7 +1051,6 @@
         },
         "security_scenario_results": {
           "type": "array",
-          "minItems": 10,
           "items": {
             "type": "object",
             "additionalProperties": false,
