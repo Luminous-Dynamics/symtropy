@@ -46,8 +46,9 @@ pub struct CgroupV2ResourceReport {
     pub cpu_usage_usec: u64,
     pub cpu_user_usec: u64,
     pub cpu_system_usec: u64,
-    /// Core-hours multiplied by 1e9, rounded down without floating-point conversion.
-    pub cpu_core_hours_nanounits: u128,
+    /// Exact rational CPU core-hours = numerator / denominator, both in microseconds.
+    pub cpu_core_hours_numerator_usec: u64,
+    pub cpu_core_hours_denominator_usec: u64,
     pub peak_memory_bytes: u64,
     pub oom_event_delta: u64,
     pub oom_kill_event_delta: u64,
@@ -171,7 +172,8 @@ fn report_canonical_bytes(report: &CgroupV2ResourceReport) -> Vec<u8> {
     ] {
         append_u64(&mut bytes, value);
     }
-    bytes.extend_from_slice(&report.cpu_core_hours_nanounits.to_le_bytes());
+    append_u64(bytes, report.cpu_core_hours_numerator_usec);
+    append_u64(bytes, report.cpu_core_hours_denominator_usec);
     match report.oom_group_kill_event_delta {
         Some(value) => {
             bytes.push(1);
@@ -228,6 +230,26 @@ pub fn parse_cgroup_v2_snapshot(
     Ok(snapshot)
 }
 
+fn validate_snapshot_integrity(snapshot: &CgroupV2Snapshot) -> Result<(), String> {
+    if sha256_hex(&snapshot_canonical_bytes(snapshot))? != snapshot.snapshot_sha256 {
+        return Err("cgroup snapshot canonical digest mismatch".to_owned());
+    }
+    for digest in [
+        snapshot.cpu_stat_sha256.as_str(),
+        snapshot.memory_peak_sha256.as_str(),
+        snapshot.memory_events_sha256.as_str(),
+        snapshot.cgroup_events_sha256.as_str(),
+    ] {
+        if digest.len() != 64
+            || digest.bytes().any(|byte| !byte.is_ascii_hexdigit())
+            || digest != digest.to_ascii_lowercase()
+        {
+            return Err("cgroup raw-file digest is malformed".to_owned());
+        }
+    }
+    Ok(())
+}
+
 fn monotonic_delta(start: u64, end: u64, name: &str) -> Result<u64, String> {
     end.checked_sub(start)
         .ok_or_else(|| format!("cgroup {name} counter regressed or reset"))
@@ -242,6 +264,8 @@ pub fn derive_cgroup_v2_resource_report(
     start: &CgroupV2Snapshot,
     end: &CgroupV2Snapshot,
 ) -> Result<CgroupV2ResourceReport, String> {
+    validate_snapshot_integrity(start)?;
+    validate_snapshot_integrity(end)?;
     if start.cgroup_id != end.cgroup_id {
         return Err("cgroup resource snapshots have different cgroup identities".to_owned());
     }
@@ -287,8 +311,9 @@ pub fn derive_cgroup_v2_resource_report(
         cpu_usage_usec,
         cpu_user_usec,
         cpu_system_usec,
-        cpu_core_hours_nanounits: u128::from(cpu_usage_usec) * 1_000_000_000_u128
-            / 3_600_000_000_u128,
+        // One core-hour is exactly 3,600,000,000 CPU microseconds.
+        cpu_core_hours_numerator_usec: cpu_usage_usec,
+        cpu_core_hours_denominator_usec: 3_600_000_000,
         peak_memory_bytes: end.memory_peak_bytes,
         oom_event_delta,
         oom_kill_event_delta,
@@ -312,11 +337,8 @@ pub fn verify_cgroup_v2_resource_report(
     {
         return Err("unsupported cgroup resource schema or evidence ceiling".to_owned());
     }
-    if sha256_hex(&snapshot_canonical_bytes(start))? != start.snapshot_sha256
-        || sha256_hex(&snapshot_canonical_bytes(end))? != end.snapshot_sha256
-    {
-        return Err("cgroup snapshot canonical digest mismatch".to_owned());
-    }
+    validate_snapshot_integrity(start)?;
+    validate_snapshot_integrity(end)?;
     let replayed = derive_cgroup_v2_resource_report(start, end)?;
     if replayed != *report {
         return Err("replayed cgroup resource report differs from supplied report".to_owned());
@@ -345,7 +367,7 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     end: &CgroupV2Snapshot,
     report: &CgroupV2ResourceReport,
 ) -> String {
-    let header = "record_type,cgroup_id,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_nanounits,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256";
+    let header = "record_type,cgroup_id,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,cpu_usage_delta_usec,cpu_user_delta_usec,cpu_system_delta_usec,cpu_core_hours_numerator_usec,cpu_core_hours_denominator_usec,peak_memory_bytes,oom_event_delta,oom_kill_event_delta,oom_group_kill_event_delta,start_snapshot_sha256,end_snapshot_sha256,evidence_level,report_sha256";
     let mut output = format!("{header}\n");
     for (kind, snapshot) in [("start", start), ("end", end)] {
         let mut row = vec![String::new(); 33];
@@ -369,7 +391,7 @@ pub fn cgroup_v2_resource_evidence_to_csv(
         output.push_str(&csv_row(row));
         output.push('\n');
     }
-    let mut row = vec![String::new(); 33];
+    let mut row = vec![String::new(); 34];
     row[0] = "report".to_owned();
     row[1] = report.cgroup_id.clone();
     row[17] = report.schema.clone();
@@ -379,15 +401,16 @@ pub fn cgroup_v2_resource_evidence_to_csv(
     row[21] = report.cpu_usage_usec.to_string();
     row[22] = report.cpu_user_usec.to_string();
     row[23] = report.cpu_system_usec.to_string();
-    row[24] = report.cpu_core_hours_nanounits.to_string();
-    row[25] = report.peak_memory_bytes.to_string();
-    row[26] = report.oom_event_delta.to_string();
-    row[27] = report.oom_kill_event_delta.to_string();
-    row[28] = report.oom_group_kill_event_delta.map(|value| value.to_string()).unwrap_or_default();
-    row[29] = report.start_snapshot_sha256.clone();
-    row[30] = report.end_snapshot_sha256.clone();
-    row[31] = report.evidence_level.clone();
-    row[32] = report.report_sha256.clone();
+    row[24] = report.cpu_core_hours_numerator_usec.to_string();
+    row[25] = report.cpu_core_hours_denominator_usec.to_string();
+    row[26] = report.peak_memory_bytes.to_string();
+    row[27] = report.oom_event_delta.to_string();
+    row[28] = report.oom_kill_event_delta.to_string();
+    row[29] = report.oom_group_kill_event_delta.map(|value| value.to_string()).unwrap_or_default();
+    row[30] = report.start_snapshot_sha256.clone();
+    row[31] = report.end_snapshot_sha256.clone();
+    row[32] = report.evidence_level.clone();
+    row[33] = report.report_sha256.clone();
     output.push_str(&csv_row(row));
     output.push('\n');
     output
