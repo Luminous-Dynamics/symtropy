@@ -344,6 +344,91 @@ mod tests {
             "Inf force propagated to velocity"
         );
     }
+    fn simulate_translation<const D: usize>(
+        gravity: SVector<f64, D>,
+        position: Point<D>,
+        velocity: SVector<f64, D>,
+        dt: f64,
+        steps: usize,
+    ) -> (Point<D>, SVector<f64, D>) {
+        let mut body =
+            RigidBody::<D>::dynamic_sphere(BodyHandle(0), position, 0.25, 1.0);
+        body.linear_damping = 0.0;
+        body.angular_damping = 0.0;
+        body.linear_velocity = velocity;
+
+        for _ in 0..steps {
+            integrate(&mut body, &gravity, dt);
+        }
+
+        (body.transform.translation, body.linear_velocity)
+    }
+
+    #[test]
+    fn semi_implicit_euler_is_frame_equivariant_in_2d_3d_and_4d() {
+        fn check_dimension<const D: usize>() {
+            let gravity = SVector::<f64, D>::from_fn(|i, _| {
+                -0.73 * (i as f64 + 1.0)
+            });
+            let initial_position = Point::<D>::new(
+                std::array::from_fn(|i| 10.0 + 0.7 * i as f64)
+            );
+            let initial_velocity = SVector::<f64, D>::from_fn(|i, _| {
+                0.11 * (i as f64 + 1.0)
+            });
+
+            // A deterministic generic SO(D) transform. In 4D this excites
+            // multiple independent planes rather than a single coordinate
+            // rotation; every dimension tests a non-axis-aligned frame.
+            let mut generator = Bivector::<D>::zero();
+            for i in 0..D {
+                for j in (i + 1)..D {
+                    let coefficient = ((i + 1) * 17 + (j + 1) * 23) as f64;
+                    generator.set(i, j, coefficient / 997.0);
+                }
+            }
+            let rotation = Rotor::from_bivector(&generator);
+            assert!(rotation.is_proper_rotation(1.0e-10));
+
+            let dt = 0.005;
+            let steps = 100;
+            let (base_position, base_velocity) = simulate_translation(
+                gravity,
+                initial_position,
+                initial_velocity,
+                dt,
+                steps,
+            );
+            let (rotated_position, rotated_velocity) = simulate_translation(
+                rotation.rotate_vector(&gravity),
+                rotation.rotate_point(&initial_position),
+                rotation.rotate_vector(&initial_velocity),
+                dt,
+                steps,
+            );
+
+            let expected_rotated_position = rotation.rotate_point(&base_position);
+            let expected_rotated_velocity = rotation.rotate_vector(&base_velocity);
+            let position_residual =
+                (rotated_position - expected_rotated_position).norm();
+            let velocity_residual =
+                (rotated_velocity - expected_rotated_velocity).norm();
+
+            assert!(
+                position_residual <= 1.0e-10,
+                "D={D}: frame covariance position residual {position_residual:e}"
+            );
+            assert!(
+                velocity_residual <= 1.0e-11,
+                "D={D}: frame covariance velocity residual {velocity_residual:e}"
+            );
+        }
+
+        check_dimension::<2>();
+        check_dimension::<3>();
+        check_dimension::<4>();
+    }
+
     #[test]
     fn integrates_4d_double_rotation_with_exponential_map() {
         let mut body = RigidBody::<4>::dynamic_sphere(BodyHandle(0), Point::origin(), 1.0, 1.0);
