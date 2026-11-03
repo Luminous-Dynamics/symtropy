@@ -13,13 +13,12 @@ use crate::claim_admission::{
 };
 use crate::integrity::sha256_hex;
 use crate::risk_credibility::{
-    ArtifactAccess, CredibilityTier, ModelCredibilityAssessment,
-    ModelCredibilityContext, assess_model_credibility,
+    ArtifactAccess, CredibilityTier, ModelCredibilityAssessment, ModelCredibilityContext,
+    assess_model_credibility,
 };
 
 pub const RISK_AWARE_CLAIM_GATE_SCHEMA: &str = "aero-risk-aware-claim-gate/0.1.0";
-pub const RISK_AWARE_CLAIM_GATE_EVIDENCE_LEVEL: &str =
-    "claim_admission_and_risk_credibility_requirements_and_control_assertions_bound_to_exact_scope_structural_verifier_references_not_verifier_authentication_not_release_authorization";
+pub const RISK_AWARE_CLAIM_GATE_EVIDENCE_LEVEL: &str = "claim_admission_and_risk_credibility_requirements_and_control_assertions_bound_to_exact_scope_structural_verifier_references_not_verifier_authentication_not_release_authorization";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredibilityControlAssertion {
@@ -90,7 +89,9 @@ impl RiskAwareClaimStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::AdmittedWithinDeclaredUse => "admitted_within_declared_use",
-            Self::AbstainInsufficientOrUnknownEvidence => "abstain_insufficient_or_unknown_evidence",
+            Self::AbstainInsufficientOrUnknownEvidence => {
+                "abstain_insufficient_or_unknown_evidence"
+            }
             Self::RejectedFailedOrMismatchedEvidence => "rejected_failed_or_mismatched_evidence",
             Self::BlockedDecisiveArtifactsUnavailable => "blocked_decisive_artifacts_unavailable",
             Self::RequiresHumanAuthorityDecision => "requires_human_authority_decision",
@@ -217,7 +218,9 @@ fn control_manifest_bytes(
                     || !is_sha256(verifier_receipt_sha256)
                     || verifier_id.trim().is_empty()
                 {
-                    return Err(format!("verified control {control_id} has malformed verifier references"));
+                    return Err(format!(
+                        "verified control {control_id} has malformed verifier references"
+                    ));
                 }
                 bytes.push(1);
                 append_string(&mut bytes, artifact_sha256);
@@ -265,10 +268,7 @@ fn build_control_results(
                 control.control_id
             ));
         }
-        if by_id
-            .insert(control.control_id.clone(), control)
-            .is_some()
-        {
+        if by_id.insert(control.control_id.clone(), control).is_some() {
             return Err(format!(
                 "duplicate credibility control assertion: {}",
                 control.control_id
@@ -402,16 +402,17 @@ fn decision_bytes(report: &RiskAwareClaimDecision) -> Vec<u8> {
 pub fn evaluate_risk_aware_claim_admission(
     request: &RiskAwareClaimRequest<'_>,
 ) -> Result<RiskAwareClaimDecision, String> {
-    if request.claim.scope_sha256.len() != 64
-        || !is_sha256(&request.claim.scope_sha256)
-    {
+    if request.claim.scope_sha256.len() != 64 || !is_sha256(&request.claim.scope_sha256) {
         return Err("claim scope must be a lowercase SHA-256 digest".to_owned());
     }
     if !claim_and_credibility_consequences_match(
         request.claim.consequence,
         request.credibility_context.decision_consequence,
     ) {
-        return Err("claim consequence and model-credibility consequence classifications do not match".to_owned());
+        return Err(
+            "claim consequence and model-credibility consequence classifications do not match"
+                .to_owned(),
+        );
     }
 
     let claim_decision = evaluate_claim_admission(request.claim, request.claim_evidence)?;
@@ -428,7 +429,10 @@ pub fn evaluate_risk_aware_claim_admission(
             .insert(control.control_id.clone(), control)
             .is_some()
         {
-            return Err(format!("duplicate credibility control assertion: {}", control.control_id));
+            return Err(format!(
+                "duplicate credibility control assertion: {}",
+                control.control_id
+            ));
         }
     }
     let control_manifest_sha256 = sha256_hex(&control_manifest_bytes(&supplied)?)?;
@@ -557,9 +561,7 @@ fn csv_escape(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claim_admission::{
-        ClaimClass, DecisionConsequence, EvidenceKind,
-    };
+    use crate::claim_admission::{ClaimClass, DecisionConsequence, EvidenceKind};
     use crate::risk_credibility::{
         ArtifactAccess, LogicTransparency, ModelCreation, ModelInfluence,
     };
@@ -682,15 +684,17 @@ mod tests {
         };
         let report =
             evaluate_risk_aware_claim_admission(&request).expect("complete risk-aware claim");
-        assert_eq!(report.status, RiskAwareClaimStatus::AdmittedWithinDeclaredUse);
-        assert_eq!(report.credibility_assessment.tier, CredibilityTier::Screening);
-        assert!(
-            report
-                .controls
-                .iter()
-                .all(|control| control.control_id != "no_release_authorization_from_assessment"
-                    && control.control_id != "screening_only_label")
+        assert_eq!(
+            report.status,
+            RiskAwareClaimStatus::AdmittedWithinDeclaredUse
         );
+        assert_eq!(
+            report.credibility_assessment.tier,
+            CredibilityTier::Screening
+        );
+        assert!(report.controls.iter().all(|control| control.control_id
+            != "no_release_authorization_from_assessment"
+            && control.control_id != "screening_only_label"));
         assert!(
             report
                 .credibility_assessment
@@ -723,8 +727,12 @@ mod tests {
             claim_evidence: &claim_evidence,
             credibility_controls: &missing,
         };
-        let abstained = evaluate_risk_aware_claim_admission(&request).expect("missing control abstains");
-        assert_eq!(abstained.status, RiskAwareClaimStatus::AbstainInsufficientOrUnknownEvidence);
+        let abstained =
+            evaluate_risk_aware_claim_admission(&request).expect("missing control abstains");
+        assert_eq!(
+            abstained.status,
+            RiskAwareClaimStatus::AbstainInsufficientOrUnknownEvidence
+        );
 
         let mut failed = all_controls(&scope, &context);
         let control = failed
@@ -740,8 +748,12 @@ mod tests {
             claim_evidence: &claim_evidence,
             credibility_controls: &failed,
         };
-        let rejected = evaluate_risk_aware_claim_admission(&request).expect("failed control rejects");
-        assert_eq!(rejected.status, RiskAwareClaimStatus::RejectedFailedOrMismatchedEvidence);
+        let rejected =
+            evaluate_risk_aware_claim_admission(&request).expect("failed control rejects");
+        assert_eq!(
+            rejected.status,
+            RiskAwareClaimStatus::RejectedFailedOrMismatchedEvidence
+        );
     }
 
     #[test]
@@ -766,8 +778,12 @@ mod tests {
             claim_evidence: &claim_evidence,
             credibility_controls: &controls,
         };
-        let rejected = evaluate_risk_aware_claim_admission(&request).expect("scope mismatch rejects");
-        assert_eq!(rejected.status, RiskAwareClaimStatus::RejectedFailedOrMismatchedEvidence);
+        let rejected =
+            evaluate_risk_aware_claim_admission(&request).expect("scope mismatch rejects");
+        assert_eq!(
+            rejected.status,
+            RiskAwareClaimStatus::RejectedFailedOrMismatchedEvidence
+        );
 
         let unavailable_context = credibility_context(
             ModelInfluence::Advisory,
@@ -816,7 +832,10 @@ mod tests {
         };
         let report = evaluate_risk_aware_claim_admission(&request)
             .expect("third-party audit allows declared-use admission");
-        assert_eq!(report.status, RiskAwareClaimStatus::AdmittedWithinDeclaredUse);
+        assert_eq!(
+            report.status,
+            RiskAwareClaimStatus::AdmittedWithinDeclaredUse
+        );
         assert!(
             report
                 .credibility_assessment
@@ -894,7 +913,10 @@ mod tests {
         };
         let report =
             evaluate_risk_aware_claim_admission(&request).expect("complete critical evidence");
-        assert_eq!(report.credibility_assessment.tier, CredibilityTier::Critical);
+        assert_eq!(
+            report.credibility_assessment.tier,
+            CredibilityTier::Critical
+        );
         assert_eq!(
             report.status,
             RiskAwareClaimStatus::RequiresHumanAuthorityDecision
