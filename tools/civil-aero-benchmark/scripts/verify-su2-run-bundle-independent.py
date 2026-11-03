@@ -490,8 +490,7 @@ def unsteady_inner_screen_evidence(
         "schema", "run_id", "solver_id", "runner_receipt_sha256", "executable_sha256",
         "history_sha256", "history_import_sha256", "preflight_sha256",
         "time_iteration_column", "inner_iteration_column", "first_time_iteration",
-        "last_time_iteration", "contiguous_time_step_count", "status", "screen_sha256",
-        "evidence_level",
+        "last_time_iteration", "contiguous_time_step_count", "status", "evidence_level",
     )
     expected_common = {
         "schema": schema,
@@ -513,6 +512,10 @@ def unsteady_inner_screen_evidence(
     for index, (row, expected) in enumerate(zip(screen_rows, report_fields)):
         for key in common_fields:
             require(row[key] == expected_common[key], f"unsteady screen row {index} has wrong {key}")
+        require(
+            row["screen_sha256"] == bundle["unsteady_inner_screen_sha256"],
+            f"unsteady screen row {index} digest differs from run bundle",
+        )
         require(row["field"] == expected["field"], "unsteady screen field ordering mismatch")
         require(row["unit"] == expected["unit"], "unsteady screen unit mismatch")
         require(float(row["threshold_log10"]) == expected["threshold_log10"],
