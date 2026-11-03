@@ -2462,7 +2462,7 @@ mod tests {
         assert_eq!(manifest.version, "0.1.0");
         assert_eq!(manifest.status, "design_only_pre_registration_pending");
         assert!(!manifest.pre_registration_receipt_shape_valid);
-        assert_eq!(manifest.source_count, 14);
+        assert_eq!(manifest.source_count, 16);
         assert_eq!(manifest.factor_level_counts, [4, 5, 4, 4]);
         assert_eq!(manifest.stage_ids.len(), 6);
         assert_eq!(manifest.estimand_ids.len(), 12);
