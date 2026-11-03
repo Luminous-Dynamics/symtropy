@@ -818,7 +818,7 @@ printf '18,5,0.42310,%s,%s,0.42310,-9.0,-7.5\n' "$GRID_CD" "$GRID_CD" >> history
 printf '19,5,0.42310,%s,%s,0.42310,-9.1,-7.8\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf '20,5,0.42310,%s,%s,0.42310,-9.2,-8.0\n' "$GRID_CD" "$GRID_CD" >> history.csv
 printf 'synthetic force output; not CFD evidence\n' > forces.dat
-printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' '-------------------------------------------------------------------------'
+printf '%s\n' '----------------------------- Solver Exit -------------------------------' 'All windowed time-averaged convergence criteria are fullfilled.' 'Maximum time reached (MAX_TIME = 5.0s).' '-------------------------------------------------------------------------'
 "#;
         fs::write(&executable, solver).expect("write fake solver");
         let mut permissions = fs::metadata(&executable)
@@ -1131,6 +1131,11 @@ printf '%s\n' '----------------------------- Solver Exit -----------------------
         assert_eq!(
             bundle.unsteady_inner_screen_sha256,
             inner_screen.screen_sha256
+        );
+        assert_eq!(
+            bundle.termination_classification,
+            "time_window_native_criteria_satisfied_with_coincident_limit",
+            "native window success and a final-time cap can legitimately be emitted together"
         );
         crate::su2_verified_run_bundle::verify_su2_verified_run_bundle(&bundle_inputs, &bundle)
             .expect("replay complete SU2 run bundle");
