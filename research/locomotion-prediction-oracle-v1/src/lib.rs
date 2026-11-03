@@ -642,6 +642,8 @@ pub fn screen_intervention(
     validate_prediction_batch(batch)?;
     if !policy.minimum_pair_mean_d2.is_finite()
         || policy.minimum_pair_mean_d2 <= 0.0
+        || !policy.minimum_gaussian_bhattacharyya_distance.is_finite()
+        || policy.minimum_gaussian_bhattacharyya_distance <= 0.0
         || !policy.covariance_regularization.is_finite()
         || policy.covariance_regularization <= 0.0
     {
@@ -659,35 +661,65 @@ pub fn screen_intervention(
                 &batch.pairwise_observation_difference_covariance,
                 policy.covariance_regularization,
             )?;
+            let gaussian_bhattacharyya_distance = pairwise_gaussian_bhattacharyya(
+                left,
+                right,
+                &batch.observation_covariance,
+                policy.covariance_regularization,
+            )?;
             pairwise.push(PairSeparation {
                 model_a: left.model_id.clone(),
                 model_b: right.model_id.clone(),
                 mean_d2,
                 mean_separated: mean_d2 >= policy.minimum_pair_mean_d2,
+                gaussian_bhattacharyya_distance,
+                gaussian_distributions_separated: gaussian_bhattacharyya_distance
+                    >= policy.minimum_gaussian_bhattacharyya_distance,
             });
         }
     }
 
     let mean_separated_pair_count = pairwise.iter().filter(|pair| pair.mean_separated).count();
-    let unmean_separated_pair_count = pairwise.len() - mean_separated_pair_count;
+    let mean_unseparated_pair_count = pairwise.len() - mean_separated_pair_count;
     let minimum_pair_mean_d2 = pairwise
         .iter()
         .map(|pair| pair.mean_d2)
         .fold(f64::INFINITY, f64::min);
 
-    let status = if unmean_separated_pair_count == 0 {
+    let gaussian_separated_pair_count = pairwise
+        .iter()
+        .filter(|pair| pair.gaussian_distributions_separated)
+        .count();
+    let gaussian_unseparated_pair_count = pairwise.len() - gaussian_separated_pair_count;
+    let minimum_pair_gaussian_bhattacharyya_distance = pairwise
+        .iter()
+        .map(|pair| pair.gaussian_bhattacharyya_distance)
+        .fold(f64::INFINITY, f64::min);
+
+    let status = if mean_unseparated_pair_count == 0 {
         DiscriminationStatus::AllPairsMeanSeparated
     } else if mean_separated_pair_count == 0 {
         DiscriminationStatus::NoPairsMeanSeparated
     } else {
         DiscriminationStatus::SomePairsMeanSeparated
     };
+    let gaussian_status = if gaussian_unseparated_pair_count == 0 {
+        GaussianDiscriminationStatus::AllPairsGaussianSeparated
+    } else if gaussian_separated_pair_count == 0 {
+        GaussianDiscriminationStatus::NoPairsGaussianSeparated
+    } else {
+        GaussianDiscriminationStatus::SomePairsGaussianSeparated
+    };
 
     Ok(DiscriminationResult {
         status,
         minimum_pair_mean_d2,
         mean_separated_pair_count,
-        unmean_separated_pair_count,
+        mean_unseparated_pair_count,
+        gaussian_status,
+        minimum_pair_gaussian_bhattacharyya_distance,
+        gaussian_separated_pair_count,
+        gaussian_unseparated_pair_count,
         pairwise,
     })
 }
