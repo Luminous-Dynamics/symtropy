@@ -479,7 +479,7 @@ fn condition_is_supported(
             || value.unit.len() > MAX_IDENTIFIER_BYTES
             || !is_sha256_reference(&value.source_sha256)
         {
-            return Err(Reason::SensorSetMalformed);
+            return Err(Reason::OddConditionSetMalformed);
         }
     }
 
@@ -502,7 +502,7 @@ fn condition_is_supported(
             return Err(Reason::OddConditionMissing);
         };
         if value.unit != limit.unit {
-            return Err(Reason::SensorSetMalformed);
+            return Err(Reason::OddConditionSetMalformed);
         }
         if value.age_ms > limit.maximum_age_ms {
             return Err(Reason::OddConditionStale);
