@@ -89,6 +89,10 @@ pub struct StaticEquilibriumResult {
     pub musculotendon_length_m: f64,
     pub activation: f64,
     pub solve_policy: StaticSolvePolicy,
+    pub root_bracket_lower_fiber_length_m: f64,
+    pub root_bracket_upper_fiber_length_m: f64,
+    pub root_bracket_lower_residual_n: f64,
+    pub root_bracket_upper_residual_n: f64,
     pub fiber_length_m: f64,
     pub tendon_length_m: f64,
     pub normalized_fiber_length: f64,
@@ -496,6 +500,10 @@ pub fn solve_static_equilibrium(
             policy,
             lower_eval,
             lower_fiber_length_m,
+            lower_fiber_length_m,
+            upper_fiber_length_m,
+            lower_eval.residual_n,
+            upper_eval.residual_n,
             0,
         );
     }
@@ -508,6 +516,10 @@ pub fn solve_static_equilibrium(
             policy,
             upper_eval,
             upper_fiber_length_m,
+            lower_fiber_length_m,
+            upper_fiber_length_m,
+            lower_eval.residual_n,
+            upper_eval.residual_n,
             0,
         );
     }
@@ -539,6 +551,10 @@ pub fn solve_static_equilibrium(
                 policy,
                 middle_eval,
                 midpoint,
+                lower_fiber_length_m,
+                upper_fiber_length_m,
+                lower_eval.residual_n,
+                upper_eval.residual_n,
                 iteration,
             );
         }
@@ -570,6 +586,10 @@ pub fn solve_static_equilibrium(
                     policy,
                     final_eval,
                     final_midpoint,
+                    lower_fiber_length_m,
+                    upper_fiber_length_m,
+                    lower_eval.residual_n,
+                    upper_eval.residual_n,
                     iteration,
                 );
             }
@@ -596,10 +616,18 @@ fn to_result(
     policy: StaticSolvePolicy,
     evaluation: ForceEvaluation,
     fiber_length_m: f64,
+    root_bracket_lower_fiber_length_m: f64,
+    root_bracket_upper_fiber_length_m: f64,
+    root_bracket_lower_residual_n: f64,
+    root_bracket_upper_residual_n: f64,
     iterations: u32,
 ) -> Result<StaticEquilibriumResult, MuscleError> {
     if [
         fiber_length_m,
+        root_bracket_lower_fiber_length_m,
+        root_bracket_upper_fiber_length_m,
+        root_bracket_lower_residual_n,
+        root_bracket_upper_residual_n,
         musculotendon_length_m,
         activation,
         evaluation.tendon_length_m,
@@ -626,6 +654,10 @@ fn to_result(
         musculotendon_length_m,
         activation,
         solve_policy: policy,
+        root_bracket_lower_fiber_length_m,
+        root_bracket_upper_fiber_length_m,
+        root_bracket_lower_residual_n,
+        root_bracket_upper_residual_n,
         fiber_length_m,
         tendon_length_m: evaluation.tendon_length_m,
         normalized_fiber_length: evaluation.normalized_fiber_length,
@@ -728,6 +760,10 @@ mod tests {
         assert!((result.fiber_force_n - 100.0).abs() < 1.0e-8);
         assert!((result.tendon_force_n - 100.0).abs() < 1.0e-8);
         assert!(result.force_residual_n.abs() <= 1.0e-8);
+        assert!(result.root_bracket_lower_fiber_length_m <= result.fiber_length_m);
+        assert!(result.fiber_length_m <= result.root_bracket_upper_fiber_length_m);
+        assert!(result.root_bracket_lower_residual_n <= 0.0);
+        assert!(result.root_bracket_upper_residual_n >= 0.0);
     }
 
     #[test]
