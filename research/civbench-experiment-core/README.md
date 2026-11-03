@@ -117,6 +117,7 @@ The adapter checks:
 - G/M/I intervention semantics, H blocking-stratum semantics, and factor cardinalities (4/5/4/4);
 - the eleven expected benchmark lanes and twelve estimands;
 - all seven outcome evidence statuses, no-zero-fill behavior and evidence-class parity for paired deltas;
+- the exact one-sided 95% binomial confidence contract: with zero false positives, 299 independent negative scenario units are required for an upper FPR bound below 1% (correlated timesteps do not count as independent units);
 - LeakDB paper-reproduction/full-corpus dataset identities, topology labels, scenario counts and source references;
 - L0/L1/L2 synthetic LeakDB lanes, plus separate L3 BattLeDIM external SCADA and L4 Slovak weak-label temporal-anomaly lanes;
 - BattLeDIM's five-minute cadence, tank/flow/pressure/AMR sensor inventory, and explicit public-not-blind holdout status;
