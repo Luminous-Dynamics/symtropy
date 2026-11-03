@@ -146,3 +146,15 @@ These new mode records are development evidence summaries, not full-text transcr
 Comparator condition rule: free-text condition descriptions are not treated as a physical mismatch merely because their wording differs. Only matching controlled values can be used for a strict match/mismatch; differing free-text descriptions emit `OPERATING_CONDITION_UNNORMALIZED` and keep the comparison unresolved. Geometry vectors and numeric offsets must be separately typed before a numeric tolerance comparison is allowed.
 
 The multi-channel architecture work is tracked separately in [WPT-MULTI-RECEIVER-001 #3473](https://github.com/Luminous-Dynamics/symtropy/issues/3473). v1 stores channel-mode values separately and preserves unknown mode-to-power-class mappings. Prose-only alignment descriptions emit `OPERATING_CONDITION_UNNORMALIZED`, rather than being treated as numeric physical mismatch.
+
+
+## 2026 evidence additions: harmonic quality and bidirectional interoperability
+
+The v0 parent catalogue now includes a 20 kW tightly coupled magnetic-integration prototype, a bidirectional multi-vehicle WPT experiment, a PV/storage/WPT module-reuse architecture source, and a 2026 interoperability review. The typed v1 corpus carries three additional efficiency observations:
+
+- **20 kW magnetic integration:** 90.58% author-reported DC-DC efficiency. Separately, the parent realization records inverter-output current THD changing from 19.75% to 5.71% and ZVS across the tested range. Exact meter planes, THD test setup, frequency, gap, load point and uncertainty remain unresolved in the accessible abstract.
+- **Bidirectional interoperability:** aligned grid-to-battery 91.7–94.3% and battery-to-grid 89.5–93.5%, with one ground assembly demonstrated against 6, 11 and 30 kW vehicle-side assemblies. The abstract does not map range endpoints to individual power classes, so the records remain source claims and are not split into invented per-class points.
+- **PV/storage/WPT module reuse:** source-only architecture evidence. No numerical efficiency or power result is inferred from the accessible abstract.
+
+This addition expands the empirical envelope, not the matched-condition leaderboard. Do not compare a 20 kW converter-stage DC-DC value to whole-system EV charging values, or rank forward and reverse power-flow efficiencies as if they were the same operating condition.
+
