@@ -195,6 +195,42 @@ fn validate_source_refs(
     Ok(ids)
 }
 
+
+fn valid_property_unit(property_kind: &str, unit: &str) -> bool {
+    match property_kind {
+        "relative_permeability" | "loss_tangent" => {
+            matches!(unit, "1" | "-" | "dimensionless")
+        }
+        "core_loss_density" => matches!(
+            unit,
+            "W/m3" | "W/m^3" | "kW/m3" | "kW/m^3" | "W/cm3" | "W/cm^3"
+        ),
+        "thermal_conductivity" => matches!(
+            unit,
+            "W/(m*K)" | "W/(m K)" | "W/(m·K)" | "W/m/K"
+        ),
+        "specific_heat" => matches!(
+            unit,
+            "J/(kg*K)" | "J/(kg K)" | "J/(kg·K)" | "J/kg/K" | "kJ/(kg·K)"
+        ),
+        "density" => matches!(unit, "kg/m3" | "kg/m^3" | "g/cm3" | "g/cm^3"),
+        "electrical_resistivity" => matches!(
+            unit,
+            "ohm*m" | "ohm·m" | "Ω*m" | "Ω·m" | "Ω m" | "μΩ·m"
+        ),
+        "tensile_strength" | "compressive_strength" | "flexural_strength" => {
+            matches!(unit, "Pa" | "kPa" | "MPa" | "GPa")
+        }
+        "curie_temperature" => matches!(unit, "K" | "degC" | "°C"),
+        "saturation_flux_density" => matches!(unit, "T" | "mT"),
+        "coefficient_thermal_expansion" => {
+            matches!(unit, "1/K" | "ppm/K" | "μm/(m·K)" | "um/(m*K)")
+        }
+        "other" => !unit.trim().is_empty(),
+        _ => false,
+    }
+}
+
 fn validate_property(value: &Value, label: &str) -> ValidationResult<()> {
     exact_keys(value, PROPERTY_KEYS, label)?;
     let property_kind = required_string(value, "property_kind", label)?;
@@ -221,8 +257,10 @@ fn validate_property(value: &Value, label: &str) -> ValidationResult<()> {
     }
     let measured_value = optional_number(value, "value", label)?;
     let unit = required_string(value, "unit", label)?;
-    if measured_value.is_some() && unit == "unknown" {
-        return Err(format!("{label}.unit: numeric property requires an explicit unit"));
+    if measured_value.is_some() && !valid_property_unit(&property_kind, &unit) {
+        return Err(format!(
+            "{label}.unit: {unit} is not an accepted unit for {property_kind}"
+        ));
     }
     for key in ["frequency_hz", "flux_density_t"] {
         if optional_number(value, key, label)?.is_some_and(|number| number < 0.0) {
@@ -336,6 +374,7 @@ fn validate_material(
         return Err(format!("{label}.catalogue_type: unsupported type {catalogue_type}"));
     }
     required_string(material, "material_family", &label)?;
+    optional_string(material, "composition_description", &label)?;
     let grade = optional_string(material, "grade", &label)?;
     let manufacturer = optional_string(material, "manufacturer", &label)?;
     required_string(material, "notes", &label)?;
@@ -516,6 +555,41 @@ mod tests {
         assert!(validate_saturation_curve(&ordered, "curve").is_ok());
         let unordered = vec![point.clone(), point];
         assert!(validate_saturation_curve(&unordered, "curve").is_err());
+    }
+
+
+    #[test]
+    fn rejects_property_unit_that_does_not_match_physical_quantity() {
+        let property = json!({
+            "property_kind": "thermal_conductivity",
+            "value": 4.0,
+            "unit": "T",
+            "frequency_hz": null,
+            "temperature_c": 25.0,
+            "flux_density_t": null,
+            "test_method": "ASTM synthetic fixture",
+            "evidence_kind": "MEASURED",
+            "source_locator": "table 1",
+            "uncertainty": null
+        });
+        assert!(validate_property(&property, "property").is_err());
+    }
+
+    #[test]
+    fn accepts_manufacturer_datasheet_bsat_with_unit_and_temperature() {
+        let property = json!({
+            "property_kind": "saturation_flux_density",
+            "value": 0.53,
+            "unit": "T",
+            "frequency_hz": null,
+            "temperature_c": 25.0,
+            "flux_density_t": null,
+            "test_method": null,
+            "evidence_kind": "MANUFACTURER_DATASHEET",
+            "source_locator": "datasheet page 2",
+            "uncertainty": null
+        });
+        assert!(validate_property(&property, "property").is_ok());
     }
 
     #[test]
