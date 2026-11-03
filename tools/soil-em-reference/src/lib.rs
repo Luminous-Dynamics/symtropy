@@ -37,6 +37,7 @@ pub enum ModelError {
     InvalidPermeability,
     InvalidConductivity,
     InvalidDistance,
+    InvalidGeometry,
     NotGoodConductor,
     InvalidDerivedValue,
 }
@@ -49,6 +50,7 @@ impl std::fmt::Display for ModelError {
             Self::InvalidPermeability => "relative permeability must be finite and greater than zero",
             Self::InvalidConductivity => "conductivity must be finite and non-negative",
             Self::InvalidDistance => "distance must be finite and non-negative",
+            Self::InvalidGeometry => "electrode geometry is outside the declared approximation envelope",
             Self::NotGoodConductor => "good-conductor approximation is outside its declared regime",
             Self::InvalidDerivedValue => "derived propagation quantity is non-finite or invalid",
         };
