@@ -19,7 +19,8 @@
     "result",
     "resonant_networks",
     "cyber_physical_security",
-    "standards_basis"
+    "standards_basis",
+    "motion_profile"
   ],
   "properties": {
     "schema_version": {
@@ -1254,6 +1255,204 @@
             "type": "string",
             "minLength": 1
           }
+        }
+      }
+    },
+    "motion_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "For DYNAMIC runs, connect instantaneous power to route-level energy sufficiency and segment activation reliability. For STATIC runs, dynamic-only fields remain null.",
+      "required": [
+        "profile_id",
+        "route_distance_m",
+        "elapsed_time_s",
+        "speed_mean_mps",
+        "speed_min_mps",
+        "speed_max_mps",
+        "longitudinal_acceleration_abs_max_mps2",
+        "transmitter_pitch_m",
+        "segment_count_total",
+        "segment_count_energized",
+        "segment_activation_attempts",
+        "segment_missed_activations",
+        "false_activation_count",
+        "roadway_energy_source_j",
+        "vehicle_dc_energy_received_j",
+        "battery_energy_gain_j",
+        "vehicle_propulsion_energy_used_j",
+        "roadway_idle_energy_j",
+        "roadway_energy_per_km_wh_km",
+        "battery_net_energy_per_km_wh_km",
+        "energy_sufficiency_ratio",
+        "segment_activation_success_fraction",
+        "speed_profile_sha256",
+        "segment_event_log_sha256"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route_distance_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "elapsed_time_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "speed_mean_mps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "speed_min_mps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "speed_max_mps": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "longitudinal_acceleration_abs_max_mps2": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transmitter_pitch_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "segment_count_total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "segment_count_energized": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "segment_activation_attempts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "segment_missed_activations": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "false_activation_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "roadway_energy_source_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_dc_energy_received_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "battery_energy_gain_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_propulsion_energy_used_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "roadway_idle_energy_j": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "roadway_energy_per_km_wh_km": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "battery_net_energy_per_km_wh_km": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "energy_sufficiency_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "segment_activation_success_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "speed_profile_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "segment_event_log_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
     }
