@@ -793,9 +793,9 @@ pub fn applicability_manifest_to_csv(manifest: &ApplicabilityDomainManifest) -> 
 
 /// Export the exact query identity and feature values for an independent oracle.
 pub fn applicability_query_to_csv(query: &ApplicabilityQuery) -> String {
-    let header = "record_type,model_id,quantity,geometry_family,flow_regime,solver_identity_sha256,output_definition_sha256,feature_name,feature_unit,feature_value";
+    let header = "record_type,model_id,quantity,geometry_family,flow_regime,solver_identity_sha256,output_definition_sha256,feature_name,feature_unit,feature_value,feature_value_bits";
     let mut output = format!("{header}\n");
-    let mut identity = vec![String::new(); 10];
+    let mut identity = vec![String::new(); 11];
     identity[0] = "query".to_owned();
     identity[1] = query.model_id.clone();
     identity[2] = query.quantity.clone();
@@ -814,11 +814,12 @@ pub fn applicability_query_to_csv(query: &ApplicabilityQuery) -> String {
             .then_with(|| left.value.total_cmp(&right.value))
     });
     for feature in features {
-        let mut row = vec![String::new(); 10];
+        let mut row = vec![String::new(); 11];
         row[0] = "feature".to_owned();
         row[7] = feature.name.clone();
         row[8] = feature.unit.clone();
         row[9] = feature.value.to_string();
+        row[10] = format!("{:016x}", feature.value.to_bits());
         output.push_str(&csv_row(row));
         output.push('\n');
     }
