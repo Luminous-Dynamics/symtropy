@@ -22,7 +22,8 @@
     "promotion_gates",
     "limitations",
     "outcome_contract",
-    "leak_benchmark_contract"
+    "leak_benchmark_contract",
+    "cyberphysical_resilience_contract"
   ],
   "properties": {
     "$schema": {
@@ -945,6 +946,198 @@
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "cyberphysical_resilience_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "benchmark_resources",
+        "evaluation_lanes",
+        "event_classes",
+        "metrics",
+        "hard_gates"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "0.1.0"
+        },
+        "benchmark_resources": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "resource_id",
+              "source_id",
+              "evidence_class",
+              "claim_limit",
+              "event_classes"
+            ],
+            "properties": {
+              "resource_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "evidence_class": {
+                "type": "string"
+              },
+              "claim_limit": {
+                "type": "string"
+              },
+              "event_classes": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "evaluation_lanes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "C1_event_discrimination",
+            "C2_cyber_to_physical_propagation",
+            "C3_control_and_resilience_comparison"
+          ],
+          "properties": {
+            "C1_event_discrimination": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resource_ids",
+                "task"
+              ],
+              "properties": {
+                "resource_ids": {
+                  "type": "array",
+                  "minItems": 2,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "task": {
+                  "type": "string"
+                }
+              }
+            },
+            "C2_cyber_to_physical_propagation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resource_ids",
+                "task"
+              ],
+              "properties": {
+                "resource_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "task": {
+                  "type": "string"
+                }
+              }
+            },
+            "C3_control_and_resilience_comparison": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resource_ids",
+                "task"
+              ],
+              "properties": {
+                "resource_ids": {
+                  "type": "array",
+                  "minItems": 3,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "task": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "event_classes": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "leak",
+              "sensor_failure",
+              "communication_anomaly",
+              "cyberattack",
+              "process_drift",
+              "unknown"
+            ]
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "hard_gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "no_live_plc_or_production_scada",
+            "human_authorization_required_for_operational_actions",
+            "keep_leak_sensor_failure_and_attack_labels_distinct",
+            "do_not_infer_malicious_intent_from_anomaly_alone",
+            "benchmark_score_never_grants_actuation_authority",
+            "independent_safety_interlocks_and_rollback_required"
+          ],
+          "properties": {
+            "no_live_plc_or_production_scada": {
+              "type": "boolean",
+              "const": true
+            },
+            "human_authorization_required_for_operational_actions": {
+              "type": "boolean",
+              "const": true
+            },
+            "keep_leak_sensor_failure_and_attack_labels_distinct": {
+              "type": "boolean",
+              "const": true
+            },
+            "do_not_infer_malicious_intent_from_anomaly_alone": {
+              "type": "boolean",
+              "const": true
+            },
+            "benchmark_score_never_grants_actuation_authority": {
+              "type": "boolean",
+              "const": true
+            },
+            "independent_safety_interlocks_and_rollback_required": {
+              "type": "boolean",
+              "const": true
             }
           }
         }
