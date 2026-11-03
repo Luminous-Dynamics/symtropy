@@ -337,8 +337,7 @@ fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_ID_BYTES
         && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric()
-                || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
         })
 }
 
@@ -366,16 +365,19 @@ fn valid_media_type(value: &str) -> bool {
     parts.next().is_none()
         && !top.is_empty()
         && !sub.is_empty()
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'+' | b'.' | b'-')
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'+' | b'.' | b'-'))
 }
 
 impl SourceArtifact {
     pub fn validate(&self) -> Result<(), OracleError> {
         if !valid_identifier(&self.artifact_id)
             || !valid_identifier(&self.source_version_id)
-            || self.license_spdx.as_ref().is_some_and(|license| !valid_identifier(license))
+            || self
+                .license_spdx
+                .as_ref()
+                .is_some_and(|license| !valid_identifier(license))
         {
             return Err(OracleError::InvalidSourceArtifact);
         }
@@ -401,9 +403,9 @@ fn source_artifact_has_role(
     sha256: &str,
     required_role: SourceArtifactRole,
 ) -> bool {
-    artifacts.iter().any(|artifact| {
-        artifact.sha256 == sha256 && artifact.roles.contains(&required_role)
-    })
+    artifacts
+        .iter()
+        .any(|artifact| artifact.sha256 == sha256 && artifact.roles.contains(&required_role))
 }
 
 fn require_evidence_artifact<T>(
@@ -470,11 +472,7 @@ fn vector_norm(vector: [f64; 3]) -> Result<f64, OracleError> {
     if vector.iter().any(|value| !value.is_finite()) {
         return Err(OracleError::InvalidMorphology);
     }
-    let norm = vector
-        .iter()
-        .map(|value| value * value)
-        .sum::<f64>()
-        .sqrt();
+    let norm = vector.iter().map(|value| value * value).sum::<f64>().sqrt();
     if !norm.is_finite() || norm <= f64::EPSILON {
         return Err(OracleError::InvalidMorphology);
     }
@@ -539,9 +537,7 @@ fn validate_connectome_outputs(value: &[ConnectomeOutput]) -> Result<(), OracleE
 
         match target.sign_evidence_basis {
             SignEvidenceBasis::DirectPhysiology | SignEvidenceBasis::ReceptorSupported => {
-                if target.sign == SynapseSign::Unknown
-                    || target.sign_evidence_sha256.is_none()
-                {
+                if target.sign == SynapseSign::Unknown || target.sign_evidence_sha256.is_none() {
                     return Err(OracleError::InvalidConnectomeOutput);
                 }
             }
@@ -554,9 +550,7 @@ fn validate_connectome_outputs(value: &[ConnectomeOutput]) -> Result<(), OracleE
                 }
             }
             SignEvidenceBasis::Unknown => {
-                if target.sign != SynapseSign::Unknown
-                    || target.sign_evidence_sha256.is_some()
-                {
+                if target.sign != SynapseSign::Unknown || target.sign_evidence_sha256.is_some() {
                     return Err(OracleError::InvalidConnectomeOutput);
                 }
             }
@@ -608,16 +602,12 @@ impl HairPlateRecord {
             Ok(())
         })?;
         validate_evidence(&self.sensory_tuning, "sensory_tuning", validate_tuning)?;
-        validate_evidence(
-            &self.connectome_outputs,
-            "connectome_outputs",
-            |outputs| validate_connectome_outputs(outputs),
-        )?;
-        validate_evidence(
-            &self.reflex_outcomes,
-            "reflex_outcomes",
-            |outcomes| validate_reflex_outcomes(outcomes),
-        )?;
+        validate_evidence(&self.connectome_outputs, "connectome_outputs", |outputs| {
+            validate_connectome_outputs(outputs)
+        })?;
+        validate_evidence(&self.reflex_outcomes, "reflex_outcomes", |outcomes| {
+            validate_reflex_outcomes(outcomes)
+        })?;
         Ok(())
     }
 }
@@ -625,10 +615,7 @@ impl HairPlateRecord {
 impl HairPlateInventory {
     /// Validate that a blind prediction's held-out and training plates are
     /// members of this exact inventory and have the same declared taxon.
-    pub fn validate_prediction(
-        &self,
-        prediction: &HairPlatePrediction,
-    ) -> Result<(), OracleError> {
+    pub fn validate_prediction(&self, prediction: &HairPlatePrediction) -> Result<(), OracleError> {
         self.validate()?;
         prediction.validate()?;
 
@@ -802,8 +789,7 @@ impl HairPlatePrediction {
                 .reflex_assay_scope_id
                 .as_ref()
                 .is_some_and(|id| !valid_identifier(id))
-            || self.predicted_reflex_direction.is_some()
-                && self.reflex_intervention.is_none()
+            || self.predicted_reflex_direction.is_some() && self.reflex_intervention.is_none()
         {
             return Err(OracleError::InvalidPrediction);
         }
@@ -903,10 +889,7 @@ fn motor_target_metrics(
     let annotation_sign_accuracy = if annotation_sign_evaluated_targets == 0 {
         None
     } else {
-        Some(
-            correct_annotation_sign_predictions as f64
-                / annotation_sign_evaluated_targets as f64,
-        )
+        Some(correct_annotation_sign_predictions as f64 / annotation_sign_evaluated_targets as f64)
     };
 
     if precision.is_some_and(|value| !value.is_finite())
@@ -954,40 +937,32 @@ pub fn evaluate_prediction(
                 Some(prediction.predicted_joint_limit_angle_rad.is_none()),
                 None,
             ),
-            Evidence::Unknown { .. } => (
-                None,
-                Some(UnscorableReason::UnknownEvidence),
-            ),
+            Evidence::Unknown { .. } => (None, Some(UnscorableReason::UnknownEvidence)),
         };
 
-    let (joint_limit_absolute_error_rad, joint_limit_unscorable) =
-        match (
-            &record.sensory_tuning,
-            prediction.predicted_joint_limit_angle_rad,
-            prediction.predicted_threshold_definition_id.as_deref(),
-        ) {
-            (Evidence::Observed { value, .. }, Some(predicted), Some(threshold_id))
-                if threshold_id == value.threshold_definition_id =>
-            {
-                let error = (predicted - value.joint_limit_angle_rad).abs();
-                if !error.is_finite() {
-                    return Err(OracleError::NonFiniteMetric);
-                }
-                (Some(error), None)
+    let (joint_limit_absolute_error_rad, joint_limit_unscorable) = match (
+        &record.sensory_tuning,
+        prediction.predicted_joint_limit_angle_rad,
+        prediction.predicted_threshold_definition_id.as_deref(),
+    ) {
+        (Evidence::Observed { value, .. }, Some(predicted), Some(threshold_id))
+            if threshold_id == value.threshold_definition_id =>
+        {
+            let error = (predicted - value.joint_limit_angle_rad).abs();
+            if !error.is_finite() {
+                return Err(OracleError::NonFiniteMetric);
             }
-            (Evidence::Unknown { .. }, _, _) => {
-                (None, Some(UnscorableReason::UnknownEvidence))
-            }
-            (Evidence::ExplicitlyAbsent { .. }, _, _) => {
-                (None, Some(UnscorableReason::ExplicitlyAbsent))
-            }
-            (Evidence::Observed { .. }, Some(_), Some(_)) => {
-                return Err(OracleError::InvalidPrediction);
-            }
-            (Evidence::Observed { .. }, _, _) => {
-                (None, Some(UnscorableReason::PredictionNotProvided))
-            }
-        };
+            (Some(error), None)
+        }
+        (Evidence::Unknown { .. }, _, _) => (None, Some(UnscorableReason::UnknownEvidence)),
+        (Evidence::ExplicitlyAbsent { .. }, _, _) => {
+            (None, Some(UnscorableReason::ExplicitlyAbsent))
+        }
+        (Evidence::Observed { .. }, Some(_), Some(_)) => {
+            return Err(OracleError::InvalidPrediction);
+        }
+        (Evidence::Observed { .. }, _, _) => (None, Some(UnscorableReason::PredictionNotProvided)),
+    };
 
     let reflex_scope = match (
         prediction.reflex_intervention,
@@ -1016,89 +991,70 @@ pub fn evaluate_prediction(
 
     let (reflex_presence_correct, reflex_presence_unscorable) =
         match (&record.reflex_outcomes, reflex_scope) {
-            (Evidence::Observed { .. }, Some(_)) => {
-                match observed_scoped_reflexes.as_ref() {
-                    Some(outcomes) if !outcomes.is_empty() => (
-                        Some(prediction.predicted_reflex_direction.is_some()),
-                        None,
-                    ),
-                    _ => (None, Some(UnscorableReason::UnknownEvidence)),
+            (Evidence::Observed { .. }, Some(_)) => match observed_scoped_reflexes.as_ref() {
+                Some(outcomes) if !outcomes.is_empty() => {
+                    (Some(prediction.predicted_reflex_direction.is_some()), None)
                 }
-            }
-            (
-                Evidence::ExplicitlyAbsent { scope_id, .. },
-                Some((_, _, predicted_scope_id)),
-            ) => {
+                _ => (None, Some(UnscorableReason::UnknownEvidence)),
+            },
+            (Evidence::ExplicitlyAbsent { scope_id, .. }, Some((_, _, predicted_scope_id))) => {
                 if scope_id != predicted_scope_id {
                     return Err(OracleError::EvidenceScopeMismatch);
                 }
-                (
-                    Some(prediction.predicted_reflex_direction.is_none()),
-                    None,
-                )
+                (Some(prediction.predicted_reflex_direction.is_none()), None)
             }
-            (Evidence::Unknown { .. }, _) => (
-                None,
-                Some(UnscorableReason::UnknownEvidence),
-            ),
-            (Evidence::ExplicitlyAbsent { .. }, None) => (
-                None,
-                Some(UnscorableReason::PredictionNotProvided),
-            ),
-            (Evidence::Observed { .. }, None) => (
-                None,
-                Some(UnscorableReason::PredictionNotProvided),
-            ),
+            (Evidence::Unknown { .. }, _) => (None, Some(UnscorableReason::UnknownEvidence)),
+            (Evidence::ExplicitlyAbsent { .. }, None) => {
+                (None, Some(UnscorableReason::PredictionNotProvided))
+            }
+            (Evidence::Observed { .. }, None) => {
+                (None, Some(UnscorableReason::PredictionNotProvided))
+            }
         };
 
-    let (reflex_direction_correct, reflex_direction_unscorable) =
-        match (
-            &record.reflex_outcomes,
-            observed_scoped_reflexes.as_ref(),
-            prediction.predicted_reflex_direction,
-        ) {
-            (Evidence::Observed { .. }, Some(outcomes), Some(predicted))
-                if !outcomes.is_empty() =>
-            {
-                let directions = outcomes
-                    .iter()
-                    .map(|outcome| outcome.movement_direction)
-                    .collect::<std::collections::BTreeSet<_>>();
-                if directions.len() == 1 {
-                    (Some(directions.contains(&predicted)), None)
-                } else {
-                    (None, Some(UnscorableReason::UnknownEvidence))
-                }
+    let (reflex_direction_correct, reflex_direction_unscorable) = match (
+        &record.reflex_outcomes,
+        observed_scoped_reflexes.as_ref(),
+        prediction.predicted_reflex_direction,
+    ) {
+        (Evidence::Observed { .. }, Some(outcomes), Some(predicted)) if !outcomes.is_empty() => {
+            let directions = outcomes
+                .iter()
+                .map(|outcome| outcome.movement_direction)
+                .collect::<std::collections::BTreeSet<_>>();
+            if directions.len() == 1 {
+                (Some(directions.contains(&predicted)), None)
+            } else {
+                (None, Some(UnscorableReason::UnknownEvidence))
             }
-            (Evidence::Unknown { .. }, _, _) => (
-                None,
-                Some(UnscorableReason::UnknownEvidence),
-            ),
-            (Evidence::ExplicitlyAbsent { .. }, _, _) => (
-                None,
-                Some(UnscorableReason::ExplicitlyAbsent),
-            ),
-            (Evidence::Observed { .. }, Some(_), None) => (
-                None,
-                Some(UnscorableReason::PredictionNotProvided),
-            ),
-            (Evidence::Observed { .. }, _, _) => (
-                None,
-                Some(UnscorableReason::PredictionNotProvided),
-            ),
-        };
+        }
+        (Evidence::Unknown { .. }, _, _) => (None, Some(UnscorableReason::UnknownEvidence)),
+        (Evidence::ExplicitlyAbsent { .. }, _, _) => {
+            (None, Some(UnscorableReason::ExplicitlyAbsent))
+        }
+        (Evidence::Observed { .. }, Some(_), None) => {
+            (None, Some(UnscorableReason::PredictionNotProvided))
+        }
+        (Evidence::Observed { .. }, _, _) => (None, Some(UnscorableReason::PredictionNotProvided)),
+    };
 
-    let (motor_target_metrics, motor_targets_unscorable) =
-        match &record.connectome_outputs {
-            Evidence::Observed { value, .. } => {
-                (Some(motor_target_metrics(&prediction.predicted_motor_targets, value)?), None)
-            }
-            Evidence::ExplicitlyAbsent { .. } => (
-                Some(motor_target_metrics(&prediction.predicted_motor_targets, &[])?),
-                None,
-            ),
-            Evidence::Unknown { .. } => (None, Some(UnscorableReason::UnknownEvidence)),
-        };
+    let (motor_target_metrics, motor_targets_unscorable) = match &record.connectome_outputs {
+        Evidence::Observed { value, .. } => (
+            Some(motor_target_metrics(
+                &prediction.predicted_motor_targets,
+                value,
+            )?),
+            None,
+        ),
+        Evidence::ExplicitlyAbsent { .. } => (
+            Some(motor_target_metrics(
+                &prediction.predicted_motor_targets,
+                &[],
+            )?),
+            None,
+        ),
+        Evidence::Unknown { .. } => (None, Some(UnscorableReason::UnknownEvidence)),
+    };
 
     Ok(HairPlateEvaluation {
         plate_id: record.plate_id.clone(),
@@ -1216,34 +1172,22 @@ mod tests {
         > = std::collections::BTreeMap::new();
 
         let mut add = |sha256: &str, role: SourceArtifactRole| {
-            roles
-                .entry(sha256.to_string())
-                .or_default()
-                .insert(role);
+            roles.entry(sha256.to_string()).or_default().insert(role);
         };
 
         for record in records {
             for (evidence_role, source_role) in [
-                (
-                    &record.morphology,
-                    SourceArtifactRole::Morphology,
-                ),
+                (&record.morphology, SourceArtifactRole::Morphology),
                 (
                     &record.afferent_neuron_ids,
                     SourceArtifactRole::AfferentIdentity,
                 ),
-                (
-                    &record.sensory_tuning,
-                    SourceArtifactRole::SensoryTuning,
-                ),
+                (&record.sensory_tuning, SourceArtifactRole::SensoryTuning),
                 (
                     &record.connectome_outputs,
                     SourceArtifactRole::ConnectomeOutput,
                 ),
-                (
-                    &record.reflex_outcomes,
-                    SourceArtifactRole::ReflexOutcome,
-                ),
+                (&record.reflex_outcomes, SourceArtifactRole::ReflexOutcome),
             ] {
                 match evidence_role {
                     Evidence::Observed { source_sha256, .. } => {
@@ -1336,7 +1280,9 @@ mod tests {
     #[test]
     fn inventory_rejects_observed_evidence_missing_a_source_manifest_role() {
         let mut input = inventory(vec![record()]);
-        input.source_artifacts.retain(|artifact| artifact.sha256 != digest('e'));
+        input
+            .source_artifacts
+            .retain(|artifact| artifact.sha256 != digest('e'));
         assert_eq!(
             input.validate(),
             Err(OracleError::MissingSourceArtifact {
@@ -1459,14 +1405,16 @@ mod tests {
         absent_prediction.predicted_joint_limit_angle_rad = None;
         absent_prediction.predicted_reflex_direction = None;
 
-        let absent_result =
-            evaluate_prediction(&input, &absent_prediction).expect("absent case");
+        let absent_result = evaluate_prediction(&input, &absent_prediction).expect("absent case");
         assert_eq!(absent_result.joint_limit_presence_correct, Some(true));
         assert_eq!(absent_result.reflex_presence_correct, Some(true));
 
         let false_positive_result =
             evaluate_prediction(&input, &prediction()).expect("false positive case");
-        assert_eq!(false_positive_result.joint_limit_presence_correct, Some(false));
+        assert_eq!(
+            false_positive_result.joint_limit_presence_correct,
+            Some(false)
+        );
         assert_eq!(false_positive_result.reflex_presence_correct, Some(false));
         assert_eq!(
             false_positive_result.joint_limit_unscorable,
@@ -1674,10 +1622,7 @@ mod tests {
     fn rejects_prediction_trained_on_the_held_out_plate() {
         let mut invalid = prediction();
         invalid.training_plate_ids.push(invalid.plate_id.clone());
-        assert_eq!(
-            invalid.validate(),
-            Err(OracleError::TrainingLeakage)
-        );
+        assert_eq!(invalid.validate(), Err(OracleError::TrainingLeakage));
     }
 
     #[test]
@@ -1686,10 +1631,7 @@ mod tests {
         if let Evidence::Observed { value, .. } = &mut invalid.sensory_tuning {
             value.response_points[2].joint_angle_rad = 0.4;
         }
-        assert_eq!(
-            invalid.validate(),
-            Err(OracleError::InvalidTuningCurve)
-        );
+        assert_eq!(invalid.validate(), Err(OracleError::InvalidTuningCurve));
     }
 
     #[test]
