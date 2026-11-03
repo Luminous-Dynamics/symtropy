@@ -91,3 +91,9 @@ jobs:
 
     - name: Validate WPT empirical dataset
       run: cargo run --locked -p wpt-empirical-validator -- "${{ github.workspace }}"
+
+    - name: Test WPT measurement comparator
+      run: cargo test --locked -p wpt-measurement-comparator
+
+    - name: Validate WPT typed measurements and comparison fixtures
+      run: cargo run --locked -p wpt-measurement-comparator -- "${{ github.workspace }}"
