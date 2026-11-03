@@ -611,7 +611,6 @@ fn sensors_are_well_formed(observation: &RuntimeObservation) -> bool {
     })
 }
 
-
 fn human_evidence_status(
     policy: &SafetyPolicy,
     observation: &RuntimeObservation,
