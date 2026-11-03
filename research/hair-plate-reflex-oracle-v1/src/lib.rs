@@ -1176,32 +1176,61 @@ mod tests {
         };
 
         for record in records {
-            for (evidence_role, source_role) in [
-                (&record.morphology, SourceArtifactRole::Morphology),
-                (
-                    &record.afferent_neuron_ids,
-                    SourceArtifactRole::AfferentIdentity,
-                ),
-                (&record.sensory_tuning, SourceArtifactRole::SensoryTuning),
-                (
-                    &record.connectome_outputs,
-                    SourceArtifactRole::ConnectomeOutput,
-                ),
-                (&record.reflex_outcomes, SourceArtifactRole::ReflexOutcome),
-            ] {
-                match evidence_role {
-                    Evidence::Observed { source_sha256, .. } => {
-                        add(source_sha256, source_role);
+            if let Evidence::Observed { source_sha256, .. } = &record.morphology {
+                add(source_sha256, SourceArtifactRole::Morphology);
+            }
+            if let Evidence::Observed { value, .. } = &record.morphology {
+                add(&value.geometry_sha256, SourceArtifactRole::Morphology);
+            }
+            if let Evidence::Observed { source_sha256, .. } = &record.afferent_neuron_ids {
+                add(source_sha256, SourceArtifactRole::AfferentIdentity);
+            }
+            if let Evidence::ExplicitlyAbsent {
+                search_receipt_sha256,
+                ..
+            } = &record.afferent_neuron_ids
+            {
+                add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
+            }
+            if let Evidence::Observed { source_sha256, .. } = &record.sensory_tuning {
+                add(source_sha256, SourceArtifactRole::SensoryTuning);
+            }
+            if let Evidence::ExplicitlyAbsent {
+                search_receipt_sha256,
+                ..
+            } = &record.sensory_tuning
+            {
+                add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
+            }
+            if let Evidence::Observed { source_sha256, .. } = &record.connectome_outputs {
+                add(source_sha256, SourceArtifactRole::ConnectomeOutput);
+            }
+            if let Evidence::ExplicitlyAbsent {
+                search_receipt_sha256,
+                ..
+            } = &record.connectome_outputs
+            {
+                add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
+            }
+            if let Evidence::Observed { value, .. } = &record.connectome_outputs {
+                for target in value {
+                    if let Some(sign_sha256) = &target.sign_evidence_sha256 {
+                        add(sign_sha256, SourceArtifactRole::SynapseSignEvidence);
                     }
-                    Evidence::ExplicitlyAbsent {
-                        search_receipt_sha256,
-                        ..
-                    } => {
-                        add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
-                    }
-                    Evidence::Unknown { .. } => {}
                 }
             }
+            if let Evidence::Observed { source_sha256, .. } = &record.reflex_outcomes {
+                add(source_sha256, SourceArtifactRole::ReflexOutcome);
+            }
+            if let Evidence::ExplicitlyAbsent {
+                search_receipt_sha256,
+                ..
+            } = &record.reflex_outcomes
+            {
+                add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
+            }
+        }
+
             if let Evidence::Observed { value, .. } = &record.morphology {
                 add(&value.geometry_sha256, SourceArtifactRole::Morphology);
             }
@@ -1452,7 +1481,7 @@ mod tests {
 
     #[test]
     fn inventory_validates_heldout_and_training_membership() {
-        let mut heldout = record();
+        let heldout = record();
         let mut training = record();
         training.plate_id = "front-coxa-hp3".to_string();
         training.record_sha256 = digest('9');
