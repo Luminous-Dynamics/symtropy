@@ -238,3 +238,57 @@ The University of Turku repository exposes the full 13-page open-access article 
 This clarifies the architecture: the ground assembly integrates two independently enabled resonant networks for the separated 85 kHz and 20 kHz bands. The grid-side converter uses four parallel low-power modules and adaptive activation according to output demand. The resonant link uses a dual-coupled LCC–LCC arrangement. This is a frequency-polymorphic architecture, not one pad that simply operates all three power classes at a single resonant frequency.
 
 The table entries are author-stated target vehicle/VA specifications. They do not prove that each published efficiency-range endpoint corresponds to a particular VA. The 91.7–94.3% grid-to-battery and 89.5–93.5% battery-to-grid results remain aggregate aligned ranges until the experimental result figures/tables are extracted and mapped to individual modes. The machine-readable catalogue stores the table specifications as explicitly unverified design metadata, not as independently measured outcomes.
+
+
+### Full-text extraction: bidirectional WPT Table 4, test matrix and cross-network coupling
+
+The University of Turku repository PDF for Zhang et al. (DOI 10.1016/j.geits.2025.100307) is now text-extracted through the experimental section. The new records deliberately separate:
+- **Vehicle ground clearance (Table 1):** 6 kW 190–210 mm; 11 kW 160–180 mm; 30 kW 270–290 mm.
+- **Coil-to-coil air gap (Table 4):** 6 kW 101–121 mm; 11 kW 71–91 mm; 30 kW 185–205 mm. Do not substitute the vehicle underbody clearance for the magnetic air gap.
+- **BIPT link DC–DC efficiency (Table 4):** 6 kW 94.0–95.7%; 11 kW 94.7–97.1%; 30 kW 93.6–94.5%. These are link-level figures, not full grid-to-battery or battery-to-grid system efficiencies.
+- **Table 4 system-efficiency slash pairs:** 6 kW 94.3%/91.6%; 11 kW 93.1%/93.5%; 30 kW 92.5%/91.6%. The table header does not label the slash order. They are therefore preserved as first/second printed values and are not assigned to G2V/V2G until the per-class waveform figures and raw records reconcile the directions. The abstract's aggregate system ranges (91.7–94.3% G2V; 89.5–93.5% V2G) remain separate source statements.
+- **Test matrix:** the paper states 48 test points across voltage levels, direction and spatial conditions. It describes eight spatial points, three voltage levels and two power-flow directions. Preserve the authors' stated count; do not fabricate per-run records or multiply the count across vehicle classes without a run manifest.
+- **Misalignment envelope:** Xmax=75 mm and Ymax=100 mm for 6/11 kW; Xmax=Ymax=100 mm for 30 kW. The article reports the simulated DC–DC efficiency reduction at misaligned positions as approximately 0.5–2 percentage points, and reports all three class pairs above 80% system efficiency at the tested misaligned points. This is not a complete worst-case safety or performance envelope.
+- **Cross-frequency loop current:** Section 2.4 / Fig. 10 models a 17 A induced current in the closed 85 kHz resonant loop when the 20 kHz / 30 kW GA network is enabled, and a 4 A induced current in the closed 20 kHz loop when the 85 kHz / 6/11 kW network is enabled. The authors report waveform distortion and reduced system efficiency, and discuss relay isolation as a trade-off involving control signalling, cost, mass and conduction loss. These branch-current values are model-derived, not measured.
+- **Core flux:** the paper calculates a maximum ferrite-core flux density of 376 mT against stated saturation thresholds of 530 mT at 25 °C and 410 mT at 100 °C. The hot-state nominal margin is much narrower, but this is still an author/model value rather than independent flux measurement.
+
+This full-text extraction changes the research frontier. The design problem is not simply to select 85 kHz or 20 kHz. It is to control **energy circulation in the inactive resonant network**, including induced current, capacitor voltage, core flux, thermal rise, relay state and switching transients. A commanded-inactive network is not necessarily electromagnetically inactive.
+
+The catalogue now includes the 17 A and 4 A cross-network currents as SIMULATED engineering metrics, the ferrite flux and temperature-dependent thresholds, per-class link-efficiency bands, Table 4 system slash-pair values without invented direction assignment, and separate clearance/air-gap ranges. The follow-on qualification issue is [WPT-MULTIFREQUENCY-ISOLATION-001 #3480](https://github.com/Luminous-Dynamics/symtropy/issues/3480).
+
+Primary full-text: https://www.utupub.fi/server/api/core/bitstreams/0d84aa64-fc2f-41dd-8982-6e08edb0c8c8/content
+
+## Cyber-physical BWPT review and threat model
+
+A 2026 open-access review by Elumalai et al., *Bidirectional Wireless Power Transfer for Electric Vehicle Energy Systems Integrating Modelling, Intelligent Control, Communication and Cybersecurity*, DOI 10.1002/ese3.70608, is now registered as a secondary source. It treats modelling, control, communications and cybersecurity as one cyber-physical system and catalogs threats including spoofed/replayed commands, firmware manipulation, inductive sensor injection/EMI, timing and latency exploitation, credential compromise, communication DoS, sensor tampering and grid-side command injection.
+
+The review describes how these threats can propagate into phase desynchronization, loss of zero-voltage switching, increased circulating currents, unintended V2G/V2H operation and thermal stress. Its mitigation catalogue includes mutual authentication and replay freshness, secure firmware/boot, redundant/plausibility-checked sensing, latency-aware control and safe fallback. These are research/secondary-review findings, not an experimental test result from one WPT prototype. They motivate the test-run security manifest and the cyber-physical acceptance gates in typed v1.
+
+Primary review: https://doi.org/10.1002/ese3.70608
+
+### Temperature-dependent ferrite margin derivation
+
+The bidirectional paper reports a calculated maximum ferrite flux density of 376 mT and cites saturation thresholds of 530 mT at 25°C and 410 mT at 100°C. Using those source-stated values, the nominal flux utilization is 376/530 = 71.0% at 25°C and 376/410 = 91.7% at 100°C. The hot-reference margin is therefore only 8.3%. These ratios are derived from the authors' model/value citations; they are not independent flux measurements or a claim of observed saturation. They motivate the typed v1 requirement to record a temperature-specific Bsat(T) curve and the proposed <=80% peak-flux design target.
+
+## SAE standards applicability map for the multi-vehicle EV-WPT lane
+
+The WPT system literature should not be equated with standards applicability. The current official SAE scopes split the relevant concerns:
+
+| Document | Published scope/status | How this benchmark uses it | Explicit non-claim |
+|---|---|---|---|
+| **J2954_202408** | Stationary, surface-mounted, light-duty WPT; three charging levels up to 11 kVA; forward grid-to-vehicle transfer | Alignment, interoperability, minimum performance, safety/test-method reference for applicable light-duty forward-transfer conditions | Not a bidirectional WPT standard in this edition; not the 30 kW/20 kHz or dynamic-roadway standard |
+| **J2954/2_202212** | SAE Information Report for higher-power heavy-duty WPT, including stationary and some dynamic applications; first-step work, detailed requirements and solutions not complete | High-power/fleet benchmark context and workstream tracking | Not a finished detailed compliance recipe; explicitly unidirectional in current report |
+| **J2847/6_202009** | Communications recommended practice for light-duty inductive WPT; covers alignment, initialization, ramp-up, active transfer and termination | Interoperability/control-message and session state reference | A JSON message protocol does not by itself prove mutual authentication, anti-replay, firmware integrity or cybersecurity |
+| **J3072_202406** | Onboard grid-support inverter interconnection through conductively coupled EVSE, used with IEEE 1547/1547.1 | Relevant adjacent reference for vehicle-side DER/grid interconnection requirements in reverse-power development | It is not itself wireless interconnection certification |
+| **J2836/3_202402** | Information Report defining PEV-to-DER-management use cases and reverse-power/V2G guidance | Functional use-case source for V2G/DER behavior | It is not a WPT coil, resonant-link or interoperability performance standard |
+| **J2954/3** | J2954_202408 directs dynamic WPT scope to a separate J2954/3 workstream | Track as planned scope; do not use as normative criteria absent an issued edition | No J2954/3 edition is claimed or treated as published in this benchmark revision |
+
+The Zhang et al. research architecture's 6/11/30 kW VA ratings are nominal DC-side vehicle assembly ratings; they are not interchangeable with SAE's kVA charging level labels. A test record must report measured AC real power, apparent power and power factor at the declared plane before assigning any SAE power class. The 30 kW / 20 kHz class is beyond J2954_202408's light-duty 11 kVA scope. The 6/11 kW configurations are not automatically J2954-conforming: their DC-rated power, bidirectional operation, dual-frequency architecture, geometry and test apparatus must be separately evaluated against each applicable provision. No standard-conformance claim follows from paper-reported interoperability.
+
+Official publisher pages:
+- https://saemobilus.sae.org/standards/j2954_202408-wireless-power-transfer-light-duty-plug-electric-vehicles-alignment-methodology
+- https://saemobilus.sae.org/standards/j29542_202212-wireless-power-transfer-heavy-duty-electric-vehicles
+- https://saemobilus.sae.org/standards/j28476_202009-communication-wireless-power-transfer-light-duty-plug-electric-vehicles-wireless-ev-charging-stations
+- https://saemobilus.sae.org/standards/j3072_202406-interconnection-requirements-onboard-grid-support-inverter-systems
+- https://saemobilus.sae.org/standards/j28363_202402-use-cases-plug-vehicle-communication-a-distributed-energy-resource
+
