@@ -1375,7 +1375,7 @@ pub fn audit_differential_lineage(
     for kind in &policy.mandatory_separation_kinds {
         let mut lanes_with_unknown_identity = Vec::new();
         let mut lanes_with_incomplete_inventory = Vec::new();
-        let mut intersection: Option<BTreeSet<String>> = None;
+        let mut identity_lane_sets = BTreeMap::<String, BTreeSet<String>>::new();
 
         for lane_id in lanes.keys() {
             let identities = lane_identity_sets
@@ -1384,10 +1384,12 @@ pub fn audit_differential_lineage(
                 .cloned()
                 .unwrap_or_default();
             let missing_identity = identities.is_empty();
-            intersection = Some(match intersection {
-                None => identities.clone(),
-                Some(previous) => previous.intersection(&identities).cloned().collect(),
-            });
+            for identity in &identities {
+                identity_lane_sets
+                    .entry(identity.clone())
+                    .or_default()
+                    .insert(lane_id.clone());
+            }
 
             if lane_unknown_kinds
                 .get(lane_id)
@@ -1401,9 +1403,12 @@ pub fn audit_differential_lineage(
             }
         }
 
-        let shared_identities = intersection
-            .unwrap_or_default()
+        // An identity shared by any pair of lanes is a shared dependency.
+        // It must not disappear just because a third lane has a different
+        // identity for the same dependency kind.
+        let shared_identities = identity_lane_sets
             .into_iter()
+            .filter_map(|(identity, lane_ids)| (lane_ids.len() > 1).then_some(identity))
             .collect::<Vec<_>>();
         let disposition = if !shared_identities.is_empty() {
             SeparationDisposition::Shared
@@ -1999,5 +2004,48 @@ mod tests {
                 "symtropy-native".to_owned()
             ))
         );
+    }
+
+
+    #[test]
+    fn pairwise_shared_lineage_is_detected_with_a_third_disjoint_lane() {
+        let (mut manifest, mut traces, mut policy) = differential_lineage_fixture();
+
+        let native_expected = manifest.lanes[0]
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.kind == LineageDependencyKind::ExpectedAnswer)
+            .expect("native expected answer")
+            .clone();
+        let reference_expected = manifest.lanes[1]
+            .dependencies
+            .iter_mut()
+            .find(|dependency| dependency.kind == LineageDependencyKind::ExpectedAnswer)
+            .expect("reference expected answer");
+        *reference_expected = native_expected;
+
+        let (analytical, analytical_trace) = lineage_lane(
+            "analytical",
+            DifferentialLaneKind::AnalyticalOracle,
+            "symtropy-analytic",
+            "1.0.0",
+            &"3".repeat(64),
+            "source:analytic-oracle-tree-03",
+            "source:independent-analytic-answer-03",
+            '3',
+        );
+        manifest.lanes.push(analytical);
+        traces.insert("analytical".to_owned(), analytical_trace);
+        policy.required_lanes.insert(DifferentialLaneKind::AnalyticalOracle);
+
+        let report = audit_differential_lineage(&manifest, &traces, &policy, &policy.digest)
+            .expect("valid three-lane lineage manifest");
+        assert_eq!(report.disposition, DifferentialLineageDisposition::Indeterminate);
+        assert!(report.separation_findings.iter().any(|finding| {
+            finding.kind == LineageDependencyKind::ExpectedAnswer
+                && finding.disposition == SeparationDisposition::Shared
+                && finding.shared_identities
+                    == vec!["source:native-analytic-oracle-01".to_owned()]
+        }));
     }
 }
