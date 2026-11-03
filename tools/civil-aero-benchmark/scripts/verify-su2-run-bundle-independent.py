@@ -592,6 +592,14 @@ def main() -> int:
     require(len(preflight_rows) == 1, "expected one field-preflight report row")
     require(boundary_rows, "boundary audit report is empty")
     require(history_rows and screen_rows and lineage_rows, "component evidence report is empty")
+    require(
+        "screen_sha256" in screen_rows[0],
+        f"convergence-screen CSV header lacks screen_sha256; fields={sorted(screen_rows[0])}",
+    )
+    require(
+        "screen_sha256" in unsteady_inner_rows[0],
+        f"unsteady-inner-screen CSV header lacks screen_sha256; fields={sorted(unsteady_inner_rows[0])}",
+    )
     bundle, preflight = bundle_rows[0], preflight_rows[0]
     boundary = boundary_rows[0]
     history = history_rows[0]
