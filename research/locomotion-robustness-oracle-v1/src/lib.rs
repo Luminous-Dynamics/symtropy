@@ -1822,7 +1822,9 @@ mod tests {
                 0.9,
             ));
         }
-        episodes.push(episode("candidate", "fly-b-trial-1", "fly-b", 0.1));
+        let mut under_sampled = episode("candidate", "fly-b-trial-1", "fly-b", 0.1);
+        under_sampled.success = false;
+        episodes.push(under_sampled);
 
         let mut protocol = protocol();
         protocol.minimum_episodes_per_scenario = 10;
@@ -1934,7 +1936,7 @@ mod tests {
         assert_eq!(result.candidate_wins, 2);
         assert!((result.mean_paired_task_score_delta - 0.2).abs() < 1.0e-12);
 
-        episodes[3].physics_sha256 = digest('z');
+        episodes[3].physics_sha256 = digest('8');
         assert_eq!(
             compare_paired_models(&protocol(), &episodes, "candidate", "baseline"),
             Err(RobustnessError::PairSetMismatch)
@@ -2036,7 +2038,7 @@ mod tests {
             episode("candidate", "trial-2", "fly-2", 0.8),
         ];
         let mut protocol = protocol();
-        protocol.mechanism_state_schema_sha256 = Some(digest('z'));
+        protocol.mechanism_state_schema_sha256 = Some(digest('9'));
         assert_eq!(
             analyze_robustness(&protocol, &episodes),
             Err(RobustnessError::ProtocolMismatch)
@@ -2068,7 +2070,7 @@ mod tests {
     fn rejects_mixed_physics_within_one_scenario_scorecard() {
         let first = episode("candidate", "trial-1", "fly-1", 0.9);
         let mut second = episode("candidate", "trial-2", "fly-2", 0.8);
-        second.physics_sha256 = digest('z');
+        second.physics_sha256 = digest('8');
         assert_eq!(
             analyze_robustness(&protocol(), &[first, second]),
             Err(RobustnessError::ScenarioDefinitionMismatch)
@@ -2138,7 +2140,7 @@ mod tests {
         invalid.connectome_sha256 = None;
         invalid.sensor_mapping_sha256 = None;
         invalid.effector_mapping_sha256 = None;
-        invalid.measured_dataset_sha256 = Some(digest('m'));
+        invalid.measured_dataset_sha256 = Some(digest('9'));
         invalid.evaluation_tier = EvaluationTier::MeasuredIntervention;
         invalid.biological_source_sha256 = None;
         assert_eq!(
@@ -2153,7 +2155,7 @@ mod tests {
     fn rejects_model_provenance_changes_between_episodes() {
         let first = episode("candidate", "trial-1", "fly-1", 0.9);
         let mut second = episode("candidate", "trial-2", "fly-2", 0.8);
-        second.connectome_sha256 = Some(digest('z'));
+        second.connectome_sha256 = Some(digest('8'));
         assert_eq!(
             analyze_robustness(&protocol(), &[first, second]),
             Err(RobustnessError::ModelDefinitionMismatch)
@@ -2175,7 +2177,7 @@ mod tests {
     #[test]
     fn rejects_protocol_digest_mismatch() {
         let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
-        invalid.scoring_plan_sha256 = digest('z');
+        invalid.scoring_plan_sha256 = digest('9');
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
             Err(RobustnessError::ProtocolMismatch)
