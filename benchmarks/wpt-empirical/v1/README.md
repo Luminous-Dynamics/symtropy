@@ -142,3 +142,5 @@ The typed v1 dataset now includes abstract-located observations for:
 Three additional frozen cases enforce conservative comparison: mode-to-mode power-class ranking stays UNRESOLVED without the per-mode load and geometry; downscaled multichannel IPT vs 50 kW bus IPT remains UNRESOLVED; WPT-mode efficiency vs the same prototype's wired LVDC-mode efficiency is NOT_COMPARABLE.
 
 These new mode records are development evidence summaries, not full-text transcriptions; unknown operating conditions, meter planes, statistics and uncertainties remain explicit.
+ 
+Comparator condition rule: free-text condition descriptions are not treated as a physical mismatch merely because their wording differs. Only matching controlled values can be used for a strict match/mismatch; differing free-text descriptions emit `OPERATING_CONDITION_UNNORMALIZED` and keep the comparison unresolved. Geometry vectors and numeric offsets must be separately typed before a numeric tolerance comparison is allowed.
