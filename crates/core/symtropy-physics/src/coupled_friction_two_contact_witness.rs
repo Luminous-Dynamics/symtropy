@@ -3199,11 +3199,14 @@ mod double_sliding_direction_oracle {
         // yet a finite-step, instrument-noise, or global branch-completeness
         // certificate.
         let zero = BigRational::from_integer(BigInt::from(0_u8));
-        for observable in 0..2 {
-            let branch_difference: [RationalInterval; 6] = std::array::from_fn(|coordinate| {
-                branch_sensitivities[0][coordinate][observable]
-                    .sub(&branch_sensitivities[1][coordinate][observable])
+        let differences_by_observable: [[RationalInterval; 6]; 2] =
+            std::array::from_fn(|observable| {
+                std::array::from_fn(|coordinate| {
+                    branch_sensitivities[0][coordinate][observable]
+                        .sub(&branch_sensitivities[1][coordinate][observable])
+                })
             });
+        for branch_difference in &differences_by_observable {
             let (experiment_direction, guaranteed_gap) =
                 maximum_box_separation_direction(&branch_difference)
                     .expect("the declared branch pair is locally distinguishable");
