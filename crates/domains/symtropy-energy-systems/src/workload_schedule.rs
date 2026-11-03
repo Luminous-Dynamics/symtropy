@@ -1278,11 +1278,21 @@ mod tests {
         policy: WorkloadPreemptionPolicy,
         checkpoint_overhead_kwh: f64,
     ) -> WorkloadJobContract {
+        job_with_deadline(id, required, policy, checkpoint_overhead_kwh, 2)
+    }
+
+    fn job_with_deadline(
+        id: &str,
+        required: f64,
+        policy: WorkloadPreemptionPolicy,
+        checkpoint_overhead_kwh: f64,
+        deadline_slot_exclusive: u32,
+    ) -> WorkloadJobContract {
         WorkloadJobContract::new(
             id,
             "training-steps-v1",
             0,
-            4,
+            deadline_slot_exclusive,
             required,
             20.0,
             10.0,
@@ -1307,8 +1317,14 @@ mod tests {
             "SLA-BASELINE-V1",
             "training-steps-v1",
             vec![
-                job("JOB-A", 20.0, WorkloadPreemptionPolicy::Deferrable, 0.0),
-                job("JOB-B", 20.0, WorkloadPreemptionPolicy::NonPreemptible, 0.0),
+                job_with_deadline("JOB-A", 20.0, WorkloadPreemptionPolicy::Deferrable, 0.0, 4),
+                job_with_deadline(
+                    "JOB-B",
+                    20.0,
+                    WorkloadPreemptionPolicy::NonPreemptible,
+                    0.0,
+                    4,
+                ),
             ],
             vec![
                 slot(0, 600.0, 500.0, 100.0),
@@ -1394,7 +1410,13 @@ mod tests {
             "SCHEDULE-FRAGMENTED",
             "SLA-BASELINE-V1",
             "training-steps-v1",
-            vec![job("JOB-A", 20.0, WorkloadPreemptionPolicy::NonPreemptible, 0.0)],
+            vec![job_with_deadline(
+                "JOB-A",
+                20.0,
+                WorkloadPreemptionPolicy::NonPreemptible,
+                0.0,
+                3,
+            )],
             vec![
                 slot(0, 600.0, 500.0, 100.0),
                 slot(1, 600.0, 500.0, 100.0),
@@ -1416,7 +1438,13 @@ mod tests {
             "SCHEDULE-CHECKPOINT",
             "SLA-BASELINE-V1",
             "training-steps-v1",
-            vec![job("JOB-A", 20.0, WorkloadPreemptionPolicy::Checkpointable, 5.0)],
+            vec![job_with_deadline(
+                "JOB-A",
+                20.0,
+                WorkloadPreemptionPolicy::Checkpointable,
+                5.0,
+                3,
+            )],
             vec![
                 slot(0, 600.0, 500.0, 100.0),
                 slot(1, 600.0, 500.0, 100.0),
