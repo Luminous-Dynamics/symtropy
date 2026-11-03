@@ -63,3 +63,15 @@ The seven records deliberately include the semantic traps:
 - Independent expert annotation and exact-head CI before qualification.
 
 No claim of physical superiority, regulatory compliance or new Tesla transmission physics follows from this data model.
+
+## Frozen comparison cases
+
+`comparison-case.schema.json` and `comparison-cases.jsonl` encode four required negative controls and one unresolved-evidence case. They are expected outcomes for the future semantic comparator, not measured benchmark results.
+
+- Whole WCS vs DC–DC subchain: reject.
+- Vehicle energy replenishment ratio vs end-to-end conversion efficiency: reject.
+- Passive AC-to-AC resonator link vs full DC-to-DC system: reject.
+- Laser-driver efficiency vs complete laser-to-electric chain: reject.
+- Whole-system result with unspecified exact meter planes: keep the requested external comparison unresolved until source evidence fills the boundary.
+
+The case file intentionally records the reason codes. A future comparator must return these dispositions from record semantics, not by looking up the case IDs.
