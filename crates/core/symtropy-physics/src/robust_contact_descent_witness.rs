@@ -302,15 +302,6 @@ fn enumerate_lp_active_sets(
                         })
                 })
                 .collect::<Vec<_>>();
-            let worst_branch_upper = branch_upper_bounds
-                .iter()
-                .max()
-                .expect("at least one gradient exists");
-            assert_eq!(
-                margin,
-                -worst_branch_upper.clone(),
-                "the active-set margin must equal the worst-branch support"
-            );
             *best = Some(ExactLpOptimum {
                 direction,
                 margin,
@@ -448,7 +439,12 @@ fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimu
         &mut Vec::with_capacity(LP_VARIABLE_COUNT),
         &mut best,
     );
-    best
+    let optimum = best?;
+    let worst_branch_upper = optimum.branch_upper_bounds.iter().max()?;
+    if -worst_branch_upper.clone() != optimum.margin {
+        return None;
+    }
+    Some(optimum)
 }
 
 fn candidate_for_direction(
