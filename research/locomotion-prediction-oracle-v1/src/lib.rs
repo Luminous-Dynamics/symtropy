@@ -1289,6 +1289,63 @@ mod tests {
     }
 
     #[test]
+    fn rejects_feature_dimension_above_the_resource_limit() {
+        let dimension = MAX_FEATURE_DIMENSION + 1;
+        let forecasts = vec![
+            forecast("model-a", vec![0.0; dimension], 0.1),
+            forecast("model-b", vec![1.0; dimension], 0.1),
+        ];
+        assert_eq!(
+            validate_prediction_batch(&batch(forecasts)),
+            Err(ValidationError::ResourceLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn rejects_model_provenance_artifact_count_above_the_resource_limit() {
+        let mut first = forecast("model-a", vec![0.0], 0.1);
+        first.provenance.artifacts = (0..=MAX_ARTIFACTS_PER_MODEL)
+            .map(|index| ArtifactRef {
+                role: match index % 8 {
+                    0 => ArtifactRole::Connectome,
+                    1 => ArtifactRole::BiologicalSource,
+                    2 => ArtifactRole::SensorMapping,
+                    3 => ArtifactRole::EffectorMapping,
+                    4 => ArtifactRole::BodyMorphology,
+                    5 => ArtifactRole::PhysicsConfiguration,
+                    6 => ArtifactRole::MeasuredDataset,
+                    _ => ArtifactRole::IndependentReplication,
+                },
+                sha256: format!("{:064x}", index + 1),
+            })
+            .collect();
+        assert_eq!(
+            validate_prediction_batch(&batch(vec![
+                first,
+                forecast("model-b", vec![1.0], 0.1),
+            ])),
+            Err(ValidationError::ResourceLimitExceeded)
+        );
+    }
+
+    #[test]
+    fn gaussian_bhattacharyya_distance_is_symmetric_in_model_order() {
+        let forward = batch(vec![
+            forecast("model-a", vec![0.5, 1.0], 0.2),
+            forecast("model-b", vec![2.0, -1.0], 1.5),
+        ]);
+        let reverse = batch(vec![
+            forecast("model-b", vec![2.0, -1.0], 1.5),
+            forecast("model-a", vec![0.5, 1.0], 0.2),
+        ]);
+        let forward_result = screen_intervention(&forward, policy(0.05)).expect("forward");
+        let reverse_result = screen_intervention(&reverse, policy(0.05)).expect("reverse");
+        let forward_distance = forward_result.pairwise[0].gaussian_bhattacharyya_distance;
+        let reverse_distance = reverse_result.pairwise[0].gaussian_bhattacharyya_distance;
+        assert!((forward_distance - reverse_distance).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn rejects_invalid_discrimination_policy() {
         let candidate = batch(vec![
             forecast("model-a", vec![0.0], 0.1),
