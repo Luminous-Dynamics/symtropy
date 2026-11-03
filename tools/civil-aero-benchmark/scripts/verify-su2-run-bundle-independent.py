@@ -17,10 +17,11 @@ EVIDENCE = (
     "and_every_saved_unsteady_time_step_inner_residual_screen_bound_to_production_history_"
     "and_inputs_unsigned_wall_time_only_other_resources_unknown_not_grid_independent_or_experimentally_validated"
 )
-TERMINATION_SCHEMA = "su2-native-termination-evidence/0.2.0"
+TERMINATION_SCHEMA = "su2-native-termination-evidence/0.3.0"
 TERMINATION_EVIDENCE = (
-    "receipt_bound_su2_solver_exit_reason_and_scheduler_signal_events_from_exact_full_"
-    "stdout_stderr_bytes_not_build_attested_not_independent_history_screen_or_physical_validation"
+    "receipt_bound_su2_solver_exit_reason_per_field_steady_rows_or_aggregate_window_"
+    "success_scoped_to_all_configured_fields_from_exact_full_stdout_stderr_bytes_"
+    "not_build_attested_not_independent_history_screen_or_physical_validation"
 )
 STEADY_SUCCESS = "All convergence criteria satisfied."
 WINDOW_SUCCESS = "All windowed time-averaged convergence criteria are fullfilled."
@@ -208,7 +209,7 @@ def termination_evidence(
     time_window = preflight["window_cauchy_enabled"] == "YES"
     require(time_window == time_domain,
             "verified run bundle only supports steady or explicit windowed time-domain protocols")
-    native_rows: list[tuple[str, str, str, str]] = []
+    native_rows: list[tuple[str, str, str, str, str]] = []
     signal_message = scheduler_signal_message(combined)
     terminal_markers = (
         INTERRUPTED,
@@ -254,7 +255,14 @@ def termination_evidence(
             terminal_messages = [WINDOW_SUCCESS]
             success_sha = hashlib.sha256(WINDOW_SUCCESS.encode("utf-8")).hexdigest()
             native_rows = [
-                (field, field, "passed", success_sha) for field in window_fields
+                (
+                    field,
+                    "AGGREGATE_WINDOW_SUCCESS_BANNER",
+                    "aggregate_window_success_banner",
+                    "passed",
+                    success_sha,
+                )
+                for field in window_fields
             ]
         elif TIME_LIMIT in section:
             classification = "maximum_time_reached"
@@ -292,7 +300,13 @@ def termination_evidence(
                 reported_field = cauchy_field if cauchy_field in line else configured
                 row_status = "passed" if status == "Yes" else "failed"
                 row_sha = hashlib.sha256(line.encode("utf-8")).hexdigest()
-                native_rows.append((configured, reported_field, row_status, row_sha))
+                native_rows.append((
+                    configured,
+                    reported_field,
+                    "per_field_native_summary_row",
+                    row_status,
+                    row_sha,
+                ))
                 statuses.append(row_status)
             classification = (
                 "steady_native_criteria_satisfied"
@@ -320,9 +334,10 @@ def termination_evidence(
     ):
         add_string(canonical, value)
     add_u64(canonical, len(native_rows))
-    for configured, reported, status, row_sha in native_rows:
+    for configured, reported, evidence_scope, status, row_sha in native_rows:
         add_string(canonical, configured)
         add_string(canonical, reported)
+        add_string(canonical, evidence_scope)
         add_string(canonical, status)
         add_string(canonical, row_sha)
     add_u64(canonical, len(terminal_messages))
@@ -333,8 +348,22 @@ def termination_evidence(
         "steady_native_criteria_satisfied",
         "time_window_native_criteria_satisfied",
     }, f"native SU2 termination is not converged: {classification}")
-    require(all(row[2] == "passed" for row in native_rows),
+    require(all(row[3] == "passed" for row in native_rows),
             "native SU2 termination includes a failed criterion")
+    if time_window:
+        require(
+            all(
+                row[1] == "AGGREGATE_WINDOW_SUCCESS_BANNER"
+                and row[2] == "aggregate_window_success_banner"
+                for row in native_rows
+            ),
+            "window convergence must be represented by aggregate banner evidence, not fabricated per-field rows",
+        )
+    else:
+        require(
+            all(row[2] == "per_field_native_summary_row" for row in native_rows),
+            "steady convergence requires per-field native table rows",
+        )
     return classification, digest
 
 
