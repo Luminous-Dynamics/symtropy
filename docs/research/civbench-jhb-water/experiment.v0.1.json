@@ -185,6 +185,38 @@
         "evidence_class": "published_cyber_physical_risk_optimization_study",
         "assurance": "Quantifies trade-offs between cyber-network reliability redundancy and increased cyber-physical attack exposure on two WDS case studies; results depend on network topology and security assumptions",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WEINSTEIN_NEVO_MISSPECIFIED_INTERFERENCE_2026",
+        "uri": "https://doi.org/10.1093/biomtc/ujag023",
+        "period": "published_2026-01-06",
+        "evidence_class": "published_causal_inference_method_paper",
+        "assurance": "Derives bias bounds for misspecified interference networks and proposes a multiple-network estimator unbiased if at least one candidate network is correct; method demonstrated in simulations and a social-network field experiment, not water infrastructure",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "SCHRODER_OPRESCU_FEUERRIEGEL_KALLUS_PARTIAL_ID_2026",
+        "uri": "https://arxiv.org/abs/2602.03459",
+        "period": "preprint_2026-02-03",
+        "evidence_class": "preprint_partial_identification_method",
+        "assurance": "Derives sharp bounds for direct and spillover effects under misspecified exposure mappings; methods include weighted-neighborhood, threshold and truncated-neighborhood settings; preprint rather than peer-reviewed infrastructure application",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "AUERBACH_LOCAL_CAUSAL_NETWORK_INTERFERENCE_2026",
+        "uri": "https://doi.org/10.3982/QE2484",
+        "period": "published_2026",
+        "evidence_class": "published_causal_inference_method_paper",
+        "assurance": "Uses rooted-network-valued exposure to reduce misspecification risk from a fixed low-dimensional exposure map; computational and statistical costs of rich rooted-network support remain",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WILKINS_REEVES_SINGLE_NETWORK_PARTIAL_DATA_UAI_2026",
+        "uri": "https://proceedings.mlr.press/v337/wilkins-reeves26a.html",
+        "period": "published_2026_UAI",
+        "evidence_class": "peer_reviewed_conference_method_paper",
+        "assurance": "Develops single-network causal inference with partial network observations and feasible proxy exposures over plausible network completions; not a water-network application",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -430,7 +462,7 @@
     "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
     "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
     "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published topology+sensitivity hybrid, probabilistic Dynamic Residual Masking / game-theoretic pseudo-Jacobian placement, cascading-aware placement, and decision-aware placement at matched sensor count and whole-life cost. Reconstruct exact source task/split before numeric SOTA claims. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome.",
-    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score Include controlled cyber-physical testbed cases as a separate robustness track: distinguish leaks, sensor failures and cyber events; report event-onset and false-alarm episodes, attack-to-physical propagation, safety/service consequence and recovery. Evaluate availability/redundancy gains against added cyber-physical attack surface; never pool attack labels with leak labels.",
+    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score Include controlled cyber-physical testbed cases as a separate robustness track: distinguish leaks, sensor failures and cyber events; report event-onset and false-alarm episodes, attack-to-physical propagation, safety/service consequence and recovery. Evaluate availability/redundancy gains against added cyber-physical attack surface; never pool attack labels with leak labels. Include explicit network-interference qualification: DMA boundaries do not imply no interference; estimate direct, spillover, direct-spillover interaction, system total and displaced-harm effects under multiple plausible exposure maps, and use partial-identification bounds when map uncertainty prevents point identification.",
     "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
     "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
     "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation.",
@@ -835,6 +867,108 @@
       "do_not_infer_malicious_intent_from_anomaly_alone": true,
       "benchmark_score_never_grants_actuation_authority": true,
       "independent_safety_interlocks_and_rollback_required": true
+    }
+  },
+  "network_interference_contract": {
+    "version": "0.1.0",
+    "claim_boundary": "network causal effects are not identified by DMA labels alone; every treatment assignment and outcome must be paired with a frozen, versioned exposure mapping or an explicit set of plausible mappings",
+    "assignment_units": [
+      "district_metered_area",
+      "hydraulic_pressure_zone",
+      "network_subgraph",
+      "whole_network"
+    ],
+    "exposure_mappings": [
+      {
+        "mapping_id": "topological_adjacency",
+        "description": "adjacent DMA/node/pipe graph exposure; use as a baseline, not assumed hydraulically sufficient"
+      },
+      {
+        "mapping_id": "hydraulic_influence",
+        "description": "pressure/flow sensitivity and feasible hydraulic response paths under a frozen calibrated model"
+      },
+      {
+        "mapping_id": "directed_flow_paths",
+        "description": "upstream/downstream and time-resolved feasible flow-path exposure under declared operating regime"
+      },
+      {
+        "mapping_id": "shared_supply_storage",
+        "description": "common reservoir, pump, pressure-zone and supply-boundary exposure"
+      },
+      {
+        "mapping_id": "rooted_local_network",
+        "description": "rooted local network neighborhood retaining graph context rather than collapsing to one neighbor count"
+      }
+    ],
+    "uncertainty_contract": {
+      "candidate_networks_required": true,
+      "network_mapping_digest_required": true,
+      "plausible_network_completions_required_when_partial": true,
+      "at_least_one_candidate_network_correct_not_assumed": true,
+      "if_exposure_mapping_unsupported": "report_partial_identification_bounds_or_indeterminate_effect; do_not_report_point_identified_direct_or_spillover_effect"
+    },
+    "estimands": [
+      "direct_effect",
+      "spillover_effect",
+      "direct_spillover_interaction",
+      "total_network_effect",
+      "displacement_harm",
+      "whole_system_service_effect"
+    ],
+    "assignment_designs": [
+      "known_truth_randomized_node_assignment_for_method_testing_only",
+      "graph_clustered_assignment_with_registered_buffer_and_residual_exposure",
+      "two_stage_randomized_treatment_saturation_for_direct_and_spillover_estimands",
+      "randomized_rollout_timing_when_service_safe_and_authorized",
+      "matched_whole_network_scenario_pairs_for_simulation"
+    ],
+    "comparison_methods": [
+      "oracle_true_exposure_mapping",
+      "topology_only_exposure",
+      "hydraulic_influence_exposure",
+      "directed_flow_path_exposure",
+      "rooted_local_network_exposure",
+      "multiple_candidate_network_robust_estimator",
+      "partial_identification_under_mapping_uncertainty",
+      "naive_no_interference_estimator_as_negative_control"
+    ],
+    "perturbations": [
+      "edge_addition_or_deletion",
+      "unknown_or_reversed_flow_direction",
+      "pressure_zone_and_valve_boundary_uncertainty",
+      "roughness_and_demand_parameter_uncertainty",
+      "missing_or_aggregated_network_map",
+      "time_varying_pump_and_reservoir_state",
+      "cross_DMA_displacement_and_carryover"
+    ],
+    "metrics": [
+      "direct_effect_bias",
+      "spillover_effect_bias",
+      "total_effect_bias",
+      "nominal_interval_coverage",
+      "partial_identification_coverage",
+      "identified_interval_width",
+      "type_i_error",
+      "exposure_mapping_sensitivity",
+      "displacement_harm",
+      "worst_group_service_effect",
+      "system_level_service_effect"
+    ],
+    "aspirational_targets": {
+      "correctly_specified_network_absolute_standardized_bias_at_most": 0.1,
+      "nominal_95_percent_interval_coverage_minimum": 0.93,
+      "nominal_95_percent_interval_coverage_maximum": 0.97,
+      "null_type_i_error_maximum": 0.05,
+      "misspecified_mapping_bounds_target": "at least 95% empirical truth coverage with width reported; no claim of useful precision without a pre-registered maximum width"
+    },
+    "hard_gates": {
+      "dma_boundaries_not_assumed_to_eliminate_interference": true,
+      "exposure_map_and_network_digest_frozen_before_outcome_inspection": true,
+      "multiple_plausible_mappings_tested_when_network_uncertain": true,
+      "report_direct_spillover_total_and_displacement_separately": true,
+      "no_point_identification_when_exposure_is_unsupported": true,
+      "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance": true,
+      "essential_service_and_water_quality_floors_remain_hard_constraints": true
     }
   }
 }
