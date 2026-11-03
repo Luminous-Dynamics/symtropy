@@ -43,9 +43,9 @@ V1 also computes the Bhattacharyya distance between multivariate Gaussian predic
 
 where Δμ = μ_i - μ_j, Σ_i,obs = Σ_i + Σ_obs + λI, Σ_j,obs = Σ_j + Σ_obs + λI, and Σ̄ = (Σ_i,obs + Σ_j,obs)/2. Σ_obs is the single-observation covariance and is supplied separately from Σ_obs,diff. Cholesky factorization, triangular solves and Cholesky log-determinants are used; no explicit matrix inverse is formed.
 
-This detects differences in Gaussian means and covariance structures, including the covariance-only negative control. It is exact only under the multivariate-Gaussian approximation and the declared independent predictive-error model. Paired/correlated forecast errors need an explicit cross-model covariance extension. It is not a nonparametric test of arbitrary predictive distributions, exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
+This detects differences in Gaussian means and covariance structures, including the covariance-only negative control. It is exact only under the multivariate-Gaussian approximation for the marginal predictive distributions and the declared additive measurement-error model. It does not use cross-model covariance: paired/correlated forecasts do not change the definition of this marginal distribution distance, although pairing must be respected when estimating uncertainty in the fitted marginal distributions. It is not a nonparametric test of arbitrary predictive distributions, exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
 
-Both thresholds and the regularizer must be preregistered. An all-pairs-separated result means only that each pair exceeds the declared metric threshold; it does not prove biological truth or unique mechanism identification.
+Both thresholds and the regularizer must be preregistered. The mean-only screen assumes independent model-predictive errors unless the supplied pairwise observation-difference covariance includes the appropriate cross-model covariance terms for matched forecasts. An all-pairs-separated result means only that each pair exceeds the declared metric threshold; it does not prove biological truth or unique mechanism identification.
 
 ## What it deliberately does not do
 
