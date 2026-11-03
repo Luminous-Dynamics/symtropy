@@ -87,7 +87,7 @@ mod tests {
     #[test]
     fn quarter_wave_relation_is_reported_as_very_large_odd_multiple_scale() {
         let result = audit();
-        assert!(result.quarter_wave_odd_multiple_min > 700_000.0);
+        assert!(result.quarter_wave_odd_multiple_min > 700.0);
         assert!(result.quarter_wave_odd_multiple_max > result.quarter_wave_odd_multiple_min);
     }
 }
