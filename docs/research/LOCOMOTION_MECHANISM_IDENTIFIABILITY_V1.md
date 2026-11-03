@@ -28,6 +28,7 @@ References:
 - [Pratt et al., Nature Communications (2026), DOI 10.1038/s41467-026-69333-z](https://doi.org/10.1038/s41467-026-69333-z)
 - [Pratt et al., Dryad dataset DOI 10.5061/dryad.fxpnvx153](https://doi.org/10.5061/dryad.fxpnvx153)
 - [Authors' hair-plate analysis code, v1.0.0](https://github.com/Prattbuw/Hair_Plate_Paper/releases/tag/v1.0.0)
+- [Golan, Schütt and Kriegeskorte, Making models disagree to learn how brains compute, Nature Reviews Neuroscience (28 August 2026)](https://doi.org/10.1038/s41583-026-01070-0)
 - [FlyGym releases](https://github.com/NeLy-EPFL/flygym/releases), pinned for external neuromechanical comparison at v2.1.1 / commit a63dc91.
 
 Preserve six outcome levels:
@@ -135,6 +136,8 @@ For each candidate intervention, report:
 An intervention that separates only one easy pair but leaves the scientifically important alternatives indistinguishable must not be presented as a general mechanism-discrimination experiment.
 
 Use the discrete-hypothesis expected information gain implementation in Symthaea #9589 when predictive distributions and priors are available. Keep it distinct from parameter-identification objectives such as Fisher information and D-optimality in #9592. Do not relabel a pairwise-distance heuristic as EIG or Fisher information.
+
+Model-disagreement experiment design is an established active research direction, not a novel claim in itself. Golan, Schütt and Kriegeskorte (Nature Reviews Neuroscience, 28 August 2026) review optimizing stimulus sets to discriminate competing neural-network models and emphasize the trade-off between ecological validity and model-comparison power. Symtropy's intended contribution is to carry this discipline into source-bound, embodied sensorimotor mechanisms: interventions must change actual neural/sensory/body state, forecasts must be frozen before unblinding, and simulated predictions must be checked against physical and biological outcomes.
 
 The decision should be a Pareto view, not a single opaque weighted score:
 - expected model discrimination;
