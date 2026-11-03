@@ -468,8 +468,13 @@ fn verify_robust_descent_interval_lp_certificate(
     }
 
     let required_upper = -optimum.margin.clone();
-    let worst_support = optimum.branch_upper_bounds.iter().max();
-    if worst_support != Some(&required_upper) {
+    let actual_branch_supports: Vec<BigRational> = branches
+        .iter()
+        .map(|branch| gradient_box_support_upper(branch, &optimum.direction))
+        .collect();
+    if actual_branch_supports != optimum.branch_upper_bounds
+        || actual_branch_supports.iter().max() != Some(&required_upper)
+    {
         return false;
     }
 
@@ -505,9 +510,7 @@ fn verify_robust_descent_interval_lp_certificate(
         &optimum.dual_constraint_indices,
         &optimum.dual_multipliers,
         &candidate,
-    ) && branches
-        .iter()
-        .all(|branch| gradient_box_support_upper(branch, &optimum.direction) <= required_upper)
+    )
 }
 
 fn adverse_box_corner(gradient: &GradientBox, direction: &RationalVector) -> RationalVector {
@@ -936,6 +939,32 @@ mod tests {
                 (0, 0)
             ])],
             &positive
+        ));
+        let mut corrupted_support = positive.clone();
+        corrupted_support.branch_upper_bounds[0] += rational(1);
+        assert!(!verify_robust_descent_interval_lp_certificate(
+            &[interval_gradient([
+                (1, 2),
+                (-1, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0)
+            ])],
+            &corrupted_support
+        ));
+        let mut corrupted_dual = positive.clone();
+        corrupted_dual.dual_multipliers[0] += rational(1);
+        assert!(!verify_robust_descent_interval_lp_certificate(
+            &[interval_gradient([
+                (1, 2),
+                (-1, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0)
+            ])],
+            &corrupted_dual
         ));
         let mut corrupted_positive = positive.clone();
         corrupted_positive.margin += rational(1);
