@@ -215,7 +215,7 @@ impl WorkloadScheduleSlot {
             }
         }
 
-        if maximum_facility_input_kw <= 0.0 || maximum_compute_work_units <= 0.0 {
+        if maximum_facility_input_kw <= 0.0 {
             return Err(WorkloadScheduleError::InvalidSlotBudget { slot_index });
         }
 
@@ -446,8 +446,7 @@ impl WorkloadSchedule {
             .checked_add(1)
             .ok_or(WorkloadScheduleError::SlotIndexOverflow)?;
         if self.jobs.iter().any(|job| {
-            job.release_slot() < horizon_start
-                || job.release_slot() >= horizon_end
+            job.release_slot() >= horizon_end
                 || job.deadline_slot_exclusive() > horizon_end
                 || job.deadline_slot_exclusive() <= horizon_start
         }) {
@@ -1475,6 +1474,51 @@ mod tests {
             verify_workload_schedule(&cooling_limited, tolerance()),
             Err(WorkloadScheduleError::CoolingLimitExceeded { .. })
         ));
+    }
+
+    #[test]
+    fn allows_zero_compute_capacity_slots_and_jobs_released_before_horizon() {
+        let zero_compute_slot = WorkloadScheduleSlot::new(
+            0,
+            0,
+            SLOT_NS,
+            200.0,
+            50.0,
+            100.0,
+            600.0,
+            500.0,
+            100.0,
+            0.0,
+        )
+        .unwrap();
+        let active_slot = slot(1, 600.0, 500.0, 100.0);
+        let job = WorkloadJobContract::new(
+            "JOB-ALREADY-RELEASED",
+            "training-steps-v1",
+            0,
+            2,
+            10.0,
+            10.0,
+            10.0,
+            2.0,
+            WorkloadPreemptionPolicy::Deferrable,
+            0.0,
+        )
+        .unwrap();
+        let schedule = WorkloadSchedule::new(
+            "SCHEDULE-IDLE-SLOT",
+            "SLA-BASELINE-V1",
+            "training-steps-v1",
+            vec![job],
+            vec![zero_compute_slot, active_slot],
+            vec![allocation("JOB-ALREADY-RELEASED", 1, 10.0)],
+        )
+        .unwrap();
+
+        let report = verify_workload_schedule(&schedule, tolerance()).unwrap();
+        assert!(report.passed());
+        assert_eq!(report.slot_receipts()[0].compute_work_units(), 0.0);
+        assert_eq!(report.completed_work_units(), 10.0);
     }
 
     #[test]
