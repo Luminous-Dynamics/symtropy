@@ -1175,7 +1175,7 @@ impl fmt::Display for WorkloadScheduleError {
                 maximum_work_units,
             } => write!(
                 f,
-                "job {job_id} slot {slot_index}: {observed_work_units} > {maximum_work_units} work units"
+                "job {job_id} slot {slot_index}: work {observed_work_units} > max {maximum_work_units}"
             ),
             Self::DuplicateJobSlotAllocation { job_id, slot_index } => {
                 write!(f, "job {job_id} has multiple allocations in slot {slot_index}")
