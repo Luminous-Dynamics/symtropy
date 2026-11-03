@@ -52,13 +52,19 @@ Each episode binds:
 
 Digest strings are references supplied by an upstream evidence authority. This crate validates their syntax and required presence, not signatures or the contents of the referenced artifacts.
 
-## Tail metric
+## Tail metrics
 
-For scores (s_{(1)} le dots le s_{(n)}), V1 reports the mean of the lowest
-(lceil nalphaceil) scores, where (alpha) is preregistered in basis points.
-For example, 1000 basis points selects the worst 10%. The mean score and success
-rate are returned separately. This CVaR estimate is an empirical tail summary,
-not a confidence interval or a substitute for reporting the raw score distribution.
+For sorted scores (s_1 le dots le s_n), V1 reports the mean of the lowest
+(lceil n alpha ceil) scores, where (alpha) is preregistered in basis
+points. For example, 1000 basis points selects the worst 10%.
+
+Two tail estimates are returned:
+- **Episode-level CVaR:** each episode contributes equally, so additional trials increase that individual's weight.
+- **Individual-balanced CVaR:** first compute each individual's mean score, then weight each individual equally when taking the lower tail.
+
+The per-individual table keeps morphology, success, episode count and hard
+failures inspectable. The two estimators answer different population questions;
+neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
 
