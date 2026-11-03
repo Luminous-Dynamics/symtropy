@@ -120,6 +120,251 @@ fn direction_l1_norm(direction: &RationalVector) -> BigRational {
     })
 }
 
+const LP_VARIABLE_COUNT: usize = INPUT_DIMENSION + 1;
+const MAX_ACTIVE_SETS: usize = 250_000;
+
+type LpVector = [BigRational; LP_VARIABLE_COUNT];
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct LpConstraint {
+    coefficients: LpVector,
+    upper_bound: BigRational,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ExactLpOptimum {
+    direction: RationalVector,
+    margin: BigRational,
+    branch_upper_bounds: Vec<BigRational>,
+}
+
+fn robust_descent_constraints(gradients: &[RationalVector]) -> Vec<LpConstraint> {
+    let mut constraints = Vec::with_capacity(gradients.len() + 2 * INPUT_DIMENSION);
+
+    for gradient in gradients {
+        let coefficients = std::array::from_fn(|index| {
+            if index == INPUT_DIMENSION {
+                rational(1)
+            } else {
+                gradient[index].clone()
+            }
+        });
+        constraints.push(LpConstraint {
+            coefficients,
+            upper_bound: rational(0),
+        });
+    }
+
+    for coordinate in 0..INPUT_DIMENSION {
+        let upper: LpVector = std::array::from_fn(|index| {
+            if index == coordinate {
+                rational(1)
+            } else {
+                rational(0)
+            }
+        });
+        let lower: LpVector = std::array::from_fn(|index| {
+            if index == coordinate {
+                rational(-1)
+            } else {
+                rational(0)
+            }
+        });
+        constraints.push(LpConstraint {
+            coefficients: upper,
+            upper_bound: rational(1),
+        });
+        constraints.push(LpConstraint {
+            coefficients: lower,
+            upper_bound: rational(1),
+        });
+    }
+
+    constraints
+}
+
+/// Count n-choose-k, returning None when the result exceeds the supplied cap.
+fn bounded_binomial(n: usize, k: usize, cap: usize) -> Option<usize> {
+    if k > n {
+        return Some(0);
+    }
+    let k = k.min(n - k);
+    let mut value = 1_usize;
+    for index in 1..=k {
+        value = value.checked_mul(n - k + index)? / index;
+        if value > cap {
+            return None;
+        }
+    }
+    Some(value)
+}
+
+#[allow(clippy::needless_range_loop)]
+fn solve_active_lp_constraints(
+    constraints: &[LpConstraint],
+    active_indices: &[usize],
+) -> Option<LpVector> {
+    if active_indices.len() != LP_VARIABLE_COUNT {
+        return None;
+    }
+
+    let mut matrix: Vec<Vec<BigRational>> = active_indices
+        .iter()
+        .map(|index| constraints[*index].coefficients.to_vec())
+        .collect();
+    let mut right_hand_side: Vec<BigRational> = active_indices
+        .iter()
+        .map(|index| constraints[*index].upper_bound.clone())
+        .collect();
+    let zero = rational(0);
+
+    // Exact Gauss-Jordan elimination. Singular active sets are skipped.
+    for pivot_column in 0..LP_VARIABLE_COUNT {
+        let pivot_row = (pivot_column..LP_VARIABLE_COUNT)
+            .find(|row| matrix[*row][pivot_column] != zero)?;
+        if pivot_row != pivot_column {
+            matrix.swap(pivot_row, pivot_column);
+            right_hand_side.swap(pivot_row, pivot_column);
+        }
+
+        let pivot = matrix[pivot_column][pivot_column].clone();
+        for column in pivot_column..LP_VARIABLE_COUNT {
+            matrix[pivot_column][column] /= pivot.clone();
+        }
+        right_hand_side[pivot_column] /= pivot;
+
+        for row in 0..LP_VARIABLE_COUNT {
+            if row == pivot_column {
+                continue;
+            }
+            let factor = matrix[row][pivot_column].clone();
+            if factor == zero {
+                continue;
+            }
+            for column in pivot_column..LP_VARIABLE_COUNT {
+                matrix[row][column] -=
+                    factor.clone() * matrix[pivot_column][column].clone();
+            }
+            right_hand_side[row] -= factor * right_hand_side[pivot_column].clone();
+        }
+    }
+
+    right_hand_side.try_into().ok()
+}
+
+fn lp_constraints_satisfied(constraints: &[LpConstraint], candidate: &LpVector) -> bool {
+    constraints.iter().all(|constraint| {
+        let value = constraint
+            .coefficients
+            .iter()
+            .zip(candidate.iter())
+            .fold(rational(0), |sum, (coefficient, variable)| {
+                sum + coefficient * variable
+            });
+        value <= constraint.upper_bound
+    })
+}
+
+fn enumerate_lp_active_sets(
+    constraints: &[LpConstraint],
+    gradients: &[RationalVector],
+    start_index: usize,
+    active_indices: &mut Vec<usize>,
+    best: &mut Option<ExactLpOptimum>,
+) {
+    if active_indices.len() == LP_VARIABLE_COUNT {
+        let Some(candidate) = solve_active_lp_constraints(constraints, active_indices) else {
+            return;
+        };
+        if !lp_constraints_satisfied(constraints, &candidate) {
+            return;
+        }
+
+        let margin = candidate[INPUT_DIMENSION].clone();
+        let should_replace = best
+            .as_ref()
+            .is_none_or(|previous| margin > previous.margin);
+        if should_replace {
+            let direction: RationalVector =
+                std::array::from_fn(|index| candidate[index].clone());
+            let branch_upper_bounds = gradients
+                .iter()
+                .map(|gradient| {
+                    gradient
+                        .iter()
+                        .zip(direction.iter())
+                        .fold(rational(0), |sum, (coefficient, value)| {
+                            sum + coefficient * value
+                        })
+                })
+                .collect();
+            *best = Some(ExactLpOptimum {
+                direction,
+                margin,
+                branch_upper_bounds,
+            });
+        }
+        return;
+    }
+
+    let remaining = LP_VARIABLE_COUNT - active_indices.len();
+    if constraints.len().saturating_sub(start_index) < remaining {
+        return;
+    }
+    let last_start = constraints.len() - remaining;
+    for (index, _) in constraints
+        .iter()
+        .enumerate()
+        .take(last_start + 1)
+        .skip(start_index)
+    {
+        active_indices.push(index);
+        enumerate_lp_active_sets(
+            constraints,
+            gradients,
+            index + 1,
+            active_indices,
+            best,
+        );
+        active_indices.pop();
+    }
+}
+
+/// Solve the finite point-gradient robust-descent LP exactly over the
+/// six-dimensional L-infinity trust box:
+///
+///     maximize margin
+///     subject to gradient_i dot direction <= -margin for every branch,
+///                -1 <= direction_j <= 1.
+///
+/// The implementation enumerates all nonsingular seven-constraint active sets
+/// and verifies every candidate against every LP constraint. It is a small
+/// reference solver, not a large-scale simplex implementation. To avoid
+/// accidental combinatorial blow-ups it returns None when the active-set count
+/// exceeds MAX_ACTIVE_SETS. None is an abstention, never an infeasibility proof.
+fn solve_robust_descent_lp(gradients: &[RationalVector]) -> Option<ExactLpOptimum> {
+    if gradients.is_empty() {
+        return None;
+    }
+
+    let constraints = robust_descent_constraints(gradients);
+    bounded_binomial(
+        constraints.len(),
+        LP_VARIABLE_COUNT,
+        MAX_ACTIVE_SETS,
+    )?;
+
+    let mut best = None;
+    enumerate_lp_active_sets(
+        &constraints,
+        gradients,
+        0,
+        &mut Vec::with_capacity(LP_VARIABLE_COUNT),
+        &mut best,
+    );
+    best
+}
+
 fn candidate_for_direction(
     branches: &[GradientBox],
     direction: RationalVector,
