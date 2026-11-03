@@ -244,6 +244,26 @@ Standards register update:
 
 The benchmark now includes five IT protection tests: AI workload ramp/burst replay; UPS/DC-bus ride-through; load priority and cooling-constrained restoration; joint grid-disturbance / IT-protection response; and flexible-load dispatch with SLA, thermal and rebound constraints. This explicitly tests the data centre as both a protected critical load and a potentially flexible grid customer.
 
+### 5.7 Correlation-aware AI data-centre load and flexibility tests
+
+The matrix's new `DC-GRID-COORD-001` group contains five tests:
+
+1. **Trace calibration and holdout:** use the open *Scientific Data* 2026 AI workload dataset (72 sessions; 32 H100/B200 8-GPU node sessions, 40 RTX 3060 sessions; >1.8M samples; 50 Hz detailed time series) to compare workload-aware power estimation against TDP estimation and hold out workload/hardware combinations. The published LBNL H100 model reports 11.4% MAPE versus 27–37% for TDP on its domain; proposed target is <8% MAPE plus calibrated uncertainty on comparable held-out H100 data, then separate validation on B200 and other hardware.
+2. **Spatial correlation:** reproduce correlated-versus-independent multi-site load cases. An IEEE 2026 EMT study reports about 7× aggregate P variability and 11× frequency standard deviation for correlated versus independent loads on its study cases. These are replication targets, not fixed multipliers.
+3. **Grid modal forcing:** use measured and stochastic periodic workload traces to examine forced oscillations and cross-spectral coherence against local/inter-area grid modes. Do not collapse periodic workload structure into white noise.
+4. **SLA-constrained flexibility:** use Alibaba cluster traces / LAD-Flex methodology; the May 2026 paper reports up to 22% load shedding during flexibility windows under its model. Track tail latency, deadline misses, completed work, queue depth, deferred tasks and rebound.
+5. **Field-reference replication:** Nature Energy reports a 256-GPU software-only field demonstration with 25% power reduction for 3 hours while maintaining declared AI QoS. Proposed stretch: >=30% for 3 hours under matched workload/SLA conditions with no increase in energy per completed work or rebound peak.
+
+Primary references:
+- Scientific Data dataset (open): https://doi.org/10.1038/s41597-026-07496-6; data https://doi.org/10.6084/m9.figshare.31654879
+- Spatially Correlated Load Dynamics, IEEE TPWRS (2026): https://doi.org/10.1109/TPWRS.2026.3729445
+- Alibaba workload flexibility study (May 2026): https://doi.org/10.1016/j.ijepes.2026.111940
+- AI data centres as grid-interactive assets, Nature Energy (published 5 December 2025; 2026 volume): https://doi.org/10.1038/s41560-025-01927-1
+- Empirically calibrated H100 node power model: https://doi.org/10.1088/2753-3751/ae2486
+- Wide-area oscillations from large-scale AI workloads: https://doi.org/10.1109/TPWRS.2026.3685506
+
+**Critical comparator rule:** every load-reduction result must use identical workload, completed work, hardware, thermal/cooling conditions, baseline, grid signal, notification/ramp window and rebound horizon. Track work completed, SLA/latency, total energy, cooling, water where available, storage state, grid power and rebound. Lower instantaneous MW alone is not a valid win.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
