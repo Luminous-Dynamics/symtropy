@@ -152,6 +152,7 @@ pub enum GradientReceiptError {
     MissingNormalizationId,
     MissingEstimatorIdentity,
     MissingBiasEvidence,
+    MissingBiasMeasurement,
     UnexpectedAbstentionReason,
     MissingAbstentionReason,
     SurrogateCannotClaimExactQualification,
@@ -259,6 +260,9 @@ impl QualifiedGradientReceipt {
                 }
                 if self.bias_evidence_reference.is_none() {
                     return Err(GradientReceiptError::MissingBiasEvidence);
+                }
+                if self.metrics.surrogate_gradient_bias.is_none() {
+                    return Err(GradientReceiptError::MissingBiasMeasurement);
                 }
                 if self.abstention_reason.is_some() {
                     return Err(GradientReceiptError::UnexpectedAbstentionReason);
@@ -692,6 +696,7 @@ mod tests {
         });
         receipt.estimator_id = Some("contacts-from-distance-ste-v1".into());
         receipt.bias_evidence_reference = Some("artifact://gradient-bias-report".into());
+        receipt.metrics.surrogate_gradient_bias = Some(0.012);
         receipt.responses[0].branch_id = None;
         receipt.verifier_id = None;
         receipt.verification_receipt_digest = None;
@@ -846,6 +851,27 @@ mod tests {
         assert_eq!(
             receipt.validate(),
             Err(GradientReceiptError::MismatchedCoordinateRoster)
+        );
+    }
+
+
+    #[test]
+    fn surrogate_cannot_claim_bias_reference_without_a_numeric_bias_measurement() {
+        let mut receipt = base_receipt(GradientKind::Surrogate);
+        receipt.responses.push(GradientResponse {
+            branch_id: None,
+            direction_id: None,
+            validity_region_digest: None,
+            coordinates: vec![coordinate(0.25)],
+        });
+        receipt.estimator_id = Some("contacts-from-distance-ste-v1".into());
+        receipt.bias_evidence_reference = Some("artifact://gradient-bias-report".into());
+        receipt.verifier_id = None;
+        receipt.verification_receipt_digest = None;
+
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::MissingBiasMeasurement)
         );
     }
 
