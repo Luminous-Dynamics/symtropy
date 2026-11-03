@@ -223,10 +223,14 @@ pub struct SourceArtifact {
     pub source_version_id: String,
     pub media_type: String,
     pub license_spdx: Option<String>,
+    /// SHA-256 of the locally retained artifact representation (bytes or metadata receipt).
     pub sha256: String,
     pub roles: Vec<SourceArtifactRole>,
     /// Declared provenance mode. This crate does not verify the underlying bytes.
     pub custody_mode: SourceCustodyMode,
+    /// Required for derived query/transform outputs; parents are content-addressed.
+    pub derived_from_sha256: Vec<String>,
+    pub transformation_sha256: Option<String>,
 }
 
 /// Dryad's file API exposes a digest plus an explicit digestType; never assume SHA-256.
@@ -368,6 +372,7 @@ pub enum OracleError {
     UnknownPlate(String),
     CrossTaxonTrainingPlate(String),
     InvalidSourceArtifact,
+    SourceArtifactNotMaterialized(String),
     InvalidDryadFileMetadata,
     MaterializationMismatch(&'static str),
     MissingSourceArtifact {
@@ -525,6 +530,31 @@ impl SourceArtifact {
                 return Err(OracleError::InvalidSourceArtifact);
             }
         }
+        match self.custody_mode {
+            SourceCustodyMode::DerivedFromSourceArtifacts => {
+                if self.derived_from_sha256.is_empty()
+                    || self.transformation_sha256.as_ref().is_none_or(|sha| !valid_sha256(sha))
+                {
+                    return Err(OracleError::InvalidSourceArtifact);
+                }
+            }
+            _ => {
+                if !self.derived_from_sha256.is_empty()
+                    || self.transformation_sha256.is_some()
+                {
+                    return Err(OracleError::InvalidSourceArtifact);
+                }
+            }
+        }
+        let mut parents = std::collections::BTreeSet::new();
+        for parent in &self.derived_from_sha256 {
+            if !valid_sha256(parent)
+                || parent == &self.sha256
+                || !parents.insert(parent.as_str())
+            {
+                return Err(OracleError::InvalidSourceArtifact);
+            }
+        }
         Ok(())
     }
 }
@@ -553,11 +583,22 @@ fn require_evidence_artifact<T>(
         Evidence::Unknown { .. } => None,
     };
     if let Some((sha256, required_role)) = required {
-        if !source_artifact_has_role(artifacts, sha256, required_role) {
-            return Err(OracleError::MissingSourceArtifact {
+        let artifact = artifacts
+            .iter()
+            .find(|artifact| {
+                artifact.sha256 == *sha256 && artifact.roles.contains(&required_role)
+            })
+            .ok_or_else(|| OracleError::MissingSourceArtifact {
                 sha256: sha256.clone(),
                 role: required_role,
-            });
+            })?;
+        let evidence_ready = matches!(
+            artifact.custody_mode,
+            SourceCustodyMode::LocalBytesDigestVerified
+                | SourceCustodyMode::DerivedFromSourceArtifacts
+        ) || (cfg!(test) && artifact.custody_mode == SourceCustodyMode::SyntheticFixture);
+        if !evidence_ready {
+            return Err(OracleError::SourceArtifactNotMaterialized(sha256.clone()));
         }
     }
     Ok(())
@@ -1374,6 +1415,8 @@ mod tests {
                 sha256,
                 roles: roles.into_iter().collect(),
                 custody_mode: SourceCustodyMode::SyntheticFixture,
+                derived_from_sha256: Vec::new(),
+                transformation_sha256: None,
             })
             .collect()
     }
@@ -1552,6 +1595,40 @@ mod tests {
     fn validates_source_qualified_plate_inventory() {
         let inventory = inventory(vec![record()]);
         assert_eq!(inventory.validate(), Ok(()));
+    }
+
+    #[test]
+    fn provider_metadata_only_artifacts_cannot_satisfy_observed_biological_evidence() {
+        let mut input = inventory(vec![record()]);
+        let artifact = input
+            .source_artifacts
+            .iter_mut()
+            .find(|artifact| artifact.sha256 == digest('c'))
+            .expect("fixture source artifact exists");
+        artifact.custody_mode = SourceCustodyMode::ProviderChecksumOnly;
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::SourceArtifactNotMaterialized(digest('c')))
+        );
+    }
+
+    #[test]
+    fn derived_artifacts_require_parent_digests_and_a_transformation_receipt() {
+        let mut input = inventory(vec![record()]);
+        let artifact = input
+            .source_artifacts
+            .iter_mut()
+            .find(|artifact| artifact.sha256 == digest('c'))
+            .expect("fixture source artifact exists");
+        artifact.custody_mode = SourceCustodyMode::DerivedFromSourceArtifacts;
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::InvalidSourceArtifact)
+        );
+
+        artifact.derived_from_sha256 = vec![digest('1')];
+        artifact.transformation_sha256 = Some(digest('2'));
+        assert_eq!(input.validate(), Ok(()));
     }
 
     #[test]
