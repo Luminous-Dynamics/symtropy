@@ -581,3 +581,16 @@ The dedicated implementation programme is [AI-DATA-CENTER-FLEX-001 #3435](https:
 The benchmark now has direct public research references for measured GPU load, correlation, power models and demand response. We should target the published 11.4% H100 power-model MAPE, 22% trace-model load deferral and 25%-for-3-hours field flexibility envelope as comparable baselines. Stretch targets (e.g. <8% model MAPE or ≥30% for 3 hours) are internal research goals, not standards or demonstrated capabilities.
 
 A core anti-gaming rule is now explicit: **power reduction only counts when useful compute completed, QoS, thermal/cooling safety, total energy, grid response and rebound all remain within the frozen contract.**
+
+
+## 26. Machine-auditable workload trace and meter hierarchy
+
+The trace contract and synthetic hostile fixtures are:
+- [AI_DATA_CENTER_WORKLOAD_TRACE_SCHEMA_2026-11-03.json](data/AI_DATA_CENTER_WORKLOAD_TRACE_SCHEMA_2026-11-03.json)
+- [AI_DATA_CENTER_WORKLOAD_TRACE_FIXTURES_2026-11-03.json](data/AI_DATA_CENTER_WORKLOAD_TRACE_FIXTURES_2026-11-03.json)
+
+They explicitly bind each power observation to a timebase, site, workload (where applicable), measurement point, calibration ID and evidence ID. Meter points form a hierarchy from accelerator/node/rack/UPS to facility PCC. A selected aggregate may not include both an aggregate meter and any of its descendants.
+
+Cross-site correlation requires synchronized clocks with measured error below a declared tolerance and a minimum common timestamp count. A PTP/NTP label alone is insufficient; the actual alignment error and shared samples must be checked. The fixtures include a valid aligned multi-site case, a nested meter double-count rejection and an unsynchronized clock rejection.
+
+A Rust implementation is being developed in [AI data-centre trace validation PR #3436](https://github.com/Luminous-Dynamics/symtropy/pull/3436). Its 11 unit tests cover meter lineage, cross-site alignment, common timestamps, workload/site joins, sample ordering and sign conventions. This is structural/ingestion validation only; it does not authenticate meter calibration or establish real grid correlations.
