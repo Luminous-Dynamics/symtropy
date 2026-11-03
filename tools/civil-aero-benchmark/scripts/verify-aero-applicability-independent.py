@@ -25,7 +25,7 @@ MANIFEST_HEADER = (
 ).split(",")
 QUERY_HEADER = (
     "record_type,model_id,quantity,geometry_family,flow_regime,solver_identity_sha256,"
-    "output_definition_sha256,feature_name,feature_unit,feature_value"
+    "output_definition_sha256,feature_name,feature_unit,feature_value,feature_value_bits"
 ).split(",")
 ASSESSMENT_HEADER = (
     "record_type,schema,model_id,quantity,manifest_sha256,query_sha256,status,"
@@ -235,16 +235,26 @@ def verify_manifest(rows: list[dict[str, str]]) -> dict:
     return {"meta": meta, "features": features, "regions": regions, "digest": actual}
 
 
+def total_cmp_key(value: float) -> int:
+    bits = struct.unpack("<Q", struct.pack("<d", value))[0]
+    sign = 1 << 63
+    return (~bits & ((1 << 64) - 1)) if bits & sign else (bits ^ sign)
+
+
 def verify_query(rows: list[dict[str, str]]) -> dict:
     meta = one_record(rows, "query")
     features = []
-    seen = set()
     for row in (r for r in rows if r["record_type"] == "feature"):
-        name, unit, raw_value = row["feature_name"], row["feature_unit"], row["feature_value"]
-        require(name not in seen, f"duplicate query feature {name}")
-        seen.add(name)
-        value = float(raw_value)
-        require(math.isfinite(value), f"query feature {name} is non-finite")
+        name, unit = row["feature_name"], row["feature_unit"]
+        value = float(row["feature_value"])
+        bits_text = row["feature_value_bits"]
+        require(
+            len(bits_text) == 16
+            and all(character in "0123456789abcdef" for character in bits_text),
+            f"query feature {name} has malformed exact float bits",
+        )
+        bits = int(bits_text, 16)
+        value = struct.unpack("<d", bits.to_bytes(8, "little"))[0]
         features.append({"name": name, "unit": unit, "value": value})
     canonical = bytearray()
     add_string(canonical, QUERY_SCHEMA)
@@ -257,12 +267,17 @@ def verify_query(rows: list[dict[str, str]]) -> dict:
         "output_definition_sha256",
     ):
         add_string(canonical, meta[field])
-    ordered = sorted(features, key=lambda item: (item["name"], item["unit"], item["value"]))
+    ordered = sorted(
+        features,
+        key=lambda item: (item["name"], item["unit"], total_cmp_key(item["value"])),
+    )
     add_u64(canonical, len(ordered))
     for feature in ordered:
         add_string(canonical, feature["name"])
         add_string(canonical, feature["unit"])
-        add_f64(canonical, feature["value"])
+        canonical.extend(
+            struct.pack("<Q", struct.unpack("<Q", struct.pack("<d", feature["value"]))[0])
+        )
     return {"meta": meta, "features": features, "digest": digest(bytes(canonical))}
 
 
@@ -294,12 +309,28 @@ def classify(manifest: dict, query: dict) -> tuple[str, list[str], str]:
         )
 
     values = {}
-    for feature in query["features"]:
+    ordered_features = sorted(
+        query["features"],
+        key=lambda item: (item["name"], item["unit"], total_cmp_key(item["value"])),
+    )
+    for feature in ordered_features:
         if not feature["name"].strip() or not feature["unit"].strip():
             return (
                 "unknown_due_to_missing_or_unqualified_inputs",
                 [],
                 "query contains a missing feature name or unit",
+            )
+        if not math.isfinite(feature["value"]):
+            return (
+                "unknown_due_to_missing_or_unqualified_inputs",
+                [],
+                f"query feature {feature['name']} is non-finite",
+            )
+        if feature["name"] in values:
+            return (
+                "unknown_due_to_missing_or_unqualified_inputs",
+                [],
+                f"query duplicates feature {feature['name']}",
             )
         values[feature["name"]] = feature["value"]
     expected = manifest["features"]
