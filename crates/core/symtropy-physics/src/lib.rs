@@ -14,6 +14,9 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
+#[cfg(test)]
+mod adaptive_contact_experiment_policy_witness;
+
 pub mod articulation;
 pub mod body;
 pub mod broadphase;
@@ -24,8 +27,6 @@ pub mod contact_frame;
 pub mod coupled_friction;
 #[cfg(test)]
 mod coupled_friction_two_contact_witness;
-#[cfg(test)]
-mod adaptive_contact_experiment_policy_witness;
 pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
