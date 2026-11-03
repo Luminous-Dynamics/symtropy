@@ -1098,6 +1098,22 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     if !security_report_bound {
         errors.push("cyber_physical_security.security_artifact_sha256: digest must bind a SECURITY_REPORT artifact".into());
     }
+    if let Some(results) = at(
+        manifest,
+        &["cyber_physical_security", "security_scenario_results"],
+    )
+    .and_then(Value::as_array)
+    {
+        for (index, result) in results.iter().enumerate() {
+            if string_at(result, &["outcome"]) == Some("PASS")
+                && string_at(result, &["evidence_sha256"]) != security_digest
+            {
+                errors.push(format!(
+                    "cyber_physical_security.security_scenario_results[{index}].evidence_sha256: PASS evidence must bind the run SECURITY_REPORT digest"
+                ));
+            }
+        }
+    }
 
     match communication_mode {
         "NETWORKED" => {
@@ -1388,16 +1404,16 @@ mod tests {
             "max_accepted_command_age_ms": 25.0,
             "security_artifact_sha256": "e".repeat(64),
             "security_scenario_results": [
-                {"scenario_id":"WPT-SEC-AUTH-SPOOF-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-CMD-REPLAY-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-CMD-STALE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-FW-INTEGRITY-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-SENSOR-PHASE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-SENSOR-CURRENT-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-TIMING-JITTER-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-COMM-DOS-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-CERT-REVOKE-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."},
-                {"scenario_id":"WPT-SEC-RESONANT-SWITCH-001","outcome":"PASS","evidence_sha256":"f".repeat(64),"notes":"Synthetic unit-test fixture only."}
+                {"scenario_id":"WPT-SEC-AUTH-SPOOF-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CMD-REPLAY-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CMD-STALE-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-FW-INTEGRITY-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-SENSOR-PHASE-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-SENSOR-CURRENT-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-TIMING-JITTER-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-COMM-DOS-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-CERT-REVOKE-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."},
+                {"scenario_id":"WPT-SEC-RESONANT-SWITCH-001","outcome":"PASS","evidence_sha256":"e".repeat(64),"notes":"Synthetic unit-test fixture only."}
             ]
         });
 
@@ -1698,6 +1714,16 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("replay-safe freshness mechanism required")));
     }
 
+
+
+    #[test]
+    fn rejects_security_scenario_digest_not_bound_to_report() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["security_scenario_results"][0]["evidence_sha256"] =
+            json!("f".repeat(64));
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("PASS evidence must bind the run SECURITY_REPORT digest")));
+    }
 
     #[test]
     fn rejects_missing_required_security_scenario() {
