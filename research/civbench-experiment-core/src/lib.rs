@@ -1671,6 +1671,23 @@ pub struct CyberPhysicalResilienceDescriptor {
     pub metrics: Vec<String>,
 }
 
+/// Validated contract for interference-aware network causal evaluation.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NetworkInterferenceDescriptor {
+    /// Candidate physical exposure mappings to test.
+    pub exposure_mapping_ids: Vec<String>,
+    /// Distinct causal estimands.
+    pub estimands: Vec<String>,
+    /// Registered comparison methods.
+    pub comparison_methods: Vec<String>,
+    /// Network and assignment perturbations.
+    pub perturbations: Vec<String>,
+    /// Non-composite network causal metrics.
+    pub metrics: Vec<String>,
+    /// Method sources backing the exposure/uncertainty design.
+    pub source_ids: Vec<String>,
+}
+
 /// Validated projection of CivBench experiment protocol v0.1.
 ///
 /// This adapter validates the decision-critical manifest contract used by
@@ -1705,6 +1722,8 @@ pub struct ExperimentProtocolV0_1 {
     pub external_evaluation_lanes: Vec<ExternalEvaluationLaneDescriptor>,
     /// Separate cyber-physical resilience benchmark contract.
     pub cyberphysical_resilience: CyberPhysicalResilienceDescriptor,
+    /// Interference-aware network causal experiment contract.
+    pub network_interference: NetworkInterferenceDescriptor,
 }
 
 /// Error returned when a JSON protocol manifest fails semantic validation.
@@ -2784,6 +2803,323 @@ impl ExperimentProtocolV0_1 {
             metrics,
         };
 
+        let network_path = "$.network_interference_contract";
+        let network = manifest_field(&root, "network_interference_contract", "$")?;
+        let network_version = manifest_string(
+            manifest_field(network, "version", network_path)?,
+            &format!("{network_path}.version"),
+        )?;
+        if network_version != "0.1.0" {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.version"),
+                "unsupported network-interference contract version",
+            ));
+        }
+
+        let claim_boundary = manifest_string(
+            manifest_field(network, "claim_boundary", network_path)?,
+            &format!("{network_path}.claim_boundary"),
+        )?;
+        if !claim_boundary.contains("not identified by DMA labels alone")
+            || !claim_boundary.contains("frozen, versioned exposure mapping")
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.claim_boundary"),
+                "network causal claims must be conditioned on a frozen exposure mapping",
+            ));
+        }
+
+        let assignment_units = manifest_string_array(
+            manifest_field(network, "assignment_units", network_path)?,
+            &format!("{network_path}.assignment_units"),
+        )?;
+        let required_assignment_units = [
+            "district_metered_area",
+            "hydraulic_pressure_zone",
+            "network_subgraph",
+            "whole_network",
+        ];
+        if assignment_units.len() != required_assignment_units.len()
+            || required_assignment_units.iter().any(|expected| {
+                !assignment_units.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.assignment_units"),
+                "all four registered assignment units are required",
+            ));
+        }
+
+        let mapping_values = manifest_field(network, "exposure_mappings", network_path)?;
+        let mapping_ids = manifest_object_ids(
+            mapping_values,
+            &format!("{network_path}.exposure_mappings"),
+            "mapping_id",
+        )?;
+        let required_mapping_ids = [
+            "topological_adjacency",
+            "hydraulic_influence",
+            "directed_flow_paths",
+            "shared_supply_storage",
+            "rooted_local_network",
+        ];
+        if mapping_ids.len() != required_mapping_ids.len()
+            || required_mapping_ids.iter().any(|expected| {
+                !mapping_ids.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.exposure_mappings"),
+                "the five registered candidate exposure mappings are required",
+            ));
+        }
+        for (index, entry) in manifest_array(mapping_values, &format!("{network_path}.exposure_mappings"))?
+            .iter().enumerate()
+        {
+            manifest_string(
+                manifest_field(entry, "description", &format!("{network_path}.exposure_mappings[{index}]"))?,
+                &format!("{network_path}.exposure_mappings[{index}].description"),
+            )?;
+        }
+
+        let uncertainty = manifest_field(network, "uncertainty_contract", network_path)?;
+        for gate in [
+            "candidate_networks_required",
+            "network_mapping_digest_required",
+            "plausible_network_completions_required_when_partial",
+            "at_least_one_candidate_network_correct_not_assumed",
+        ] {
+            let path = format!("{network_path}.uncertainty_contract.{gate}");
+            if !manifest_bool(
+                manifest_field(uncertainty, gate, &format!("{network_path}.uncertainty_contract"))?,
+                &path,
+            )? {
+                return Err(ManifestAdapterError::new(
+                    path,
+                    "network/exposure uncertainty cannot be assumed away",
+                ));
+            }
+        }
+        let unsupported_behavior = manifest_string(
+            manifest_field(uncertainty, "if_exposure_mapping_unsupported", &format!("{network_path}.uncertainty_contract"))?,
+            &format!("{network_path}.uncertainty_contract.if_exposure_mapping_unsupported"),
+        )?;
+        if !unsupported_behavior.contains("partial_identification_bounds_or_indeterminate_effect")
+            || !unsupported_behavior.contains("do_not_report_point_identified")
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.uncertainty_contract.if_exposure_mapping_unsupported"),
+                "unsupported exposure mapping must produce bounds or an indeterminate effect",
+            ));
+        }
+
+        let estimands = manifest_string_array(
+            manifest_field(network, "estimands", network_path)?,
+            &format!("{network_path}.estimands"),
+        )?;
+        let required_estimands = [
+            "direct_effect",
+            "spillover_effect",
+            "direct_spillover_interaction",
+            "total_network_effect",
+            "displacement_harm",
+            "whole_system_service_effect",
+        ];
+        if estimands.len() != required_estimands.len()
+            || required_estimands.iter().any(|expected| {
+                !estimands.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.estimands"),
+                "direct, spillover, interaction, total, displacement and whole-system estimands must remain separate",
+            ));
+        }
+
+        let assignment_designs = manifest_string_array(
+            manifest_field(network, "assignment_designs", network_path)?,
+            &format!("{network_path}.assignment_designs"),
+        )?;
+        let required_designs = [
+            "known_truth_randomized_node_assignment_for_method_testing_only",
+            "graph_clustered_assignment_with_registered_buffer_and_residual_exposure",
+            "two_stage_randomized_treatment_saturation_for_direct_and_spillover_estimands",
+            "randomized_rollout_timing_when_service_safe_and_authorized",
+            "matched_whole_network_scenario_pairs_for_simulation",
+        ];
+        if assignment_designs.len() != required_designs.len()
+            || required_designs.iter().any(|expected| {
+                !assignment_designs.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.assignment_designs"),
+                "all five service-safe and method-validation assignment designs are required",
+            ));
+        }
+
+        let comparison_methods = manifest_string_array(
+            manifest_field(network, "comparison_methods", network_path)?,
+            &format!("{network_path}.comparison_methods"),
+        )?;
+        let required_methods = [
+            "oracle_true_exposure_mapping",
+            "topology_only_exposure",
+            "hydraulic_influence_exposure",
+            "directed_flow_path_exposure",
+            "rooted_local_network_exposure",
+            "multiple_candidate_network_robust_estimator",
+            "partial_identification_under_mapping_uncertainty",
+            "naive_no_interference_estimator_as_negative_control",
+        ];
+        if comparison_methods.len() != required_methods.len()
+            || required_methods.iter().any(|expected| {
+                !comparison_methods.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.comparison_methods"),
+                "all eight oracle, misspecification, robust and negative-control comparators are required",
+            ));
+        }
+
+        let perturbations = manifest_string_array(
+            manifest_field(network, "perturbations", network_path)?,
+            &format!("{network_path}.perturbations"),
+        )?;
+        let required_perturbations = [
+            "edge_addition_or_deletion",
+            "unknown_or_reversed_flow_direction",
+            "pressure_zone_and_valve_boundary_uncertainty",
+            "roughness_and_demand_parameter_uncertainty",
+            "missing_or_aggregated_network_map",
+            "time_varying_pump_and_reservoir_state",
+            "cross_DMA_displacement_and_carryover",
+        ];
+        if perturbations.len() != required_perturbations.len()
+            || required_perturbations.iter().any(|expected| {
+                !perturbations.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.perturbations"),
+                "network map, physics, dynamic state and carryover perturbations must all be present",
+            ));
+        }
+
+        let metrics = manifest_string_array(
+            manifest_field(network, "metrics", network_path)?,
+            &format!("{network_path}.metrics"),
+        )?;
+        let required_metrics = [
+            "direct_effect_bias",
+            "spillover_effect_bias",
+            "total_effect_bias",
+            "nominal_interval_coverage",
+            "partial_identification_coverage",
+            "identified_interval_width",
+            "type_i_error",
+            "exposure_mapping_sensitivity",
+            "displacement_harm",
+            "worst_group_service_effect",
+            "system_level_service_effect",
+        ];
+        if metrics.len() != required_metrics.len()
+            || required_metrics.iter().any(|expected| {
+                !metrics.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.metrics"),
+                "all eleven causal validity and service displacement metrics are required",
+            ));
+        }
+
+        let targets = manifest_field(network, "aspirational_targets", network_path)?;
+        let read_target = |field: &str| -> Result<f64, ManifestAdapterError> {
+            manifest_field(targets, field, &format!("{network_path}.aspirational_targets"))?
+                .as_f64()
+                .ok_or_else(|| ManifestAdapterError::new(
+                    format!("{network_path}.aspirational_targets.{field}"),
+                    "expected a finite numeric target",
+                ))
+        };
+        if (read_target("correctly_specified_network_absolute_standardized_bias_at_most")? - 0.1).abs() > 1.0e-12
+            || (read_target("nominal_95_percent_interval_coverage_minimum")? - 0.93).abs() > 1.0e-12
+            || (read_target("nominal_95_percent_interval_coverage_maximum")? - 0.97).abs() > 1.0e-12
+            || (read_target("null_type_i_error_maximum")? - 0.05).abs() > 1.0e-12
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.aspirational_targets"),
+                "v0.1 aspirational validation targets have changed",
+            ));
+        }
+        let misspecified_target = manifest_string(
+            manifest_field(targets, "misspecified_mapping_bounds_target", &format!("{network_path}.aspirational_targets"))?,
+            &format!("{network_path}.aspirational_targets.misspecified_mapping_bounds_target"),
+        )?;
+        if !misspecified_target.contains("at least 95% empirical truth coverage")
+            || !misspecified_target.contains("width reported")
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.aspirational_targets.misspecified_mapping_bounds_target"),
+                "mapping robustness must report truth coverage and interval width",
+            ));
+        }
+
+        let network_gates = manifest_field(network, "hard_gates", network_path)?;
+        for gate in [
+            "dma_boundaries_not_assumed_to_eliminate_interference",
+            "exposure_map_and_network_digest_frozen_before_outcome_inspection",
+            "multiple_plausible_mappings_tested_when_network_uncertain",
+            "report_direct_spillover_total_and_displacement_separately",
+            "no_point_identification_when_exposure_is_unsupported",
+            "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance",
+            "essential_service_and_water_quality_floors_remain_hard_constraints",
+        ] {
+            let path = format!("{network_path}.hard_gates.{gate}");
+            if !manifest_bool(
+                manifest_field(network_gates, gate, &format!("{network_path}.hard_gates"))?,
+                &path,
+            )? {
+                return Err(ManifestAdapterError::new(
+                    path,
+                    "network causal safety/evidence gates cannot be disabled",
+                ));
+            }
+        }
+
+        let network_source_ids = manifest_string_array(
+            manifest_field(network, "source_refs", network_path)?,
+            &format!("{network_path}.source_refs"),
+        )?;
+        let required_network_sources = [
+            "WEINSTEIN_NEVO_MISSPECIFIED_INTERFERENCE_2026",
+            "SCHRODER_OPRESCU_FEUERRIEGEL_KALLUS_PARTIAL_ID_2026",
+            "AUERBACH_LOCAL_CAUSAL_NETWORK_INTERFERENCE_2026",
+            "WILKINS_REEVES_SINGLE_NETWORK_PARTIAL_DATA_UAI_2026",
+        ];
+        if network_source_ids.len() != required_network_sources.len()
+            || required_network_sources.iter().any(|expected| {
+                !network_source_ids.iter().any(|value| value == expected)
+                    || !source_ids.iter().any(|value| value == expected)
+            })
+        {
+            return Err(ManifestAdapterError::new(
+                format!("{network_path}.source_refs"),
+                "all four cited causal-method sources must be present in the global source inventory",
+            ));
+        }
+
+        let network_interference = NetworkInterferenceDescriptor {
+            exposure_mapping_ids: mapping_ids,
+            estimands,
+            comparison_methods,
+            perturbations,
+            metrics,
+            source_ids: network_source_ids,
+        };
+
         let confidence = manifest_field(
             leak,
             "confidence_contract",
@@ -3021,6 +3357,7 @@ impl ExperimentProtocolV0_1 {
             leak_datasets,
             external_evaluation_lanes,
             cyberphysical_resilience,
+            network_interference,
         })
     }
 }
@@ -3071,6 +3408,12 @@ mod tests {
         assert_eq!(manifest.cyberphysical_resilience.evaluation_lane_ids.len(), 3);
         assert_eq!(manifest.cyberphysical_resilience.event_classes.len(), 6);
         assert_eq!(manifest.cyberphysical_resilience.metrics.len(), 8);
+        assert_eq!(manifest.network_interference.exposure_mapping_ids.len(), 5);
+        assert_eq!(manifest.network_interference.estimands.len(), 6);
+        assert_eq!(manifest.network_interference.comparison_methods.len(), 8);
+        assert_eq!(manifest.network_interference.perturbations.len(), 7);
+        assert_eq!(manifest.network_interference.metrics.len(), 11);
+        assert_eq!(manifest.network_interference.source_ids.len(), 4);
         assert!(manifest.external_evaluation_lanes.iter().any(|lane| {
             lane.dataset_id == "BATTLEDIM_L_TOWN_2018_2019"
                 && lane.time_step_minutes == 5
@@ -3337,6 +3680,65 @@ mod tests {
         assert!(matches!(
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. }) if path.ends_with("event_classes")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_dma_as_no_interference_assumption() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["network_interference_contract"]["hard_gates"]
+            ["dma_boundaries_not_assumed_to_eliminate_interference"] = false.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("dma_boundaries_not_assumed_to_eliminate_interference")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_missing_network_exposure_mapping() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["network_interference_contract"]["exposure_mappings"]
+            .as_array_mut().unwrap().retain(|mapping| {
+                mapping.get("mapping_id").and_then(serde_json::Value::as_str)
+                    != Some("hydraulic_influence")
+            });
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("exposure_mappings")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_unproven_network_source() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["network_interference_contract"]["source_refs"][0] = "UNKNOWN_SOURCE".into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("source_refs")
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_disabling_essential_service_protection() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["network_interference_contract"]["hard_gates"]
+            ["no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance"] =
+            false.into();
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path.ends_with("no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance")
         ));
     }
 
