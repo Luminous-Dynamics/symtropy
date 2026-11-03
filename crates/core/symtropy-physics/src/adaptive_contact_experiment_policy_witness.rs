@@ -125,6 +125,24 @@ fn policy_value_is_better(
 /// open cell because no prediction endpoint lies inside it. Empty observation
 /// regions are omitted. This prevents a measure-zero boundary overlap from
 /// being silently ignored.
+fn surviving_hypotheses_for_observation(
+    experiment: &Experiment,
+    current_hypotheses: u16,
+    observation: &BigRational,
+) -> u16 {
+    experiment
+        .expanded_predictions()
+        .iter()
+        .enumerate()
+        .fold(0_u16, |survivors, (index, interval)| {
+            if current_hypotheses & (1_u16 << index) != 0 && interval.contains(observation) {
+                survivors | (1_u16 << index)
+            } else {
+                survivors
+            }
+        })
+}
+
 fn observation_outcome_masks(experiment: &Experiment, current_hypotheses: u16) -> Vec<u16> {
     let expanded = experiment.expanded_predictions();
     let mut endpoints = Vec::new();
@@ -258,6 +276,30 @@ impl SynthesizedPolicy {
     fn next_experiment(&self, state: PolicyState) -> Option<usize> {
         self.selected_actions.get(&state).copied()
     }
+
+    /// Apply one actual scalar reading to a reachable policy state. A reading
+    /// outside every certified interval returns None rather than manufacturing
+    /// an empty/identified branch state.
+    fn advance_after_observation(
+        &self,
+        state: PolicyState,
+        experiment_index: usize,
+        experiments: &[Experiment],
+        observation: &BigRational,
+    ) -> Option<PolicyState> {
+        if self.next_experiment(state) != Some(experiment_index) {
+            return None;
+        }
+        let (hypotheses, available_experiments) = state;
+        let experiment_bit = 1_u16.checked_shl(experiment_index as u32)?;
+        if available_experiments & experiment_bit == 0 {
+            return None;
+        }
+        let experiment = experiments.get(experiment_index)?;
+        let survivors =
+            surviving_hypotheses_for_observation(experiment, hypotheses, observation);
+        (survivors != 0).then_some((survivors, available_experiments & !experiment_bit))
+    }
 }
 
 fn synthesize_policy(
@@ -357,6 +399,30 @@ mod tests {
         assert_eq!(policy.next_experiment((0b111, 0b11)), Some(0));
         assert_eq!(policy.next_experiment((0b011, 0b10)), Some(1));
         assert_eq!(policy.next_experiment((0b100, 0b10)), None);
+
+        // Execute the synthesized policy with actual scalar readings. The
+        // first read leaves {h0,h1}; the next read isolates h1. A reading
+        // outside the certified outcome set is rejected rather than pruning
+        // all branches and pretending that identification succeeded.
+        let after_first = policy
+            .advance_after_observation(
+                policy.root_state,
+                0,
+                &experiments,
+                &rational(0),
+            )
+            .expect("the first observation belongs to h0 and h1");
+        assert_eq!(after_first, (0b011, 0b10));
+        let after_second = policy
+            .advance_after_observation(after_first, 1, &experiments, &rational(2))
+            .expect("the second observation identifies h1");
+        assert_eq!(after_second, (0b010, 0));
+        assert!(
+            policy
+                .advance_after_observation(policy.root_state, 0, &experiments, &rational(9))
+                .is_none(),
+            "an impossible observation must fail closed"
+        );
     }
 
     #[test]
