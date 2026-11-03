@@ -9328,6 +9328,15 @@ dependencies = [
  "proptest",
  "serde",
  "symtropy-math",
+ "symtropy-physics-diff-core",
+]
+
+[[package]]
+name = "symtropy-physics-diff-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -9356,6 +9365,7 @@ dependencies = [
  "symthaea-bevy-brain",
  "symtropy-math",
  "symtropy-physics",
+ "symtropy-physics-diff-core",
  "symtropy-robotics-bridge-core",
 ]
 

@@ -21,6 +21,7 @@ deterministic-net = []
 
 [dependencies]
 symtropy-math = { version = "0.2.1", path = "../symtropy-math" }
+symtropy-physics-diff-core = { path = "../../bridges/symtropy-physics-diff-core" }
 nalgebra = { version = "0.34", features = ["serde-serialize"] }
 serde = { version = "1.0", features = ["derive"] }
 arrayvec = "0.7"
