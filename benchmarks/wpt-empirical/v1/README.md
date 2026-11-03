@@ -109,3 +109,24 @@ Every v1 record now includes `field_observation`. It is null only for non-field 
 The quantity vocabulary now distinguishes `electrical_real_power`, `apparent_power`, `reactive_power` and `power_factor`. They may share compatible SI dimensions at the base-unit level, but remain distinct engineering quantities and cannot be substituted for one another. Peak/average/RMS is a separate statistic, not a different unit.
  
 The comparator now also checks the statistical window/sample count when a statistic is specified, and for field-to-field comparison it requires probe method, 3D position, orientation, reference frame, spatial region and averaging method to match. Unknown geometry or method remains UNRESOLVED; known differences produce a field-geometry mismatch. A frozen case keeps Riekerk's 13.86 μT abstract scalar unqualified for exposure comparison.
+
+## Executable Rust comparator (draft)
+
+The workspace member `tools/wpt-measurement-comparator` implements the first executable v1 metrology gate:
+
+```sh
+cargo test --locked -p wpt-measurement-comparator
+cargo run --locked -p wpt-measurement-comparator -- /path/to/symtropy
+```
+
+It reads v1 measurement/case JSONL and the v0 source/prototype catalogues. It checks:
+- quantity-to-SI-dimension mappings and controlled units;
+- raw qualifier/range consistency and percent / microtesla normalization;
+- source and prototype foreign-key resolution;
+- required typed measurement planes and stage-set semantics;
+- strict boundary, statistic, measurement-window, evidence and operating-condition comparability;
+- field probe method, position, orientation, reference frame, spatial region and averaging method.
+
+Every frozen case must return its expected disposition and include its expected explanation codes. The positive comparable fixture is synthetic unit-test data only; it is not included as an experimental observation.
+
+The comparator intentionally refuses to turn missing information into a result. It returns `UNRESOLVED` where evidence is incomplete and `NOT_COMPARABLE` where quantities, purposes, boundaries, stages, statistics or conditions differ. It is not a general-purpose SI/UCUM engine yet; the supported unit table and conversions are explicit and should expand only with tests.
