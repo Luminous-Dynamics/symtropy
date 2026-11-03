@@ -1,10 +1,11 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Constraint-first, interval-aware Pareto evaluation.
+//! Constraint-first, unit-aware, interval-aware Pareto evaluation.
 //!
 //! Safety and operating limits are hard constraints, never weighted objectives.
 //! A design must be proven feasible before it may enter the Pareto front.
+//! Candidate metrics, objectives and constraints must declare matching units.
 //! Missing or overlapping uncertainty intervals are preserved as
 //! NotEvaluable or Uncertain rather than silently treated as safe.
 //!
