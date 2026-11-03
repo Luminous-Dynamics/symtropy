@@ -120,6 +120,16 @@ References:
 - https://www.asme.org/codes-standards/find-codes-standards/vvuq201-vvuq-20-1-multivariate-metric-for-validation
 - https://www.nist.gov/publications/summary-industrial-verification-validation-and-uncertainty-quantification-procedures
 
+## Applicability-domain and abstention requirement
+
+Validation at one operating point does not validate a whole geometry family or flight envelope. Each prediction intended to support an engineering claim must eventually bind an explicit applicability-domain assessment: geometry family, operating variables/units, solver/model identity, supported regions, known gaps, excluded regimes, validation-data scope and the uncertainty basis.
+
+Do not treat a single convex hull, distance score or OOD classifier as a validity theorem. Disconnected validated clusters, sparsely sampled regions, transition boundaries and unsupported gaps must remain distinguishable. Out-of-domain or missing-input cases abstain from validation-backed promotion; exploratory outputs may remain available with an explicit evidence ceiling.
+
+The benchmark should report false-in-domain and false-out-of-domain rates, selective risk versus coverage, calibration and subgroup performance by geometry family and flow regime. A zero false-in-domain count on a small synthetic suite is only a finite software test result; report sample independence and a confidence bound before making population claims.
+
+This is tracked as [AERO-APPLICABILITY-001 / #3495](https://github.com/Luminous-Dynamics/symtropy/issues/3495), composed with #3237, #3413, #3428 and #2890.
+
 ## Pre-registered target ladder
 
 These are proposed research targets, not achieved results. Freeze them before the corresponding blind evaluation.
