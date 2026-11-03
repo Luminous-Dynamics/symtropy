@@ -185,7 +185,10 @@ Do not produce one weighted "actor realism and safety" score. Report at least:
 For motion prediction/actor simulation, use separate external tracks:
 - Argoverse 2 multi-agent motion forecasting: minADE/minFDE and miss-rate are trajectory metrics, not decision-quality metrics.
 - Waymo Open Sim Agents Challenge (WOSAC): realism, kinematics, interactivity, map adherence and displacement metrics assess simulation-agent qualities.
+- **InterHub dense interaction reference:** use only as a later, source-admitted interaction-stratification track. The 2025 paper reports 65,399 extracted interaction segments involving 146,170 agents, with participant IDs, temporal bounds, path relations, priority labels, PET and interaction-intensity information. It notes that source interactions are sparse and some rare path-relation classes are unstable; report denominators and uncertainty per family. Trajectory-only evidence does not establish latent intent or unmaterialized anticipation.
 - Closed-loop planning and robustness: CARLA Leaderboard 2.1, Bench2Drive, nuPlan and Fail2Drive; publish route completion, infractions, decision regret, scenario-family coverage, runtime and incomplete outcomes separately.
+
+**InterHub rights gate:** the Figshare v7 wrapper is listed CC BY 4.0, but its record says redistributed third-party caches remain governed by their original dataset licences; the paper is CC BY-NC-ND 4.0. Freeze a source-file-level licence/provenance manifest before importing cached WOMD, nuPlan, Lyft or INTERACTION data, and do not assume the wrapper licence authorizes commercial reuse. Use event metadata first if source data rights are not admitted.
 
 The external scores are comparison anchors, not acceptance criteria for this synthetic adapter. Dataset and benchmark licenses/protocols must be checked before importing or publishing data.
 
@@ -193,7 +196,7 @@ The external scores are comparison anchors, not acceptance criteria for this syn
 
 **A0 — Contract fixture:** validate the JSON, freeze policy rules, cue allow-list, clock and negative controls.
 
-**A1 — Pure policy module:** implement `ScenarioActorId`, typed observations, actor state, deterministic policy trait and bounded transition validation without Bevy or physics dependencies.
+**A1 — Pure policy module:** implement a validated stable `ScenarioActorId`, typed observations, actor state with monotonic decision ticks, deterministic policy trait and bounded transition validation without Bevy or physics dependencies.
 
 **A2 — Kinematic adapter:** own the stable actor-ID/BodyHandle map; apply transitions through `body_mut`; call the existing world step once per tick; expose typed adapter errors.
 
@@ -223,6 +226,9 @@ Links:
 - [NIST Measurement Science for Automated Vehicles](https://www.nist.gov/programs-projects/measurement-science-automated-vehicles-0)
 - [Comfortably Stuck (October 2026)](https://arxiv.org/abs/2610.21741)
 - [ASAM OpenSCENARIO DSL 2.2.0](https://www.asam.net/standards/detail/openscenario-dsl/)
+- [InterHub Scientific Data paper (2025)](https://pmc.ncbi.nlm.nih.gov/articles/PMC12218015/)
+- [InterHub Figshare dataset v7](https://figshare.com/articles/dataset/_b_InterHub_A_Naturalistic_Trajectory_Dataset_with_Dense_Interaction_for_Autonomous_Driving_b_/27899754)
+- [InterHub toolkit](https://github.com/zxc-tju/InterHub)
 - [ASAM OpenSCENARIO XML 1.4.0](https://www.asam.net/standards/detail/openscenario-xml/)
 
 ## 11. Claim ceiling
