@@ -720,7 +720,15 @@ fn validate_episode(
     }
 
     let mechanism_assessed = match record.mechanism_recovery {
-        MechanismRecoveryStatus::NotApplicable => false,
+        MechanismRecoveryStatus::NotApplicable => {
+            if record.perturbation_onset_tick.is_some()
+                || record.mechanism_state_schema_sha256.is_some()
+                || record.mechanism_state_deviation_from_nominal.is_some()
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+            false
+        },
         MechanismRecoveryStatus::Restored { latency_ticks } => {
             let onset = record.perturbation_onset_tick
                 .ok_or(RobustnessError::InvalidRecoveryRecord)?;
@@ -760,7 +768,8 @@ fn validate_episode(
             true
         }
         MechanismRecoveryStatus::Unobserved => {
-            if record.mechanism_state_deviation_from_nominal.is_some()
+            if record.perturbation_onset_tick.is_none()
+                || record.mechanism_state_deviation_from_nominal.is_some()
                 || record.mechanism_state_schema_sha256.is_some()
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
@@ -1707,6 +1716,7 @@ mod tests {
         ];
         episodes[0].recovery = RecoveryStatus::Recovered { latency_ticks: 100 };
         episodes[1].recovery = RecoveryStatus::NotRecoveredByHorizon;
+        episodes[1].functional_state_deviation_from_nominal = Some(0.4);
         let report = analyze_robustness(&protocol(), &episodes).expect("scorecard");
         let row = &report.by_scenario[0];
         assert_eq!(row.recovered_episodes, 1);
@@ -1723,9 +1733,18 @@ mod tests {
         ];
         episodes[0].recovery = RecoveryStatus::Unobserved;
         episodes[1].recovery = RecoveryStatus::Unobserved;
+        episodes[0].functional_state_deviation_from_nominal = None;
+        episodes[1].functional_state_deviation_from_nominal = None;
+        episodes[0].mechanism_recovery = MechanismRecoveryStatus::Unobserved;
+        episodes[1].mechanism_recovery = MechanismRecoveryStatus::Unobserved;
+        episodes[0].mechanism_state_schema_sha256 = None;
+        episodes[1].mechanism_state_schema_sha256 = None;
+        episodes[0].mechanism_state_deviation_from_nominal = None;
+        episodes[1].mechanism_state_deviation_from_nominal = None;
         let report = analyze_robustness(&protocol(), &episodes).expect("scorecard");
         assert_eq!(report.by_scenario[0].median_recovery_latency_ticks, None);
         assert_eq!(report.by_scenario[0].unobserved_recovery_episodes, 2);
+        assert_eq!(report.by_scenario[0].unobserved_mechanism_recovery_episodes, 2);
     }
 
     #[test]
@@ -1742,6 +1761,10 @@ mod tests {
             record.perturbation_unit = "none".to_string();
             record.perturbation_onset_tick = None;
             record.recovery = RecoveryStatus::NotApplicable;
+            record.mechanism_recovery = MechanismRecoveryStatus::NotApplicable;
+            record.functional_state_deviation_from_nominal = None;
+            record.mechanism_state_schema_sha256 = None;
+            record.mechanism_state_deviation_from_nominal = None;
         }
         flat[0].success = false;
         let mut stress = vec![
@@ -1812,6 +1835,46 @@ mod tests {
         assert_eq!(row.total_physics_violation_count, 3);
         assert_eq!(row.success_rate, 0.0);
         assert!(!row.hard_failure_gate_passed);
+    }
+
+    #[test]
+    fn functional_recovery_without_mechanism_restoration_is_reported_as_compensation() {
+        let mut episodes = vec![
+            episode("candidate", "trial-1", "fly-1", 0.9),
+            episode("candidate", "trial-2", "fly-2", 0.8),
+        ];
+        episodes[0].mechanism_recovery =
+            MechanismRecoveryStatus::NotRestoredByHorizon;
+        episodes[0].mechanism_state_deviation_from_nominal = Some(0.3);
+
+        let report = analyze_robustness(&protocol(), &episodes).expect("scorecard");
+        let row = &report.by_scenario[0];
+        assert_eq!(row.recovered_episodes, 2);
+        assert_eq!(row.mechanism_restored_episodes, 1);
+        assert_eq!(row.mechanism_not_restored_by_horizon_episodes, 1);
+        assert_eq!(row.compensation_without_mechanism_restoration_episodes, 1);
+        assert_eq!(row.joint_function_and_mechanism_recovery_episodes, 1);
+    }
+
+    #[test]
+    fn rejects_mechanism_restoration_without_a_within_tolerance_state_measure() {
+        let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
+        invalid.mechanism_state_deviation_from_nominal = Some(0.4);
+        assert_eq!(
+            analyze_robustness(&protocol(), &[invalid]),
+            Err(RobustnessError::InvalidRecoveryRecord)
+        );
+    }
+
+    #[test]
+    fn rejects_functional_non_recovery_within_declared_recovery_tolerance() {
+        let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
+        invalid.recovery = RecoveryStatus::NotRecoveredByHorizon;
+        invalid.functional_state_deviation_from_nominal = Some(0.05);
+        assert_eq!(
+            analyze_robustness(&protocol(), &[invalid]),
+            Err(RobustnessError::InvalidRecoveryRecord)
+        );
     }
 
     #[test]
