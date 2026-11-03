@@ -1430,6 +1430,37 @@ mod tests {
         manifest
     }
 
+
+    #[test]
+    fn frozen_security_scenario_corpus_matches_rust_required_ids() {
+        let source = include_str!(
+            "../../../benchmarks/wpt-empirical/v1/cyber-physical-scenarios.jsonl"
+        );
+        let mut ids = Vec::new();
+        for (index, line) in source.lines().enumerate() {
+            let record: Value = serde_json::from_str(line)
+                .unwrap_or_else(|error| panic!("security scenario line {}: {error}", index + 1));
+            let id = string_at(&record, &["scenario_id"])
+                .expect("scenario_id required in frozen security corpus");
+            ids.push(id.to_owned());
+            assert_eq!(
+                string_at(&record, &["schema_version"]),
+                Some("wpt-security-scenario-v1")
+            );
+            assert!(nonempty(string_at(&record, &["preconditions"])));
+            assert!(nonempty(string_at(&record, &["stimulus"])));
+            assert!(nonempty(string_at(&record, &["expected_safe_response"])));
+            assert!(nonempty(string_at(&record, &["failure_condition"])));
+        }
+        ids.sort();
+        let mut expected = REQUIRED_SECURITY_SCENARIOS
+            .iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(ids, expected, "frozen scenario IDs and validator contract drifted");
+    }
+
     #[test]
     fn not_run_template_is_structurally_valid_but_not_a_measurement() {
         let (disposition, errors) = validate_manifest(&template());
