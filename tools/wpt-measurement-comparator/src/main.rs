@@ -37,7 +37,8 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         | "mutual_inductance_estimation_error"
         | "equivalent_load_estimation_error"
         | "output_prediction_mape"
-        | "cc_cv_regulation_error" => Some("dimensionless"),
+        | "cc_cv_regulation_error"
+        | "output_regulation_error" => Some("dimensionless"),
         "electric_field_strength" | "internal_electric_field" => Some("electric_field"),
         "magnetic_field_strength" => Some("magnetic_field"),
         "magnetic_flux_density" => Some("magnetic_flux_density"),
@@ -105,6 +106,7 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         | "equivalent_load_estimation_error"
         | "output_prediction_mape"
         | "cc_cv_regulation_error"
+        | "output_regulation_error"
         | "control_settling_time" => Some("control_performance"),
         "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency" => {
             Some("operational_reliability")
@@ -1104,6 +1106,40 @@ mod tests {
         assert!(reasons.contains(&"REFERENCE_BASELINE_MISMATCH".to_string()));
     }
 
+
+    #[test]
+    fn output_regulation_error_is_a_dimensionless_control_metric() {
+        assert_eq!(dimension_for_quantity("output_regulation_error"), Some("dimensionless"));
+    }
+
+    #[test]
+    fn output_regulation_and_cc_cv_regulation_are_not_the_same_quantity() {
+        let mut left = sample("HCMPC-OUTPUT-ERROR", 0.5);
+        left["quantity_kind"] = json!("output_regulation_error");
+        left["measurement_purpose"] = json!("control_performance");
+        let mut right = sample("CCCV-REGULATION-ERROR", 1.0);
+        right["quantity_kind"] = json!("cc_cv_regulation_error");
+        right["measurement_purpose"] = json!("control_performance");
+        let (disposition, reasons) = compare_measurements(&left, &right, "generic_numeric_ranking");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"QUANTITY_KIND_MISMATCH".to_string()));
+    }
+
+    #[test]
+    fn relative_metric_definition_mismatch_is_not_comparable() {
+        let mut left = sample("METRIC-DEF-LEFT", 31.3);
+        left["quantity_kind"] = json!("relative_temperature_reduction");
+        left["measurement_purpose"] = json!("thermal_performance");
+        left["conditions"]["reference_baseline_id"] = json!("BASELINE-A");
+        left["conditions"]["metric_definition_id"] = json!("TEMP-MAX-REDUCTION");
+        let mut right = left.clone();
+        right["measurement_id"] = json!("METRIC-DEF-RIGHT");
+        right["conditions"]["metric_definition_id"] = json!("TEMP-SPATIAL-UNIFORMITY");
+        let (disposition, reasons) = compare_measurements(&left, &right, "compare_metric_improvement");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"METRIC_DEFINITION_MISMATCH".to_string()));
+    }
+
     #[test]
     fn different_rated_power_classes_are_not_comparable_for_efficiency_ranking() {
         let left = sample("CLASS-LEFT", 95.0);
@@ -1140,7 +1176,7 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         let report = audit(&root).expect("WPT comparator corpus should load");
         assert_eq!(report["valid"], Value::Bool(true), "{report:#}");
-        assert_eq!(report["measurement_count"], json!(48));
-        assert_eq!(report["comparison_case_count"], json!(17));
+        assert_eq!(report["measurement_count"], json!(50));
+        assert_eq!(report["comparison_case_count"], json!(19));
     }
 }
