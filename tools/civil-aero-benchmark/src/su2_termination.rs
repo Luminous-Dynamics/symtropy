@@ -803,10 +803,11 @@ mod tests {
                 && row.evidence_scope
                     == Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner
                 && row.reported_field == "AGGREGATE_WINDOW_SUCCESS_BANNER"
-                && row.summary_line_sha256 == sha256_hex(
-                    b"All windowed time-averaged convergence criteria are fullfilled."
-                )
-                .expect("hash exact aggregate banner")
+                && row.summary_line_sha256
+                    == sha256_hex(
+                        b"All windowed time-averaged convergence criteria are fullfilled.",
+                    )
+                    .expect("hash exact aggregate banner")
         }));
         assert_eq!(
             criteria
