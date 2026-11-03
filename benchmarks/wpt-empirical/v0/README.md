@@ -155,3 +155,18 @@ The source catalogue now also registers the principal standards and reference me
 
 Keep three questions distinct: (1) what field propagates and by which physical path, (2) what exposure assessment method/limit applies, and (3) what useful energy reaches a declared load. A propagation field-strength prediction is not a safety assessment or a source-to-load efficiency measurement. A guideline is not a test method; a test method is not a legal limit; and a product standard is not a universal model for all WPT geometries.
 
+## New 50 kW electric-bus opportunity-charging comparator
+
+Riekerk et al., *On the Efficiency Limits and Electric Field Stresses of Wireless Charging for Electric Buses: A 50 kW Experimental Study Based on Opportunity Charging*, DOI 10.1109/JESTPE.2025.3631233, is added as a seventh prototype family.
+
+The primary university record reports:
+- a 50 kW prototype;
+- DC-to-DC efficiency from 97.165% to 96.824% under 100 mm X and Y misalignment;
+- a reported stray field of 13.86 μT.
+
+The 2026 IPT/CPT survey's Appendix A Table A1 independently summarizes the corresponding prototype as 50.96 kW, 97.16%, 85 kHz, 160 mm gap, and 4,813 cm² transmitter/receiver areas. Those table-only operating descriptors remain attributed to the survey as a secondary source until verified against the primary article. The primary abstract's 50 kW rating and the survey's 50.96 kW measured/table value are not silently reconciled.
+
+This creates a useful near-matched industrial comparison against Zavrel's 65 kW / 200 mm / 96.3% back-to-back point, but only after matching the exact efficiency boundary and power point. The Riekerk DC-to-DC result is not wall-to-battery efficiency, and the source's 13.86 μT stray-field scalar is not a compliance assessment because its location, component, averaging, probe geometry and measured-vs-modelled method are not recoverable from the accessible abstract.
+
+Primary research portal: https://research.utwente.nl/en/publications/on-the-efficiency-limits-and-electric-field-stresses-of-wireless-/
+
