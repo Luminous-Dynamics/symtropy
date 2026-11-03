@@ -41,7 +41,7 @@ pub enum EmergencyStopSignal {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SensorModality {
     Camera,
     Lidar,
@@ -125,6 +125,7 @@ pub enum Reason {
     HumanEvidenceSensorMissing,
     HumanEvidenceSensorUnhealthy,
     HumanEvidenceCoverageInsufficient,
+    HumanModalityDiversityInsufficient,
     HumanSeparationBreached,
     HumanSeparationNearBoundary,
     MotionLimitExceeded,
@@ -228,6 +229,7 @@ pub struct SafetyPolicy {
     pub uncertainty_margin_mm: u64,
     pub caution_margin_mm: u64,
     pub minimum_independent_sensor_groups: usize,
+    pub minimum_human_sensor_modalities: usize,
     pub minimum_sensor_confidence_ppm: u32,
     pub minimum_sensor_coverage_ppm: u32,
     pub minimum_human_track_confidence_ppm: u32,
@@ -320,6 +322,7 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
         || policy.maximum_sensor_age_ms == 0
         || policy.maximum_heartbeat_age_ms == 0
         || policy.minimum_independent_sensor_groups == 0
+        || policy.minimum_human_sensor_modalities == 0
         || policy.minimum_sensor_confidence_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_sensor_coverage_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_human_track_confidence_ppm > MAX_CONFIDENCE_PPM
@@ -510,6 +513,7 @@ fn human_evidence_status(
 
     let mut sensor_ids = BTreeSet::new();
     let mut independent_fault_domains = BTreeSet::new();
+    let mut independent_modalities = BTreeSet::new();
     for sensor_id in &evidence.contributing_sensor_ids {
         if !non_empty(sensor_id)
             || sensor_id.len() > MAX_IDENTIFIER_BYTES
@@ -533,10 +537,14 @@ fn human_evidence_status(
             return Err(Reason::HumanEvidenceSensorUnhealthy);
         }
         independent_fault_domains.insert(sensor.fault_domain.as_str());
+        independent_modalities.insert(sensor.modality);
     }
 
     if independent_fault_domains.len() < policy.minimum_independent_sensor_groups {
         return Err(Reason::SensorDiversityInsufficient);
+    }
+    if independent_modalities.len() < policy.minimum_human_sensor_modalities {
+        return Err(Reason::HumanModalityDiversityInsufficient);
     }
     Ok(())
 }
@@ -916,6 +924,7 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
         uncertainty_margin_mm: 250,
         caution_margin_mm: 1_000,
         minimum_independent_sensor_groups: 2,
+        minimum_human_sensor_modalities: 2,
         minimum_sensor_confidence_ppm: 800_000,
         minimum_sensor_coverage_ppm: 900_000,
         minimum_human_track_confidence_ppm: 900_000,
@@ -988,7 +997,7 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
         human_detection: HumanDetectionEvidence {
             contributing_sensor_ids: vec![
                 "lidar-front".to_owned(),
-                "localization-unit".to_owned(),
+                "camera-front".to_owned(),
             ],
             source_sha256: digest('9'),
             observed_at_ms: 4_990,
@@ -1595,12 +1604,28 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     observation.human = HumanObservation::NoHumanDetected;
     observation.human_detection.contributing_sensor_ids = vec![
         "lidar-front".to_owned(),
-        "localization-unit".to_owned(),
+        "camera-front".to_owned(),
     ];
-    observation.sensors[1].fault_domain = observation.sensors[0].fault_domain.clone();
+    observation.sensors[2].fault_domain = observation.sensors[0].fault_domain.clone();
     add_case(
         &mut cases,
         "SAFE-046-human-absence-from-common-mode-sensors",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human = HumanObservation::NoHumanDetected;
+    observation.human_detection.contributing_sensor_ids = vec![
+        "lidar-front".to_owned(),
+        "localization-unit".to_owned(),
+    ];
+    observation.sensors[1].modality = SensorModality::Lidar;
+    observation.sensors[1].fault_domain = "independent-navigation-power".to_owned();
+    add_case(
+        &mut cases,
+        "SAFE-047-two-fault-domains-but-one-human-sensing-modality",
         base_policy.clone(),
         observation,
         Disposition::StopRequiredBySyntheticPolicy,
@@ -2011,6 +2036,22 @@ mod tests {
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
         assert_eq!(decision.reasons, vec![Reason::HumanEvidenceMalformed]);
+    }
+
+    #[test]
+    fn human_presence_evidence_requires_modality_diversity() {
+        let (policy, mut observation) = baseline();
+        observation.human = HumanObservation::NoHumanDetected;
+        observation.sensors[2].modality = SensorModality::Lidar;
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(
+            decision.reasons,
+            vec![Reason::HumanModalityDiversityInsufficient]
+        );
     }
 
     #[test]
