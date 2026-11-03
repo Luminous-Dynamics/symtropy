@@ -16,8 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::integrity::sha256_hex;
 
 pub const POLICY_FEASIBILITY_AUDIT_SCHEMA: &str = "aero-policy-feasibility-audit/0.1.0";
-pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str =
-    "exact_admitted_candidate_frame_with_separate_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
+pub const POLICY_FEASIBILITY_AUDIT_EVIDENCE_LEVEL: &str = "exact_admitted_candidate_frame_with_separate_caller_declared_independent_adjudication_and_worst_case_unresolved_bounds_not_authenticated_verifier_independence_or_physical_certification";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeasibilityAdjudicationMethod {
@@ -179,7 +178,9 @@ impl AdjudicationSelectionDesign {
 
     fn validate(&self) -> Result<(), String> {
         if !is_sha256(self.sampling_frame_sha256()) {
-            return Err("adjudication selection design requires a valid sampling-frame digest".to_owned());
+            return Err(
+                "adjudication selection design requires a valid sampling-frame digest".to_owned(),
+            );
         }
         match self {
             Self::FullCensus { .. } => {}
@@ -332,7 +333,10 @@ fn adjudication_manifest_bytes(
     adjudications: &BTreeMap<String, &IndependentFeasibilityAdjudication>,
 ) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
-    append_string(&mut bytes, "aero-independent-feasibility-adjudications/0.1.0");
+    append_string(
+        &mut bytes,
+        "aero-independent-feasibility-adjudications/0.1.0",
+    );
     append_u64(&mut bytes, adjudications.len() as u64);
     for (candidate_id, adjudication) in adjudications {
         for hash in [
@@ -453,7 +457,10 @@ pub fn evaluate_policy_feasibility_audit(
             ("replicate_id", candidate.replicate_id.as_str()),
             ("candidate_id", candidate.candidate_id.as_str()),
             ("operation_id", candidate.operation_id.as_str()),
-            ("admission_verifier_id", candidate.admission_verifier_id.as_str()),
+            (
+                "admission_verifier_id",
+                candidate.admission_verifier_id.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 return Err(format!("candidate {name} must be non-empty"));
@@ -461,8 +468,14 @@ pub fn evaluate_policy_feasibility_audit(
         }
         for (name, value) in [
             ("output_sha256", candidate.output_sha256.as_str()),
-            ("admission_receipt_sha256", candidate.admission_receipt_sha256.as_str()),
-            ("admission_verifier_sha256", candidate.admission_verifier_sha256.as_str()),
+            (
+                "admission_receipt_sha256",
+                candidate.admission_receipt_sha256.as_str(),
+            ),
+            (
+                "admission_verifier_sha256",
+                candidate.admission_verifier_sha256.as_str(),
+            ),
             ("scope_sha256", candidate.scope_sha256.as_str()),
         ] {
             if !is_sha256(value) {
@@ -500,18 +513,22 @@ pub fn evaluate_policy_feasibility_audit(
         &candidate_map,
     ))?;
     if inputs.design.sampling_frame_sha256() != candidate_frame_sha256 {
-        return Err("selection design sampling-frame digest differs from exact admitted-candidate frame".to_owned());
+        return Err(
+            "selection design sampling-frame digest differs from exact admitted-candidate frame"
+                .to_owned(),
+        );
     }
 
-    let mut adjudication_map =
-        BTreeMap::<String, &IndependentFeasibilityAdjudication>::new();
+    let mut adjudication_map = BTreeMap::<String, &IndependentFeasibilityAdjudication>::new();
     for adjudication in inputs.adjudications {
-        let candidate = candidate_map.get(&adjudication.candidate_id).ok_or_else(|| {
-            format!(
-                "adjudication references candidate outside the admitted-candidate frame: {}",
-                adjudication.candidate_id
-            )
-        })?;
+        let candidate = candidate_map
+            .get(&adjudication.candidate_id)
+            .ok_or_else(|| {
+                format!(
+                    "adjudication references candidate outside the admitted-candidate frame: {}",
+                    adjudication.candidate_id
+                )
+            })?;
         if candidate.output_sha256 != adjudication.output_sha256
             || candidate.scope_sha256 != adjudication.scope_sha256
         {
@@ -559,12 +576,14 @@ pub fn evaluate_policy_feasibility_audit(
     for (candidate_id, candidate) in &candidate_map {
         if let Some(adjudication) = adjudication_map.get(candidate_id) {
             let (status, reason) = match &adjudication.outcome {
-                FeasibilityAdjudicationOutcome::ConfirmedFeasible => {
-                    (FeasibilityAdjudicationStatus::ConfirmedFeasible, String::new())
-                }
-                FeasibilityAdjudicationOutcome::FalsifiedInfeasible => {
-                    (FeasibilityAdjudicationStatus::FalsifiedInfeasible, String::new())
-                }
+                FeasibilityAdjudicationOutcome::ConfirmedFeasible => (
+                    FeasibilityAdjudicationStatus::ConfirmedFeasible,
+                    String::new(),
+                ),
+                FeasibilityAdjudicationOutcome::FalsifiedInfeasible => (
+                    FeasibilityAdjudicationStatus::FalsifiedInfeasible,
+                    String::new(),
+                ),
                 FeasibilityAdjudicationOutcome::Inconclusive { reason } => {
                     (FeasibilityAdjudicationStatus::Inconclusive, reason.clone())
                 }
@@ -606,7 +625,11 @@ pub fn evaluate_policy_feasibility_audit(
             });
         }
     }
-    if matches!(inputs.design, AdjudicationSelectionDesign::FullCensus { .. }) && unassessed != 0 {
+    if matches!(
+        inputs.design,
+        AdjudicationSelectionDesign::FullCensus { .. }
+    ) && unassessed != 0
+    {
         return Err(format!(
             "full-census design has {unassessed} admitted candidates without an adjudication"
         ));
@@ -625,7 +648,12 @@ pub fn evaluate_policy_feasibility_audit(
     };
     let status = if admitted == 0 {
         "no_admitted_candidates"
-    } else if unresolved == 0 && matches!(inputs.design, AdjudicationSelectionDesign::FullCensus { .. }) {
+    } else if unresolved == 0
+        && matches!(
+            inputs.design,
+            AdjudicationSelectionDesign::FullCensus { .. }
+        )
+    {
         "complete_census_all_adjudications_resolved"
     } else if unresolved == 0 {
         "sampled_or_targeted_frame_all_selected_adjudications_resolved"
@@ -683,9 +711,7 @@ pub fn verify_policy_feasibility_audit(
 }
 
 fn optional_rate(value: Option<f64>) -> String {
-    value
-        .map(|rate| format!("{rate:.12}"))
-        .unwrap_or_default()
+    value.map(|rate| format!("{rate:.12}")).unwrap_or_default()
 }
 
 fn optional_rate_bits(value: Option<f64>) -> String {
@@ -816,7 +842,11 @@ mod tests {
         }
     }
 
-    fn frame_digest(policy: &str, frame: &str, candidates: &[AdmittedCandidateFrameEntry]) -> String {
+    fn frame_digest(
+        policy: &str,
+        frame: &str,
+        candidates: &[AdmittedCandidateFrameEntry],
+    ) -> String {
         let map = candidates
             .iter()
             .map(|candidate| (candidate.candidate_id.clone(), candidate))
@@ -899,7 +929,11 @@ mod tests {
         assert!(csv.contains("independent-verifier-b"));
         assert!(csv.contains(&digest('a')));
         assert!(csv.contains(&digest('d')));
-        assert_eq!(csv.lines().count(), 4, "one CSV row per candidate plus header");
+        assert_eq!(
+            csv.lines().count(),
+            4,
+            "one CSV row per candidate plus header"
+        );
         #[cfg(target_os = "linux")]
         {
             let nonce = std::time::SystemTime::now()
@@ -986,7 +1020,10 @@ mod tests {
         let csv = report_to_csv(&report);
         assert!(csv.contains("unassessed"));
         assert!(csv.contains("no independent adjudication supplied"));
-        assert!(csv.contains(&digest('8')), "selection receipt remains visible");
+        assert!(
+            csv.contains(&digest('8')),
+            "selection receipt remains visible"
+        );
     }
 
     #[test]
