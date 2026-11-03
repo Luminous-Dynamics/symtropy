@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use construction_safety_temporal_replay::{evaluate, frozen_trace_cases, Disposition};
+use construction_safety_temporal_replay::{Disposition, evaluate, frozen_trace_cases};
 
 fn main() {
     let cases = frozen_trace_cases();
