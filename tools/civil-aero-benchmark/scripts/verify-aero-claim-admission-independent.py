@@ -44,7 +44,7 @@ KINDS = [
     "certification_basis_evidence",
     "certification_authority_decision_record",
     "quality_system_evidence",
-}
+]
 KIND_ORDER = {kind: index for index, kind in enumerate(KINDS)}
 
 
