@@ -238,3 +238,23 @@ The University of Turku repository exposes the full 13-page open-access article 
 This clarifies the architecture: the ground assembly integrates two independently enabled resonant networks for the separated 85 kHz and 20 kHz bands. The grid-side converter uses four parallel low-power modules and adaptive activation according to output demand. The resonant link uses a dual-coupled LCC–LCC arrangement. This is a frequency-polymorphic architecture, not one pad that simply operates all three power classes at a single resonant frequency.
 
 The table entries are author-stated target vehicle/VA specifications. They do not prove that each published efficiency-range endpoint corresponds to a particular VA. The 91.7–94.3% grid-to-battery and 89.5–93.5% battery-to-grid results remain aggregate aligned ranges until the experimental result figures/tables are extracted and mapped to individual modes. The machine-readable catalogue stores the table specifications as explicitly unverified design metadata, not as independently measured outcomes.
+
+
+### Full-text extraction: bidirectional WPT Table 4, test matrix and cross-network coupling
+
+The University of Turku repository PDF for Zhang et al. (DOI 10.1016/j.geits.2025.100307) is now text-extracted through the experimental section. The new records deliberately separate:
+- **Vehicle ground clearance (Table 1):** 6 kW 190–210 mm; 11 kW 160–180 mm; 30 kW 270–290 mm.
+- **Coil-to-coil air gap (Table 4):** 6 kW 101–121 mm; 11 kW 71–91 mm; 30 kW 185–205 mm. Do not substitute the vehicle underbody clearance for the magnetic air gap.
+- **BIPT link DC–DC efficiency (Table 4):** 6 kW 94.0–95.7%; 11 kW 94.7–97.1%; 30 kW 93.6–94.5%. These are link-level figures, not full grid-to-battery or battery-to-grid system efficiencies.
+- **Table 4 system-efficiency slash pairs:** 6 kW 94.3%/91.6%; 11 kW 93.1%/93.5%; 30 kW 92.5%/91.6%. The table header does not label the slash order. They are therefore preserved as first/second printed values and are not assigned to G2V/V2G until the per-class waveform figures and raw records reconcile the directions. The abstract's aggregate system ranges (91.7–94.3% G2V; 89.5–93.5% V2G) remain separate source statements.
+- **Test matrix:** the paper states 48 test points across voltage levels, direction and spatial conditions. It describes eight spatial points, three voltage levels and two power-flow directions. Preserve the authors' stated count; do not fabricate per-run records or multiply the count across vehicle classes without a run manifest.
+- **Misalignment envelope:** Xmax=75 mm and Ymax=100 mm for 6/11 kW; Xmax=Ymax=100 mm for 30 kW. The article reports the simulated DC–DC efficiency reduction at misaligned positions as approximately 0.5–2 percentage points, and reports all three class pairs above 80% system efficiency at the tested misaligned points. This is not a complete worst-case safety or performance envelope.
+- **Cross-frequency loop current:** Section 2.4 / Fig. 10 models a 17 A induced current in the closed 85 kHz resonant loop when the 20 kHz / 30 kW GA network is enabled, and a 4 A induced current in the closed 20 kHz loop when the 85 kHz / 6/11 kW network is enabled. The authors report waveform distortion and reduced system efficiency, and discuss relay isolation as a trade-off involving control signalling, cost, mass and conduction loss. These branch-current values are model-derived, not measured.
+- **Core flux:** the paper calculates a maximum ferrite-core flux density of 376 mT against stated saturation thresholds of 530 mT at 25 °C and 410 mT at 100 °C. The hot-state nominal margin is much narrower, but this is still an author/model value rather than independent flux measurement.
+
+This full-text extraction changes the research frontier. The design problem is not simply to select 85 kHz or 20 kHz. It is to control **energy circulation in the inactive resonant network**, including induced current, capacitor voltage, core flux, thermal rise, relay state and switching transients. A commanded-inactive network is not necessarily electromagnetically inactive.
+
+The catalogue now includes the 17 A and 4 A cross-network currents as SIMULATED engineering metrics, the ferrite flux and temperature-dependent thresholds, per-class link-efficiency bands, Table 4 system slash-pair values without invented direction assignment, and separate clearance/air-gap ranges. The follow-on qualification issue is [WPT-MULTIFREQUENCY-ISOLATION-001 #3480](https://github.com/Luminous-Dynamics/symtropy/issues/3480).
+
+Primary full-text: https://www.utupub.fi/server/api/core/bitstreams/0d84aa64-fc2f-41dd-8982-6e08edb0c8c8/content
+
