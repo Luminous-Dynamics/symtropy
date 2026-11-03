@@ -870,6 +870,31 @@ mod tests {
             vec![rational_fraction(-7, 3), rational_fraction(-7, 3)]
         );
 
+        // Independently replay the returned primal/dual certificate, then
+        // corrupt one multiplier and require the verifier to reject it.
+        let point_constraints = robust_descent_constraints(&point_gradients);
+        let point_candidate: LpVector = std::array::from_fn(|index| {
+            if index == INPUT_DIMENSION {
+                lp_optimum.margin.clone()
+            } else {
+                lp_optimum.direction[index].clone()
+            }
+        });
+        assert!(verify_exact_lp_certificate(
+            &point_constraints,
+            &lp_optimum.dual_constraint_indices,
+            &lp_optimum.dual_multipliers,
+            &point_candidate
+        ));
+        let mut corrupted_dual = lp_optimum.dual_multipliers.clone();
+        corrupted_dual[0] += rational(1);
+        assert!(!verify_exact_lp_certificate(
+            &point_constraints,
+            &lp_optimum.dual_constraint_indices,
+            &corrupted_dual,
+            &point_candidate
+        ));
+
         let dual_bound = convex_combination_l1_upper_bound(
             &point_gradients,
             &[rational_fraction(1, 6), rational_fraction(5, 6)],
@@ -894,6 +919,16 @@ mod tests {
             .expect("the exact interval LP certifies a common descent direction");
         assert_eq!(positive.margin, rational(1));
         assert_eq!(positive.branch_upper_bounds, vec![rational(-1)]);
+        assert!(verify_robust_descent_interval_lp_certificate(
+            &[interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)])],
+            &positive
+        ));
+        let mut corrupted_positive = positive.clone();
+        corrupted_positive.margin += rational(1);
+        assert!(!verify_robust_descent_interval_lp_certificate(
+            &[interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)])],
+            &corrupted_positive
+        ));
         assert_eq!(
             gradient_box_support_upper(
                 &interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0),]),
@@ -911,6 +946,7 @@ mod tests {
             .expect("the exact interval LP returns the optimum even when it is zero");
         assert_eq!(no_descent.margin, rational(0));
         assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
+        assert!(verify_robust_descent_interval_lp_certificate(&[opposing_box], &no_descent));
         assert_eq!(no_descent.gradient_cuts.len(), 2);
         assert!(verify_zero_convex_combination(
             &no_descent.gradient_cuts,
