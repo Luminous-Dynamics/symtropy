@@ -1,0 +1,143 @@
+{
+  "schema_version": "luminous.qif3.companion-schema-pins.v0.1",
+  "qif_version": "3.0.0",
+  "iso_reference": "ISO 23952:2020",
+  "profile_id": "QIF3_COMMUNITY_PYTHON_BINDING_SCHEMA_PROFILE",
+  "classification": "public_companion_schema_bundle_not_normative_package",
+  "source_repository": "QualityInformationFramework/qif-community",
+  "source_commit": "64268c175a3058d09db29c14869b94b781518709",
+  "source_commit_claim": "public supplemental QIF 3.0 community tree, pinned to exact commit",
+  "schema_files": [
+    {
+      "path": "bindings/Python/QIFApplications/QIFDocument.xsd",
+      "git_blob_sha": "cf874908ec69f89ed458db1b11abe1e711eaddde",
+      "role": "root-wrapper-qif3-namespace-adjusted"
+    },
+    {
+      "path": "bindings/Python/QIFLibrary/xmldsig-core-schema-qif3-namespace.xsd",
+      "git_blob_sha": "8865129c1a6352f0fd5ce3b6cb100104fab7dc93",
+      "role": "xml-signature-qif3-namespace-adjusted"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFPlan.xsd",
+      "git_blob_sha": "804037fdbce866aa8db02cb479528f36878d9f44",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFResults.xsd",
+      "git_blob_sha": "e52f681c971b5685990930dd3628d47dfe1a816d",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFStatistics.xsd",
+      "git_blob_sha": "63f2ade54398d2a78b853f3629eaffc090dd26c9",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFRules.xsd",
+      "git_blob_sha": "1f4e1cd77b4a2cf1b491756f871e96cb9764114d",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFProduct.xsd",
+      "git_blob_sha": "3cebf0c98c56615fd85e24f3d2f10767535335ca",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/QIFMeasurementResources.xsd",
+      "git_blob_sha": "c27a8020479e0469111fb7dd1e48e1554c3f3928",
+      "role": "application-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/IntermediatesPMI.xsd",
+      "git_blob_sha": "7ce398d3eb7dd099bc3eb433c86930519299c043",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Expressions.xsd",
+      "git_blob_sha": "7a5cece685bc6c9f01763c317753255f4061b656",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Traceability.xsd",
+      "git_blob_sha": "63923857cd1cba3fad1716a181dbec3a8b2d73b4",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Characteristics.xsd",
+      "git_blob_sha": "4c257110bd3bebd206fd5d127317c090be26a186",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Features.xsd",
+      "git_blob_sha": "7ee64d2fb901662a44bd83e5f73d5a26506596a0",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Statistics.xsd",
+      "git_blob_sha": "9cf957b15d5c68c400a07f95577ff1f122b12b57",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Geometry.xsd",
+      "git_blob_sha": "8010cdd77e0923858569df9ecf8070cb8338659a",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Topology.xsd",
+      "git_blob_sha": "17ac7ef485968a0e2448feea78d3419f6ed1629d",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Auxiliary.xsd",
+      "git_blob_sha": "3c760dbf242d5d95d770800f24f2d2d821838356",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Visualization.xsd",
+      "git_blob_sha": "df02db37a6404f6a77dca4a4f3f7207e678a3f40",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/PrimitivesPMI.xsd",
+      "git_blob_sha": "91cb39a07ae4334148d25148560ac9eef84bccf6",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/PrimitivesPD.xsd",
+      "git_blob_sha": "d27da509c2e0208a00a85ea359fc0e6e5d35c95f",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Units.xsd",
+      "git_blob_sha": "e79c4dfd00bccea2a8100ba5ff9f23835abe3f3f",
+      "role": "library-schema"
+    },
+    {
+      "path": "bindings/CPP-Kramer/schema/Primitives.xsd",
+      "git_blob_sha": "8087eeb90eb05eca070b19ac90b0e989577e72f7",
+      "role": "library-schema"
+    }
+  ],
+  "positive_fixtures": [
+    {
+      "path": "samples/Plans/repeatabilityTestUsingWhile.QIF",
+      "git_blob_sha": "f12b6708433383e7008cac8475441d3194c8c922",
+      "fixture_family": "inspection-plan",
+      "expected_qif_version": "3.0.0"
+    },
+    {
+      "path": "samples/ExternalReferencesAndQPIds/Exploded_Results1.QIF",
+      "git_blob_sha": "72a159b3eb5ff40ca4bc75ac8632b90bb3153dcc",
+      "fixture_family": "inspection-results-with-external-references",
+      "expected_qif_version": "3.0.0"
+    }
+  ],
+  "normative_distribution": {
+    "status": "not_admitted",
+    "reason": "The DMSC download page presents the official QIF 3.0 package behind a form; this manifest does not substitute public binding copies for that normative package.",
+    "signature_profile": "The selected XMLDSIG schema is a QIF-namespace-adjusted community binding variant; signature semantics are not qualified by this lane.",
+    "full_qif_rule_checks": false
+  },
+  "expected_schema_file_count": 22
+}
