@@ -124,7 +124,7 @@ pub enum ValidationError {
     DimensionMismatch,
     NonFiniteValue,
     InvalidCovariance,
-    NonPositiveDefinitePooledCovariance,
+    NonPositiveDefiniteCovariance,
     NegativeDistributionDistance,
     InvalidPolicy,
     ResourceLimitExceeded,
@@ -483,7 +483,7 @@ fn cholesky_positive_definite(
 
             if row == column {
                 if !residual.is_finite() || residual <= 0.0 {
-                    return Err(ValidationError::NonPositiveDefinitePooledCovariance);
+                    return Err(ValidationError::NonPositiveDefiniteCovariance);
                 }
                 lower[row][column] = residual.sqrt();
             } else {
@@ -500,7 +500,7 @@ fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ValidationEr
     for index in 0..lower.len() {
         let diagonal = lower[index][index];
         if !diagonal.is_finite() || diagonal <= 0.0 {
-            return Err(ValidationError::NonPositiveDefinitePooledCovariance);
+            return Err(ValidationError::NonPositiveDefiniteCovariance);
         }
         log_determinant += 2.0 * diagonal.ln();
     }
