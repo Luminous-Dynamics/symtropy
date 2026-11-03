@@ -385,6 +385,14 @@
               "definition": {
                 "type": "string",
                 "minLength": 1
+              },
+              "upper_value_percent": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100
               }
             }
           },
