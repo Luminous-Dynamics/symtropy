@@ -1138,7 +1138,7 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         let report = audit(&root).expect("WPT comparator corpus should load");
         assert_eq!(report["valid"], Value::Bool(true), "{report:#}");
-        assert_eq!(report["measurement_count"], json!(34));
-        assert_eq!(report["comparison_case_count"], json!(15));
+        assert_eq!(report["measurement_count"], json!(48));
+        assert_eq!(report["comparison_case_count"], json!(17));
     }
 }
