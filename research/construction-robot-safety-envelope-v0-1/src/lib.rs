@@ -1555,6 +1555,57 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
         Disposition::StopRequiredBySyntheticPolicy,
     );
 
+    let mut observation = base_observation.clone();
+    observation.human = HumanObservation::NoHumanDetected;
+    observation.human_detection.coverage_ppm = 100_000;
+    add_case(
+        &mut cases,
+        "SAFE-043-no-human-claim-with-insufficient-coverage",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human = HumanObservation::NoHumanDetected;
+    observation.human_detection.contributing_sensor_ids = vec![
+        "lidar-front".to_owned(),
+        "unknown-sensor".to_owned(),
+    ];
+    add_case(
+        &mut cases,
+        "SAFE-044-no-human-claim-with-unresolved-sensor-source",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human = HumanObservation::NoHumanDetected;
+    observation.human_detection.observed_at_ms = 4_000;
+    add_case(
+        &mut cases,
+        "SAFE-045-no-human-claim-with-stale-coverage",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
+    let mut observation = base_observation.clone();
+    observation.human = HumanObservation::NoHumanDetected;
+    observation.human_detection.contributing_sensor_ids = vec![
+        "lidar-front".to_owned(),
+        "localization-unit".to_owned(),
+    ];
+    observation.sensors[1].fault_domain = observation.sensors[0].fault_domain.clone();
+    add_case(
+        &mut cases,
+        "SAFE-046-human-absence-from-common-mode-sensors",
+        base_policy.clone(),
+        observation,
+        Disposition::StopRequiredBySyntheticPolicy,
+    );
+
     cases
 }
 
