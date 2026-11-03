@@ -3248,9 +3248,12 @@ mod double_sliding_direction_oracle {
                     input_partials
                         .iter()
                         .zip(OBJECTIVE_DIRECTIONS[objective].iter())
-                        .fold(BivariateIntegerPolynomial::zero(), |sum, (partials, coefficient)| {
-                            sum.add(partials[equation].scale(*coefficient))
-                        })
+                        .fold(
+                            BivariateIntegerPolynomial::zero(),
+                            |sum, (partials, coefficient)| {
+                                sum.add(partials[equation].scale(*coefficient))
+                            },
+                        )
                 })
             });
 
@@ -3325,9 +3328,7 @@ mod double_sliding_direction_oracle {
         for (branch_index, objective_derivatives) in
             branch_directional_derivatives.iter().enumerate()
         {
-            for (objective, directional_derivative) in
-                objective_derivatives.iter().enumerate()
-            {
+            for (objective, directional_derivative) in objective_derivatives.iter().enumerate() {
                 let required_upper = if objective == 0 {
                     BigRational::from_integer(BigInt::from(-10_i8))
                 } else {
