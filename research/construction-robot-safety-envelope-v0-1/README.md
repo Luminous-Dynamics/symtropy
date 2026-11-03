@@ -21,7 +21,8 @@ profile and operational domain. The evaluator then checks:
   fault domains;
 - human-presence evidence bound to the exact contributing sensor IDs, its own
   source digest, timestamp, confidence and spatial coverage; every contributor
-  must be current, calibrated, healthy and independent by declared fault domain;
+  must be current, calibrated and healthy, with both distinct sensor modalities
+  and independent declared fault domains;
 - required ODD conditions with explicit units, bounds, source references and
   maximum ages;
 - human separation using relative approach speed, reaction time, stopping
@@ -46,7 +47,8 @@ differ.
 The key shift is from a static envelope to a **revision-bound, evidence-aware
 operating-state contract**. A `NoHumanDetected` state is not a free-standing
 boolean: it requires an explicit coverage receipt tied to contributing sensor
-IDs, source digest, freshness, confidence and independent fault domains.
+IDs, source digest, freshness, confidence, distinct sensor modalities and
+independent fault domains.
 Runtime confidence is not a safety function. Missing or contradictory evidence
 is not converted into a safe observation.
 A learned policy cannot change thresholds, standards applicability or
@@ -70,7 +72,7 @@ external authority and this evaluator cannot clear the latch.
 
 ## Frozen corpus
 
-The V1 corpus contains 46 named synthetic cases and 34 authored Rust tests. It includes:
+The V1 corpus contains 47 named synthetic cases and 35 authored Rust tests. It includes:
 
 - clear and near-boundary observations;
 - separation breach and fast human approach;
@@ -79,7 +81,7 @@ The V1 corpus contains 46 named synthetic cases and 34 authored Rust tests. It i
 - common-mode sensing failure and insufficient independent fault domains;
 - contradictory, unknown, stale and low-confidence human tracking;
 - no-human claims with inadequate coverage, stale receipts, missing sensor
-  identity and common-mode evidence;
+  identity, common-mode evidence and single-modality evidence;
 - speed, acceleration and maintenance-mode violations;
 - heartbeat loss, clock uncertainty and future/stale observations;
 - exact machine, tool, task, site, policy and standards bindings;
@@ -156,7 +158,8 @@ Report, never collapse into one score:
 
 The software acceptance targets are exact reference agreement, zero false-safe
 classifications on the frozen negative controls, no autonomous emergency-stop
-reset and no actuator output. These are finite software-contract targets, not
+reset, and sensor-backed human-absence claims requiring both modality and
+fault-domain diversity. There is no actuator output. These are finite software-contract targets, not
 physical safety rates.
 
 ## How to go beyond current practice
