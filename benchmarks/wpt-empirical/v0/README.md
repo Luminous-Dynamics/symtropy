@@ -351,3 +351,32 @@ The standards matrix now has four complementary pairs:
 - Heavy-duty static MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with applicable stationary off-board IEC 61980 high-power or standard-power scope.
 - Heavy-duty dynamic MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with IEC PAS 61980-5:2024 (dynamic off-board) and IEC PAS 61980-6:2025 (dynamic communication/positioning).
 - Bidirectional and modular multi-secondary higher-power: explicit research/standards gaps remain. ISO 5474-4 excludes reverse WPT; IEC PAS 61980-6 says bidirectional is under consideration; ISO/PAS 5474-6 does not cover multiple secondary devices in this edition. A configuration may meet individual in-scope aspects, but must not be labelled fully conformant by implication.
+
+
+## Foreign-object detection and active field suppression: 2026 frontier
+
+Two new 2026 primary sources materially change the safety benchmark.
+
+### Planar magnetic-inductance tomography FOD
+
+Vahid et al., Sensors 26(11), 3486 (DOI 10.3390/s26113486), use a 120-channel planar MIT sensor array and 13 engineered statistical/temporal/frequency-domain features. The authors report 17,800 labelled pre-transfer frames across object types, locations, orientations and multi-object configurations.
+
+The key result is the gap between offline and live cross-session performance. On a 50-attempt live cross-session test, raw RF with median plus Savitzky-Golay filtering achieved 31/50 correct (62%); RF with feature engineering and the same filtering achieved 49/50 (98%). XGBoost improved from 30/50 (60%) to 49/50 (98%). The reported end-to-end prediction latency is approximately 75-80 ms.
+
+The active-transfer validation collected 300 frames per class in a controlled setup. Some reported percentage metrics in Tables 5-6 do not reconcile exactly with the displayed confusion counts. We preserve the printed claims and counts separately and do not invent corrected values. The active-transfer sample is too small to establish field safety.
+
+### Active demagnetization / foreign-object-tolerant WPT
+
+Zhang et al., IEEE Transactions on Transportation Electrification (DOI 10.1109/TTE.2026.3704739), integrate two symmetric DeMag coils into the transmitter pad, driven by an auxiliary inverter. A detection/localization event redirects local flux away from an object while preserving the main transfer path.
+
+The abstract reports a 25 mm coin temperature rise after 600 s of 56.6 °C without DeMag versus 13.7 °C with DeMag, a reported 76% reduction. It also reports overall efficiency 94.06% in a 1.5 kW thermal validation and 95.07% at a representative 3.3 kW point. It tests receiver offset and multiple object materials/dimensions including a 100 mm copper sheet.
+
+The exact efficiency meter boundaries and explicit inclusion of auxiliary-inverter energy are not clear in the abstract. These remain source claims, not matched system-efficiency leaderboard points.
+
+### Research implication
+
+The next frontier is detect, localize, predict heating, mitigate or inhibit, then independently verify. This is not the same as optimizing a classifier or stopping transfer whenever metal appears. MIT sensing and active DeMag are separate demonstrated systems; their integration is a proposed research architecture, not a demonstrated combined product.
+
+A 2026 task-oriented ML-WPT review (Luo et al., arXiv:2610.30101) reinforces the need for uncertainty-aware physics-informed learning, safe simulation-to-real transfer, edge deployment and reproducible benchmarks.
+
+The typed corpus includes cross-session accuracy, detection latency, coin temperature-rise, relative mitigation and DeMag efficiency claims. See issue #3496.
