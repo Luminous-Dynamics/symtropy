@@ -529,7 +529,8 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             ("longitudinal_acceleration_abs_max_mps2", accel, false),
             ("transmitter_pitch_m", pitch, true),
         ] {
-            if !value.is_some_and(|v| v.is_finite() && if positive { v > 0.0 } else { v >= 0.0 }) {
+            let valid = value.is_some_and(|v| v.is_finite() && (if positive { v > 0.0 } else { v >= 0.0 }));
+            if !valid {
                 errors.push(format!("motion_profile.{field}: valid positive/nonnegative dynamic measurement required"));
             }
         }
@@ -574,13 +575,16 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         if let (Some(distance_m), Some(received_j), Some(battery_gain), Some(propulsion), Some(idle)) =
             (distance, dc_j, battery_j, propulsion_j, idle_j)
         {
-            let route_km = distance_m / 1000.0;
+            if distance_m <= 0.0 || propulsion <= 0.0 {
+                errors.push("motion_profile: positive route distance and propulsion energy required for route normalization".into());
+            }
+            let route_km = if distance_m > 0.0 { distance_m / 1000.0 } else { 1.0 };
             let expected_wh_km = received_j / 3600.0 / route_km;
             let expected_net_wh_km = (battery_gain - propulsion) / 3600.0 / route_km;
             let expected_sufficiency = if propulsion > 0.0 { battery_gain / propulsion } else { 0.0 };
             let expected_activation = match (activation_attempts, missed) {
                 (Some(attempts), Some(missed_count)) if attempts > 0 =>
-                    (attempts - missed_count) as f64 / attempts as f64,
+                    attempts.saturating_sub(missed_count) as f64 / attempts as f64,
                 _ => 0.0,
             };
             let reported = [
@@ -616,13 +620,34 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         }
     } else if operating_mode == "STATIC" {
         let motion = manifest.get("motion_profile").unwrap_or(&Value::Null);
-        if number_at(motion, &["route_distance_m"]).is_some()
-            || number_at(motion, &["elapsed_time_s"]).is_some()
-            || number_at(motion, &["roadway_energy_source_j"]).is_some()
-            || number_at(motion, &["vehicle_dc_energy_received_j"]).is_some()
-            || number_at(motion, &["energy_sufficiency_ratio"]).is_some()
+        let dynamic_numeric_fields = [
+            "route_distance_m",
+            "elapsed_time_s",
+            "speed_mean_mps",
+            "speed_min_mps",
+            "speed_max_mps",
+            "longitudinal_acceleration_abs_max_mps2",
+            "transmitter_pitch_m",
+            "segment_count_total",
+            "segment_count_energized",
+            "segment_activation_attempts",
+            "segment_missed_activations",
+            "false_activation_count",
+            "roadway_energy_source_j",
+            "vehicle_dc_energy_received_j",
+            "battery_energy_gain_j",
+            "vehicle_propulsion_energy_used_j",
+            "roadway_idle_energy_j",
+            "roadway_energy_per_km_wh_km",
+            "battery_net_energy_per_km_wh_km",
+            "energy_sufficiency_ratio",
+            "segment_activation_success_fraction",
+        ];
+        if dynamic_numeric_fields.iter().any(|field| !motion.get(*field).is_some_and(Value::is_null))
+            || ["speed_profile_sha256", "segment_event_log_sha256"]
+                .iter().any(|field| !motion.get(*field).is_some_and(Value::is_null))
         {
-            errors.push("motion_profile: dynamic route metrics must remain null for STATIC runs".into());
+            errors.push("motion_profile: all dynamic route metrics/digests must remain null for STATIC runs".into());
         }
     } else {
         errors.push("conditions.operating_mode: STATIC or DYNAMIC required for QUALIFIED run".into());
@@ -2100,6 +2125,45 @@ mod tests {
             "standards-basis schema and validator contract drifted"
         );
 
+
+        let motion_keys = unique_strings(
+            &schema,
+            &["properties", "motion_profile", "required"],
+        );
+        let validator_motion = [
+            "profile_id",
+            "route_distance_m",
+            "elapsed_time_s",
+            "speed_mean_mps",
+            "speed_min_mps",
+            "speed_max_mps",
+            "longitudinal_acceleration_abs_max_mps2",
+            "transmitter_pitch_m",
+            "segment_count_total",
+            "segment_count_energized",
+            "segment_activation_attempts",
+            "segment_missed_activations",
+            "false_activation_count",
+            "roadway_energy_source_j",
+            "vehicle_dc_energy_received_j",
+            "battery_energy_gain_j",
+            "vehicle_propulsion_energy_used_j",
+            "roadway_idle_energy_j",
+            "roadway_energy_per_km_wh_km",
+            "battery_net_energy_per_km_wh_km",
+            "energy_sufficiency_ratio",
+            "segment_activation_success_fraction",
+            "speed_profile_sha256",
+            "segment_event_log_sha256",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<BTreeSet<_>>();
+        assert_eq!(
+            motion_keys, validator_motion,
+            "motion-profile schema and validator contract drifted"
+        );
+
         let schema_scenarios = unique_strings(
             &schema,
             &[
@@ -2524,6 +2588,14 @@ mod tests {
         let (disposition, errors) = validate_manifest(&dynamic_fixture());
         assert_eq!(disposition, "QUALIFIED");
         assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn rejects_static_manifest_with_dynamic_speed_profile_metrics() {
+        let mut manifest = qualified_fixture();
+        manifest["motion_profile"]["speed_mean_mps"] = json!(25.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("all dynamic route metrics/digests must remain null")));
     }
 
     #[test]
