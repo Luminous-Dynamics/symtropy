@@ -264,6 +264,28 @@ Primary references:
 
 **Critical comparator rule:** every load-reduction result must use identical workload, completed work, hardware, thermal/cooling conditions, baseline, grid signal, notification/ramp window and rebound horizon. Track work completed, SLA/latency, total energy, cooling, water where available, storage state, grid power and rebound. Lower instantaneous MW alone is not a valid win.
 
+### 5.8 Integrated compute, cooling and grid dispatch benchmark
+
+Implementation programme: [AI-DATA-CENTER-FLEX-001 #3435](https://github.com/Luminous-Dynamics/symtropy/issues/3435).
+
+The data centre is both a protected IT load and a potential grid-flexibility resource. The optimizer may schedule or defer jobs, cap accelerators, dispatch UPS/battery storage, adjust cooling within thermal/water constraints and coordinate local generation. It must never bypass local protection or treat a grid-support command as higher priority than the IT safety contract.
+
+Use the new `DC-GRID-COORD-001` benchmark group:
+- trace calibration and held-out GPU power prediction;
+- spatially correlated multi-site load aggregation;
+- periodic/stochastic workload forcing of grid modes;
+- latency/SLA-constrained workload deferral including queue/deadline/rebound;
+- field-reference power reduction and QoS replication.
+
+Published reference metrics:
+- H100 empirical node-power model: 11.4% MAPE versus 27–37% TDP-based estimation on the study domain (DOI 10.1088/2753-3751/ae2486);
+- Alibaba trace LAD-Flex: up to 22% modelled load shed in flexibility windows, with >1M tasks (DOI 10.1016/j.ijepes.2026.111940);
+- Nature Energy field demonstration: 25% reduction for 3 h on a 256-GPU cluster while maintaining declared QoS (DOI 10.1038/s41560-025-01927-1);
+- IEEE spatial correlation study: about 7x aggregate P variability and 11x frequency standard deviation for correlated vs independent loads in its simulated case (DOI 10.1109/TPWRS.2026.3729445);
+- Scientific Data GPU trace set: 72 sessions, >1.8M samples, 50 Hz detailed traces (DOI 10.1038/s41597-026-07496-6).
+
+Proposed internal stretch goals are <8% H100 power-model MAPE on matched held-out data and ≥30% sustained reduction for 3 h under the same workload/SLA envelope, without increased energy per completed work or rebound peak. The published reference values are study-bound and are not guaranteed industry-wide thresholds.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
