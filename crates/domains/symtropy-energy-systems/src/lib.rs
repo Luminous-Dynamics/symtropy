@@ -36,8 +36,8 @@ pub use fuel::{
     FuelRecordError,
 };
 pub use flexibility_evaluation::{
-    FlexibilityEventContract, FlexibilityEventSample, FlexibilityEvaluationError,
-    FlexibilityEvaluationReport, evaluate_flexibility_event,
+    FlexibilityEventContract, FlexibilityEventIdentity, FlexibilityEventSample,
+    FlexibilityEvaluationError, FlexibilityEvaluationReport, evaluate_flexibility_event,
 };
 
 pub use matched_service::{
