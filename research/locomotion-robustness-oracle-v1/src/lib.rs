@@ -215,16 +215,25 @@ pub enum RobustnessError {
     DuplicateTrial,
     EmptyEpisodes,
     ResourceLimitExceeded,
-    TooFewEpisodes { observed: usize, minimum: usize },
+    TooFewEpisodes {
+        observed: usize,
+        minimum: usize,
+    },
     TooFewIndividualEpisodes {
         individual_id: String,
         observed: usize,
         minimum: usize,
     },
-    TooFewIndividuals { observed: usize, minimum: usize },
+    TooFewIndividuals {
+        observed: usize,
+        minimum: usize,
+    },
     ModelNotFound(String),
     PairSetMismatch,
-    TooFewPairedEpisodes { observed: usize, minimum: usize },
+    TooFewPairedEpisodes {
+        observed: usize,
+        minimum: usize,
+    },
     NonFiniteSummary,
 }
 
@@ -436,8 +445,7 @@ fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_IDENTIFIER_BYTES
         && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric()
-                || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
         })
 }
 
@@ -586,7 +594,9 @@ fn validate_episode(
             || record.sensor_mapping_sha256.is_none()
             || record.effector_mapping_sha256.is_none())
     {
-        return Err(RobustnessError::MissingEvidenceArtifact("connectome_or_mapping"));
+        return Err(RobustnessError::MissingEvidenceArtifact(
+            "connectome_or_mapping",
+        ));
     }
     if matches!(
         record.model_family,
@@ -598,7 +608,9 @@ fn validate_episode(
     if record.model_evidence_tier >= ModelEvidenceTier::PerturbationGrounded
         && record.biological_source_sha256.is_none()
     {
-        return Err(RobustnessError::MissingEvidenceArtifact("biological_source"));
+        return Err(RobustnessError::MissingEvidenceArtifact(
+            "biological_source",
+        ));
     }
     if record.model_evidence_tier == ModelEvidenceTier::PerturbationGrounded
         && record.evaluation_tier < EvaluationTier::MeasuredIntervention
@@ -608,7 +620,9 @@ fn validate_episode(
     if record.model_evidence_tier == ModelEvidenceTier::ReplicatedBiological
         && record.independent_replication_sha256.is_none()
     {
-        return Err(RobustnessError::MissingEvidenceArtifact("independent_replication"));
+        return Err(RobustnessError::MissingEvidenceArtifact(
+            "independent_replication",
+        ));
     }
     if record.model_evidence_tier == ModelEvidenceTier::ReplicatedBiological
         && record.evaluation_tier != EvaluationTier::IndependentReplication
@@ -700,11 +714,13 @@ fn validate_episode(
         (Some(onset), RecoveryStatus::Recovered { latency_ticks }) => {
             if onset > record.completed_ticks
                 || onset.saturating_add(latency_ticks) > record.completed_ticks
-                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance < 0.0
-                        || distance > protocol.functional_recovery_tolerance
-                })
+                || record
+                    .functional_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite()
+                            || distance < 0.0
+                            || distance > protocol.functional_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -712,10 +728,11 @@ fn validate_episode(
         (Some(onset), RecoveryStatus::NotRecoveredByHorizon) => {
             if onset > record.completed_ticks
                 || record.completed_ticks != record.horizon_ticks
-                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance <= protocol.functional_recovery_tolerance
-                })
+                || record
+                    .functional_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite() || distance <= protocol.functional_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -723,10 +740,11 @@ fn validate_episode(
         (Some(onset), RecoveryStatus::NotRecoveredBeforeTermination) => {
             if onset > record.completed_ticks
                 || record.completed_ticks >= record.horizon_ticks
-                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance <= protocol.functional_recovery_tolerance
-                })
+                || record
+                    .functional_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite() || distance <= protocol.functional_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -749,16 +767,19 @@ fn validate_episode(
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
             false
-        },
+        }
         MechanismRecoveryStatus::Restored { latency_ticks } => {
-            let onset = record.perturbation_onset_tick
+            let onset = record
+                .perturbation_onset_tick
                 .ok_or(RobustnessError::InvalidRecoveryRecord)?;
             if onset.saturating_add(latency_ticks) > record.completed_ticks
-                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance < 0.0
-                        || distance > protocol.mechanism_recovery_tolerance
-                })
+                || record
+                    .mechanism_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite()
+                            || distance < 0.0
+                            || distance > protocol.mechanism_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -767,10 +788,11 @@ fn validate_episode(
         MechanismRecoveryStatus::NotRestoredByHorizon => {
             if record.perturbation_onset_tick.is_none()
                 || record.completed_ticks != record.horizon_ticks
-                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance <= protocol.mechanism_recovery_tolerance
-                })
+                || record
+                    .mechanism_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite() || distance <= protocol.mechanism_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -779,10 +801,11 @@ fn validate_episode(
         MechanismRecoveryStatus::NotRestoredBeforeTermination => {
             if record.perturbation_onset_tick.is_none()
                 || record.completed_ticks >= record.horizon_ticks
-                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
-                    !distance.is_finite()
-                        || distance <= protocol.mechanism_recovery_tolerance
-                })
+                || record
+                    .mechanism_state_deviation_from_nominal
+                    .is_none_or(|distance| {
+                        !distance.is_finite() || distance <= protocol.mechanism_recovery_tolerance
+                    })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
@@ -803,7 +826,9 @@ fn validate_episode(
             || protocol.mechanism_state_schema_sha256.is_none()
             || record.mechanism_state_schema_sha256 != protocol.mechanism_state_schema_sha256)
     {
-        return Err(RobustnessError::MissingEvidenceArtifact("mechanism_state_schema"));
+        return Err(RobustnessError::MissingEvidenceArtifact(
+            "mechanism_state_schema",
+        ));
     }
 
     Ok(())
@@ -861,10 +886,7 @@ fn percentile_nearest_rank_f64(
     values.get(rank.saturating_sub(1)).copied()
 }
 
-fn lower_tail_cvar(
-    values: &[f64],
-    fraction_basis_points: u16,
-) -> Result<f64, RobustnessError> {
+fn lower_tail_cvar(values: &[f64], fraction_basis_points: u16) -> Result<f64, RobustnessError> {
     if values.is_empty() || fraction_basis_points == 0 || fraction_basis_points > 10_000 {
         return Err(RobustnessError::NonFiniteSummary);
     }
@@ -1136,7 +1158,10 @@ fn score_scenario(
         let mechanism_restoration_episodes = individual_episodes
             .iter()
             .filter(|episode| {
-                matches!(episode.mechanism_recovery, MechanismRecoveryStatus::Restored { .. })
+                matches!(
+                    episode.mechanism_recovery,
+                    MechanismRecoveryStatus::Restored { .. }
+                )
             })
             .count();
         let compensation_without_mechanism_restoration_episodes = individual_episodes
@@ -1153,7 +1178,10 @@ fn score_scenario(
         let unobserved_mechanism_recovery_episodes = individual_episodes
             .iter()
             .filter(|episode| {
-                matches!(episode.mechanism_recovery, MechanismRecoveryStatus::Unobserved)
+                matches!(
+                    episode.mechanism_recovery,
+                    MechanismRecoveryStatus::Unobserved
+                )
             })
             .count();
 
@@ -1201,9 +1229,8 @@ fn score_scenario(
     let median_slip_distance_m =
         median_f64(&mut slip_for_median).ok_or(RobustnessError::NonFiniteSummary)?;
     let mut slip_for_p95 = slips.clone();
-    let p95_slip_distance_m =
-        percentile_nearest_rank_f64(&mut slip_for_p95, 95, 100)
-            .ok_or(RobustnessError::NonFiniteSummary)?;
+    let p95_slip_distance_m = percentile_nearest_rank_f64(&mut slip_for_p95, 95, 100)
+        .ok_or(RobustnessError::NonFiniteSummary)?;
     let mut recovery_for_median = recovered_latency.clone();
     let median_recovery_latency_ticks = if recovery_for_median.is_empty() {
         None
@@ -1211,29 +1238,26 @@ fn score_scenario(
         recovery_for_median.sort_unstable();
         let middle = recovery_for_median.len() / 2;
         Some(if recovery_for_median.len() % 2 == 0 {
-            recovery_for_median[middle - 1] as f64 * 0.5
-                + recovery_for_median[middle] as f64 * 0.5
+            recovery_for_median[middle - 1] as f64 * 0.5 + recovery_for_median[middle] as f64 * 0.5
         } else {
             recovery_for_median[middle] as f64
         })
     };
     let mut recovery_for_p95 = recovered_latency.clone();
-    let p95_recovery_latency_ticks =
-        percentile_nearest_rank_u64(&mut recovery_for_p95, 95, 100);
+    let p95_recovery_latency_ticks = percentile_nearest_rank_u64(&mut recovery_for_p95, 95, 100);
     let mut mechanism_recovery_for_median = mechanism_restored_latency.clone();
-    let median_mechanism_recovery_latency_ticks =
-        if mechanism_recovery_for_median.is_empty() {
-            None
+    let median_mechanism_recovery_latency_ticks = if mechanism_recovery_for_median.is_empty() {
+        None
+    } else {
+        mechanism_recovery_for_median.sort_unstable();
+        let middle = mechanism_recovery_for_median.len() / 2;
+        Some(if mechanism_recovery_for_median.len() % 2 == 0 {
+            mechanism_recovery_for_median[middle - 1] as f64 * 0.5
+                + mechanism_recovery_for_median[middle] as f64 * 0.5
         } else {
-            mechanism_recovery_for_median.sort_unstable();
-            let middle = mechanism_recovery_for_median.len() / 2;
-            Some(if mechanism_recovery_for_median.len() % 2 == 0 {
-                mechanism_recovery_for_median[middle - 1] as f64 * 0.5
-                    + mechanism_recovery_for_median[middle] as f64 * 0.5
-            } else {
-                mechanism_recovery_for_median[middle] as f64
-            })
-        };
+            mechanism_recovery_for_median[middle] as f64
+        })
+    };
     let mut mechanism_recovery_for_p95 = mechanism_restored_latency.clone();
     let p95_mechanism_recovery_latency_ticks =
         percentile_nearest_rank_u64(&mut mechanism_recovery_for_p95, 95, 100);
@@ -1303,9 +1327,7 @@ fn score_scenario(
     })
 }
 
-fn model_worst_cases(
-    scores: &[ScenarioScorecard],
-) -> Result<Vec<ModelWorstCase>, RobustnessError> {
+fn model_worst_cases(scores: &[ScenarioScorecard]) -> Result<Vec<ModelWorstCase>, RobustnessError> {
     let mut by_model: BTreeMap<&str, Vec<&ScenarioScorecard>> = BTreeMap::new();
     for score in scores {
         by_model.entry(&score.model_id).or_default().push(score);
@@ -1534,14 +1556,16 @@ pub fn compare_paired_models(
     }
 
     if !candidate_seen {
-        return Err(RobustnessError::ModelNotFound(candidate_model_id.to_string()));
+        return Err(RobustnessError::ModelNotFound(
+            candidate_model_id.to_string(),
+        ));
     }
     if !baseline_seen {
-        return Err(RobustnessError::ModelNotFound(baseline_model_id.to_string()));
+        return Err(RobustnessError::ModelNotFound(
+            baseline_model_id.to_string(),
+        ));
     }
-    if candidate.len() != baseline.len()
-        || candidate.keys().ne(baseline.keys())
-    {
+    if candidate.len() != baseline.len() || candidate.keys().ne(baseline.keys()) {
         return Err(RobustnessError::PairSetMismatch);
     }
     if candidate.len() < protocol.minimum_paired_episodes {
@@ -1852,7 +1876,10 @@ mod tests {
         let report = analyze_robustness(&unobserved_protocol, &episodes).expect("scorecard");
         assert_eq!(report.by_scenario[0].median_recovery_latency_ticks, None);
         assert_eq!(report.by_scenario[0].unobserved_recovery_episodes, 2);
-        assert_eq!(report.by_scenario[0].unobserved_mechanism_recovery_episodes, 2);
+        assert_eq!(
+            report.by_scenario[0].unobserved_mechanism_recovery_episodes,
+            2
+        );
     }
 
     #[test]
@@ -1982,8 +2009,7 @@ mod tests {
             episode("candidate", "trial-1", "fly-1", 0.9),
             episode("candidate", "trial-2", "fly-2", 0.8),
         ];
-        episodes[0].mechanism_recovery =
-            MechanismRecoveryStatus::NotRestoredByHorizon;
+        episodes[0].mechanism_recovery = MechanismRecoveryStatus::NotRestoredByHorizon;
         episodes[0].mechanism_state_deviation_from_nominal = Some(0.3);
 
         let report = analyze_robustness(&protocol(), &episodes).expect("scorecard");
@@ -2086,7 +2112,9 @@ mod tests {
         invalid.sensor_mapping_sha256 = None;
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
-            Err(RobustnessError::MissingEvidenceArtifact("connectome_or_mapping"))
+            Err(RobustnessError::MissingEvidenceArtifact(
+                "connectome_or_mapping"
+            ))
         );
     }
 
@@ -2115,7 +2143,9 @@ mod tests {
         invalid.biological_source_sha256 = None;
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
-            Err(RobustnessError::MissingEvidenceArtifact("biological_source"))
+            Err(RobustnessError::MissingEvidenceArtifact(
+                "biological_source"
+            ))
         );
     }
 
@@ -2133,7 +2163,9 @@ mod tests {
     #[test]
     fn rejects_recovery_latency_after_episode_completion() {
         let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
-        invalid.recovery = RecoveryStatus::Recovered { latency_ticks: 2_000 };
+        invalid.recovery = RecoveryStatus::Recovered {
+            latency_ticks: 2_000,
+        };
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
             Err(RobustnessError::InvalidRecoveryRecord)
