@@ -29,8 +29,8 @@ pub struct PatentArithmeticAudit {
     pub frequency_at_max_wavelength_using_claimed_speed_hz: f64,
     pub frequency_at_min_wavelength_using_c_hz: f64,
     pub frequency_at_max_wavelength_using_c_hz: f64,
-    pub quarter_wave_odd_multiple_min: f64,
-    pub quarter_wave_odd_multiple_max: f64,
+    pub quarter_wave_factor_min: f64,
+    pub quarter_wave_factor_max: f64,
 }
 
 pub fn audit() -> PatentArithmeticAudit {
@@ -52,8 +52,8 @@ pub fn audit() -> PatentArithmeticAudit {
         frequency_at_max_wavelength_using_claimed_speed_hz: speed / lambda_max,
         frequency_at_min_wavelength_using_c_hz: SPEED_OF_LIGHT_M_PER_S / lambda_min,
         frequency_at_max_wavelength_using_c_hz: SPEED_OF_LIGHT_M_PER_S / lambda_max,
-        quarter_wave_odd_multiple_min: 4.0 * diameter / lambda_max,
-        quarter_wave_odd_multiple_max: 4.0 * diameter / lambda_min,
+        quarter_wave_factor_min: 4.0 * diameter / lambda_max,
+        quarter_wave_factor_max: 4.0 * diameter / lambda_min,
     }
 }
 
@@ -85,9 +85,9 @@ mod tests {
     }
 
     #[test]
-    fn quarter_wave_relation_is_reported_as_very_large_odd_multiple_scale() {
+    fn quarter_wave_factor_range_is_reported_without_selecting_an_odd_integer() {
         let result = audit();
-        assert!(result.quarter_wave_odd_multiple_min > 700.0);
-        assert!(result.quarter_wave_odd_multiple_max > result.quarter_wave_odd_multiple_min);
+        assert!(result.quarter_wave_factor_min > 700.0);
+        assert!(result.quarter_wave_factor_max > result.quarter_wave_factor_min);
     }
 }
