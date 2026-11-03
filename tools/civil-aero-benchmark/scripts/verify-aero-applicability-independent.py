@@ -252,7 +252,7 @@ def verify_query(rows: list[dict[str, str]]) -> dict:
     features = []
     for row in (r for r in rows if r["record_type"] == "feature"):
         name, unit = row["feature_name"], row["feature_unit"]
-        value = float(row["feature_value"])
+        displayed_value = float(row["feature_value"])
         bits_text = row["feature_value_bits"]
         require(
             len(bits_text) == 16
@@ -260,7 +260,15 @@ def verify_query(rows: list[dict[str, str]]) -> dict:
             f"query feature {name} has malformed exact float bits",
         )
         bits = int(bits_text, 16)
-        value = struct.unpack("<d", bits.to_bytes(8, "little"))[0]
+        raw_bits = bits.to_bytes(8, "little")
+        value = struct.unpack("<d", raw_bits)[0]
+        if math.isnan(value):
+            require(math.isnan(displayed_value), f"query feature {name} display/bit mismatch")
+        else:
+            require(
+                struct.pack("<d", displayed_value) == raw_bits,
+                f"query feature {name} display/bit mismatch",
+            )
         features.append({"name": name, "unit": unit, "value": value})
     canonical = bytearray()
     add_string(canonical, QUERY_SCHEMA)
