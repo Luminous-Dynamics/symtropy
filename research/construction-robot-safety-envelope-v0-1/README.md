@@ -11,7 +11,7 @@ simulation evidence without pretending to be a real safety controller?
 
 V1 binds a runtime observation to the exact policy, machine/as-built revision,
 tool, work package, site snapshot, coordinate frame, jurisdiction, standards
-profile and operational domain. The evaluator then checks:
+profile, operational domain and a digest-bound site coverage grid. The evaluator then checks:
 
 - emergency-stop state and non-resettable emergency recovery boundary;
 - mode permissions, operator override and acknowledged handover;
@@ -20,9 +20,10 @@ profile and operational domain. The evaluator then checks:
 - critical sensors, calibration, confidence, coverage, age and independent
   fault domains;
 - human-presence evidence bound to the exact contributing sensor IDs, its own
-  source digest, timestamp, confidence and spatial coverage; every contributor
-  must be current, calibrated and healthy, with both distinct sensor modalities
-  and independent declared fault domains;
+  source digest, timestamp, confidence and spatial coverage;
+- a site-specific required-cell map for the human hazard zone; every required
+  cell must be covered by the fused evidence and independently covered by the
+  required number of sensor modalities and fault domains;
 - required ODD conditions with explicit units, bounds, source references and
   maximum ages;
 - human separation using relative approach speed, reaction time, stopping
@@ -32,9 +33,11 @@ profile and operational domain. The evaluator then checks:
 The evaluator emits a typed disposition, reasons and a requested response
 class. Each decision records the exact expected policy subject and the observed
 runtime subject separately, along with the policy digest reference, operating
-mode, evaluation/observation timestamps and sorted source references for every
-sensor, human-detection receipt and ODD condition considered. The references are
-not signatures or byte-authentication receipts. The evaluator never sends a
+mode, evaluation/observation timestamps and sorted source references for the
+coverage grid, every sensor, human-detection receipt and ODD condition. The
+coverage-grid digest pins the declared site-local coordinate frame, grid
+revision and cell identities. The references are not signatures or
+byte-authentication receipts. The evaluator never sends a
 command or changes a physical state.
 
 ## Paradigm shift
@@ -52,8 +55,12 @@ differ.
 The key shift is from a static envelope to a **revision-bound, evidence-aware
 operating-state contract**. A `NoHumanDetected` state is not a free-standing
 boolean: it requires an explicit coverage receipt tied to contributing sensor
-IDs, source digest, freshness, confidence, distinct sensor modalities and
-independent fault domains.
+IDs, source digest, freshness and confidence. More importantly, percentage
+coverage is not enough. The policy defines the exact cells in the hazard zone;
+the fused receipt must cover every required cell, and the required number of
+sensor modalities and independent fault domains must each cover the entire
+zone. A cell cannot be counted as observed unless at least one named source
+sensor reports it.
 Runtime confidence is not a safety function. Missing or contradictory evidence
 is not converted into a safe observation.
 A learned policy cannot change thresholds, standards applicability or
@@ -77,7 +84,7 @@ external authority and this evaluator cannot clear the latch.
 
 ## Frozen corpus
 
-The V1 corpus contains 47 named synthetic cases and 36 authored Rust tests. It includes:
+The V1 corpus contains 54 named synthetic cases and 42 authored Rust tests. It includes:
 
 - clear and near-boundary observations;
 - separation breach and fast human approach;
@@ -86,8 +93,9 @@ The V1 corpus contains 47 named synthetic cases and 36 authored Rust tests. It i
   sensor modalities remain healthy;
 - common-mode sensing failure and insufficient independent fault domains;
 - contradictory, unknown, stale and low-confidence human tracking;
-- no-human claims with inadequate coverage, stale receipts, missing sensor
-  identity, common-mode evidence and single-modality evidence;
+- no-human claims with inadequate percentage coverage, uncovered zone cells,
+  unsupported fused cells, mismatched grid revisions, stale receipts, missing
+  sensor identity, common-mode evidence and single-modality evidence;
 - speed, acceleration and maintenance-mode violations;
 - heartbeat loss, clock uncertainty and future/stale observations;
 - exact machine, tool, task, site, policy and standards bindings;
@@ -118,13 +126,19 @@ machine-, task-, jurisdiction- and integration-specific.
 
 - The [ISO 19014:2026 series](https://www.iso.org/ics/53.100/x/) for earth-moving
   machinery was published in October 2026: [Part 1](https://www.iso.org/standard/87988.html)
-  determines required machine performance levels; [Part 2](https://www.iso.org/standard/87718.html)
-  addresses achieved safety-control-system performance; [Part 3](https://www.iso.org/standard/88622.html)
-  addresses environmental testing of electrical/electronic components;
+  specifies the methodology for determining required machine performance levels
+  (MPLr); [Part 2](https://www.iso.org/standard/87718.html) covers hardware and
+  architecture requirements and evaluation of achieved machine performance
+  levels (MPLa); [Part 3](https://www.iso.org/standard/88622.html) specifies
+  environmental testing of safety-related electrical/electronic components;
   [Part 4](https://www.iso.org/standard/87720.html) addresses safety-related
-  software and data transmission; and [Part 5](https://www.iso.org/standard/87719.html)
-  provides required-level tables. The relevant scope is earth-moving machinery
-  defined in ISO 6165; this is not a generic construction-robot certification route.
+  software development and signal transmission; and
+  [Part 5](https://www.iso.org/standard/87719.html) provides normative MPLr
+  tables by common function and machine type. The relevant scope is earth-moving
+  machinery defined in ISO 6165. MPLr/MPLa are not interchangeable labels for
+  ISO 13849 PLr/PL or IEC 61508 SIL, and this evaluator does not calculate any
+  of them. The series covers hazards caused by safety-control-system failure,
+  not every hazard arising from the equipment itself.
 - [ISO 17757:2019](https://www.iso.org/standard/76126.html) remains current
   after 2024 confirmation and directly addresses autonomous/semi-autonomous
   earth-moving and mobile-mining machine systems and their defined environments.
@@ -201,13 +215,16 @@ standard identifier is not a conformity assessment.
 |---|---|
 | B0 | Fixed conservative separation and hard-stop envelope. |
 | B1 | B0 plus operating-mode-specific motion limits. |
-| B2 | B1 plus freshness, calibration, sensor coverage, confidence and independent fault-domain checks. |
+| B2 | B1 plus freshness, calibration, confidence, coverage-grid binding, complete required-cell coverage and per-modality/per-fault-domain zone coverage. |
 | B3 | B2 plus progressive mitigation, handover and explicit external recovery boundary. |
 | B4 | Independently adjudicated expected dispositions for the frozen corpus. |
 
 Report, never collapse into one score:
 
 - false-within-envelope count and rate (target: zero on hard-stop controls);
+- required-zone cell coverage recall, uncovered-cell detection and false
+  coverage claims (target: zero unsupported cells);
+- complete-zone coverage for each required modality and independent fault domain;
 - hard-stop and hold detection recall (target: 100% on frozen controls);
 - false-stop / unnecessary interruption rate;
 - stale, missing, contradictory, misbound and out-of-domain detection;
@@ -217,17 +234,21 @@ Report, never collapse into one score:
 - deterministic replay and input-order invariance.
 
 The software acceptance targets are exact reference agreement, zero false-safe
-classifications on the frozen negative controls, no autonomous emergency-stop
-reset, and sensor-backed human-absence claims requiring both modality and
-fault-domain diversity. There is no actuator output. These are finite software-contract targets, not
-physical safety rates.
+classifications on the frozen negative controls, zero unsupported covered cells,
+full required-zone coverage by each required modality and fault domain, no
+autonomous emergency-stop reset, and no actuator output. These are finite
+software-contract targets, not physical safety rates.
 
 ## How to go beyond current practice
 
 1. **Uncertainty as a first-class safety input.** Carry source age, calibration,
    coverage, coordinate frame, clock error, fault-domain dependence and
    measurement uncertainty all the way to the decision.
-2. **Temporal and causal fault injection.** Next versions should replay event
+2. **Space-time coverage, not a single confidence score.** Track exactly which
+   required hazard-zone cells are covered, by which sources, in which modalities,
+   under which fault domains and at what source time. Percentage confidence
+   cannot repair a blind region.
+3. **Temporal and causal fault injection.** Next versions should replay event
    streams with dropped, delayed, reordered, duplicated and contradictory
    observations, rather than only testing independent static snapshots.
 3. **Machine-family profiles.** A surface mobile manipulator, TBM, dredger,
