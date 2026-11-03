@@ -464,3 +464,60 @@ Observed-vs-modelled, observed-vs-derived and other cross-status comparisons are
 A cross-status comparison may be added only through a separately named, versioned, preregistered bridge that defines the relationship, validation evidence, uncertainty propagation and decision purpose. A general conversion factor or post-hoc weighting is not sufficient.
 
 This makes the default paired estimate conservative: same scenario block, same exogenous shocks, same initial state, same topology/model family/time grid/horizon, permitted treatment-only differences, and same metric evidence class. If the two arms do not meet those conditions, the outcome is indeterminate for that comparison rather than a misleading numeric improvement.
+
+
+## 20. LeakDB reproduction and sealed-holdout contract
+
+### Benchmark inventory and paper-specific baselines
+
+The KIOS LeakDB repository and WaterBenchmarkHub describe a public corpus with **1,000 scenarios for Net1 and 1,000 scenarios for Hanoi**, including node/link pressure, demand and flow time series, scenario configuration, leak location/type (including abrupt and incipient), and 30-minute labels. The original repository also provides the older CCWI-WDSA2018 example, a MATLAB scoring tool and a Zenodo link for the complete data. Sources: [KIOS LeakDB repository](https://github.com/KIOS-Research/LeakDB), [WaterBenchmarkHub LeakDB record](https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/KIOS-LeakDB.html).
+
+Several current papers use a 500-scenario Hanoi subset, which should be preserved as a **paper-reproduction lane**, not mistaken for the full public benchmark:
+- Damonti & Bernasconi, 2026 uncertainty-aware incipient detector: on its 500-scenario subset, reports 380 leak / 120 non-leak scenarios, 93.60% scenario accuracy, 91.58% sensitivity, 0/120 false positives, 0.975 ROC AUC and 0.993 PR AUC. It describes a threshold of (1.45\times10^{-6}), selected just below a difficult scenario's score, and says this enforces 0 FPs across all 120 leak-free scenarios. Its accessible software-availability statement says the specific Python implementation is not publicly hosted. References: [paper](https://doi.org/10.1007/s00477-026-03239-6); [dataset](https://github.com/KIOS-Research/LeakDB).
+- Damonti & Bernasconi, November 2026 Dynamic Residual Masking sensor placement: on its own 500-scenario Hanoi evaluation, the abstract reports 91.60% detection accuracy with five sensors versus 93.80% with 31 sensors, and a 2.5% false-positive reduction versus its explicit-Jacobian baseline. Article highlights round the five-sensor result to 91.4% and state 4.2% false positives. Preserve these as publisher-reported, paper-specific values pending reproduction; do not splice the highlight and abstract numbers into a synthetic “best” result. Reference: [paper](https://doi.org/10.1016/j.jhydrol.2026.136514).
+- A 2026 systematic review of 90 studies reports validation practices as 32 random-split, 9 temporal/independent holdout, 7 cross-validation, and 42 absent/insufficiently reported. It warns that pooled random scenario splits can leak highly similar scenarios across train/test. Reference: [review](https://doi.org/10.3390/w18182267).
+- A second 2026 review of 244 records / 71 pure deep-learning studies makes a similar case for standardizing splits, metrics, scenario definitions, uncertainty, and operational evaluation. Reference: [review](https://doi.org/10.2166/wpt.2026.485).
+
+**Important caveat on the 93.60% / zero-FP claim:** the uncertainty-aware paper's accessible methods/results discuss selecting the operational cutoff against a difficult scenario and say it was chosen to guarantee zero false positives across the 120 negative scenarios; the text we inspected does not establish an independent, sealed threshold-calibration set. Treat the reported metrics as an internal 500-scenario benchmark result until the authors' split and threshold-calibration procedure are independently reconstructed. This is a reproducibility caveat, not an allegation of misconduct.
+
+Even with 0/120 false positives observed, the one-sided 95% exact binomial upper confidence limit for the underlying FPR is approximately **2.47%**, not zero. A finite test set cannot establish a population FPR of exactly zero.
+
+### Three non-interchangeable evaluation lanes
+
+1. **L0 — paper reproduction:** reproduce each paper's own 500-scenario Hanoi subset, labels, sensor configuration, preprocessing, threshold and baseline as closely as available artifacts permit. Record unavailable artifacts and every protocol difference. Numeric comparisons are “reproduction” only when split, labels, sensor placement and operating threshold are matched.
+2. **L1 — full LeakDB, scenario-held-out:** use the full 1,000-scenario Hanoi and 1,000-scenario Net1 corpora where data/version integrity permits. Split by whole scenario ID before window generation or feature extraction. No timestep, window, augmentation or derived series from one scenario may cross train/calibration/test.
+3. **L2 — cross-topology transfer:** train/calibrate on one topology and test on the other, then reverse. Report both directions. Because this is only two synthetic topologies, call it cross-topology LeakDB transfer—not multi-utility or field generalization.
+
+Add separate locked challenge subsets for incipient-only leaks, leak-size/onset/duration groups, unseen leak locations, concurrent events where present, demand/noise regimes, sensor failure/missingness and topology/asset-map perturbation. A model may not tune on a challenge subset and later present it as held out.
+
+### Split and threshold governance
+
+- Group by complete scenario identity. If scenario IDs have parent/configuration, random-seed or near-duplicate relationships, group those related cases together.
+- Split before any rolling windows, filtering fit, feature selection, normalization parameter fit, sensor-location optimization, hyperparameter search or threshold selection.
+- Fit learned transforms only on training data. Fit model selection/hyperparameters inside training folds. Use a calibration partition for operating thresholds, probability calibration or abstention. The final test is evaluated once with all choices frozen.
+- Keep the 500-case paper-reproduction subset separate from the complete 1,000-case topology corpus; do not silently mix or replace data versions.
+- Publish SHA-256 digests of source archive, topology/configuration, scenario manifest, label files, split membership, feature pipeline, sensor placement, model, calibration procedure and evaluator.
+- Use a blind evaluator process with test labels inaccessible to candidate code. Repeated leaderboard submissions require a fixed query budget, audit log and a final non-public holdout to control adaptive overfitting.
+- The final split manifest must record scenario IDs and grouping rationale, not merely a random seed. A seed is not a substitute for a frozen split artifact.
+
+### Metrics: event, time, location and operational burden
+
+Keep these separate:
+- **Scenario/event detection:** sensitivity, specificity, precision, F1, balanced accuracy, MCC, PR-AUC, ROC-AUC and calibrated probability score (Brier/log loss). Report prevalence and confidence intervals.
+- **Time-step/event timing:** detection delay from leak onset, time to sustained alert, false alarm episodes per node-day / network-day, event fragmentation and missed-event duration. Pointwise accuracy alone is insufficient.
+- **Localization:** exact pipe/node Top-1 and Top-3, graph and metric distance p50/p90, localization abstention/coverage and calibration. Do not treat a binary detector as a localizer.
+- **Operations:** false dispatches at a declared threshold, unnecessary visits, detection latency, compute, sensor/telemetry uptime, bandwidth, energy and cost per independently verified event.
+- **Distribution and robustness:** report incipient versus abrupt, severity, location, demand regime, sensor density, missingness, noise, topology and model family strata. Preserve failed runs and abstentions in denominators.
+
+### Sensor-placement fairness
+
+For every compared placement algorithm:
+- the sensor budget (e.g. 5 versus 31) and sensor capabilities are fixed before the test;
+- placement is optimized on training data only, then frozen before calibration/test;
+- all methods see the same scenario universe, noise/missingness, sensor failure model, telemetry constraints and whole-life sensor/maintenance cost;
+- include random, coverage/shortest-path, explicit hydraulic Jacobian, published topology+sensitivity, Dynamic Residual Masking, and decision-aware variants where the method can be reconstructed;
+- report both diagnostic performance and decision/service value. More sensors or higher detection accuracy alone is not a service outcome.
+
+### CivBench competitive claim rule
+
+First reproduce the 2026 paper-specific baselines on their own compatible task. Then report new L1/L2 results independently. A +5 percentage-point gain can be claimed only on a genuinely identical frozen test protocol and only if false dispatch, p90 localization, calibration and worst-stratum performance do not regress. Otherwise report a new benchmark result, not “SOTA superiority”.
