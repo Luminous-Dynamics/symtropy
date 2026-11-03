@@ -6,6 +6,7 @@
 - [ANIMA-NEURO-002 / #3345](https://github.com/Luminous-Dynamics/symtropy/issues/3345) — CPG-to-contact locomotion and model-family discrimination.
 - [LOCO-BENCH-001 / #3357](https://github.com/Luminous-Dynamics/symtropy/issues/3357) — matched FlyGym 2.1.1 and controller baselines.
 - [ANIMAL-GAIT-METRICS-001 / #3353](https://github.com/Luminous-Dynamics/symtropy/issues/3353) — versioned raw gait metrics.
+- [ANIMA-NEURO-003 / #3456](https://github.com/Luminous-Dynamics/symtropy/issues/3456) — proprioceptive joint-limit reflex reproduction and held-out hair-plate generalization.
 - [Symthaea DROSOPHILA-WALKING-001 / #9934](https://github.com/Luminous-Dynamics/symthaea/issues/9934) — reproduction of Pugliese et al.
 - [Symthaea blind-intervention benchmark / #9587](https://github.com/Luminous-Dynamics/symthaea/issues/9587), [optimal perturbation design / #9592](https://github.com/Luminous-Dynamics/symthaea/issues/9592), and the discrete-hypothesis EIG work in [#9589](https://github.com/Luminous-Dynamics/symthaea/issues/9589).
 
@@ -17,9 +18,16 @@ Pugliese et al., Nature (28 October 2026), report that DNg100 drives rhythmic mo
 
 Sapkal et al., Central versus peripheral neural control of a coordinated walking pattern in Drosophila (bioRxiv version published 3 May 2026; preprint), report a complementary sensory-deprivation result: local per-leg rhythm, contact/load and descending contributions to within-leg step structure, and central coupling plus proprioceptive/descending modulation of inter-leg coordination. This is a preprint and must retain that evidence status.
 
+Pratt et al., Nature Communications (12 February 2026), provide a concrete peripheral-reflex comparator: the CxHP8 hair plate detects anterior thorax-coxa movement limits; connectome analysis predicts excitation of posterior coxa movement and inhibition of an antagonist anterior module; optogenetic activation and silencing support the predicted reflex and a swing-to-stance role. The six legs contain 214 hair-plate mechanosensory neurons grouped into 42 plates, and the authors predict functions for additional plates from morphology and connectivity. This is an existing connectome-to-reflex result, not a novelty claim for Symtropy. Our opportunity is to reproduce it independently, make frozen predictions for held-out receptors/joints, and integrate such event-triggered local reflexes with CPGs and physical contact.
+
+The associated Dryad dataset is DOI 10.5061/dryad.fxpnvx153 (the NLM catalogue reports CC0-1.0); the paper reports FANC CAVE materialization v840 and FlyWire public release v783. Pin the exact dataset version, per-file digests, connectome materializations and the authors' analysis-code commit before acquisition or reproduction.
+
 References:
 - [Pugliese et al., Nature (2026), DOI 10.1038/s41586-026-11195-y](https://doi.org/10.1038/s41586-026-11195-y)
 - [Sapkal et al., bioRxiv 2026.04.29.721658, v2](https://www.biorxiv.org/content/10.1101/2026.04.29.721658v2)
+- [Pratt et al., Nature Communications (2026), DOI 10.1038/s41467-026-69333-z](https://doi.org/10.1038/s41467-026-69333-z)
+- [Pratt et al., Dryad dataset DOI 10.5061/dryad.fxpnvx153](https://doi.org/10.5061/dryad.fxpnvx153)
+- [Authors' hair-plate analysis code, v1.0.0](https://github.com/Prattbuw/Hair_Plate_Paper/releases/tag/v1.0.0)
 - [FlyGym releases](https://github.com/NeLy-EPFL/flygym/releases), pinned for external neuromechanical comparison at v2.1.1 / commit a63dc91.
 
 Preserve six outcome levels:
@@ -47,6 +55,7 @@ Keep models as explicit competing hypotheses. Do not collapse them into one hybr
 | M6 | Reflex/PID or rule-based controller | Sensor-driven control with no inferred central rhythm circuit |
 | M7 | Learned recurrent/RL controller | Pinned policy, training data, observation channels, training budget and random seeds |
 | M8 | Connectome-constrained sensorimotor hybrid | Source-grounded local dynamics plus explicit central coupling, sensory feedback, descending modulation and embodied mechanics |
+| M9 | Connectome-grounded joint-limit reflex modules | Receptor-specific hair-plate threshold/limit events, source-grounded sensory-to-premotor-to-motor mapping, bounded local reflex and joint-specific biomechanics |
 
 Every model descriptor must state species/taxon, life stage, connectome/release, included and omitted cells/pathways, synapse/sign assumptions, dynamics family, parameter priors, sensor/effector mapping, solver and evidence tier. A model with omitted sensory pathways must not receive those signals through an unrecorded side channel.
 
@@ -93,6 +102,7 @@ Select interventions because candidate models predict meaningfully different out
 | Contact/load alteration | Load-dependent step microstructure and feedback loops | Contact impulses, stance duration, joint sequence, motor response |
 | Mechanical disturbance / terrain change | Neural robustness versus mechanics-only compensation | Body speed, slip, stability, recovery latency, neural and motor traces |
 | Sensory latency/noise perturbation | Feedback timing sensitivity and stability margin | Oscillation stability, phase drift, recovery and controller failure rate |
+| Joint-limit receptor activation/silencing (e.g. CxHP8) | Connectome-predicted local reflex direction and swing-to-stance contribution versus generic/mechanical limit response | Receptor signal, antagonist/synergist motor modules, reflex latency/gain, joint overshoot and gait-transition timing |
 
 Each row must be tagged as one of:
 - **Published observation:** a measured intervention already reported in a cited source.
