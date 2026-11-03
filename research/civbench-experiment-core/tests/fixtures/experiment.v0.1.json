@@ -145,6 +145,46 @@
         "evidence_class": "public_historical_external_benchmark_dataset",
         "assurance": "Official BattLeDIM L-Town SCADA and EPANET benchmark: 5-minute measurements, 1 tank-level sensor, 3 flow sensors, 33 pressure sensors and 82 Area C AMRs; 2019 evaluation data are historically public, so this is external transfer evidence but not a secret holdout",
         "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025",
+        "uri": "https://zenodo.org/records/17547955",
+        "period": "published_2025-11-06",
+        "evidence_class": "public_hardware_in_the_loop_testbed_dataset",
+        "assurance": "Real-time sensor-instrumented water-system testbed dataset with cyberattack, leakage and sensor-failure events; testbed evidence, not a municipal utility deployment",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "ACG_WATER_TESTBED_2026",
+        "uri": "https://zenodo.org/records/21814947",
+        "period": "published_2026-08-06",
+        "evidence_class": "public_controlled_cyber_physical_testbed",
+        "assurance": "Reproducible research testbed for simulated remote-access, IT/OT traversal, PLC/controller, sensor, pump and storage compromise propagation; no interaction with production utilities or live PLCs",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026",
+        "uri": "https://doi.org/10.3390/eng7100564",
+        "period": "published_2026-10-15",
+        "evidence_class": "published_review_and_testbed_case_study",
+        "assurance": "Maps 50 water cyber-physical studies and reports a chronological WDT testbed case; its five-run alarm-policy result shows higher sample recall can coexist with fewer detected event onsets and sustained alarms; protocol-specific, not a universal model ranking",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDN_CYBERSECURITY_AI_REVIEW_2026",
+        "uri": "https://doi.org/10.3390/w18040519",
+        "period": "published_2026",
+        "evidence_class": "systematic_review_32_peer_reviewed_studies",
+        "assurance": "Reports strong concentration on a small set of synthetic/testbed datasets and no observed cross-dataset validation in the reviewed studies; review scope and search period limit generalization",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDS_CYBER_RELIABILITY_RISK_TRADEOFF_2026",
+        "uri": "https://doi.org/10.1016/j.ress.2026.112667",
+        "period": "published_2026",
+        "evidence_class": "published_cyber_physical_risk_optimization_study",
+        "assurance": "Quantifies trade-offs between cyber-network reliability redundancy and increased cyber-physical attack exposure on two WDS case studies; results depend on network topology and security assumptions",
+        "snapshot_status": "not_snapshotted"
       }
     ],
     "evidence_classes": [
@@ -390,7 +430,7 @@
     "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
     "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
     "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published topology+sensitivity hybrid, probabilistic Dynamic Residual Masking / game-theoretic pseudo-Jacobian placement, cascading-aware placement, and decision-aware placement at matched sensor count and whole-life cost. Reconstruct exact source task/split before numeric SOTA claims. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome.",
-    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score",
+    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score Include controlled cyber-physical testbed cases as a separate robustness track: distinguish leaks, sensor failures and cyber events; report event-onset and false-alarm episodes, attack-to-physical propagation, safety/service consequence and recovery. Evaluate availability/redundancy gains against added cyber-physical attack surface; never pool attack labels with leak labels.",
     "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
     "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
     "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation.",
@@ -708,6 +748,93 @@
           "BABELA_MUNK_MUNKOVA_SLOVAK_WDN_DATASET_2026"
         ]
       }
+    }
+  },
+  "cyberphysical_resilience_contract": {
+    "version": "0.1.0",
+    "benchmark_resources": [
+      {
+        "resource_id": "WDSEventDB",
+        "source_id": "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025",
+        "evidence_class": "hardware_in_the_loop_testbed_dataset",
+        "claim_limit": "controlled sensor-instrumented testbed evidence, not utility deployment",
+        "event_classes": [
+          "cyberattack",
+          "leakage",
+          "sensor_failure"
+        ]
+      },
+      {
+        "resource_id": "ACG_Water_Testbed_2026",
+        "source_id": "ACG_WATER_TESTBED_2026",
+        "evidence_class": "controlled_cyber_physical_testbed",
+        "claim_limit": "offline controlled cyber-to-physical simulation only; no production PLC or utility access",
+        "event_classes": [
+          "cyberattack",
+          "communication_anomaly",
+          "process_deviation"
+        ]
+      },
+      {
+        "resource_id": "WDT_Chronological_Benchmark_2026",
+        "source_id": "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026",
+        "evidence_class": "paper_specific_chronological_testbed_case",
+        "claim_limit": "five-run paper-specific alarm-policy observation, not a universal model ranking",
+        "event_classes": [
+          "normal_operation",
+          "cyber_event",
+          "process_anomaly"
+        ]
+      }
+    ],
+    "evaluation_lanes": {
+      "C1_event_discrimination": {
+        "resource_ids": [
+          "WDSEventDB",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "separately discriminate leakage, sensor failure, communication anomaly, cyber event and normal operation where labels permit; preserve unknown/ambiguous events"
+      },
+      "C2_cyber_to_physical_propagation": {
+        "resource_ids": [
+          "ACG_Water_Testbed_2026"
+        ],
+        "task": "measure whether controlled cyber events propagate into process deviation, unsafe state, service deficit and water-quality excursion where modeled; never connect to live systems"
+      },
+      "C3_control_and_resilience_comparison": {
+        "resource_ids": [
+          "WDSEventDB",
+          "ACG_Water_Testbed_2026",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "compare nominal-only, cyber-only monitoring, process-aware detection, segmentation/least privilege and recovery policies under identical testbed event schedules"
+      }
+    },
+    "event_classes": [
+      "leak",
+      "sensor_failure",
+      "communication_anomaly",
+      "cyberattack",
+      "process_drift",
+      "unknown"
+    ],
+    "metrics": [
+      "event_precision_recall",
+      "event_onset_delay",
+      "false_alarm_episodes_per_system_day",
+      "calibration_and_abstention",
+      "physical_consequence_exposure",
+      "time_to_safe_state",
+      "recovery_time",
+      "service_deficit"
+    ],
+    "hard_gates": {
+      "no_live_plc_or_production_scada": true,
+      "human_authorization_required_for_operational_actions": true,
+      "keep_leak_sensor_failure_and_attack_labels_distinct": true,
+      "do_not_infer_malicious_intent_from_anomaly_alone": true,
+      "benchmark_score_never_grants_actuation_authority": true,
+      "independent_safety_interlocks_and_rollback_required": true
     }
   }
 }
