@@ -1788,8 +1788,7 @@ mod tests {
         let expected = evaluate(&policy, &observation);
         observation.sensors.reverse();
         let reversed = evaluate(&policy, &observation);
-        assert_eq!(expected.disposition, reversed.disposition);
-        assert_eq!(expected.reasons, reversed.reasons);
+        assert_eq!(expected, reversed);
     }
 
     #[test]
