@@ -315,7 +315,9 @@ fn policy_is_well_formed(policy: &SafetyPolicy) -> bool {
 
     let mut critical_ids = BTreeSet::new();
     if policy.critical_sensor_ids.iter().any(|id| {
-        !non_empty(id) || !critical_ids.insert(id.as_str())
+        !non_empty(id)
+            || id.len() > MAX_IDENTIFIER_BYTES
+            || !critical_ids.insert(id.as_str())
     }) {
         return false;
     }
@@ -470,10 +472,6 @@ fn condition_is_supported(
     {
         return Err(Reason::OddConditionSetMalformed);
     }
-    if observation.odd_conditions.len() != policy.odd_conditions.len() {
-        return Err(Reason::UnexpectedOddCondition);
-    }
-
     for value in &observation.odd_conditions {
         if !non_empty(&value.condition_id)
             || value.condition_id.len() > MAX_IDENTIFIER_BYTES
@@ -482,6 +480,16 @@ fn condition_is_supported(
             || !is_sha256_reference(&value.source_sha256)
         {
             return Err(Reason::SensorSetMalformed);
+        }
+    }
+
+    for value in &observation.odd_conditions {
+        if !policy
+            .odd_conditions
+            .iter()
+            .any(|limit| limit.condition_id == value.condition_id)
+        {
+            return Err(Reason::UnexpectedOddCondition);
         }
     }
 
@@ -703,12 +711,11 @@ pub fn evaluate(
 
     match condition_is_supported(policy, observation) {
         Ok(()) => {}
-        Err(Reason::SensorSetMalformed | Reason::OddConditionSetMalformed) => {
-            return inconsistent(
-                policy,
-                observation,
-                Reason::OddConditionSetMalformed,
-            );
+        Err(Reason::SensorSetMalformed) => {
+            return inconsistent(policy, observation, Reason::SensorSetMalformed);
+        }
+        Err(Reason::OddConditionSetMalformed) => {
+            return inconsistent(policy, observation, Reason::OddConditionSetMalformed);
         }
         Err(reason) => return unsupported(policy, observation, reason),
     }
@@ -1674,6 +1681,113 @@ mod tests {
             decision.disposition,
             Disposition::StopRequiredBySyntheticPolicy
         );
+    }
+
+    #[test]
+    fn malformed_policy_digest_has_a_distinct_inconsistent_disposition() {
+        let (mut policy, observation) = baseline();
+        policy.policy_sha256 = "not-a-digest".to_owned();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::PolicyDigestMalformed]);
+    }
+
+    #[test]
+    fn missing_odd_condition_is_not_misreported_as_an_extra_condition() {
+        let (policy, mut observation) = baseline();
+        observation.odd_conditions.remove(0);
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::UnsupportedOdd);
+        assert_eq!(decision.reasons, vec![Reason::OddConditionMissing]);
+    }
+
+    #[test]
+    fn an_unexpected_odd_condition_is_rejected() {
+        let (policy, mut observation) = baseline();
+        observation.odd_conditions[0].condition_id = "unregistered-weather-field".to_owned();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::UnsupportedOdd);
+        assert_eq!(decision.reasons, vec![Reason::UnexpectedOddCondition]);
+    }
+
+    #[test]
+    fn missing_odd_data_cannot_hide_a_hard_separation_stop() {
+        let (policy, mut observation) = baseline();
+        observation.odd_conditions.remove(0);
+        observation.human = HumanObservation::Tracked {
+            distance_mm: 2_000,
+            position_uncertainty_mm: 100,
+            relative_approach_speed_mm_s: 100,
+            track_age_ms: 10,
+            confidence_ppm: 980_000,
+            conflicting_tracks: false,
+        };
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reasons, vec![Reason::HumanSeparationBreached]);
+    }
+
+    #[test]
+    fn degraded_sensor_at_reduced_speed_requests_hold_and_reassessment() {
+        let (policy, mut observation) = baseline();
+        observation.motion.speed_mm_s = policy.reduced_speed_mm_s;
+        observation.sensors[2].health = SensorHealth::Degraded;
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::RequireProgressiveMitigation
+        );
+        assert_eq!(
+            decision.requested_response,
+            RequestedResponse::HoldForHumanReview
+        );
+    }
+
+    #[test]
+    fn all_policy_identity_strings_are_bounded() {
+        let (mut policy, observation) = baseline();
+        policy.machine_id = "m".repeat(MAX_IDENTIFIER_BYTES + 1);
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::UnsupportedOdd);
+    }
+
+    #[test]
+    fn critical_sensor_identities_are_bounded() {
+        let (mut policy, observation) = baseline();
+        policy.critical_sensor_ids[0] = "s".repeat(MAX_IDENTIFIER_BYTES + 1);
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::UnsupportedOdd);
+    }
+
+    #[test]
+    fn oversized_sensor_collections_fail_closed() {
+        let (policy, mut observation) = baseline();
+        let template = observation.sensors[0].clone();
+        observation.sensors = (0..=MAX_SENSOR_RECORDS)
+            .map(|index| {
+                let mut sensor = template.clone();
+                sensor.sensor_id = format!("sensor-{index}");
+                sensor
+            })
+            .collect();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(decision.disposition, Disposition::EvidenceInconsistent);
+        assert_eq!(decision.reasons, vec![Reason::SensorSetMalformed]);
+    }
+
+    #[test]
+    fn extra_sensor_does_not_replace_required_critical_sensor() {
+        let (policy, mut observation) = baseline();
+        observation.sensors[0].sensor_id = "untrusted-extra-sensor".to_owned();
+        let decision = evaluate(&policy, &observation);
+        assert_eq!(
+            decision.disposition,
+            Disposition::StopRequiredBySyntheticPolicy
+        );
+        assert_eq!(decision.reasons, vec![Reason::CriticalSensorMissing]);
     }
 
     #[test]
