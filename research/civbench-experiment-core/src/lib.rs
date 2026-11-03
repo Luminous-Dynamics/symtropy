@@ -576,6 +576,22 @@ impl ResourceLedger {
         self.commitments.get(commitment_id.trim()).map(|record| record.state)
     }
 
+    /// Return the original reservation for a recorded commitment.
+    pub fn commitment_reservation(&self, commitment_id: &str) -> Option<ResourceEnvelope> {
+        self.commitments
+            .get(commitment_id.trim())
+            .map(|record| record.reserved)
+    }
+
+    /// Return actual settled resource consumption for a completed commitment.
+    ///
+    /// Returns None when the commitment is unknown, still reserved, or released.
+    pub fn commitment_settlement(&self, commitment_id: &str) -> Option<ResourceEnvelope> {
+        self.commitments
+            .get(commitment_id.trim())
+            .and_then(|record| record.settled)
+    }
+
     fn new_commitment_id(&self, commitment_id: impl Into<String>) -> Result<String, LedgerError> {
         let id = commitment_id.into().trim().to_owned();
         if id.is_empty() { return Err(LedgerError::EmptyCommitmentId); }
@@ -1720,6 +1736,21 @@ mod tests {
         assert_eq!(ledger.consumed(), actual);
         assert_eq!(ledger.remaining().get(ResourceKind::CrewMinutes), 510);
         assert_eq!(ledger.commitment_state("work-1"), Some(ResourceCommitmentState::Settled));
+    }
+
+    #[test]
+    fn resource_ledger_exposes_reserved_and_settled_amounts_per_commitment() {
+        let mut ledger = ResourceLedger::new(envelope([1000, 100, 200, 600, 30, 300, 500, 2]));
+        let reservation = envelope([0, 0, 0, 100, 0, 0, 0, 0]);
+        let actual = envelope([0, 0, 0, 75, 0, 0, 0, 0]);
+
+        ledger.reserve("job-17", reservation).unwrap();
+        assert_eq!(ledger.commitment_reservation("job-17"), Some(reservation));
+        assert_eq!(ledger.commitment_settlement("job-17"), None);
+
+        ledger.settle("job-17", actual).unwrap();
+        assert_eq!(ledger.commitment_reservation("job-17"), Some(reservation));
+        assert_eq!(ledger.commitment_settlement("job-17"), Some(actual));
     }
 
     #[test]
