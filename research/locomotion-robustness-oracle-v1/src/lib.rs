@@ -105,6 +105,8 @@ pub struct RobustnessProtocol {
     pub split_sha256: String,
     pub scenario_catalog_sha256: String,
     pub scoring_plan_sha256: String,
+    /// Preregistered schema for mechanism-state distance; None disables this measure.
+    pub mechanism_state_schema_sha256: Option<String>,
     /// Lower-tail CVaR fraction, in basis points (1000 = worst 10%).
     pub lower_tail_fraction_basis_points: u16,
     pub minimum_episodes_per_scenario: usize,
@@ -455,6 +457,10 @@ impl RobustnessProtocol {
                 return Err(RobustnessError::InvalidDigest(label));
             }
         }
+        validate_optional_digest(
+            &self.mechanism_state_schema_sha256,
+            "protocol_mechanism_state_schema",
+        )?;
         if self.lower_tail_fraction_basis_points == 0
             || self.lower_tail_fraction_basis_points > 10_000
             || self.minimum_episodes_per_scenario == 0
@@ -544,6 +550,11 @@ fn validate_episode(
         &record.mechanism_state_schema_sha256,
         "mechanism_state_schema",
     )?;
+    if record.mechanism_state_schema_sha256.is_some()
+        && record.mechanism_state_schema_sha256 != protocol.mechanism_state_schema_sha256
+    {
+        return Err(RobustnessError::ProtocolMismatch);
+    }
     validate_optional_digest(&record.measured_dataset_sha256, "measured_dataset")?;
     validate_optional_digest(
         &record.independent_replication_sha256,
@@ -781,7 +792,11 @@ fn validate_episode(
             false
         }
     };
-    if mechanism_assessed && record.mechanism_state_schema_sha256.is_none() {
+    if mechanism_assessed
+        && (record.mechanism_state_schema_sha256.is_none()
+            || protocol.mechanism_state_schema_sha256.is_none()
+            || record.mechanism_state_schema_sha256 != protocol.mechanism_state_schema_sha256)
+    {
         return Err(RobustnessError::MissingEvidenceArtifact("mechanism_state_schema"));
     }
 
@@ -1617,6 +1632,7 @@ mod tests {
             split_sha256: digest('b'),
             scenario_catalog_sha256: digest('c'),
             scoring_plan_sha256: digest('d'),
+            mechanism_state_schema_sha256: Some(digest('f')),
             lower_tail_fraction_basis_points: 1000,
             minimum_episodes_per_scenario: 2,
             minimum_episodes_per_individual: 1,
@@ -1777,7 +1793,9 @@ mod tests {
         episodes[1].mechanism_state_schema_sha256 = None;
         episodes[0].mechanism_state_deviation_from_nominal = None;
         episodes[1].mechanism_state_deviation_from_nominal = None;
-        let report = analyze_robustness(&protocol(), &episodes).expect("scorecard");
+        let mut unobserved_protocol = protocol();
+        unobserved_protocol.mechanism_state_schema_sha256 = None;
+        let report = analyze_robustness(&unobserved_protocol, &episodes).expect("scorecard");
         assert_eq!(report.by_scenario[0].median_recovery_latency_ticks, None);
         assert_eq!(report.by_scenario[0].unobserved_recovery_episodes, 2);
         assert_eq!(report.by_scenario[0].unobserved_mechanism_recovery_episodes, 2);
