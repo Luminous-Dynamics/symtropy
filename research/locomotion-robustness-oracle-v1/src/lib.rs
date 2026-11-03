@@ -199,6 +199,18 @@ pub enum RobustnessError {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct IndividualScorecard {
+    pub individual_id: String,
+    pub morphology_sha256: String,
+    pub episode_count: usize,
+    pub success_rate: f64,
+    pub mean_task_score: f64,
+    pub lower_tail_cvar_task_score: f64,
+    pub episodes_with_numerical_failures: usize,
+    pub episodes_with_physics_violations: usize,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioScorecard {
     pub model_id: String,
     pub model_family: ModelFamily,
@@ -211,9 +223,21 @@ pub struct ScenarioScorecard {
 
     pub episode_count: usize,
     pub individual_count: usize,
+    /// Episode-weighted success and score; heavily sampled individuals contribute more.
     pub success_rate: f64,
     pub mean_task_score: f64,
     pub lower_tail_cvar_task_score: f64,
+    /// Equal-weight mean across individuals, independent of trials per individual.
+    pub individual_balanced_success_rate: f64,
+    pub individual_balanced_mean_task_score: f64,
+    /// Lower-tail CVaR of equal-weight per-individual mean task scores.
+    pub individual_balanced_lower_tail_cvar_task_score: f64,
+    pub worst_individual_success_rate: f64,
+    pub worst_success_individual_id: String,
+    pub worst_individual_lower_tail_cvar_task_score: f64,
+    pub worst_cvar_individual_id: String,
+    /// Sorted by individual ID; different morphologies remain visible.
+    pub individual_scorecards: Vec<IndividualScorecard>,
 
     pub mean_progress_distance_m: f64,
     pub mean_body_pose_rmse_m: f64,
@@ -698,6 +722,7 @@ fn score_scenario(
     }
 
     let mut individuals = BTreeSet::new();
+    let mut episodes_by_individual: BTreeMap<String, Vec<&EpisodeRecord>> = BTreeMap::new();
     let mut task_scores = Vec::with_capacity(records.len());
     let mut successes = 0usize;
     let mut progress = Vec::with_capacity(records.len());
@@ -790,6 +815,10 @@ fn score_scenario(
         }
 
         individuals.insert(record.individual_id.as_str());
+        episodes_by_individual
+            .entry(record.individual_id.clone())
+            .or_default()
+            .push(record);
         task_scores.push(record.task_score);
         if record.success {
             successes += 1;
@@ -847,6 +876,75 @@ fn score_scenario(
     }
 
     let success_rate = successes as f64 / records.len() as f64;
+    let mut individual_scorecards = Vec::with_capacity(episodes_by_individual.len());
+    let mut individual_success_rates = Vec::with_capacity(episodes_by_individual.len());
+    let mut individual_mean_task_scores = Vec::with_capacity(episodes_by_individual.len());
+
+    for (individual_id, individual_episodes) in episodes_by_individual {
+        let morphology_sha256 = individual_episodes[0].morphology_sha256.clone();
+        if individual_episodes
+            .iter()
+            .any(|episode| episode.morphology_sha256 != morphology_sha256)
+        {
+            return Err(RobustnessError::ScenarioDefinitionMismatch);
+        }
+
+        let individual_scores = individual_episodes
+            .iter()
+            .map(|episode| episode.task_score)
+            .collect::<Vec<_>>();
+        let individual_success_count = individual_episodes
+            .iter()
+            .filter(|episode| episode.success)
+            .count();
+        let individual_success_rate =
+            individual_success_count as f64 / individual_episodes.len() as f64;
+        let individual_mean_task_score = stable_mean(&individual_scores)?;
+        let individual_lower_tail_cvar = lower_tail_cvar(
+            &individual_scores,
+            protocol.lower_tail_fraction_basis_points,
+        )?;
+        let episodes_with_numerical_failures = individual_episodes
+            .iter()
+            .filter(|episode| episode.numerical_failure_count > 0)
+            .count();
+        let episodes_with_physics_violations = individual_episodes
+            .iter()
+            .filter(|episode| episode.physics_violation_count > 0)
+            .count();
+
+        individual_success_rates.push(individual_success_rate);
+        individual_mean_task_scores.push(individual_mean_task_score);
+        individual_scorecards.push(IndividualScorecard {
+            individual_id,
+            morphology_sha256,
+            episode_count: individual_episodes.len(),
+            success_rate: individual_success_rate,
+            mean_task_score: individual_mean_task_score,
+            lower_tail_cvar_task_score: individual_lower_tail_cvar,
+            episodes_with_numerical_failures,
+            episodes_with_physics_violations,
+        });
+    }
+
+    let worst_success_individual = individual_scorecards
+        .iter()
+        .min_by(|left, right| left.success_rate.total_cmp(&right.success_rate))
+        .ok_or(RobustnessError::NonFiniteSummary)?;
+    let worst_cvar_individual = individual_scorecards
+        .iter()
+        .min_by(|left, right| {
+            left.lower_tail_cvar_task_score
+                .total_cmp(&right.lower_tail_cvar_task_score)
+        })
+        .ok_or(RobustnessError::NonFiniteSummary)?;
+    let individual_balanced_success_rate = stable_mean(&individual_success_rates)?;
+    let individual_balanced_mean_task_score = stable_mean(&individual_mean_task_scores)?;
+    let individual_balanced_lower_tail_cvar_task_score = lower_tail_cvar(
+        &individual_mean_task_scores,
+        protocol.lower_tail_fraction_basis_points,
+    )?;
+
     let mut slip_for_median = slips.clone();
     let median_slip_distance_m =
         median_f64(&mut slip_for_median).ok_or(RobustnessError::NonFiniteSummary)?;
@@ -888,6 +986,15 @@ fn score_scenario(
             &task_scores,
             protocol.lower_tail_fraction_basis_points,
         )?,
+        individual_balanced_success_rate,
+        individual_balanced_mean_task_score,
+        individual_balanced_lower_tail_cvar_task_score,
+        worst_individual_success_rate: worst_success_individual.success_rate,
+        worst_success_individual_id: worst_success_individual.individual_id.clone(),
+        worst_individual_lower_tail_cvar_task_score: worst_cvar_individual
+            .lower_tail_cvar_task_score,
+        worst_cvar_individual_id: worst_cvar_individual.individual_id.clone(),
+        individual_scorecards,
         mean_progress_distance_m: stable_mean(&progress)?,
         mean_body_pose_rmse_m: stable_mean(&pose_errors)?,
         mean_joint_angle_rmse_rad: stable_mean(&joint_errors)?,
@@ -1341,6 +1448,33 @@ mod tests {
         let row = &report.by_scenario[0];
         assert!((row.mean_task_score - 0.86).abs() < 1.0e-12);
         assert!((row.lower_tail_cvar_task_score - 0.05).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn individual_balancing_prevents_over_sampled_individual_dominance() {
+        let mut episodes = Vec::new();
+        for index in 0..9 {
+            episodes.push(episode(
+                "candidate",
+                &format!("fly-a-trial-{index}"),
+                "fly-a",
+                0.9,
+            ));
+        }
+        episodes.push(episode("candidate", "fly-b-trial-1", "fly-b", 0.1));
+
+        let mut protocol = protocol();
+        protocol.minimum_episodes_per_scenario = 10;
+        let report = analyze_robustness(&protocol, &episodes).expect("scorecard");
+        let row = &report.by_scenario[0];
+
+        assert!((row.mean_task_score - 0.82).abs() < 1.0e-12);
+        assert!((row.individual_balanced_mean_task_score - 0.5).abs() < 1.0e-12);
+        assert!((row.individual_balanced_lower_tail_cvar_task_score - 0.1).abs() < 1.0e-12);
+        assert_eq!(row.individual_scorecards.len(), 2);
+        assert_eq!(row.worst_success_individual_id, "fly-b");
+        assert_eq!(row.worst_cvar_individual_id, "fly-b");
+        assert_eq!(row.individual_scorecards[0].morphology_sha256, digest('2'));
     }
 
     #[test]
