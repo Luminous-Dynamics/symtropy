@@ -124,35 +124,35 @@ pub enum ValidationError {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DiscriminationPolicy {
-    /// Minimum pairwise squared Mahalanobis separation required to call a pair
-    /// resolved for this benchmark. Freeze it before unblinding.
-    pub minimum_pair_d2: f64,
+    /// Minimum pairwise mean-only squared Mahalanobis separation required to
+    /// call a pair resolved for this benchmark. Freeze it before unblinding.
+    pub minimum_pair_mean_d2: f64,
     /// Fixed diagonal regularizer for the pooled covariance.
     pub covariance_regularization: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiscriminationStatus {
-    /// Every candidate model pair exceeds the preregistered resolution threshold.
-    FullySeparated,
-    /// Some pairs separate, but at least one pair remains unresolved.
-    PartiallySeparated,
-    /// No candidate pair exceeds the preregistered resolution threshold.
-    Unresolved,
+    /// Every candidate model pair exceeds the preregistered mean-separation threshold.
+    AllPairsMeanSeparated,
+    /// Some pairs show mean separation, but at least one pair remains unresolved.
+    SomePairsMeanSeparated,
+    /// No candidate pair exceeds the preregistered mean-separation threshold.
+    NoPairsMeanSeparated,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PairSeparation {
     pub model_a: String,
     pub model_b: String,
-    pub d2: f64,
+    pub mean_d2: f64,
     pub resolved: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DiscriminationResult {
     pub status: DiscriminationStatus,
-    pub minimum_pair_d2: f64,
+    pub minimum_pair_mean_d2: f64,
     pub resolved_pair_count: usize,
     pub unresolved_pair_count: usize,
     pub pairwise: Vec<PairSeparation>,
@@ -475,19 +475,20 @@ fn pairwise_d2(
 
 /// Compute pairwise noise-aware model separation for a single intervention.
 ///
-/// This is a screening heuristic based on squared Mahalanobis distance using
-/// the sum of both predictive covariances and the covariance of observation
-/// error in their difference. It assumes independent model-predictive errors;
-/// correlated paired errors require an explicit cross-model covariance term.
-/// It is not expected information gain, a likelihood-ratio test, a p-value, or
-/// a posterior probability that any model is true.
+/// This is a mean-only screening heuristic based on squared Mahalanobis
+/// distance. Predictive and observation-difference covariances only whiten the
+/// difference between predicted means; covariance-only model differences are
+/// not detected. It assumes independent model-predictive errors; correlated
+/// paired errors require an explicit cross-model covariance term. It is not
+/// expected information gain, a likelihood-ratio test, a p-value, or a
+/// posterior probability that any model is true.
 pub fn screen_intervention(
     batch: &PredictionBatch,
     policy: DiscriminationPolicy,
 ) -> Result<DiscriminationResult, ValidationError> {
     validate_prediction_batch(batch)?;
-    if !policy.minimum_pair_d2.is_finite()
-        || policy.minimum_pair_d2 <= 0.0
+    if !policy.minimum_pair_mean_d2.is_finite()
+        || policy.minimum_pair_mean_d2 <= 0.0
         || !policy.covariance_regularization.is_finite()
         || policy.covariance_regularization <= 0.0
     {
@@ -499,7 +500,7 @@ pub fn screen_intervention(
         for right_index in (left_index + 1)..batch.forecasts.len() {
             let left = &batch.forecasts[left_index];
             let right = &batch.forecasts[right_index];
-            let d2 = pairwise_d2(
+            let mean_d2 = pairwise_d2(
                 left,
                 right,
                 &batch.pairwise_observation_difference_covariance,
@@ -508,30 +509,30 @@ pub fn screen_intervention(
             pairwise.push(PairSeparation {
                 model_a: left.model_id.clone(),
                 model_b: right.model_id.clone(),
-                d2,
-                resolved: d2 >= policy.minimum_pair_d2,
+                mean_d2,
+                resolved: mean_d2 >= policy.minimum_pair_mean_d2,
             });
         }
     }
 
     let resolved_pair_count = pairwise.iter().filter(|pair| pair.resolved).count();
     let unresolved_pair_count = pairwise.len() - resolved_pair_count;
-    let minimum_pair_d2 = pairwise
+    let minimum_pair_mean_d2 = pairwise
         .iter()
-        .map(|pair| pair.d2)
+        .map(|pair| pair.mean_d2)
         .fold(f64::INFINITY, f64::min);
 
     let status = if unresolved_pair_count == 0 {
-        DiscriminationStatus::FullySeparated
+        DiscriminationStatus::AllPairsMeanSeparated
     } else if resolved_pair_count == 0 {
-        DiscriminationStatus::Unresolved
+        DiscriminationStatus::NoPairsMeanSeparated
     } else {
-        DiscriminationStatus::PartiallySeparated
+        DiscriminationStatus::SomePairsMeanSeparated
     };
 
     Ok(DiscriminationResult {
         status,
-        minimum_pair_d2,
+        minimum_pair_mean_d2,
         resolved_pair_count,
         unresolved_pair_count,
         pairwise,
@@ -599,9 +600,9 @@ mod tests {
         }
     }
 
-    fn policy(minimum_pair_d2: f64) -> DiscriminationPolicy {
+    fn policy(minimum_pair_mean_d2: f64) -> DiscriminationPolicy {
         DiscriminationPolicy {
-            minimum_pair_d2,
+            minimum_pair_mean_d2,
             covariance_regularization: 1.0,
         }
     }
@@ -762,45 +763,56 @@ mod tests {
             forecast("model-b", vec![2.0], 0.0),
         ]);
         let result = screen_intervention(&candidate, policy(1.0)).expect("screen");
-        assert_eq!(result.status, DiscriminationStatus::FullySeparated);
-        assert!((result.pairwise[0].d2 - 4.0).abs() < 1.0e-12);
+        assert_eq!(result.status, DiscriminationStatus::AllPairsMeanSeparated);
+        assert!((result.pairwise[0].mean_d2 - 4.0).abs() < 1.0e-12);
     }
 
     #[test]
-    fn identical_negative_control_predictions_are_unresolved() {
+    fn identical_negative_control_predictions_have_no_mean_separation() {
         let candidate = batch(vec![
             forecast("true-connectome", vec![0.0, 1.0], 0.1),
             forecast("rewired-connectome", vec![0.0, 1.0], 0.1),
         ]);
         let result = screen_intervention(&candidate, policy(1.0)).expect("screen");
-        assert_eq!(result.status, DiscriminationStatus::Unresolved);
-        assert_eq!(result.minimum_pair_d2, 0.0);
+        assert_eq!(result.status, DiscriminationStatus::NoPairsMeanSeparated);
+        assert_eq!(result.minimum_pair_mean_d2, 0.0);
     }
 
     #[test]
-    fn reports_partial_separability_instead_of_forcing_a_winner() {
+    fn reports_partial_mean_separability_instead_of_forcing_a_winner() {
         let candidate = batch(vec![
             forecast("independent-oscillators", vec![0.0], 0.0),
             forecast("coupled-circuit", vec![10.0], 0.0),
             forecast("connectome-hybrid", vec![10.0], 0.0),
         ]);
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
-        assert_eq!(result.status, DiscriminationStatus::PartiallySeparated);
+        assert_eq!(result.status, DiscriminationStatus::SomePairsMeanSeparated);
         assert_eq!(result.resolved_pair_count, 2);
         assert_eq!(result.unresolved_pair_count, 1);
     }
 
     #[test]
-    fn fully_separates_a_synthetic_known_answer_set() {
+    fn separates_all_pairs_in_a_synthetic_known_answer_set() {
         let candidate = batch(vec![
             forecast("model-a", vec![0.0], 0.0),
             forecast("model-b", vec![10.0], 0.0),
             forecast("model-c", vec![20.0], 0.0),
         ]);
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
-        assert_eq!(result.status, DiscriminationStatus::FullySeparated);
+        assert_eq!(result.status, DiscriminationStatus::AllPairsMeanSeparated);
         assert_eq!(result.resolved_pair_count, 3);
         assert_eq!(result.unresolved_pair_count, 0);
+    }
+
+    #[test]
+    fn covariance_only_differences_are_not_mean_separation() {
+        let candidate = batch(vec![
+            forecast("narrow-model", vec![1.0], 0.01),
+            forecast("wide-model", vec![1.0], 100.0),
+        ]);
+        let result = screen_intervention(&candidate, policy(0.05)).expect("screen");
+        assert_eq!(result.status, DiscriminationStatus::NoPairsMeanSeparated);
+        assert_eq!(result.minimum_pair_mean_d2, 0.0);
     }
 
     #[test]
@@ -815,9 +827,9 @@ mod tests {
         ]);
         let precise_result = screen_intervention(&precise, policy(0.05)).expect("precise");
         let uncertain_result = screen_intervention(&uncertain, policy(0.05)).expect("uncertain");
-        assert!(precise_result.minimum_pair_d2 > uncertain_result.minimum_pair_d2);
-        assert_eq!(precise_result.status, DiscriminationStatus::FullySeparated);
-        assert_eq!(uncertain_result.status, DiscriminationStatus::Unresolved);
+        assert!(precise_result.minimum_pair_mean_d2 > uncertain_result.minimum_pair_mean_d2);
+        assert_eq!(precise_result.status, DiscriminationStatus::AllPairsMeanSeparated);
+        assert_eq!(uncertain_result.status, DiscriminationStatus::NoPairsMeanSeparated);
     }
 
     #[test]
@@ -850,7 +862,7 @@ mod tests {
             forecast("model-b", vec![1.0], 0.1),
         ]);
         let invalid = DiscriminationPolicy {
-            minimum_pair_d2: 1.0,
+            minimum_pair_mean_d2: 1.0,
             covariance_regularization: 0.0,
         };
         assert_eq!(
