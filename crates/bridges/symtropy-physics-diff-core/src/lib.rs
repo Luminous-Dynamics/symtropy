@@ -672,19 +672,18 @@ pub fn compare_observation_traces(
                 }
                 _ => metrics.contact_count_not_comparable += 1,
             }
-            match (left_body.max_penetration_m, right_body.max_penetration_m) {
-                (Some(left_value), Some(right_value)) => {
-                    let error = checked_difference(
-                        left_value,
-                        right_value,
-                        step,
-                        semantic_body_id,
-                        "max_penetration_m",
-                    )?;
-                    metrics.penetration_comparisons += 1;
-                    metrics.max_penetration_error_m = metrics.max_penetration_error_m.max(error);
-                }
-                _ => {}
+            if let (Some(left_value), Some(right_value)) =
+                (left_body.max_penetration_m, right_body.max_penetration_m)
+            {
+                let error = checked_difference(
+                    left_value,
+                    right_value,
+                    step,
+                    semantic_body_id,
+                    "max_penetration_m",
+                )?;
+                metrics.penetration_comparisons += 1;
+                metrics.max_penetration_error_m = metrics.max_penetration_error_m.max(error);
             }
         }
 
