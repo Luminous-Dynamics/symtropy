@@ -83,6 +83,8 @@ pub struct GradientEstimatorCandidate {
     /// Objective/estimand identity. Mixing objectives is invalid even if the
     /// gradient coordinates happen to look compatible.
     pub objective_digest: String,
+    /// Binds the units/scales used for all candidate vectors and risk metrics.
+    pub normalization_digest: String,
     /// Coordinates and vector values use this exact declared order.
     pub coordinate_ids: Vec<String>,
     pub gradient: Vec<f64>,
@@ -116,6 +118,7 @@ pub struct EstimatorRouterConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EstimatorRoutingContext {
     pub objective_digest: String,
+    pub normalization_digest: String,
     pub coordinate_ids: Vec<String>,
     pub regime: ContactRegime,
 }
@@ -125,6 +128,7 @@ pub struct SelectedEstimator {
     pub estimator_id: String,
     pub kind: EstimatorKind,
     pub objective_digest: String,
+    pub normalization_digest: String,
     pub coordinate_ids: Vec<String>,
     /// The actual selected gradient, in exactly coordinate_ids order.
     pub gradient: Vec<f64>,
@@ -155,6 +159,7 @@ impl SelectedEstimator {
         push_string(&mut output, &self.estimator_id);
         push_string(&mut output, self.kind.tag());
         push_string(&mut output, &self.objective_digest);
+        push_string(&mut output, &self.normalization_digest);
 
         push_len(&mut output, self.coordinate_ids.len());
         for (index, coordinate_id) in self.coordinate_ids.iter().enumerate() {
@@ -217,6 +222,8 @@ pub enum EstimatorRoutingError {
     InvalidCost,
     DuplicateEstimatorIdentity,
     MixedObjective,
+    InvalidNormalizationDigest,
+    MixedNormalization,
     MissingBranchIdentity,
     InvalidBranchEvidenceDigest,
     InvalidValidityRegionDigest,
@@ -253,6 +260,12 @@ impl GradientEstimatorCandidate {
         }
         if self.objective_digest != context.objective_digest {
             return Err(EstimatorRoutingError::MixedObjective);
+        }
+        if !is_lower_hex_digest(&self.normalization_digest) {
+            return Err(EstimatorRoutingError::InvalidNormalizationDigest);
+        }
+        if self.normalization_digest != context.normalization_digest {
+            return Err(EstimatorRoutingError::MixedNormalization);
         }
         if self.coordinate_ids.is_empty()
             || self.coordinate_ids != context.coordinate_ids
@@ -353,12 +366,6 @@ impl GradientEstimatorCandidate {
     }
 }
 
-/// Select one estimator subject to bias, variance and branch-validity limits.
-///
-/// This v0 implementation is deliberately a selector, not a fusion engine.
-/// IVW-style fusion is deferred until estimator covariance is available and
-/// independently bound; independent marginal variances alone are insufficient
-/// to justify combining correlated estimates.
 impl EstimatorKind {
     fn tag(self) -> &'static str {
         match self {
@@ -453,6 +460,12 @@ fn push_f64(output: &mut Vec<u8>, value: f64) {
     output.extend_from_slice(&bits.to_le_bytes());
 }
 
+/// Select one estimator subject to bias, variance and branch-validity limits.
+///
+/// This v0 implementation is deliberately a selector, not a fusion engine.
+/// IVW-style fusion is deferred until estimator covariance is available and
+/// independently bound; independent marginal variances alone are insufficient
+/// to justify combining correlated estimates.
 pub fn route_gradient_estimator(
     context: &EstimatorRoutingContext,
     candidates: &[GradientEstimatorCandidate],
@@ -536,6 +549,7 @@ pub fn route_gradient_estimator(
             estimator_id: candidate.estimator_id.clone(),
             kind: candidate.kind,
             objective_digest: candidate.objective_digest.clone(),
+            normalization_digest: candidate.normalization_digest.clone(),
             coordinate_ids: candidate.coordinate_ids.clone(),
             gradient: candidate.gradient.clone(),
             variance: candidate.variance.clone(),
@@ -572,6 +586,9 @@ fn validate_context(
 ) -> Result<(), EstimatorRoutingError> {
     if !is_lower_hex_digest(&context.objective_digest) {
         return Err(EstimatorRoutingError::InvalidObjectiveDigest);
+    }
+    if !is_lower_hex_digest(&context.normalization_digest) {
+        return Err(EstimatorRoutingError::InvalidNormalizationDigest);
     }
     if context.coordinate_ids.is_empty()
         || has_duplicate_ids(&context.coordinate_ids)
@@ -651,6 +668,7 @@ mod tests {
     fn context(regime: ContactRegime) -> EstimatorRoutingContext {
         EstimatorRoutingContext {
             objective_digest: digest('a'),
+            normalization_digest: digest('f'),
             coordinate_ids: vec!["joint-1".into(), "joint-2".into()],
             regime,
         }
@@ -672,6 +690,7 @@ mod tests {
             estimator_id: estimator_id.into(),
             kind,
             objective_digest: digest('a'),
+            normalization_digest: digest('f'),
             coordinate_ids: vec!["joint-1".into(), "joint-2".into()],
             gradient: vec![0.1, -0.2],
             variance: vec![variance, variance],
@@ -866,4 +885,19 @@ mod tests {
         // The router returns one chosen estimate. It does not construct a
         // weighted average without estimator covariance evidence.
     }
+    #[test]
+    fn mixed_coordinate_normalization_is_rejected() {
+        let context = context(ContactRegime::Nonsmooth {
+            reason: NonsmoothReason::ActiveSetChange,
+        });
+        let mut invalid = candidate("wrong-normalization", EstimatorKind::ScoreFunction, 0.0, 1.0e-3);
+        invalid.normalization_digest = digest('0');
+
+        assert_eq!(
+            route_gradient_estimator(&context, &[invalid], &config()),
+            Err(EstimatorRoutingError::MixedNormalization)
+        );
+    }
+
+
 }
