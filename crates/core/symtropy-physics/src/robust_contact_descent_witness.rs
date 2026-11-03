@@ -281,12 +281,15 @@ fn enumerate_lp_active_sets(
         }
 
         let margin = candidate[INPUT_DIMENSION].clone();
-        let should_replace = best
-            .as_ref()
-            .is_none_or(|previous| margin > previous.margin);
+        let direction: RationalVector =
+            std::array::from_fn(|index| candidate[index].clone());
+        let should_replace = best.as_ref().is_none_or(|previous| {
+            margin > previous.margin
+                || (margin == previous.margin
+                    && direction_l1_norm(&direction)
+                        < direction_l1_norm(&previous.direction))
+        });
         if should_replace {
-            let direction: RationalVector =
-                std::array::from_fn(|index| candidate[index].clone());
             let branch_upper_bounds = gradients
                 .iter()
                 .map(|gradient| {
@@ -297,7 +300,16 @@ fn enumerate_lp_active_sets(
                             sum + coefficient * value
                         })
                 })
-                .collect();
+                .collect::<Vec<_>>();
+            let worst_branch_upper = branch_upper_bounds
+                .iter()
+                .max()
+                .expect("at least one gradient exists");
+            assert_eq!(
+                margin,
+                -worst_branch_upper.clone(),
+                "the active-set margin must equal the worst-branch support"
+            );
             *best = Some(ExactLpOptimum {
                 direction,
                 margin,
@@ -585,12 +597,22 @@ mod tests {
                 rational(0),
             ],
         ];
+        let lp_optimum = solve_robust_descent_lp(&point_gradients)
+            .expect("the exact active-set LP returns a continuous optimum");
+        assert_eq!(lp_optimum.direction, candidate.direction);
+        assert_eq!(lp_optimum.margin, rational_fraction(7, 3));
+        assert_eq!(
+            lp_optimum.branch_upper_bounds,
+            vec![rational_fraction(-7, 3), rational_fraction(-7, 3)]
+        );
+
         let dual_bound = convex_combination_l1_upper_bound(
             &point_gradients,
             &[rational_fraction(1, 6), rational_fraction(5, 6)],
         )
         .expect("the dual weights form an exact simplex point");
-        assert_eq!(dual_bound, candidate.margin);
+        assert_eq!(dual_bound, lp_optimum.margin);
+        assert_eq!(lp_optimum.margin, candidate.margin);
         assert!(verify_robust_descent(
             &branches,
             &candidate.direction,
