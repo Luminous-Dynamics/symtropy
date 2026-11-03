@@ -920,13 +920,27 @@ mod tests {
         assert_eq!(positive.margin, rational(1));
         assert_eq!(positive.branch_upper_bounds, vec![rational(-1)]);
         assert!(verify_robust_descent_interval_lp_certificate(
-            &[interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)])],
+            &[interval_gradient([
+                (1, 2),
+                (-1, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0)
+            ])],
             &positive
         ));
         let mut corrupted_positive = positive.clone();
         corrupted_positive.margin += rational(1);
         assert!(!verify_robust_descent_interval_lp_certificate(
-            &[interval_gradient([(1, 2), (-1, 0), (0, 0), (0, 0), (0, 0), (0, 0)])],
+            &[interval_gradient([
+                (1, 2),
+                (-1, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0)
+            ])],
             &corrupted_positive
         ));
         assert_eq!(
@@ -946,7 +960,10 @@ mod tests {
             .expect("the exact interval LP returns the optimum even when it is zero");
         assert_eq!(no_descent.margin, rational(0));
         assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
-        assert!(verify_robust_descent_interval_lp_certificate(&[opposing_box], &no_descent));
+        assert!(verify_robust_descent_interval_lp_certificate(
+            &[opposing_box],
+            &no_descent
+        ));
         assert_eq!(no_descent.gradient_cuts.len(), 2);
         assert!(verify_zero_convex_combination(
             &no_descent.gradient_cuts,
