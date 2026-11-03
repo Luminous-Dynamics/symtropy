@@ -648,6 +648,28 @@ mod tests {
     }
 
     #[test]
+    fn free_text_alignment_descriptions_remain_unresolved() {
+        let mut left = sample("ALIGNMENT-LEFT", 95.0);
+        let mut right = sample("ALIGNMENT-RIGHT", 96.0);
+        left["conditions"]["alignment"] = json!("Abstract says high efficiency under misalignment; offset not reported.");
+        right["conditions"]["alignment"] = json!("100 mm X and Y misalignment.");
+        let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
+        assert_eq!(disposition, "UNRESOLVED");
+        assert!(reasons.contains(&"OPERATING_CONDITION_UNNORMALIZED".to_string()));
+        assert!(!reasons.contains(&"OPERATING_CONDITION_MISMATCH".to_string()));
+    }
+
+    #[test]
+    fn different_numeric_power_points_are_not_comparable_for_efficiency_ranking() {
+        let left = sample("POWER-POINT-LEFT", 95.0);
+        let mut right = sample("POWER-POINT-RIGHT", 96.0);
+        right["conditions"]["load_power_w"] = json!(65000.0);
+        let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"OPERATING_CONDITION_MISMATCH".to_string()));
+    }
+
+    #[test]
     fn field_quantity_requires_typed_probe_record_and_unknown_geometry_stays_unresolved() {
         let field = field_sample();
         assert!(validate_measurement(&field).is_empty());
