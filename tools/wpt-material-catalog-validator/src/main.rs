@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::env;
 use std::error::Error;
@@ -266,7 +266,7 @@ fn validate_curve_point(value: &Value, label: &str) -> ValidationResult<f64> {
         .and_then(Value::as_f64)
         .filter(|number| number.is_finite())
         .ok_or_else(|| format!("{label}.temperature_c: finite number required"))?;
-    let saturation = value
+    value
         .get("saturation_flux_density_t")
         .and_then(Value::as_f64)
         .filter(|number| number.is_finite() && *number > 0.0)
@@ -292,7 +292,21 @@ fn validate_curve_point(value: &Value, label: &str) -> ValidationResult<f64> {
     if optional_number(value, "uncertainty", label)?.is_some_and(|number| number < 0.0) {
         return Err(format!("{label}.uncertainty: must be nonnegative"));
     }
-    Ok(temperature + saturation * 0.0)
+    Ok(temperature)
+}
+
+fn validate_saturation_curve(points: &[Value], label: &str) -> ValidationResult<()> {
+    let mut previous_temperature = None;
+    for (index, point) in points.iter().enumerate() {
+        let temperature = validate_curve_point(point, &format!("{label}[{index}]"))?;
+        if previous_temperature.is_some_and(|previous| temperature <= previous) {
+            return Err(format!(
+                "{label}: temperatures must be unique and strictly increasing"
+            ));
+        }
+        previous_temperature = Some(temperature);
+    }
+    Ok(())
 }
 
 fn validate_material(
@@ -366,17 +380,7 @@ fn validate_material(
         .get("saturation_curve")
         .and_then(Value::as_array)
         .ok_or_else(|| format!("{label}.saturation_curve: expected array"))?;
-    let mut previous_temperature = None;
-    for (curve_index, point) in curve.iter().enumerate() {
-        let temperature =
-            validate_curve_point(point, &format!("{label}.saturation_curve[{curve_index}]"))?;
-        if previous_temperature.is_some_and(|previous| temperature <= previous) {
-            return Err(format!(
-                "{label}.saturation_curve: temperatures must be unique and strictly increasing"
-            ));
-        }
-        previous_temperature = Some(temperature);
-    }
+    validate_saturation_curve(curve, &format!("{label}.saturation_curve"))?;
 
     let data_status = required_string(material, "data_status", &label)?;
     if !is_one_of(
@@ -491,7 +495,7 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_or_non_increasing_temperature_curve_points() {
-        let mut point = json!({
+        let point = json!({
             "temperature_c": 25.0,
             "saturation_flux_density_t": 0.53,
             "evidence_kind": "MANUFACTURER_DATASHEET",
@@ -499,10 +503,19 @@ mod tests {
             "uncertainty": null
         });
         assert!(validate_curve_point(&point, "curve[0]").is_ok());
-        point["temperature_c"] = json!(25.0);
-        let first = validate_curve_point(&point, "curve[0]").unwrap();
-        let second = validate_curve_point(&point, "curve[1]").unwrap();
-        assert!(second <= first);
+        let ordered = vec![
+            point.clone(),
+            json!({
+                "temperature_c": 100.0,
+                "saturation_flux_density_t": 0.41,
+                "evidence_kind": "MANUFACTURER_DATASHEET",
+                "source_locator": "datasheet page 2",
+                "uncertainty": null
+            }),
+        ];
+        assert!(validate_saturation_curve(&ordered, "curve").is_ok());
+        let unordered = vec![point.clone(), point];
+        assert!(validate_saturation_curve(&unordered, "curve").is_err());
     }
 
     #[test]
