@@ -300,8 +300,9 @@ The router:
 - uses branch-local derivatives only while the matching branch/validity region
   is admitted;
 - switches away from branch-local derivatives in declared nonsmooth regimes;
-- rejects any candidate whose absolute-bias bound or mean MSE upper bound
-  exceeds the configured risk budget;
+- rejects any candidate whose per-coordinate absolute-bias bound or worst-coordinate
+  MSE upper bound exceeds the configured risk budget; the mean MSE is retained
+  separately for ranking admissible candidates;
 - abstains for multi-branch, grazing, singular, or unresolved event-order
   contexts instead of collapsing them into one gradient;
 - selects one admissible estimator by risk upper bound plus an explicit cost
