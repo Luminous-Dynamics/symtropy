@@ -89,6 +89,15 @@ pub enum RecoveryStatus {
     Unobserved,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MechanismRecoveryStatus {
+    NotApplicable,
+    Restored { latency_ticks: u64 },
+    NotRestoredByHorizon,
+    NotRestoredBeforeTermination,
+    Unobserved,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct RobustnessProtocol {
     pub benchmark_id: String,
@@ -104,6 +113,10 @@ pub struct RobustnessProtocol {
     pub minimum_paired_episodes: usize,
     /// Absolute tolerance used only to classify paired score ties.
     pub paired_score_tie_tolerance: f64,
+    /// Preregistered normalized functional-state distance for task recovery.
+    pub functional_recovery_tolerance: f64,
+    /// Preregistered normalized mechanism-state distance for mechanism restoration.
+    pub mechanism_recovery_tolerance: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -154,7 +167,16 @@ pub struct EpisodeRecord {
     pub control_compute_budget_micros: u64,
     pub training_budget_steps: u64,
     pub perturbation_onset_tick: Option<u64>,
+    /// Task-level recovery, independent of mechanism restoration.
     pub recovery: RecoveryStatus,
+    /// Whether the measured sensorimotor mechanism returned to its nominal regime.
+    pub mechanism_recovery: MechanismRecoveryStatus,
+    /// Normalized functional-state distance at the recovery assessment point.
+    pub functional_state_deviation_from_nominal: Option<f64>,
+    /// Schema for the measured neural/sensory/motor/effector mechanism state.
+    pub mechanism_state_schema_sha256: Option<String>,
+    /// Normalized mechanism-state distance at the recovery assessment point.
+    pub mechanism_state_deviation_from_nominal: Option<f64>,
 
     /// Outcome score produced by the frozen scoring plan, in [0, 1].
     pub task_score: f64,
@@ -262,6 +284,17 @@ pub struct ScenarioScorecard {
     pub unobserved_recovery_episodes: usize,
     pub median_recovery_latency_ticks: Option<f64>,
     pub p95_recovery_latency_ticks: Option<u64>,
+    pub mechanism_recovery_applicable_episodes: usize,
+    pub mechanism_restored_episodes: usize,
+    pub mechanism_not_restored_by_horizon_episodes: usize,
+    pub mechanism_not_restored_before_termination_episodes: usize,
+    pub unobserved_mechanism_recovery_episodes: usize,
+    pub median_mechanism_recovery_latency_ticks: Option<f64>,
+    pub p95_mechanism_recovery_latency_ticks: Option<u64>,
+    /// Functional recovery without measured restoration of the nominal mechanism.
+    pub compensation_without_mechanism_restoration_episodes: usize,
+    /// Both task function and measured mechanism returned to their nominal regimes.
+    pub joint_function_and_mechanism_recovery_episodes: usize,
 
     pub episodes_with_falls: usize,
     pub total_fall_count: u64,
@@ -355,6 +388,7 @@ struct EvaluationSignature {
     sensor_schema_sha256: String,
     solver_sha256: String,
     hardware_sha256: String,
+    mechanism_state_schema_sha256: Option<String>,
     horizon_ticks: u64,
     control_compute_budget_micros: u64,
     training_budget_steps: u64,
@@ -378,6 +412,7 @@ struct MatchedTrialKey {
     sensor_schema_sha256: String,
     solver_sha256: String,
     hardware_sha256: String,
+    mechanism_state_schema_sha256: Option<String>,
     scenario_sha256: String,
     horizon_ticks: u64,
     control_compute_budget_micros: u64,
@@ -425,6 +460,10 @@ impl RobustnessProtocol {
             || !self.paired_score_tie_tolerance.is_finite()
             || self.paired_score_tie_tolerance < 0.0
             || self.paired_score_tie_tolerance > 1.0
+            || !self.functional_recovery_tolerance.is_finite()
+            || self.functional_recovery_tolerance < 0.0
+            || !self.mechanism_recovery_tolerance.is_finite()
+            || self.mechanism_recovery_tolerance < 0.0
         {
             return Err(RobustnessError::InvalidProtocol);
         }
@@ -497,6 +536,10 @@ fn validate_episode(
     validate_optional_digest(&record.sensor_mapping_sha256, "sensor_mapping")?;
     validate_optional_digest(&record.effector_mapping_sha256, "effector_mapping")?;
     validate_optional_digest(&record.muscle_mapping_sha256, "muscle_mapping")?;
+    validate_optional_digest(
+        &record.mechanism_state_schema_sha256,
+        "mechanism_state_schema",
+    )?;
     validate_optional_digest(&record.measured_dataset_sha256, "measured_dataset")?;
     validate_optional_digest(
         &record.independent_replication_sha256,
@@ -619,7 +662,15 @@ fn validate_episode(
     }
 
     match (record.perturbation_onset_tick, record.recovery) {
-        (None, RecoveryStatus::NotApplicable) => {}
+        (None, RecoveryStatus::NotApplicable) => {
+            if record.functional_state_deviation_from_nominal.is_some()
+                || record.mechanism_recovery != MechanismRecoveryStatus::NotApplicable
+                || record.mechanism_state_schema_sha256.is_some()
+                || record.mechanism_state_deviation_from_nominal.is_some()
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+        }
         (None, _) => return Err(RobustnessError::InvalidRecoveryRecord),
         (Some(onset), RecoveryStatus::NotApplicable) => {
             let _ = onset;
@@ -628,25 +679,97 @@ fn validate_episode(
         (Some(onset), RecoveryStatus::Recovered { latency_ticks }) => {
             if onset > record.completed_ticks
                 || onset.saturating_add(latency_ticks) > record.completed_ticks
+                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance < 0.0
+                        || distance > protocol.functional_recovery_tolerance
+                })
             {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
         }
         (Some(onset), RecoveryStatus::NotRecoveredByHorizon) => {
-            if onset > record.completed_ticks || record.completed_ticks != record.horizon_ticks {
+            if onset > record.completed_ticks
+                || record.completed_ticks != record.horizon_ticks
+                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance <= protocol.functional_recovery_tolerance
+                })
+            {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
         }
         (Some(onset), RecoveryStatus::NotRecoveredBeforeTermination) => {
-            if onset > record.completed_ticks || record.completed_ticks >= record.horizon_ticks {
+            if onset > record.completed_ticks
+                || record.completed_ticks >= record.horizon_ticks
+                || record.functional_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance <= protocol.functional_recovery_tolerance
+                })
+            {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
         }
         (Some(onset), RecoveryStatus::Unobserved) => {
-            if onset > record.completed_ticks {
+            if onset > record.completed_ticks
+                || record.functional_state_deviation_from_nominal.is_some()
+            {
                 return Err(RobustnessError::InvalidRecoveryRecord);
             }
         }
+    }
+
+    let mechanism_assessed = match record.mechanism_recovery {
+        MechanismRecoveryStatus::NotApplicable => false,
+        MechanismRecoveryStatus::Restored { latency_ticks } => {
+            let onset = record.perturbation_onset_tick
+                .ok_or(RobustnessError::InvalidRecoveryRecord)?;
+            if onset.saturating_add(latency_ticks) > record.completed_ticks
+                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance < 0.0
+                        || distance > protocol.mechanism_recovery_tolerance
+                })
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+            true
+        }
+        MechanismRecoveryStatus::NotRestoredByHorizon => {
+            if record.perturbation_onset_tick.is_none()
+                || record.completed_ticks != record.horizon_ticks
+                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance <= protocol.mechanism_recovery_tolerance
+                })
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+            true
+        }
+        MechanismRecoveryStatus::NotRestoredBeforeTermination => {
+            if record.perturbation_onset_tick.is_none()
+                || record.completed_ticks >= record.horizon_ticks
+                || record.mechanism_state_deviation_from_nominal.is_none_or(|distance| {
+                    !distance.is_finite()
+                        || distance <= protocol.mechanism_recovery_tolerance
+                })
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+            true
+        }
+        MechanismRecoveryStatus::Unobserved => {
+            if record.mechanism_state_deviation_from_nominal.is_some()
+                || record.mechanism_state_schema_sha256.is_some()
+            {
+                return Err(RobustnessError::InvalidRecoveryRecord);
+            }
+            false
+        }
+    };
+    if mechanism_assessed && record.mechanism_state_schema_sha256.is_none() {
+        return Err(RobustnessError::MissingEvidenceArtifact("mechanism_state_schema"));
     }
 
     Ok(())
@@ -746,6 +869,13 @@ fn score_scenario(
     let mut not_recovered_by_horizon = 0usize;
     let mut not_recovered_before_termination = 0usize;
     let mut recovery_unobserved = 0usize;
+    let mut mechanism_recovery_applicable = 0usize;
+    let mut mechanism_not_restored_by_horizon = 0usize;
+    let mut mechanism_not_restored_before_termination = 0usize;
+    let mut mechanism_recovery_unobserved = 0usize;
+    let mut mechanism_restored_latency = Vec::new();
+    let mut compensation_without_mechanism_restoration = 0usize;
+    let mut joint_function_and_mechanism_recovery = 0usize;
 
     let mut episodes_with_falls = 0usize;
     let mut total_fall_count = 0_u64;
@@ -781,6 +911,7 @@ fn score_scenario(
         sensor_schema_sha256: first.sensor_schema_sha256.clone(),
         solver_sha256: first.solver_sha256.clone(),
         hardware_sha256: first.hardware_sha256.clone(),
+        mechanism_state_schema_sha256: first.mechanism_state_schema_sha256.clone(),
         horizon_ticks: first.horizon_ticks,
         control_compute_budget_micros: first.control_compute_budget_micros,
         training_budget_steps: first.training_budget_steps,
@@ -815,6 +946,7 @@ fn score_scenario(
                 sensor_schema_sha256: record.sensor_schema_sha256.clone(),
                 solver_sha256: record.solver_sha256.clone(),
                 hardware_sha256: record.hardware_sha256.clone(),
+                mechanism_state_schema_sha256: record.mechanism_state_schema_sha256.clone(),
                 horizon_ticks: record.horizon_ticks,
                 control_compute_budget_micros: record.control_compute_budget_micros,
                 training_budget_steps: record.training_budget_steps,
@@ -856,6 +988,34 @@ fn score_scenario(
             RecoveryStatus::Unobserved => {
                 recovery_applicable += 1;
                 recovery_unobserved += 1;
+            }
+        }
+        match record.mechanism_recovery {
+            MechanismRecoveryStatus::NotApplicable => {}
+            MechanismRecoveryStatus::Restored { latency_ticks } => {
+                mechanism_recovery_applicable += 1;
+                mechanism_restored_latency.push(latency_ticks);
+                if matches!(record.recovery, RecoveryStatus::Recovered { .. }) {
+                    joint_function_and_mechanism_recovery += 1;
+                }
+            }
+            MechanismRecoveryStatus::NotRestoredByHorizon => {
+                mechanism_recovery_applicable += 1;
+                mechanism_not_restored_by_horizon += 1;
+                if matches!(record.recovery, RecoveryStatus::Recovered { .. }) {
+                    compensation_without_mechanism_restoration += 1;
+                }
+            }
+            MechanismRecoveryStatus::NotRestoredBeforeTermination => {
+                mechanism_recovery_applicable += 1;
+                mechanism_not_restored_before_termination += 1;
+                if matches!(record.recovery, RecoveryStatus::Recovered { .. }) {
+                    compensation_without_mechanism_restoration += 1;
+                }
+            }
+            MechanismRecoveryStatus::Unobserved => {
+                mechanism_recovery_applicable += 1;
+                mechanism_recovery_unobserved += 1;
             }
         }
 
@@ -995,6 +1155,23 @@ fn score_scenario(
     let mut recovery_for_p95 = recovered_latency.clone();
     let p95_recovery_latency_ticks =
         percentile_nearest_rank_u64(&mut recovery_for_p95, 95, 100);
+    let mut mechanism_recovery_for_median = mechanism_restored_latency.clone();
+    let median_mechanism_recovery_latency_ticks =
+        if mechanism_recovery_for_median.is_empty() {
+            None
+        } else {
+            mechanism_recovery_for_median.sort_unstable();
+            let middle = mechanism_recovery_for_median.len() / 2;
+            Some(if mechanism_recovery_for_median.len() % 2 == 0 {
+                mechanism_recovery_for_median[middle - 1] as f64 * 0.5
+                    + mechanism_recovery_for_median[middle] as f64 * 0.5
+            } else {
+                mechanism_recovery_for_median[middle] as f64
+            })
+        };
+    let mut mechanism_recovery_for_p95 = mechanism_restored_latency.clone();
+    let p95_mechanism_recovery_latency_ticks =
+        percentile_nearest_rank_u64(&mut mechanism_recovery_for_p95, 95, 100);
 
     Ok(ScenarioScorecard {
         model_id: first.model_id.clone(),
@@ -1036,6 +1213,16 @@ fn score_scenario(
         unobserved_recovery_episodes: recovery_unobserved,
         median_recovery_latency_ticks,
         p95_recovery_latency_ticks,
+        mechanism_recovery_applicable_episodes: mechanism_recovery_applicable,
+        mechanism_restored_episodes: mechanism_restored_latency.len(),
+        mechanism_not_restored_by_horizon_episodes: mechanism_not_restored_by_horizon,
+        mechanism_not_restored_before_termination_episodes: mechanism_not_restored_before_termination,
+        unobserved_mechanism_recovery_episodes: mechanism_recovery_unobserved,
+        median_mechanism_recovery_latency_ticks,
+        p95_mechanism_recovery_latency_ticks,
+        compensation_without_mechanism_restoration_episodes:
+            compensation_without_mechanism_restoration,
+        joint_function_and_mechanism_recovery_episodes: joint_function_and_mechanism_recovery,
         episodes_with_falls,
         total_fall_count,
         episodes_with_numerical_failures,
@@ -1110,6 +1297,7 @@ fn matched_key(record: &EpisodeRecord) -> MatchedTrialKey {
         sensor_schema_sha256: record.sensor_schema_sha256.clone(),
         solver_sha256: record.solver_sha256.clone(),
         hardware_sha256: record.hardware_sha256.clone(),
+        mechanism_state_schema_sha256: record.mechanism_state_schema_sha256.clone(),
         scenario_sha256: record.scenario_sha256.clone(),
         horizon_ticks: record.horizon_ticks,
         control_compute_budget_micros: record.control_compute_budget_micros,
@@ -1390,6 +1578,8 @@ mod tests {
             minimum_individuals_per_scenario: 2,
             minimum_paired_episodes: 2,
             paired_score_tie_tolerance: 1.0e-9,
+            functional_recovery_tolerance: 0.1,
+            mechanism_recovery_tolerance: 0.1,
         }
     }
 
@@ -1441,6 +1631,10 @@ mod tests {
             training_budget_steps: 10_000,
             perturbation_onset_tick: Some(100),
             recovery: RecoveryStatus::Recovered { latency_ticks: 120 },
+            mechanism_recovery: MechanismRecoveryStatus::Restored { latency_ticks: 150 },
+            functional_state_deviation_from_nominal: Some(0.05),
+            mechanism_state_schema_sha256: Some(digest('f')),
+            mechanism_state_deviation_from_nominal: Some(0.04),
             task_score: score,
             success: true,
             termination: TerminationReason::HorizonCompleted,
