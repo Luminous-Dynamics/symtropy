@@ -44,7 +44,8 @@ References:
 
 Use public, protocol-compliant cases such as ONERA OAT15A and NASA Common Research Model when the exact geometry, grid, boundary conditions, solver version, reference data and uncertainty are available.
 
-The 2026 workshop combines drag prediction with aeroelastic prediction and includes working groups on static deformation, buffet, high-angle, high-speed, large-deflection, scatter and test environments.
+DPW-8/AePW-4 was held on 2026-06-06 to 2026-06-07 in conjunction with the AIAA Aviation Forum. AIAA identifies working groups spanning static deformation, buffet, high-angle, high-speed, large-deflection, sources of DPW scatter and test environments. As of this benchmark revision (2026-11-03), treat the workshop event as completed, but do not assume that a workshop report, participant dataset or post-workshop adjudication is publicly available: admit only exact published source bytes with an independently recorded revision, protocol and license/applicability note.
+
 
 - Maintain separate strict-protocol and historical participant-reproduction lanes.
 - Record every grid, angle, failed run, restart, and exclusion.
@@ -73,7 +74,12 @@ Run all policies from the same immutable task manifest. Record exact method/vers
 
 OpenMDAO's own strength is tightly coupled systems analysis and gradient-based MDO with parallel methods. OpenMDAO is a framework, not one fixed optimizer: every comparison must name the driver/optimizer, derivative source, scaling, coupling convergence policy and stopping rules. The correct comparison is interoperability and matched-cost decision quality, not an unsupported claim that a Rust implementation is automatically a better optimizer.
 
-Reference: https://openmdao.org/newdocs/versions/latest/
+**Comparator version pin:** as of 2026-11-03, the official OpenMDAO release documentation lists 3.45.2 (released 2026-10-27) as the latest numbered stable release. Use an exact release pin (initial comparator: 3.45.2), lock its Python/dependency environment, and record exact driver/optimizer/derivative source. Do not benchmark against a floating `latest` development documentation or a broad `3.45.x` label.
+
+References:
+- https://openmdao.org/docs/
+- https://github.com/OpenMDAO/OpenMDAO/releases
+
 
 ## Matched-budget rules
 
@@ -185,7 +191,9 @@ Symtropy should translate that into claim-specific admission policies:
 - Flutter, stability, propulsion limits or safety-critical claims: require additional model-specific validation, independent review, physical evidence where appropriate and a strictly narrower domain of use.
 - Any missing required evidence produces an explicit unknown/reject/abstain outcome, never a favourable default.
 
-Reference: https://www.nist.gov/publications/methods-uncertainty-quantification-computational-modeling-and-simulation-harmonizing
+References:
+- NIST AMS 100-85 (published 2026-10-05): https://doi.org/10.6028/NIST.AMS.100-85
+- ASME VVUQ 50.1-2025 model-lifecycle guide: https://www.asme.org/codes-standards/find-codes-standards/vvuq501-vvuq-50-1-guide-to-a-model-life-cycle-approach-that-incorporates-verification-validation-and-uncertainty-quantification
 
 ## New benchmark gate: stopping-policy completeness
 
@@ -202,6 +210,9 @@ For periodic/unsteady cases, iterative convergence, windowed time-average conver
 For the pinned SU2 v8.6.0 implementation, `COutput::MonitorTimeConvergence` begins updating the windowed Cauchy series at `WINDOW_START_ITER` and only permits the convergence decision after `WINDOW_START_ITER + max(CONV_WINDOW_STARTITER, CONV_WINDOW_CAUCHY_ELEMS)`. Thus the startup delay and minimum Cauchy-series fill overlap; they are not added. This is version-specific behavior verified against the [v8.6.0 source](https://github.com/su2code/SU2/blob/v8.6.0/SU2_CFD/src/output/COutput.cpp). Keep the formula covered by an exact-source regression fixture and re-verify it whenever the SU2 pin changes.
 
 ## Cost-to-decision accounting
+
+The current run bundle measures receipt-bound wall time but deliberately leaves CPU, memory, GPU and energy as Unknown. The matched-budget ledger also has numeric wall/CPU columns, so those figures must not be treated as measured resource facts unless tied to per-operation telemetry evidence. This is now tracked in [AERO-RESOURCE-TELEMETRY-001 / #3498](https://github.com/Luminous-Dynamics/symtropy/issues/3498). The primary Linux candidate is cgroup v2 process-tree accounting; GPU accounting is capability-gated; host/device energy is not assigned to a process on a shared system without a qualified attribution method.
+
 
 The benchmark's primary resource unit should be **measured total decision cost**, not a raw count of CFD runs. Maintain a vector rather than hiding cost in one scalar:
 - high-fidelity-equivalent solver calls;
