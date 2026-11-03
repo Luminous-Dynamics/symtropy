@@ -77,7 +77,8 @@
         "equivalent_load_estimation_error",
         "output_prediction_mape",
         "cc_cv_regulation_error",
-        "control_settling_time"
+        "control_settling_time",
+        "output_regulation_error"
       ]
     },
     "measurement_purpose": {
@@ -468,7 +469,9 @@
         "vehicle_profile_id",
         "drive_cycle_id",
         "reference_baseline_id",
-        "metric_definition_id"
+        "metric_definition_id",
+        "load_resistance_min_ohm",
+        "load_resistance_max_ohm"
       ],
       "properties": {
         "frequency_hz": {
@@ -620,6 +623,20 @@
             "string",
             "null"
           ]
+        },
+        "load_resistance_min_ohm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "load_resistance_max_ohm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
