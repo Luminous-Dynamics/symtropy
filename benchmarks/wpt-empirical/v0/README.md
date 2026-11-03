@@ -258,3 +258,11 @@ The catalogue now includes the 17 A and 4 A cross-network currents as SIMULATED 
 
 Primary full-text: https://www.utupub.fi/server/api/core/bitstreams/0d84aa64-fc2f-41dd-8982-6e08edb0c8c8/content
 
+## Cyber-physical BWPT review and threat model
+
+A 2026 open-access review by Elumalai et al., *Bidirectional Wireless Power Transfer for Electric Vehicle Energy Systems Integrating Modelling, Intelligent Control, Communication and Cybersecurity*, DOI 10.1002/ese3.70608, is now registered as a secondary source. It treats modelling, control, communications and cybersecurity as one cyber-physical system and catalogs threats including spoofed/replayed commands, firmware manipulation, inductive sensor injection/EMI, timing and latency exploitation, credential compromise, communication DoS, sensor tampering and grid-side command injection.
+
+The review describes how these threats can propagate into phase desynchronization, loss of zero-voltage switching, increased circulating currents, unintended V2G/V2H operation and thermal stress. Its mitigation catalogue includes mutual authentication and replay freshness, secure firmware/boot, redundant/plausibility-checked sensing, latency-aware control and safe fallback. These are research/secondary-review findings, not an experimental test result from one WPT prototype. They motivate the test-run security manifest and the cyber-physical acceptance gates in typed v1.
+
+Primary review: https://doi.org/10.1002/ese3.70608
+
