@@ -130,3 +130,15 @@ It reads v1 measurement/case JSONL and the v0 source/prototype catalogues. It ch
 Every frozen case must return its expected disposition and include its expected explanation codes. The positive comparable fixture is synthetic unit-test data only; it is not included as an experimental observation.
 
 The comparator intentionally refuses to turn missing information into a result. It returns `UNRESOLVED` where evidence is incomplete and `NOT_COMPARABLE` where quantities, purposes, boundaries, stages, statistics or conditions differ. It is not a general-purpose SI/UCUM engine yet; the supported unit table and conversions are explicit and should expand only with tests.
+ 
+## Modular interoperability measurements added
+
+The typed v1 dataset now includes abstract-located observations for:
+- Liu scalable five-mode IPT: all five modes reported above 80% DC-to-DC on a 4.60 kW scaled prototype;
+- Liu dual-channel six-mode IPT: six maximum DC-to-DC efficiencies (90.27, 90.33, 91.25, 91.37, 91.71, 94.48%) stored as six separate mode-indexed records, without guessed SAE class mapping;
+- Wang integrated WPT/LVDC: 6.8 kW WPT mode at approximately 96.5%, and a separately typed 1 kW / 89.1% wired LVDC mode;
+- Singhal two-channel series array: two simultaneous independent receiver channels, 4 kW aggregate output and approximately 95.7% maximum system efficiency.
+
+Three additional frozen cases enforce conservative comparison: mode-to-mode power-class ranking stays UNRESOLVED without the per-mode load and geometry; downscaled multichannel IPT vs 50 kW bus IPT remains UNRESOLVED; WPT-mode efficiency vs the same prototype's wired LVDC-mode efficiency is NOT_COMPARABLE.
+
+These new mode records are development evidence summaries, not full-text transcriptions; unknown operating conditions, meter planes, statistics and uncertainties remain explicit.
