@@ -34,6 +34,7 @@ const TOP_LEVEL: &[&str] = &[
     "artifact_refs",
     "resonant_networks",
     "cyber_physical_security",
+    "standards_basis",
     "result",
 ];
 
@@ -388,6 +389,23 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
         at(manifest, &["cyber_physical_security", "security_scenario_results"]),
         &["scenario_id", "outcome", "evidence_sha256", "notes"],
         "cyber_physical_security.security_scenario_results",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        manifest.get("standards_basis"),
+        &[
+            "document_id",
+            "edition",
+            "applicability",
+            "scope_statement",
+            "provisions_tested",
+            "compliance_claim",
+            "evidence_sha256",
+            "issuing_body",
+            "certificate_id",
+            "notes",
+        ],
+        "standards_basis",
         &mut errors,
     );
     exact_object_keys(
@@ -824,6 +842,144 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         errors.push("artifact_refs: CALIBRATION_CERTIFICATE artifact required".into());
     }
 
+
+
+    // Standards applicability is a typed scope decision, not a document-name
+    // assertion. In particular J2954_202408 does not cover reverse flow,
+    // dynamic installations or power above its published 11 kVA scope.
+    let standard_basis = manifest
+        .get("standards_basis")
+        .and_then(Value::as_array);
+    match standard_basis {
+        Some(records) if !records.is_empty() => {
+            let mut seen_documents = BTreeSet::new();
+            for (index, record) in records.iter().enumerate() {
+                let document_id = string_at(record, &["document_id"]).unwrap_or("");
+                let edition = string_at(record, &["edition"]).unwrap_or("");
+                let applicability =
+                    string_at(record, &["applicability"]).unwrap_or("OUT_OF_SCOPE_REFERENCE");
+                let claim =
+                    string_at(record, &["compliance_claim"]).unwrap_or("NO_CLAIM");
+                if !nonempty(Some(document_id)) || !nonempty(Some(edition))
+                    || !seen_documents.insert((document_id.to_owned(), edition.to_owned()))
+                {
+                    errors.push(format!(
+                        "standards_basis[{index}]: document ID/edition missing or duplicate"
+                    ));
+                }
+                if !nonempty(string_at(record, &["scope_statement"]))
+                    || !nonempty(string_at(record, &["notes"]))
+                {
+                    errors.push(format!(
+                        "standards_basis[{index}]: scope statement and notes are required"
+                    ));
+                }
+                if !matches!(
+                    applicability,
+                    "NORMATIVE_REQUIREMENT"
+                        | "PARTIAL_REFERENCE"
+                        | "TEST_METHOD_REFERENCE"
+                        | "INFORMATION_REPORT"
+                        | "OUT_OF_SCOPE_REFERENCE"
+                        | "PLANNED_NOT_ISSUED"
+                ) {
+                    errors.push(format!(
+                        "standards_basis[{index}].applicability: unsupported classification"
+                    ));
+                }
+                if !matches!(claim, "NO_CLAIM" | "SELF_ASSESSED" | "INDEPENDENTLY_CERTIFIED") {
+                    errors.push(format!(
+                        "standards_basis[{index}].compliance_claim: unsupported claim level"
+                    ));
+                }
+                match claim {
+                    "NO_CLAIM" => {}
+                    "SELF_ASSESSED" => {
+                        if !string_at(record, &["evidence_sha256"]).is_some_and(valid_sha256) {
+                            errors.push(format!(
+                                "standards_basis[{index}]: self-assessment requires a SHA-256 evidence digest"
+                            ));
+                        }
+                    }
+                    "INDEPENDENTLY_CERTIFIED" => {
+                        if !nonempty(string_at(record, &["issuing_body"]))
+                            || !nonempty(string_at(record, &["certificate_id"]))
+                        {
+                            errors.push(format!(
+                                "standards_basis[{index}]: independent certification requires issuing body and certificate ID"
+                            ));
+                        }
+                        if !string_at(record, &["evidence_sha256"]).is_some_and(valid_sha256) {
+                            errors.push(format!(
+                                "standards_basis[{index}]: independent certification requires evidence digest"
+                            ));
+                        }
+                        let digest = string_at(record, &["evidence_sha256"]);
+                        let bound = manifest
+                            .get("artifact_refs")
+                            .and_then(Value::as_array)
+                            .is_some_and(|artifacts| {
+                                artifacts.iter().any(|artifact| {
+                                    string_at(artifact, &["artifact_type"]) == Some("CERTIFICATION_EVIDENCE")
+                                        && string_at(artifact, &["sha256"]) == digest
+                                })
+                            });
+                        if !bound {
+                            errors.push(format!(
+                                "standards_basis[{index}]: certification digest must bind CERTIFICATION_EVIDENCE artifact"
+                            ));
+                        }
+                    }
+                    _ => {}
+                }
+
+                if document_id == "SAE J2954" && edition == "J2954_202408" {
+                    let direction = string_at(manifest, &["conditions", "direction"]);
+                    let operating_mode =
+                        string_at(manifest, &["conditions", "operating_mode"]);
+                    let installation =
+                        string_at(manifest, &["conditions", "installation_type"]);
+                    let apparent_power =
+                        number_at(manifest, &["conditions", "rated_apparent_power_va"]);
+                    if applicability == "NORMATIVE_REQUIREMENT" {
+                        if direction != Some("GRID_TO_VEHICLE") {
+                            errors.push(format!(
+                                "standards_basis[{index}]: SAE J2954_202408 normative use requires GRID_TO_VEHICLE"
+                            ));
+                        }
+                        if operating_mode != Some("STATIC") {
+                            errors.push(format!(
+                                "standards_basis[{index}]: SAE J2954_202408 normative use requires STATIC operation"
+                            ));
+                        }
+                        if installation != Some("SURFACE_MOUNTED") {
+                            errors.push(format!(
+                                "standards_basis[{index}]: SAE J2954_202408 normative use requires SURFACE_MOUNTED installation"
+                            ));
+                        }
+                        if !apparent_power.is_some_and(|value| value > 0.0 && value <= 11_000.0) {
+                            errors.push(format!(
+                                "standards_basis[{index}]: SAE J2954_202408 normative use requires measured/declared apparent power within its published <=11 kVA scope"
+                            ));
+                        }
+                    }
+                }
+                if document_id == "SAE J2954/2" && applicability == "NORMATIVE_REQUIREMENT" {
+                    errors.push(format!(
+                        "standards_basis[{index}]: SAE J2954/2_202212 is an Information Report with incomplete detailed requirements, not a complete normative compliance specification"
+                    ));
+                }
+                if document_id == "SAE J2954/3" && applicability != "PLANNED_NOT_ISSUED" {
+                    errors.push(format!(
+                        "standards_basis[{index}]: J2954/3 is tracked as planned/unissued in this benchmark revision"
+                    ));
+                }
+            }
+        }
+        _ => errors.push(
+            "standards_basis: qualified run requires an explicit versioned applicability record".into()
+        ),
+    }
 
     // Resonant-network branches are first-class electrical ports. A network
     // commanded INACTIVE can still carry induced circulating current.
@@ -1330,6 +1486,23 @@ mod tests {
         manifest["system"]["controller_revision"] = json!("controller-test-commit");
         manifest["system"]["configuration_digest"] = json!("a".repeat(64));
         manifest["system"]["concurrent_resonant_networks_allowed"] = json!(false);
+        manifest["conditions"]["operating_mode"] = json!("STATIC");
+        manifest["conditions"]["installation_type"] = json!("SURFACE_MOUNTED");
+        manifest["conditions"]["rated_apparent_power_va"] = json!(12_100.0);
+        manifest["standards_basis"] = json!([
+            {
+                "document_id": "SAE J2954",
+                "edition": "J2954_202408",
+                "applicability": "OUT_OF_SCOPE_REFERENCE",
+                "scope_statement": "Synthetic 11 kW class reference; AC apparent power 12.1 kVA exceeds the 11 kVA light-duty scope and the fixture is used for bidirectional methodology.",
+                "provisions_tested": [],
+                "compliance_claim": "NO_CLAIM",
+                "evidence_sha256": null,
+                "issuing_body": null,
+                "certificate_id": null,
+                "notes": "Synthetic unit-test context only; not a conformity claim."
+            }
+        ]);
 
         manifest["conditions"]["direction"] = json!("GRID_TO_VEHICLE");
         manifest["conditions"]["power_class"] = json!("11_KW");
@@ -1845,6 +2018,55 @@ mod tests {
         manifest["cyber_physical_security"]["security_scenario_results"][1]["scenario_id"] = id;
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("unknown or duplicate scenario")));
+    }
+
+
+    #[test]
+    fn rejects_j2954_normative_claim_for_bidirectional_operation() {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["direction"] = json!("VEHICLE_TO_GRID");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires GRID_TO_VEHICLE")));
+    }
+
+    #[test]
+    fn rejects_j2954_normative_claim_above_11_kva() {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["rated_apparent_power_va"] = json!(30_000.0);
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("published <=11 kVA scope")));
+    }
+
+    #[test]
+    fn rejects_j2954_normative_claim_for_dynamic_operation() {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["operating_mode"] = json!("DYNAMIC");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires STATIC operation")));
+    }
+
+    #[test]
+    fn rejects_j2954_2_as_complete_normative_specification() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("SAE J2954/2");
+        manifest["standards_basis"][0]["edition"] = json!("J2954/2_202212");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("Information Report")));
+    }
+
+    #[test]
+    fn rejects_independent_certification_without_certificate_artifact() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["compliance_claim"] = json!("INDEPENDENTLY_CERTIFIED");
+        manifest["standards_basis"][0]["evidence_sha256"] = json!("f".repeat(64));
+        manifest["standards_basis"][0]["issuing_body"] = json!("synthetic issuer");
+        manifest["standards_basis"][0]["certificate_id"] = json!("synthetic certificate");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("CERTIFICATION_EVIDENCE artifact")));
     }
 
     #[test]
