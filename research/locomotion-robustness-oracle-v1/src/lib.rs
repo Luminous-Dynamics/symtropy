@@ -1295,11 +1295,11 @@ mod tests {
 
     #[test]
     fn worst_success_and_worst_cvar_strata_remain_separate() {
-        let mut episodes = vec![
+        let mut flat = vec![
             episode("candidate", "flat-1", "fly-1", 0.9),
             episode("candidate", "flat-2", "fly-2", 0.9),
         ];
-        for record in &mut episodes {
+        for record in &mut flat {
             record.scenario_id = "flat-v1".to_string();
             record.scenario_family = ScenarioFamily::FlatGround;
             record.scenario_sha256 = digest('a');
@@ -1308,21 +1308,21 @@ mod tests {
             record.perturbation_onset_tick = None;
             record.recovery = RecoveryStatus::NotApplicable;
         }
+        flat[0].success = false;
         let mut stress = vec![
             episode("candidate", "stress-1", "fly-1", 0.2),
             episode("candidate", "stress-2", "fly-2", 0.2),
         ];
         for record in &mut stress {
-            record.success = false;
-            record.termination = TerminationReason::Fell;
-            record.fall_count = 1;
+            record.success = true;
+            record.termination = TerminationReason::HorizonCompleted;
             record.task_score = 0.1;
         }
-        let mut combined = episodes;
+        let mut combined = flat;
         combined.extend(stress);
         let report = analyze_robustness(&protocol(), &combined).expect("scorecard");
         let worst = &report.model_worst_case[0];
-        assert_eq!(worst.worst_success_scenario_id, "front-feCO-dropout-v1");
+        assert_eq!(worst.worst_success_scenario_id, "flat-v1");
         assert_eq!(worst.worst_cvar_scenario_id, "front-feCO-dropout-v1");
         assert_eq!(worst.scenario_count, 2);
     }
