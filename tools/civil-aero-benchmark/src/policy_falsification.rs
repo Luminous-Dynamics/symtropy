@@ -209,16 +209,6 @@ impl AdjudicationSelectionDesign {
     }
 }
 
-pub struct PolicyFeasibilityAuditRequest<'a> {
-    pub policy_id: &'a str,
-    pub frame_id: &'a str,
-    pub design: &'a AdjudicationSelectionDesign,
-    pub admitted_candidates: &'a [AdmittedCandidateFrameEntry],
-    pub adjudications: &'a [IndependentFeasibilityAdjudication],
-    pub source_scorecard_row: &'a PolicyBenchmarkRow,
-    pub source_operation_ledger: &'a [LedgerOperation],
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct PolicyFeasibilityAuditReport {
     pub schema: String,
@@ -1391,7 +1381,11 @@ mod tests {
         );
 
         let mut omitted_ledger = source_operation_ledger.clone();
-        omitted_ledger.pop();
+        let low_fidelity_index = omitted_ledger
+            .iter()
+            .position(|operation| operation.operation_id == "low-seed-1-symtropy-voi")
+            .expect("source group low-fidelity operation");
+        omitted_ledger.remove(low_fidelity_index);
         let omitted_ledger_request = PolicyFeasibilityAuditInputs {
             policy_id: "symtropy-voi",
             frame_id: frame,
