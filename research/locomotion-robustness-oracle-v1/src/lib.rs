@@ -315,6 +315,19 @@ struct ScenarioSignature {
     scenario_sha256: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct EvaluationSignature {
+    body_model_sha256: String,
+    physics_sha256: String,
+    environment_sha256: String,
+    sensor_schema_sha256: String,
+    solver_sha256: String,
+    hardware_sha256: String,
+    horizon_ticks: u64,
+    control_compute_budget_micros: u64,
+    training_budget_steps: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct MatchedTrialKey {
     scenario_id: String,
@@ -721,6 +734,22 @@ fn score_scenario(
         code_sha256: first.code_sha256.clone(),
         parameter_sha256: first.parameter_sha256.clone(),
         controller_config_sha256: first.controller_config_sha256.clone(),
+        connectome_sha256: first.connectome_sha256.clone(),
+        biological_source_sha256: first.biological_source_sha256.clone(),
+        sensor_mapping_sha256: first.sensor_mapping_sha256.clone(),
+        effector_mapping_sha256: first.effector_mapping_sha256.clone(),
+        muscle_mapping_sha256: first.muscle_mapping_sha256.clone(),
+    };
+    let first_evaluation_signature = EvaluationSignature {
+        body_model_sha256: first.body_model_sha256.clone(),
+        physics_sha256: first.physics_sha256.clone(),
+        environment_sha256: first.environment_sha256.clone(),
+        sensor_schema_sha256: first.sensor_schema_sha256.clone(),
+        solver_sha256: first.solver_sha256.clone(),
+        hardware_sha256: first.hardware_sha256.clone(),
+        horizon_ticks: first.horizon_ticks,
+        control_compute_budget_micros: first.control_compute_budget_micros,
+        training_budget_steps: first.training_budget_steps,
     };
 
     for record in records {
@@ -738,8 +767,24 @@ fn score_scenario(
                 code_sha256: record.code_sha256.clone(),
                 parameter_sha256: record.parameter_sha256.clone(),
                 controller_config_sha256: record.controller_config_sha256.clone(),
+                connectome_sha256: record.connectome_sha256.clone(),
+                biological_source_sha256: record.biological_source_sha256.clone(),
+                sensor_mapping_sha256: record.sensor_mapping_sha256.clone(),
+                effector_mapping_sha256: record.effector_mapping_sha256.clone(),
+                muscle_mapping_sha256: record.muscle_mapping_sha256.clone(),
             }) != first_model_signature
             || record.evaluation_tier != first.evaluation_tier
+            || (EvaluationSignature {
+                body_model_sha256: record.body_model_sha256.clone(),
+                physics_sha256: record.physics_sha256.clone(),
+                environment_sha256: record.environment_sha256.clone(),
+                sensor_schema_sha256: record.sensor_schema_sha256.clone(),
+                solver_sha256: record.solver_sha256.clone(),
+                hardware_sha256: record.hardware_sha256.clone(),
+                horizon_ticks: record.horizon_ticks,
+                control_compute_budget_micros: record.control_compute_budget_micros,
+                training_budget_steps: record.training_budget_steps,
+            }) != first_evaluation_signature
         {
             return Err(RobustnessError::ScenarioDefinitionMismatch);
         }
@@ -1414,6 +1459,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_mixed_physics_within_one_scenario_scorecard() {
+        let first = episode("candidate", "trial-1", "fly-1", 0.9);
+        let mut second = episode("candidate", "trial-2", "fly-2", 0.8);
+        second.physics_sha256 = digest('z');
+        assert_eq!(
+            analyze_robustness(&protocol(), &[first, second]),
+            Err(RobustnessError::ScenarioDefinitionMismatch)
+        );
+    }
+
+    #[test]
     fn rejects_successful_episode_with_numerical_failure_termination() {
         let mut invalid = episode("candidate", "trial-1", "fly-1", 0.9);
         invalid.termination = TerminationReason::NumericalFailure;
@@ -1484,7 +1540,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_model_provenance_changes_between_scenarios() {
+    fn rejects_model_provenance_changes_between_episodes() {
         let first = episode("candidate", "trial-1", "fly-1", 0.9);
         let mut second = episode("candidate", "trial-2", "fly-2", 0.8);
         second.connectome_sha256 = Some(digest('z'));
