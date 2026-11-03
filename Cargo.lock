@@ -9328,6 +9328,7 @@ dependencies = [
  "nalgebra 0.34.2",
  "proptest",
  "serde",
+ "serde_json",
  "symtropy-math",
 ]
 
