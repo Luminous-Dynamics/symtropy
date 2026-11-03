@@ -38,7 +38,8 @@
         "compare_exposure",
         "compare_reliability",
         "generic_numeric_ranking",
-        "rank_energy_per_distance"
+        "rank_energy_per_distance",
+        "compare_metric_improvement"
       ]
     },
     "expected_disposition": {
@@ -71,7 +72,9 @@
           "STATISTIC_WINDOW_INCOMPLETE",
           "FIELD_GEOMETRY_MISMATCH",
           "OPERATING_CONDITION_UNNORMALIZED",
-          "POWER_CLASS_MISMATCH"
+          "POWER_CLASS_MISMATCH",
+          "REFERENCE_BASELINE_MISMATCH",
+          "METRIC_DEFINITION_MISMATCH"
         ]
       },
       "minItems": 1
