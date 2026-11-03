@@ -547,6 +547,9 @@ mod tests {
         assert_eq!(dimension_for_unit("V/m"), Some("electric_field"));
         assert_eq!(dimension_for_unit("W"), Some("power"));
         assert_eq!(dimension_for_unit("%"), Some("dimensionless"));
+        assert_eq!(dimension_for_quantity("apparent_power"), Some("power"));
+        assert_eq!(dimension_for_quantity("reactive_power"), Some("power"));
+        assert_eq!(dimension_for_quantity("power_factor"), Some("dimensionless"));
     }
 
     #[test]
@@ -600,6 +603,44 @@ mod tests {
         let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
         assert_eq!(disposition, "COMPARABLE");
         assert!(reasons.is_empty());
+    }
+
+    fn field_sample() -> Value {
+        let mut m = sample("FIELD-KNOWN-TRUTH", 13.86);
+        m["quantity_kind"] = json!("magnetic_flux_density");
+        m["measurement_purpose"] = json!("human_exposure_assessment");
+        m["raw_measurement"]["unit"] = json!("μT");
+        m["normalized_measurement"]["value"] = json!(0.00001386);
+        m["normalized_measurement"]["unit"] = json!("T");
+        m["normalized_measurement"]["conversion_id"] = json!("microtesla_to_tesla_v1");
+        m["normalized_measurement"]["dimension"] = json!("magnetic_flux_density");
+        m["boundary"]["boundary_class"] = json!("field_probe");
+        m["boundary"]["input_plane_kind"] = json!("NOT_APPLICABLE");
+        m["boundary"]["output_plane_kind"] = json!("NOT_APPLICABLE");
+        m["boundary"]["stage_set_status"] = json!("NOT_APPLICABLE");
+        m["field_observation"] = json!({
+            "probe_method": "UNKNOWN",
+            "probe_model": null,
+            "position_m": {"x": null, "y": null, "z": null},
+            "orientation": null,
+            "reference_frame": null,
+            "spatial_region": null,
+            "averaging_method": "not_reported",
+            "averaging_window_s": null
+        });
+        m["qualification"] = json!("SOURCE_CLAIM_ONLY");
+        m
+    }
+
+    #[test]
+    fn field_quantity_requires_typed_probe_record_and_unknown_geometry_stays_unresolved() {
+        let field = field_sample();
+        assert!(validate_measurement(&field).is_empty());
+
+        let (disposition, reasons) = compare_measurements(&field, &field, "compare_exposure");
+        assert_eq!(disposition, "UNRESOLVED");
+        assert!(reasons.contains(&"FIELD_ASSESSMENT_METADATA_INCOMPLETE".to_string()));
+        assert!(reasons.contains(&"SOURCE_QUALIFICATION_INSUFFICIENT".to_string()));
     }
 
     #[test]
