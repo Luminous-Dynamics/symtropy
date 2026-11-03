@@ -585,7 +585,7 @@ pub fn assess_applicability_domain(
             .then_with(|| left.value.total_cmp(&right.value))
     });
     let mut values = BTreeMap::new();
-    for feature in ordered_query_features {
+    for feature in &ordered_query_features {
         if feature.name.trim().is_empty() || feature.unit.trim().is_empty() {
             return unknown(manifest, query, "query contains a missing feature name or unit");
         }
@@ -619,7 +619,7 @@ pub fn assess_applicability_domain(
             "query feature set is incomplete or contains undeclared features",
         );
     }
-    for feature in &query.features {
+    for feature in &ordered_query_features {
         if expected.get(feature.name.as_str()).copied() != Some(feature.unit.as_str()) {
             return unknown(
                 manifest,
