@@ -38,11 +38,16 @@ Relevant kernel documentation:
 ## memory.peak file-descriptor semantics
 
 The kernel documents that `memory.peak` is scoped to a file descriptor and can be reset by writing to that file descriptor. Therefore:
-- open the file read-only before the baseline observation;
+- create a fresh per-operation cgroup (do not reuse a prior operation's peak history);
+- open `memory.peak` read-only before the baseline observation and record the descriptor's `fcntl(F_GETFL)` flags;
+- require `O_ACCMODE == O_RDONLY` in the captured flags;
+- require a zero `memory.peak` baseline before launch; a nonzero baseline is contaminated and rejected;
 - retain the same FD for the final observation;
-- bind the same reader identity in both snapshots;
-- reject snapshots whose reader identities differ;
+- bind the same reader identity, access flags and cgroup mount-option digest in both snapshots;
+- reject snapshots whose reader identity, access flags or mount-option scope differs;
 - never use a write-capable FD or reset the peak counter during an operation.
+
+The Rust parser verifies the reported access flags and baseline, but these values are still caller-supplied observations until the live Linux adapter reads them directly from the retained descriptor and kernel mount information.
 
 This v0.1 parser rejects a lower final peak than baseline as a possible reset/regression. Same-FD, read-only capture is a required adapter property and still needs live integration tests.
 
