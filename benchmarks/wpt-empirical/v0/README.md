@@ -310,3 +310,17 @@ This corrects an earlier simplification: IEC 61980-3:2022 remains the stationary
 The catalogue now includes:
 - **11.1 kW magnetothermal mitigation prototype:** magnetic flux bridge made from magnetic conductive powder at ferrite-block air gaps; authors report 31.3% lower maximum ferrite temperature, 8.1% lower maximum leakage flux and 2.06% higher system efficiency. The abstract does not say whether 2.06% is a percentage-point or relative increase and provides no absolute start/end efficiency; retain this ambiguity.
 - **2026 SS/LCC highway DWPT simulation:** at 90 km/h and 510 km, simulated SS and LCC energy transfers are 0.14 and 0.15 kWh/km against assumed vehicle consumption 0.129 kWh/km. No prototype or field test is reported; this is a simulation-only case and remains separate from Purdue/INDOT's 50–190 kW, up-to-65-mph measured roadway testbed.
+
+
+### ISO 5474-4:2025 vehicle-side scope correction
+
+The official ISO catalogue record is https://www.iso.org/standard/81300.html (not the previously recorded 80900 path). ISO 5474-4:2025 is the published vehicle-side standard for on-board magnetic-field WPT equipment intended for passenger cars and light commercial vehicles. It covers vehicle-device safety, transferred power/efficiency, ground clearance, interoperability and test procedures.
+
+Its explicit exclusions matter:
+- no dynamic (vehicle-in-motion) requirements;
+- no reverse-WPT requirements;
+- no requirements for its EV devices when paired with supply devices specified by IEC 61980-4.
+
+ISO 5474-4 is intended to pair with IEC 61980-1/-2/-3. It is not the vehicle-side standard for dynamic WPT; IEC PAS 61980-5/6 pair with ISO 5474-6. It is also not the vehicle-side compliance basis for the high-power IEC PAS 61980-4 supply-device scope. Thus the standards architecture is a matrix of complementary off-board and on-board requirements, not a single interchangeable WPT standard.
+
+This also means the 6/11/30 kW Zhang bidirectional research demonstration cannot be labelled ISO 5474-4 conformant simply because the paper demonstrates interoperability among vehicle assemblies. Its reverse-power direction, 30 kW / 20 kHz configuration, and system architecture must each be checked against actual in-scope clauses and the relevant off-board standards; this catalogue makes no conformity claim.
