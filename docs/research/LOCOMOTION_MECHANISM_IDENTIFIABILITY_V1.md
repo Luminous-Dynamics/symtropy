@@ -29,6 +29,8 @@ References:
 - [Pratt et al., Dryad dataset DOI 10.5061/dryad.fxpnvx153](https://doi.org/10.5061/dryad.fxpnvx153)
 - [Authors' hair-plate analysis code, v1.0.0](https://github.com/Prattbuw/Hair_Plate_Paper/releases/tag/v1.0.0)
 - [Golan, Schütt and Kriegeskorte, Making models disagree to learn how brains compute, Nature Reviews Neuroscience (28 August 2026)](https://doi.org/10.1038/s41583-026-01070-0)
+- [Özdil et al., Musculoskeletal simulation of limb movement biomechanics in Drosophila melanogaster, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/222843b731e2c7813291586e2b39fe89-Abstract-Conference.html)
+- [FlyMimic project, paper and code](https://gizemozd.github.io/fly_mimic/)
 - [FlyGym releases](https://github.com/NeLy-EPFL/flygym/releases), pinned for external neuromechanical comparison at v2.1.1 / commit a63dc91.
 
 Preserve six outcome levels:
@@ -57,6 +59,8 @@ Keep models as explicit competing hypotheses. Do not collapse them into one hybr
 | M7 | Learned recurrent/RL controller | Pinned policy, training data, observation channels, training budget and random seeds |
 | M8 | Connectome-constrained sensorimotor hybrid | Source-grounded local dynamics plus explicit central coupling, sensory feedback, descending modulation and embodied mechanics |
 | M9 | Connectome-grounded joint-limit reflex modules | Receptor-specific hair-plate threshold/limit events, source-grounded sensory-to-premotor-to-motor mapping, bounded local reflex and joint-specific biomechanics |
+| M10 | Muscle-actuated imitation / biomechanics | FlyMimic-style Hill-type muscle-tendon dynamics, pose-tracking objective, declared MTU map, passive joint properties and training budget |
+| M11 | Connectome-to-muscle closed-loop hybrid | Source-grounded motor-neuron-to-muscle projections, activation/contractile dynamics, local proprioceptive reflexes, contact and body feedback |
 
 Every model descriptor must state species/taxon, life stage, connectome/release, included and omitted cells/pathways, synapse/sign assumptions, dynamics family, parameter priors, sensor/effector mapping, solver and evidence tier. A model with omitted sensory pathways must not receive those signals through an unrecorded side channel.
 
@@ -207,11 +211,13 @@ Confidence intervals and paired comparisons must respect individual/session clus
 
 The external embodied baseline is FlyGym 2.1.1 / commit a63dc91 and its NeuroMechFly controller set—not an older v2.0 or v1 measurement. The release notes document changes that directly affect benchmarking: GPU timing synchronization was corrected because earlier timing could overstate throughput by up to about 50%; the GPU solver default is 1e-5; the release uses MuJoCo and MuJoCo Warp 3.16; and GPU batch execution is affected by the slowest world. Pin all of these in the benchmark receipt.
 
-The fair matched-controller matrix remains owned by #3357: coupled-oscillator CPG; rule-based/decentralized controller; hybrid CPG plus sensory-feedback rules; recurrent/RL controller with pinned training budget; PID/reflex baseline; Symtropy phenomenological controller; and connectome-constrained and hybrid candidates.
+**Add FlyMimic (Özdil et al., ICLR 2026) as a separate muscle-actuated baseline.** It supplies a 3D, X-ray-informed Hill-type muscle-tendon model in OpenSim/MuJoCo and a PPO imitation-learning task. The published model has 15 MTUs on the foreleg, covering 12 of 19 anatomically distinct muscle groups. The project page states that muscle optimization and imitation learning are performed without contact forces; its ground-transfer demonstration muscle-actuates the forelegs while middle/hind legs use direct torque. It is therefore a strong muscle-to-kinematics and synergy comparator, not a fully muscle-actuated six-leg, contact-trained neural controller. Keep the scopes distinct in every comparison.
 
-Use identical morphology, physics/contact settings, timestep, sensor access, observation latency/noise, task horizon, initial-state distribution, training/calibration budget and hardware. Separate inference-only and training-inclusive cost. Synchronize GPU timing and include reset/forward semantics. Report both per-world throughput and slowest-world/batch latency; never hide failures behind aggregate FPS.
+The fair matched-controller matrix remains owned by #3357: coupled-oscillator CPG; rule-based/decentralized controller; hybrid CPG plus sensory-feedback rules; recurrent/RL controller with pinned training budget; PID/reflex baseline; Symtropy phenomenological controller; connectome-constrained and hybrid candidates; FlyMimic muscle-actuated replay and PPO imitation; and, when supported by validated mappings, connectome-to-muscle closed-loop controllers.
 
-Do not compare the published Pugliese neural network runtime directly to FlyGym rigid-body throughput as if they were equivalent workloads. They answer different performance questions. Report neural integration cost, body simulation cost and full closed-loop cost separately.
+Use identical morphology, physics/contact settings, timestep, sensor access, observation latency/noise, task horizon, initial-state distribution, training/calibration budget and hardware. Separate free-space kinematic replay, forward muscle-driven movement, contact-supported ground locomotion and neural closed-loop locomotion; these are not interchangeable outcomes. Separate inference-only and training-inclusive cost. Synchronize GPU timing and include reset/forward semantics. Report both per-world throughput and slowest-world/batch latency; never hide failures behind aggregate FPS.
+
+Do not compare the published Pugliese neural network runtime directly to FlyGym rigid-body throughput or FlyMimic free-space imitation loss as if they were equivalent workloads. They answer different questions. Report neural integration cost, muscle dynamics cost, body/contact simulation cost and full closed-loop cost separately.
 
 ## 9. Multi-fidelity promotion gates
 
@@ -251,12 +257,14 @@ The first four are hypotheses to test, not universal biological constants. Freez
 7. **Run matched controller benchmarks:** use #3357 scenarios and the same body, physics, observations, compute and training budget.
 8. **Unblind once:** evaluate frozen prediction records on the untouched intervention set; preserve all strata and failed runs.
 9. **Promote cautiously:** move from synthetic to source-grounded, in-silico embodied, and measured biological claims only when the corresponding gate passes.
+10. **Qualify the neural-to-muscle bridge:** reproduce FlyMimic's foreleg scope, then validate source-grounded muscle projections and contractile/contact dynamics before extending actuator claims to all six legs; coordinate with #3461.
 
 ## 12. Non-goals
 
 - No universal fly CPG claim and no transfer of insect circuitry to mammals.
 - No claim that a rhythm-generating subnetwork alone explains tripod coordination or locomotion.
 - No animal intervention or biological efficacy claim from synthetic/in-silico results.
+- No claim of full six-leg muscle actuation from a foreleg-only MTU model or direct-torque-supported hind/middle legs.
 - No SOTA, throughput or energy win without matched measurements.
 - No post-hoc change to metrics, filters, interventions, splits, thresholds or candidate models after held-out unblinding.
 - No single scalar score that erases a failed outcome dimension.
