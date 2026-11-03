@@ -19,7 +19,6 @@
     "result",
     "resonant_networks",
     "cyber_physical_security",
-    "standards_basis",
     "standards_basis"
   ],
   "properties": {
@@ -138,9 +137,6 @@
         "ambient_temperature_c",
         "relative_humidity_pct",
         "thermal_state",
-        "operating_mode",
-        "installation_type",
-        "rated_apparent_power_va",
         "operating_mode",
         "installation_type",
         "rated_apparent_power_va"
