@@ -223,6 +223,27 @@ Standards/version register:
 
 Use the versioned [GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json](data/GRID_FORMING_MICROGRID_BENCHMARKS_2026-11-03.json) and [schema](data/GRID_FORMING_MICROGRID_BENCHMARK_SCHEMA_2026-11-03.json) to freeze test cases and evidence receipts. The 24 listed cases leave acceptance thresholds null until the specific standard edition, utility agreement and mission requirements are selected.
 
+### 5.5 UNIFI V3 frequency-domain GFM qualification
+
+The 2026 UNIFI GFM Specifications V3 adds frequency-domain criteria and quantitative pass/fail tests to the prior time-domain approach. The official NLR research record identifies the report as NLR/TP-5D00-98381, DOI 10.2172/3016250: https://research-hub.nlr.gov/en/publications/unifi-specifications-for-grid-forming-inverter-based-resources-ve-2/
+
+The grid-forming matrix now includes a separate frequency-domain group:
+1. converter sequence-impedance / admittance scan;
+2. weak-grid converter-to-network impedance interaction across frozen grid-impedance cases;
+3. multi-vendor GFM fleet interaction scan, including isolated-versus-connected device response.
+
+Required evidence: raw complex frequency-response data, frequency band and scan resolution, operating point, injected perturbation, measurement reference, controller/firmware digest, uncertainty by frequency, model-validity range and exact acceptance-clause reference. Use the UNIFI V3 test method and thresholds from the exact document version; do not invent a universal frequency sweep or stability-margin threshold. Preserve sequence-domain and dq-domain conventions separately.
+
+### 5.6 Plant-level conformity and data-centre IT-load protection
+
+Standards register update:
+- **IEEE 2800.2-2026** is now a published active recommended practice (published 30 June 2026) for test and verification procedures demonstrating plant-level conformity with IEEE 2800 for applicable transmission/sub-transmission IBR plants. It is not a microgrid islanding standard: https://standards.ieee.org/ieee/2800.2/10616/
+- **IEEE P2800.1** is an active PAR for grid-forming functional capabilities/performance and model-based test procedures; it is not yet a published standard: https://standards.ieee.org/ieee/2800.1/12387/
+- The **IEEE Data Center Design for IT Load Protection** white paper, published 10 September 2026, identifies AC/DC/hybrid distribution, redundancy, IT load priority, personnel/system protection, AI load patterns, disturbance response, cooling and grid interaction: https://standards.ieee.org/ieee/White_Paper/12663/
+- IEEE's broader data-centre standards activity identifies fast load time constants, interconnection, forecast uncertainty, local generation and microgrids as cross-domain challenges: https://standards.ieee.org/industry-connections/activities/data-centers-standards-needs-analysis-and-recommendations/
+
+The benchmark now includes five IT protection tests: AI workload ramp/burst replay; UPS/DC-bus ride-through; load priority and cooling-constrained restoration; joint grid-disturbance / IT-protection response; and flexible-load dispatch with SLA, thermal and rebound constraints. This explicitly tests the data centre as both a protected critical load and a potentially flexible grid customer.
+
 ## 6. Energy arithmetic and acceptance checks
 
 For each steady-state segment:
