@@ -85,6 +85,8 @@ pub struct FactorialObservation {
     pub session_id: String,
     /// Must be unique within an animal/session regardless of condition.
     pub trial_id: String,
+    /// One-based randomized/counterbalanced execution order within the session.
+    pub trial_order: u64,
     pub cell: FactorialCell,
     pub response: f64,
 }
@@ -101,7 +103,11 @@ pub enum FactorialError {
     ResourceLimitExceeded,
     NonFiniteResponse,
     NonFiniteSummary,
+    ZeroTrialOrder,
     DuplicateTrialId,
+    DuplicateTrialOrder,
+    NonContiguousTrialOrder { animal_id: String, session_id: String },
+    MissingTrialOrderData,
     TooFewAnimals { observed: usize, minimum: usize },
     TooFewReplicates {
         animal_id: String,
@@ -131,11 +137,22 @@ pub struct FactorialContrasts {
     pub abc: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CellOrderSummary {
+    pub cell: FactorialCell,
+    pub trial_count: usize,
+    pub first_order: u64,
+    pub last_order: u64,
+    pub mean_order: f64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SessionContrast {
     pub animal_id: String,
     pub session_id: String,
     pub trial_count: usize,
+    /// Execution-order diagnostics by factorial cell; not an order adjustment.
+    pub order_by_cell: Vec<CellOrderSummary>,
     pub contrasts: FactorialContrasts,
 }
 
@@ -382,6 +399,8 @@ pub fn analyze_factorial(
     }
 
     let mut trial_ids = BTreeSet::new();
+    let mut trial_orders: BTreeMap<(String, String), BTreeSet<u64>> = BTreeMap::new();
+    let mut cell_orders: BTreeMap<(String, String, FactorialCell), Vec<u64>> = BTreeMap::new();
     let mut sessions: BTreeMap<(String, String), BTreeMap<FactorialCell, Vec<f64>>> =
         BTreeMap::new();
 
@@ -398,6 +417,26 @@ pub fn analyze_factorial(
         if !observation.response.is_finite() {
             return Err(FactorialError::NonFiniteResponse);
         }
+        if observation.trial_order == 0 {
+            return Err(FactorialError::ZeroTrialOrder);
+        }
+
+        if !trial_orders
+            .entry((observation.animal_id.clone(), observation.session_id.clone()))
+            .or_default()
+            .insert(observation.trial_order)
+        {
+            return Err(FactorialError::DuplicateTrialOrder);
+        }
+
+        cell_orders
+            .entry((
+                observation.animal_id.clone(),
+                observation.session_id.clone(),
+                observation.cell,
+            ))
+            .or_default()
+            .push(observation.trial_order);
 
         let trial_key = (
             observation.animal_id.clone(),
@@ -420,6 +459,20 @@ pub fn analyze_factorial(
         return Err(FactorialError::ResourceLimitExceeded);
     }
 
+    // A one-based contiguous sequence detects duplicate/omitted event numbers.
+    // It does not prove that the protocol actually randomized or counterbalanced
+    // the treatment order; the summaries below keep that design auditable.
+    for ((animal_id, session_id), orders) in &trial_orders {
+        let expected_last = u64::try_from(orders.len())
+            .map_err(|_| FactorialError::ResourceLimitExceeded)?;
+        if orders.first() != Some(&1) || orders.last() != Some(&expected_last) {
+            return Err(FactorialError::NonContiguousTrialOrder {
+                animal_id: animal_id.clone(),
+                session_id: session_id.clone(),
+            });
+        }
+    }
+
     let animal_ids = sessions
         .keys()
         .map(|(animal_id, _)| animal_id.clone())
@@ -440,6 +493,7 @@ pub fn analyze_factorial(
     for ((animal_id, session_id), cell_trials) in sessions {
         let mut cell_means = BTreeMap::new();
         let mut session_trial_count = 0;
+        let mut order_by_cell = Vec::with_capacity(8);
 
         for cell in FactorialCell::all() {
             let Some(values) = cell_trials.get(&cell) else {
@@ -460,6 +514,36 @@ pub fn analyze_factorial(
                 });
             }
 
+            let orders = cell_orders
+                .get(&(animal_id.clone(), session_id.clone(), cell))
+                .ok_or(FactorialError::MissingTrialOrderData)?;
+            if orders.len() != values.len() {
+                return Err(FactorialError::MissingTrialOrderData);
+            }
+            let first_order = orders
+                .iter()
+                .copied()
+                .min()
+                .ok_or(FactorialError::MissingTrialOrderData)?;
+            let last_order = orders
+                .iter()
+                .copied()
+                .max()
+                .ok_or(FactorialError::MissingTrialOrderData)?;
+            let mean_order = mean(
+                &orders
+                    .iter()
+                    .map(|order| *order as f64)
+                    .collect::<Vec<_>>(),
+            )?;
+
+            order_by_cell.push(CellOrderSummary {
+                cell,
+                trial_count: orders.len(),
+                first_order,
+                last_order,
+                mean_order,
+            });
             session_trial_count += values.len();
             cell_means.insert(cell, mean(values)?);
         }
@@ -469,6 +553,7 @@ pub fn analyze_factorial(
             animal_id: animal_id.clone(),
             session_id,
             trial_count: session_trial_count,
+            order_by_cell,
             contrasts,
         });
         contrasts_by_animal
@@ -584,6 +669,7 @@ mod tests {
                         cell.c as u8,
                         replicate
                     ),
+                    trial_order: observations.len() as u64 + 1,
                     cell,
                     response: response_with_effects(cell, intercept, coefficients),
                 });
@@ -608,6 +694,7 @@ mod tests {
             animal_id: "fly-1".to_string(),
             session_id: "session-1".to_string(),
             trial_id: "fly-1-session-1-1-1-1-2".to_string(),
+            trial_order: 17,
             cell,
             response: response_with_effects(cell, 10.0, [1.5, -0.5, 2.0, 3.0, 0.75, -1.0, 4.0]),
         });
@@ -738,6 +825,74 @@ mod tests {
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
             Err(FactorialError::DuplicateTrialId)
+        );
+    }
+
+    #[test]
+    fn reports_per_cell_trial_order_for_order_audit() {
+        let observations = observations_for_session(
+            "fly-1",
+            "session-1",
+            0.0,
+            [0.0; 7],
+            2,
+        );
+        let result = analyze_factorial(&protocol(), &observations).expect("analysis");
+        let order = &result.per_session[0].order_by_cell;
+        assert_eq!(order.len(), 8);
+        assert_eq!(order[0].first_order, 1);
+        assert_eq!(order[0].last_order, 2);
+        assert_eq!(order[0].mean_order, 1.5);
+        assert_eq!(order[7].first_order, 15);
+        assert_eq!(order[7].last_order, 16);
+        assert_eq!(order[7].mean_order, 15.5);
+    }
+
+    #[test]
+    fn rejects_duplicate_trial_order_within_a_session() {
+        let mut observations = observations_for_session(
+            "fly-1",
+            "session-1",
+            0.0,
+            [0.0; 7],
+            2,
+        );
+        observations[1].trial_order = observations[0].trial_order;
+        assert_eq!(
+            analyze_factorial(&protocol(), &observations),
+            Err(FactorialError::DuplicateTrialOrder)
+        );
+    }
+
+    #[test]
+    fn rejects_gaps_in_the_trial_order_sequence() {
+        let mut observations = observations_for_session(
+            "fly-1",
+            "session-1",
+            0.0,
+            [0.0; 7],
+            2,
+        );
+        observations[15].trial_order = 99;
+        assert!(matches!(
+            analyze_factorial(&protocol(), &observations),
+            Err(FactorialError::NonContiguousTrialOrder { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_zero_trial_order() {
+        let mut observations = observations_for_session(
+            "fly-1",
+            "session-1",
+            0.0,
+            [0.0; 7],
+            2,
+        );
+        observations[0].trial_order = 0;
+        assert_eq!(
+            analyze_factorial(&protocol(), &observations),
+            Err(FactorialError::ZeroTrialOrder)
         );
     }
 
