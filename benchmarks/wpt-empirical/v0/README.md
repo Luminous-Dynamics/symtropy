@@ -270,3 +270,25 @@ Primary review: https://doi.org/10.1002/ese3.70608
 
 The bidirectional paper reports a calculated maximum ferrite flux density of 376 mT and cites saturation thresholds of 530 mT at 25°C and 410 mT at 100°C. Using those source-stated values, the nominal flux utilization is 376/530 = 71.0% at 25°C and 376/410 = 91.7% at 100°C. The hot-reference margin is therefore only 8.3%. These ratios are derived from the authors' model/value citations; they are not independent flux measurements or a claim of observed saturation. They motivate the typed v1 requirement to record a temperature-specific Bsat(T) curve and the proposed <=80% peak-flux design target.
 
+## SAE standards applicability map for the multi-vehicle EV-WPT lane
+
+The WPT system literature should not be equated with standards applicability. The current official SAE scopes split the relevant concerns:
+
+| Document | Published scope/status | How this benchmark uses it | Explicit non-claim |
+|---|---|---|---|
+| **J2954_202408** | Stationary, surface-mounted, light-duty WPT; three charging levels up to 11 kVA; forward grid-to-vehicle transfer | Alignment, interoperability, minimum performance, safety/test-method reference for applicable light-duty forward-transfer conditions | Not a bidirectional WPT standard in this edition; not the 30 kW/20 kHz or dynamic-roadway standard |
+| **J2954/2_202212** | SAE Information Report for higher-power heavy-duty WPT, including stationary and some dynamic applications; first-step work, detailed requirements and solutions not complete | High-power/fleet benchmark context and workstream tracking | Not a finished detailed compliance recipe; explicitly unidirectional in current report |
+| **J2847/6_202009** | Communications recommended practice for light-duty inductive WPT; covers alignment, initialization, ramp-up, active transfer and termination | Interoperability/control-message and session state reference | A JSON message protocol does not by itself prove mutual authentication, anti-replay, firmware integrity or cybersecurity |
+| **J3072_202406** | Onboard grid-support inverter interconnection through conductively coupled EVSE, used with IEEE 1547/1547.1 | Relevant adjacent reference for vehicle-side DER/grid interconnection requirements in reverse-power development | It is not itself wireless interconnection certification |
+| **J2836/3_202402** | Information Report defining PEV-to-DER-management use cases and reverse-power/V2G guidance | Functional use-case source for V2G/DER behavior | It is not a WPT coil, resonant-link or interoperability performance standard |
+| **J2954/3** | J2954_202408 directs dynamic WPT scope to a separate J2954/3 workstream | Track as planned scope; do not use as normative criteria absent an issued edition | No J2954/3 edition is claimed or treated as published in this benchmark revision |
+
+The Zhang et al. research architecture's 6/11/30 kW VA ratings are nominal DC-side vehicle assembly ratings; they are not interchangeable with SAE's kVA charging level labels. A test record must report measured AC real power, apparent power and power factor at the declared plane before assigning any SAE power class. The 30 kW / 20 kHz class is beyond J2954_202408's light-duty 11 kVA scope. The 6/11 kW configurations are not automatically J2954-conforming: their DC-rated power, bidirectional operation, dual-frequency architecture, geometry and test apparatus must be separately evaluated against each applicable provision. No standard-conformance claim follows from paper-reported interoperability.
+
+Official publisher pages:
+- https://saemobilus.sae.org/standards/j2954_202408-wireless-power-transfer-light-duty-plug-electric-vehicles-alignment-methodology
+- https://saemobilus.sae.org/standards/j29542_202212-wireless-power-transfer-heavy-duty-electric-vehicles
+- https://saemobilus.sae.org/standards/j28476_202009-communication-wireless-power-transfer-light-duty-plug-electric-vehicles-wireless-ev-charging-stations
+- https://saemobilus.sae.org/standards/j3072_202406-interconnection-requirements-onboard-grid-support-inverter-systems
+- https://saemobilus.sae.org/standards/j28363_202402-use-cases-plug-vehicle-communication-a-distributed-energy-resource
+
