@@ -239,6 +239,9 @@ pub struct ScenarioScorecard {
     pub total_physics_violation_count: u64,
     pub episodes_with_unclassified_failures: usize,
     pub total_unclassified_failure_count: u64,
+    /// False whenever any numerical, physics or unclassified hard failure occurred.
+    /// This is a promotion gate, not a task-score adjustment.
+    pub hard_failure_gate_passed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -297,6 +300,11 @@ struct ModelSignature {
     code_sha256: String,
     parameter_sha256: String,
     controller_config_sha256: String,
+    connectome_sha256: Option<String>,
+    biological_source_sha256: Option<String>,
+    sensor_mapping_sha256: Option<String>,
+    effector_mapping_sha256: Option<String>,
+    muscle_mapping_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -624,7 +632,11 @@ fn median_f64(values: &mut [f64]) -> Option<f64> {
     }
 }
 
-fn percentile_nearest_rank_u64(values: &mut [u64], numerator: usize, denominator: usize) -> Option<u64> {
+fn percentile_nearest_rank_u64(
+    values: &mut [u64],
+    numerator: usize,
+    denominator: usize,
+) -> Option<u64> {
     if values.is_empty() || denominator == 0 || numerator == 0 || numerator > denominator {
         return None;
     }
@@ -633,7 +645,11 @@ fn percentile_nearest_rank_u64(values: &mut [u64], numerator: usize, denominator
     values.get(rank.saturating_sub(1)).copied()
 }
 
-fn percentile_nearest_rank_f64(values: &mut [f64], numerator: usize, denominator: usize) -> Option<f64> {
+fn percentile_nearest_rank_f64(
+    values: &mut [f64],
+    numerator: usize,
+    denominator: usize,
+) -> Option<f64> {
     if values.is_empty() || denominator == 0 || numerator == 0 || numerator > denominator {
         return None;
     }
@@ -849,6 +865,9 @@ fn score_scenario(
         total_physics_violation_count,
         episodes_with_unclassified_failures,
         total_unclassified_failure_count,
+        hard_failure_gate_passed: total_numerical_failure_count == 0
+            && total_physics_violation_count == 0
+            && total_unclassified_failure_count == 0,
     })
 }
 
@@ -954,6 +973,11 @@ pub fn analyze_robustness(
             code_sha256: episode.code_sha256.clone(),
             parameter_sha256: episode.parameter_sha256.clone(),
             controller_config_sha256: episode.controller_config_sha256.clone(),
+            connectome_sha256: episode.connectome_sha256.clone(),
+            biological_source_sha256: episode.biological_source_sha256.clone(),
+            sensor_mapping_sha256: episode.sensor_mapping_sha256.clone(),
+            effector_mapping_sha256: episode.effector_mapping_sha256.clone(),
+            muscle_mapping_sha256: episode.muscle_mapping_sha256.clone(),
         };
         if let Some(previous) = model_signatures.get(episode.model_id.as_str()) {
             if previous != &model_signature {
@@ -1050,6 +1074,11 @@ pub fn compare_paired_models(
             code_sha256: episode.code_sha256.clone(),
             parameter_sha256: episode.parameter_sha256.clone(),
             controller_config_sha256: episode.controller_config_sha256.clone(),
+            connectome_sha256: episode.connectome_sha256.clone(),
+            biological_source_sha256: episode.biological_source_sha256.clone(),
+            sensor_mapping_sha256: episode.sensor_mapping_sha256.clone(),
+            effector_mapping_sha256: episode.effector_mapping_sha256.clone(),
+            muscle_mapping_sha256: episode.muscle_mapping_sha256.clone(),
         };
         if model_signatures
             .insert(episode.model_id.clone(), signature.clone())
@@ -1137,8 +1166,9 @@ pub fn compare_paired_models(
         }
     }
 
+    let mut deltas_for_median = deltas.clone();
     let median_paired_task_score_delta =
-        median_f64(&mut deltas.clone()).ok_or(RobustnessError::NonFiniteSummary)?;
+        median_f64(&mut deltas_for_median).ok_or(RobustnessError::NonFiniteSummary)?;
 
     Ok(PairedModelComparison {
         candidate_model_id: candidate_model_id.to_string(),
@@ -1210,7 +1240,11 @@ mod tests {
             hardware_sha256: digest('7'),
             code_sha256: digest('8'),
             parameter_sha256: digest('9'),
-            controller_config_sha256: if model_id == "candidate" { digest('a') } else { digest('b') },
+            controller_config_sha256: if model_id == "candidate" {
+                digest('a')
+            } else {
+                digest('b')
+            },
             connectome_sha256: Some(digest('f')),
             biological_source_sha256: Some(digest('1')),
             sensor_mapping_sha256: Some(digest('2')),
@@ -1376,6 +1410,7 @@ mod tests {
         assert_eq!(row.episodes_with_numerical_failures, 1);
         assert_eq!(row.total_physics_violation_count, 3);
         assert_eq!(row.success_rate, 0.0);
+        assert!(!row.hard_failure_gate_passed);
     }
 
     #[test]
@@ -1445,6 +1480,17 @@ mod tests {
         assert_eq!(
             analyze_robustness(&protocol(), &[invalid]),
             Err(RobustnessError::MissingEvidenceArtifact("biological_source"))
+        );
+    }
+
+    #[test]
+    fn rejects_model_provenance_changes_between_scenarios() {
+        let first = episode("candidate", "trial-1", "fly-1", 0.9);
+        let mut second = episode("candidate", "trial-2", "fly-2", 0.8);
+        second.connectome_sha256 = Some(digest('z'));
+        assert_eq!(
+            analyze_robustness(&protocol(), &[first, second]),
+            Err(RobustnessError::ModelDefinitionMismatch)
         );
     }
 
