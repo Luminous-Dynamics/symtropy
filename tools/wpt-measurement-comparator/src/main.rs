@@ -603,6 +603,7 @@ mod tests {
                 "uncertainty": {"kind": "expanded", "lower": 0.1, "upper": 0.1, "coverage_factor": 2.0}
             },
             "qualification": "QUALIFIED_RECORD",
+            "field_observation": null,
             "conditions": {
                 "frequency_hz": 85000.0, "transfer_gap_m": 0.16,
                 "transfer_gap_min_m": 0.15, "transfer_gap_max_m": 0.17,
