@@ -200,3 +200,10 @@ New source-backed evidence is split into two evidence strata:
 - **Simulation-only vehicle-energy case:** Colombo et al. model SS and LCC segmented DWPT at 90 km/h over 510 km and compare transferred energy per km against assumed 0.129 kWh/km vehicle demand. The SS model yields 0.14 kWh/km, LCC 0.15 kWh/km; the paper explicitly states no experimental validation and lists traffic/drive-cycle, BMS, charge acceptance, thermal and infrastructure-economic extensions.
 
 The new DYNAMIC run record stores speed profile and segment log digests, route length/time, speed envelope, transmitter pitch, segment activations/misses/false activations, source/vehicle/battery/propulsion/idle energy and recomputed route Wh/km and energy-sufficiency ratio. Static and dynamic runs remain different comparison strata. A high instantaneous output or high transfer efficiency must not be treated as proof that the vehicle maintains SOC over its mission.
+
+
+### Current standards and new benchmark lane
+
+IEC PAS 61980-4:2025 now provides a stationary high-power off-board WPT reference, IEC PAS 61980-5:2024 a dynamic off-board WPT reference, and IEC PAS 61980-6:2025 dynamic communications/positioning. The latter explicitly leaves bidirectional transfer under consideration. The typed run contract validates their static/dynamic applicability and rejects a bidirectional normative claim under Part 6.
+
+The dynamic route-energy lane records distance/speed, transmitter segment pitch and events, missed/false activations, roadway source energy, vehicle DC energy, battery gain, propulsion energy, idle energy, Wh/km and energy sufficiency. Dynamic and static runs are separate comparison strata.
