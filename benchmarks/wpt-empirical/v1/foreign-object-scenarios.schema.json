@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/foreign-object-scenarios.schema.json",
+  "title": "WPT Foreign-Object Detection and Mitigation Scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "scenario_class",
+    "operating_phase",
+    "object",
+    "sensor_condition",
+    "expected_action",
+    "mitigation_envelope_required",
+    "failure_condition",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-fod-scenario-v1"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^WPT-FOD-[A-Z0-9-]+$"
+    },
+    "scenario_class": {
+      "enum": [
+        "localized_metallic_object",
+        "large_conductive_object",
+        "small_ferrous_object",
+        "multiple_objects",
+        "out_of_distribution_material",
+        "sensor_distribution_shift",
+        "active_transfer_interference",
+        "sensor_fault",
+        "localization_uncertainty",
+        "validated_mitigation_case",
+        "mitigation_fault",
+        "moving_object",
+        "thermal_sensor_fault",
+        "no_object_negative_control"
+      ]
+    },
+    "operating_phase": {
+      "enum": [
+        "PRE_ENERGIZATION",
+        "ACTIVE_TRANSFER",
+        "CROSS_SESSION",
+        "FAULT_INJECTION",
+        "NEGATIVE_CONTROL"
+      ]
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_class",
+        "material_description",
+        "length_mm",
+        "width_mm",
+        "thickness_mm",
+        "orientation",
+        "object_count"
+      ],
+      "properties": {
+        "material_class": {
+          "enum": [
+            "FERROUS",
+            "NONFERROUS",
+            "NONCONDUCTIVE",
+            "UNKNOWN",
+            "NONE"
+          ]
+        },
+        "material_description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "width_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "thickness_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "orientation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "sensor_condition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_action": {
+      "enum": [
+        "INHIBIT_TRANSFER",
+        "SAFE_DEENERGIZE",
+        "DERATE",
+        "ACTIVATE_MITIGATION",
+        "ABSTAIN",
+        "NO_FOD_ACTION"
+      ]
+    },
+    "mitigation_envelope_required": {
+      "type": "boolean"
+    },
+    "failure_condition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

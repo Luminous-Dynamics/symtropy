@@ -1,0 +1,24 @@
+{
+  "schema_version": "wpt-material-v1",
+  "material_id": "WPT-MAT-EXAMPLE-NOT-A-GRADE",
+  "catalogue_type": "MATERIAL_FAMILY",
+  "material_family": "UNRESOLVED MATERIAL FAMILY",
+  "grade": null,
+  "manufacturer": null,
+  "composition_description": "Template only; not a commercial grade or property record.",
+  "operating_frequency_hz_min": null,
+  "operating_frequency_hz_max": null,
+  "operating_temperature_c_min": null,
+  "operating_temperature_c_max": null,
+  "properties": [],
+  "saturation_curve": [],
+  "source_refs": [
+    {
+      "source_id": "magnetic-materials-wireless-ev-charging-review-2026",
+      "role": "PRIMARY_PUBLICATION",
+      "locator": "Template locator only; not material evidence."
+    }
+  ],
+  "data_status": "UNRESOLVED",
+  "notes": "Template only. No magnetic, thermal, mechanical or electrical property values are represented."
+}

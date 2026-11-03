@@ -1,0 +1,288 @@
+# WPT Round-Robin Benchmark Protocol v0.1 (research draft)
+
+**Protocol ID:** WPT-RR-01  
+**Schema:** wpt-test-run-v1  
+**Status:** research design; no physical test has been performed under this protocol  
+**Tracking:** [WPT-ROUND-ROBIN-001 #3477](https://github.com/Luminous-Dynamics/symtropy/issues/3477)
+
+## 1. Purpose
+
+Create reproducible measurements across independent laboratories. The output is not a leaderboard of unrelated efficiency percentages. It is a traceable evidence package describing a specific system, configuration, operating point, measurement boundary, uncertainty and safety assessment.
+
+Every run must be independently interpretable. Missing meter planes, unreported conditions, unknown stage coverage or absent uncertainty remain explicit and make the result ineligible for strict ranking.
+
+## 2. Non-negotiable measurement principles
+
+1. Measure **real power** for energy accounting. Report apparent power, reactive power and power factor separately wherever AC is present.
+2. Define the exact input and output planes before computing efficiency. Include every intervening stage or state exactly which stages are excluded.
+3. Synchronize electrical meters and integrate over the same time window. Include startup, shutdown, transitions and auxiliary/cooling energy in service-level outcomes.
+4. Record stored electromagnetic energy at the beginning and end of transient windows. Never silently force the energy residual to zero.
+5. Separate measurement, author calculation, model output and inference. A simulation is not a measurement.
+6. Store raw waveforms, calibration references, analysis code, firmware/controller identifiers and SHA-256 digests.
+7. Report forward and reverse power flow separately. Do not average directional efficiencies.
+8. Safety, EMC, exposure, thermal and fault-containment conditions are hard constraints, not terms that can be traded for higher efficiency.
+
+## 3. Run identity and configuration freeze
+
+A run is uniquely identified by a run ID and binds to:
+- protocol ID and semantic version;
+- prototype/system ID, hardware revision and topology;
+- controller firmware/software revision and a SHA-256 configuration digest;
+- power-flow direction, power class, commanded load, frequency, coil gap, 3D alignment and yaw;
+- receiver count, number of active receivers and each receiver's load request;
+- battery/emulator voltage, impedance/load profile and ambient/thermal conditions.
+
+Changing topology, firmware, compensation values, coupler, receiver, calibration, meter placement or safety configuration creates a new configuration identity. Do not overwrite an earlier run.
+
+## 4. Required operating matrix
+
+The matrix is stratified by architecture; do not force a 6–30 kW laboratory prototype and a 50–200 kW bus/roadway system onto one nominal-power curve.
+
+### 4.1 Static, unidirectional and bidirectional EV charging
+
+For systems designed to support the relevant power classes:
+- test 6, 11 and 30 kW vehicle-side assemblies on the same ground-side equipment;
+- measure grid-to-vehicle and vehicle-to-grid separately;
+- sweep battery/emulator voltage and load from 10%, 25%, 50%, 75% and 100% of declared rated power;
+- measure aligned baseline, then declared X/Y/Z and angular offsets. A ±100 mm X/Y sweep is a proposed common stress case only where the coupler's mechanical design permits it;
+- perform load steps, receiver disconnect/reconnect, direction reversal, startup and shutdown;
+- record idle/standby and all auxiliary loads.
+
+For 20–70 kW high-power architectures, use their own rated-power and geometric lanes with the same measurement discipline. Published 50 kW and 65 kW results are not assumed to be matched until meter planes, stage coverage and test conditions are verified.
+
+### 4.2 Multi-receiver systems
+
+Test 0, 1, 2 and N active receivers, including:
+- equal requests;
+- highly unequal requests;
+- independent load steps;
+- arrival/departure and inactive-channel leakage;
+- one receiver losing authorization or communication;
+- aggregate source-power limitation and graceful curtailment.
+
+Report per-channel and aggregate real power, integrated energy, efficiency, cross-regulation, channel isolation, unmet demand and fairness.
+
+### 4.3 Power-quality and thermal matrix
+
+At each selected operating point, record:
+- primary/inverter/receiver current and voltage waveforms;
+- current and voltage THD, harmonic spectrum and measurement bandwidth/window;
+- real/apparent/reactive power and power factor;
+- switching frequency, ZVS/ZCS state and switching losses where measurable;
+- device, coil, ferrite, shield, enclosure and ambient temperatures;
+- thermal steady-state criterion and thermal-cycle history.
+
+A THD percentage without measurement location, frequency span, windowing method and load point is not a comparable result.
+
+### 4.4 Dynamic roadway systems
+
+Only where the hardware is designed for dynamic transfer:
+- freeze vehicle speed, acceleration, trajectory, coil pitch, energized segments, handover logic and receiver geometry;
+- integrate useful vehicle energy over the complete route window;
+- record entry/exit, dwell, dead zones, speed-dependent handover, segment availability and non-equipped vehicle behavior;
+- report both instantaneous transfer power and integrated energy per distance/time. Do not substitute one for the other.
+
+## 5. Metrology and calibration
+
+Each metering channel must provide:
+- unique meter/sensor ID and model;
+- calibration certificate or traceable reference, validity start and due date;
+- measurement role/plane;
+- bandwidth, sample rate, voltage/current range and phase error;
+- timestamp synchronization uncertainty;
+- voltage/current/power uncertainty and any correction factors;
+- calibration state before and after the test where drift is material.
+
+Use a common time base for source, receiver, auxiliary and thermal channels. Document anti-alias filtering and the exact integration window. Record both measured values and uncertainty; do not hide phase error inside a generic meter accuracy figure.
+
+## 6. Energy balance
+
+For an enclosing control volume:
+
+E_source = E_useful + sum(E_loss_i) + delta_W_stored + E_residual
+
+The loss ledger may include grid/front-end conversion, DC link, inverter, resonant compensation, primary/secondary copper, core, shield, coupling, rectifier/regulation, control, communication, cooling and standby. Include only stages that exist in the tested system.
+
+- Preserve signed delta_W_stored and E_residual.
+- Identify whether each loss is measured, author-calculated or model-derived.
+- Avoid double counting between electrical metering and calorimetry.
+- Report a residual fraction and propagated uncertainty.
+- Proposed residual target: <=0.5% steady state and <=1.0% for declared dynamic windows. These are research targets, not established achievements or standards requirements.
+
+## 7. Safety and fault containment
+
+Before any physical test, the laboratory must independently establish the applicable legal, standards, facility, high-voltage, RF/EMF, thermal and foreign-object controls. This protocol does not provide authorization to energize equipment.
+
+Test and document:
+- unauthorized/non-equipped receiver;
+- foreign-object and living-object detection as applicable;
+- receiver position uncertainty;
+- loss/delay/corruption of communication;
+- sensor disagreement and controller reset;
+- thermal over-limit and power-stage fault;
+- emergency stop, de-energization latency, restart and recovery;
+- exposure assessment method/standard edition and spatial/time averaging.
+
+A passing benchmark test is not certification or a substitute for national requirements.
+
+## 8. Cross-laboratory round robin
+
+A future round robin should involve at least three independent laboratories using:
+- the same frozen protocol revision and reference configuration;
+- shared reference loads or independently characterized equivalent loads;
+- traceably calibrated instruments;
+- blind sample IDs and a pre-registered analysis plan;
+- identical raw-data and metadata requirements.
+
+Report within-lab repeatability, inter-lab bias, between-lab variance and expanded uncertainty separately. Do not pool measurements until systematic differences are investigated.
+
+Proposed research objectives:
+- inter-lab expanded uncertainty <=1.0 percentage point for efficiency after method harmonization;
+- within-lab standard deviation <=0.5 percentage point at frozen steady-state operating points;
+- energy-balance residual <=0.5% steady and <=1.0% dynamic;
+- zero unresolved protocol deviations hidden from the run record.
+
+These are proposed objectives and must be revised if instrument capability or test risk analysis shows they are not defensible.
+
+## 9. Machine-readable data package
+
+Each run must include a test-run.schema.json manifest and references to:
+- synchronized raw electrical waveforms;
+- per-plane processed measurements;
+- calibration certificates and meter configuration;
+- thermal and field measurement files;
+- controller/firmware commit, hardware revision and configuration digest;
+- analysis source and exact tool versions;
+- test deviations, reviewer notes and qualification disposition.
+
+Every artifact reference carries a SHA-256 digest. Use rights-aware storage; do not redistribute restricted source material or proprietary waveforms without authorization.
+
+## 10. Qualification and comparison rules
+
+- QUALIFIED: all required planes, conditions, calibration, statistics and uncertainty are present and independently reviewed.
+- INCOMPLETE: data are missing; report gaps without inferring values.
+- NOT_COMPARABLE: the physical quantity, direction, boundary, stage coverage or operating condition differs materially.
+- MODEL_ONLY: numerical or analytical output without the required physical measurement.
+- REJECTED: integrity, calibration, protocol or safety failure invalidates the run.
+
+Only matched, qualified measurements enter a strict performance ranking. Publish all exclusions and the reason codes. A reported paper result may remain useful as a source claim while being ineligible for the benchmark leaderboard.
+
+## 11. Current implementation boundary
+
+This file and the accompanying schema/template are research artifacts. There is no physical WPT test, three-laboratory campaign, hardware safety validation or standards certification completed under this protocol.
+
+### Frequency, voltage and mechanical interoperability matrix
+
+The full-text paper's Table 1 maps the three vehicle-side assemblies to distinct compatibility envelopes: 6 kW / 380–440 V / 190–210 mm / 85 kHz; 11 kW / 600–700 V / 160–180 mm / 85 kHz; 30 kW / 420–610 V / 270–290 mm / 20 kHz. The ground assembly uses two independently enabled resonant networks, while the grid interface has four parallel low-power modules with adaptive activation.
+
+Use these as the initial class configuration fixtures. Benchmark frequency-network isolation and switching, all battery-voltage endpoints, clearances, module activation counts, reverse-flow operation, misalignment, load transients and safety response. Do not claim that the article's aggregate efficiency ranges are per-class measured points.
+
+## 12. Multi-frequency resonant-network isolation
+
+For a system with multiple selectable resonant networks, record each branch separately. An INACTIVE command is not evidence of zero current: mutual inductance and closed compensation paths may induce circulating current in a nominally inactive network.
+
+Each branch record must include its frequency, commanded state, isolation-switch state, measured RMS/peak current, continuous current rating, RMS voltage and voltage rating, thermal maximum, measurement method and raw-evidence digest.
+
+- For a qualified physical test, every active and inactive branch requires measured current/voltage/temperature evidence.
+- For a non-concurrent design, exactly one branch is ACTIVE during steady transfer; all other branches must be INACTIVE or ISOLATED, not UNKNOWN or TRANSITIONING.
+- Proposed steady-state inactive-branch current target: <=1% of that branch's continuous RMS current rating. Capture transient peak current separately and enforce component ratings under switching/fault conditions.
+- A simulated branch current is a model result, not a physical measurement and cannot qualify the run.
+- Record switching energy, delay, contact resistance, switch state, thermal rise and relay failure modes. Test stuck-open, stuck-closed, welded contact, sensor disagreement and control/communication loss.
+- If simultaneous multi-frequency operation is intentionally supported, declare it in the system configuration and qualify each active network and all cross-coupled branches independently.
+
+This protocol addition is motivated by the 2026 multi-vehicle BIPT paper's modelled 17 A induced current in an inactive 85 kHz loop and 4 A in an inactive 20 kHz loop. Those values are simulation findings, not measured currents; they motivate the test, not a claim about a finished product.
+
+## 13. Cyber-physical security and deterministic safe fallback
+
+A WPT session is a physical energy-control authority. Receiver identity, requested direction/power class, frequency-network selection, battery voltage, alignment state and power commands must be authenticated or independently validated before energization. A secure transport channel alone does not prove that sensor inputs, firmware, freshness or local receiver identity are trustworthy.
+
+Record and test:
+- communication mode: networked, local-only or none;
+- authentication method and mutual-authentication state;
+- replay/freshness protection (nonce, timestamp or monotonic sequence);
+- receiver identity binding to an authorized power class, direction and frequency network;
+- firmware/controller integrity measurement and signed update/secure-boot state;
+- sensor plausibility and cross-checks for current, voltage, phase, alignment and temperature;
+- spoofed receiver, replay command and sensor-tampering detection outcomes;
+- message p99 latency, maximum jitter and maximum permitted message age;
+- loss-of-communication fallback and de-energization/local-safe-control response.
+
+For a qualified networked run, require authenticated identities and fresh command/session state, replay protection, integrity-verified firmware, sensor plausibility checks, positive rejection of spoofed receivers and replayed commands, detected sensor tampering, measured latency/jitter, and a declared safe fallback. The test artifact must bind the exact firmware/controller digest, security configuration and attack-injection report to the run manifest.
+
+A communication-free controller may avoid network latency but is not exempt from receiver authorization, trusted sensing, firmware integrity or fault-safe behavior. It must establish those properties locally and test equivalent spoofing/sensor manipulation scenarios.
+
+Threat cases include:
+- forged receiver identity or spoofed vehicle power class;
+- replayed request that forces unwanted direction/frequency transition;
+- stale or delayed voltage/SoC/frequency command;
+- manipulated current/phase sensor that drives the system out of ZVS or induces circulating current;
+- modified firmware or protection thresholds;
+- communication loss, denial of service or intermittent EMI-corrupted messages;
+- revoked/expired credentials and clock desynchronization.
+
+Hard rule: ambiguous identity, stale/unauthenticated command, compromised firmware, implausible sensor state or failed isolation confirmation must not lead to energization or direction/frequency switching. The system must enter a documented safe state or a rigorously bounded local-safe-control mode. This protocol is a benchmark design, not a cybersecurity certification or authorization to perform real attacks against live infrastructure.
+
+## 14. Frozen cyber-physical negative-control corpus
+
+The companion file `cyber-physical-scenarios.jsonl` defines ten scenario IDs and their preconditions, synthetic stimulus, expected safe response and failure condition. Each qualified run must include one result per ID. Outcomes are PASS or explicitly justified NOT_APPLICABLE; FAIL or NOT_RUN cannot qualify. A passing outcome must carry a SHA-256 evidence digest, and NOT_APPLICABLE must include a reason.
+
+The scenarios cover receiver spoofing, command replay, stale commands, firmware integrity, phase-sensor injection, current-sensor tampering, timing jitter, communication DoS/loss, certificate revocation and resonant isolation switch mismatch. They are deterministic test specifications, not instructions to attack a live charger or grid. Tests must run in an authorized isolated environment with safe, non-energized or approved hardware-in-the-loop fixtures.
+
+## 15. Temperature-dependent magnetic core saturation margin
+
+Each resonant branch may declare a magnetic core material, saturation-versus-temperature curve reference, core temperature, peak flux density and applicable hot-state saturation limit. Use measured flux or calculate it from a measured voltage waveform and verified turns/geometry; a simulation-only flux value cannot qualify a physical test.
+
+Proposed design target: peak flux density <=80% of the saturation value at the maximum measured core temperature. This provides a 20% hot-state design margin against the declared material curve. Record manufacturing/material variation and uncertainty; use the lower-confidence saturation limit where characterization uncertainty is known.
+
+The 2026 Zhang et al. study reports a calculated 376 mT maximum flux and cites saturation values of 530 mT at 25°C and 410 mT at 100°C. These values imply utilization of about 71.0% at 25°C but 91.7% at 100°C. This arithmetic is derived from the paper's reported values; it is not an independent measurement of the prototype's core flux or temperature. It demonstrates why a single room-temperature Bsat number can conceal inadequate hot-state margin.
+
+
+## 16. Standards applicability and claim-ceiling record
+
+Every qualified run must include a versioned standards_basis array. For each document, record its exact edition, applicability class, scope statement, provisions actually tested, compliance claim ceiling, evidence digest and explanatory notes.
+
+Allowed applicability classifications:
+- NORMATIVE_REQUIREMENT: requirement is within the published document's actual scope and is being evaluated as a requirement.
+- PARTIAL_REFERENCE: only named clauses/aspects are relevant; no whole-system conformance claim.
+- TEST_METHOD_REFERENCE: method/procedure or test station is borrowed; this does not prove overall standard compliance.
+- INFORMATION_REPORT: explanatory/use-case or emerging work document, not a complete normative requirements set.
+- OUT_OF_SCOPE_REFERENCE: recorded for awareness but the current test is outside its scope.
+- PLANNED_NOT_ISSUED: a future workstream mentioned by an existing source but not a published edition. It is not normative and cannot support certification.
+
+The standards applicability rules must identify the vehicle class, measured apparent power, direction, stationary/dynamic mode, installation type and jurisdiction. Do not infer SAE power class from DC battery-side kW; measure source-side AC apparent power when classifying against a kVA standard.
+
+### SAE-specific boundary checks
+
+- SAE J2954_202408: stationary, surface-mounted, light-duty, three levels up to 11 kVA, forward G2V. A run may claim it as a normative basis only for a test that is within that full declared scope. A bidirectional, dynamic, flush-mounted or >11 kVA condition cannot be marked NORMATIVE_REQUIREMENT under this edition.
+- SAE J2954/2_202212: heavy-duty information report / first-step work; detailed requirements and solutions are incomplete. Classify as INFORMATION_REPORT, not as a complete normative compliance specification.
+- SAE J2847/6_202009: light-duty inductive WPT communications practice; use as TEST_METHOD_REFERENCE or PARTIAL_REFERENCE. Message protocol presence is not proof of secure authentication, anti-replay or firmware integrity.
+- SAE J3072_202406: onboard grid-support inverter interconnection via conductively coupled EVSE. It is relevant adjacent V2G interconnection context, not by itself a WPT grid-interconnection certificate.
+- SAE J2836/3_202402: DER / reverse-flow use-case Information Report; it does not specify magnetic coupling or WPT system efficiency.
+- SAE J2954/3: J2954_202408 points dynamic applications to a separate workstream. Until a published edition is identified, record PLANNED_NOT_ISSUED and never treat it as normative.
+
+A standard name in a source list or manifest does not mean a product is compliant. INDEPENDENTLY_CERTIFIED requires a certification artifact and issuing body; SELF_ASSESSED requires the exact assessment evidence and claim scope. NO_CLAIM is the default.
+
+
+## 17. Dynamic roadway energy-sufficiency and segment-event protocol
+
+The dynamic run manifest carries a frozen profile ID and speed-profile digest, route distance/time, mean/min/max speed, maximum longitudinal acceleration, transmitter pitch, segment counts, activation attempts, missed activations and false activations, roadway source joules, vehicle DC-received joules, battery-energy gain, propulsion-energy use, idle roadway energy, Wh/km, net battery Wh/km and energy-sufficiency ratio. The segment-event log must be separately hashed.
+
+For a qualified DYNAMIC run:
+- The route profile must be explicit and shared by comparator runs; a 90 km/h constant-speed simulation case cannot be silently compared with a measured variable-speed freight cycle.
+- Recompute roadway Wh/km = vehicle DC-received joules / 3,600 / route km.
+- Recompute net battery Wh/km = (battery energy gain − propulsion energy use) / 3,600 / route km.
+- Recompute energy-sufficiency ratio = battery energy gain / propulsion energy use for the exact same cycle.
+- Recompute segment activation success fraction = (activation attempts − missed activations) / activation attempts.
+- Roadway DC-source energy must be at least vehicle DC-received energy. Separately account roadway idle energy while no authorized receiver is in the coupling zone.
+- False/unauthorized activations are a hard fail; do not average them into a high availability score.
+- Preserve missed activations, transient dropouts and segment transition delay as event data, not just a time-averaged efficiency.
+- DYNAMIC and STATIC are separate test strata. Do not put speed or dwell time into the static efficiency comparison.
+
+The initial profile set should include: constant 90 km/h controlled comparison; variable speed freight mission; stop/start/queueing; acceleration and deceleration; differing inter-vehicle headways; receiver gap/misalignment sweep; wet pavement and seasonal temperature. Every profile needs a stable ID and SHA-256 digest.
+
+The reported 2026 Colombo et al. SS/LCC study is simulation-only: under its 90 km/h, 510 km case, SS reports 0.14 kWh/km and LCC 0.15 kWh/km against 0.129 kWh/km assumed vehicle demand. Those values demonstrate the usefulness of the route-energy metric, but they are not field results and do not qualify a real roadway. The Purdue/INDOT field system is a distinct measured context: 50–190 kW at up to 65 mph with end-to-end DC-bus efficiency around 85% at rated power. Peak kW and efficiency alone do not establish a vehicle mission energy-sufficiency ratio without the route, propulsion and battery energy traces.
+
+
+### IEC PAS scope mapping
+
+For stationary high-power MF-WPT, cite IEC PAS 61980-4:2025. For vehicles in motion, cite IEC PAS 61980-5:2024 for off-board system requirements and IEC PAS 61980-6:2025 for communication/positioning activities. Part 6 explicitly lists bidirectional power transfer as under consideration. Therefore dynamic bidirectional power transfer remains a research extension in this benchmark, not a published conformance claim under Part 6.
