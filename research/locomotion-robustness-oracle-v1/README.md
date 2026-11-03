@@ -43,7 +43,7 @@ A paired comparison rejects unmatched trial sets rather than intersecting them. 
 
 Each episode binds:
 - model family, model evidence tier and evaluation tier;
-- protocol/split/scoring-plan references;
+- protocol/split/scoring-plan references and declared minimum episode counts per scenario and per individual;
 - connectome, biological-source, sensor/effector projection and muscle-map references when the model family/evidence tier requires them;
 - scenario, individual, trial, seed and initial state;
 - body model, morphology, physics, environment, sensor schema, solver, hardware, controller, code and parameter references;
@@ -59,7 +59,7 @@ ceil(n * alpha) scores, where alpha is preregistered in basis points. For
 example, 1000 basis points selects the worst 10%.
 
 Two tail estimates are returned:
-- **Episode-level CVaR:** each episode contributes equally, so additional trials increase that individual's weight.
+- **Episode-level CVaR:** each episode contributes equally, so additional trials increase that individual's weight. The protocol separately declares a minimum episode count per individual.
 - **Individual-balanced CVaR:** first compute each individual's mean score, then weight each individual equally when taking the lower tail.
 
 The per-individual table keeps morphology, success, episode count and hard
@@ -68,7 +68,7 @@ neither is a confidence interval or a substitute for raw score distributions.
 
 ## Synthetic tests
 
-The 20 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts.
+The 21 tests cover episode-level and equal-individual tail behavior under unequal trial counts, per-individual morphology/failure reporting, recovery censoring and missingness, independent worst-success versus worst-tail strata, exact matched pairs, mismatched physics and incomplete pair rejection, hard numerical/physics gates, outcome/termination consistency, duplicate trials, evidence-tier and source/muscle mapping checks, protocol mismatch, measured-data requirements and minimum individual counts and per-individual episode replication.
 
 All tests are synthetic. They validate the scorecard contract only; no FlyGym comparison or biological result is claimed.
 
