@@ -39,9 +39,10 @@ impl ScenarioActorId {
         if !bytes[0].is_ascii_alphanumeric() {
             return Err(ActorIdError::InvalidStartCharacter);
         }
-        if !bytes.iter().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(*byte, b'_' | b'-' | b'.' | b':')
-        }) {
+        if !bytes
+            .iter()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(*byte, b'_' | b'-' | b'.' | b':'))
+        {
             return Err(ActorIdError::InvalidCharacter);
         }
         Ok(Self(value))
@@ -727,9 +728,18 @@ mod tests {
         assert_eq!(id.as_str(), "pedestrian_001");
         assert_eq!(id, ScenarioActorId::new("pedestrian_001").unwrap());
         assert_eq!(ScenarioActorId::new(""), Err(ActorIdError::Empty));
-        assert_eq!(ScenarioActorId::new("pédestrian"), Err(ActorIdError::NonAscii));
-        assert_eq!(ScenarioActorId::new("_ego"), Err(ActorIdError::InvalidStartCharacter));
-        assert_eq!(ScenarioActorId::new("ego/0"), Err(ActorIdError::InvalidCharacter));
+        assert_eq!(
+            ScenarioActorId::new("pédestrian"),
+            Err(ActorIdError::NonAscii)
+        );
+        assert_eq!(
+            ScenarioActorId::new("_ego"),
+            Err(ActorIdError::InvalidStartCharacter)
+        );
+        assert_eq!(
+            ScenarioActorId::new("ego/0"),
+            Err(ActorIdError::InvalidCharacter)
+        );
         assert_eq!(
             ScenarioActorId::new("a".repeat(ScenarioActorId::MAX_LEN + 1)),
             Err(ActorIdError::TooLong)
