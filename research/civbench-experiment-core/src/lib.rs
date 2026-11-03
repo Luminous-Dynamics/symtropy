@@ -1650,8 +1650,9 @@ pub struct ExperimentProtocolV0_1 {
     pub version: String,
     /// Manifest lifecycle status.
     pub status: String,
-    /// True only when an external pre-registration receipt is present.
-    pub confirmatory_eligible: bool,
+    /// True only when receipt fields have a valid syntactic shape.
+    /// This does not authenticate the signature or verify the external registry.
+    pub pre_registration_receipt_shape_valid: bool,
     /// Number of declared source records.
     pub source_count: usize,
     /// Stable source identifiers.
@@ -1798,6 +1799,77 @@ fn manifest_require_ids(
     Ok(())
 }
 
+fn is_utc_rfc3339_timestamp(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() < 20 || !bytes.is_ascii() || !value.ends_with('Z') {
+        return false;
+    }
+    if bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+    {
+        return false;
+    }
+    if !(0..4).all(|index| bytes[index].is_ascii_digit())
+        || !(5..7).all(|index| bytes[index].is_ascii_digit())
+        || !(8..10).all(|index| bytes[index].is_ascii_digit())
+        || !(11..13).all(|index| bytes[index].is_ascii_digit())
+        || !(14..16).all(|index| bytes[index].is_ascii_digit())
+        || !(17..19).all(|index| bytes[index].is_ascii_digit())
+    {
+        return false;
+    }
+
+    let number = |start: usize, end: usize| -> Option<u32> {
+        value.get(start..end)?.parse().ok()
+    };
+    let year = match number(0, 4) {
+        Some(value) if value > 0 => value,
+        _ => return false,
+    };
+    let month = match number(5, 7) {
+        Some(value @ 1..=12) => value,
+        _ => return false,
+    };
+    let day = match number(8, 10) {
+        Some(value) => value,
+        None => return false,
+    };
+    let hour = match number(11, 13) {
+        Some(value @ 0..=23) => value,
+        _ => return false,
+    };
+    let minute = match number(14, 16) {
+        Some(value @ 0..=59) => value,
+        _ => return false,
+    };
+    let second = match number(17, 19) {
+        Some(value @ 0..=60) => value,
+        _ => return false,
+    };
+    let _ = (hour, minute, second);
+
+    let fractional = &value[19..value.len() - 1];
+    if !fractional.is_empty()
+        && !(fractional.starts_with('.')
+            && fractional.len() > 1
+            && fractional[1..].bytes().all(|byte| byte.is_ascii_digit()))
+    {
+        return false;
+    }
+
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        2 if leap_year => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
+    (1..=days_in_month).contains(&day)
+}
+
 impl ExperimentProtocolV0_1 {
     /// Parse and semantically validate the experiment manifest JSON.
     ///
@@ -1864,11 +1936,43 @@ impl ExperimentProtocolV0_1 {
 
         let factors = manifest_field(&root, "factors", "$")?;
         let factor_names = ["G", "M", "I", "H"];
+        let expected_names = [
+            "allocation_governance",
+            "maintenance_renewal",
+            "information_quality_observability",
+            "physical_network_conditions",
+        ];
+        let expected_kinds = [
+            "intervention",
+            "intervention",
+            "intervention",
+            "blocking_strata_not_policy_benefit",
+        ];
         let expected_counts = [4_usize, 5, 4, 4];
         let mut factor_level_counts = [0_usize; 4];
         for (index, factor_name) in factor_names.iter().enumerate() {
             let factor_path = format!("$.factors.{factor_name}");
             let factor = manifest_field(factors, factor_name, "$.factors")?;
+            let name = manifest_string(
+                manifest_field(factor, "name", &factor_path)?,
+                &format!("{factor_path}.name"),
+            )?;
+            if name != expected_names[index] {
+                return Err(ManifestAdapterError::new(
+                    format!("{factor_path}.name"),
+                    format!("expected {}", expected_names[index]),
+                ));
+            }
+            let kind = manifest_string(
+                manifest_field(factor, "kind", &factor_path)?,
+                &format!("{factor_path}.kind"),
+            )?;
+            if kind != expected_kinds[index] {
+                return Err(ManifestAdapterError::new(
+                    format!("{factor_path}.kind"),
+                    format!("expected {}", expected_kinds[index]),
+                ));
+            }
             let levels = manifest_string_array(
                 manifest_field(factor, "levels", &factor_path)?,
                 &format!("{factor_path}.levels"),
@@ -2256,25 +2360,52 @@ impl ExperimentProtocolV0_1 {
             ));
         }
 
-        let confirmatory_eligible = if status == "locked_pre_registration" {
-            let receipt =
-                manifest_field(&root, "pre_registration_receipt", "$")?;
-            for field in ["registry_uri", "locked_at_utc", "signature"] {
-                manifest_string(
-                    manifest_field(receipt, field, "$.pre_registration_receipt")?,
-                    &format!("$.pre_registration_receipt.{field}"),
-                )?;
+        let pre_registration_receipt_shape_valid = if status == "locked_pre_registration" {
+            let receipt = manifest_field(&root, "pre_registration_receipt", "$")?;
+            let registry_uri = manifest_string(
+                manifest_field(receipt, "registry_uri", "$.pre_registration_receipt")?,
+                "$.pre_registration_receipt.registry_uri",
+            )?;
+            if !registry_uri.starts_with("https://") || registry_uri.len() <= 8 {
+                return Err(ManifestAdapterError::new(
+                    "$.pre_registration_receipt.registry_uri",
+                    "registry URI must use HTTPS",
+                ));
             }
+
+            let locked_at_utc = manifest_string(
+                manifest_field(receipt, "locked_at_utc", "$.pre_registration_receipt")?,
+                "$.pre_registration_receipt.locked_at_utc",
+            )?;
+            if !is_utc_rfc3339_timestamp(&locked_at_utc) {
+                return Err(ManifestAdapterError::new(
+                    "$.pre_registration_receipt.locked_at_utc",
+                    "expected an RFC 3339 UTC timestamp ending in Z",
+                ));
+            }
+
+            // Presence and syntax are not cryptographic verification. A registry
+            // verifier must authenticate the signature and immutable lock record.
+            manifest_string(
+                manifest_field(receipt, "signature", "$.pre_registration_receipt")?,
+                "$.pre_registration_receipt.signature",
+            )?;
             let digest_hex = manifest_string(
                 manifest_field(receipt, "lock_digest", "$.pre_registration_receipt")?,
                 "$.pre_registration_receipt.lock_digest",
             )?;
-            Digest::from_hex(&digest_hex).map_err(|error| {
+            let lock_digest = Digest::from_hex(&digest_hex).map_err(|error| {
                 ManifestAdapterError::new(
                     "$.pre_registration_receipt.lock_digest",
                     error.to_string(),
                 )
             })?;
+            if lock_digest.is_zero() {
+                return Err(ManifestAdapterError::new(
+                    "$.pre_registration_receipt.lock_digest",
+                    "lock digest cannot be the all-zero sentinel",
+                ));
+            }
             true
         } else {
             false
@@ -2284,7 +2415,7 @@ impl ExperimentProtocolV0_1 {
             protocol_id,
             version,
             status,
-            confirmatory_eligible,
+            pre_registration_receipt_shape_valid,
             source_count: source_ids.len(),
             source_ids,
             factor_level_counts,
@@ -2330,7 +2461,7 @@ mod tests {
         assert_eq!(manifest.protocol_id, "CIVBENCH-JHB-WATER-EXPERIMENT-001");
         assert_eq!(manifest.version, "0.1.0");
         assert_eq!(manifest.status, "design_only_pre_registration_pending");
-        assert!(!manifest.confirmatory_eligible);
+        assert!(!manifest.pre_registration_receipt_shape_valid);
         assert_eq!(manifest.source_count, 14);
         assert_eq!(manifest.factor_level_counts, [4, 5, 4, 4]);
         assert_eq!(manifest.stage_ids.len(), 6);
@@ -2402,6 +2533,55 @@ mod tests {
         assert!(matches!(
             ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
             Err(ManifestAdapterError { path, .. }) if path == "$.pre_registration_receipt"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_records_receipt_shape_without_authenticating_signature() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["status"] = serde_json::Value::String("locked_pre_registration".to_owned());
+        value["pre_registration_receipt"] = serde_json::json!({
+            "registry_uri": "https://registry.example.test/records/civbench-001",
+            "locked_at_utc": "2026-11-03T05:00:00Z",
+            "lock_digest": "ab".repeat(32),
+            "signature": "present-but-not-cryptographically-verified"
+        });
+
+        let manifest =
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()).unwrap();
+        assert!(manifest.pre_registration_receipt_shape_valid);
+        assert_eq!(manifest.status, "locked_pre_registration");
+    }
+
+    #[test]
+    fn manifest_adapter_rejects_non_utc_registration_timestamp() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["status"] = serde_json::Value::String("locked_pre_registration".to_owned());
+        value["pre_registration_receipt"] = serde_json::json!({
+            "registry_uri": "https://registry.example.test/records/civbench-001",
+            "locked_at_utc": "2026-11-03T07:00:00+02:00",
+            "lock_digest": "ab".repeat(32),
+            "signature": "not-verified"
+        });
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. })
+                if path == "$.pre_registration_receipt.locked_at_utc"
+        ));
+    }
+
+    #[test]
+    fn manifest_adapter_requires_h_to_remain_a_blocking_stratum() {
+        let input = include_str!("../tests/fixtures/experiment.v0.1.json");
+        let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+        value["factors"]["H"]["kind"] = serde_json::Value::String("intervention".to_owned());
+
+        assert!(matches!(
+            ExperimentProtocolV0_1::parse_json(&serde_json::to_string(&value).unwrap()),
+            Err(ManifestAdapterError { path, .. }) if path == "$.factors.H.kind"
         ));
     }
 
