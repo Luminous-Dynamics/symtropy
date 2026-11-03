@@ -1143,6 +1143,27 @@ mod tests {
     }
 
     #[test]
+    fn foreign_object_detection_accuracy_uses_dimensionless_operational_metric() {
+        let mut metric = sample("MIT-FOD-SYNTHETIC", 98.0);
+        metric["quantity_kind"] = json!("foreign_object_detection_accuracy");
+        metric["measurement_purpose"] = json!("operational_reliability");
+        metric["qualification"] = json!("SOURCE_CLAIM_ONLY");
+        let errors = validate_measurement(&metric);
+        assert!(
+            !errors.iter().any(|error| error.contains("unregistered quantity_kind")),
+            "{errors:#?}"
+        );
+        assert!(
+            !errors.iter().any(|error| error.contains("purpose/quantity mismatch")),
+            "{errors:#?}"
+        );
+        assert!(
+            !errors.iter().any(|error| error.contains("unit/dimension mismatch")),
+            "{errors:#?}"
+        );
+    }
+
+    #[test]
     fn different_rated_power_classes_are_not_comparable_for_efficiency_ranking() {
         let left = sample("CLASS-LEFT", 95.0);
         let mut right = sample("CLASS-RIGHT", 96.0);
@@ -1178,7 +1199,7 @@ mod tests {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         let report = audit(&root).expect("WPT comparator corpus should load");
         assert_eq!(report["valid"], Value::Bool(true), "{report:#}");
-        assert_eq!(report["measurement_count"], json!(50));
+        assert_eq!(report["measurement_count"], json!(58));
         assert_eq!(report["comparison_case_count"], json!(19));
     }
 }
