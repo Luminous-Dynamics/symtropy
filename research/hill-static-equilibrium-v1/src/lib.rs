@@ -131,6 +131,7 @@ pub enum MuscleError {
     ImpossiblePennationGeometry,
     NonPositiveTendonLength,
     NonFiniteValue,
+    InvalidRootBracket,
     DegenerateEquilibriumSamples,
     NoEquilibriumBracket {
         lower_residual_n: f64,
@@ -656,6 +657,28 @@ fn to_result(
     .any(|value| !value.is_finite())
     {
         return Err(MuscleError::NonFiniteValue);
+    }
+
+    let minimum_fiber_length =
+        parameters.optimal_fiber_length_m * parameters.minimum_fiber_length_ratio;
+    let maximum_fiber_length =
+        parameters.optimal_fiber_length_m * parameters.maximum_fiber_length_ratio;
+    let bracket_ordered = root_bracket_lower_fiber_length_m <= fiber_length_m
+        && fiber_length_m <= root_bracket_upper_fiber_length_m;
+    let bracket_within_search = root_bracket_lower_fiber_length_m >= minimum_fiber_length
+        && root_bracket_upper_fiber_length_m <= maximum_fiber_length;
+    let endpoint_residuals_bracket_root = root_bracket_lower_residual_n.abs()
+        <= policy.force_residual_tolerance_n
+        || root_bracket_upper_residual_n.abs() <= policy.force_residual_tolerance_n
+        || root_bracket_lower_residual_n.signum()
+            != root_bracket_upper_residual_n.signum();
+
+    if !bracket_ordered
+        || !bracket_within_search
+        || !endpoint_residuals_bracket_root
+        || iterations > policy.maximum_iterations
+    {
+        return Err(MuscleError::InvalidRootBracket);
     }
 
     Ok(StaticEquilibriumResult {
