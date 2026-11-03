@@ -911,7 +911,9 @@
         "max_message_jitter_ms",
         "max_message_age_ms",
         "security_artifact_sha256",
-        "freshness_mechanism"
+        "freshness_mechanism",
+        "control_deadline_ms",
+        "max_accepted_command_age_ms"
       ],
       "properties": {
         "communication_mode": {
@@ -1031,6 +1033,20 @@
             "NOT_APPLICABLE",
             "UNKNOWN"
           ]
+        },
+        "control_deadline_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "max_accepted_command_age_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
         }
       }
     }
