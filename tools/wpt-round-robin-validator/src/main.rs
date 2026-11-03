@@ -35,6 +35,7 @@ const TOP_LEVEL: &[&str] = &[
     "resonant_networks",
     "cyber_physical_security",
     "standards_basis",
+    "motion_profile",
     "result",
 ];
 
@@ -221,8 +222,42 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "ambient_temperature_c",
             "relative_humidity_pct",
             "thermal_state",
+            "operating_mode",
+            "installation_type",
+            "rated_apparent_power_va",
         ],
         "conditions",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("motion_profile"),
+        &[
+            "profile_id",
+            "route_distance_m",
+            "elapsed_time_s",
+            "speed_mean_mps",
+            "speed_min_mps",
+            "speed_max_mps",
+            "longitudinal_acceleration_abs_max_mps2",
+            "transmitter_pitch_m",
+            "segment_count_total",
+            "segment_count_energized",
+            "segment_activation_attempts",
+            "segment_missed_activations",
+            "false_activation_count",
+            "roadway_energy_source_j",
+            "vehicle_dc_energy_received_j",
+            "battery_energy_gain_j",
+            "vehicle_propulsion_energy_used_j",
+            "roadway_idle_energy_j",
+            "roadway_energy_per_km_wh_km",
+            "battery_net_energy_per_km_wh_km",
+            "energy_sufficiency_ratio",
+            "segment_activation_success_fraction",
+            "speed_profile_sha256",
+            "segment_event_log_sha256",
+        ],
+        "motion_profile",
         &mut errors,
     );
     exact_object_keys(
@@ -466,7 +501,133 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
         _ => errors.push("system.power_rating_w: positive rating required".into()),
     }
 
+
     let technology = string_at(manifest, &["system", "technology"]).unwrap_or("");
+    let operating_mode =
+        string_at(manifest, &["conditions", "operating_mode"]).unwrap_or("UNKNOWN");
+    if operating_mode == "DYNAMIC" {
+        let motion = manifest.get("motion_profile").unwrap_or(&Value::Null);
+        let distance = number_at(motion, &["route_distance_m"]);
+        let elapsed = number_at(motion, &["elapsed_time_s"]);
+        let speed_mean = number_at(motion, &["speed_mean_mps"]);
+        let speed_min = number_at(motion, &["speed_min_mps"]);
+        let speed_max = number_at(motion, &["speed_max_mps"]);
+        let accel = number_at(motion, &["longitudinal_acceleration_abs_max_mps2"]);
+        let pitch = number_at(motion, &["transmitter_pitch_m"]);
+        let total_segments = at(motion, &["segment_count_total"]).and_then(Value::as_u64);
+        let energized_segments = at(motion, &["segment_count_energized"]).and_then(Value::as_u64);
+        let activation_attempts = at(motion, &["segment_activation_attempts"]).and_then(Value::as_u64);
+        let missed = at(motion, &["segment_missed_activations"]).and_then(Value::as_u64);
+        let false_activations = at(motion, &["false_activation_count"]).and_then(Value::as_u64);
+
+        for (field, value, positive) in [
+            ("route_distance_m", distance, true),
+            ("elapsed_time_s", elapsed, true),
+            ("speed_mean_mps", speed_mean, false),
+            ("speed_min_mps", speed_min, false),
+            ("speed_max_mps", speed_max, false),
+            ("longitudinal_acceleration_abs_max_mps2", accel, false),
+            ("transmitter_pitch_m", pitch, true),
+        ] {
+            if !value.is_some_and(|v| v.is_finite() && if positive { v > 0.0 } else { v >= 0.0 }) {
+                errors.push(format!("motion_profile.{field}: valid positive/nonnegative dynamic measurement required"));
+            }
+        }
+        match (speed_min, speed_mean, speed_max) {
+            (Some(min), Some(mean), Some(max)) if min <= mean && mean <= max => {}
+            _ => errors.push("motion_profile: require speed_min <= speed_mean <= speed_max".into()),
+        }
+        match (total_segments, energized_segments, activation_attempts, missed) {
+            (Some(total), Some(energized), Some(attempts), Some(missed_count))
+                if total > 0 && energized <= total && attempts > 0 && missed_count <= attempts => {}
+            _ => errors.push("motion_profile: invalid segment/activation event counts".into()),
+        }
+        if !false_activations.is_some_and(|count| count == 0) {
+            errors.push("motion_profile.false_activation_count: zero false/unauthorized segment activations required".into());
+        }
+        let source_j = number_at(motion, &["roadway_energy_source_j"]);
+        let dc_j = number_at(motion, &["vehicle_dc_energy_received_j"]);
+        let battery_j = number_at(motion, &["battery_energy_gain_j"]);
+        let propulsion_j = number_at(motion, &["vehicle_propulsion_energy_used_j"]);
+        let idle_j = number_at(motion, &["roadway_idle_energy_j"]);
+        for (field, value) in [
+            ("roadway_energy_source_j", source_j),
+            ("vehicle_dc_energy_received_j", dc_j),
+            ("battery_energy_gain_j", battery_j),
+            ("vehicle_propulsion_energy_used_j", propulsion_j),
+            ("roadway_idle_energy_j", idle_j),
+        ] {
+            if !value.is_some_and(|v| v.is_finite() && v >= 0.0) {
+                errors.push(format!("motion_profile.{field}: nonnegative energy required"));
+            }
+        }
+        if let (Some(source), Some(received)) = (source_j, dc_j) {
+            if received > source {
+                errors.push("motion_profile.vehicle_dc_energy_received_j: cannot exceed roadway source energy".into());
+            }
+        }
+        if let (Some(source), Some(idle)) = (source_j, idle_j) {
+            if idle > source {
+                errors.push("motion_profile.roadway_idle_energy_j: cannot exceed total roadway source energy".into());
+            }
+        }
+        if let (Some(distance_m), Some(received_j), Some(battery_gain), Some(propulsion), Some(idle)) =
+            (distance, dc_j, battery_j, propulsion_j, idle_j)
+        {
+            let route_km = distance_m / 1000.0;
+            let expected_wh_km = received_j / 3600.0 / route_km;
+            let expected_net_wh_km = (battery_gain - propulsion) / 3600.0 / route_km;
+            let expected_sufficiency = if propulsion > 0.0 { battery_gain / propulsion } else { 0.0 };
+            let expected_activation = match (activation_attempts, missed) {
+                (Some(attempts), Some(missed_count)) if attempts > 0 =>
+                    (attempts - missed_count) as f64 / attempts as f64,
+                _ => 0.0,
+            };
+            let reported = [
+                ("roadway_energy_per_km_wh_km", number_at(motion, &["roadway_energy_per_km_wh_km"]), expected_wh_km),
+                ("battery_net_energy_per_km_wh_km", number_at(motion, &["battery_net_energy_per_km_wh_km"]), expected_net_wh_km),
+                ("energy_sufficiency_ratio", number_at(motion, &["energy_sufficiency_ratio"]), expected_sufficiency),
+                ("segment_activation_success_fraction", number_at(motion, &["segment_activation_success_fraction"]), expected_activation),
+            ];
+            for (field, actual, expected) in reported {
+                match actual {
+                    Some(value) if (value - expected).abs() <= 1e-6_f64.max(expected.abs() * 1e-4) => {}
+                    _ => errors.push(format!(
+                        "motion_profile.{field}: reported value does not match route energy/event ledger (expected {expected:.9})"
+                    )),
+                }
+            }
+            if propulsion <= 0.0 {
+                errors.push("motion_profile.vehicle_propulsion_energy_used_j: positive propulsion energy required to calculate energy sufficiency".into());
+            }
+            if !source.is_finite() || source <= 0.0 || idle > source {
+                errors.push("motion_profile: roadway source/idle energy ledger invalid".into());
+            }
+        } else {
+            errors.push("motion_profile: full source/vehicle/battery/propulsion energy ledger required".into());
+        }
+        if !string_at(motion, &["profile_id"]).is_some_and(|id| !id.trim().is_empty()) {
+            errors.push("motion_profile.profile_id: frozen drive/route profile ID required".into());
+        }
+        for digest in ["speed_profile_sha256", "segment_event_log_sha256"] {
+            if !string_at(motion, &[digest]).is_some_and(valid_sha256) {
+                errors.push(format!("motion_profile.{digest}: SHA-256 evidence digest required"));
+            }
+        }
+    } else if operating_mode == "STATIC" {
+        let motion = manifest.get("motion_profile").unwrap_or(&Value::Null);
+        if number_at(motion, &["route_distance_m"]).is_some()
+            || number_at(motion, &["elapsed_time_s"]).is_some()
+            || number_at(motion, &["roadway_energy_source_j"]).is_some()
+            || number_at(motion, &["vehicle_dc_energy_received_j"]).is_some()
+            || number_at(motion, &["energy_sufficiency_ratio"]).is_some()
+        {
+            errors.push("motion_profile: dynamic route metrics must remain null for STATIC runs".into());
+        }
+    } else {
+        errors.push("conditions.operating_mode: STATIC or DYNAMIC required for QUALIFIED run".into());
+    }
+
     if !matches!(
         string_at(manifest, &["conditions", "direction"]),
         Some("GRID_TO_VEHICLE" | "VEHICLE_TO_GRID" | "UNIDIRECTIONAL")
@@ -1488,6 +1649,8 @@ mod tests {
         manifest["system"]["concurrent_resonant_networks_allowed"] = json!(false);
         manifest["conditions"]["operating_mode"] = json!("STATIC");
         manifest["conditions"]["installation_type"] = json!("SURFACE_MOUNTED");
+        manifest["motion_profile"]["profile_id"] = json!("STATIC-KNOWN-TRUTH-NO-ROUTE");
+
         manifest["conditions"]["rated_apparent_power_va"] = json!(12_100.0);
         manifest["standards_basis"] = json!([
             {
@@ -2256,6 +2419,70 @@ mod tests {
         manifest["standards_basis"][0]["certificate_id"] = json!("synthetic certificate");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("CERTIFICATION_EVIDENCE artifact")));
+    }
+
+
+    fn dynamic_fixture() -> Value {
+        let mut manifest = qualified_fixture();
+        manifest["conditions"]["operating_mode"] = json!("DYNAMIC");
+        manifest["motion_profile"] = json!({
+            "profile_id":"SYNTHETIC-DWPT-90KMH-001",
+            "route_distance_m":10_000.0,
+            "elapsed_time_s":400.0,
+            "speed_mean_mps":25.0,
+            "speed_min_mps":20.0,
+            "speed_max_mps":30.0,
+            "longitudinal_acceleration_abs_max_mps2":1.2,
+            "transmitter_pitch_m":3.0,
+            "segment_count_total":100,
+            "segment_count_energized":98,
+            "segment_activation_attempts":100,
+            "segment_missed_activations":2,
+            "false_activation_count":0,
+            "roadway_energy_source_j":20_000_000.0,
+            "vehicle_dc_energy_received_j":17_000_000.0,
+            "battery_energy_gain_j":16_000_000.0,
+            "vehicle_propulsion_energy_used_j":15_000_000.0,
+            "roadway_idle_energy_j":500_000.0,
+            "roadway_energy_per_km_wh_km":472.2222222222,
+            "battery_net_energy_per_km_wh_km":27.7777777778,
+            "energy_sufficiency_ratio":1.0666666667,
+            "segment_activation_success_fraction":0.98,
+            "speed_profile_sha256":"f".repeat(64),
+            "segment_event_log_sha256":"e".repeat(64)
+        });
+        manifest
+    }
+
+    #[test]
+    fn accepts_dynamic_route_energy_ledger_known_truth() {
+        let (disposition, errors) = validate_manifest(&dynamic_fixture());
+        assert_eq!(disposition, "QUALIFIED");
+        assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+    #[test]
+    fn rejects_dynamic_energy_per_kilometer_mismatch() {
+        let mut manifest = dynamic_fixture();
+        manifest["motion_profile"]["roadway_energy_per_km_wh_km"] = json!(600.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("does not match route energy/event ledger")));
+    }
+
+    #[test]
+    fn rejects_false_segment_activation() {
+        let mut manifest = dynamic_fixture();
+        manifest["motion_profile"]["false_activation_count"] = json!(1);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("zero false/unauthorized segment activations")));
+    }
+
+    #[test]
+    fn rejects_malformed_dynamic_speed_profile() {
+        let mut manifest = dynamic_fixture();
+        manifest["motion_profile"]["speed_min_mps"] = json!(35.0);
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("speed_min <= speed_mean <= speed_max")));
     }
 
     #[test]
