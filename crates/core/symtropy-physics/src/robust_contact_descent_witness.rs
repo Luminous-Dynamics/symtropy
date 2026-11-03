@@ -695,6 +695,61 @@ mod tests {
     }
 
     #[test]
+    fn exact_interval_lp_uses_cut_generation_and_certifies_the_complete_box() {
+        // One gradient box has a positive robust descent direction. Its lower
+        // corner alone is an incomplete relaxation; the exact support oracle
+        // adds the adverse upper endpoint when a proposed direction needs it.
+        let positive_box = interval_gradient([
+            (1, 2),
+            (0, 1),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+        ]);
+        let positive = solve_robust_descent_interval_lp(&[positive_box])
+            .expect("the exact interval LP certifies a common descent direction");
+        assert_eq!(positive.margin, rational(1));
+        assert_eq!(positive.branch_upper_bounds, vec![rational(-1)]);
+        assert_eq!(
+            gradient_box_support_upper(
+                &interval_gradient([
+                    (1, 2),
+                    (0, 1),
+                    (0, 0),
+                    (0, 0),
+                    (0, 0),
+                    (0, 0),
+                ]),
+                &positive.direction
+            ),
+            rational(-1)
+        );
+
+        // If the complete interval contains opposite gradients, the cutting
+        // plane loop must add both adverse endpoints and return margin zero.
+        // Their exact half/half convex combination is a no-strict-descent
+        // witness for this complete one-dimensional uncertainty box.
+        let opposing_box = interval_gradient([
+            (-1, 1),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+        ]);
+        let no_descent = solve_robust_descent_interval_lp(&[opposing_box])
+            .expect("the exact interval LP returns the optimum even when it is zero");
+        assert_eq!(no_descent.margin, rational(0));
+        assert_eq!(no_descent.branch_upper_bounds, vec![rational(0)]);
+        assert_eq!(no_descent.active_gradients.len(), 2);
+        assert!(verify_zero_convex_combination(
+            &no_descent.active_gradients,
+            &[rational_fraction(1, 2), rational_fraction(1, 2)]
+        ));
+    }
+
+    #[test]
     fn interval_support_uses_the_adverse_endpoint_for_each_direction_sign() {
         let gradient = interval_gradient([(-2, -1), (3, 5), (0, 0), (0, 0), (0, 0), (0, 0)]);
         let direction = [
