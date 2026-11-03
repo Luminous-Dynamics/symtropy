@@ -697,7 +697,8 @@
               "FIRMWARE",
               "ANALYSIS_CODE",
               "REPORT",
-              "OTHER"
+              "OTHER",
+              "SECURITY_REPORT"
             ]
           },
           "uri": {
@@ -909,7 +910,8 @@
         "p99_message_latency_ms",
         "max_message_jitter_ms",
         "max_message_age_ms",
-        "security_artifact_sha256"
+        "security_artifact_sha256",
+        "freshness_mechanism"
       ],
       "properties": {
         "communication_mode": {
@@ -1019,6 +1021,16 @@
             "null"
           ],
           "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "freshness_mechanism": {
+          "enum": [
+            "NONCE",
+            "TIMESTAMP",
+            "MONOTONIC_SEQUENCE",
+            "COMBINED",
+            "NOT_APPLICABLE",
+            "UNKNOWN"
+          ]
         }
       }
     }
