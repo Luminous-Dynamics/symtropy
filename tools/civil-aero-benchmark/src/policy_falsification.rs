@@ -224,6 +224,8 @@ pub struct PolicyFeasibilityAuditReport {
     pub schema: String,
     pub frame_id: String,
     pub policy_id: String,
+    pub source_task_id: String,
+    pub source_replicate_id: String,
     pub source_candidate_frame_sha256: String,
     pub source_operation_ledger_sha256: String,
     pub source_admission_frame_receipt_sha256: String,
@@ -427,6 +429,8 @@ fn report_bytes(report: &PolicyFeasibilityAuditReport) -> Vec<u8> {
         report.schema.as_str(),
         report.frame_id.as_str(),
         report.policy_id.as_str(),
+        report.source_task_id.as_str(),
+        report.source_replicate_id.as_str(),
         report.source_candidate_frame_sha256.as_str(),
         report.source_operation_ledger_sha256.as_str(),
         report.source_admission_frame_receipt_sha256.as_str(),
@@ -505,6 +509,15 @@ pub fn evaluate_policy_feasibility_audit(
     let mut candidate_map = BTreeMap::<String, &AdmittedCandidateFrameEntry>::new();
     let mut operations = BTreeSet::<(String, String, String, String)>::new();
     for candidate in inputs.admitted_candidates {
+        if candidate.task_id != source_row.task_id
+            || candidate.replicate_id != source_row.replicate_id
+            || candidate.policy_id != source_row.policy_id
+        {
+            return Err(format!(
+                "candidate {} does not belong to the exact source scorecard row",
+                candidate.candidate_id
+            ));
+        }
         if candidate.policy_id != inputs.policy_id {
             return Err(format!(
                 "candidate {} belongs to policy {}, not {}",
@@ -736,6 +749,8 @@ pub fn evaluate_policy_feasibility_audit(
         schema: POLICY_FEASIBILITY_AUDIT_SCHEMA.to_owned(),
         frame_id: inputs.frame_id.to_owned(),
         policy_id: inputs.policy_id.to_owned(),
+        source_task_id: source_row.task_id.clone(),
+        source_replicate_id: source_row.replicate_id.clone(),
         source_candidate_frame_sha256,
         source_operation_ledger_sha256: source_row.operation_ledger_sha256.clone(),
         source_admission_frame_receipt_sha256: source_row.admission_frame_receipt_sha256.clone(),
@@ -806,12 +821,14 @@ fn append_csv_row(output: &mut String, values: &[String]) {
 }
 
 pub fn report_to_csv(report: &PolicyFeasibilityAuditReport) -> String {
-    let header = "schema,frame_id,policy_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
+    let header = "schema,frame_id,policy_id,source_task_id,source_replicate_id,source_candidate_frame_sha256,source_operation_ledger_sha256,source_admission_frame_receipt_sha256,selection_design,selection_design_sha256,selection_plan_sha256,selection_receipt_sha256,sampling_frame_sha256,candidate_frame_sha256,adjudication_manifest_sha256,admitted_candidate_count,adjudicated_candidate_count,confirmed_feasible_count,falsified_infeasible_count,inconclusive_count,unassessed_count,resolved_count,false_feasible_rate_lower_bound,false_feasible_rate_upper_bound,false_feasible_rate_among_resolved,false_feasible_rate_lower_bound_f64_bits,false_feasible_rate_upper_bound_f64_bits,false_feasible_rate_among_resolved_f64_bits,status,report_sha256,evidence_level,task_id,replicate_id,operation_id,candidate_id,output_sha256,scope_sha256,admission_receipt_sha256,admission_verifier_id,admission_verifier_sha256,adjudication_status,method,adjudicator_id,adjudicator_sha256,adjudication_receipt_sha256,reason";
     let mut output = format!("{header}\n");
     let summary = vec![
         report.schema.clone(),
         report.frame_id.clone(),
         report.policy_id.clone(),
+        report.source_task_id.clone(),
+        report.source_replicate_id.clone(),
         report.source_candidate_frame_sha256.clone(),
         report.source_operation_ledger_sha256.clone(),
         report.source_admission_frame_receipt_sha256.clone(),
