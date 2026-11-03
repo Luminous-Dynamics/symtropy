@@ -368,13 +368,19 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
     if batch.commit_sequence == 0 {
         return Err(ValidationError::InvalidCommitSequence);
     }
-    if batch.pairwise_observation_difference_covariance.len() > MAX_FEATURE_DIMENSION {
+    if batch.pairwise_observation_difference_covariance.len() > MAX_FEATURE_DIMENSION
+        || batch.observation_covariance.len() > MAX_FEATURE_DIMENSION
+    {
         return Err(ValidationError::ResourceLimitExceeded);
     }
 
     validate_covariance(&batch.pairwise_observation_difference_covariance)?;
+    validate_covariance(&batch.observation_covariance)?;
 
     let dimension = batch.pairwise_observation_difference_covariance.len();
+    if batch.observation_covariance.len() != dimension {
+        return Err(ValidationError::DimensionMismatch);
+    }
     let mut model_ids = BTreeSet::new();
     let mut canonical_feature_ids: Option<&[String]> = None;
 
@@ -487,6 +493,99 @@ fn cholesky_positive_definite(
     }
 
     Ok(lower)
+}
+
+fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ValidationError> {
+    let mut log_determinant = 0.0_f64;
+    for index in 0..lower.len() {
+        let diagonal = lower[index][index];
+        if !diagonal.is_finite() || diagonal <= 0.0 {
+            return Err(ValidationError::NonPositiveDefinitePooledCovariance);
+        }
+        log_determinant += 2.0 * diagonal.ln();
+    }
+    if log_determinant.is_finite() {
+        Ok(log_determinant)
+    } else {
+        Err(ValidationError::NonFiniteValue)
+    }
+}
+
+fn quadratic_form_from_cholesky(
+    lower: &[Vec<f64>],
+    delta: &[f64],
+) -> Result<f64, ValidationError> {
+    let mut whitened = vec![0.0_f64; delta.len()];
+    for row in 0..delta.len() {
+        let mut residual = delta[row];
+        for column in 0..row {
+            residual -= lower[row][column] * whitened[column];
+        }
+        whitened[row] = residual / lower[row][row];
+    }
+    let value = whitened.iter().map(|item| item * item).sum::<f64>();
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(ValidationError::NonFiniteValue)
+    }
+}
+
+/// Bhattacharyya distance between two Gaussian predictive distributions after
+/// adding the declared single-observation measurement covariance.
+///
+/// This is exact only under the multivariate-Gaussian approximation and
+/// independent predictive errors. It is not EIG or posterior model probability.
+fn pairwise_gaussian_bhattacharyya(
+    left: &ModelForecast,
+    right: &ModelForecast,
+    observation_covariance: &[Vec<f64>],
+    regularization: f64,
+) -> Result<f64, ValidationError> {
+    let dimension = left.mean.len();
+    let mut left_covariance = vec![vec![0.0_f64; dimension]; dimension];
+    let mut right_covariance = vec![vec![0.0_f64; dimension]; dimension];
+    let mut average_covariance = vec![vec![0.0_f64; dimension]; dimension];
+
+    for row in 0..dimension {
+        for column in 0..dimension {
+            left_covariance[row][column] =
+                left.covariance[row][column] + observation_covariance[row][column];
+            right_covariance[row][column] =
+                right.covariance[row][column] + observation_covariance[row][column];
+            average_covariance[row][column] =
+                0.5 * (left_covariance[row][column] + right_covariance[row][column]);
+        }
+        left_covariance[row][row] += regularization;
+        right_covariance[row][row] += regularization;
+        average_covariance[row][row] += regularization;
+    }
+
+    let left_factor = cholesky_positive_definite(&left_covariance)?;
+    let right_factor = cholesky_positive_definite(&right_covariance)?;
+    let average_factor = cholesky_positive_definite(&average_covariance)?;
+
+    let delta = left
+        .mean
+        .iter()
+        .zip(&right.mean)
+        .map(|(left_value, right_value)| left_value - right_value)
+        .collect::<Vec<_>>();
+    let mean_term = quadratic_form_from_cholesky(&average_factor, &delta)? / 8.0;
+
+    let average_logdet = log_determinant_from_cholesky(&average_factor)?;
+    let left_logdet = log_determinant_from_cholesky(&left_factor)?;
+    let right_logdet = log_determinant_from_cholesky(&right_factor)?;
+    let covariance_term = 0.5 * (average_logdet - 0.5 * (left_logdet + right_logdet));
+    let distance = mean_term + covariance_term;
+
+    if !distance.is_finite() {
+        return Err(ValidationError::NonFiniteValue);
+    }
+    if distance < 0.0 {
+        return Err(ValidationError::NegativeDistributionDistance);
+    }
+    Ok(distance)
 }
 
 fn pairwise_mean_d2(
