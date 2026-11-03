@@ -190,3 +190,13 @@ The test-run manifest now captures core material ID, Bsat(T) curve reference, co
 The run manifest now requires a per-run standards_basis record: document ID/edition, applicability category, scope statement, tested provisions, compliance-claim level and evidence digest. The schema and Rust gate distinguish normative requirements, partial references, test-method references, information reports, out-of-scope references and planned-but-unissued work.
 
 The key SAE boundary: J2954_202408 is stationary, surface-mounted, light-duty, forward G2V and up to 11 kVA; J2954/2_202212 is an incomplete first-step heavy-duty Information Report; J2847/6 is a light-duty communication practice; J3072 is conductive EVSE grid interconnection; J2836/3 is DER/V2G use-case guidance. The current J2954 edition refers dynamic applications to the separate J2954/3 workstream. These distinctions prevent unsupported J2954-compliance claims for the 30 kW/20 kHz or bidirectional configuration.
+
+
+## Dynamic roadway benchmark lane
+
+New source-backed evidence is split into two evidence strata:
+
+- **Measured roadway prototype:** Purdue/INDOT reports a 85-coil public-road testbed delivering 50–190 kW to a retrofitted heavy truck at up to 65 mph, with approximately 85% roadway inverter DC-bus to vehicle DC-bus efficiency at rated power. This is a strong field baseline but does not alone provide the complete battery energy sufficiency/route duty cycle.
+- **Simulation-only vehicle-energy case:** Colombo et al. model SS and LCC segmented DWPT at 90 km/h over 510 km and compare transferred energy per km against assumed 0.129 kWh/km vehicle demand. The SS model yields 0.14 kWh/km, LCC 0.15 kWh/km; the paper explicitly states no experimental validation and lists traffic/drive-cycle, BMS, charge acceptance, thermal and infrastructure-economic extensions.
+
+The new DYNAMIC run record stores speed profile and segment log digests, route length/time, speed envelope, transmitter pitch, segment activations/misses/false activations, source/vehicle/battery/propulsion/idle energy and recomputed route Wh/km and energy-sufficiency ratio. Static and dynamic runs remain different comparison strata. A high instantaneous output or high transfer efficiency must not be treated as proof that the vehicle maintains SOC over its mission.
