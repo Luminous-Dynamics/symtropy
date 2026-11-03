@@ -96,7 +96,8 @@ fn required_terminal_iteration(
     cauchy_elements: u64,
 ) -> Result<u64, String> {
     window_start_iter
-        .checked_add(convergence_start_iter.max(cauchy_elements))
+        .checked_add(convergence_start_iter)
+        .and_then(|monitor_start| monitor_start.checked_add(cauchy_elements))
         .ok_or_else(|| "window convergence iteration range overflowed".to_owned())
 }
 
@@ -361,10 +362,10 @@ mod tests {
     use super::required_terminal_iteration;
 
     #[test]
-    fn window_coverage_includes_monitor_delay_then_all_cauchy_elements() {
-        assert_eq!(required_terminal_iteration(500, 10, 10).unwrap(), 510);
-        assert_eq!(required_terminal_iteration(500, 15, 10).unwrap(), 515);
-        assert_eq!(required_terminal_iteration(500, 10, 15).unwrap(), 515);
+    fn window_coverage_adds_monitor_delay_and_cauchy_sample_count() {
+        assert_eq!(required_terminal_iteration(500, 10, 10).unwrap(), 520);
+        assert_eq!(required_terminal_iteration(500, 15, 10).unwrap(), 525);
+        assert_eq!(required_terminal_iteration(500, 10, 15).unwrap(), 525);
     }
 
     #[test]
