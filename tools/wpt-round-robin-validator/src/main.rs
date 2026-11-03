@@ -20,6 +20,7 @@ const TOP_LEVEL: &[&str] = &[
     "safety",
     "artifact_refs",
     "resonant_networks",
+    "cyber_physical_security",
     "result",
 ];
 
@@ -358,6 +359,7 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "control_deadline_ms",
             "max_accepted_command_age_ms",
             "security_artifact_sha256",
+            "freshness_mechanism",
         ],
         "cyber_physical_security",
         &mut errors,
@@ -1004,8 +1006,21 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     ) {
         errors.push("cyber_physical_security.communication_loss_fallback: safe fallback required".into());
     }
-    if !string_at(security, "security_artifact_sha256").is_some_and(valid_sha256) {
+    let security_digest = string_at(security, "security_artifact_sha256");
+    if !security_digest.is_some_and(valid_sha256) {
         errors.push("cyber_physical_security.security_artifact_sha256: attack-test evidence digest required".into());
+    }
+    let security_report_bound = manifest
+        .get("artifact_refs")
+        .and_then(Value::as_array)
+        .is_some_and(|artifacts| {
+            artifacts.iter().any(|artifact| {
+                string_at(artifact, "artifact_type") == Some("SECURITY_REPORT")
+                    && string_at(artifact, "sha256") == security_digest
+            })
+        });
+    if !security_report_bound {
+        errors.push("cyber_physical_security.security_artifact_sha256: digest must bind a SECURITY_REPORT artifact".into());
     }
 
     match communication_mode {
@@ -1022,6 +1037,12 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                 .and_then(Value::as_bool).unwrap_or(false)
             {
                 errors.push("cyber_physical_security.replay_protection: fresh nonce/timestamp/sequence required".into());
+            }
+            if !matches!(
+                string_at(security, "freshness_mechanism"),
+                Some("NONCE" | "TIMESTAMP" | "MONOTONIC_SEQUENCE" | "COMBINED")
+            ) {
+                errors.push("cyber_physical_security.freshness_mechanism: replay-safe freshness mechanism required".into());
             }
             if string_at(security, "replay_message_rejected") != Some("PASS") {
                 errors.push("cyber_physical_security.replay_message_rejected: replay control test must pass".into());
@@ -1044,6 +1065,12 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             }
         }
         "LOCAL_ONLY" => {
+            if !matches!(
+                string_at(security, "freshness_mechanism"),
+                Some("NOT_APPLICABLE" | "UNKNOWN")
+            ) {
+                errors.push("cyber_physical_security.freshness_mechanism: declare local-only freshness applicability".into());
+            }
             if !matches!(authentication_method, "LOCAL_AUTH" | "NOT_APPLICABLE") {
                 errors.push("cyber_physical_security.authentication_method: LOCAL_AUTH or NOT_APPLICABLE required for local-only control".into());
             }
@@ -1055,6 +1082,9 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
             }
         }
         "NONE" => {
+            if string_at(security, "freshness_mechanism") != Some("NOT_APPLICABLE") {
+                errors.push("cyber_physical_security.freshness_mechanism: NOT_APPLICABLE required with no communications".into());
+            }
             if authentication_method != "NOT_APPLICABLE" {
                 errors.push("cyber_physical_security.authentication_method: NOT_APPLICABLE required with no communications".into());
             }
@@ -1267,6 +1297,7 @@ mod tests {
             "authentication_method": "PKI_MUTUAL",
             "mutual_authentication": true,
             "replay_protection": true,
+            "freshness_mechanism": "COMBINED",
             "receiver_identity_bound": true,
             "firmware_integrity_verified": true,
             "sensor_plausibility_checks": true,
@@ -1296,6 +1327,13 @@ mod tests {
                 "sha256": "b".repeat(64),
                 "media_type": "application/pdf",
                 "description": "Synthetic known-truth calibration placeholder; not a real certificate."
+            },
+            {
+                "artifact_type": "SECURITY_REPORT",
+                "uri": "artifact://synthetic/security",
+                "sha256": "e".repeat(64),
+                "media_type": "application/json",
+                "description": "Synthetic security-test placeholder; not a real attack report."
             }
         ]);
         manifest["result"]["qualification"] = json!("QUALIFIED");
@@ -1478,6 +1516,23 @@ mod tests {
         manifest["cyber_physical_security"]["firmware_integrity_verified"] = json!(false);
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("verified firmware integrity required")));
+    }
+
+
+    #[test]
+    fn rejects_missing_security_report_artifact_binding() {
+        let mut manifest = qualified_fixture();
+        manifest["artifact_refs"][2]["sha256"] = json!("f".repeat(64));
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("must bind a SECURITY_REPORT artifact")));
+    }
+
+    #[test]
+    fn rejects_missing_network_replay_freshness_mechanism() {
+        let mut manifest = qualified_fixture();
+        manifest["cyber_physical_security"]["freshness_mechanism"] = json!("UNKNOWN");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("replay-safe freshness mechanism required")));
     }
 
     #[test]
