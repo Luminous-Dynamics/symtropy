@@ -3262,9 +3262,7 @@ mod double_sliding_direction_oracle {
             common_direction.expect("both observables have a shared experiment"),
             [-1, 1, 1, 1, 1, 1]
         );
-        assert!(
-            minimum_joint_gap.expect("both observables have certified gaps") > zero
-        );
+        assert!(minimum_joint_gap.expect("both observables have certified gaps") > zero);
 
         // Negative control: overlapping branch-gradient differences in every
         // coordinate require abstention instead of a fabricated separation.
