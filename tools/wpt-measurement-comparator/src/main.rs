@@ -745,6 +745,70 @@ mod tests {
         m
     }
 
+
+    fn energy_per_distance_sample(id: &str, value_kwh_km: f64) -> Value {
+        let mut m = sample(id, 95.0);
+        m["quantity_kind"] = json!("energy_per_distance");
+        m["measurement_purpose"] = json!("vehicle_service_outcome");
+        m["raw_measurement"]["value"] = json!(value_kwh_km);
+        m["raw_measurement"]["unit"] = json!("kWh/km");
+        m["raw_measurement"]["reported_text"] = json!("synthetic energy-per-distance record");
+        m["normalized_measurement"]["value"] = json!(value_kwh_km * 1000.0);
+        m["normalized_measurement"]["unit"] = json!("Wh/km");
+        m["normalized_measurement"]["conversion_id"] = json!("kwh_to_wh_per_km_v1");
+        m["normalized_measurement"]["dimension"] = json!("energy_per_distance");
+        m["boundary"]["boundary_class"] = json!("vehicle_service");
+        m["boundary"]["input_plane_kind"] = json!("VEHICLE_SIDE_ENERGY_TRANSFER");
+        m["boundary"]["output_plane_kind"] = json!("ROUTE_DISTANCE");
+        m["boundary"]["measurement_point"] = json!("vehicle-side energy per driven route distance");
+        m["boundary"]["stage_set_status"] = json!("COMPLETE");
+        m["boundary"]["included_stages"] = json!(["vehicle-side WPT energy transfer","route-distance normalization"]);
+        m["boundary"]["excluded_stages"] = json!(["roadway source-side and idle losses"]);
+        m["statistic"]["kind"] = json!("integral");
+        m["statistic"]["window_s"] = json!(20_400.0);
+        m["statistic"]["sample_count"] = json!(1);
+        m["evidence"]["kind"] = json!("SIMULATED");
+        m["evidence"]["method"] = json!("numerical_model");
+        m["evidence"]["uncertainty"]["kind"] = json!("expanded");
+        m["qualification"] = json!("QUALIFIED_RECORD");
+        m["conditions"]["operating_mode"] = json!("DYNAMIC");
+        m["conditions"]["route_distance_km"] = json!(510.0);
+        m["conditions"]["vehicle_speed_mean_mps"] = json!(25.0);
+        m["conditions"]["transmitter_pitch_m"] = json!(3.0);
+        m["conditions"]["vehicle_energy_demand_wh_km"] = json!(129.0);
+        m["conditions"]["vehicle_profile_id"] = json!("TESLA-MODEL-3-LONG-RANGE");
+        m["conditions"]["drive_cycle_id"] = json!("A4-510KM-90KMH-CONSTANT");
+        m["conditions"]["waveform"] = json!("sinusoidal");
+        m["conditions"]["alignment"] = json!("nominal");
+        m["conditions"]["thermal_state"] = json!("steady_state");
+        m["conditions"]["medium"] = json!("air");
+        m["conditions"]["frequency_hz"] = json!(85_000.0);
+        m["conditions"]["transfer_gap_m"] = json!(0.20);
+        m["conditions"]["transfer_gap_min_m"] = json!(0.19);
+        m["conditions"]["transfer_gap_max_m"] = json!(0.21);
+        m["conditions"]["vehicle_ground_clearance_min_m"] = json!(0.22);
+        m["conditions"]["vehicle_ground_clearance_max_m"] = json!(0.24);
+        m["conditions"]["operating_duration_s"] = json!(20_400.0);
+        m
+    }
+
+    #[test]
+    fn compares_energy_per_distance_only_on_the_same_frozen_drive_cycle() {
+        let left = energy_per_distance_sample("DWPT-SS", 0.14);
+        let right = energy_per_distance_sample("DWPT-LCC", 0.15);
+        let (disposition, reasons) =
+            compare_measurements(&left, &right, "rank_energy_per_distance");
+        assert_eq!(disposition, "COMPARABLE");
+        assert!(reasons.is_empty(), "{reasons:#?}");
+
+        let mut different_cycle = right.clone();
+        different_cycle["conditions"]["drive_cycle_id"] = json!("VARIABLE-SPEED-FREIGHT-CYCLE");
+        let (disposition, reasons) =
+            compare_measurements(&left, &different_cycle, "rank_energy_per_distance");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"OPERATING_CONDITION_MISMATCH".to_string()));
+    }
+
     #[test]
     fn free_text_alignment_descriptions_remain_unresolved() {
         let mut left = sample("ALIGNMENT-LEFT", 95.0);
