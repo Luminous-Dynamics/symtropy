@@ -184,3 +184,9 @@ Ten deterministic cyber-physical negative controls are now in `cyber-physical-sc
 
 The test-run manifest now captures core material ID, Bsat(T) curve reference, core temperature, peak flux density, temperature-specific saturation limit and assessment method. For QUALIFIED IPT/CPT/hybrid tests, flux must be measured or calculated from a measured voltage waveform; simulation-only values do not qualify. The validator rejects peak flux above 80% of the Bsat value at the recorded core temperature. The 80% limit is a proposed engineering margin, not a standard requirement.
 
+
+## Standards applicability is typed, not implied
+
+The run manifest now requires a per-run standards_basis record: document ID/edition, applicability category, scope statement, tested provisions, compliance-claim level and evidence digest. The schema and Rust gate distinguish normative requirements, partial references, test-method references, information reports, out-of-scope references and planned-but-unissued work.
+
+The key SAE boundary: J2954_202408 is stationary, surface-mounted, light-duty, forward G2V and up to 11 kVA; J2954/2_202212 is an incomplete first-step heavy-duty Information Report; J2847/6 is a light-duty communication practice; J3072 is conductive EVSE grid interconnection; J2836/3 is DER/V2G use-case guidance. The current J2954 edition refers dynamic applications to the separate J2954/3 workstream. These distinctions prevent unsupported J2954-compliance claims for the 30 kW/20 kHz or bidirectional configuration.
