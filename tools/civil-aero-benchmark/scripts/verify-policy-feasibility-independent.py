@@ -67,16 +67,22 @@ def check_same(rows: list[dict[str, str]], key: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        raise ValueError("usage: verify-policy-feasibility-independent.py REPORT.csv")
+    if len(sys.argv) != 4:
+        raise ValueError(
+            "usage: verify-policy-feasibility-independent.py REPORT.csv SCORECARD.csv OPERATIONS.csv"
+        )
     rows = read_csv(Path(sys.argv[1]))
+    scorecard_rows = read_csv(Path(sys.argv[2]))
+    operation_rows = read_csv(Path(sys.argv[3]))
     require(rows, "report CSV must contain at least a header and one summary row")
     first = rows[0]
     require(first["schema"] == SCHEMA, "schema mismatch")
     require(first["evidence_level"] == EVIDENCE, "evidence ceiling mismatch")
 
     summary_fields = [
-        "schema", "frame_id", "policy_id", "selection_design",
+        "schema", "frame_id", "policy_id", "source_task_id", "source_replicate_id",
+        "source_candidate_frame_sha256", "source_operation_ledger_sha256",
+        "source_operation_count", "source_admission_frame_receipt_sha256", "selection_design",
         "selection_design_sha256", "selection_plan_sha256", "selection_receipt_sha256",
         "sampling_frame_sha256", "candidate_frame_sha256", "adjudication_manifest_sha256",
         "admitted_candidate_count", "adjudicated_candidate_count", "confirmed_feasible_count",
@@ -100,6 +106,31 @@ def main() -> int:
         len(candidates) == len(rows) or (not candidates and len(rows) == 1),
         "CSV must contain one row per candidate or one empty-frame summary row",
     )
+
+    source_task = summary["source_task_id"]
+    source_replicate = summary["source_replicate_id"]
+    source_policy = summary["policy_id"]
+    source_count = int(summary["source_operation_count"])
+    require(source_task and source_replicate and source_policy, "source scorecard identity is incomplete")
+    source_rows = [
+        row for row in scorecard_rows
+        if row["task_id"] == source_task
+        and row["replicate_id"] == source_replicate
+        and row["policy_id"] == source_policy
+    ]
+    require(len(source_rows) == 1, "expected exactly one matching upstream policy scorecard row")
+    source_row = source_rows[0]
+    require(int(source_row["admitted_candidates"]) == int(summary["admitted_candidate_count"]),
+            "upstream scorecard admitted count differs from falsification report")
+    require(int(source_row["operation_count"]) == source_count,
+            "upstream scorecard operation count differs from source-ledger count")
+    require(source_row["admitted_candidate_frame_sha256"] == summary["source_candidate_frame_sha256"],
+            "upstream scorecard candidate-frame digest differs")
+    require(source_row["operation_ledger_sha256"] == summary["source_operation_ledger_sha256"],
+            "upstream scorecard operation-ledger digest differs")
+    require(source_row["admission_frame_receipt_sha256"] == summary["source_admission_frame_receipt_sha256"],
+            "upstream scorecard admission-frame receipt differs")
+
 
     admitted = int(summary["admitted_candidate_count"])
     adjudicated = int(summary["adjudicated_candidate_count"])
@@ -138,6 +169,10 @@ def main() -> int:
     for row in candidates:
         candidate_id = row["candidate_id"]
         require(candidate_id and candidate_id not in seen_candidates, "duplicate or empty candidate ID")
+        require(
+            row["task_id"] == source_task and row["replicate_id"] == source_replicate,
+            "candidate row does not match exact upstream scorecard task/replicate",
+        )
         seen_candidates.add(candidate_id)
         key = (row["task_id"], row["replicate_id"], summary["policy_id"], row["operation_id"])
         require(all(key), "candidate operation identity contains an empty field")
@@ -192,6 +227,75 @@ def main() -> int:
     frame_digest = hashlib.sha256(frame).hexdigest()
     require(frame_digest == summary["candidate_frame_sha256"] == summary["sampling_frame_sha256"],
             "candidate frame or selection sampling-frame digest mismatch")
+
+    source_frame = bytearray()
+    add_string(source_frame, "aero-policy-admitted-candidate-frame/0.1.0")
+    add_string(source_frame, source_task)
+    add_string(source_frame, source_replicate)
+    add_string(source_frame, source_policy)
+    ordered_source = sorted(candidate_map.items())
+    add_u64(source_frame, len(ordered_source))
+    for candidate_id, row in ordered_source:
+        for value in (
+            candidate_id, row["operation_id"], row["output_sha256"],
+            row["admission_receipt_sha256"], row["admission_verifier_id"],
+            row["admission_verifier_sha256"], row["scope_sha256"],
+        ):
+            add_string(source_frame, value)
+    source_frame_digest = hashlib.sha256(source_frame).hexdigest()
+    require(
+        source_frame_digest == summary["source_candidate_frame_sha256"],
+        "downstream candidate set differs from upstream policy scorecard frame",
+    )
+
+    selected_operations = [
+        row for row in operation_rows
+        if row["task_id"] == source_task
+        and row["replicate_id"] == source_replicate
+        and row["policy_id"] == source_policy
+    ]
+    require(len(selected_operations) == source_count,
+            "source operation ledger is incomplete or has extra rows")
+    require(
+        len({row["operation_id"] for row in selected_operations}) == len(selected_operations),
+        "source operation ledger contains duplicate operation IDs",
+    )
+    selected_operations.sort(key=lambda row: row["operation_id"])
+    operation_bytes = bytearray()
+    add_string(operation_bytes, "aero-policy-operation-ledger/0.1.0")
+    add_string(operation_bytes, source_task)
+    add_string(operation_bytes, source_replicate)
+    add_string(operation_bytes, source_policy)
+    add_u64(operation_bytes, len(selected_operations))
+    for row in selected_operations:
+        for value in (
+            row["task_id"], row["replicate_id"], row["policy_id"], row["operation_id"],
+            row["operation_kind"], row["fidelity"], row["output_sha256"], row["reason_code"],
+        ):
+            add_string(operation_bytes, value)
+        add_u64(operation_bytes, int(row["aerodynamic_condition_calls_attempted"]))
+        add_u64(operation_bytes, int(row["aerodynamic_condition_calls_succeeded"]))
+        for field in ("cost_units", "budget_cap_units", "wall_seconds", "cpu_seconds"):
+            value = float(row[field])
+            require(math.isfinite(value), f"source operation {field} is non-finite")
+            operation_bytes.extend(struct.pack("<d", value))
+        require(row["success"] in {"true", "false"}, "source operation success flag is invalid")
+        operation_bytes.append(1 if row["success"] == "true" else 0)
+    operation_digest = hashlib.sha256(operation_bytes).hexdigest()
+    require(operation_digest == summary["source_operation_ledger_sha256"],
+            "source operation ledger canonical digest mismatch")
+
+    source_receipt = bytearray()
+    for value in (
+        "aero-policy-admission-frame-receipt/0.1.0",
+        source_task, source_replicate, source_policy, source_frame_digest, operation_digest,
+    ):
+        add_string(source_receipt, value)
+    add_u64(source_receipt, admitted)
+    add_string(source_receipt, "caller_bound_admission_receipt_scorecard_not_solver_validation")
+    receipt_digest = hashlib.sha256(source_receipt).hexdigest()
+    require(receipt_digest == summary["source_admission_frame_receipt_sha256"],
+            "upstream source admission-frame receipt canonical digest mismatch")
 
     selection = bytearray()
     add_string(selection, "aero-adjudication-selection-design/0.1.0")
