@@ -16,6 +16,10 @@
 
 use std::collections::BTreeSet;
 
+const MAX_MODELS_PER_INTERVENTION: usize = 64;
+const MAX_FEATURE_DIMENSION: usize = 256;
+const MAX_ARTIFACTS_PER_MODEL: usize = 64;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceTier {
     Synthetic,
@@ -26,7 +30,7 @@ pub enum EvidenceTier {
     ReplicatedBiological,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ArtifactRole {
     Connectome,
     BiologicalSource,
@@ -117,6 +121,9 @@ pub enum ValidationError {
     InvalidCovariance,
     NonPositiveDefinitePooledCovariance,
     InvalidPolicy,
+    ResourceLimitExceeded,
+    DuplicateArtifactRole,
+    InvalidCommitSequence,
     ForecastCommittedAfterBatch,
     CommitSequenceAfterUnblinding,
     EventLogMismatch,
@@ -202,8 +209,16 @@ fn validate_provenance(
     validate_digest(&provenance.parameter_sha256, "parameters")?;
     validate_digest(&provenance.configuration_sha256, "configuration")?;
 
+    if provenance.artifacts.len() > MAX_ARTIFACTS_PER_MODEL {
+        return Err(ValidationError::ResourceLimitExceeded);
+    }
+
+    let mut artifact_roles = BTreeSet::new();
     for artifact in &provenance.artifacts {
         validate_digest(&artifact.sha256, "artifact")?;
+        if !artifact_roles.insert(artifact.role) {
+            return Err(ValidationError::DuplicateArtifactRole);
+        }
     }
 
     let required_roles: &[ArtifactRole] = match tier {
@@ -326,6 +341,15 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
     if batch.forecasts.len() < 2 {
         return Err(ValidationError::TooFewModels);
     }
+    if batch.forecasts.len() > MAX_MODELS_PER_INTERVENTION {
+        return Err(ValidationError::ResourceLimitExceeded);
+    }
+    if batch.commit_sequence == 0 {
+        return Err(ValidationError::InvalidCommitSequence);
+    }
+    if batch.pairwise_observation_difference_covariance.len() > MAX_FEATURE_DIMENSION {
+        return Err(ValidationError::ResourceLimitExceeded);
+    }
 
     validate_covariance(&batch.pairwise_observation_difference_covariance)?;
 
@@ -346,12 +370,18 @@ pub fn validate_prediction_batch(batch: &PredictionBatch) -> Result<(), Validati
         validate_digest(&forecast.raw_trajectory_sha256, "raw_trajectory")?;
         validate_digest(&forecast.feature_summary_sha256, "feature_summary")?;
         validate_digest(&forecast.forecast_sha256, "forecast")?;
+        if forecast.commit_sequence == 0 {
+            return Err(ValidationError::InvalidCommitSequence);
+        }
         if forecast.commit_sequence > batch.commit_sequence {
             return Err(ValidationError::ForecastCommittedAfterBatch);
         }
 
         validate_provenance(&forecast.provenance, forecast.evidence_tier)?;
 
+        if dimension > MAX_FEATURE_DIMENSION {
+            return Err(ValidationError::ResourceLimitExceeded);
+        }
         if forecast.feature_ids.len() != dimension || forecast.mean.len() != dimension {
             return Err(ValidationError::DimensionMismatch);
         }
@@ -397,6 +427,9 @@ pub fn validate_unblinding_order(
     validate_identifier(&unblinding.event_log_id, "unblinding_event_log_id")?;
     validate_digest(&unblinding.outcomes_sha256, "outcomes")?;
     validate_digest(&unblinding.receipt_sha256, "unblinding_receipt")?;
+    if unblinding.sequence == 0 {
+        return Err(ValidationError::InvalidCommitSequence);
+    }
 
     if unblinding.event_log_id != batch.event_log_id {
         return Err(ValidationError::EventLogMismatch);
@@ -852,6 +885,45 @@ mod tests {
         assert_eq!(
             validate_prediction_batch(&candidate),
             Err(ValidationError::ForecastCommittedAfterBatch)
+        );
+    }
+
+    #[test]
+    fn rejects_zero_batch_commit_sequence() {
+        let mut candidate = batch(vec![
+            forecast("model-a", vec![0.0], 0.1),
+            forecast("model-b", vec![1.0], 0.1),
+        ]);
+        candidate.commit_sequence = 0;
+        assert_eq!(
+            validate_prediction_batch(&candidate),
+            Err(ValidationError::InvalidCommitSequence)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_artifact_roles() {
+        let mut candidate = forecast("connectome-model", vec![0.0], 0.1);
+        candidate.evidence_tier = EvidenceTier::ConnectomeConstrained;
+        add_connectome_artifacts(&mut candidate);
+        candidate.provenance.artifacts.push(candidate.provenance.artifacts[0].clone());
+        assert_eq!(
+            validate_prediction_batch(&batch(vec![
+                candidate,
+                forecast("phenomenological-model", vec![1.0], 0.1),
+            ])),
+            Err(ValidationError::DuplicateArtifactRole)
+        );
+    }
+
+    #[test]
+    fn rejects_model_count_above_the_resource_limit() {
+        let forecasts = (0..=MAX_MODELS_PER_INTERVENTION)
+            .map(|index| forecast(&format!("model-{index}"), vec![index as f64], 0.1))
+            .collect();
+        assert_eq!(
+            validate_prediction_batch(&batch(forecasts)),
+            Err(ValidationError::ResourceLimitExceeded)
         );
     }
 
