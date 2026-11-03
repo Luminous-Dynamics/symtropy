@@ -188,7 +188,10 @@
         "output_plane",
         "included_stages",
         "excluded_stages",
-        "boundary_signature"
+        "boundary_signature",
+        "input_plane_kind",
+        "output_plane_kind",
+        "stage_set_status"
       ],
       "properties": {
         "boundary_class": {
@@ -237,6 +240,60 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "input_plane_kind": {
+          "enum": [
+            "MAINS_AC_INPUT",
+            "SYSTEM_DC_INPUT",
+            "PRIMARY_DC_BUS",
+            "INVERTER_AC_OUTPUT",
+            "RESONANT_LINK_AC_INPUT",
+            "RELAY_AC_INPUT",
+            "RECEIVER_AC_OUTPUT",
+            "RECTIFIED_DC_OUTPUT",
+            "SECONDARY_DC_BUS",
+            "BATTERY_DC_TERMINAL",
+            "USEFUL_LOAD_DC",
+            "LASER_DRIVER_DC_INPUT",
+            "LASER_DRIVER_OUTPUT",
+            "PV_DC_OUTPUT",
+            "VEHICLE_TRACTION_ENERGY_CONSUMED",
+            "VEHICLE_ENERGY_REPLENISHED",
+            "FIELD_PROBE_UNLOCATED",
+            "NOT_APPLICABLE",
+            "UNKNOWN"
+          ]
+        },
+        "output_plane_kind": {
+          "enum": [
+            "MAINS_AC_INPUT",
+            "SYSTEM_DC_INPUT",
+            "PRIMARY_DC_BUS",
+            "INVERTER_AC_OUTPUT",
+            "RESONANT_LINK_AC_INPUT",
+            "RELAY_AC_INPUT",
+            "RECEIVER_AC_OUTPUT",
+            "RECTIFIED_DC_OUTPUT",
+            "SECONDARY_DC_BUS",
+            "BATTERY_DC_TERMINAL",
+            "USEFUL_LOAD_DC",
+            "LASER_DRIVER_DC_INPUT",
+            "LASER_DRIVER_OUTPUT",
+            "PV_DC_OUTPUT",
+            "VEHICLE_TRACTION_ENERGY_CONSUMED",
+            "VEHICLE_ENERGY_REPLENISHED",
+            "FIELD_PROBE_UNLOCATED",
+            "NOT_APPLICABLE",
+            "UNKNOWN"
+          ]
+        },
+        "stage_set_status": {
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
           ]
         }
       }
