@@ -1125,6 +1125,39 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
                         }
                     }
                 }
+
+                if document_id == "IEC PAS 61980-4" && edition == "2025"
+                    && applicability == "NORMATIVE_REQUIREMENT"
+                    && string_at(manifest, &["conditions", "operating_mode"]) != Some("STATIC")
+                {
+                    errors.push(format!(
+                        "standards_basis[{index}]: IEC PAS 61980-4:2025 normative use requires STATIC high-power operation"
+                    ));
+                }
+                if document_id == "IEC PAS 61980-5" && edition == "2024"
+                    && applicability == "NORMATIVE_REQUIREMENT"
+                    && string_at(manifest, &["conditions", "operating_mode"]) != Some("DYNAMIC")
+                {
+                    errors.push(format!(
+                        "standards_basis[{index}]: IEC PAS 61980-5:2024 normative use requires DYNAMIC operation"
+                    ));
+                }
+                if document_id == "IEC PAS 61980-6" && edition == "2025" {
+                    if applicability == "NORMATIVE_REQUIREMENT"
+                        && string_at(manifest, &["conditions", "operating_mode"]) != Some("DYNAMIC")
+                    {
+                        errors.push(format!(
+                            "standards_basis[{index}]: IEC PAS 61980-6:2025 normative use requires DYNAMIC operation"
+                        ));
+                    }
+                    if applicability == "NORMATIVE_REQUIREMENT"
+                        && string_at(manifest, &["conditions", "direction"]) == Some("VEHICLE_TO_GRID")
+                    {
+                        errors.push(format!(
+                            "standards_basis[{index}]: IEC PAS 61980-6:2025 does not specify bidirectional power transfer in this edition"
+                        ));
+                    }
+                }
                 if document_id == "SAE J2954/2" && applicability == "NORMATIVE_REQUIREMENT" {
                     errors.push(format!(
                         "standards_basis[{index}]: SAE J2954/2_202212 is an Information Report with incomplete detailed requirements, not a complete normative compliance specification"
@@ -2398,6 +2431,38 @@ mod tests {
         manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
         let (_, errors) = validate_manifest(&manifest);
         assert!(errors.iter().any(|e| e.contains("tracked as planned/unissued")));
+    }
+
+
+    #[test]
+    fn rejects_iec_pas_61980_4_normative_claim_for_dynamic_run() {
+        let mut manifest = dynamic_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("IEC PAS 61980-4");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires STATIC high-power operation")));
+    }
+
+    #[test]
+    fn rejects_iec_pas_61980_5_normative_claim_for_static_run() {
+        let mut manifest = qualified_fixture();
+        manifest["standards_basis"][0]["document_id"] = json!("IEC PAS 61980-5");
+        manifest["standards_basis"][0]["edition"] = json!("2024");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("requires DYNAMIC operation")));
+    }
+
+    #[test]
+    fn rejects_iec_pas_61980_6_normative_claim_for_bidirectional_dynamic_run() {
+        let mut manifest = dynamic_fixture();
+        manifest["conditions"]["direction"] = json!("VEHICLE_TO_GRID");
+        manifest["standards_basis"][0]["document_id"] = json!("IEC PAS 61980-6");
+        manifest["standards_basis"][0]["edition"] = json!("2025");
+        manifest["standards_basis"][0]["applicability"] = json!("NORMATIVE_REQUIREMENT");
+        let (_, errors) = validate_manifest(&manifest);
+        assert!(errors.iter().any(|e| e.contains("does not specify bidirectional power transfer")));
     }
 
     #[test]
