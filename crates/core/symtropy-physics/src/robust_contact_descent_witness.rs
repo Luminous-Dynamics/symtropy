@@ -136,6 +136,7 @@ struct ExactLpOptimum {
     direction: RationalVector,
     margin: BigRational,
     branch_upper_bounds: Vec<BigRational>,
+    active_gradients: Vec<RationalVector>,
 }
 
 fn robust_descent_constraints(gradients: &[RationalVector]) -> Vec<LpConstraint> {
@@ -314,6 +315,7 @@ fn enumerate_lp_active_sets(
                 direction,
                 margin,
                 branch_upper_bounds,
+                active_gradients: gradients.to_vec(),
             });
         }
         return;
@@ -340,6 +342,78 @@ fn enumerate_lp_active_sets(
         );
         active_indices.pop();
     }
+}
+
+fn adverse_box_corner(
+    gradient: &GradientBox,
+    direction: &RationalVector,
+) -> RationalVector {
+    std::array::from_fn(|coordinate| {
+        if direction[coordinate] < rational(0) {
+            gradient[coordinate].lower.clone()
+        } else {
+            gradient[coordinate].upper.clone()
+        }
+    })
+}
+
+/// Solve the robust LP over independent rational interval boxes by exact
+/// constraint generation. Each point-gradient LP gives an upper bound on the
+/// full robust optimum; the support oracle either verifies that candidate for
+/// every box or returns an adverse box corner as a violated constraint.
+/// Finite termination with no violated corner proves the robust optimum for
+/// the complete declared boxes. A cap or repeated violated cut returns None.
+fn solve_robust_descent_interval_lp(
+    branches: &[GradientBox],
+) -> Option<ExactLpOptimum> {
+    if branches.is_empty() {
+        return None;
+    }
+
+    let mut cuts: Vec<RationalVector> = branches
+        .iter()
+        .map(|gradient| std::array::from_fn(|coordinate| gradient[coordinate].lower.clone()))
+        .collect();
+
+    for _ in 0..MAX_ACTIVE_SETS {
+        let mut optimum = solve_robust_descent_lp(&cuts)?;
+        let required_upper = -optimum.margin.clone();
+        let mut new_cuts = Vec::new();
+
+        for gradient in branches {
+            let support_upper =
+                gradient_box_support_upper(gradient, &optimum.direction);
+            if support_upper > required_upper {
+                let corner = adverse_box_corner(gradient, &optimum.direction);
+                if cuts.contains(&corner) || new_cuts.contains(&corner) {
+                    // A previously enforced exact corner cannot violate its
+                    // own LP constraint; treat this as an internal inconsistency.
+                    return None;
+                }
+                new_cuts.push(corner);
+            }
+        }
+
+        if new_cuts.is_empty() {
+            optimum.branch_upper_bounds = branches
+                .iter()
+                .map(|gradient| gradient_box_support_upper(gradient, &optimum.direction))
+                .collect();
+            let worst_support = optimum
+                .branch_upper_bounds
+                .iter()
+                .max()
+                .expect("at least one branch box exists");
+            if -worst_support.clone() != optimum.margin {
+                return None;
+            }
+            return Some(optimum);
+        }
+
+        cuts.extend(new_cuts);
+    }
+
+    None
 }
 
 /// Solve the finite point-gradient robust-descent LP exactly over the
