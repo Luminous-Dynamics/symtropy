@@ -196,7 +196,12 @@ pub struct HairPlatePrediction {
     pub heldout_split_sha256: String,
     pub prediction_sha256: String,
     pub training_plate_ids: Vec<String>,
+    /// Must match the measured tuning-curve threshold definition.
+    pub predicted_threshold_definition_id: Option<String>,
     pub predicted_joint_limit_angle_rad: Option<f64>,
+    /// Reflex predictions are conditional on this exact intervention and assay context.
+    pub reflex_intervention: Option<InterventionKind>,
+    pub reflex_context_id: Option<String>,
     pub predicted_reflex_direction: Option<MovementDirection>,
     pub predicted_motor_targets: Vec<PredictedMotorTarget>,
 }
@@ -532,6 +537,19 @@ impl HairPlatePrediction {
         if self
             .predicted_joint_limit_angle_rad
             .is_some_and(|angle| !angle.is_finite() || angle.abs() > std::f64::consts::TAU)
+            || self
+                .predicted_threshold_definition_id
+                .as_ref()
+                .is_some_and(|id| !valid_identifier(id))
+            || self.predicted_joint_limit_angle_rad.is_some()
+                != self.predicted_threshold_definition_id.is_some()
+            || self
+                .reflex_context_id
+                .as_ref()
+                .is_some_and(|id| !valid_identifier(id))
+            || self.reflex_intervention.is_some() != self.reflex_context_id.is_some()
+            || self.predicted_reflex_direction.is_some()
+                && self.reflex_intervention.is_none()
         {
             return Err(OracleError::InvalidPrediction);
         }
@@ -662,41 +680,93 @@ pub fn evaluate_prediction(
         };
 
     let (joint_limit_absolute_error_rad, joint_limit_unscorable) =
-        match (&record.sensory_tuning, prediction.predicted_joint_limit_angle_rad) {
-            (Evidence::Observed { value, .. }, Some(predicted)) => {
+        match (
+            &record.sensory_tuning,
+            prediction.predicted_joint_limit_angle_rad,
+            prediction.predicted_threshold_definition_id.as_deref(),
+        ) {
+            (Evidence::Observed { value, .. }, Some(predicted), Some(threshold_id))
+                if threshold_id == value.threshold_definition_id =>
+            {
                 let error = (predicted - value.joint_limit_angle_rad).abs();
                 if !error.is_finite() {
                     return Err(OracleError::NonFiniteMetric);
                 }
                 (Some(error), None)
             }
-            (Evidence::Unknown { .. }, _) => (None, Some(UnscorableReason::UnknownEvidence)),
-            (Evidence::ExplicitlyAbsent { .. }, _) => {
+            (Evidence::Unknown { .. }, _, _) => {
+                (None, Some(UnscorableReason::UnknownEvidence))
+            }
+            (Evidence::ExplicitlyAbsent { .. }, _, _) => {
                 (None, Some(UnscorableReason::ExplicitlyAbsent))
             }
-            (_, None) => (None, Some(UnscorableReason::PredictionNotProvided)),
+            (Evidence::Observed { .. }, Some(_), Some(_)) => {
+                return Err(OracleError::InvalidPrediction);
+            }
+            (Evidence::Observed { .. }, _, _) => {
+                (None, Some(UnscorableReason::PredictionNotProvided))
+            }
         };
 
+    let reflex_scope = match (
+        prediction.reflex_intervention,
+        prediction.reflex_context_id.as_deref(),
+    ) {
+        (Some(intervention), Some(context_id)) => Some((intervention, context_id)),
+        (None, None) => None,
+        _ => return Err(OracleError::InvalidPrediction),
+    };
+
+    let observed_scoped_reflexes = match (&record.reflex_outcomes, reflex_scope) {
+        (Evidence::Observed { value, .. }, Some((intervention, context_id))) => Some(
+            value
+                .iter()
+                .filter(|outcome| {
+                    outcome.intervention == intervention
+                        && outcome.behavioural_context_id == context_id
+                })
+                .collect::<Vec<_>>(),
+        ),
+        _ => None,
+    };
+
     let (reflex_presence_correct, reflex_presence_unscorable) =
-        match &record.reflex_outcomes {
-            Evidence::Observed { .. } => (
-                Some(prediction.predicted_reflex_direction.is_some()),
-                None,
-            ),
-            Evidence::ExplicitlyAbsent { .. } => (
+        match (&record.reflex_outcomes, reflex_scope) {
+            (Evidence::Observed { .. }, Some(_)) => {
+                let observed_present = observed_scoped_reflexes
+                    .as_ref()
+                    .is_some_and(|outcomes| !outcomes.is_empty());
+                (
+                    Some(observed_present == prediction.predicted_reflex_direction.is_some()),
+                    None,
+                )
+            }
+            (Evidence::ExplicitlyAbsent { .. }, Some(_)) => (
                 Some(prediction.predicted_reflex_direction.is_none()),
                 None,
             ),
-            Evidence::Unknown { .. } => (
+            (Evidence::Unknown { .. }, _) => (
                 None,
                 Some(UnscorableReason::UnknownEvidence),
+            ),
+            (Evidence::ExplicitlyAbsent { .. }, None) => (
+                None,
+                Some(UnscorableReason::PredictionNotProvided),
+            ),
+            (Evidence::Observed { .. }, None) => (
+                None,
+                Some(UnscorableReason::PredictionNotProvided),
             ),
         };
 
     let (reflex_direction_correct, reflex_direction_unscorable) =
-        match (&record.reflex_outcomes, prediction.predicted_reflex_direction) {
-            (Evidence::Observed { value, .. }, Some(predicted)) => {
-                let directions = value
+        match (
+            &record.reflex_outcomes,
+            observed_scoped_reflexes.as_ref(),
+            prediction.predicted_reflex_direction,
+        ) {
+            (Evidence::Observed { .. }, Some(outcomes), Some(predicted)) if !outcomes.is_empty() => {
+                let directions = outcomes
                     .iter()
                     .map(|outcome| outcome.movement_direction)
                     .collect::<std::collections::BTreeSet<_>>();
@@ -706,11 +776,22 @@ pub fn evaluate_prediction(
                     (None, Some(UnscorableReason::UnknownEvidence))
                 }
             }
-            (Evidence::Unknown { .. }, _) => (None, Some(UnscorableReason::UnknownEvidence)),
-            (Evidence::ExplicitlyAbsent { .. }, _) => {
-                (None, Some(UnscorableReason::ExplicitlyAbsent))
-            }
-            (_, None) => (None, Some(UnscorableReason::PredictionNotProvided)),
+            (Evidence::Unknown { .. }, _, _) => (
+                None,
+                Some(UnscorableReason::UnknownEvidence),
+            ),
+            (Evidence::ExplicitlyAbsent { .. }, _, _) => (
+                None,
+                Some(UnscorableReason::ExplicitlyAbsent),
+            ),
+            (Evidence::Observed { .. }, Some(_), None) => (
+                None,
+                Some(UnscorableReason::PredictionNotProvided),
+            ),
+            (Evidence::Observed { .. }, _, _) => (
+                None,
+                Some(UnscorableReason::PredictionNotProvided),
+            ),
         };
 
     let (motor_target_metrics, motor_targets_unscorable) =
@@ -836,7 +917,10 @@ mod tests {
             heldout_split_sha256: digest('4'),
             prediction_sha256: digest('5'),
             training_plate_ids: vec!["front-coxa-hp3".to_string()],
+            predicted_threshold_definition_id: Some("response-over-0p5-v1".to_string()),
             predicted_joint_limit_angle_rad: Some(0.75),
+            reflex_intervention: Some(InterventionKind::OptogeneticActivation),
+            reflex_context_id: Some("standing-v1".to_string()),
             predicted_reflex_direction: Some(MovementDirection::Posterior),
             predicted_motor_targets: vec![
                 PredictedMotorTarget {
@@ -922,6 +1006,7 @@ mod tests {
             scope_id: "complete-standing-reflex-assay-v1".to_string(),
         };
         let mut absent_prediction = prediction();
+        absent_prediction.predicted_threshold_definition_id = None;
         absent_prediction.predicted_joint_limit_angle_rad = None;
         absent_prediction.predicted_reflex_direction = None;
 
@@ -986,6 +1071,29 @@ mod tests {
     }
 
     #[test]
+    fn inventory_rejects_cross_taxon_training_membership() {
+        let heldout = record();
+        let mut training = record();
+        training.plate_id = "other-taxon-plate-1".to_string();
+        training.taxon_id = "drosophila-simulans".to_string();
+        training.record_sha256 = digest('9');
+
+        let inventory = HairPlateInventory {
+            inventory_id: "mixed-taxon-hair-plates-v1".to_string(),
+            dataset_id: "fanc-v1-2-1".to_string(),
+            dataset_version: "1.2.1".to_string(),
+            inventory_sha256: digest('6'),
+            records: vec![heldout, training],
+        };
+        assert_eq!(
+            inventory.validate_prediction(&prediction()),
+            Err(OracleError::CrossTaxonTrainingPlate(
+                "other-taxon-plate-1".to_string()
+            ))
+        );
+    }
+
+    #[test]
     fn inventory_rejects_training_plate_missing_from_the_pinned_inventory() {
         let inventory = HairPlateInventory {
             inventory_id: "drosophila-hair-plate-v1".to_string(),
@@ -998,6 +1106,42 @@ mod tests {
             inventory.validate_prediction(&prediction()),
             Err(OracleError::UnknownPlate("front-coxa-hp3".to_string()))
         );
+    }
+
+    #[test]
+    fn rejects_joint_limit_prediction_with_a_different_threshold_definition() {
+        let mut input_prediction = prediction();
+        input_prediction.predicted_threshold_definition_id =
+            Some("different-threshold-v2".to_string());
+        assert_eq!(
+            evaluate_prediction(&record(), &input_prediction),
+            Err(OracleError::InvalidPrediction)
+        );
+    }
+
+    #[test]
+    fn reflex_direction_is_scored_only_for_the_declared_assay_context() {
+        let mut input = record();
+        if let Evidence::Observed { value, .. } = &mut input.reflex_outcomes {
+            value.push(ReflexOutcome {
+                intervention: InterventionKind::OptogeneticSilencing,
+                movement_direction: MovementDirection::Anterior,
+                response_latency_ms: 150.0,
+                response_magnitude: 0.4,
+                behavioural_context_id: "walking-v1".to_string(),
+            });
+        }
+        let result = evaluate_prediction(&input, &prediction()).expect("scoped reflex");
+        assert_eq!(result.reflex_presence_correct, Some(true));
+        assert_eq!(result.reflex_direction_correct, Some(true));
+    }
+
+    #[test]
+    fn rejects_reflex_direction_prediction_without_intervention_and_context() {
+        let mut invalid = prediction();
+        invalid.reflex_intervention = None;
+        invalid.reflex_context_id = None;
+        assert_eq!(invalid.validate(), Err(OracleError::InvalidPrediction));
     }
 
     #[test]
