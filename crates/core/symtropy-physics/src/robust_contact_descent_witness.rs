@@ -447,5 +447,5 @@ mod tests {
             gradient_box_support_upper(&one_point, &candidate),
             rational(-1)
         );
-     }
+    }
 }
