@@ -780,6 +780,7 @@ mod tests {
             commit_receipt_sha256: digest(),
             event_log_id: "evidence-log-1".to_string(),
             commit_sequence: 20,
+            observation_covariance: diagonal_covariance(dimension, 0.0),
             pairwise_observation_difference_covariance: diagonal_covariance(dimension, 0.0),
             forecasts,
         }
@@ -788,6 +789,7 @@ mod tests {
     fn policy(minimum_pair_mean_d2: f64) -> DiscriminationPolicy {
         DiscriminationPolicy {
             minimum_pair_mean_d2,
+            minimum_gaussian_bhattacharyya_distance: 0.05,
             covariance_regularization: 1.0,
         }
     }
@@ -973,7 +975,7 @@ mod tests {
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
         assert_eq!(result.status, DiscriminationStatus::SomePairsMeanSeparated);
         assert_eq!(result.mean_separated_pair_count, 2);
-        assert_eq!(result.unmean_separated_pair_count, 1);
+        assert_eq!(result.mean_unseparated_pair_count, 1);
     }
 
     #[test]
@@ -986,7 +988,7 @@ mod tests {
         let result = screen_intervention(&candidate, policy(5.0)).expect("screen");
         assert_eq!(result.status, DiscriminationStatus::AllPairsMeanSeparated);
         assert_eq!(result.mean_separated_pair_count, 3);
-        assert_eq!(result.unmean_separated_pair_count, 0);
+        assert_eq!(result.mean_unseparated_pair_count, 0);
     }
 
     #[test]
@@ -998,6 +1000,11 @@ mod tests {
         let result = screen_intervention(&candidate, policy(0.05)).expect("screen");
         assert_eq!(result.status, DiscriminationStatus::NoPairsMeanSeparated);
         assert_eq!(result.minimum_pair_mean_d2, 0.0);
+        assert_eq!(
+            result.gaussian_status,
+            GaussianDiscriminationStatus::AllPairsGaussianSeparated
+        );
+        assert!(result.minimum_pair_gaussian_bhattacharyya_distance > 0.05);
     }
 
     #[test]
@@ -1015,6 +1022,26 @@ mod tests {
         assert!(precise_result.minimum_pair_mean_d2 > uncertain_result.minimum_pair_mean_d2);
         assert_eq!(precise_result.status, DiscriminationStatus::AllPairsMeanSeparated);
         assert_eq!(uncertain_result.status, DiscriminationStatus::NoPairsMeanSeparated);
+        assert_eq!(
+            precise_result.gaussian_status,
+            GaussianDiscriminationStatus::AllPairsGaussianSeparated
+        );
+        assert_eq!(
+            uncertain_result.gaussian_status,
+            GaussianDiscriminationStatus::NoPairsGaussianSeparated
+        );
+    }
+
+    #[test]
+    fn gaussian_bhattacharyya_distance_has_a_one_dimensional_known_answer() {
+        let candidate = batch(vec![
+            forecast("model-a", vec![0.0], 0.0),
+            forecast("model-b", vec![2.0], 0.0),
+        ]);
+        let result = screen_intervention(&candidate, policy(1.0)).expect("screen");
+        assert!(
+            (result.pairwise[0].gaussian_bhattacharyya_distance - 0.5).abs() < 1.0e-12
+        );
     }
 
     #[test]
@@ -1088,6 +1115,7 @@ mod tests {
         ]);
         let invalid = DiscriminationPolicy {
             minimum_pair_mean_d2: 1.0,
+            minimum_gaussian_bhattacharyya_distance: 0.05,
             covariance_regularization: 0.0,
         };
         assert_eq!(
