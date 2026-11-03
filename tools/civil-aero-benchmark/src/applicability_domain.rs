@@ -689,7 +689,159 @@ pub fn verify_applicability_assessment(
     Ok(())
 }
 
+fn csv_escape(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
+fn csv_row(fields: Vec<String>) -> String {
+    fields
+        .iter()
+        .map(|field| csv_escape(field))
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+fn manifest_csv_row(record_type: &str) -> Vec<String> {
+    let mut fields = vec![String::new(); 26];
+    fields[0] = record_type.to_owned();
+    fields
+}
+
+/// Export a normalized manifest snapshot for an independent language-neutral oracle.
+pub fn applicability_manifest_to_csv(manifest: &ApplicabilityDomainManifest) -> String {
+    let header = "record_type,schema,model_id,quantity,quantity_unit,solver_identity_sha256,output_definition_sha256,feature_name,feature_unit,evidence_id,evidence_kind,source_ref,license_applicability,artifact_sha256,scope_sha256,region_id,geometry_family,flow_regime,support,rationale,supporting_evidence_id,bound_name,bound_unit,lower_inclusive,upper_inclusive,manifest_sha256";
+    let mut output = format!("{header}\n");
+    let mut metadata = manifest_csv_row("manifest");
+    metadata[1] = APPLICABILITY_DOMAIN_SCHEMA.to_owned();
+    metadata[2] = manifest.model_id.clone();
+    metadata[3] = manifest.quantity.clone();
+    metadata[4] = manifest.quantity_unit.clone();
+    metadata[5] = manifest.solver_identity_sha256.clone();
+    metadata[6] = manifest.output_definition_sha256.clone();
+    metadata[25] = manifest.manifest_sha256.clone();
+    output.push_str(&csv_row(metadata));
+    output.push('\n');
+
+    let mut features = manifest.feature_schema.iter().collect::<Vec<_>>();
+    features.sort_by(|left, right| left.name.cmp(&right.name));
+    for feature in features {
+        let mut row = manifest_csv_row("feature");
+        row[7] = feature.name.clone();
+        row[8] = feature.unit.clone();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+    }
+
+    let mut evidence_refs = manifest.evidence_refs.iter().collect::<Vec<_>>();
+    evidence_refs.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+    for evidence in evidence_refs {
+        let mut row = manifest_csv_row("evidence");
+        row[9] = evidence.evidence_id.clone();
+        row[10] = evidence.evidence_kind.clone();
+        row[11] = evidence.source_ref.clone();
+        row[12] = evidence.license_applicability.clone();
+        row[13] = evidence.artifact_sha256.clone();
+        row[14] = evidence.scope_sha256.clone();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+    }
+
+    let mut regions = manifest.regions.iter().collect::<Vec<_>>();
+    regions.sort_by(|left, right| left.region_id.cmp(&right.region_id));
+    for region in regions {
+        let mut row = manifest_csv_row("region");
+        row[15] = region.region_id.clone();
+        row[16] = region.geometry_family.clone();
+        row[17] = region.flow_regime.clone();
+        row[18] = region.support.as_str().to_owned();
+        row[19] = region.rationale.clone();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+
+        let mut evidence_ids = region.supporting_evidence_ids.iter().collect::<Vec<_>>();
+        evidence_ids.sort();
+        for evidence_id in evidence_ids {
+            let mut row = manifest_csv_row("region_evidence");
+            row[15] = region.region_id.clone();
+            row[20] = evidence_id.clone();
+            output.push_str(&csv_row(row));
+            output.push('\n');
+        }
+
+        let mut bounds = region.bounds.iter().collect::<Vec<_>>();
+        bounds.sort_by(|left, right| left.name.cmp(&right.name));
+        for bound in bounds {
+            let mut row = manifest_csv_row("bound");
+            row[15] = region.region_id.clone();
+            row[21] = bound.name.clone();
+            row[22] = bound.unit.clone();
+            row[23] = bound.lower_inclusive.to_string();
+            row[24] = bound.upper_inclusive.to_string();
+            output.push_str(&csv_row(row));
+            output.push('\n');
+        }
+    }
+    output
+}
+
+/// Export the exact query identity and feature values for an independent oracle.
+pub fn applicability_query_to_csv(query: &ApplicabilityQuery) -> String {
+    let header = "record_type,model_id,quantity,geometry_family,flow_regime,solver_identity_sha256,output_definition_sha256,feature_name,feature_unit,feature_value";
+    let mut output = format!("{header}\n");
+    let mut identity = vec![String::new(); 10];
+    identity[0] = "query".to_owned();
+    identity[1] = query.model_id.clone();
+    identity[2] = query.quantity.clone();
+    identity[3] = query.geometry_family.clone();
+    identity[4] = query.flow_regime.clone();
+    identity[5] = query.solver_identity_sha256.clone();
+    identity[6] = query.output_definition_sha256.clone();
+    output.push_str(&csv_row(identity));
+    output.push('\n');
+
+    let mut features = query.features.iter().collect::<Vec<_>>();
+    features.sort_by(|left, right| left.name.cmp(&right.name));
+    for feature in features {
+        let mut row = vec![String::new(); 10];
+        row[0] = "feature".to_owned();
+        row[7] = feature.name.clone();
+        row[8] = feature.unit.clone();
+        row[9] = feature.value.to_string();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+    }
+    output
+}
+
+/// Export the independently replayable assessment, including all matching-region IDs.
+pub fn applicability_assessment_to_csv(assessment: &ApplicabilityAssessment) -> String {
+    let header = "record_type,schema,model_id,quantity,manifest_sha256,query_sha256,status,region_id,reason,evidence_level,assessment_sha256";
+    let mut output = format!("{header}\n");
+    let mut row = vec![String::new(); 11];
+    row[0] = "assessment".to_owned();
+    row[1] = assessment.schema.clone();
+    row[2] = assessment.model_id.clone();
+    row[3] = assessment.quantity.clone();
+    row[4] = assessment.manifest_sha256.clone();
+    row[5] = assessment.query_sha256.clone();
+    row[6] = assessment.status.as_str().to_owned();
+    row[8] = assessment.reason.clone();
+    row[9] = assessment.evidence_level.clone();
+    row[10] = assessment.assessment_sha256.clone();
+    output.push_str(&csv_row(row));
+    output.push('\n');
+    for region_id in &assessment.matched_region_ids {
+        let mut row = vec![String::new(); 11];
+        row[0] = "matched_region".to_owned();
+        row[7] = region_id.clone();
+        output.push_str(&csv_row(row));
+        output.push('\n');
+    }
+    output
+}
+
 #[cfg(test)]
+
 mod tests {
     use super::*;
 
