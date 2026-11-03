@@ -21,6 +21,23 @@ const REQUIRED_SECURITY_SCENARIOS: &[&str] = &[
     "WPT-SEC-RESONANT-SWITCH-001",
 ];
 
+const REQUIRED_FOD_SCENARIOS: &[(&str, &str)] = &[
+    ("WPT-FOD-COIN-25MM-PRE-ENERGIZE", "INHIBIT_TRANSFER"),
+    ("WPT-FOD-COPPER-SHEET-100MM-PRE-ENERGIZE", "INHIBIT_TRANSFER"),
+    ("WPT-FOD-SMALL-FASTENER-FERRITE-EDGE", "INHIBIT_TRANSFER"),
+    ("WPT-FOD-MULTI-OBJECT-SET", "INHIBIT_TRANSFER"),
+    ("WPT-FOD-UNKNOWN-ALLOY-OOD", "ABSTAIN"),
+    ("WPT-FOD-SESSION-DRIFT", "ABSTAIN"),
+    ("WPT-FOD-ACTIVE-TRANSFER-EMI", "SAFE_DEENERGIZE"),
+    ("WPT-FOD-SENSOR-CHANNEL-LOSS", "ABSTAIN"),
+    ("WPT-FOD-AMBIGUOUS-LOCALIZATION", "ABSTAIN"),
+    ("WPT-FOD-DEMAG-QUALIFIED-COIN", "ACTIVATE_MITIGATION"),
+    ("WPT-FOD-DEMAG-FAULT", "SAFE_DEENERGIZE"),
+    ("WPT-FOD-OBJECT-MOVEMENT", "SAFE_DEENERGIZE"),
+    ("WPT-FOD-THERMAL-SENSOR-FAULT", "SAFE_DEENERGIZE"),
+    ("WPT-FOD-NO-OBJECT-NEGATIVE-CONTROL", "NO_FOD_ACTION"),
+];
+
 const TOP_LEVEL: &[&str] = &[
     "schema_version",
     "run_id",
@@ -36,6 +53,7 @@ const TOP_LEVEL: &[&str] = &[
     "cyber_physical_security",
     "standards_basis",
     "motion_profile",
+    "foreign_object_assessment",
     "result",
 ];
 
@@ -441,6 +459,58 @@ fn validate_structure(manifest: &Value) -> Vec<String> {
             "notes",
         ],
         "standards_basis",
+        &mut errors,
+    );
+    exact_object_keys(
+        manifest.get("foreign_object_assessment"),
+        &[
+            "assessment_status",
+            "sensor_modality",
+            "pre_transfer_frame_count",
+            "active_transfer_frame_count",
+            "distinct_conductive_object_count",
+            "distinct_nonconductive_object_count",
+            "held_out_object_count",
+            "held_out_session_count",
+            "data_split_policy",
+            "confusion_matrix",
+            "detection_recall_pct",
+            "false_negative_rate_pct",
+            "false_positive_rate_pct",
+            "real_time_accuracy_pct",
+            "p99_detection_latency_ms",
+            "localization_error_p95_mm",
+            "expected_calibration_error_pct",
+            "ood_abstention_count",
+            "sensor_fault_abstention_count",
+            "mitigation_mode",
+            "auxiliary_energy_j",
+            "max_object_temperature_rise_c",
+            "thermal_ground_truth_method",
+            "scenario_corpus_sha256",
+            "assessment_report_sha256",
+            "scenario_results",
+        ],
+        "foreign_object_assessment",
+        &mut errors,
+    );
+    exact_object_keys(
+        at(manifest, &["foreign_object_assessment", "confusion_matrix"]),
+        &["true_positive", "true_negative", "false_positive", "false_negative"],
+        "foreign_object_assessment.confusion_matrix",
+        &mut errors,
+    );
+    exact_array_item_keys(
+        at(manifest, &["foreign_object_assessment", "scenario_results"]),
+        &[
+            "scenario_id",
+            "outcome",
+            "expected_action",
+            "observed_action",
+            "evidence_sha256",
+            "notes",
+        ],
+        "foreign_object_assessment.scenario_results",
         &mut errors,
     );
     exact_object_keys(
@@ -1045,6 +1115,179 @@ fn validate_qualified(manifest: &Value) -> Vec<String> {
     }
     if !has_calibration {
         errors.push("artifact_refs: CALIBRATION_CERTIFICATE artifact required".into());
+    }
+
+    // Foreign-object detection is evaluated as a complete safety pipeline:
+    // held-out generalization, confusion counts, latency/localization and
+    // evidence-backed responses to a frozen scenario corpus.
+    let fod = manifest
+        .get("foreign_object_assessment")
+        .unwrap_or(&Value::Null);
+    let fod_status = string_at(fod, &["assessment_status"]).unwrap_or("NOT_ASSESSED");
+    let safety_fod = string_at(manifest, &["safety", "foreign_object_detection"]);
+    if !matches!(fod_status, "NOT_ASSESSED" | "INCOMPLETE" | "QUALIFIED") {
+        errors.push("foreign_object_assessment.assessment_status: unsupported status".into());
+    }
+    if fod_status != "QUALIFIED" && safety_fod == Some("PASS") {
+        errors.push("safety.foreign_object_detection: PASS requires QUALIFIED foreign-object assessment".into());
+    }
+    if fod_status == "QUALIFIED" {
+        if safety_fod != Some("PASS") {
+            errors.push("foreign_object_assessment: QUALIFIED assessment requires safety.foreign_object_detection PASS".into());
+        }
+        if !matches!(
+            string_at(fod, &["sensor_modality"]),
+            Some("IMPEDANCE" | "MIT" | "THERMAL" | "OPTICAL" | "HYBRID" | "OTHER")
+        ) {
+            errors.push("foreign_object_assessment.sensor_modality: known sensor modality required".into());
+        }
+        for (field, label) in [
+            ("pre_transfer_frame_count", "pre-transfer frame count"),
+            ("active_transfer_frame_count", "active-transfer frame count"),
+            ("distinct_conductive_object_count", "conductive object count"),
+            ("distinct_nonconductive_object_count", "non-conductive object count"),
+            ("held_out_object_count", "held-out object count"),
+            ("held_out_session_count", "held-out session count"),
+            ("ood_abstention_count", "OOD abstention count"),
+            ("sensor_fault_abstention_count", "sensor-fault abstention count"),
+        ] {
+            if !at(fod, &[field]).and_then(Value::as_u64).is_some_and(|value| value > 0) {
+                errors.push(format!("foreign_object_assessment.{field}: positive {label} required"));
+            }
+        }
+        if string_at(fod, &["data_split_policy"]) != Some("OBJECT_AND_SESSION_HELD_OUT") {
+            errors.push("foreign_object_assessment.data_split_policy: safety qualification requires OBJECT_AND_SESSION_HELD_OUT".into());
+        }
+
+        let tp = at(fod, &["confusion_matrix", "true_positive"]).and_then(Value::as_u64);
+        let tn = at(fod, &["confusion_matrix", "true_negative"]).and_then(Value::as_u64);
+        let fp = at(fod, &["confusion_matrix", "false_positive"]).and_then(Value::as_u64);
+        let fn_count = at(fod, &["confusion_matrix", "false_negative"]).and_then(Value::as_u64);
+        match (tp, tn, fp, fn_count) {
+            (Some(tp), Some(tn), Some(fp), Some(fn_count)) => {
+                let positive_total = tp + fn_count;
+                let negative_total = tn + fp;
+                let total = positive_total + negative_total;
+                if positive_total < 10_000 {
+                    errors.push("foreign_object_assessment.confusion_matrix: proposed safety target requires >=10000 held-out positive cases".into());
+                }
+                if fn_count != 0 {
+                    errors.push("foreign_object_assessment.confusion_matrix: proposed safety target requires zero false negatives".into());
+                }
+                if positive_total == 0 || negative_total == 0 || total == 0 {
+                    errors.push("foreign_object_assessment.confusion_matrix: positive and negative test cases required".into());
+                } else {
+                    let recall = tp as f64 / positive_total as f64 * 100.0;
+                    let fnr = fn_count as f64 / positive_total as f64 * 100.0;
+                    let fpr = fp as f64 / negative_total as f64 * 100.0;
+                    let accuracy = (tp + tn) as f64 / total as f64 * 100.0;
+                    for (field, expected) in [
+                        ("detection_recall_pct", recall),
+                        ("false_negative_rate_pct", fnr),
+                        ("false_positive_rate_pct", fpr),
+                        ("real_time_accuracy_pct", accuracy),
+                    ] {
+                        match number_at(fod, &[field]) {
+                            Some(observed) if (observed - expected).abs() <= 0.001 => {}
+                            _ => errors.push(format!(
+                                "foreign_object_assessment.{field}: must equal confusion-matrix-derived value {expected:.6}%"
+                            )),
+                        }
+                    }
+                }
+            }
+            _ => errors.push("foreign_object_assessment.confusion_matrix: all four nonnegative integer counts required".into()),
+        }
+
+        if !number_at(fod, &["p99_detection_latency_ms"]).is_some_and(|value| value <= 100.0) {
+            errors.push("foreign_object_assessment.p99_detection_latency_ms: measured p99 latency must be <=100 ms".into());
+        }
+        if !number_at(fod, &["localization_error_p95_mm"]).is_some_and(|value| value <= 25.0) {
+            errors.push("foreign_object_assessment.localization_error_p95_mm: 95th percentile error must be <=25 mm".into());
+        }
+        if !number_at(fod, &["expected_calibration_error_pct"]).is_some_and(|value| value <= 5.0) {
+            errors.push("foreign_object_assessment.expected_calibration_error_pct: calibration error must be <=5%".into());
+        }
+
+        let report_digest = string_at(fod, &["assessment_report_sha256"]);
+        let corpus_digest = string_at(fod, &["scenario_corpus_sha256"]);
+        if !report_digest.is_some_and(valid_sha256) || !corpus_digest.is_some_and(valid_sha256) {
+            errors.push("foreign_object_assessment: scenario corpus and assessment report SHA-256 digests required".into());
+        }
+        let fod_report_bound = artifacts.is_some_and(|items| {
+            items.iter().any(|artifact| {
+                string_at(artifact, &["artifact_type"]) == Some("FOD_REPORT")
+                    && string_at(artifact, &["sha256"]) == report_digest
+            })
+        });
+        if !fod_report_bound {
+            errors.push("foreign_object_assessment.assessment_report_sha256: digest must bind a FOD_REPORT artifact".into());
+        }
+
+        let scenario_results = at(fod, &["scenario_results"]).and_then(Value::as_array);
+        match scenario_results {
+            Some(results) => {
+                let mut seen = BTreeSet::new();
+                for (index, result) in results.iter().enumerate() {
+                    let id = string_at(result, &["scenario_id"]).unwrap_or("");
+                    let expected = REQUIRED_FOD_SCENARIOS.iter().find(|(candidate, _)| *candidate == id);
+                    if let Some((_, expected_action)) = expected {
+                        if !seen.insert(id.to_owned()) {
+                            errors.push(format!("foreign_object_assessment.scenario_results[{index}].scenario_id: duplicate scenario"));
+                        }
+                        if string_at(result, &["expected_action"]) != Some(*expected_action) {
+                            errors.push(format!("foreign_object_assessment.scenario_results[{index}].expected_action: differs from frozen corpus"));
+                        }
+                    } else {
+                        errors.push(format!("foreign_object_assessment.scenario_results[{index}].scenario_id: unknown scenario"));
+                    }
+                    let outcome = string_at(result, &["outcome"]).unwrap_or("NOT_RUN");
+                    if !matches!(outcome, "PASS" | "NOT_APPLICABLE") {
+                        errors.push(format!("foreign_object_assessment.scenario_results[{index}].outcome: qualified run must PASS or justify NOT_APPLICABLE"));
+                    }
+                    if outcome == "PASS" {
+                        if string_at(result, &["observed_action"]) != string_at(result, &["expected_action"]) {
+                            errors.push(format!("foreign_object_assessment.scenario_results[{index}].observed_action: does not match expected safe action"));
+                        }
+                        if string_at(result, &["evidence_sha256"]) != report_digest {
+                            errors.push(format!("foreign_object_assessment.scenario_results[{index}].evidence_sha256: must bind the FOD_REPORT digest"));
+                        }
+                    }
+                    if outcome == "NOT_APPLICABLE" && !nonempty(string_at(result, &["notes"])) {
+                        errors.push(format!("foreign_object_assessment.scenario_results[{index}].notes: NOT_APPLICABLE requires reason"));
+                    }
+                }
+                for (id, _) in REQUIRED_FOD_SCENARIOS {
+                    if !seen.contains(*id) {
+                        errors.push(format!("foreign_object_assessment.scenario_results: missing required scenario {id}"));
+                    }
+                }
+                if results.len() != REQUIRED_FOD_SCENARIOS.len() {
+                    errors.push(format!("foreign_object_assessment.scenario_results: expected exactly {} scenarios", REQUIRED_FOD_SCENARIOS.len()));
+                }
+            }
+            None => errors.push("foreign_object_assessment.scenario_results: scenario result array required".into()),
+        }
+
+        let mitigation = string_at(fod, &["mitigation_mode"]).unwrap_or("UNKNOWN");
+        if mitigation == "ACTIVE_DEMAG" {
+            if !number_at(fod, &["auxiliary_energy_j"]).is_some_and(|value| value >= 0.0)
+                || !number_at(fod, &["max_object_temperature_rise_c"]).is_some()
+                || !matches!(
+                    string_at(fod, &["thermal_ground_truth_method"]),
+                    Some("CALIBRATED_THERMOCOUPLE" | "CALIBRATED_IR" | "THERMOCOUPLE_AND_IR")
+                )
+            {
+                errors.push("foreign_object_assessment: ACTIVE_DEMAG requires auxiliary energy, object temperature rise and calibrated thermal ground truth".into());
+            }
+            if !artifacts.is_some_and(|items| items.iter().any(|artifact| {
+                string_at(artifact, &["artifact_type"]) == Some("FOD_THERMAL_DATA")
+            })) {
+                errors.push("foreign_object_assessment: ACTIVE_DEMAG requires FOD_THERMAL_DATA artifact".into());
+            }
+        }
+    } else if safety_fod == Some("PASS") {
+        errors.push("safety.foreign_object_detection: cannot PASS with NOT_ASSESSED/INCOMPLETE FOD evidence".into());
     }
 
     // Standards applicability is a typed scope decision, not a document-name
