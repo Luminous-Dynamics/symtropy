@@ -228,3 +228,11 @@ The companion file `cyber-physical-scenarios.jsonl` defines ten scenario IDs and
 
 The scenarios cover receiver spoofing, command replay, stale commands, firmware integrity, phase-sensor injection, current-sensor tampering, timing jitter, communication DoS/loss, certificate revocation and resonant isolation switch mismatch. They are deterministic test specifications, not instructions to attack a live charger or grid. Tests must run in an authorized isolated environment with safe, non-energized or approved hardware-in-the-loop fixtures.
 
+## 15. Temperature-dependent magnetic core saturation margin
+
+Each resonant branch may declare a magnetic core material, saturation-versus-temperature curve reference, core temperature, peak flux density and applicable hot-state saturation limit. Use measured flux or calculate it from a measured voltage waveform and verified turns/geometry; a simulation-only flux value cannot qualify a physical test.
+
+Proposed design target: peak flux density <=80% of the saturation value at the maximum measured core temperature. This provides a 20% hot-state design margin against the declared material curve. Record manufacturing/material variation and uncertainty; use the lower-confidence saturation limit where characterization uncertainty is known.
+
+The 2026 Zhang et al. study reports a calculated 376 mT maximum flux and cites saturation values of 530 mT at 25°C and 410 mT at 100°C. These values imply utilization of about 71.0% at 25°C but 91.7% at 100°C. This arithmetic is derived from the paper's reported values; it is not an independent measurement of the prototype's core flux or temperature. It demonstrates why a single room-temperature Bsat number can conceal inadequate hot-state margin.
+
