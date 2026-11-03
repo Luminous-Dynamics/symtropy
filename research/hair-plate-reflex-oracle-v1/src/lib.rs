@@ -224,8 +224,12 @@ pub struct MotorTargetMetrics {
 #[derive(Debug, Clone, PartialEq)]
 pub struct HairPlateEvaluation {
     pub plate_id: String,
+    pub joint_limit_presence_correct: Option<bool>,
+    pub joint_limit_presence_unscorable: Option<UnscorableReason>,
     pub joint_limit_absolute_error_rad: Option<f64>,
     pub joint_limit_unscorable: Option<UnscorableReason>,
+    pub reflex_presence_correct: Option<bool>,
+    pub reflex_presence_unscorable: Option<UnscorableReason>,
     pub reflex_direction_correct: Option<bool>,
     pub reflex_direction_unscorable: Option<UnscorableReason>,
     pub motor_target_metrics: Option<MotorTargetMetrics>,
@@ -608,6 +612,22 @@ pub fn evaluate_prediction(
         return Err(OracleError::PredictionIdentityMismatch);
     }
 
+    let (joint_limit_presence_correct, joint_limit_presence_unscorable) =
+        match &record.sensory_tuning {
+            Evidence::Observed { .. } => (
+                Some(prediction.predicted_joint_limit_angle_rad.is_some()),
+                None,
+            ),
+            Evidence::ExplicitlyAbsent { .. } => (
+                Some(prediction.predicted_joint_limit_angle_rad.is_none()),
+                None,
+            ),
+            Evidence::Unknown { .. } => (
+                None,
+                Some(UnscorableReason::UnknownEvidence),
+            ),
+        };
+
     let (joint_limit_absolute_error_rad, joint_limit_unscorable) =
         match (&record.sensory_tuning, prediction.predicted_joint_limit_angle_rad) {
             (Evidence::Observed { value, .. }, Some(predicted)) => {
@@ -624,6 +644,22 @@ pub fn evaluate_prediction(
             (_, None) => (None, Some(UnscorableReason::PredictionNotProvided)),
         };
 
+    let (reflex_presence_correct, reflex_presence_unscorable) =
+        match &record.reflex_outcomes {
+            Evidence::Observed { .. } => (
+                Some(prediction.predicted_reflex_direction.is_some()),
+                None,
+            ),
+            Evidence::ExplicitlyAbsent { .. } => (
+                Some(prediction.predicted_reflex_direction.is_none()),
+                None,
+            ),
+            Evidence::Unknown { .. } => (
+                None,
+                Some(UnscorableReason::UnknownEvidence),
+            ),
+        };
+
     let (reflex_direction_correct, reflex_direction_unscorable) =
         match (&record.reflex_outcomes, prediction.predicted_reflex_direction) {
             (Evidence::Observed { value, .. }, Some(predicted)) => {
@@ -632,10 +668,7 @@ pub fn evaluate_prediction(
                     .map(|outcome| outcome.movement_direction)
                     .collect::<std::collections::BTreeSet<_>>();
                 if directions.len() == 1 {
-                    (
-                        Some(directions.contains(&predicted)),
-                        None,
-                    )
+                    (Some(directions.contains(&predicted)), None)
                 } else {
                     (None, Some(UnscorableReason::UnknownEvidence))
                 }
@@ -661,8 +694,12 @@ pub fn evaluate_prediction(
 
     Ok(HairPlateEvaluation {
         plate_id: record.plate_id.clone(),
+        joint_limit_presence_correct,
+        joint_limit_presence_unscorable,
         joint_limit_absolute_error_rad,
         joint_limit_unscorable,
+        reflex_presence_correct,
+        reflex_presence_unscorable,
         reflex_direction_correct,
         reflex_direction_unscorable,
         motor_target_metrics,
@@ -838,6 +875,64 @@ mod tests {
         assert_eq!(targets.false_negatives, 0);
         assert_eq!(targets.f1, Some(1.0));
         assert_eq!(targets.sign_accuracy, Some(1.0));
+    }
+
+    #[test]
+    fn explicitly_absent_tuning_and_reflex_are_scored_as_negative_predictions() {
+        let mut input = record();
+        input.sensory_tuning = Evidence::ExplicitlyAbsent {
+            search_receipt_sha256: digest('7'),
+            scope_id: "complete-front-coxa-tuning-search-v1".to_string(),
+        };
+        input.reflex_outcomes = Evidence::ExplicitlyAbsent {
+            search_receipt_sha256: digest('8'),
+            scope_id: "complete-standing-reflex-assay-v1".to_string(),
+        };
+        let mut absent_prediction = prediction();
+        absent_prediction.predicted_joint_limit_angle_rad = None;
+        absent_prediction.predicted_reflex_direction = None;
+
+        let absent_result =
+            evaluate_prediction(&input, &absent_prediction).expect("absent case");
+        assert_eq!(absent_result.joint_limit_presence_correct, Some(true));
+        assert_eq!(absent_result.reflex_presence_correct, Some(true));
+
+        let false_positive_result =
+            evaluate_prediction(&input, &prediction()).expect("false positive case");
+        assert_eq!(false_positive_result.joint_limit_presence_correct, Some(false));
+        assert_eq!(false_positive_result.reflex_presence_correct, Some(false));
+        assert_eq!(
+            false_positive_result.joint_limit_unscorable,
+            Some(UnscorableReason::ExplicitlyAbsent)
+        );
+        assert_eq!(
+            false_positive_result.reflex_direction_unscorable,
+            Some(UnscorableReason::ExplicitlyAbsent)
+        );
+    }
+
+    #[test]
+    fn unknown_tuning_and_reflex_remain_unscorable_not_negative() {
+        let mut input = record();
+        input.sensory_tuning = Evidence::Unknown {
+            reason: EvidenceUnknownReason::NotMeasured,
+            detail: "not measured in this plate".to_string(),
+        };
+        input.reflex_outcomes = Evidence::Unknown {
+            reason: EvidenceUnknownReason::NotMeasured,
+            detail: "no reflex assay available".to_string(),
+        };
+        let result = evaluate_prediction(&input, &prediction()).expect("unknown case");
+        assert_eq!(result.joint_limit_presence_correct, None);
+        assert_eq!(result.reflex_presence_correct, None);
+        assert_eq!(
+            result.joint_limit_presence_unscorable,
+            Some(UnscorableReason::UnknownEvidence)
+        );
+        assert_eq!(
+            result.reflex_presence_unscorable,
+            Some(UnscorableReason::UnknownEvidence)
+        );
     }
 
     #[test]
