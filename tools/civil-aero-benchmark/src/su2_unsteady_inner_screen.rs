@@ -271,7 +271,7 @@ pub fn screen_su2_unsteady_inner_convergence(
             .map(|result| format!("{}:{}", result.field, result.failed_time_step_count))
             .collect::<Vec<_>>();
         return Err(format!(
-            "unsteady inner residual threshold failed at sampled TIME_ITER records: {}",
+            "unsteady inner residual exceeded threshold at sampled TIME_ITER records: {}",
             failed.join(",")
         ));
     }
@@ -375,7 +375,7 @@ mod tests {
     #[test]
     fn window_coverage_rejects_iteration_overflow() {
         assert!(
-            required_terminal_iteration(u64::MAX - 5, 3, 3)
+            required_terminal_iteration(u64::MAX - 2, 3, 3)
                 .expect_err("window coverage overflow must reject")
                 .contains("overflowed")
         );
