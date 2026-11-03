@@ -565,6 +565,7 @@ pub fn verify_su2_termination(
     if recomputed != *report {
         return Err(
             "replayed native SU2 termination report differs from supplied report".to_owned(),
+        );
     }
     if sha256_hex(&canonical_bytes(report))? != report.termination_sha256 {
         return Err("native SU2 termination canonical digest mismatch".to_owned());
