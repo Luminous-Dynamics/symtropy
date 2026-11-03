@@ -3206,11 +3206,25 @@ mod double_sliding_direction_oracle {
                         .sub(&branch_sensitivities[1][coordinate][observable])
                 })
             });
+        let mut common_direction = None;
+        let mut minimum_joint_gap: Option<BigRational> = None;
         for branch_difference in &differences_by_observable {
             let (experiment_direction, guaranteed_gap) =
                 maximum_box_separation_direction(branch_difference)
                     .expect("the declared branch pair is locally distinguishable");
             assert!(guaranteed_gap > zero);
+
+            // This fixture has a shared optimal probe for both observables, so
+            // one physical perturbation separates both branch predictions.
+            if let Some(previous_direction) = common_direction {
+                assert_eq!(experiment_direction, previous_direction);
+            } else {
+                common_direction = Some(experiment_direction);
+            }
+            minimum_joint_gap = Some(match minimum_joint_gap {
+                Some(previous_gap) => previous_gap.min(guaranteed_gap.clone()),
+                None => guaranteed_gap.clone(),
+            });
 
             // Compare with the best single-coordinate probe under the same
             // independent L-infinity experiment constraint.
@@ -3244,6 +3258,13 @@ mod double_sliding_direction_oracle {
                 );
             }
         }
+        assert_eq!(
+            common_direction.expect("both observables have a shared experiment"),
+            [-1, 1, 1, 1, 1, 1]
+        );
+        assert!(
+            minimum_joint_gap.expect("both observables have certified gaps") > zero
+        );
 
         // Negative control: overlapping branch-gradient differences in every
         // coordinate require abstention instead of a fabricated separation.
