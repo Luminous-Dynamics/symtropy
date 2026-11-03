@@ -266,7 +266,11 @@
             "VEHICLE_ENERGY_REPLENISHED",
             "FIELD_PROBE_UNLOCATED",
             "NOT_APPLICABLE",
-            "UNKNOWN"
+            "UNKNOWN",
+            "VEHICLE_SIDE_ENERGY_TRANSFER",
+            "ROUTE_DISTANCE",
+            "VEHICLE_PROPULSION_ENERGY_PER_DISTANCE",
+            "VEHICLE_WPT_ENERGY_PER_DISTANCE"
           ]
         },
         "output_plane_kind": {
@@ -289,7 +293,11 @@
             "VEHICLE_ENERGY_REPLENISHED",
             "FIELD_PROBE_UNLOCATED",
             "NOT_APPLICABLE",
-            "UNKNOWN"
+            "UNKNOWN",
+            "VEHICLE_SIDE_ENERGY_TRANSFER",
+            "ROUTE_DISTANCE",
+            "VEHICLE_PROPULSION_ENERGY_PER_DISTANCE",
+            "VEHICLE_WPT_ENERGY_PER_DISTANCE"
           ]
         },
         "stage_set_status": {
