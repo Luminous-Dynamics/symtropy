@@ -338,3 +338,16 @@ A critical limitation: this edition does **not** cover multiple secondary device
 - **IEC PAS 61980-6:2025:** dynamic off-board communication/positioning activities; bidirectional requirements remain under consideration.
 
 This makes the standards map a genuine vehicle-side/off-board matrix. A heavy-duty dynamic WPT system requires the applicable vehicle-side ISO/PAS 5474-6 and off-board IEC PAS 61980-5/6 assessments; a passenger/light-commercial static system follows ISO 5474-4 with IEC 61980-1/-2/-3 (and the applicable SAE interoperability scope). Neither chain alone proves the entire deployed system meets all jurisdictional grid, EMC, exposure or cybersecurity requirements.
+
+
+### Heavy-duty vehicle-side standards: ISO/PAS 5474-6:2025
+
+The ISO/PAS 5474-6:2025 vehicle-side PAS (https://www.iso.org/standard/84305.html) closes the heavy-duty half of the dynamic/static standards matrix. It defines on-board vehicle equipment for heavy-duty magnetic-field WPT and explicitly covers both stationary and in-motion applications. It addresses vehicle-side safety, transferred power/efficiency, ground clearance, interoperability and test procedures; the intended off-board partner is the IEC 61980 family.
+
+However, this first edition explicitly does not cover multiple secondary devices in a modular higher-power arrangement. The round-robin manifest therefore records onboard_secondary_device_count; a run with multiple onboard secondary devices must not claim this PAS as a complete normative basis. This is a material boundary for multi-pad or modular high-power heavy-duty receivers.
+
+The standards matrix now has four complementary pairs:
+- Passenger car/light commercial, stationary: ISO 5474-4:2025 (vehicle side) with IEC 61980-1/-2/-3 (off-board); SAE J2954_202408 is an additional regional light-duty interoperability reference up to 11 kVA, forward G2V.
+- Heavy-duty static MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with applicable stationary off-board IEC 61980 high-power or standard-power scope.
+- Heavy-duty dynamic MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with IEC PAS 61980-5:2024 (dynamic off-board) and IEC PAS 61980-6:2025 (dynamic communication/positioning).
+- Bidirectional and modular multi-secondary higher-power: explicit research/standards gaps remain. ISO 5474-4 excludes reverse WPT; IEC PAS 61980-6 says bidirectional is under consideration; ISO/PAS 5474-6 does not cover multiple secondary devices in this edition. A configuration may meet individual in-scope aspects, but must not be labelled fully conformant by implication.
