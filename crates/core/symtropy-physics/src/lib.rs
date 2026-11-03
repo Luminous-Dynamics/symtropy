@@ -37,6 +37,8 @@ pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
+#[cfg(test)]
+mod robust_contact_descent_witness;
 pub mod support_map;
 pub mod world;
 
