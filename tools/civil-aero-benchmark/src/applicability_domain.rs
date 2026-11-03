@@ -577,8 +577,15 @@ pub fn assess_applicability_domain(
         );
     }
 
+    let mut ordered_query_features = query.features.iter().collect::<Vec<_>>();
+    ordered_query_features.sort_by(|left, right| {
+        left.name
+            .cmp(&right.name)
+            .then_with(|| left.unit.cmp(&right.unit))
+            .then_with(|| left.value.total_cmp(&right.value))
+    });
     let mut values = BTreeMap::new();
-    for feature in &query.features {
+    for feature in ordered_query_features {
         if feature.name.trim().is_empty() || feature.unit.trim().is_empty() {
             return unknown(manifest, query, "query contains a missing feature name or unit");
         }
@@ -604,7 +611,7 @@ pub fn assess_applicability_domain(
         .map(|feature| (feature.name.as_str(), feature.unit.as_str()))
         .collect::<BTreeMap<_, _>>();
     if values.len() != expected.len()
-        || expected.keys().any(|name| !values.contains_key(name))
+        || expected.keys().any(|name| !values.contains_key(*name))
     {
         return unknown(
             manifest,
@@ -800,7 +807,12 @@ pub fn applicability_query_to_csv(query: &ApplicabilityQuery) -> String {
     output.push('\n');
 
     let mut features = query.features.iter().collect::<Vec<_>>();
-    features.sort_by(|left, right| left.name.cmp(&right.name));
+    features.sort_by(|left, right| {
+        left.name
+            .cmp(&right.name)
+            .then_with(|| left.unit.cmp(&right.unit))
+            .then_with(|| left.value.total_cmp(&right.value))
+    });
     for feature in features {
         let mut row = vec![String::new(); 10];
         row[0] = "feature".to_owned();
