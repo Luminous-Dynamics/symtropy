@@ -877,12 +877,11 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
             let name = format!("TIME-{case_number:03}-stale-{source}-{}",
                 cell.column);
             let mut events = base.clone();
-            if let Some(latest) = events
-                .iter_mut()
-                .find(|item| item.source_id == source && item.cell == cell)
-            {
-                latest.source_time_ms = 4_000;
-                latest.received_at_ms = 4_005;
+            for source_event in &mut events {
+                if source_event.source_id == source {
+                    source_event.source_time_ms = 4_000;
+                    source_event.received_at_ms = 4_005;
+                }
             }
             add_case(
                 &mut cases,
@@ -1116,7 +1115,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     let mut old = events[0].clone();
     old.event_id = "old-sequence-late-arrival".to_owned();
     old.source_sequence = 1;
-    old.source_time_ms = 4_800;
+    old.source_time_ms = 4_900;
     old.received_at_ms = 4_990;
     old.state = ObservationState::Clear;
     events.push(old);
@@ -1129,9 +1128,13 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     );
 
     let mut events = base.clone();
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = 4_800;
+            item.received_at_ms = 4_805;
+        }
+    }
     events[0].state = ObservationState::HumanPresent;
-    events[0].source_time_ms = 4_800;
-    events[0].received_at_ms = 4_805;
     let mut late_clear = events[0].clone();
     late_clear.event_id = "late-clear-after-cutoff".to_owned();
     late_clear.source_sequence = 2;
@@ -1175,7 +1178,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     events.extend(later_frame);
     add_case(
         &mut cases,
-        "TIME-048-new-cutoff-consumes-new-evidence".to_owned(),
+        "TIME-049-new-cutoff-consumes-new-evidence".to_owned(),
         later_policy,
         events,
         Disposition::WithinSyntheticEnvelope,
@@ -1199,8 +1202,12 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     );
 
     let mut events = base.clone();
-    events[0].source_time_ms = 4_499;
-    events[0].received_at_ms = 4_999;
+    for item in &mut events {
+        if item.source_id == "lidar-front" {
+            item.source_time_ms = 4_499;
+            item.received_at_ms = 4_999;
+        }
+    }
     add_case(
         &mut cases,
         "TIME-051-stale-source-time-despite-recent-arrival".to_owned(),
