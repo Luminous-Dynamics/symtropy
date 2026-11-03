@@ -1,7 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fs::File;
@@ -14,12 +14,19 @@ fn text<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
 
 fn dimension_for_quantity(q: &str) -> Option<&'static str> {
     match q {
-        "electrical_real_power" | "apparent_power" | "reactive_power" | "useful_load_power" => Some("power"),
+        "electrical_real_power" | "apparent_power" | "reactive_power" | "useful_load_power" => {
+            Some("power")
+        }
         "delivered_energy" => Some("energy"),
         "energy_per_distance" => Some("energy_per_distance"),
-        "end_to_end_efficiency" | "subsystem_efficiency"
-        | "service_energy_replenishment_ratio" | "coupling_coefficient"
-        | "quality_factor" | "power_factor" | "uptime_fraction" | "signal_to_noise_ratio"
+        "end_to_end_efficiency"
+        | "subsystem_efficiency"
+        | "service_energy_replenishment_ratio"
+        | "coupling_coefficient"
+        | "quality_factor"
+        | "power_factor"
+        | "uptime_fraction"
+        | "signal_to_noise_ratio"
         | "bit_error_rate" => Some("dimensionless"),
         "electric_field_strength" | "internal_electric_field" => Some("electric_field"),
         "magnetic_field_strength" => Some("magnetic_field"),
@@ -64,13 +71,23 @@ fn validate_measurement(m: &Value) -> Vec<String> {
     let q = text(m, "quantity_kind").unwrap_or("");
     let purpose = text(m, "measurement_purpose").unwrap_or("");
     let expected_purpose = match q {
-        "service_energy_replenishment_ratio" | "energy_per_distance" => Some("vehicle_service_outcome"),
-        "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
-        | "specific_absorption_rate" | "internal_electric_field" | "current_density"
+        "service_energy_replenishment_ratio" | "energy_per_distance" => {
+            Some("vehicle_service_outcome")
+        }
+        "electric_field_strength"
+        | "magnetic_field_strength"
+        | "magnetic_flux_density"
+        | "specific_absorption_rate"
+        | "internal_electric_field"
+        | "current_density"
         | "contact_current" => Some("human_exposure_assessment"),
-        "signal_to_noise_ratio" | "bit_error_rate" | "data_rate" => Some("communications_performance"),
+        "signal_to_noise_ratio" | "bit_error_rate" | "data_rate" => {
+            Some("communications_performance")
+        }
         "temperature" | "temperature_rise" => Some("thermal_performance"),
-        "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency" => Some("operational_reliability"),
+        "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency" => {
+            Some("operational_reliability")
+        }
         _ => None,
     };
     if expected_purpose.is_some_and(|expected| expected != purpose) {
@@ -80,12 +97,15 @@ fn validate_measurement(m: &Value) -> Vec<String> {
     let value = raw.get("value").and_then(Value::as_f64);
     let upper = raw.get("upper_value").and_then(Value::as_f64);
     match text(raw, "qualifier").unwrap_or("") {
-        "EXACT" | "APPROX" | "GREATER_THAN" | "LESS_THAN" if value.is_none() || upper.is_some() =>
-            errors.push(format!("{id}: qualifier/value mismatch")),
-        "RANGE" if !matches!((value, upper), (Some(lo), Some(hi)) if hi >= lo) =>
-            errors.push(format!("{id}: RANGE requires ordered lower and upper values")),
-        "NOT_REPORTED" if value.is_some() || upper.is_some() =>
-            errors.push(format!("{id}: NOT_REPORTED must have null values")),
+        "EXACT" | "APPROX" | "GREATER_THAN" | "LESS_THAN" if value.is_none() || upper.is_some() => {
+            errors.push(format!("{id}: qualifier/value mismatch"))
+        }
+        "RANGE" if !matches!((value, upper), (Some(lo), Some(hi)) if hi >= lo) => errors.push(
+            format!("{id}: RANGE requires ordered lower and upper values"),
+        ),
+        "NOT_REPORTED" if value.is_some() || upper.is_some() => {
+            errors.push(format!("{id}: NOT_REPORTED must have null values"))
+        }
         "EXACT" | "APPROX" | "GREATER_THAN" | "LESS_THAN" | "RANGE" | "NOT_REPORTED" => {}
         other => errors.push(format!("{id}: unsupported qualifier {other}")),
     }
@@ -108,7 +128,9 @@ fn validate_measurement(m: &Value) -> Vec<String> {
             errors.push(format!("{id}: normalized unit/dimension mismatch"));
         }
         if raw_unit == "kWh/km" && unit == "Wh/km" {
-            if let (Some(raw), Some(converted)) = (value, n(m, &["normalized_measurement", "value"])) {
+            if let (Some(raw), Some(converted)) =
+                (value, n(m, &["normalized_measurement", "value"]))
+            {
                 if (converted - raw * 1000.0).abs() > 1e-8 {
                     errors.push(format!("{id}: kWh/km normalization is not raw*1000"));
                 }
@@ -118,23 +140,31 @@ fn validate_measurement(m: &Value) -> Vec<String> {
             }
         }
         if raw_unit == "%" && unit == "1" {
-            if let (Some(raw), Some(converted)) = (value, n(m, &["normalized_measurement", "value"])) {
+            if let (Some(raw), Some(converted)) =
+                (value, n(m, &["normalized_measurement", "value"]))
+            {
                 if (converted - raw / 100.0).abs() > 1e-10 {
                     errors.push(format!("{id}: percent normalization is not raw/100"));
                 }
             }
             if text(norm, "conversion_id") != Some("percent_to_fraction_v1") {
-                errors.push(format!("{id}: missing percent_to_fraction_v1 conversion id"));
+                errors.push(format!(
+                    "{id}: missing percent_to_fraction_v1 conversion id"
+                ));
             }
         }
         if matches!(raw_unit, "μT" | "µT" | "uT") && unit == "T" {
-            if let (Some(raw), Some(converted)) = (value, n(m, &["normalized_measurement", "value"])) {
+            if let (Some(raw), Some(converted)) =
+                (value, n(m, &["normalized_measurement", "value"]))
+            {
                 if (converted - raw * 1e-6).abs() > 1e-12 {
                     errors.push(format!("{id}: microtesla normalization is not raw*1e-6"));
                 }
             }
             if text(norm, "conversion_id") != Some("microtesla_to_tesla_v1") {
-                errors.push(format!("{id}: missing microtesla_to_tesla_v1 conversion id"));
+                errors.push(format!(
+                    "{id}: missing microtesla_to_tesla_v1 conversion id"
+                ));
             }
         }
     } else if value.is_some() {
@@ -156,58 +186,114 @@ fn validate_measurement(m: &Value) -> Vec<String> {
     {
         errors.push(format!("{id}: typed boundary plane fields missing"));
     }
-    if q == "service_energy_replenishment_ratio" && text(boundary, "boundary_class") != Some("vehicle_service") {
-        errors.push(format!("{id}: service ratio requires vehicle_service boundary"));
+    if q == "service_energy_replenishment_ratio"
+        && text(boundary, "boundary_class") != Some("vehicle_service")
+    {
+        errors.push(format!(
+            "{id}: service ratio requires vehicle_service boundary"
+        ));
     }
     let is_field_quantity = matches!(
         q,
-        "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
-            | "specific_absorption_rate" | "internal_electric_field" | "current_density"
+        "electric_field_strength"
+            | "magnetic_field_strength"
+            | "magnetic_flux_density"
+            | "specific_absorption_rate"
+            | "internal_electric_field"
+            | "current_density"
             | "contact_current"
     );
     match (is_field_quantity, m.get("field_observation")) {
         (true, Some(Value::Object(_))) => {}
-        (true, _) => errors.push(format!("{id}: field quantity requires a field_observation object")),
+        (true, _) => errors.push(format!(
+            "{id}: field quantity requires a field_observation object"
+        )),
         (false, Some(Value::Null)) => {}
-        (false, None) => errors.push(format!("{id}: field_observation field is required (null for non-field quantities)")),
-        (false, Some(_)) => errors.push(format!("{id}: non-field quantity must not carry field_observation metadata")),
+        (false, None) => errors.push(format!(
+            "{id}: field_observation field is required (null for non-field quantities)"
+        )),
+        (false, Some(_)) => errors.push(format!(
+            "{id}: non-field quantity must not carry field_observation metadata"
+        )),
     }
-    if matches!(q, "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
-        | "specific_absorption_rate" | "internal_electric_field" | "current_density" | "contact_current")
-        && text(boundary, "boundary_class") != Some("field_probe")
+    if matches!(
+        q,
+        "electric_field_strength"
+            | "magnetic_field_strength"
+            | "magnetic_flux_density"
+            | "specific_absorption_rate"
+            | "internal_electric_field"
+            | "current_density"
+            | "contact_current"
+    ) && text(boundary, "boundary_class") != Some("field_probe")
     {
-        errors.push(format!("{id}: field/exposure quantity requires field_probe boundary"));
+        errors.push(format!(
+            "{id}: field/exposure quantity requires field_probe boundary"
+        ));
     }
     errors
 }
 
 fn set_of(v: Option<&Value>) -> BTreeSet<String> {
     v.and_then(Value::as_array)
-        .map(|a| a.iter().filter_map(Value::as_str)
-            .map(|s| s.trim().to_ascii_lowercase()).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(Value::as_str)
+                .map(|s| s.trim().to_ascii_lowercase())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
 fn compare_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTreeSet<String>) {
-    match (left.get(field).and_then(Value::as_f64), right.get(field).and_then(Value::as_f64)) {
+    match (
+        left.get(field).and_then(Value::as_f64),
+        right.get(field).and_then(Value::as_f64),
+    ) {
         (Some(a), Some(b)) => {
             let tolerance = 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6);
-            if (a-b).abs() > tolerance {
+            if (a - b).abs() > tolerance {
                 reasons.insert("OPERATING_CONDITION_MISMATCH".into());
             }
         }
-        _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+        _ => {
+            reasons.insert("OPERATING_CONDITION_INCOMPLETE".into());
+        }
     }
 }
 
-fn compare_string_condition(left: &Value, right: &Value, field: &str, reasons: &mut BTreeSet<String>) {
+fn compare_string_condition(
+    left: &Value,
+    right: &Value,
+    field: &str,
+    reasons: &mut BTreeSet<String>,
+) {
     let controlled = |value: &str| {
         let value = value.trim().to_ascii_lowercase();
         match field {
-            "waveform" => matches!(value.as_str(), "sinusoidal" | "square" | "square_wave" | "triangular" | "dc" | "pwm"),
-            "alignment" => matches!(value.as_str(), "nominal" | "aligned" | "centered" | "misaligned" | "x_misaligned" | "y_misaligned" | "xy_misaligned" | "misalignment_sweep"),
-            "thermal_state" => matches!(value.as_str(), "cold" | "warm" | "hot" | "steady_state" | "transient" | "thermal_soak"),
-            "medium" => matches!(value.as_str(), "air" | "water" | "soil" | "vacuum" | "oil" | "concrete" | "indoor_air"),
+            "waveform" => matches!(
+                value.as_str(),
+                "sinusoidal" | "square" | "square_wave" | "triangular" | "dc" | "pwm"
+            ),
+            "alignment" => matches!(
+                value.as_str(),
+                "nominal"
+                    | "aligned"
+                    | "centered"
+                    | "misaligned"
+                    | "x_misaligned"
+                    | "y_misaligned"
+                    | "xy_misaligned"
+                    | "misalignment_sweep"
+            ),
+            "thermal_state" => matches!(
+                value.as_str(),
+                "cold" | "warm" | "hot" | "steady_state" | "transient" | "thermal_soak"
+            ),
+            "medium" => matches!(
+                value.as_str(),
+                "air" | "water" | "soil" | "vacuum" | "oil" | "concrete" | "indoor_air"
+            ),
             _ => false,
         }
     };
@@ -219,14 +305,20 @@ fn compare_string_condition(left: &Value, right: &Value, field: &str, reasons: &
         (Some(_), Some(_)) => {
             reasons.insert("OPERATING_CONDITION_UNNORMALIZED".into());
         }
-        _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+        _ => {
+            reasons.insert("OPERATING_CONDITION_INCOMPLETE".into());
+        }
     }
 }
 
 fn compare_statistic(left: &Value, right: &Value, reasons: &mut BTreeSet<String>) {
     let lkind = text(left, "kind").unwrap_or("");
     let rkind = text(right, "kind").unwrap_or("");
-    if lkind == "reported_unspecified" || rkind == "reported_unspecified" || lkind.is_empty() || rkind.is_empty() {
+    if lkind == "reported_unspecified"
+        || rkind == "reported_unspecified"
+        || lkind.is_empty()
+        || rkind.is_empty()
+    {
         reasons.insert("STATISTIC_UNSPECIFIED".into());
         return;
     }
@@ -234,15 +326,29 @@ fn compare_statistic(left: &Value, right: &Value, reasons: &mut BTreeSet<String>
         reasons.insert("STATISTIC_MISMATCH".into());
         return;
     }
-    match (left.get("window_s").and_then(Value::as_f64), right.get("window_s").and_then(Value::as_f64)) {
-        (Some(a), Some(b)) if (a-b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
-        (Some(_), Some(_)) => { reasons.insert("STATISTIC_MISMATCH".into()); }
-        _ => { reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into()); }
+    match (
+        left.get("window_s").and_then(Value::as_f64),
+        right.get("window_s").and_then(Value::as_f64),
+    ) {
+        (Some(a), Some(b)) if (a - b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
+        (Some(_), Some(_)) => {
+            reasons.insert("STATISTIC_MISMATCH".into());
+        }
+        _ => {
+            reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into());
+        }
     }
-    match (left.get("sample_count").and_then(Value::as_u64), right.get("sample_count").and_then(Value::as_u64)) {
+    match (
+        left.get("sample_count").and_then(Value::as_u64),
+        right.get("sample_count").and_then(Value::as_u64),
+    ) {
         (Some(a), Some(b)) if a == b => {}
-        (Some(_), Some(_)) => { reasons.insert("STATISTIC_MISMATCH".into()); }
-        _ => { reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into()); }
+        (Some(_), Some(_)) => {
+            reasons.insert("STATISTIC_MISMATCH".into());
+        }
+        _ => {
+            reasons.insert("STATISTIC_WINDOW_INCOMPLETE".into());
+        }
     }
 }
 
@@ -250,11 +356,15 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     let mut reasons = BTreeSet::new();
     let lq = text(left, "quantity_kind").unwrap_or("");
     let rq = text(right, "quantity_kind").unwrap_or("");
-    if lq != rq { reasons.insert("QUANTITY_KIND_MISMATCH".into()); }
+    if lq != rq {
+        reasons.insert("QUANTITY_KIND_MISMATCH".into());
+    }
     if text(left, "measurement_purpose") != text(right, "measurement_purpose") {
         reasons.insert("PURPOSE_MISMATCH".into());
     }
-    if intent == "rank_efficiency" && !matches!(lq, "end_to_end_efficiency" | "subsystem_efficiency") {
+    if intent == "rank_efficiency"
+        && !matches!(lq, "end_to_end_efficiency" | "subsystem_efficiency")
+    {
         reasons.insert("QUANTITY_KIND_MISMATCH".into());
     }
     if intent == "rank_energy_per_distance" && lq != "energy_per_distance" {
@@ -263,12 +373,21 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
 
     if intent == "rank_efficiency" {
         match (
-            left.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
-            right.get("conditions").and_then(|c| c.get("nominal_power_class_w")).and_then(Value::as_f64),
+            left.get("conditions")
+                .and_then(|c| c.get("nominal_power_class_w"))
+                .and_then(Value::as_f64),
+            right
+                .get("conditions")
+                .and_then(|c| c.get("nominal_power_class_w"))
+                .and_then(Value::as_f64),
         ) {
             (Some(a), Some(b)) if (a - b).abs() <= 1e-9_f64.max(a.abs().max(b.abs()) * 1e-6) => {}
-            (Some(_), Some(_)) => { reasons.insert("POWER_CLASS_MISMATCH".into()); }
-            _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+            (Some(_), Some(_)) => {
+                reasons.insert("POWER_CLASS_MISMATCH".into());
+            }
+            _ => {
+                reasons.insert("OPERATING_CONDITION_INCOMPLETE".into());
+            }
         }
     }
 
@@ -284,8 +403,12 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     if [li, ri, lo, ro].contains(&"UNKNOWN") {
         reasons.insert("BOUNDARY_INFORMATION_MISSING".into());
     } else {
-        if li != ri { reasons.insert("INPUT_PLANE_MISMATCH".into()); }
-        if lo != ro { reasons.insert("OUTPUT_PLANE_MISMATCH".into()); }
+        if li != ri {
+            reasons.insert("INPUT_PLANE_MISMATCH".into());
+        }
+        if lo != ro {
+            reasons.insert("OUTPUT_PLANE_MISMATCH".into());
+        }
     }
     let field_boundary = text(lb, "boundary_class") == Some("field_probe")
         && text(rb, "boundary_class") == Some("field_probe");
@@ -318,7 +441,10 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         if text(m, "qualification") != Some("QUALIFIED_RECORD") {
             reasons.insert("SOURCE_QUALIFICATION_INSUFFICIENT".into());
         }
-        let uncertainty = m.get("evidence").and_then(|e| e.get("uncertainty")).unwrap_or(&Value::Null);
+        let uncertainty = m
+            .get("evidence")
+            .and_then(|e| e.get("uncertainty"))
+            .unwrap_or(&Value::Null);
         if text(uncertainty, "kind") == Some("not_reported") {
             reasons.insert("UNCERTAINTY_NOT_REPORTED".into());
         }
@@ -329,8 +455,12 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
 
     let is_field_comparison = matches!(
         lq,
-        "electric_field_strength" | "magnetic_field_strength" | "magnetic_flux_density"
-            | "specific_absorption_rate" | "internal_electric_field" | "current_density"
+        "electric_field_strength"
+            | "magnetic_field_strength"
+            | "magnetic_flux_density"
+            | "specific_absorption_rate"
+            | "internal_electric_field"
+            | "current_density"
             | "contact_current"
     );
     if is_field_comparison {
@@ -338,8 +468,12 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
             let field = measurement.get("field_observation").unwrap_or(&Value::Null);
             let position = field.get("position_m").unwrap_or(&Value::Null);
             let complete = field.is_object()
-                && text(field, "probe_method").is_some_and(|method| method == "MEASURED" || method == "SIMULATED" || method == "COMBINED")
-                && ["x", "y", "z"].iter().all(|axis| position.get(*axis).and_then(Value::as_f64).is_some())
+                && text(field, "probe_method").is_some_and(|method| {
+                    method == "MEASURED" || method == "SIMULATED" || method == "COMBINED"
+                })
+                && ["x", "y", "z"]
+                    .iter()
+                    .all(|axis| position.get(*axis).and_then(Value::as_f64).is_some())
                 && text(field, "orientation").is_some()
                 && text(field, "reference_frame").is_some()
                 && text(field, "spatial_region").is_some()
@@ -353,26 +487,45 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
         if text(left_field, "probe_method") != text(right_field, "probe_method") {
             reasons.insert("EVIDENCE_KIND_MISMATCH".into());
         }
-        for key in ["orientation", "reference_frame", "spatial_region", "averaging_method"] {
+        for key in [
+            "orientation",
+            "reference_frame",
+            "spatial_region",
+            "averaging_method",
+        ] {
             match (text(left_field, key), text(right_field, key)) {
                 (Some(a), Some(b)) if a == b => {}
-                (Some(_), Some(_)) => { reasons.insert("FIELD_GEOMETRY_MISMATCH".into()); }
-                _ => { reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into()); }
+                (Some(_), Some(_)) => {
+                    reasons.insert("FIELD_GEOMETRY_MISMATCH".into());
+                }
+                _ => {
+                    reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into());
+                }
             }
         }
         let lp = left_field.get("position_m").unwrap_or(&Value::Null);
         let rp = right_field.get("position_m").unwrap_or(&Value::Null);
         for axis in ["x", "y", "z"] {
-            match (lp.get(axis).and_then(Value::as_f64), rp.get(axis).and_then(Value::as_f64)) {
-                (Some(a), Some(b)) if (a-b).abs() <= 1e-9 => {}
-                (Some(_), Some(_)) => { reasons.insert("FIELD_GEOMETRY_MISMATCH".into()); }
-                _ => { reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into()); }
+            match (
+                lp.get(axis).and_then(Value::as_f64),
+                rp.get(axis).and_then(Value::as_f64),
+            ) {
+                (Some(a), Some(b)) if (a - b).abs() <= 1e-9 => {}
+                (Some(_), Some(_)) => {
+                    reasons.insert("FIELD_GEOMETRY_MISMATCH".into());
+                }
+                _ => {
+                    reasons.insert("FIELD_ASSESSMENT_METADATA_INCOMPLETE".into());
+                }
             }
         }
         compare_condition(left_field, right_field, "averaging_window_s", &mut reasons);
     }
 
-    if intent == "rank_efficiency" || intent == "compare_exposure" || intent == "rank_energy_per_distance" {
+    if intent == "rank_efficiency"
+        || intent == "compare_exposure"
+        || intent == "rank_energy_per_distance"
+    {
         let lc = left.get("conditions").unwrap_or(&Value::Null);
         let rc = right.get("conditions").unwrap_or(&Value::Null);
         compare_condition(lc, rc, "frequency_hz", &mut reasons);
@@ -401,8 +554,12 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
             for field in ["operating_mode", "vehicle_profile_id", "drive_cycle_id"] {
                 match (text(lc, field), text(rc, field)) {
                     (Some(a), Some(b)) if a == b => {}
-                    (Some(_), Some(_)) => { reasons.insert("OPERATING_CONDITION_MISMATCH".into()); }
-                    _ => { reasons.insert("OPERATING_CONDITION_INCOMPLETE".into()); }
+                    (Some(_), Some(_)) => {
+                        reasons.insert("OPERATING_CONDITION_MISMATCH".into());
+                    }
+                    _ => {
+                        reasons.insert("OPERATING_CONDITION_INCOMPLETE".into());
+                    }
                 }
             }
         }
@@ -412,15 +569,25 @@ pub fn compare_measurements(left: &Value, right: &Value, intent: &str) -> (Strin
     }
 
     let decisive = [
-        "QUANTITY_KIND_MISMATCH","PURPOSE_MISMATCH","BOUNDARY_CLASS_MISMATCH",
-        "INPUT_PLANE_MISMATCH","OUTPUT_PLANE_MISMATCH","STAGE_SET_MISMATCH",
-        "STATISTIC_MISMATCH","EVIDENCE_KIND_MISMATCH","OPERATING_CONDITION_MISMATCH","POWER_CLASS_MISMATCH","FIELD_GEOMETRY_MISMATCH"
+        "QUANTITY_KIND_MISMATCH",
+        "PURPOSE_MISMATCH",
+        "BOUNDARY_CLASS_MISMATCH",
+        "INPUT_PLANE_MISMATCH",
+        "OUTPUT_PLANE_MISMATCH",
+        "STAGE_SET_MISMATCH",
+        "STATISTIC_MISMATCH",
+        "EVIDENCE_KIND_MISMATCH",
+        "OPERATING_CONDITION_MISMATCH",
+        "POWER_CLASS_MISMATCH",
+        "FIELD_GEOMETRY_MISMATCH",
     ];
     let disposition = if reasons.iter().any(|r| decisive.contains(&r.as_str())) {
         "NOT_COMPARABLE"
     } else if !reasons.is_empty() {
         "UNRESOLVED"
-    } else { "COMPARABLE" };
+    } else {
+        "COMPARABLE"
+    };
     (disposition.into(), reasons.into_iter().collect())
 }
 
@@ -429,7 +596,9 @@ fn read_jsonl(path: &Path) -> Result<Vec<Value>, Box<dyn Error>> {
     let mut values = Vec::new();
     for (index, line) in BufReader::new(file).lines().enumerate() {
         let line = line?;
-        if line.trim().is_empty() { continue; }
+        if line.trim().is_empty() {
+            continue;
+        }
         values.push(serde_json::from_str(&line).map_err(|e| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -440,7 +609,10 @@ fn read_jsonl(path: &Path) -> Result<Vec<Value>, Box<dyn Error>> {
     Ok(values)
 }
 
-fn unique_index<'a>(rows: &'a [Value], key: &str) -> Result<BTreeMap<String, &'a Value>, Box<dyn Error>> {
+fn unique_index<'a>(
+    rows: &'a [Value],
+    key: &str,
+) -> Result<BTreeMap<String, &'a Value>, Box<dyn Error>> {
     let mut map = BTreeMap::new();
     for row in rows {
         let id = text(row, key).ok_or_else(|| {
@@ -450,7 +622,8 @@ fn unique_index<'a>(rows: &'a [Value], key: &str) -> Result<BTreeMap<String, &'a
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("duplicate {key} {id}"),
-            ).into());
+            )
+            .into());
         }
     }
     Ok(map)
@@ -496,15 +669,23 @@ pub fn audit(root: &Path) -> Result<Value, Box<dyn Error>> {
             mismatches.push(format!("{cid}: duplicate case id"));
             continue;
         }
-        let by_id: BTreeMap<&str, &Value> = measurements.iter()
-            .filter_map(|m| Some((text(m, "measurement_id")?, m))).collect();
+        let by_id: BTreeMap<&str, &Value> = measurements
+            .iter()
+            .filter_map(|m| Some((text(m, "measurement_id")?, m)))
+            .collect();
         let left_id = text(case, "left_measurement_id").unwrap_or("");
         let right_id = text(case, "right_measurement_id").unwrap_or("");
         let left = by_id.get(left_id).ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::NotFound, format!("{cid}: missing measurement {left_id}"))
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{cid}: missing measurement {left_id}"),
+            )
         })?;
         let right = by_id.get(right_id).ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::NotFound, format!("{cid}: missing measurement {right_id}"))
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{cid}: missing measurement {right_id}"),
+            )
         })?;
         let intent = text(case, "comparison_intent").unwrap_or("");
         let (actual, reasons) = compare_measurements(left, right, intent);
@@ -512,7 +693,13 @@ pub fn audit(root: &Path) -> Result<Value, Box<dyn Error>> {
         let expected_reasons: BTreeSet<String> = case
             .get("expected_reasons")
             .and_then(Value::as_array)
-            .map(|items| items.iter().filter_map(Value::as_str).map(str::to_owned).collect())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            })
             .unwrap_or_default();
         let actual_reasons: BTreeSet<String> = reasons.iter().cloned().collect();
         let missing_expected_reasons: Vec<String> = expected_reasons
@@ -557,7 +744,9 @@ pub fn audit(root: &Path) -> Result<Value, Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let root = std::env::args_os().nth(1).map(PathBuf::from)
+    let root = std::env::args_os()
+        .nth(1)
+        .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
     let report = audit(&root)?;
     println!("{}", serde_json::to_string_pretty(&report)?);
@@ -565,7 +754,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "WPT typed measurement audit failed",
-        ).into());
+        )
+        .into());
     }
     Ok(())
 }
@@ -626,17 +816,22 @@ mod tests {
         assert_eq!(dimension_for_unit("%"), Some("dimensionless"));
         assert_eq!(dimension_for_quantity("apparent_power"), Some("power"));
         assert_eq!(dimension_for_quantity("reactive_power"), Some("power"));
-        assert_eq!(dimension_for_quantity("power_factor"), Some("dimensionless"));
+        assert_eq!(
+            dimension_for_quantity("power_factor"),
+            Some("dimensionless")
+        );
     }
 
     #[test]
     fn rejects_watts_labelled_as_efficiency() {
         let mut m = sample("wrong-unit", 95.0);
         m["raw_measurement"]["unit"] = json!("W");
-        assert!(validate_measurement(&m).iter().any(|e| e.contains("expects dimension")));
+        assert!(
+            validate_measurement(&m)
+                .iter()
+                .any(|e| e.contains("expects dimension"))
+        );
     }
-
-
 
     #[test]
     fn service_energy_replenishment_ratio_can_exceed_one_hundred_percent() {
@@ -650,10 +845,17 @@ mod tests {
         m["boundary"]["boundary_class"] = json!("vehicle_service");
         m["boundary"]["input_plane_kind"] = json!("VEHICLE_TRACTION_ENERGY_USED");
         m["boundary"]["output_plane_kind"] = json!("VEHICLE_WPT_ENERGY_RECEIVED");
-        m["boundary"]["included_stages"] = json!(["vehicle propulsion demand","vehicle-side WPT energy received"]);
+        m["boundary"]["included_stages"] = json!([
+            "vehicle propulsion demand",
+            "vehicle-side WPT energy received"
+        ]);
         m["boundary"]["excluded_stages"] = json!(["not a converter efficiency"]);
         m["boundary"]["stage_set_status"] = json!("COMPLETE");
-        assert!(validate_measurement(&m).is_empty(), "{:#?}", validate_measurement(&m));
+        assert!(
+            validate_measurement(&m).is_empty(),
+            "{:#?}",
+            validate_measurement(&m)
+        );
     }
 
     #[test]
@@ -667,10 +869,18 @@ mod tests {
         m["normalized_measurement"]["unit"] = json!("Wh/km");
         m["normalized_measurement"]["conversion_id"] = json!("kwh_to_wh_per_km_v1");
         m["normalized_measurement"]["dimension"] = json!("energy_per_distance");
-        assert!(validate_measurement(&m).is_empty(), "{:#?}", validate_measurement(&m));
+        assert!(
+            validate_measurement(&m).is_empty(),
+            "{:#?}",
+            validate_measurement(&m)
+        );
 
         m["normalized_measurement"]["value"] = json!(0.14);
-        assert!(validate_measurement(&m).iter().any(|e| e.contains("kWh/km normalization")));
+        assert!(
+            validate_measurement(&m)
+                .iter()
+                .any(|e| e.contains("kWh/km normalization"))
+        );
     }
 
     #[test]
@@ -684,7 +894,11 @@ mod tests {
 
         let mut wrong = sample("bad-conversion", 95.0);
         wrong["normalized_measurement"]["value"] = json!(95.0);
-        assert!(validate_measurement(&wrong).iter().any(|e| e.contains("percent normalization")));
+        assert!(
+            validate_measurement(&wrong)
+                .iter()
+                .any(|e| e.contains("percent normalization"))
+        );
     }
 
     #[test]
@@ -746,7 +960,6 @@ mod tests {
         m
     }
 
-
     fn energy_per_distance_sample(id: &str, value_kwh_km: f64) -> Value {
         let mut m = sample(id, 95.0);
         m["quantity_kind"] = json!("energy_per_distance");
@@ -763,7 +976,10 @@ mod tests {
         m["boundary"]["output_plane_kind"] = json!("ROUTE_DISTANCE");
         m["boundary"]["measurement_point"] = json!("vehicle-side energy per driven route distance");
         m["boundary"]["stage_set_status"] = json!("COMPLETE");
-        m["boundary"]["included_stages"] = json!(["vehicle-side WPT energy transfer","route-distance normalization"]);
+        m["boundary"]["included_stages"] = json!([
+            "vehicle-side WPT energy transfer",
+            "route-distance normalization"
+        ]);
         m["boundary"]["excluded_stages"] = json!(["roadway source-side and idle losses"]);
         m["statistic"]["kind"] = json!("integral");
         m["statistic"]["window_s"] = json!(20_400.0);
@@ -814,7 +1030,8 @@ mod tests {
     fn free_text_alignment_descriptions_remain_unresolved() {
         let mut left = sample("ALIGNMENT-LEFT", 95.0);
         let mut right = sample("ALIGNMENT-RIGHT", 96.0);
-        left["conditions"]["alignment"] = json!("Abstract says high efficiency under misalignment; offset not reported.");
+        left["conditions"]["alignment"] =
+            json!("Abstract says high efficiency under misalignment; offset not reported.");
         right["conditions"]["alignment"] = json!("100 mm X and Y misalignment.");
         let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
         assert_eq!(disposition, "UNRESOLVED");
