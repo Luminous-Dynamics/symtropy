@@ -1403,6 +1403,8 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     let mut observation = base_observation.clone();
     observation.previous_mode = Some(OperatingMode::Emergency);
     observation.mode = OperatingMode::Recovery;
+    observation.motion.motion_command_present = false;
+    observation.motion.speed_mm_s = 0;
     add_case(
         &mut cases,
         "SAFE-027-emergency-recovery-requires-external-authority",
