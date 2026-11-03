@@ -246,3 +246,18 @@ Proposed benchmark targets (not achieved):
 - Test module activation counts 1/2/3/4 across load, power-class changes and reverse power flow; report fixed overhead, switching transients and energy cost of transitions rather than assuming module shedding is efficient.
 - Target ≥99.99% correct frequency-network and converter-module transitions across 10,000 scripted synthetic/bench events, with all faults and safe-state transitions enumerated.
 - Do not assign 91.7–94.3% or 89.5–93.5% range endpoints to individual vehicle assemblies until the primary result plots/tables establish the mapping.
+
+## 8. Frequency-polymorphic resonant-network isolation
+
+The 2026 Zhang et al. full text (DOI 10.1016/j.geits.2025.100307) reports two separately selectable GA resonant networks at 85 kHz and 20 kHz. Its integrated model predicts 17 A in the closed 85 kHz loop when the 30 kW / 20 kHz network is enabled, and 4 A in the closed 20 kHz loop when the 6/11 kW / 85 kHz network is enabled. The paper notes waveform distortion and efficiency loss, with relay isolation as a possible mitigation that adds control, cost, weight and conduction loss. These are model-derived values, not measurements.
+
+Proposed qualification targets:
+- Inactive branch steady RMS current <=1% of its continuous current rating; all transient peak current and induced voltage remain under component ratings.
+- Measure branch-level current, voltage, temperature and switching energy; a commanded-off branch cannot be assumed electrically inactive.
+- No simultaneous ACTIVE networks when the architecture declares concurrent operation disallowed.
+- No branch left UNKNOWN/TRANSITIONING during a qualified steady-state run.
+- Test both frequency-selection directions, all vehicle classes, voltage/gap/alignment corners, stuck-open/stuck-closed switches, contact welding, sensor disagreement and communication loss.
+- Benchmark the efficiency/weight/cost trade-off between physical relay isolation, solid-state isolation and passive decoupling as separate design alternatives.
+
+The 1% inactive-branch target is a proposed research threshold, not a standard limit or an achieved result. It must be applied to each branch's own continuous current rating, not to the active branch or the system's aggregate current.
+
