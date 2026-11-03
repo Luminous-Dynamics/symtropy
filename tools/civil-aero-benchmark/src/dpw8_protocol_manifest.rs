@@ -920,7 +920,8 @@ mod tests {
         assert!(
             seal_dpw8_oat15a_manifest(v1a)
                 .expect_err("V1b settings must not enter V1a")
-                .contains("lane and flow-mode identity disagree")
+                .to_string()
+                .contains("V1a settings differ from the admitted official protocol")
         );
         let mut v1b = manifest(Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet);
         v1b.spec = dpw8_oat15a_v1a_spec();
