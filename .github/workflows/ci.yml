@@ -100,6 +100,14 @@ jobs:
       if: hashFiles('tools/wpt-measurement-comparator/Cargo.toml') != ''
       run: cargo run --locked -p wpt-measurement-comparator -- "${{ github.workspace }}"
 
+    - name: Test WPT magnetic material catalog validator
+      if: hashFiles('tools/wpt-material-catalog-validator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-material-catalog-validator
+
+    - name: Validate WPT magnetic material catalog and source provenance
+      if: hashFiles('tools/wpt-material-catalog-validator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-material-catalog-validator -- "${{ github.workspace }}"
+
     - name: Test WPT round-robin manifest validator
       if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo test --locked -p wpt-round-robin-validator
