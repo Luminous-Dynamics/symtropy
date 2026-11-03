@@ -1038,6 +1038,17 @@ fn baseline() -> (SafetyPolicy, RuntimeObservation) {
                 calibration_current: true,
                 source_sha256: digest('d'),
             },
+            SensorEvidence {
+                sensor_id: "tool-encoder".to_owned(),
+                modality: SensorModality::Encoder,
+                health: SensorHealth::Healthy,
+                fault_domain: "tool-feedback-power-d".to_owned(),
+                age_ms: 20,
+                confidence_ppm: 980_000,
+                coverage_ppm: 980_000,
+                calibration_current: true,
+                source_sha256: digest('1'),
+            },
         ],
         odd_conditions: vec![
             OddConditionObservation {
@@ -1121,11 +1132,11 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     );
 
     let mut observation = base_observation.clone();
-    observation.sensors[2].health = SensorHealth::Degraded;
-    observation.sensors[2].confidence_ppm = 500_000;
+    observation.sensors[3].health = SensorHealth::Degraded;
+    observation.sensors[3].confidence_ppm = 500_000;
     add_case(
         &mut cases,
-        "SAFE-005-degraded-camera-independent-lidar",
+        "SAFE-005-degraded-peripheral-sensor-independent-human-sensing",
         base_policy.clone(),
         observation,
         Disposition::RequireProgressiveMitigation,
@@ -1271,10 +1282,10 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     );
 
     let mut observation = base_observation.clone();
-    observation.sensors[2].calibration_current = false;
+    observation.sensors[3].calibration_current = false;
     add_case(
         &mut cases,
-        "SAFE-016-noncritical-camera-calibration-expired",
+        "SAFE-016-noncritical-tool-encoder-calibration-expired",
         base_policy.clone(),
         observation,
         Disposition::RequireProgressiveMitigation,
@@ -1372,7 +1383,7 @@ pub fn frozen_cases() -> Vec<SyntheticCase> {
     );
 
     let mut observation = base_observation.clone();
-    observation.sensors[2].health = SensorHealth::Failed;
+    observation.sensors[3].health = SensorHealth::Failed;
     observation.human = HumanObservation::Tracked {
         distance_mm: 2_200,
         position_uncertainty_mm: 100,
@@ -1695,7 +1706,7 @@ mod tests {
     #[test]
     fn hard_stop_precedes_degraded_sensor_mitigation() {
         let (policy, mut observation) = baseline();
-        observation.sensors[2].health = SensorHealth::Failed;
+        observation.sensors[3].health = SensorHealth::Failed;
         observation.human = HumanObservation::Tracked {
             distance_mm: 2_000,
             position_uncertainty_mm: 100,
