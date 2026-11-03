@@ -327,10 +327,9 @@ fn validate_realizations(
         if matches!((gap_min, gap_max), (Some(min), Some(max)) if min > max) {
             return invalid(format!("{label}: prototype gap_min_m exceeds gap_max_m"));
         }
-        let status = enum_value(record, "data_status", &[
+        enum_value(record, "data_status", &[
             "DEVELOPMENT", "DUAL_ANNOTATED", "EXPERT_REVIEWED", "HELD_OUT", "RETIRED"
         ], &label)?;
-        let _ = status;
 
         let refs = record.get("source_refs").and_then(Value::as_array)
             .ok_or_else(|| ValidationError(format!("{label}: source_refs must be an array")))?;
