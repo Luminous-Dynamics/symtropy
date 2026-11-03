@@ -13,7 +13,7 @@
 
 use num_bigint::BigInt;
 use num_rational::BigRational;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 const MAX_HYPOTHESES: usize = 8;
 const MAX_EXPERIMENTS: usize = 12;
@@ -266,6 +266,7 @@ impl<'a> PolicySynthesizer<'a> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SynthesizedPolicy {
     root_state: PolicyState,
+    target_ambiguity: usize,
     value: PolicyValue,
     /// Freeze the exact experiment catalog used during synthesis so runtime
     /// execution cannot accidentally replay actions against reordered inputs.
@@ -302,6 +303,100 @@ impl SynthesizedPolicy {
             surviving_hypotheses_for_observation(experiment, hypotheses, observation);
         (survivors != 0).then_some((survivors, available_experiments & !experiment_bit))
     }
+}
+
+fn replay_policy_state(
+    policy: &SynthesizedPolicy,
+    state: PolicyState,
+    memo: &mut HashMap<PolicyState, PolicyValue>,
+    reachable: &mut HashSet<PolicyState>,
+) -> Option<PolicyValue> {
+    if let Some(value) = memo.get(&state) {
+        return Some(value.clone());
+    }
+    reachable.insert(state);
+
+    let (hypotheses, available_experiments) = state;
+    let hypothesis_count = mask_population(hypotheses);
+    if hypothesis_count <= policy.target_ambiguity || available_experiments == 0 {
+        if policy.selected_actions.contains_key(&state) {
+            return None;
+        }
+        let terminal = PolicyValue {
+            worst_residual_hypotheses: hypothesis_count,
+            worst_case_cost: rational(0),
+        };
+        memo.insert(state, terminal.clone());
+        return Some(terminal);
+    }
+
+    // An unmapped state is an explicit abstention leaf.
+    let Some(experiment_index) = policy.selected_actions.get(&state).copied() else {
+        let terminal = PolicyValue {
+            worst_residual_hypotheses: hypothesis_count,
+            worst_case_cost: rational(0),
+        };
+        memo.insert(state, terminal.clone());
+        return Some(terminal);
+    };
+
+    let experiment_bit = 1_u16.checked_shl(experiment_index as u32)?;
+    if available_experiments & experiment_bit == 0 {
+        return None;
+    }
+    let experiment = policy.experiments.get(experiment_index)?;
+    if !experiment.finite_step_safety_certified {
+        return None;
+    }
+
+    let outcomes = observation_outcome_masks(experiment, hypotheses);
+    if outcomes.is_empty() {
+        return None;
+    }
+
+    let next_available = available_experiments & !experiment_bit;
+    let mut worst_child_ambiguity = 0_usize;
+    let mut worst_child_cost = rational(0);
+    for child_hypotheses in outcomes {
+        let child = replay_policy_state(
+            policy,
+            (child_hypotheses, next_available),
+            memo,
+            reachable,
+        )?;
+        worst_child_ambiguity =
+            worst_child_ambiguity.max(child.worst_residual_hypotheses);
+        worst_child_cost = worst_child_cost.max(child.worst_case_cost);
+    }
+
+    let value = PolicyValue {
+        worst_residual_hypotheses: worst_child_ambiguity,
+        worst_case_cost: &experiment.cost + worst_child_cost,
+    };
+    memo.insert(state, value.clone());
+    Some(value)
+}
+
+/// Independently replay the selected decision tree and recompute its exact
+/// worst-case value. This verifies feasibility, safety gating and all reachable
+/// leaves; it does not claim optimality against policies outside this tree.
+fn verify_synthesized_policy(policy: &SynthesizedPolicy) -> bool {
+    let mut memo = HashMap::new();
+    let mut reachable = HashSet::new();
+    let Some(replayed_value) = replay_policy_state(
+        policy,
+        policy.root_state,
+        &mut memo,
+        &mut reachable,
+    ) else {
+        return false;
+    };
+
+    replayed_value == policy.value
+        && policy
+            .selected_actions
+            .keys()
+            .all(|state| reachable.contains(state))
 }
 
 fn synthesize_policy(
@@ -352,6 +447,7 @@ fn synthesize_policy(
 
     Ok(SynthesizedPolicy {
         root_state,
+        target_ambiguity,
         value,
         experiments: experiments.to_vec(),
         selected_actions: synthesizer.selected_actions,
@@ -396,6 +492,7 @@ mod tests {
         assert_eq!(policy.root_state, (0b111, 0b11));
         assert_eq!(policy.value.worst_residual_hypotheses, 1);
         assert_eq!(policy.value.worst_case_cost, rational(2));
+        assert!(verify_synthesized_policy(&policy));
 
         // The first experiment splits {h0,h1} from {h2}; only the first child
         // needs the second measurement.
@@ -425,6 +522,9 @@ mod tests {
                 .is_none(),
             "an impossible observation must fail closed"
         );
+        let mut corrupted_value = policy.clone();
+        corrupted_value.value.worst_case_cost += rational(1);
+        assert!(!verify_synthesized_policy(&corrupted_value));
     }
 
     #[test]
@@ -469,6 +569,19 @@ mod tests {
             .expect("unsafe experiments are excluded, not executed");
         assert_eq!(policy.value.worst_residual_hypotheses, 2);
         assert_eq!(policy.next_experiment(policy.root_state), None);
+        assert!(verify_synthesized_policy(&policy));
+
+        let catalog = [
+            experiment(1, &[0, 1], (0, 0), false),
+            experiment(2, &[0, 0], (0, 0), true),
+        ];
+        let safe_policy = synthesize_policy(2, &catalog, 1, 100)
+            .expect("the safe-only catalog state is valid");
+        let mut tampered_action = safe_policy.clone();
+        tampered_action
+            .selected_actions
+            .insert(tampered_action.root_state, 0);
+        assert!(!verify_synthesized_policy(&tampered_action));
     }
 
     #[test]
