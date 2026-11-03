@@ -3208,7 +3208,7 @@ mod double_sliding_direction_oracle {
             });
         for branch_difference in &differences_by_observable {
             let (experiment_direction, guaranteed_gap) =
-                maximum_box_separation_direction(&branch_difference)
+                maximum_box_separation_direction(branch_difference)
                     .expect("the declared branch pair is locally distinguishable");
             assert!(guaranteed_gap > zero);
 
