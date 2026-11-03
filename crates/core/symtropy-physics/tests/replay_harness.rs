@@ -195,6 +195,19 @@ fn missing_body_reference_is_rejected_before_world_mutation() {
 }
 
 #[test]
+fn nonfinite_initial_world_state_is_rejected_before_step() {
+    let (mut world, handles) = build_world();
+    world.body_mut(handles[0]).unwrap().linear_velocity[0] = f64::NAN;
+    let before = WorldSnapshot::capture(&world);
+    let tape = build_tape(handles);
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::NonFiniteWorldState
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
 fn malformed_receipt_digest_is_rejected_before_replay() {
     let (mut record_world, handles) = build_world();
     let tape = build_tape(handles);
