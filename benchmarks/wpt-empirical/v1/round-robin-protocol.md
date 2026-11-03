@@ -236,3 +236,28 @@ Proposed design target: peak flux density <=80% of the saturation value at the m
 
 The 2026 Zhang et al. study reports a calculated 376 mT maximum flux and cites saturation values of 530 mT at 25°C and 410 mT at 100°C. These values imply utilization of about 71.0% at 25°C but 91.7% at 100°C. This arithmetic is derived from the paper's reported values; it is not an independent measurement of the prototype's core flux or temperature. It demonstrates why a single room-temperature Bsat number can conceal inadequate hot-state margin.
 
+
+## 16. Standards applicability and claim-ceiling record
+
+Every qualified run must include a versioned standards_basis array. For each document, record its exact edition, applicability class, scope statement, provisions actually tested, compliance claim ceiling, evidence digest and explanatory notes.
+
+Allowed applicability classifications:
+- NORMATIVE_REQUIREMENT: requirement is within the published document's actual scope and is being evaluated as a requirement.
+- PARTIAL_REFERENCE: only named clauses/aspects are relevant; no whole-system conformance claim.
+- TEST_METHOD_REFERENCE: method/procedure or test station is borrowed; this does not prove overall standard compliance.
+- INFORMATION_REPORT: explanatory/use-case or emerging work document, not a complete normative requirements set.
+- OUT_OF_SCOPE_REFERENCE: recorded for awareness but the current test is outside its scope.
+- PLANNED_NOT_ISSUED: a future workstream mentioned by an existing source but not a published edition. It is not normative and cannot support certification.
+
+The standards applicability rules must identify the vehicle class, measured apparent power, direction, stationary/dynamic mode, installation type and jurisdiction. Do not infer SAE power class from DC battery-side kW; measure source-side AC apparent power when classifying against a kVA standard.
+
+### SAE-specific boundary checks
+
+- SAE J2954_202408: stationary, surface-mounted, light-duty, three levels up to 11 kVA, forward G2V. A run may claim it as a normative basis only for a test that is within that full declared scope. A bidirectional, dynamic, flush-mounted or >11 kVA condition cannot be marked NORMATIVE_REQUIREMENT under this edition.
+- SAE J2954/2_202212: heavy-duty information report / first-step work; detailed requirements and solutions are incomplete. Classify as INFORMATION_REPORT, not as a complete normative compliance specification.
+- SAE J2847/6_202009: light-duty inductive WPT communications practice; use as TEST_METHOD_REFERENCE or PARTIAL_REFERENCE. Message protocol presence is not proof of secure authentication, anti-replay or firmware integrity.
+- SAE J3072_202406: onboard grid-support inverter interconnection via conductively coupled EVSE. It is relevant adjacent V2G interconnection context, not by itself a WPT grid-interconnection certificate.
+- SAE J2836/3_202402: DER / reverse-flow use-case Information Report; it does not specify magnetic coupling or WPT system efficiency.
+- SAE J2954/3: J2954_202408 points dynamic applications to a separate workstream. Until a published edition is identified, record PLANNED_NOT_ISSUED and never treat it as normative.
+
+A standard name in a source list or manifest does not mean a product is compliant. INDEPENDENTLY_CERTIFIED requires a certification artifact and issuing body; SELF_ASSESSED requires the exact assessment evidence and claim scope. NO_CLAIM is the default.
