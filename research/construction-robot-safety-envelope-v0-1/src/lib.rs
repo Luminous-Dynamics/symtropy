@@ -271,13 +271,48 @@ pub struct RuntimeObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubjectBinding {
+    pub machine_id: String,
+    pub machine_revision: String,
+    pub tool_id: String,
+    pub tool_revision: String,
+    pub task_id: String,
+    pub task_revision: String,
+    pub site_snapshot_id: String,
+    pub coordinate_frame: String,
+    pub jurisdiction: String,
+    pub standards_profile: String,
+    pub domain: OperationalDomain,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceRole {
+    Sensor,
+    HumanDetection,
+    OperatingCondition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EvidenceReference {
+    pub role: EvidenceRole,
+    pub source_id: String,
+    /// Syntactic reference only; no bytes or signatures are verified here.
+    pub source_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SafetyDecision {
     pub disposition: Disposition,
     pub requested_response: RequestedResponse,
     pub reasons: Vec<Reason>,
     pub policy_id: String,
     pub policy_revision: String,
-    pub machine_id: String,
+    pub policy_sha256: String,
+    pub expected_subject: SubjectBinding,
+    pub observed_subject: SubjectBinding,
+    pub mode: OperatingMode,
+    pub evidence_references: Vec<EvidenceReference>,
+    pub evaluated_at_ms: u64,
     pub observed_at_ms: u64,
 }
 
@@ -386,13 +421,65 @@ fn make_decision(
     requested_response: RequestedResponse,
     reasons: Vec<Reason>,
 ) -> SafetyDecision {
+    let mut evidence_references = observation
+        .sensors
+        .iter()
+        .map(|sensor| EvidenceReference {
+            role: EvidenceRole::Sensor,
+            source_id: sensor.sensor_id.clone(),
+            source_sha256: sensor.source_sha256.clone(),
+        })
+        .collect::<Vec<_>>();
+    evidence_references.push(EvidenceReference {
+        role: EvidenceRole::HumanDetection,
+        source_id: "human-detection".to_owned(),
+        source_sha256: observation.human_detection.source_sha256.clone(),
+    });
+    evidence_references.extend(observation.odd_conditions.iter().map(|condition| {
+        EvidenceReference {
+            role: EvidenceRole::OperatingCondition,
+            source_id: condition.condition_id.clone(),
+            source_sha256: condition.source_sha256.clone(),
+        }
+    }));
+    evidence_references.sort();
+
     SafetyDecision {
         disposition,
         requested_response,
         reasons,
         policy_id: policy.policy_id.clone(),
         policy_revision: policy.policy_revision.clone(),
-        machine_id: policy.machine_id.clone(),
+        policy_sha256: policy.policy_sha256.clone(),
+        expected_subject: SubjectBinding {
+            machine_id: policy.machine_id.clone(),
+            machine_revision: policy.machine_revision.clone(),
+            tool_id: policy.tool_id.clone(),
+            tool_revision: policy.tool_revision.clone(),
+            task_id: policy.task_id.clone(),
+            task_revision: policy.task_revision.clone(),
+            site_snapshot_id: policy.site_snapshot_id.clone(),
+            coordinate_frame: policy.coordinate_frame.clone(),
+            jurisdiction: policy.jurisdiction.clone(),
+            standards_profile: policy.standards_profile.clone(),
+            domain: policy.domain,
+        },
+        observed_subject: SubjectBinding {
+            machine_id: observation.machine_id.clone(),
+            machine_revision: observation.machine_revision.clone(),
+            tool_id: observation.tool_id.clone(),
+            tool_revision: observation.tool_revision.clone(),
+            task_id: observation.task_id.clone(),
+            task_revision: observation.task_revision.clone(),
+            site_snapshot_id: observation.site_snapshot_id.clone(),
+            coordinate_frame: observation.coordinate_frame.clone(),
+            jurisdiction: observation.jurisdiction.clone(),
+            standards_profile: observation.standards_profile.clone(),
+            domain: observation.domain,
+        },
+        mode: observation.mode,
+        evidence_references,
+        evaluated_at_ms: observation.evaluated_at_ms,
         observed_at_ms: observation.observed_at_ms,
     }
 }
@@ -2065,6 +2152,54 @@ mod tests {
             decision.reasons,
             vec![Reason::HumanModalityDiversityInsufficient]
         );
+    }
+
+    #[test]
+    fn decision_binds_expected_and_observed_subjects_and_all_source_refs() {
+        let (policy, mut observation) = baseline();
+        observation.tool_revision = "unexpected-tool-revision".to_owned();
+        let decision = evaluate(&policy, &observation);
+
+        assert_eq!(
+            decision.disposition,
+            Disposition::EvidenceInconsistent
+        );
+        assert_eq!(
+            decision.expected_subject.tool_revision,
+            policy.tool_revision
+        );
+        assert_eq!(
+            decision.observed_subject.tool_revision,
+            "unexpected-tool-revision"
+        );
+        assert_eq!(decision.policy_sha256, policy.policy_sha256);
+        assert_eq!(decision.mode, observation.mode);
+        assert_eq!(decision.evaluated_at_ms, observation.evaluated_at_ms);
+        assert_eq!(decision.observed_at_ms, observation.observed_at_ms);
+
+        let mut expected = observation
+            .sensors
+            .iter()
+            .map(|sensor| EvidenceReference {
+                role: EvidenceRole::Sensor,
+                source_id: sensor.sensor_id.clone(),
+                source_sha256: sensor.source_sha256.clone(),
+            })
+            .collect::<Vec<_>>();
+        expected.push(EvidenceReference {
+            role: EvidenceRole::HumanDetection,
+            source_id: "human-detection".to_owned(),
+            source_sha256: observation.human_detection.source_sha256.clone(),
+        });
+        expected.extend(observation.odd_conditions.iter().map(|condition| {
+            EvidenceReference {
+                role: EvidenceRole::OperatingCondition,
+                source_id: condition.condition_id.clone(),
+                source_sha256: condition.source_sha256.clone(),
+            }
+        }));
+        expected.sort();
+        assert_eq!(decision.evidence_references, expected);
     }
 
     #[test]
