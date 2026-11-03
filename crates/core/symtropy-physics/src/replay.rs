@@ -283,6 +283,7 @@ pub enum ReplayEvidenceError {
     InvalidTimeStep,
     InvalidCommandValue,
     MissingBody(BodyHandle),
+    NonFiniteWorldState,
     SerializationFailure,
 }
 
@@ -304,7 +305,11 @@ pub fn execute_with_evidence<const D: usize>(
     validate_replay_tape(world, tape)?;
 
     let input_tape_digest = digest_replay_tape(tape);
-    let initial_snapshot_digest = digest_world_snapshot(&WorldSnapshot::capture(world));
+    let initial_snapshot = WorldSnapshot::capture(world);
+    if !world_snapshot_is_finite(&initial_snapshot) {
+        return Err(ReplayEvidenceError::NonFiniteWorldState);
+    }
+    let initial_snapshot_digest = digest_world_snapshot(&initial_snapshot);
     let mut tick_snapshot_digests = Vec::with_capacity(tape.frames.len());
 
     for frame in &tape.frames {
@@ -312,7 +317,11 @@ pub fn execute_with_evidence<const D: usize>(
             ApplyCommandError::MissingBody(handle) => ReplayEvidenceError::MissingBody(handle),
         })?;
         world.step(frame.dt);
-        tick_snapshot_digests.push(digest_world_snapshot(&WorldSnapshot::capture(world)));
+        let snapshot = WorldSnapshot::capture(world);
+        if !world_snapshot_is_finite(&snapshot) {
+            return Err(ReplayEvidenceError::NonFiniteWorldState);
+        }
+        tick_snapshot_digests.push(digest_world_snapshot(&snapshot));
     }
 
     let final_snapshot_digest = tick_snapshot_digests
@@ -397,6 +406,24 @@ fn validate_replay_tape<const D: usize>(
         }
     }
     Ok(())
+}
+
+fn world_snapshot_is_finite<const D: usize>(snapshot: &WorldSnapshot<D>) -> bool {
+    let bits_are_finite = |bits: &u64| f64::from_bits(*bits).is_finite();
+    snapshot.bodies.iter().all(|body| {
+        body.translation.iter().all(bits_are_finite)
+            && body.rotation.iter().flat_map(|row| row.iter()).all(bits_are_finite)
+            && body.linear_velocity.iter().all(bits_are_finite)
+            && body
+                .angular_velocity
+                .iter()
+                .flat_map(|row| row.iter())
+                .all(bits_are_finite)
+    }) && snapshot.collision_events.iter().all(|event| {
+        bits_are_finite(&event.impulse)
+            && event.normal.iter().all(bits_are_finite)
+            && bits_are_finite(&event.depth)
+    })
 }
 
 fn digest_replay_tape<const D: usize>(tape: &ReplayTape<D>) -> String {
