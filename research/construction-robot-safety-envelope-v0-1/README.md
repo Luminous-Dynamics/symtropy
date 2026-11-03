@@ -115,13 +115,15 @@ The dedicated workflow pins Rust 1.96.0 and runs on Linux, macOS and Windows.
 This crate does not claim compliance with any standard. Applicability is
 machine-, task-, jurisdiction- and integration-specific.
 
-- [ISO 19014-1:2026](https://www.iso.org/standard/87988.html) through
-  [ISO 19014-5:2026](https://www.iso.org/ics/53.100/x/) were published in
-  October 2026 for the functional safety of earth-moving machinery. The series
-  addresses required machine performance levels, achieved safety-control-system
-  performance, environmental testing, software/data transmission and tables of
-  required levels. The relevant scope is earth-moving machinery defined in
-  ISO 6165; it is not a generic construction-robot certification route.
+- The [ISO 19014:2026 series](https://www.iso.org/ics/53.100/x/) for earth-moving
+  machinery was published in October 2026: [Part 1](https://www.iso.org/standard/87988.html)
+  determines required machine performance levels; [Part 2](https://www.iso.org/standard/87718.html)
+  addresses achieved safety-control-system performance; [Part 3](https://www.iso.org/standard/88622.html)
+  addresses environmental testing of electrical/electronic components;
+  [Part 4](https://www.iso.org/standard/87720.html) addresses safety-related
+  software and data transmission; and [Part 5](https://www.iso.org/standard/87719.html)
+  provides required-level tables. The relevant scope is earth-moving machinery
+  defined in ISO 6165; this is not a generic construction-robot certification route.
 - [ISO 17757:2019](https://www.iso.org/standard/76126.html) remains current
   after 2024 confirmation and directly addresses autonomous/semi-autonomous
   earth-moving and mobile-mining machine systems and their defined environments.
@@ -227,6 +229,14 @@ performance.
   physics/simulation-side test contracts. Existing per-joint
   `JointSafetyAuthority` remains a separate bridge component; V1 does not
   replace it.
+- [ROBOT-QUAL-ORACLE-001 #2672](https://github.com/Luminous-Dynamics/symtropy/issues/2672)
+  owns end-to-end fault-to-disposition qualification across the full mission
+  timeline. This crate is only a per-observation safety-envelope sub-oracle;
+  it does not declare a mission Complete, Blocked or safe to execute.
+- [Shared robotics scenario pack #1595](https://github.com/Luminous-Dynamics/symtropy/issues/1595)
+  owns common scenario identity/fault schedules; [ENG-SYNTH #1172](https://github.com/Luminous-Dynamics/symtropy/issues/1172)
+  owns deterministic execution and replay. A temporal V2 must compose those
+  owners rather than create another event runtime.
 - Symtropy issue #1834 and the construction qualification evaluator own
   machine-to-work-package capability matching, not runtime safety control.
 - Mycelix owns identity, authorization, custody, provenance, correction,
