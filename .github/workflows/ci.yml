@@ -4,7 +4,10 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # The WPT validator is maintained as a stacked research PR so its schema
+    # contract can be reviewed independently from the initial dataset seed.
+    # Keep exact-head validation enabled for that one parent branch.
+    branches: [ "main", "research/wpt-empirical-envelope-v0.1-20261103" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
