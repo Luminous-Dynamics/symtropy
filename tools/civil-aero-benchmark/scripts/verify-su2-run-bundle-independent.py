@@ -251,9 +251,17 @@ def termination_evidence(
             classification = "interrupted"
             terminal_messages = [INTERRUPTED]
         elif WINDOW_SUCCESS in section:
+            success_lines = [
+                line for line in section.splitlines() if line.strip() == WINDOW_SUCCESS
+            ]
+            require(
+                len(success_lines) == 1,
+                f"expected exactly one native aggregate window-success line, found {len(success_lines)}",
+            )
+            success_line = success_lines[0]
             classification = "time_window_native_criteria_satisfied"
-            terminal_messages = [WINDOW_SUCCESS]
-            success_sha = hashlib.sha256(WINDOW_SUCCESS.encode("utf-8")).hexdigest()
+            terminal_messages = [success_line]
+            success_sha = hashlib.sha256(success_line.encode("utf-8")).hexdigest()
             native_rows = [
                 (
                     field,
