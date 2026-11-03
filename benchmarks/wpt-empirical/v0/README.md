@@ -130,3 +130,28 @@ Source additions:
 - Sasatani, Sample & Kawahara (2026), [npj Wireless Technology](https://doi.org/10.1038/s44459-026-00093-4), published 1 October 2026.
 - Yigit et al. (2026), [Optics and Laser Technology](https://doi.org/10.1016/j.optlastec.2026.115445), October 2026.
 
+## Standards, exposure and propagation reference layer
+
+The source catalogue now also registers the principal standards and reference methods needed to interpret the prototype records. These are **scope references**, not experimental realizations and not proof of compliance.
+
+| Source | What it governs or predicts | Important scope boundary |
+|---|---|---|
+| ITU-R P.684-8 (2022) | Field-strength prediction below about 150 kHz using waveguide and wave-hop methods | Earth–ionosphere radio propagation; not bulk-soil conduction, a source-to-load power model or a Tesla-system validation |
+| ITU-R SM.2303-4 (2023) | Technical overview of non-RF-beam WPT, technology and spectrum/regulatory context | ITU explicitly leaves EMF safety-limit setting to other expert bodies |
+| ICNIRP LF (2010) | Time-varying electric/magnetic-field exposure, 1 Hz–100 kHz | Exposure guidance, not WPT equipment performance or instrument-method standard |
+| ICNIRP RF (2020) | RF exposure, 100 kHz–300 GHz | Exposure guidance; apply with LF guidance where the frequency/effect ranges overlap |
+| IEC/IEEE 63184:2025 | WPT exposure assessment methods over 3 kHz–30 MHz: SAR, internal E-field/current density, contact current; measurements and computation | IEC scope is stationary WPT, focused on IPT; it provides assessment methods, not the applicable exposure limits or legal approval |
+| IEC 61980-1:2020 / IEC 61980-3:2022 | General EV WPT requirements and stationary magnetic-field WPT requirements | Do not treat the stationary scope as dynamic roadway qualification |
+| IEC PAS 61980-4:2025 | Interoperability and safety for stationary high-power magnetic-field EV WPT | High-power stationary EV lane; not dynamic-roadway certification |
+| SAE J2954_202408 | Interoperability, alignment, safety, EMC and performance for stationary light-duty EV WPT | This edition specifies up to 11 kVA, surface-mounted installations and unidirectional grid-to-vehicle transfer; heavy-duty/dynamic applications have separate workstreams |
+
+### Frequency routing for exposure assessment
+
+- The 85 kHz exposure-aware DD pad lies within ICNIRP's 1 Hz–100 kHz LF range and within the 3 kHz–30 MHz scope of IEC/IEEE 63184:2025. Do not treat either document as a measured field result.
+- The 1.34 MHz room-scale resonator lies within ICNIRP's 100 kHz–300 GHz RF range and the frequency span of IEC/IEEE 63184:2025, but the latter's stated stationary-IPT scope and exposure endpoint must be checked before claiming applicability.
+- Tesla's patent describes operation below 20 kHz and discusses frequencies as low as 6 Hz. P.684-8's frequency range is therefore relevant to a *separate Earth–ionosphere propagation hypothesis*, but not a model of the patent's bulk-Earth conductive path.
+
+### Comparison rule
+
+Keep three questions distinct: (1) what field propagates and by which physical path, (2) what exposure assessment method/limit applies, and (3) what useful energy reaches a declared load. A propagation field-strength prediction is not a safety assessment or a source-to-load efficiency measurement. A guideline is not a test method; a test method is not a legal limit; and a product standard is not a universal model for all WPT geometries.
+
