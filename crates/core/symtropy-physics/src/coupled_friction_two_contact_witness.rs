@@ -3229,7 +3229,9 @@ mod double_sliding_direction_oracle {
                 .expect("six experiment coordinates exist");
             assert!(guaranteed_gap >= best_axis_gap);
 
-            for (coefficient, difference) in experiment_direction.iter().zip(branch_difference.iter()) {
+            for (coefficient, difference) in
+                experiment_direction.iter().zip(branch_difference.iter())
+            {
                 assert_eq!(
                     *coefficient,
                     if difference.is_strictly_positive() {
