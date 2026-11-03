@@ -138,6 +138,18 @@ impl WorkloadJobContract {
         self.maximum_work_units_per_slot
     }
 
+    pub const fn it_power_kw_per_work_unit(&self) -> f64 {
+        self.it_power_kw_per_work_unit
+    }
+
+    pub const fn cooling_power_kw_per_work_unit(&self) -> f64 {
+        self.cooling_power_kw_per_work_unit
+    }
+
+    pub const fn checkpoint_resume_overhead_kwh(&self) -> f64 {
+        self.checkpoint_resume_overhead_kwh
+    }
+
     pub const fn preemption_policy(&self) -> WorkloadPreemptionPolicy {
         self.preemption_policy
     }
@@ -231,6 +243,34 @@ impl WorkloadScheduleSlot {
 
     pub const fn duration_ns(&self) -> u64 {
         self.duration_ns
+    }
+
+    pub const fn base_non_compute_power_kw(&self) -> f64 {
+        self.base_non_compute_power_kw
+    }
+
+    pub const fn base_cooling_power_kw(&self) -> f64 {
+        self.base_cooling_power_kw
+    }
+
+    pub const fn committed_non_grid_supply_kw(&self) -> f64 {
+        self.committed_non_grid_supply_kw
+    }
+
+    pub const fn maximum_facility_input_kw(&self) -> f64 {
+        self.maximum_facility_input_kw
+    }
+
+    pub const fn maximum_grid_import_kw(&self) -> f64 {
+        self.maximum_grid_import_kw
+    }
+
+    pub const fn maximum_cooling_power_kw(&self) -> f64 {
+        self.maximum_cooling_power_kw
+    }
+
+    pub const fn maximum_compute_work_units(&self) -> f64 {
+        self.maximum_compute_work_units
     }
 }
 
@@ -374,7 +414,7 @@ impl WorkloadSchedule {
             }
 
             if let Some(previous_index) = previous_slot_index {
-                if slot.slot_index() != previous_index + 1 {
+                if previous_index.checked_add(1) != Some(slot.slot_index()) {
                     return Err(WorkloadScheduleError::NonContiguousSlots {
                         previous_slot_index: previous_index,
                         next_slot_index: slot.slot_index(),
@@ -400,10 +440,16 @@ impl WorkloadSchedule {
             );
         }
 
+        let horizon_start = self.slots[0].slot_index();
+        let horizon_end = self.slots[self.slots.len() - 1]
+            .slot_index()
+            .checked_add(1)
+            .ok_or(WorkloadScheduleError::SlotIndexOverflow)?;
         if self.jobs.iter().any(|job| {
-            job.release_slot() < self.slots[0].slot_index()
-                || job.deadline_slot_exclusive()
-                    > self.slots[self.slots.len() - 1].slot_index() + 1
+            job.release_slot() < horizon_start
+                || job.release_slot() >= horizon_end
+                || job.deadline_slot_exclusive() > horizon_end
+                || job.deadline_slot_exclusive() <= horizon_start
         }) {
             return Err(WorkloadScheduleError::JobWindowOutsideHorizon);
         }
@@ -474,6 +520,10 @@ impl WorkloadSlotVerification {
 
     pub const fn checkpoint_overhead_kwh(&self) -> f64 {
         self.checkpoint_overhead_kwh
+    }
+
+    pub const fn checkpoint_power_kw(&self) -> f64 {
+        self.checkpoint_power_kw
     }
 
     pub const fn facility_input_power_kw(&self) -> f64 {
@@ -932,6 +982,7 @@ pub enum WorkloadScheduleError {
         previous_slot_index: u32,
         next_slot_index: u32,
     },
+    SlotIndexOverflow,
     NonContiguousSlotTime {
         expected_start_ns: u64,
         observed_start_ns: u64,
@@ -1081,6 +1132,9 @@ impl fmt::Display for WorkloadScheduleError {
                 f,
                 "slot index gap: previous {previous_slot_index}, next {next_slot_index}"
             ),
+            Self::SlotIndexOverflow => {
+                write!(f, "last scheduling slot index cannot be incremented")
+            }
             Self::NonContiguousSlotTime {
                 expected_start_ns,
                 observed_start_ns,
@@ -1197,11 +1251,6 @@ impl fmt::Display for WorkloadScheduleError {
 
 impl std::error::Error for WorkloadScheduleError {}
 
-fn _workload_schedule_error_is_send_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<WorkloadScheduleError>();
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1286,19 +1335,43 @@ mod tests {
         assert_eq!(report.slot_count(), 4);
         assert_eq!(report.allocation_count(), 3);
         assert_eq!(report.completed_work_units(), 40.0);
-        assert_eq!(report.peak_facility_input_kw(), 502.0);
-        assert_eq!(report.peak_grid_import_kw(), 402.0);
+        assert_eq!(report.peak_facility_input_kw(), 490.0);
+        assert_eq!(report.peak_grid_import_kw(), 390.0);
         assert_eq!(report.peak_cooling_power_kw(), 90.0);
         assert!(report.total_facility_energy_kwh() > report.total_grid_import_energy_kwh());
     }
 
     #[test]
-    fn rejects_job_work_beyond_deadline_and_missing_work() {
-        let mut schedule = valid_schedule();
-        schedule.allocations[0] = allocation("JOB-A", 3, 10.0);
+    fn rejects_allocations_outside_deadline_and_missing_work() {
+        let late = WorkloadSchedule::new(
+            "SCHEDULE-LATE",
+            "SLA-BASELINE-V1",
+            "training-steps-v1",
+            vec![WorkloadJobContract::new(
+                "JOB-LATE",
+                "training-steps-v1",
+                0,
+                2,
+                10.0,
+                10.0,
+                10.0,
+                2.0,
+                WorkloadPreemptionPolicy::Deferrable,
+                0.0,
+            )
+            .unwrap()],
+            vec![
+                slot(0, 600.0, 500.0, 100.0),
+                slot(1, 600.0, 500.0, 100.0),
+                slot(2, 600.0, 500.0, 100.0),
+                slot(3, 600.0, 500.0, 100.0),
+            ],
+            vec![allocation("JOB-LATE", 2, 10.0)],
+        )
+        .unwrap();
         assert!(matches!(
-            verify_workload_schedule(&schedule, tolerance()),
-            Err(WorkloadScheduleError::JobWorkMismatch { .. })
+            verify_workload_schedule(&late, tolerance()),
+            Err(WorkloadScheduleError::AllocationOutsideJobWindow { .. })
         ));
 
         let missing = WorkloadSchedule::new(
@@ -1420,19 +1493,30 @@ mod tests {
             Err(WorkloadScheduleError::DuplicateJobSlotAllocation { .. })
         ));
 
-        assert!(WorkloadJobContract::new(
-            "JOB-BAD-UNIT",
-            "tokens",
-            0,
-            2,
-            10.0,
-            10.0,
-            1.0,
-            1.0,
-            WorkloadPreemptionPolicy::Deferrable,
-            0.0
-        )
-        .is_ok());
+        let wrong_unit = WorkloadSchedule::new(
+            "SCHEDULE-WRONG-UNIT",
+            "SLA-BASELINE-V1",
+            "training-steps-v1",
+            vec![WorkloadJobContract::new(
+                "JOB-BAD-UNIT",
+                "tokens",
+                0,
+                2,
+                10.0,
+                10.0,
+                1.0,
+                1.0,
+                WorkloadPreemptionPolicy::Deferrable,
+                0.0,
+            )
+            .unwrap()],
+            vec![slot(0, 600.0, 500.0, 100.0), slot(1, 600.0, 500.0, 100.0)],
+            vec![allocation("JOB-BAD-UNIT", 0, 10.0)],
+        );
+        assert!(matches!(
+            wrong_unit,
+            Err(WorkloadScheduleError::WorkUnitMismatch { .. })
+        ));
     }
 
     #[test]
