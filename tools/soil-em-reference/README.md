@@ -38,10 +38,9 @@ From this directory:
 
     cargo test
     cargo run --release --bin material_sweep > soil-propagation.csv
+    cargo run --release --bin electrode_sweep > electrode-impedance.csv
 
-The sweep writes stdout CSV over a declared conductivity/frequency grid.
-Parameters are illustrative sensitivity ranges, not measurements from
-Colorado Springs or Wardenclyffe.
+The material sweep writes stdout CSV over a declared conductivity/frequency/permittivity grid. The separate electrode sweep evaluates 576 combinations of frequency, conductivity, hemisphere radii and separation; geometries outside the point-electrode approximation gate are marked `NaN` rather than silently extrapolated. Parameters are illustrative sensitivity ranges, not measurements from Colorado Springs or Wardenclyffe.
 
 ## Analytical quantities
 
@@ -77,6 +76,6 @@ Compare solver and analytic results only on a matched physical problem.
 
 ## Validation status
 
-Twelve Rust unit tests are authored across plane-wave, single-electrode and two-electrode reference cases. They have not been compiled or executed in
+Twelve Rust unit tests are authored across plane-wave, single-electrode and two-electrode reference cases. The electrode CLI adds a reproducible geometry sensitivity sweep. They have not been compiled or executed in
 this authoring environment because Cargo/rustc are unavailable. No CI or
 numerical qualification pass is claimed.
