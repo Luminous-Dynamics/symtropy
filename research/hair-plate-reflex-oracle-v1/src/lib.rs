@@ -1102,6 +1102,87 @@ mod tests {
         }
     }
 
+    fn source_artifacts_for(records: &[HairPlateRecord]) -> Vec<SourceArtifact> {
+        let mut roles: std::collections::BTreeMap<
+            String,
+            std::collections::BTreeSet<SourceArtifactRole>,
+        > = std::collections::BTreeMap::new();
+
+        let mut add = |sha256: &str, role: SourceArtifactRole| {
+            roles
+                .entry(sha256.to_string())
+                .or_default()
+                .insert(role);
+        };
+
+        for record in records {
+            for (evidence_role, source_role) in [
+                (
+                    &record.morphology,
+                    SourceArtifactRole::Morphology,
+                ),
+                (
+                    &record.afferent_neuron_ids,
+                    SourceArtifactRole::AfferentIdentity,
+                ),
+                (
+                    &record.sensory_tuning,
+                    SourceArtifactRole::SensoryTuning,
+                ),
+                (
+                    &record.connectome_outputs,
+                    SourceArtifactRole::ConnectomeOutput,
+                ),
+                (
+                    &record.reflex_outcomes,
+                    SourceArtifactRole::ReflexOutcome,
+                ),
+            ] {
+                match evidence_role {
+                    Evidence::Observed { source_sha256, .. } => {
+                        add(source_sha256, source_role);
+                    }
+                    Evidence::ExplicitlyAbsent {
+                        search_receipt_sha256,
+                        ..
+                    } => {
+                        add(search_receipt_sha256, SourceArtifactRole::SearchReceipt);
+                    }
+                    Evidence::Unknown { .. } => {}
+                }
+            }
+            if let Evidence::Observed { value, .. } = &record.morphology {
+                add(&value.geometry_sha256, SourceArtifactRole::Morphology);
+            }
+        }
+
+        roles
+            .into_iter()
+            .map(|(sha256, roles)| SourceArtifact {
+                artifact_id: format!("fixture-{}", &sha256[..12]),
+                source_uri: format!("https://example.org/fixtures/{sha256}"),
+                source_version_id: "synthetic-fixture-v1".to_string(),
+                media_type: "application/octet-stream".to_string(),
+                license_spdx: Some("CC0-1.0".to_string()),
+                sha256,
+                roles: roles.into_iter().collect(),
+                custody_mode: SourceCustodyMode::SyntheticFixture,
+            })
+            .collect()
+    }
+
+    fn inventory(records: Vec<HairPlateRecord>) -> HairPlateInventory {
+        let source_artifacts = source_artifacts_for(&records);
+        HairPlateInventory {
+            inventory_id: "hair-plate-test-inventory-v1".to_string(),
+            dataset_id: "synthetic-hair-plate-fixture".to_string(),
+            dataset_version: "fixture-v1".to_string(),
+            inventory_sha256: digest('6'),
+            source_artifacts,
+            records,
+        }
+    }
+
     fn prediction() -> HairPlatePrediction {
         HairPlatePrediction {
             plate_id: "front-coxa-hp8".to_string(),
@@ -1133,14 +1214,70 @@ mod tests {
 
     #[test]
     fn validates_source_qualified_plate_inventory() {
-        let inventory = HairPlateInventory {
-            inventory_id: "drosophila-hair-plate-v1".to_string(),
-            dataset_id: "fanc-v1-2-1".to_string(),
-            dataset_version: "1.2.1".to_string(),
-            inventory_sha256: digest('6'),
-            records: vec![record()],
-        };
+        let inventory = inventory(vec![record()]);
         assert_eq!(inventory.validate(), Ok(()));
+    }
+
+    #[test]
+    fn inventory_rejects_observed_evidence_missing_a_source_manifest_role() {
+        let mut input = inventory(vec![record()]);
+        input.source_artifacts.retain(|artifact| artifact.sha256 != digest('e'));
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::MissingSourceArtifact {
+                sha256: digest('e'),
+                role: SourceArtifactRole::SensoryTuning,
+            })
+        );
+    }
+
+    #[test]
+    fn inventory_rejects_source_artifact_with_the_wrong_semantic_role() {
+        let mut input = inventory(vec![record()]);
+        let artifact = input
+            .source_artifacts
+            .iter_mut()
+            .find(|artifact| artifact.sha256 == digest('e'))
+            .expect("fixture source artifact exists");
+        artifact.roles = vec![SourceArtifactRole::Morphology];
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::MissingSourceArtifact {
+                sha256: digest('e'),
+                role: SourceArtifactRole::SensoryTuning,
+            })
+        );
+    }
+
+    #[test]
+    fn inventory_requires_search_receipt_for_explicit_absence() {
+        let mut input = record();
+        input.sensory_tuning = Evidence::ExplicitlyAbsent {
+            search_receipt_sha256: digest('7'),
+            scope_id: "complete-cxhp8-tuning-search-v1".to_string(),
+        };
+        let mut source_inventory = inventory(vec![input]);
+        source_inventory
+            .source_artifacts
+            .retain(|artifact| artifact.sha256 != digest('7'));
+        assert_eq!(
+            source_inventory.validate(),
+            Err(OracleError::MissingSourceArtifact {
+                sha256: digest('7'),
+                role: SourceArtifactRole::SearchReceipt,
+            })
+        );
+    }
+
+    #[test]
+    fn inventory_rejects_duplicate_source_artifact_digests() {
+        let mut input = inventory(vec![record()]);
+        let duplicate = input.source_artifacts[0].clone();
+        input.source_artifacts.push(duplicate);
+        assert_eq!(
+            input.validate(),
+            Err(OracleError::DuplicateIdentity("source_artifact"))
+        );
     }
 
     #[test]
@@ -1254,13 +1391,7 @@ mod tests {
         training.plate_id = "front-coxa-hp3".to_string();
         training.record_sha256 = digest('9');
 
-        let inventory = HairPlateInventory {
-            inventory_id: "drosophila-hair-plate-v1".to_string(),
-            dataset_id: "fanc-v1-2-1".to_string(),
-            dataset_version: "1.2.1".to_string(),
-            inventory_sha256: digest('6'),
-            records: vec![heldout, training],
-        };
+        let inventory = inventory(vec![heldout, training]);
         assert_eq!(inventory.validate_prediction(&prediction()), Ok(()));
     }
 
@@ -1272,13 +1403,7 @@ mod tests {
         training.taxon_id = "drosophila-simulans".to_string();
         training.record_sha256 = digest('9');
 
-        let inventory = HairPlateInventory {
-            inventory_id: "mixed-taxon-hair-plates-v1".to_string(),
-            dataset_id: "fanc-v1-2-1".to_string(),
-            dataset_version: "1.2.1".to_string(),
-            inventory_sha256: digest('6'),
-            records: vec![heldout, training],
-        };
+        let inventory = inventory(vec![heldout, training]);
         assert_eq!(
             inventory.validate_prediction(&prediction()),
             Err(OracleError::CrossTaxonTrainingPlate(
@@ -1289,13 +1414,7 @@ mod tests {
 
     #[test]
     fn inventory_rejects_training_plate_missing_from_the_pinned_inventory() {
-        let inventory = HairPlateInventory {
-            inventory_id: "drosophila-hair-plate-v1".to_string(),
-            dataset_id: "fanc-v1-2-1".to_string(),
-            dataset_version: "1.2.1".to_string(),
-            inventory_sha256: digest('6'),
-            records: vec![record()],
-        };
+        let inventory = inventory(vec![record()]);
         assert_eq!(
             inventory.validate_prediction(&prediction()),
             Err(OracleError::UnknownPlate("front-coxa-hp3".to_string()))
