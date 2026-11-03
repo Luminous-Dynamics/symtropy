@@ -515,7 +515,7 @@ pub fn evaluate_policy_benchmark(
         let mut feasible_admitted_candidates = 0;
         let mut feasible_points = Vec::new();
 
-        for candidate in observations {
+        for candidate in &observations {
             match candidate.admission_status {
                 CandidateAdmissionStatus::Admitted => {
                     admitted_candidates += 1;
@@ -785,13 +785,13 @@ fn csv_escape(value: &str) -> String {
     format!("\"{}\"", value.replace('"', "\"\""))
 }
 
-pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed,validated_hypervolume_per_high_fidelity_condition_call,normalized_hypervolume_per_high_fidelity_condition_call";
+pub const POLICY_BENCHMARK_CSV_HEADER: &str = "task_id,replicate_id,policy_id,objective_1_name,objective_2_name,ideal_point_1,ideal_point_2,reference_point_1,reference_point_2,budget_cap_units,total_cost_units,remaining_budget_units,budget_utilization_fraction,wall_seconds,cpu_seconds,operation_count,successful_operations,failed_operations,high_fidelity_attempts,successful_high_fidelity_operations,admitted_candidates,not_admitted_candidates,feasible_admitted_candidates,feasible_yield,admission_yield,validated_hypervolume_2d,normalized_validated_hypervolume_fraction,validated_hypervolume_per_cost,normalized_hypervolume_per_cost,evidence_level,aerodynamic_condition_calls_attempted,aerodynamic_condition_calls_succeeded,aerodynamic_condition_calls_failed,high_fidelity_condition_calls_attempted,high_fidelity_condition_calls_succeeded,high_fidelity_condition_calls_failed,validated_hypervolume_per_high_fidelity_condition_call,normalized_hypervolume_per_high_fidelity_condition_call,admitted_candidate_frame_sha256,operation_ledger_sha256,admission_frame_receipt_sha256";
 
 pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
     let mut output = format!("{POLICY_BENCHMARK_CSV_HEADER}\n");
     for row in &report.rows {
         output.push_str(&format!(
-            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{}\n",
+            "{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{:.12},{:.12},{:.12},{:.12},{:.12},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             csv_escape(&row.task_id),
             csv_escape(&row.replicate_id),
             csv_escape(&row.policy_id),
@@ -837,7 +837,10 @@ pub fn report_to_csv(report: &PolicyBenchmarkReport) -> String {
                 .unwrap_or_default(),
             row.normalized_hypervolume_per_high_fidelity_condition_call
                 .map(|value| format!("{value:.12}"))
-                .unwrap_or_default()
+                .unwrap_or_default(),
+            row.admitted_candidate_frame_sha256,
+            row.operation_ledger_sha256,
+            row.admission_frame_receipt_sha256
         ));
     }
     output
