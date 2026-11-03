@@ -76,7 +76,9 @@ impl Su2TerminationReport {
     pub fn is_converged_for_protocol(&self) -> bool {
         matches!(
             self.classification.as_str(),
-            "steady_native_criteria_satisfied" | "time_window_native_criteria_satisfied"
+            "steady_native_criteria_satisfied"
+                | "time_window_native_criteria_satisfied"
+                | "time_window_native_criteria_satisfied_with_coincident_limit"
         ) && !self.native_criteria.is_empty()
             && self.native_criteria.iter().all(|criterion| {
                 criterion.status == "passed"
@@ -348,27 +350,37 @@ fn classify_exit_section(
     } else {
         "invalid_steady_window_protocol"
     };
-    let terminal_markers = [
+
+    let observed = [
         INTERRUPTED,
         STEADY_SUCCESS,
         WINDOW_SUCCESS,
         STEADY_ITERATION_LIMIT,
         TIME_LIMIT,
         TIME_ITERATION_LIMIT,
-    ];
-    let observed = terminal_markers
-        .iter()
-        .filter(|marker| section.contains(**marker))
-        .map(|marker| (*marker).to_owned())
-        .collect::<Vec<_>>();
-    if observed.len() > 1 {
+    ]
+    .iter()
+    .filter(|marker| section.contains(**marker))
+    .map(|marker| (*marker).to_owned())
+    .collect::<Vec<_>>();
+
+    if observed.contains(&INTERRUPTED.to_owned()) {
+        if observed.len() != 1 {
+            return Ok((
+                mode.to_owned(),
+                "contradictory_terminal_messages".to_owned(),
+                Vec::new(),
+                observed,
+            ));
+        }
         return Ok((
             mode.to_owned(),
-            "contradictory_terminal_messages".to_owned(),
+            "interrupted".to_owned(),
             Vec::new(),
-            observed,
+            vec![INTERRUPTED.to_owned()],
         ));
     }
+
     if !steady_mode && !window_mode {
         return Ok((
             mode.to_owned(),
@@ -378,119 +390,141 @@ fn classify_exit_section(
                 "invalid_steady_window_protocol".to_owned()
             },
             Vec::new(),
-            Vec::new(),
+            observed,
         ));
     }
-    if protocol.time_domain && matches!(&protocol.window, Su2WindowConvergenceProtocol::Disabled) {
-        return Ok((
-            "unsteady_no_window".to_owned(),
-            "unsupported_unsteady_termination_protocol".to_owned(),
-            Vec::new(),
-            Vec::new(),
-        ));
-    }
-    let classification = match &protocol.window {
-        Su2WindowConvergenceProtocol::Disabled => {
-            if section.contains(INTERRUPTED) {
-                (
-                    "steady".to_owned(),
-                    "interrupted".to_owned(),
-                    Vec::new(),
-                    vec![INTERRUPTED.to_owned()],
-                )
-            } else if section.contains(STEADY_ITERATION_LIMIT) {
-                (
-                    "steady".to_owned(),
-                    "maximum_iterations_reached".to_owned(),
-                    Vec::new(),
-                    vec![STEADY_ITERATION_LIMIT.to_owned()],
-                )
-            } else if section.contains(STEADY_SUCCESS) {
-                match parse_steady_native_criteria(section, &protocol.steady_fields) {
-                    Ok(criteria) => {
-                        let passed = criteria
-                            .iter()
-                            .all(|criterion| criterion.status == "passed");
-                        (
-                            "steady".to_owned(),
-                            if passed {
-                                "steady_native_criteria_satisfied"
-                            } else {
-                                "steady_native_criteria_not_satisfied"
-                            }
-                            .to_owned(),
-                            criteria,
-                            vec![STEADY_SUCCESS.to_owned()],
-                        )
-                    }
-                    Err(error) => (
+
+    if steady_mode {
+        if observed.len() > 1 {
+            return Ok((
+                mode.to_owned(),
+                "contradictory_terminal_messages".to_owned(),
+                Vec::new(),
+                observed,
+            ));
+        }
+        if section.contains(STEADY_ITERATION_LIMIT) {
+            return Ok((
+                "steady".to_owned(),
+                "maximum_iterations_reached".to_owned(),
+                Vec::new(),
+                vec![STEADY_ITERATION_LIMIT.to_owned()],
+            ));
+        }
+        if section.contains(STEADY_SUCCESS) {
+            return match parse_steady_native_criteria(section, &protocol.steady_fields) {
+                Ok(criteria) => {
+                    let passed = !criteria.is_empty()
+                        && criteria.iter().all(|criterion| criterion.status == "passed");
+                    Ok((
                         "steady".to_owned(),
-                        "unclassified_native_steady_summary".to_owned(),
-                        Vec::new(),
-                        vec![error],
-                    ),
+                        if passed {
+                            "steady_native_criteria_satisfied"
+                        } else {
+                            "steady_native_criteria_not_satisfied"
+                        }
+                        .to_owned(),
+                        criteria,
+                        vec![STEADY_SUCCESS.to_owned()],
+                    ))
                 }
-            } else {
-                (
+                Err(error) => Ok((
                     "steady".to_owned(),
-                    "unclassified_steady_termination".to_owned(),
+                    "unclassified_native_steady_summary".to_owned(),
                     Vec::new(),
-                    Vec::new(),
-                )
-            }
+                    vec![error],
+                )),
+            };
         }
-        Su2WindowConvergenceProtocol::Enabled { fields, .. } => {
-            if section.contains(INTERRUPTED) {
-                (
-                    "time_window".to_owned(),
-                    "interrupted".to_owned(),
-                    Vec::new(),
-                    vec![INTERRUPTED.to_owned()],
-                )
-            } else if section.contains(WINDOW_SUCCESS) {
-                let success_line = unique_exact_message_line(section, WINDOW_SUCCESS)?;
-                let success_digest = sha256_hex(success_line.as_bytes())?;
-                (
-                    "time_window".to_owned(),
-                    "time_window_native_criteria_satisfied".to_owned(),
-                    fields
-                        .iter()
-                        .map(|field| Su2NativeCriterionResult {
-                            configured_field: field.clone(),
-                            reported_field: "AGGREGATE_WINDOW_SUCCESS_BANNER".to_owned(),
-                            evidence_scope:
-                                Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner,
-                            status: "passed".to_owned(),
-                            summary_line_sha256: success_digest.clone(),
-                        })
-                        .collect(),
-                    vec![success_line.to_owned()],
-                )
-            } else if section.contains(TIME_LIMIT) {
-                (
-                    "time_window".to_owned(),
-                    "maximum_time_reached".to_owned(),
-                    Vec::new(),
-                    vec![TIME_LIMIT.to_owned()],
-                )
-            } else if section.contains(TIME_ITERATION_LIMIT) {
-                (
-                    "time_window".to_owned(),
-                    "maximum_time_iterations_reached".to_owned(),
-                    Vec::new(),
-                    vec![TIME_ITERATION_LIMIT.to_owned()],
-                )
+        return Ok((
+            "steady".to_owned(),
+            "unclassified_steady_termination".to_owned(),
+            Vec::new(),
+            observed,
+        ));
+    }
+
+    // SU2 v8.6.0's single-zone time driver reports window convergence and the
+    // final-time / time-iteration stop flags independently. A successful window
+    // criterion can therefore legitimately coexist with one or both run limits.
+    // Such a co-terminal limit does not revoke the native window-convergence result.
+    if section.contains(STEADY_SUCCESS) || section.contains(STEADY_ITERATION_LIMIT) {
+        return Ok((
+            "time_window".to_owned(),
+            "contradictory_terminal_messages".to_owned(),
+            Vec::new(),
+            observed,
+        ));
+    }
+
+    if section.contains(WINDOW_SUCCESS) {
+        let success_line = unique_exact_message_line(section, WINDOW_SUCCESS)?;
+        let success_digest = sha256_hex(success_line.as_bytes())?;
+        let mut messages = vec![success_line.to_owned()];
+        if section.contains(TIME_LIMIT) {
+            messages.push(TIME_LIMIT.to_owned());
+        }
+        if section.contains(TIME_ITERATION_LIMIT) {
+            messages.push(TIME_ITERATION_LIMIT.to_owned());
+        }
+        let coincident_limit =
+            section.contains(TIME_LIMIT) || section.contains(TIME_ITERATION_LIMIT);
+        let fields = match &protocol.window {
+            Su2WindowConvergenceProtocol::Enabled { fields, .. } => fields,
+            Su2WindowConvergenceProtocol::Disabled => unreachable!("window mode was established"),
+        };
+        return Ok((
+            "time_window".to_owned(),
+            if coincident_limit {
+                "time_window_native_criteria_satisfied_with_coincident_limit"
             } else {
-                (
-                    "time_window".to_owned(),
-                    "unclassified_time_window_termination".to_owned(),
-                    Vec::new(),
-                    Vec::new(),
-                )
+                "time_window_native_criteria_satisfied"
             }
+            .to_owned(),
+            fields
+                .iter()
+                .map(|field| Su2NativeCriterionResult {
+                    configured_field: field.clone(),
+                    reported_field: "AGGREGATE_WINDOW_SUCCESS_BANNER".to_owned(),
+                    evidence_scope: Su2NativeCriterionEvidenceScope::AggregateWindowSuccessBanner,
+                    status: "passed".to_owned(),
+                    summary_line_sha256: success_digest.clone(),
+                })
+                .collect(),
+            messages,
+        ));
+    }
+
+    let time_limit = section.contains(TIME_LIMIT);
+    let time_iteration_limit = section.contains(TIME_ITERATION_LIMIT);
+    if time_limit || time_iteration_limit {
+        let classification = match (time_limit, time_iteration_limit) {
+            (true, true) => "time_limits_reached_before_window_convergence",
+            (true, false) => "maximum_time_reached",
+            (false, true) => "maximum_time_iterations_reached",
+            (false, false) => unreachable!("at least one time limit was detected"),
+        };
+        let mut messages = Vec::new();
+        if time_limit {
+            messages.push(TIME_LIMIT.to_owned());
         }
-    };
-    Ok(classification)
+        if time_iteration_limit {
+            messages.push(TIME_ITERATION_LIMIT.to_owned());
+        }
+        return Ok((
+            "time_window".to_owned(),
+            classification.to_owned(),
+            Vec::new(),
+            messages,
+        ));
+    }
+
+    Ok((
+        "time_window".to_owned(),
+        "unclassified_time_window_termination".to_owned(),
+        Vec::new(),
+        observed,
+    ))
 }
 
 /// Classify native SU2 termination using the exact stdout/stderr bytes captured by the production
@@ -785,6 +819,72 @@ mod tests {
         assert_eq!(window_class, "contradictory_terminal_messages");
         assert!(window_rows.is_empty());
         assert_eq!(window_messages.len(), 2);
+    }
+
+    #[test]
+    fn time_window_success_can_coincide_with_a_configured_run_limit() {
+        for limit in [TIME_LIMIT, TIME_ITERATION_LIMIT] {
+            let section = format!(
+                "----------------------------- Solver Exit -------------------------------\\n{WINDOW_SUCCESS}\\n{limit}\\n-------------------------------------------------------------------------\\n"
+            );
+            let (_, classification, criteria, messages) =
+                classify_exit_section(&section, &window_protocol())
+                    .expect("classify converged time-window run with coincident limit");
+            assert_eq!(
+                classification,
+                "time_window_native_criteria_satisfied_with_coincident_limit"
+            );
+            assert_eq!(criteria.len(), 2);
+            assert!(criteria.iter().all(|criterion| criterion.status == "passed"));
+            assert_eq!(messages.len(), 2);
+            let report = Su2TerminationReport {
+                schema: SU2_TERMINATION_SCHEMA.to_owned(),
+                run_id: "co-terminal-window-run".to_owned(),
+                solver_id: "SU2_CFD".to_owned(),
+                solver_version_claim: "8.6.0".to_owned(),
+                runner_receipt_sha256: "a".repeat(64),
+                executable_sha256: "b".repeat(64),
+                stdout_sha256: "c".repeat(64),
+                stderr_sha256: "d".repeat(64),
+                exit_section_sha256: "e".repeat(64),
+                mode: "time_window".to_owned(),
+                classification,
+                native_criteria: criteria,
+                terminal_messages: messages,
+                termination_sha256: "f".repeat(64),
+                evidence_level: SU2_TERMINATION_EVIDENCE_LEVEL.to_owned(),
+            };
+            assert!(report.is_converged_for_protocol());
+        }
+
+        let section = format!(
+            "----------------------------- Solver Exit -------------------------------\\n{WINDOW_SUCCESS}\\n{TIME_LIMIT}\\n{TIME_ITERATION_LIMIT}\\n-------------------------------------------------------------------------\\n"
+        );
+        let (_, classification, criteria, messages) =
+            classify_exit_section(&section, &window_protocol())
+                .expect("classify simultaneous time and iteration limits");
+        assert_eq!(
+            classification,
+            "time_window_native_criteria_satisfied_with_coincident_limit"
+        );
+        assert_eq!(criteria.len(), 2);
+        assert_eq!(messages.len(), 3);
+    }
+
+    #[test]
+    fn multiple_time_limits_without_window_success_are_nonconverged_not_contradictory() {
+        let section = format!(
+            "----------------------------- Solver Exit -------------------------------\\n{TIME_LIMIT}\\n{TIME_ITERATION_LIMIT}\\n-------------------------------------------------------------------------\\n"
+        );
+        let (_, classification, criteria, messages) =
+            classify_exit_section(&section, &window_protocol())
+                .expect("classify simultaneous time and iteration caps");
+        assert_eq!(
+            classification,
+            "time_limits_reached_before_window_convergence"
+        );
+        assert!(criteria.is_empty());
+        assert_eq!(messages.len(), 2);
     }
 
     #[test]
