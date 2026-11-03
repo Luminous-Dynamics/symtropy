@@ -453,7 +453,38 @@
       "parameter",
       "stochastic",
       "model_structure"
-    ]
+    ],
+    "independent_replication_unit": "complete paired scenario block with independent shock/configuration family; for field evaluation use independently randomized/assigned hydraulic cluster or treat a single network as one conditional system, not a population of independent nodes",
+    "primary_outcome_rule": "select exactly one primary service outcome and denominator after the pilot, then freeze it before confirmatory execution; all other estimands are secondary or exploratory unless a family is pre-declared",
+    "paired_power_approximation": "n_pairs = ceil(((z_(1-alpha/2) + z_(1-beta)) / d_z)^2), where d_z is the pilot-estimated paired mean difference divided by the standard deviation of paired differences; normal approximation only",
+    "planning_alpha": 0.05,
+    "planning_power": 0.8,
+    "co_primary_multiplicity_sensitivity": "if all twelve estimands are co-primary, use conservative Bonferroni alpha=0.05/12 for planning and still apply the pre-registered Holm family-wise procedure; do not select a primary after observing outcomes",
+    "paired_standardized_effect_sensitivity": [
+      {
+        "paired_effect_size_dz": 0.2,
+        "approx_pairs_unadjusted": 197,
+        "approx_pairs_twelve_co_primary_bonferroni": 344
+      },
+      {
+        "paired_effect_size_dz": 0.35,
+        "approx_pairs_unadjusted": 65,
+        "approx_pairs_twelve_co_primary_bonferroni": 113
+      },
+      {
+        "paired_effect_size_dz": 0.5,
+        "approx_pairs_unadjusted": 32,
+        "approx_pairs_twelve_co_primary_bonferroni": 55
+      },
+      {
+        "paired_effect_size_dz": 0.8,
+        "approx_pairs_unadjusted": 13,
+        "approx_pairs_twelve_co_primary_bonferroni": 22
+      }
+    ],
+    "inference_rule": "use block/cluster randomization inference or cluster-robust uncertainty at the assignment unit; never treat nodes, sensors, timesteps or overlapping windows as independent replications",
+    "single_network_claim_limit": "with one physical network and no independent network sample, inference is conditional on that topology and declared scenario distribution; do not claim multi-utility population generalization",
+    "pilot_separation": "pilot scenarios may estimate variance and refine MDE but must not be reused as confirmatory test blocks after model, feature, threshold or policy choices are informed by them"
   },
   "benchmark_targets": {
     "accounting_correctness": "all known-truth positive and negative controls recover expected results; no silent invariant violation",
