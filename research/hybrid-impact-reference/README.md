@@ -242,13 +242,13 @@ unknown residual/conditioning metrics.
 
 Five structurally distinct result kinds are supported:
 
-- `BRANCH_LOCAL`: exactly one derivative, branch identity, validity-region
-  digest, and verifier binding.
+- `BRANCH_LOCAL`: exactly one derivative, branch identity, branch/event-evidence
+  digest, validity-region digest, and verifier binding.
 - `DIRECTIONAL_SET`: at least two one-sided responses, each with a distinct
-  direction ID and a branch/validity identity. Responses may share the same
-  branch identity.
+  direction ID and a branch identity, branch/event-evidence digest, and
+  validity-region digest. Responses may share the same branch identity.
 - `SET_VALUED`: at least two distinct branch identities, each retaining its
-  own response and validity region.
+  own response, branch/event-evidence digest, and validity region.
 - `SURROGATE`: one estimator response with explicit estimator identity and
   bias-evidence reference. It need not claim a certified branch or validity
   region.
@@ -259,7 +259,8 @@ Event-sensitive exact/directional/set-valued receipts set
 established lower bound on the absolute transversality margin. A missing or
 zero margin is not accepted as a qualified event derivative.
 
-All available responses must use the same derivative-coordinate roster.
+All available responses must use the same derivative-coordinate roster. Exact
+branch-qualified responses require a canonical branch/event-evidence digest;
 Every coordinate and reported metric must be finite; negative residual/error
 metrics are rejected. A missing metric stays unknown and is encoded
 differently from an explicit zero. Canonical bytes normalize response order
