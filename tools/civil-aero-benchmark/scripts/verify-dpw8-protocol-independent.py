@@ -22,7 +22,8 @@ HEADER = (
     "turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,"
     "prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,"
     "source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,"
-    "source_revision,license_applicability,acknowledgement"
+    "source_revision,license_applicability,acknowledgement,permission_evidence_reference,"
+    "permission_evidence_sha256"
 ).split(",")
 
 
@@ -90,19 +91,32 @@ def validate_source(row: dict[str, str]) -> None:
         require(bool(row[field].strip()), f"source {field} must not be empty")
     state = row["source_state"]
     length, sha, revision = row["source_byte_length"], row["source_sha256"], row["source_revision"]
+    permission_ref = row["permission_evidence_reference"]
+    permission_sha = row["permission_evidence_sha256"]
     if state == "not_admitted":
-        require(not length and not sha, "not-admitted source contains byte metadata")
+        require(not length and not sha and not permission_ref and not permission_sha,
+                "not-admitted source contains byte or permission metadata")
     elif state == "permission_pending":
+        require(not permission_ref and not permission_sha,
+                "permission-pending source cannot carry admitted permission evidence")
         require(
             (not length and not sha)
             or (bool(length) and bool(sha) and int(length) > 0 and valid_sha(sha)
                 and revision != "not-yet-byte-pinned"),
             "permission-pending source byte metadata is incomplete",
         )
-    elif state in {"byte_pinned_reference_only", "byte_pinned_redistribution_permitted"}:
+    elif state == "byte_pinned_reference_only":
+        require(bool(length) and int(length) > 0 and valid_sha(sha),
+                "byte-pinned reference-only source lacks nonzero length or SHA-256")
+        require(revision != "not-yet-byte-pinned", "byte-pinned source lacks revision")
+        require(not permission_ref and not permission_sha,
+                "reference-only source cannot carry permission evidence")
+    elif state == "byte_pinned_redistribution_permission_document_referenced":
         require(bool(length) and int(length) > 0 and valid_sha(sha),
                 "byte-pinned source lacks nonzero length or SHA-256")
         require(revision != "not-yet-byte-pinned", "byte-pinned source lacks revision")
+        require(bool(permission_ref.strip()) and valid_sha(permission_sha),
+                "redistribution state lacks a pinned permission-document reference/digest")
     else:
         raise ValueError(f"unsupported DPW-8 source state {state!r}")
     if row["source_kind"] == "geometry_ip_and_acknowledgement_policy":
@@ -229,6 +243,8 @@ def canonical_digest(meta: dict[str, str], sources: list[dict[str, str]]) -> str
             "license_applicability",
             "acknowledgement",
             "source_sha256",
+            "permission_evidence_reference",
+            "permission_evidence_sha256",
         ):
             add_string(canonical, source[field])
         if source["source_byte_length"]:
