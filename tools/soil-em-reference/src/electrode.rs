@@ -68,6 +68,63 @@ pub fn hemispherical_electrode_impedance(
     Ok(result)
 }
 
+/// First-order two-electrode impedance approximation in a uniform half-space.
+///
+/// For two small hemispherical electrodes at centre separation d, with radii
+/// a1 and a2 much smaller than d, the half-space point-source Green function
+/// gives the geometry factor:
+///
+///   Z ~= (1/(2*pi*(sigma + j*omega*epsilon)))
+///        * (1/a1 + 1/a2 - 2/d).
+///
+/// This far-separated point-electrode approximation is admitted only when
+/// max(a1,a2)/d <= 0.1. It is not an exact finite-electrode solution and is
+/// not valid for plates, rods, water mains, layered soils, nearby electrodes,
+/// contact impedance, finite ground grids, or dynamic wave propagation.
+pub fn two_hemispherical_electrode_impedance_approx(
+    frequency_hz: f64,
+    radius_1_m: f64,
+    radius_2_m: f64,
+    separation_m: f64,
+    medium: Medium,
+) -> Result<ComplexImpedance, ModelError> {
+    if !frequency_hz.is_finite() || frequency_hz < 0.0 {
+        return Err(ModelError::InvalidFrequency);
+    }
+    if !radius_1_m.is_finite() || radius_1_m <= 0.0
+        || !radius_2_m.is_finite() || radius_2_m <= 0.0
+        || !separation_m.is_finite() || separation_m <= 0.0
+    {
+        return Err(ModelError::InvalidDistance);
+    }
+
+    let largest_radius = radius_1_m.max(radius_2_m);
+    if largest_radius / separation_m > 0.1 {
+        return Err(ModelError::InvalidGeometry);
+    }
+
+    let geometry_factor = (1.0 / radius_1_m + 1.0 / radius_2_m
+        - 2.0 / separation_m) / (2.0 * PI);
+    if !geometry_factor.is_finite() || geometry_factor <= 0.0 {
+        return Err(ModelError::InvalidGeometry);
+    }
+
+    let omega_epsilon = 2.0 * PI * frequency_hz * medium.permittivity_f_per_m();
+    let sigma = medium.conductivity_s_per_m();
+    let denominator = sigma * sigma + omega_epsilon * omega_epsilon;
+    if !omega_epsilon.is_finite() || !denominator.is_finite() || denominator <= 0.0 {
+        return Err(ModelError::InvalidDerivedValue);
+    }
+
+    let result = ComplexImpedance {
+        re_ohms: geometry_factor * sigma / denominator,
+        im_ohms: -geometry_factor * omega_epsilon / denominator,
+    };
+    if !result.re_ohms.is_finite() || !result.im_ohms.is_finite() {
+        return Err(ModelError::InvalidDerivedValue);
+    }
+    Ok(result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
