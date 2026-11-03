@@ -32,8 +32,6 @@ const OMEGA: f64 = 1.7;
 const MASS: f64 = 1.0;
 const DURATION: f64 = 1.0;
 const SPHERE_RADIUS: f64 = 0.1;
-const INITIAL_POSITION: [f64; 4] = [1.0, 0.5, -0.25, 0.125];
-const INITIAL_VELOCITY: [f64; 4] = [0.3, -0.2, 0.1, -0.05];
 const TIMESTEPS: [f64; 4] = [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0, 1.0 / 240.0];
 
 const STATE_ORDER_TOLERANCE: f64 = 0.05;
@@ -69,11 +67,19 @@ struct CaseResult {
 }
 
 fn run_case<const D: usize>(dt: f64) -> CaseResult {
-    assert!(D >= 2 && D <= 4, "this gate declares initial conditions through 4D");
+    assert!(D >= 2 && D <= 8, "this gate declares dimensions from 2D through 8D");
     assert!(stable_timestep(dt), "unstable or invalid timestep supplied to run_case");
 
-    let initial_position = SVector::<f64, D>::from_fn(|i, _| INITIAL_POSITION[i]);
-    let initial_velocity = SVector::<f64, D>::from_fn(|i, _| INITIAL_VELOCITY[i]);
+    // Deterministic non-axis-aligned initial conditions scale to any declared
+    // dimension without embedding a fixed-size coordinate fixture.
+    let initial_position = SVector::<f64, D>::from_fn(|i, _| {
+        let sign = if i % 2 == 0 { 1.0 } else { -1.0 };
+        sign / (i + 1) as f64
+    });
+    let initial_velocity = SVector::<f64, D>::from_fn(|i, _| {
+        let sign = if i % 2 == 0 { 1.0 } else { -1.0 };
+        0.3 * sign / (i + 1) as f64
+    });
     let point = Point::<D>::new(std::array::from_fn(|i| initial_position[i]));
 
     let mut world = PhysicsWorld::<D>::new(SVector::zeros());
@@ -235,14 +241,16 @@ fn main() {
     let failures = validate_stability_boundary()
         + validate_dimension::<2>()
         + validate_dimension::<3>()
-        + validate_dimension::<4>();
+        + validate_dimension::<4>()
+        + validate_dimension::<6>()
+        + validate_dimension::<8>();
 
     if failures != 0 {
         eprintln!("{failures} harmonic-oscillator qualification case(s) failed");
         std::process::exit(1);
     }
     eprintln!(
-        "PASS: harmonic-oscillator first-order convergence and modified-energy contracts verified in 2D, 3D, and 4D"
+        "PASS: harmonic-oscillator first-order convergence and modified-energy contracts verified in 2D, 3D, 4D, 6D, and 8D"
     );
 }
 
