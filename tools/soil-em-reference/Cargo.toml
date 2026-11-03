@@ -1,0 +1,8 @@
+[package]
+name = "soil-em-reference"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Analytical Maxwell plane-wave propagation references for homogeneous lossy media"
+
+[workspace]
