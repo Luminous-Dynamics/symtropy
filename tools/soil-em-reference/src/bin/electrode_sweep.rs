@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use soil_em_reference::{
-    Medium,
+    Medium, ModelError,
     electrode::{hemispherical_electrode_impedance, two_hemispherical_electrode_impedance_approx},
 };
 
@@ -30,11 +30,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 frequency, conductivity, radius_1, radius_2, separation,
                                 single.re_ohms, single.im_ohms, pair.re_ohms, pair.im_ohms, geometry_ratio,
                             ),
-                            Err(_) => println!(
+                            Err(ModelError::InvalidGeometry) => println!(
                                 "{:.3},{:.6},10.0,{:.4},{:.4},{:.4},{:.12e},{:.12e},NaN,NaN,{:.6}",
                                 frequency, conductivity, radius_1, radius_2, separation,
                                 single.re_ohms, single.im_ohms, geometry_ratio,
                             ),
+                            Err(error) => return Err(error.into()),
                         }
                     }
                 }
