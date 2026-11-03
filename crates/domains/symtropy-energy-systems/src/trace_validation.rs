@@ -1217,6 +1217,54 @@ mod tests {
     }
 
     #[test]
+    fn rejects_cross_site_correlation_without_common_sample_timestamps() {
+        let trace = DataCenterPowerTrace::new(
+            "TRACE-NO-COMMON-SAMPLES",
+            timebase(TraceClockType::PtpSynchronized, 1_000_000),
+            vec![site("SITE-A"), site("SITE-B")],
+            vec![
+                point(
+                    "A-PCC",
+                    "SITE-A",
+                    None,
+                    PowerMeasurementBoundary::FacilityPcc,
+                    PowerMeasurementRole::AggregateMeter,
+                ),
+                point(
+                    "B-PCC",
+                    "SITE-B",
+                    None,
+                    PowerMeasurementBoundary::FacilityPcc,
+                    PowerMeasurementRole::AggregateMeter,
+                ),
+            ],
+            vec![],
+            vec![
+                sample(0, "SITE-A", "A-PCC", 900_000.0, None),
+                sample(20_000_000, "SITE-A", "A-PCC", 910_000.0, None),
+                sample(10_000_000, "SITE-B", "B-PCC", 1_100_000.0, None),
+                sample(30_000_000, "SITE-B", "B-PCC", 1_090_000.0, None),
+            ],
+        )
+        .unwrap();
+        let selection = PowerAggregationSelection::new(
+            PowerMeasurementBoundary::FacilityPcc,
+            vec!["A-PCC".to_string(), "B-PCC".to_string()],
+            5_000_000,
+            2,
+        )
+        .unwrap();
+
+        assert!(matches!(
+            trace.validate_aggregation(&selection),
+            Err(PowerTraceError::InsufficientCommonSamples {
+                observed: 0,
+                required: 2
+            })
+        ));
+    }
+
+    #[test]
     fn allows_single_site_energy_totals_without_cross_site_clock_requirement() {
         let trace = DataCenterPowerTrace::new(
             "TRACE-SINGLE-SITE",
