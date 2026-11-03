@@ -434,7 +434,12 @@
         "waveform",
         "alignment",
         "thermal_state",
-        "medium"
+        "medium",
+        "nominal_power_class_w",
+        "transfer_gap_min_m",
+        "transfer_gap_max_m",
+        "vehicle_ground_clearance_min_m",
+        "vehicle_ground_clearance_max_m"
       ],
       "properties": {
         "frequency_hz": {
@@ -488,6 +493,41 @@
             "string",
             "null"
           ]
+        },
+        "nominal_power_class_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transfer_gap_min_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transfer_gap_max_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_ground_clearance_min_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_ground_clearance_max_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
