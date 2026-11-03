@@ -144,3 +144,5 @@ Three additional frozen cases enforce conservative comparison: mode-to-mode powe
 These new mode records are development evidence summaries, not full-text transcriptions; unknown operating conditions, meter planes, statistics and uncertainties remain explicit.
  
 Comparator condition rule: free-text condition descriptions are not treated as a physical mismatch merely because their wording differs. Only matching controlled values can be used for a strict match/mismatch; differing free-text descriptions emit `OPERATING_CONDITION_UNNORMALIZED` and keep the comparison unresolved. Geometry vectors and numeric offsets must be separately typed before a numeric tolerance comparison is allowed.
+
+The multi-channel architecture work is tracked separately in [WPT-MULTI-RECEIVER-001 #3473](https://github.com/Luminous-Dynamics/symtropy/issues/3473). v1 stores channel-mode values separately and preserves unknown mode-to-power-class mappings. Prose-only alignment descriptions emit `OPERATING_CONDITION_UNNORMALIZED`, rather than being treated as numeric physical mismatch.
