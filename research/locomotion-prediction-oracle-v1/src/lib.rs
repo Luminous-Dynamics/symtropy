@@ -50,7 +50,7 @@ pub enum EvaluationTier {
     SyntheticHarness,
     InSilicoEmbodied,
     MeasuredIntervention,
-    ProspectiveReplication,
+    IndependentReplication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -344,7 +344,7 @@ fn validate_evaluation_artifacts(batch: &PredictionBatch) -> Result<(), Validati
             ArtifactRole::BiologicalSource,
             ArtifactRole::MeasuredDataset,
         ],
-        EvaluationTier::ProspectiveReplication => &[
+        EvaluationTier::IndependentReplication => &[
             ArtifactRole::BiologicalSource,
             ArtifactRole::MeasuredDataset,
             ArtifactRole::IndependentReplication,
@@ -659,10 +659,18 @@ fn pairwise_gaussian_bhattacharyya(
     if !distance.is_finite() {
         return Err(ValidationError::NonFiniteValue);
     }
-    if distance < 0.0 {
+
+    // Bhattacharyya distance is nonnegative analytically. Permit only
+    // round-off-sized negative residue; reject materially negative results.
+    let numerical_scale = average_logdet.abs()
+        + 0.5 * (left_logdet.abs() + right_logdet.abs())
+        + mean_term.abs()
+        + 1.0;
+    let roundoff_tolerance = 1.0e-12 * numerical_scale;
+    if distance < -roundoff_tolerance {
         return Err(ValidationError::NegativeDistributionDistance);
     }
-    Ok(distance)
+    Ok(distance.max(0.0))
 }
 
 fn pairwise_mean_d2(
