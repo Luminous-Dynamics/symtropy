@@ -4,22 +4,25 @@ A dependency-free Rust qualification slice for the Symtropy–Symthaea locomotio
 
 ## What it does
 
-- Validates a frozen prediction batch for one intervention and a common ordered feature schema.
-- Requires provenance digests for model, code, parameters, configuration, raw trajectories, feature summaries and forecast/batch receipts.
-- Enforces evidence-tier artifact requirements for connectome-constrained, in-silico embodied, perturbation-grounded and replicated-biological claims.
-- Applies explicit resource ceilings: 64 models per intervention, 256 features per forecast and 64 provenance artifacts per model.
-- Checks that prediction commits precede the unblinding event in the same declared append-only evidence log.
-- Checks covariance symmetry and positive semidefiniteness, and rejects non-finite values.
-- Computes two independent screens: (1) mean-only squared Mahalanobis separation and (2) Gaussian predictive-distribution Bhattacharyya distance.
-- Reports separate all-pairs / some-pairs / no-pairs outcomes for mean separation and Gaussian-distribution separation. A result in one screen cannot silently override the other.
+- Validates a frozen prediction batch for one intervention and one common ordered feature schema.
+- Binds model, code, parameter, configuration, raw-trajectory, feature-summary and forecast/batch digest references.
+- Separates **model family**, **model evidence tier** and **evaluation tier**. A generic rule-based or learned controller can be evaluated in an embodied physics scenario without pretending it has connectome provenance.
+- Enforces source-artifact requirements for connectome-constrained model families, and separately enforces shared body/physics or measured-dataset requirements for the evaluation tier.
+- Checks that prediction commits precede unblinding in the same declared append-only evidence log.
+- Checks covariance shape, symmetry, positive semidefiniteness and finiteness.
+- Computes two independent pairwise screens: mean-only squared Mahalanobis separation and Gaussian predictive-distribution Bhattacharyya distance.
+- Reports separate all-pairs / some-pairs / no-pairs outcomes for both screens. It does not select a winning mechanism.
+- Applies resource ceilings: 16 models per intervention, 64 features per forecast, 32 model provenance artifacts and 32 shared evaluation artifacts.
 
-## What it deliberately does not do
+## Three orthogonal declarations
 
-- It does not run a neural circuit or biomechanical simulation.
-- It does not parse external trajectory files or recompute SHA-256 digests.
-- It does not authenticate signatures, transparency-log inclusion proofs or trusted timestamps. It validates digest references and event sequence supplied by the upstream evidence authority.
-- It does not calculate expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
-- It does not establish biological truth. Predictions and covariance estimates must come from separately qualified model runners and observation models.
+**Model family** describes the mechanism class: synthetic oracle, phenomenological controller, rule-based controller, learned controller, connectome circuit, connectome-grounded reflex, connectome hybrid or mechanistic hybrid.
+
+**Model evidence tier** describes the evidence supporting the model: synthetic, phenomenological, connectome-constrained, perturbation-grounded or replicated-biological. A connectome family must carry connectome-constrained or stronger evidence and provide connectome, biological-source, sensor-mapping and effector-mapping references. Non-connectome models are not forced to invent connectome artifacts merely because they are evaluated against an embodied or measured task.
+
+**Evaluation tier** describes the evaluation context: synthetic harness, in-silico embodied, measured intervention or prospective replication. In-silico embodied comparisons bind shared body morphology and physics configuration at the batch level and require each model's sensor/effector mapping. Measured intervention comparisons bind the biological source and measured dataset at the batch level. Prospective replication additionally binds an independent replication artifact.
+
+The digest strings are references supplied by an upstream evidence authority. This crate validates their syntax and declared roles; it does not hash or authenticate the underlying artifacts.
 
 ## Mean-only screening statistic
 
@@ -29,7 +32,7 @@ For models i and j, V1 computes:
 
 Here μ is the predicted feature-mean vector, Σ_i and Σ_j are each model's predictive covariance, and Σ_obs,diff is the declared covariance of observation error in the difference. Cholesky factorization and triangular solves are used rather than an explicit matrix inverse.
 
-This is a mean-only screen. It uses covariance to scale the distance between predicted means but does not test covariance-only differences. Two forecasts with identical means and different covariance matrices return zero mean separation. This remains a useful, separately reported diagnostic rather than a full distribution test.
+This is a mean-only screen. It uses covariance to scale distance between predicted means but does not detect covariance-only differences. Two forecasts with identical means and different covariance matrices return zero mean separation. This remains a useful, separately reported diagnostic.
 
 ## Gaussian predictive-distribution screen
 
@@ -38,26 +41,25 @@ V1 also computes the Bhattacharyya distance between multivariate Gaussian predic
     D_B(i,j) = 1/8 · Δμᵀ Σ̄⁻¹ Δμ
                + 1/2 · ln(det(Σ̄) / sqrt(det(Σ_i,obs) det(Σ_j,obs)))
 
-where Δμ = μ_i - μ_j, Σ_i,obs = Σ_i + Σ_obs + λI, Σ_j,obs = Σ_j + Σ_obs + λI, and Σ̄ = (Σ_i,obs + Σ_j,obs)/2. The observation covariance Σ_obs is supplied separately from Σ_obs,diff, which is used by the mean-only screen. Cholesky factorization, triangular solves and Cholesky log-determinants are used; no explicit matrix inverse is formed.
+where Δμ = μ_i - μ_j, Σ_i,obs = Σ_i + Σ_obs + λI, Σ_j,obs = Σ_j + Σ_obs + λI, and Σ̄ = (Σ_i,obs + Σ_j,obs)/2. Σ_obs is the single-observation covariance and is supplied separately from Σ_obs,diff. Cholesky factorization, triangular solves and Cholesky log-determinants are used; no explicit matrix inverse is formed.
 
-This detects differences in both Gaussian means and covariance structures, including the covariance-only negative control. It is exact only under the multivariate-Gaussian approximation. It is not a nonparametric test of arbitrary predictive distributions, exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
+This detects differences in Gaussian means and covariance structures, including the covariance-only negative control. It is exact only under the multivariate-Gaussian approximation and the declared independent predictive-error model. Paired/correlated forecast errors need an explicit cross-model covariance extension. It is not a nonparametric test of arbitrary predictive distributions, exact expected information gain, Fisher information, a likelihood-ratio test, a p-value or posterior model probability.
 
-Both thresholds and the regularizer must be preregistered. V1 assumes independent model-predictive errors; paired/correlated predictive errors require an explicit cross-model covariance extension. A Gaussian-separated result does not establish that a mechanism is true or uniquely identified. An AllPairsMeanSeparated status means only that every model pair's predicted means exceed this preregistered distance threshold; it is not evidence that the full predictive distributions differ or that one mechanism is true.
+Both thresholds and the regularizer must be preregistered. An all-pairs-separated result means only that each pair exceeds the declared metric threshold; it does not prove biological truth or unique mechanism identification.
+
+## What it deliberately does not do
+
+- It does not run neural circuits, receptor physiology or biomechanical simulations.
+- It does not parse trajectory files or recompute SHA-256 digests.
+- It does not authenticate signatures, transparency-log inclusion proofs or trusted timestamps. Event sequence checks are only as trustworthy as the external append-only log authority.
+- It does not select an optimal biological intervention, calculate EIG or Fisher information, or establish causal identifiability.
+- It does not establish biological truth, reproduce CxHP8, validate a gait, or claim superiority to FlyGym/NeuroMechFly.
 
 ## Synthetic oracle cases
 
-The 24 unit tests cover:
-- malformed and missing evidence references;
-- duplicate model IDs, intervention mismatch and feature-schema ordering;
-- invalid covariance and non-finite predictions;
-- connectome provenance requirements;
-- valid and invalid commit/unblinding order;
-- a known-answer Mahalanobis distance;
-- identical negative-control predictions and explicit no-mean-separation / no-Gaussian-separation outcomes;
-- covariance-only differences remaining unresolved under the mean metric but separated by the Gaussian Bhattacharyya metric;
-- known-answer one-dimensional Gaussian Bhattacharyya distance;
-- partial mean separation and all-pairs mean separation without forced winner selection;
-- uncertainty reducing both mean and Gaussian separation.
+The 29 unit tests cover malformed provenance, duplicated model IDs/artifact roles, intervention mismatch, feature-schema ordering, invalid covariances and non-finite forecasts; connectome-family/evidence-tier consistency; generic embodied non-connectome baselines; body/physics and measured-evaluation artifact requirements; valid and invalid prediction/unblinding chronology; known-answer mean and Gaussian distances; identical forecasts; covariance-only differences; partial/all-pairs separation; uncertainty scaling; model-count resource limits; and invalid policies.
+
+All tests are synthetic. They establish only that the implementation follows its local contract on the authored fixtures.
 
 ## Run
 
@@ -69,4 +71,4 @@ The package is a standalone Cargo workspace nested under research/. It does not 
 
 ## Scientific claim ceiling
 
-A successful synthetic test establishes only that this contract and screening implementation behave on the authored synthetic fixtures. It does not establish that any Drosophila circuit is correct, that a candidate produces coordinated locomotion, or that Symtropy outperforms FlyGym/NeuroMechFly.
+A successful synthetic test establishes only that this contract and screening implementation behave on the authored synthetic fixtures. It does not establish that any Drosophila circuit is correct, that a candidate produces coordinated locomotion, or that Symtropy outperforms an external simulator or controller.
