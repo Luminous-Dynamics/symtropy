@@ -59,10 +59,28 @@ cargo run --locked --manifest-path tools/civ-infra-fleet-resilience/Cargo.toml -
 ```
 
 The binary enforces the complete 13-kind v0.1 disturbance vocabulary, rejects
-observation-before-injection and duplicate case IDs, and reports the frozen
+observation-before-injection, duplicate case IDs, empty invalidation lists and
+duplicate invalidation targets within one event, and reports the frozen
 boundary totals: three delayed observations, four total delay ticks, maximum
-delay two, and an eight-tick timeline. It does not run B0/B1/B2 or simulate
-recovery; its report explicitly says zero policy runs.
+delay two, and an eight-tick timeline.
+
+It also audits three distinct invalidation views:
+
+- **Evaluator/world view:** declared targets are treated as invalid from
+  `injection_tick`, when the underlying event has occurred.
+- **Policy-known view:** those targets become known to the policy only from
+  `observable_tick`.
+- **Latent invalidation view:** a target can already be stale in the world while
+  remaining unknown to the policy. The R-008 geometry revision is the frozen
+  negative-leakage control: `site-snapshot`, `task-frame`, and
+  `dependent-assignments` are invalidated at tick 2, hidden at tick 3, and
+  known at tick 4.
+
+This is an epistemic/temporal bookkeeping audit over declared synthetic IDs.
+It does not verify the underlying event, retrieve or authenticate a source
+artifact, calculate transitive dependency closure, or authorize recovery.
+It does not run B0/B1/B2 or simulate recovery; its report explicitly says zero
+policy runs.
 
 ## First recovery-policy microcase
 
