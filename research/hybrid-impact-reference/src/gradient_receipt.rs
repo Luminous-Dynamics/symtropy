@@ -71,6 +71,9 @@ pub struct GradientResponse {
     /// Required for every available derivative. A branch identity is not a
     /// probability and must be sourced from branch evidence.
     pub branch_id: Option<String>,
+    /// Required for branch-qualified results. Binds the branch/event-order
+    /// certificate from which this response was selected.
+    pub branch_evidence_digest: Option<String>,
     /// Required only for DIRECTIONAL_SET responses.
     pub direction_id: Option<String>,
     /// Required for exact branch/directional/set-valued responses. Surrogates
@@ -140,6 +143,8 @@ pub enum GradientReceiptError {
     UnexpectedResponses,
     InvalidResponseCount,
     MissingBranchIdentity,
+    MissingBranchEvidenceReference,
+    UnexpectedBranchEvidenceReference,
     DuplicateBranchIdentity,
     MissingDirectionIdentity,
     DuplicateDirectionIdentity,
@@ -321,6 +326,7 @@ impl QualifiedGradientReceipt {
         push_len(&mut output, canonical.responses.len());
         for response in &canonical.responses {
             push_optional_string(&mut output, response.branch_id.as_deref());
+            push_optional_string(&mut output, response.branch_evidence_digest.as_deref());
             push_optional_string(&mut output, response.direction_id.as_deref());
             push_optional_string(
                 &mut output,
@@ -385,9 +391,19 @@ fn validate_branch_responses(
             Some(branch_id) => {
                 validate_identifier(branch_id)?;
                 branch_ids.push(branch_id);
+                let evidence = response
+                    .branch_evidence_digest
+                    .as_deref()
+                    .ok_or(GradientReceiptError::MissingBranchEvidenceReference)?;
+                if !is_lower_hex_digest(evidence) {
+                    return Err(GradientReceiptError::InvalidDigest);
+                }
             }
             None if require_branch_identity => {
                 return Err(GradientReceiptError::MissingBranchIdentity);
+            }
+            None if response.branch_evidence_digest.is_some() => {
+                return Err(GradientReceiptError::UnexpectedBranchEvidenceReference);
             }
             None => {}
         }
@@ -623,6 +639,7 @@ mod tests {
     fn branch_response(branch: &str, value: f64) -> GradientResponse {
         GradientResponse {
             branch_id: Some(branch.into()),
+            branch_evidence_digest: Some(digest('6')),
             direction_id: None,
             validity_region_digest: Some(digest('8')),
             coordinates: vec![coordinate(value)],
@@ -697,7 +714,8 @@ mod tests {
     fn surrogate_requires_estimator_and_bias_reference() {
         let mut receipt = base_receipt(GradientKind::Surrogate);
         receipt.responses.push(GradientResponse {
-            branch_id: Some("pre-contact-estimator".into()),
+            branch_id: None,
+            branch_evidence_digest: None,
             direction_id: None,
             validity_region_digest: None,
             coordinates: vec![coordinate(0.25)],
@@ -781,6 +799,7 @@ mod tests {
         let mut receipt = base_receipt(GradientKind::SetValued);
         let first = GradientResponse {
             branch_id: Some("branch-a".into()),
+            branch_evidence_digest: Some(digest('6')),
             direction_id: None,
             validity_region_digest: Some(digest('8')),
             coordinates: vec![
@@ -796,6 +815,7 @@ mod tests {
         };
         let second = GradientResponse {
             branch_id: Some("branch-b".into()),
+            branch_evidence_digest: Some(digest('5')),
             direction_id: None,
             validity_region_digest: Some(digest('7')),
             coordinates: vec![GradientCoordinate {
@@ -837,6 +857,7 @@ mod tests {
         let mut receipt = base_receipt(GradientKind::SetValued);
         let height_only = GradientResponse {
             branch_id: Some("stick".into()),
+            branch_evidence_digest: Some(digest('6')),
             direction_id: None,
             validity_region_digest: Some(digest('8')),
             coordinates: vec![GradientCoordinate {
@@ -847,6 +868,7 @@ mod tests {
 
         let two_coordinates = GradientResponse {
             branch_id: Some("slip".into()),
+            branch_evidence_digest: Some(digest('5')),
             direction_id: None,
             validity_region_digest: Some(digest('7')),
             coordinates: vec![
@@ -874,6 +896,7 @@ mod tests {
         let mut receipt = base_receipt(GradientKind::Surrogate);
         receipt.responses.push(GradientResponse {
             branch_id: None,
+            branch_evidence_digest: None,
             direction_id: None,
             validity_region_digest: None,
             coordinates: vec![coordinate(0.25)],
@@ -902,6 +925,26 @@ mod tests {
         negative.metrics.directional_reference_error = Some(-0.0);
 
         assert_eq!(positive.canonical_bytes(), negative.canonical_bytes());
+    }
+
+
+    #[test]
+    fn branch_qualified_gradient_requires_valid_branch_evidence_digest() {
+        let mut receipt = base_receipt(GradientKind::BranchLocal);
+        let mut response = branch_response("impact", 0.5);
+        response.branch_evidence_digest = None;
+        receipt.responses.push(response);
+
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::MissingBranchEvidenceReference)
+        );
+
+        receipt.responses[0].branch_evidence_digest = Some("not-a-digest".into());
+        assert_eq!(
+            receipt.validate(),
+            Err(GradientReceiptError::InvalidDigest)
+        );
     }
 
 
