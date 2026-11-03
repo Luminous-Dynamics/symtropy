@@ -2969,6 +2969,38 @@ mod double_sliding_direction_oracle {
         assert!(sensitivities[0].2.lower > sensitivities[1].2.upper);
     }
 
+    /// Select a maximally separating input direction for two interval-valued
+    /// branch gradients under the independent L-infinity trust box |d_i| <= 1.
+    ///
+    /// Coordinates with a difference interval excluding zero use its sign;
+    /// overlapping coordinates are left at zero. This is optimal only for
+    /// the independent box constraint, not coupled constraints or a general
+    /// experiment-cost metric.
+    fn maximum_box_separation_direction(
+        branch_difference: &[RationalInterval; 6],
+    ) -> Option<([i8; 6], BigRational)> {
+        let direction = std::array::from_fn(|coordinate| {
+            let difference = &branch_difference[coordinate];
+            if difference.is_strictly_positive() {
+                1_i8
+            } else if difference.is_strictly_negative() {
+                -1_i8
+            } else {
+                0_i8
+            }
+        });
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        let separation = branch_difference.iter().zip(direction.iter()).fold(
+            RationalInterval::point(zero),
+            |total, (difference, coefficient)| {
+                let coefficient = BigRational::from_integer(BigInt::from(*coefficient));
+                total.add(&difference.scale(&coefficient))
+            },
+        );
+        (separation.lower > BigRational::from_integer(BigInt::from(0_u8)))
+            .then_some((direction, separation.lower))
+    }
+
     #[test]
     fn both_certified_double_slide_branches_have_full_six_coordinate_input_sensitivity_maps() {
         const FRICTION_NUMERATORS: [i128; 2] = [1_956_059, 380_758];
@@ -3160,6 +3192,63 @@ mod double_sliding_direction_oracle {
                 }
             }
         }
+
+        // Active experiment design: maximize the local guaranteed separation
+        // of the two certified branches for each scalar direction observable.
+        // This is a first-order local result in q-numerator coordinates, not
+        // yet a finite-step, instrument-noise, or global branch-completeness
+        // certificate.
+        let zero = BigRational::from_integer(BigInt::from(0_u8));
+        for observable in 0..2 {
+            let branch_difference: [RationalInterval; 6] = std::array::from_fn(|coordinate| {
+                branch_sensitivities[0][coordinate][observable]
+                    .sub(&branch_sensitivities[1][coordinate][observable])
+            });
+            let (experiment_direction, guaranteed_gap) =
+                maximum_box_separation_direction(&branch_difference)
+                    .expect("the declared branch pair is locally distinguishable");
+            assert!(guaranteed_gap > zero);
+
+            // Compare with the best single-coordinate probe under the same
+            // independent L-infinity experiment constraint.
+            let best_axis_gap = branch_difference
+                .iter()
+                .map(|difference| {
+                    if difference.is_strictly_positive() {
+                        difference.lower.clone()
+                    } else if difference.is_strictly_negative() {
+                        -difference.upper.clone()
+                    } else {
+                        zero.clone()
+                    }
+                })
+                .max()
+                .expect("six experiment coordinates exist");
+            assert!(guaranteed_gap >= best_axis_gap);
+
+            for coordinate in 0..6 {
+                assert_eq!(
+                    experiment_direction[coordinate],
+                    if branch_difference[coordinate].is_strictly_positive() {
+                        1
+                    } else if branch_difference[coordinate].is_strictly_negative() {
+                        -1
+                    } else {
+                        0
+                    }
+                );
+            }
+        }
+
+        // Negative control: overlapping branch-gradient differences in every
+        // coordinate require abstention instead of a fabricated separation.
+        let overlapping: [RationalInterval; 6] = std::array::from_fn(|_| {
+            RationalInterval::new(
+                -BigRational::from_integer(BigInt::from(1_u8)),
+                BigRational::from_integer(BigInt::from(1_u8)),
+            )
+        });
+        assert!(maximum_box_separation_direction(&overlapping).is_none());
     }
 
     fn trim_big_integer_polynomial_vector(coefficients: &mut Vec<BigIntegerPolynomial>) {
