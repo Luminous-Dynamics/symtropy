@@ -212,9 +212,10 @@ Do not start A2 before A1's policy boundary is stable. Do not claim A4 before al
 
 Current public results show why the tracks must remain separate:
 
-- AV2 multi-agent motion forecasting leaders surfaced in July 2026 at approximately 0.50–0.51 m average minADE@6; these are trajectory-prediction results.
-- WOSAC leaderboard results surfaced in January 2026 include SMART-R1 at 78.58 realism, with separately reported kinematics, interactivity and map adherence scores; these are simulation-agent results.
-- Fail2Drive (April 2026) introduced 200 paired routes across 17 distribution-shift classes and reported a 22.8% average success-rate drop among evaluated models; this is closed-loop generalization.
+- AV2 multi-agent motion forecasting: the surfaced 2026.07 QCNeXt entry reports minADE@6 = 0.50 m, minFDE@6 = 1.02 m and miss rate@6 = 0.13; IMR reports 0.51 m minADE@6. These are trajectory-prediction results, not closed-loop planner or safety results.
+- WOSAC 2025 simulation agents: the surfaced SMART-R1 entry reports realism = 78.58, kinematics = 49.44, interactivity = 81.10, map adherence = 92.01 and minADE = 1.2885. The component scores stay separate; this is simulation-agent quality, not ego driving performance.
+- nuPlan closed-loop test: the surfaced DTCCL entry reports overall score = 69.66, with collision-rate component = 96.48, drivable coverage = 99.02, TTC = 85.67, comfort = 58.70 and progress ratio = 75.42. This is a different simulator/task protocol from CARLA and must not be numerically ranked against CARLA or AV2.
+- Fail2Drive (April 2026) introduced 200 paired routes across 17 distribution-shift classes. The paper reports a 22.8% average success-rate drop; the detailed benchmark comparison also surfaces a 16.3% average harmonic-mean drop across evaluated learning methods. We should publish both percentage-point success loss and normalized relative success loss, plus harmonic-mean loss, by shift family.
 - NIST's 2026 measurement-science programme explicitly separates surrogate safety metrics, forward outcome prediction, counterfactual action comparison, and cross-scenario diagnosis. The Symthaea/Symtropy split should support this progression without claiming to duplicate NIST's physical validation.
 
 The October 15, 2026 *Comfortably Stuck* audit reports that Bench2Drive's original comfort score correlated with stationary time at r = 0.97 across eight evaluated models; its proposed distance-based correction reduced that correlation to r = 0.06. The paper also reports that the default controller replaced model steering in more than half of frames in some scenarios and identifies train/evaluation navigation-target mismatch. These findings are specific to the audited protocol, models and scenarios—not a universal claim about every submission. Treat benchmark protocols and evaluators as objects of red-team testing; do not assume a leaderboard score is measurement truth.
@@ -222,6 +223,7 @@ The October 15, 2026 *Comfortably Stuck* audit reports that Bench2Drive's origin
 Links:
 - [AV2 multi-agent motion forecasting leaderboard](https://www.sota2.com/research/sota/multi-agent-motion-forecasting-on-argoverse-2-av2-test)
 - [WOSAC leaderboard](https://www.sota2.com/research/sota/motion-simulation-on-waymo-open-sim-agents-challenge-2025)
+- [nuPlan closed-loop test leaderboard](https://www.sota2.com/research/sota/closed-loop-autonomous-driving-on-nuplan-test)
 - [Fail2Drive paper](https://arxiv.org/abs/2604.08535)
 - [NIST Measurement Science for Automated Vehicles](https://www.nist.gov/programs-projects/measurement-science-automated-vehicles-0)
 - [Comfortably Stuck (October 2026)](https://arxiv.org/abs/2610.21741)
