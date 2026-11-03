@@ -789,12 +789,13 @@ mod tests {
 
     #[test]
     fn safety_critical_and_flight_release_claims_never_become_automatic_authorizations() {
-        let request = request(
+        let safety_request = request(
             ClaimClass::AerodynamicPrediction,
             DecisionConsequence::SafetyCritical,
         );
-        let evidence = all_verified(&request);
-        let decision = evaluate_claim_admission(&request, &evidence).expect("valid assertions");
+        let evidence = all_verified(&safety_request);
+        let decision =
+            evaluate_claim_admission(&safety_request, &evidence).expect("valid assertions");
         assert_eq!(
             decision.status,
             ClaimDecisionStatus::RequiresHumanAuthorityDecision
