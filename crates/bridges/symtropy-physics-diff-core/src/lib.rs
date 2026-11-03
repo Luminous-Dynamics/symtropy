@@ -972,7 +972,7 @@ pub struct DifferentialLineagePolicy {
     pub mandatory_separation_kinds: BTreeSet<LineageDependencyKind>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DifferentialLineageError {
     UnsupportedSchemaVersion(u16),
     EmptyComparisonId,
@@ -1384,15 +1384,16 @@ pub fn audit_differential_lineage(
                 .and_then(|items| items.get(kind))
                 .cloned()
                 .unwrap_or_default();
+            let missing_identity = identities.is_empty();
             intersection = Some(match intersection {
-                None => identities,
+                None => identities.clone(),
                 Some(previous) => previous.intersection(&identities).cloned().collect(),
             });
 
             if lane_unknown_kinds
                 .get(lane_id)
                 .is_some_and(|unknown| unknown.contains(kind))
-                || identities.is_empty()
+                || missing_identity
             {
                 lanes_with_unknown_identity.push(lane_id.clone());
             }
