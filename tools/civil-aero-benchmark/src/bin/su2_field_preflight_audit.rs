@@ -35,14 +35,25 @@ fn run() -> Result<(), String> {
         report.solver_family,
         report.configured_convergence_field,
         report.convergence_protocol.steady_fields.join(";"),
-        if report.convergence_protocol.time_domain { "YES".to_owned() } else { "NO".to_owned() },
-        match &report.convergence_protocol.window {
-            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => "NO".to_owned(),
-            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { .. } => "YES".to_owned(),
+        if report.convergence_protocol.time_domain {
+            "YES".to_owned()
+        } else {
+            "NO".to_owned()
         },
         match &report.convergence_protocol.window {
-            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled => String::new(),
-            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled { fields, .. } => fields.join(";"),
+            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled =>
+                "NO".to_owned(),
+            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+                ..
+            } => "YES".to_owned(),
+        },
+        match &report.convergence_protocol.window {
+            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Disabled =>
+                String::new(),
+            civil_aero_benchmark::su2_field_preflight::Su2WindowConvergenceProtocol::Enabled {
+                fields,
+                ..
+            } => fields.join(";"),
         },
         report.available_history_fields.len(),
         report.required_history_fields.len(),
