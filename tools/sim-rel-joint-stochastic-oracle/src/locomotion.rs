@@ -1503,10 +1503,7 @@ mod tests {
             "raw-untyped-endpoint-17"
         );
         assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 7);
-        assert_eq!(
-            compiled.transition_rows.len(),
-            compiled.kernel.rows.len()
-        );
+        assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
     }
 
@@ -1537,10 +1534,7 @@ mod tests {
     #[test]
     fn compiled_adapter_preserves_row_level_transition_provenance() {
         let compiled = spec().compile().unwrap();
-        assert_eq!(
-            compiled.transition_rows.len(),
-            compiled.kernel.rows.len()
-        );
+        assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         assert!(compiled.transition_rows.iter().all(|row| {
             row.source_manifest_ids == vec!["synthetic-models".to_owned()]
                 && row.claim_ceiling == ClaimCeiling::SyntheticQualification
