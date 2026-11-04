@@ -120,7 +120,8 @@
     "expiry_required": true,
     "site_epoch_binding": true,
     "exclusive_conflict_policy": "reject",
-    "is_safety_permit": false
+    "is_safety_permit": false,
+    "clock_domain_binding": true
   },
   "safety_boundary": {
     "interop_grants_motion_authority": false,
