@@ -136,6 +136,11 @@ impl MatrixAtlas {
             {
                 return Err("sample positions must be finite and strictly increasing".into());
             }
+            if index > 0
+                && !(sample.position_m - self.samples[index - 1].position_m).is_finite()
+            {
+                return Err("adjacent sample position span must be finite".into());
+            }
             if !sample.minimum_eigenvalue_lower_bound_h.is_finite()
                 || sample.minimum_eigenvalue_lower_bound_h < 0.0
             {
@@ -226,7 +231,13 @@ impl MatrixAtlas {
         let right = &self.samples[index + 1];
         let segment = &self.segments[index];
         let span = right.position_m - left.position_m;
+        if !span.is_finite() || span <= 0.0 {
+            return Err("interpolation segment span is not finite and positive".into());
+        }
         let alpha = (position_m - left.position_m) / span;
+        if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
+            return Err("interpolation fraction is outside the closed segment".into());
+        }
         let matrix_h = interpolate_matrix(&left.matrix_h, &right.matrix_h, alpha)?;
         let entrywise_absolute_bound_h = interpolate_matrix(
             &left.entrywise_absolute_bound_h,
@@ -293,7 +304,7 @@ impl MatrixAtlas {
                 > policy.maximum_interpolation_error_frobenius_bound_h
                 || conservative_margin < policy.minimum_required_eigenvalue_margin_h
             {
-                candidates.push(0.5 * (left.position_m + right.position_m));
+                candidates.push(0.5 * left.position_m + 0.5 * right.position_m);
             }
         }
         Ok(candidates)
