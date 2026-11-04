@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "profile_id": "construction-layout-roundrobin-v0.1",
   "version": "0.1.0",
   "status": "proposed",
@@ -103,5 +102,6 @@
     "hard_gate_non_compensable": true,
     "composite_safety_productivity_score_prohibited": true
   },
-  "execution_status": "not_executed"
+  "execution_status": "not_executed",
+  "schema_version": "construction-roundrobin-study-plan-v0.1"
 }
