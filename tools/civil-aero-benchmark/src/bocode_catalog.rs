@@ -589,12 +589,40 @@ mod tests {
         format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
             row("car", "engineering", "so_mixed_variable", 1, 10, "mixed"),
-            row("continuous_constrained", "engineering", "so_constrained", 1, 3, "continuous"),
+            row(
+                "continuous_constrained",
+                "engineering",
+                "so_constrained",
+                1,
+                3,
+                "continuous"
+            ),
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
             row("hoip", "engineering", "so_unconstrained", 1, 0, "discrete"),
-            row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
-            row("truss", "engineering", "so_unconstrained", 1, 0, "continuous"),
-            row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed")
+            row(
+                "re21",
+                "engineering",
+                "mo_unconstrained",
+                2,
+                0,
+                "continuous"
+            ),
+            row(
+                "truss",
+                "engineering",
+                "so_unconstrained",
+                1,
+                0,
+                "continuous"
+            ),
+            row(
+                "truss_mixed",
+                "engineering",
+                "so_mixed_variable",
+                1,
+                0,
+                "mixed"
+            )
         )
     }
 
@@ -606,11 +634,25 @@ mod tests {
         assert_eq!(report.engineering_task_count(), 7);
         assert_eq!(report.objective_direction, "maximize");
         assert_eq!(report.constraint_convention, "g(x)<=0_is_feasible");
-        let car = report.tasks.iter().find(|task| task.problem_id == "car").unwrap();
-        assert_eq!(car.problem_class, BoCoDeProblemClass::SingleObjectiveMixedVariable);
+        let car = report
+            .tasks
+            .iter()
+            .find(|task| task.problem_id == "car")
+            .unwrap();
+        assert_eq!(
+            car.problem_class,
+            BoCoDeProblemClass::SingleObjectiveMixedVariable
+        );
         assert_eq!(car.num_constraints, 10);
-        let hoip = report.tasks.iter().find(|task| task.problem_id == "hoip").unwrap();
-        assert_eq!(hoip.problem_class, BoCoDeProblemClass::SingleObjectiveUnconstrained);
+        let hoip = report
+            .tasks
+            .iter()
+            .find(|task| task.problem_id == "hoip")
+            .unwrap();
+        assert_eq!(
+            hoip.problem_class,
+            BoCoDeProblemClass::SingleObjectiveUnconstrained
+        );
         assert_eq!(hoip.variable_type_class, BoCoDeVariableTypeClass::Discrete);
         assert_eq!(report.to_csv().lines().count(), 8);
         let repeated = import_bocode_catalog_csv(&fixture(), context()).unwrap();
