@@ -291,15 +291,15 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
     if !matches!(source_reference, Some(Value::String(_)) | Some(Value::Null)) {
         return Err("source_reference: expected URI string or null".into());
     }
-    if let Some(uri) = source_reference.and_then(Value::as_str) {
-        if !is_absolute_http_uri(uri) {
-            return Err("source_reference: expected absolute HTTP(S) URI".into());
-        }
+    if let Some(uri) = source_reference.and_then(Value::as_str)
+        && !is_absolute_http_uri(uri)
+    {
+        return Err("source_reference: expected absolute HTTP(S) URI".into());
     }
     if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" {
-        if !source_reference
+        if source_reference
             .and_then(Value::as_str)
-            .is_some_and(|text| !text.trim().is_empty())
+            .is_none_or(|text| text.trim().is_empty())
         {
             return Err(
                 "source_reference: measured/model-derived evidence requires source URI".into(),
@@ -356,6 +356,8 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
 
 // Deterministic cyclic Jacobi diagonalization. Scaling the input first prevents
 // small henry-valued matrices from being compared against an absolute epsilon.
+// Cyclic Jacobi rotations update paired row/column indices by design.
+#[allow(clippy::needless_range_loop)]
 fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<(f64, f64), String> {
     let n = matrix.len();
     let scale = matrix
@@ -1024,7 +1026,7 @@ mod tests {
 
     #[test]
     fn computes_pairwise_coupling_without_underflow_at_small_inductance_scales() {
-        let mut value = json!({
+        let value = json!({
             "schema_version": "wpt-inductance-matrix-v1",
             "matrix_id": "SUBNANOHENRY-SCALE",
             "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
@@ -1146,9 +1148,9 @@ mod tests {
             let n = matrix.len();
             assert_eq!(n, record["receiver_count"].as_u64().unwrap() as usize + 1);
             assert!(matrix.iter().all(|row| row.len() == n));
-            for i in 0..n {
-                for j in 0..n {
-                    assert!((matrix[i][j] - matrix[j][i]).abs() <= 1e-12);
+            for (i, row) in matrix.iter().enumerate() {
+                for (j, value) in row.iter().enumerate() {
+                    assert!((*value - matrix[j][i]).abs() <= 1e-12);
                 }
             }
 
