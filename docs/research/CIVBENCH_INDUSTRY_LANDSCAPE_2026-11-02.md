@@ -309,3 +309,42 @@ The paper varies population size and reports nonlinear effects on collective bia
 **CivBench response:** distinguish interaction-group size from total population size, evaluate overlapping group composition and policy-selection dynamics, and compare finite-population simulations with an explicit mean-field reference. Report transition thresholds and uncertainty, not a single large-N point estimate.
 
 These four works reinforce a general design rule: test incentives, partner turnover, distributional effects and scaling as independent dimensions. Do not interpret cooperative self-play or aggregate payoff as evidence of robust collective intelligence.
+
+
+## 10. Operational validation, AI-mediated governance and resilience (4 November 2026)
+
+### Operational validation — compare distributions and structure, not narrative plausibility
+
+**Tomašević et al. (EPJ Data Science, 11 June 2026), "Towards operational validation of LLM-agent social simulations".**  
+https://doi.org/10.1140/epjds/s13688-026-00674-x
+
+This study runs 30 independent 30-day simulations and compares them with 30 matched, non-overlapping empirical windows. It evaluates activity patterns, network structure, toxicity, topical coverage and stylistic convergence. Several aggregate activity measures align, while thread depth, network concentration/repeated interactions and toxicity by content layer diverge.
+
+**CivBench response:** a reproducible pattern-vector protocol with independent runs, matched windows, calibration/holdout separation and stratified errors. Report KS/Wasserstein distribution distances, quantile differences and tail statistics alongside mean intervals. Never allow root-post and comment errors, or different regions/population groups, to cancel in one pooled mean. Similarity alone does not establish mechanism validity.
+
+Implementation: [Symtropy issue #3616](https://github.com/Luminous-Dynamics/symtropy/issues/3616), [draft PR #3619](https://github.com/Luminous-Dynamics/symtropy/pull/3619). Its current 30-sample synthetic fixture only validates the comparison code; it is not empirical validation.
+
+### AI-mediated deliberation — satisfaction is not influence neutrality
+
+**Parisi et al. (FAccT 2026), "Real-Time Group Dynamics with LLM Facilitation: Evidence from a Charity Allocation Task".**  
+https://arxiv.org/abs/2605.14097  
+https://deepmind.google/research/publications/224297/
+
+Two studies (N=879) used incentive-compatible groups of three allocating a real charity budget. The study reports that LLM facilitation did not significantly improve aggregate consensus, but participants preferred it; some charity-level allocations shifted by up to 5.5 percentage points, while measured participation equity did not improve. Participants also reported greater process trust under conditions with detectable directional influence.
+
+**CivBench response:** separate consensus, allocation effect, whose proposal is adopted, speaking/turn share, factual accuracy, self-reported inclusion/trust and actual participation equity. Rhetoric-only framing and agenda-order perturbations are required negative controls.
+
+Implementation: [Symtropy issue #3617](https://github.com/Luminous-Dynamics/symtropy/issues/3617).
+
+### Social-ecological resilience — dynamics and uncertainty, not static scores
+
+**Balali et al. (Ecological Indicators, 2026), "Toward convergence in social-ecological systems resilience assessment".**  
+https://doi.org/10.1016/j.ecolind.2026.114792
+
+The systematic review analyzes 121 peer-reviewed studies and reports that 59% used static assessments, 74% did not explicitly account for uncertainty and 96% neglected cross-scale dynamics or interactions between endogenous and exogenous shocks. It also reports that indicator-based approaches dominate but are often not standardized.
+
+**CivBench response:** treat resilience as a response trajectory with resistance/absorption, service loss, recovery time and quality, adaptation, transformation, distributional burden and ecological/resource condition. Evaluate compound shocks, scale coupling, endogenous deterioration and exogenous hazards. Do not infer resilience from a static indicator or a single weighted composite.
+
+Implementation: [Symtropy issue #3621](https://github.com/Luminous-Dynamics/symtropy/issues/3621).
+
+These studies are research anchors, not evidence that a single shared resilience or governance metric exists.
