@@ -1,0 +1,72 @@
+{
+  "schema_version": "construction-layout-synthetic-strata/0.1",
+  "status": "synthetic_fixture_descriptors_only",
+  "note": "All counts and descriptor values below are invented for benchmark software design; they are not measured layouts or vendor test results.",
+  "layouts": [
+    {
+      "id": "LAYOUT-S01-sparse-room",
+      "stratum": "sparse_orthogonal",
+      "units": "mm",
+      "total_print_length_mm": 85000,
+      "entity_count": 120,
+      "junction_count": 38,
+      "minimum_feature_spacing_mm": 250,
+      "arc_count": 0,
+      "text_count": 12,
+      "symbol_count": 8,
+      "obstacle_count": 4
+    },
+    {
+      "id": "LAYOUT-D01-dense-mep",
+      "stratum": "dense_mep",
+      "units": "mm",
+      "total_print_length_mm": 210000,
+      "entity_count": 1450,
+      "junction_count": 620,
+      "minimum_feature_spacing_mm": 18,
+      "arc_count": 22,
+      "text_count": 180,
+      "symbol_count": 260,
+      "obstacle_count": 14
+    },
+    {
+      "id": "LAYOUT-C01-curvilinear",
+      "stratum": "curvilinear",
+      "units": "mm",
+      "total_print_length_mm": 102000,
+      "entity_count": 340,
+      "junction_count": 96,
+      "minimum_feature_spacing_mm": 60,
+      "arc_count": 128,
+      "text_count": 35,
+      "symbol_count": 24,
+      "obstacle_count": 6
+    },
+    {
+      "id": "LAYOUT-E01-edge-obstacle",
+      "stratum": "edge_and_obstacle_adjacent",
+      "units": "mm",
+      "total_print_length_mm": 76000,
+      "entity_count": 210,
+      "junction_count": 72,
+      "minimum_feature_spacing_mm": 45,
+      "arc_count": 16,
+      "text_count": 28,
+      "symbol_count": 20,
+      "obstacle_count": 32
+    },
+    {
+      "id": "LAYOUT-T01-station-transition",
+      "stratum": "station_transition",
+      "units": "mm",
+      "total_print_length_mm": 520000,
+      "entity_count": 960,
+      "junction_count": 310,
+      "minimum_feature_spacing_mm": 80,
+      "arc_count": 40,
+      "text_count": 90,
+      "symbol_count": 82,
+      "obstacle_count": 20
+    }
+  ]
+}
