@@ -340,6 +340,17 @@ impl ObservationGate {
             let occluded: BTreeSet<&str> =
                 observation.occluded_cells.iter().map(String::as_str).collect();
 
+            let unknown_cells = observation
+                .clear_cells
+                .iter()
+                .chain(&observation.changed_cells)
+                .chain(&observation.occluded_cells)
+                .any(|cell| !source_policy.required_cells.contains(cell));
+            if unknown_cells {
+                source_trustworthy = false;
+                reasons.insert(format!("observation_contains_out_of_scope_cells:{}", source_policy.source_id));
+            }
+
             for cell in &source_policy.required_cells {
                 let is_clear = clear.contains(cell.as_str());
                 let is_changed = changed.contains(cell.as_str());
@@ -485,6 +496,18 @@ mod tests {
         assert_eq!(result.state, GateState::UnknownOrUnobserved);
         assert!(result.must_hold);
         assert!(result.reason_codes.iter().any(|v| v.starts_with("required_cell_unobserved")));
+    }
+
+    #[test]
+    fn out_of_scope_cell_cannot_be_promoted_to_clear_or_change() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        gate.ingest(observation("tracker", 1, &["z1", "unregistered-zone"], &[], &[]))
+            .expect("observation");
+        let result = gate.evaluate("boot-001", 150);
+        assert_eq!(result.state, GateState::UnknownOrUnobserved);
+        assert!(result.must_hold);
+        assert!(result.reason_codes.iter().any(|v| v.starts_with("observation_contains_out_of_scope_cells")));
     }
 
     #[test]
