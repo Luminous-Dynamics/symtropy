@@ -579,6 +579,13 @@ fn sensor_channels_unchanged(current: &SensorState, next: &SensorState) -> bool 
         && current.presynaptic_movement_inhibition == next.presynaptic_movement_inhibition
 }
 
+fn sensor_afferent_channels_unchanged(current: &SensorState, next: &SensorState) -> bool {
+    current.position_afferent == next.position_afferent
+        && current.movement_afferent == next.movement_afferent
+        && current.vibration_afferent == next.vibration_afferent
+        && current.contact_feedback == next.contact_feedback
+}
+
 fn sensor_modalities_unchanged(current: &SensorState, next: &SensorState) -> bool {
     current.position_afferent == next.position_afferent
         && current.movement_afferent == next.movement_afferent
@@ -653,7 +660,7 @@ fn validate_action_transition_semantics(
         InterventionKind::ActiveMovementProbe => {
             (next_sensor.presynaptic_movement_inhibition
                 != PresynapticMovementInhibition::Engaged
-                || !sensor_modalities_unchanged(current_sensor, next_sensor)
+                || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
                 .then_some(
                     "active self-generated movement must engage movement-axon presynaptic inhibition without altering channel or acquisition state",
@@ -662,7 +669,7 @@ fn validate_action_transition_semantics(
         InterventionKind::PassiveMovementProbe => {
             (next_sensor.presynaptic_movement_inhibition
                 != PresynapticMovementInhibition::Disinhibited
-                || !sensor_modalities_unchanged(current_sensor, next_sensor)
+                || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
                 .then_some(
                     "passive movement must leave movement-axon presynaptic inhibition disinhibited",
@@ -671,7 +678,7 @@ fn validate_action_transition_semantics(
         InterventionKind::DescendingPathwayModulation => {
             (action.presynaptic_inhibition_target != Some(
                 next_sensor.presynaptic_movement_inhibition,
-            ) || !sensor_modalities_unchanged(current_sensor, next_sensor)
+            ) || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
                 .then_some(
                     "descending modulation must set its declared presynaptic inhibition target only",
@@ -1227,24 +1234,29 @@ mod tests {
             AcquisitionState::Calibrated,
             AcquisitionState::PositiveOffset,
         ];
+        let presynaptic_states = [
+            PresynapticMovementInhibition::Disinhibited,
+            PresynapticMovementInhibition::Engaged,
+        ];
         let mut states = Vec::new();
         for position in channels {
             for movement in channels {
                 for vib in vibration {
                     for contact in channels {
                         for acquisition_state in acquisition {
-                            let id = format!(
-                                "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}",
-                                position, movement, vib, contact, acquisition_state
-                            );
-                            states.push(SensorState {
-                                id,
-                                position_afferent: position,
-                                movement_afferent: movement,
-                                vibration_afferent: vib,
-                                contact_feedback: contact,
-                                acquisition: acquisition_state,
-                            });
+                            for presynaptic in presynaptic_states {
+                                let mut sensor = SensorState {
+                                    id: String::new(),
+                                    position_afferent: position,
+                                    movement_afferent: movement,
+                                    vibration_afferent: vib,
+                                    contact_feedback: contact,
+                                    acquisition: acquisition_state,
+                                    presynaptic_movement_inhibition: presynaptic,
+                                };
+                                sensor.id = sensor_state_semantic_id(&sensor);
+                                states.push(sensor);
+                            }
                         }
                     }
                 }
