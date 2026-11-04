@@ -31,14 +31,46 @@ pub struct FactorialCell {
 impl FactorialCell {
     pub const fn all() -> [Self; 8] {
         [
-            Self { a: false, b: false, c: false },
-            Self { a: false, b: false, c: true },
-            Self { a: false, b: true, c: false },
-            Self { a: false, b: true, c: true },
-            Self { a: true, b: false, c: false },
-            Self { a: true, b: false, c: true },
-            Self { a: true, b: true, c: false },
-            Self { a: true, b: true, c: true },
+            Self {
+                a: false,
+                b: false,
+                c: false,
+            },
+            Self {
+                a: false,
+                b: false,
+                c: true,
+            },
+            Self {
+                a: false,
+                b: true,
+                c: false,
+            },
+            Self {
+                a: false,
+                b: true,
+                c: true,
+            },
+            Self {
+                a: true,
+                b: false,
+                c: false,
+            },
+            Self {
+                a: true,
+                b: false,
+                c: true,
+            },
+            Self {
+                a: true,
+                b: true,
+                c: false,
+            },
+            Self {
+                a: true,
+                b: true,
+                c: true,
+            },
         ]
     }
 
@@ -106,9 +138,15 @@ pub enum FactorialError {
     ZeroTrialOrder,
     DuplicateTrialId,
     DuplicateTrialOrder,
-    NonContiguousTrialOrder { animal_id: String, session_id: String },
+    NonContiguousTrialOrder {
+        animal_id: String,
+        session_id: String,
+    },
     MissingTrialOrderData,
-    TooFewAnimals { observed: usize, minimum: usize },
+    TooFewAnimals {
+        observed: usize,
+        minimum: usize,
+    },
     TooFewReplicates {
         animal_id: String,
         session_id: String,
@@ -206,8 +244,7 @@ fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
         && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric()
-                || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
         })
 }
 
@@ -267,15 +304,7 @@ fn multiply_signs(signs: &[f64; 3], factors: &[usize]) -> f64 {
 fn calculate_session_contrasts(
     means: &BTreeMap<FactorialCell, f64>,
 ) -> Result<FactorialContrasts, FactorialError> {
-    let combinations: [&[usize]; 7] = [
-        &[0],
-        &[1],
-        &[2],
-        &[0, 1],
-        &[0, 2],
-        &[1, 2],
-        &[0, 1, 2],
-    ];
+    let combinations: [&[usize]; 7] = [&[0], &[1], &[2], &[0, 1], &[0, 2], &[1, 2], &[0, 1, 2]];
     let mut positive: [Vec<f64>; 7] = std::array::from_fn(|_| Vec::with_capacity(4));
     let mut negative: [Vec<f64>; 7] = std::array::from_fn(|_| Vec::with_capacity(4));
 
@@ -311,9 +340,7 @@ fn calculate_session_contrasts(
         abc: effects[6],
     })
 }
-fn mean_contrasts(
-    values: &[FactorialContrasts],
-) -> Result<FactorialContrasts, FactorialError> {
+fn mean_contrasts(values: &[FactorialContrasts]) -> Result<FactorialContrasts, FactorialError> {
     Ok(FactorialContrasts {
         a: mean(&values.iter().map(|value| value.a).collect::<Vec<_>>())?,
         b: mean(&values.iter().map(|value| value.b).collect::<Vec<_>>())?,
@@ -355,16 +382,35 @@ fn estimate(values: &[f64]) -> Result<ContrastEstimate, FactorialError> {
         animal_count: values.len(),
     })
 }
-fn population_estimates(
-    values: &[AnimalContrast],
-) -> Result<PopulationContrasts, FactorialError> {
-    let a = values.iter().map(|item| item.contrasts.a).collect::<Vec<_>>();
-    let b = values.iter().map(|item| item.contrasts.b).collect::<Vec<_>>();
-    let c = values.iter().map(|item| item.contrasts.c).collect::<Vec<_>>();
-    let ab = values.iter().map(|item| item.contrasts.ab).collect::<Vec<_>>();
-    let ac = values.iter().map(|item| item.contrasts.ac).collect::<Vec<_>>();
-    let bc = values.iter().map(|item| item.contrasts.bc).collect::<Vec<_>>();
-    let abc = values.iter().map(|item| item.contrasts.abc).collect::<Vec<_>>();
+fn population_estimates(values: &[AnimalContrast]) -> Result<PopulationContrasts, FactorialError> {
+    let a = values
+        .iter()
+        .map(|item| item.contrasts.a)
+        .collect::<Vec<_>>();
+    let b = values
+        .iter()
+        .map(|item| item.contrasts.b)
+        .collect::<Vec<_>>();
+    let c = values
+        .iter()
+        .map(|item| item.contrasts.c)
+        .collect::<Vec<_>>();
+    let ab = values
+        .iter()
+        .map(|item| item.contrasts.ab)
+        .collect::<Vec<_>>();
+    let ac = values
+        .iter()
+        .map(|item| item.contrasts.ac)
+        .collect::<Vec<_>>();
+    let bc = values
+        .iter()
+        .map(|item| item.contrasts.bc)
+        .collect::<Vec<_>>();
+    let abc = values
+        .iter()
+        .map(|item| item.contrasts.abc)
+        .collect::<Vec<_>>();
 
     Ok(PopulationContrasts {
         a: estimate(&a)?,
@@ -422,7 +468,10 @@ pub fn analyze_factorial(
         }
 
         if !trial_orders
-            .entry((observation.animal_id.clone(), observation.session_id.clone()))
+            .entry((
+                observation.animal_id.clone(),
+                observation.session_id.clone(),
+            ))
             .or_default()
             .insert(observation.trial_order)
         {
@@ -448,7 +497,10 @@ pub fn analyze_factorial(
         }
 
         sessions
-            .entry((observation.animal_id.clone(), observation.session_id.clone()))
+            .entry((
+                observation.animal_id.clone(),
+                observation.session_id.clone(),
+            ))
             .or_default()
             .entry(observation.cell)
             .or_default()
@@ -463,8 +515,8 @@ pub fn analyze_factorial(
     // It does not prove that the protocol actually randomized or counterbalanced
     // the treatment order; the summaries below keep that design auditable.
     for ((animal_id, session_id), orders) in &trial_orders {
-        let expected_last = u64::try_from(orders.len())
-            .map_err(|_| FactorialError::ResourceLimitExceeded)?;
+        let expected_last =
+            u64::try_from(orders.len()).map_err(|_| FactorialError::ResourceLimitExceeded)?;
         if orders.first() != Some(&1) || orders.last() != Some(&expected_last) {
             return Err(FactorialError::NonContiguousTrialOrder {
                 animal_id: animal_id.clone(),
@@ -530,12 +582,7 @@ pub fn analyze_factorial(
                 .copied()
                 .max()
                 .ok_or(FactorialError::MissingTrialOrderData)?;
-            let mean_order = mean(
-                &orders
-                    .iter()
-                    .map(|order| *order as f64)
-                    .collect::<Vec<_>>(),
-            )?;
+            let mean_order = mean(&orders.iter().map(|order| *order as f64).collect::<Vec<_>>())?;
 
             order_by_cell.push(CellOrderSummary {
                 cell,
@@ -631,11 +678,7 @@ mod tests {
         }
     }
 
-    fn response_with_effects(
-        cell: FactorialCell,
-        intercept: f64,
-        coefficients: [f64; 7],
-    ) -> f64 {
+    fn response_with_effects(cell: FactorialCell, intercept: f64, coefficients: [f64; 7]) -> f64 {
         let [a, b, c] = cell.signs();
         intercept
             + coefficients[0] * a
@@ -662,12 +705,7 @@ mod tests {
                     session_id: session_id.to_string(),
                     trial_id: format!(
                         "{}-{}-{}-{}-{}-{}",
-                        animal_id,
-                        session_id,
-                        cell.a as u8,
-                        cell.b as u8,
-                        cell.c as u8,
-                        replicate
+                        animal_id, session_id, cell.a as u8, cell.b as u8, cell.c as u8, replicate
                     ),
                     trial_order: observations.len() as u64 + 1,
                     cell,
@@ -689,7 +727,11 @@ mod tests {
         );
         // Add one extra replicate to one cell: within-cell averaging must not
         // change the balanced cell-level factorial contrast.
-        let cell = FactorialCell { a: true, b: true, c: true };
+        let cell = FactorialCell {
+            a: true,
+            b: true,
+            c: true,
+        };
         observations.push(FactorialObservation {
             animal_id: "fly-1".to_string(),
             session_id: "session-1".to_string(),
@@ -782,14 +824,15 @@ mod tests {
 
     #[test]
     fn rejects_missing_factorial_cell_instead_of_imputing() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
-        observations.retain(|item| item.cell != (FactorialCell { a: true, b: true, c: true }));
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
+        observations.retain(|item| {
+            item.cell
+                != (FactorialCell {
+                    a: true,
+                    b: true,
+                    c: true,
+                })
+        });
         assert!(matches!(
             analyze_factorial(&protocol(), &observations),
             Err(FactorialError::MissingFactorialCell { .. })
@@ -798,13 +841,7 @@ mod tests {
 
     #[test]
     fn rejects_insufficient_cell_replicates() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations.pop();
         assert!(matches!(
             analyze_factorial(&protocol(), &observations),
@@ -814,13 +851,7 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_trial_ids_within_a_session() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations[1].trial_id = observations[0].trial_id.clone();
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
@@ -830,13 +861,7 @@ mod tests {
 
     #[test]
     fn reports_per_cell_trial_order_for_order_audit() {
-        let observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         let result = analyze_factorial(&protocol(), &observations).expect("analysis");
         let order = &result.per_session[0].order_by_cell;
         assert_eq!(order.len(), 8);
@@ -850,13 +875,7 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_trial_order_within_a_session() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations[1].trial_order = observations[0].trial_order;
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
@@ -866,13 +885,7 @@ mod tests {
 
     #[test]
     fn rejects_gaps_in_the_trial_order_sequence() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations[15].trial_order = 99;
         assert!(matches!(
             analyze_factorial(&protocol(), &observations),
@@ -882,13 +895,7 @@ mod tests {
 
     #[test]
     fn rejects_zero_trial_order() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations[0].trial_order = 0;
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
@@ -898,13 +905,7 @@ mod tests {
 
     #[test]
     fn rejects_non_finite_outcomes() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         observations[0].response = f64::NAN;
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
@@ -942,28 +943,19 @@ mod tests {
     fn enforces_minimum_animal_count() {
         let mut invalid = protocol();
         invalid.minimum_animals = 2;
-        let observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         assert_eq!(
             analyze_factorial(&invalid, &observations),
-            Err(FactorialError::TooFewAnimals { observed: 1, minimum: 2 })
+            Err(FactorialError::TooFewAnimals {
+                observed: 1,
+                minimum: 2
+            })
         );
     }
 
     #[test]
     fn rejects_finite_inputs_that_overflow_a_factorial_contrast() {
-        let mut observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let mut observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         for observation in &mut observations {
             observation.response = if observation.cell.a {
                 f64::MAX
@@ -981,13 +973,7 @@ mod tests {
     fn rejects_duplicate_factor_ids() {
         let mut invalid = protocol();
         invalid.factors[1].id = invalid.factors[0].id.clone();
-        let observations = observations_for_session(
-            "fly-1",
-            "session-1",
-            0.0,
-            [0.0; 7],
-            2,
-        );
+        let observations = observations_for_session("fly-1", "session-1", 0.0, [0.0; 7], 2);
         assert_eq!(
             analyze_factorial(&invalid, &observations),
             Err(FactorialError::InvalidFactorSpecification)
