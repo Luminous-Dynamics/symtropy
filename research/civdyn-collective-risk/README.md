@@ -57,7 +57,9 @@ Run:
 cargo run --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --bin collective-risk-population-sweep
 ```
 
-The sweep varies risk p in {0.1, 0.5, 0.9}, population size N in {6, 30}, and selection intensity beta in {0, 0.1, 1, 5}. It emits composition-weighted fitness, pairwise fixation probabilities and rare-mutation stationary weights separately.
+The sweep varies risk p in {0.1, 0.5, 0.9}, population size N in {6, 30}, and selection intensity beta in {0, 0.1, 1, 5}. The fitness layer evaluates six frozen population profiles: one-of-each at N=6, plus balanced, zero-heavy, fair-share-heavy, maximum-heavy and copy-heavy at N=30. This is a controlled roster-shift stress test; the alternative N=30 profiles are synthetic fixtures, not estimates of real-world population frequencies.
+
+The output separates roster-conditioned expected fitness from the rare-mutation pairwise fixation/stationary model. It emits 432 roster-conditioned fitness records, 720 fixation records, 144 stationary-weight records and 24 invasion-graph summaries, plus individual cycle records where present.
 
 It also derives a directed invasion graph: an edge from resident i to mutant j is emitted when the mutant's single-invasion fixation probability exceeds the neutral baseline 1/N. Directed three-cycles are enumerated with orientation preserved. This prevents pairwise results from being compressed into a misleading total strategy order. The criterion is a finite-population selection reference, not a claim of universal dominance.
 
