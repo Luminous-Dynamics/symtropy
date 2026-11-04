@@ -49,11 +49,11 @@ This prevents repeated steps from one animal from being counted as independent b
 
 ### 5. Expected information gain for intervention selection
 
-`estimate_expected_information_gain` estimates mutual information between model-family identity and a scalar outcome under equal model priors. It uses Monte Carlo posterior model probabilities across all competing Gaussian predictive distributions.
+`estimate_expected_information_gain_with_uncertainty` estimates mutual information between model-family identity and a scalar outcome under equal model priors. It uses Monte Carlo posterior model probabilities across all competing Gaussian predictive distributions and reports a stratified Monte Carlo standard error plus a clipped approximate 95% Monte Carlo interval. This interval quantifies integration error conditional on the supplied predictions; it is not biological, parameter, calibration or model-misspecification uncertainty.
 
-`rank_interventions` ranks feasible interventions by expected information gain per declared comparable cost unit. It rejects model-family-set drift, inconsistent metric/unit schemas, invalid costs and invalid predictive uncertainties. Infeasible interventions are excluded, not silently assigned a low score.
+`rank_interventions` ranks feasible interventions by the 95% lower Monte Carlo EIG bound per declared comparable cost unit. Candidates whose lower bound is zero are excluded. When no feasible candidate has a positive lower bound, it returns `NoDiscriminatingIntervention` rather than manufacturing a winner. `rank_interventions_with_minimum_information_gain` accepts a nonnegative preregistered practical threshold in nats. A zero threshold is only a Monte Carlo-noise gate; it is not a biological equivalence margin and does not establish global model equivalence.
 
-This is Bayesian model-discrimination design, not a pairwise-KL proxy. The v0 independence assumption is one scalar endpoint per experiment; correlated multivariate outcomes and non-equal model priors are future extensions. Monte Carlo and bootstrap sample budgets are explicitly capped at 1,000,000 per estimate.
+This is Bayesian model-discrimination design, not a pairwise-KL proxy. The v0 independence assumption is one scalar endpoint per experiment; correlated multivariate outcomes, non-equal model priors, posterior parameter uncertainty and alternative likelihood families are future extensions. Monte Carlo and bootstrap sample budgets are explicitly capped at 1,000,000 per estimate.
 
 ## Required next integration
 
