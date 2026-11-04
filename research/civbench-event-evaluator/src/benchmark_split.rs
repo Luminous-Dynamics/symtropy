@@ -144,7 +144,6 @@ impl SplitProtocolPreset {
                 ScenarioTemplate,
                 Network,
                 TopologyFamily,
-                ScenarioTemplate,
             ]),
             Self::SensorLayoutTransfer => BTreeSet::from([
                 PhysicalEvent,
@@ -162,11 +161,12 @@ impl SplitProtocolPreset {
     pub fn shared_dimensions(self) -> BTreeSet<LeakageDimension> {
         use LeakageDimension::{Network, TopologyFamily};
         match self {
-            Self::WithinNetworkUnseenEvent | Self::AssetTransfer => BTreeSet::from([Network]),
-            Self::NewOperatingRegime | Self::SensorLayoutTransfer => {
-                BTreeSet::from([Network, TopologyFamily])
-            }
-            Self::CrossNetwork | Self::CrossTopology => BTreeSet::new(),
+            Self::WithinNetworkUnseenEvent
+            | Self::NewOperatingRegime
+            | Self::SensorLayoutTransfer
+            | Self::AssetTransfer => BTreeSet::from([Network, TopologyFamily]),
+            Self::CrossNetwork => BTreeSet::from([TopologyFamily]),
+            Self::CrossTopology => BTreeSet::new(),
         }
     }
 }
