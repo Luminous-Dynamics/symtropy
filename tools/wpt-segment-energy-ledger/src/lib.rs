@@ -959,6 +959,40 @@ mod tests {
             SCHEMA_VERSION
         );
         assert_eq!(schema["additionalProperties"], false);
+        let segment_boundaries = schema["$defs"]["segment"]["properties"]["boundary_measurements"]
+            ["allOf"]
+            .as_array()
+            .expect("required segment boundary constraints");
+        let required_segment_boundaries = segment_boundaries
+            .iter()
+            .map(|constraint| {
+                constraint["contains"]["properties"]["boundary"]["const"]
+                    .as_str()
+                    .expect("boundary const")
+            })
+            .collect::<std::collections::HashSet<_>>();
+        for expected in [
+            "grid_ac_input",
+            "roadway_inverter_dc_input",
+            "vehicle_dc_bus_output",
+            "battery_terminal_input",
+        ] {
+            assert!(required_segment_boundaries.contains(expected));
+        }
+        let idle_boundaries = schema["$defs"]["idle"]["properties"]["boundary_measurements"]
+            ["allOf"]
+            .as_array()
+            .expect("required idle boundary constraints");
+        let required_idle_boundaries = idle_boundaries
+            .iter()
+            .map(|constraint| {
+                constraint["contains"]["properties"]["boundary"]["const"]
+                    .as_str()
+                    .expect("boundary const")
+            })
+            .collect::<std::collections::HashSet<_>>();
+        assert!(required_idle_boundaries.contains("grid_ac_input"));
+        assert!(required_idle_boundaries.contains("roadway_inverter_dc_input"));
 
         let report = ledger.evaluate().unwrap();
         assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
