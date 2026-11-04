@@ -5,8 +5,8 @@ use wpt_matrix_atlas::MatrixAtlas;
 
 fn main() -> ExitCode {
     let arguments = env::args().skip(1).collect::<Vec<_>>();
-    if arguments.len() != 2 {
-        eprintln!("usage: wpt-matrix-atlas <atlas.json> <position_m>");
+    if !(2..=3).contains(&arguments.len()) {
+        eprintln!("usage: wpt-matrix-atlas <atlas.json> <position_m> [expected-disposition]");
         return ExitCode::from(2);
     }
 
@@ -36,6 +36,15 @@ fn main() -> ExitCode {
         Ok(result) => match serde_json::to_string_pretty(&result) {
             Ok(json) => {
                 println!("{json}");
+                if let Some(expected) = arguments.get(2) {
+                    if result.disposition != *expected {
+                        eprintln!(
+                            "disposition mismatch: expected {expected}, got {}",
+                            result.disposition
+                        );
+                        return ExitCode::FAILURE;
+                    }
+                }
                 ExitCode::SUCCESS
             }
             Err(error) => {
