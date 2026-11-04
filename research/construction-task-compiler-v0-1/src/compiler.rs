@@ -939,10 +939,7 @@ mod tests {
         );
         let mut second_manifest = manifest(vec![element("pile-1")]);
         second_manifest.site_epoch = "site-epoch-2".to_owned();
-        let second = compile(
-            &second_manifest,
-            &method(vec![step("install", &[])]),
-        );
+        let second = compile(&second_manifest, &method(vec![step("install", &[])]));
         assert_ne!(
             first.graph.expect("first graph").graph_id,
             second.graph.expect("second graph").graph_id
