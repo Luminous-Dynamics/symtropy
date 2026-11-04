@@ -1,0 +1,95 @@
+{
+  "schema_version": "construction-robot-claim-admissibility/0.2",
+  "packet_id": "claim-packet-field-no-reference-001",
+  "source_receipt": {
+    "receipt_schema": "construction-robot-physical-trial/0.1",
+    "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "receipt_trial_id": "bench-stop-fixture-001"
+  },
+  "evidence_units": [
+    {
+      "evidence_unit_id": "evidence-unit-bench-stop-001",
+      "origin": "field_observed",
+      "source_refs": [
+        {
+          "source_id": "reference-trajectory-artifact",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "independent referee motion trajectory and stopping distance"
+        }
+      ],
+      "independence": {
+        "profile_ref": "symthaea-eng-evid-indep-profile-placeholder",
+        "assessment_ref": null,
+        "status": "dependence_indeterminate",
+        "unresolved_dependency_classes": []
+      },
+      "metrology": {
+        "status": "declared",
+        "calibration_record_refs": [
+          "reference-tracker-calibration",
+          "robot-sensor-calibration"
+        ],
+        "uncertainty_budget_ref": "fixture-uncertainty-budget"
+      },
+      "provenance": {
+        "digest_status": "bytes_verified",
+        "authentication_status": "signed",
+        "issuer_ref": "fixture-metrology-issuer"
+      },
+      "custody": {
+        "status": "custody_declared",
+        "custody_record_ref": "fixture-custody-audit"
+      },
+      "odd_coverage": {
+        "status": "measured_by_stratum",
+        "profile_ref": "bench-stop-odd-profile",
+        "observed_strata": [
+          "payload",
+          "speed",
+          "surface",
+          "slope",
+          "brake_state",
+          "operating_mode"
+        ],
+        "unmeasured_strata": [
+          "rain",
+          "field-trade-overlap"
+        ]
+      },
+      "replication": {
+        "status": "independent_site_replication",
+        "independent_encounters": 30,
+        "distinct_sites": 2,
+        "distinct_configurations": 1,
+        "sampling_policy_ref": "bench-stop-sample-policy"
+      }
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "field-human-detection-without-referee",
+      "claim_kind": "field_human_detection",
+      "statement": "Attempt to claim field human detection when independent target reference is not established.",
+      "requirements_profile_id": "field-human-detection-v0.2",
+      "requirements_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "supporting_evidence_unit_ids": [
+        "evidence-unit-bench-stop-001"
+      ],
+      "decision": "inadmissible_for_named_claim",
+      "reason_codes": [
+        "independent_target_reference_not_established"
+      ],
+      "limitations": [
+        "Field origin alone is insufficient for a detection claim."
+      ]
+    }
+  ],
+  "assessment": {
+    "validator_id": "claim-admissibility-reference-validator",
+    "validator_revision": "0.2.0",
+    "assessment_reference": "fixture-independent-assessor-review",
+    "review_status": "internal_review",
+    "assessor_reference": "fixture-assessor-role-token",
+    "record_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  }
+}
