@@ -330,12 +330,12 @@ fn validate_matrix(
         }
     }
     let symmetry_tolerance = 64.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
-    for i in 0..n {
-        if matrix[i][i] <= bounds[i][i] {
+    for (i, row) in matrix.iter().enumerate() {
+        if row[i] <= bounds[i][i] {
             return Err("self-inductance lower bound must remain positive".into());
         }
-        for j in (i + 1)..n {
-            if (matrix[i][j] - matrix[j][i]).abs() > symmetry_tolerance {
+        for (j, value) in row.iter().enumerate().skip(i + 1) {
+            if (*value - matrix[j][i]).abs() > symmetry_tolerance {
                 return Err("matrix must be symmetric before atlas interpolation".into());
             }
         }
@@ -366,6 +366,9 @@ fn validate_matrix(
     Ok(())
 }
 
+// Index-based pair rotations are intrinsic to the cyclic Jacobi eigensolver.
+// A local range-loop allowance keeps that numerical kernel readable.
+#[allow(clippy::needless_range_loop)]
 fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<(f64, f64), String> {
     let n = matrix.len();
     let scale = matrix
