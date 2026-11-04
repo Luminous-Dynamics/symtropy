@@ -1745,7 +1745,10 @@ mod tests {
         let run_identity =
             lineage_identity(spec.backend_id, spec.backend_version, spec.configuration);
         let dependencies = vec![
-            known_lineage(LineageDependencyKind::SolverImplementation, spec.implementation),
+            known_lineage(
+                LineageDependencyKind::SolverImplementation,
+                spec.implementation,
+            ),
             known_lineage(LineageDependencyKind::ExpectedAnswer, spec.expected_answer),
             known_lineage(
                 LineageDependencyKind::ScenarioGenerator,
