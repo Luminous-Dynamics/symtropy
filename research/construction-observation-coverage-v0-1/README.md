@@ -26,13 +26,13 @@ Only `verified_clear` is non-holding. The gate does not create an epoch or drive
 
 Each source policy declares its source identifier, task-zone cells, maximum observation age, maximum clock uncertainty, maximum measurement uncertainty, calibration requirement and claim-relative independence requirement.
 
-An observation includes monotonic sequence, evidence digest reference, task scope, timebase ID, observed monotonic time, clock and measurement uncertainty, sensor health, calibration state, upstream authentication assertion, independence assessment/reference, and explicit `clear_cells`, `changed_cells` and `occluded_cells`.
+Each source policy pins a trusted baseline sequence/digest. An observation includes monotonic sequence, evidence digest and predecessor digest, task scope, timebase ID, observed monotonic time, clock and measurement uncertainty, sensor health, calibration state, upstream authentication assertion, independence assessment/reference, and explicit `clear_cells`, `changed_cells` and `occluded_cells`.
 
-An unlisted cell is unobserved. Empty detections do not constitute a clear reading. A source sequence gap is latched unknown; rollback or same-sequence content divergence is latched conflicting. Recovery requires an external re-baseline and new gate instance.
+An unlisted cell is unobserved. Empty detections do not constitute a clear reading. Each source sequence is predecessor-linked to the trusted baseline and previous accepted observation. A sequence gap is latched unknown; rollback, predecessor mismatch or same-sequence content divergence is latched conflicting. A midstream restart is allowed only from an externally established baseline checkpoint and a new gate instance.
 
 ## Test corpus and current software verification targets
 
-The Rust package has 23 unit tests covering complete clear coverage, missing source/cell, occlusion, stale/future timestamps, timebase mismatch, clock and measurement uncertainty, degraded sensor, calibration invalidity, missing independence, upstream authentication, positive changes, cross-source conflict, duplicate idempotence, digest divergence, sequence rollback/gap, malformed digests and out-of-scope cells.
+The Rust package has 25 unit tests covering complete clear coverage, missing source/cell, occlusion, stale/future timestamps, timebase mismatch, clock and measurement uncertainty, degraded sensor, calibration invalidity, missing independence, upstream authentication, positive changes despite partial coverage, cross-source conflict, duplicate idempotence, digest divergence, predecessor-chain mismatch, trusted midstream re-baseline, sequence rollback/gap, malformed digests and out-of-scope cells.
 
 These tests exercise software-declared inputs only. A future physical benchmark must independently stage zone changes and occupancy/obstruction truth, capture source clocks independently, and include sensor blind spots, dust/rain/glare, network delays, frozen feeds, clock resets and overlapping trades.
 
