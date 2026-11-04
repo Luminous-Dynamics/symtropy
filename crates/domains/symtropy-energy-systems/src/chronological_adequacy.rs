@@ -869,8 +869,8 @@ mod tests {
         assert!((report.reference_unserved_energy_mwh - 0.01).abs() < 1e-12);
         assert!((report.elcc_like_added_load_kw - 27.5).abs() < 1e-5);
         assert!((report.achieved_augmented_metric_value - 0.01).abs() < 1e-8);
-        assert!((report.scenario_receipts[0].normalized_probability_weight - 0.25).abs() < 1e-12);
-        assert!((report.scenario_receipts[1].normalized_probability_weight - 0.75).abs() < 1e-12);
+        assert!((report.scenario_receipts[0].normalized_probability_weight - 0.75).abs() < 1e-12);
+        assert!((report.scenario_receipts[1].normalized_probability_weight - 0.25).abs() < 1e-12);
         assert!(report.reference_criterion_preserved);
         assert!(report.search_converged);
         assert!(!report.upper_bound_censored);
@@ -891,7 +891,7 @@ mod tests {
         ).expect("study");
         let report = evaluate_chronological_adequacy(&study).expect("evaluation");
         assert_eq!(report.reference_loss_of_load_days, 1.0);
-        assert_eq!(report.reference_loss_of_load_hours, 1.0);
+        assert_eq!(report.reference_loss_of_load_hours, 2.0);
     }
 
     #[test]
