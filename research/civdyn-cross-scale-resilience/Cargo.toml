@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-cross-scale-resilience"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Cross-scale socio-ecological service resilience trajectories over the CivDyn resource ledger"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "cross-scale-resilience-sweep"
+path = "src/bin/cross_scale_resilience_sweep.rs"
+
+[dependencies]
+civdyn-resource-ledger = { path = "../civdyn-resource-ledger" }
