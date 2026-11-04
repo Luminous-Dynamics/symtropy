@@ -96,12 +96,6 @@ impl TruthLabel {
         }
     }
 
-    fn evidence_class(&self) -> Option<TruthEvidenceClass> {
-        match self {
-            Self::Known { evidence, .. } => Some(*evidence),
-            Self::NotMeasured | Self::Unsupported | Self::Withheld | Self::NotApplicable => None,
-        }
-    }
 }
 
 /// Independently sourced localization truth for one event.
@@ -348,14 +342,14 @@ impl LocalizationEvaluationReport {
         for binding in &self.observability_bindings {
             let _ = writeln!(
                 &mut output,
-                "observability_binding={},{},{},{},{},{},{}",
+                "observability_binding={},{},{},{},{},{},sha256:{}",
                 binding.event_id,
                 binding.maximum_level.as_str(),
                 binding.zone_candidate_count,
                 binding.pipe_candidate_count,
                 binding.sensor_layout_ref,
                 binding.hydraulic_model_ref,
-                format!("sha256:{}", binding.assessment_digest)
+                binding.assessment_digest
             );
         }
         let _ = writeln!(
@@ -545,13 +539,13 @@ fn validate_truth(truth: &LocalizationTruth) -> Result<(), LocalizationEvaluatio
         ));
     }
     for (level, label) in [("zone", &truth.zone), ("pipe", &truth.pipe)] {
-        if let TruthLabel::Known { value, .. } = label {
-            if !valid_identifier(value) {
-                return Err(LocalizationEvaluationError::new(
-                    "invalid_truth_identifier",
-                    format!("{}:{level}", truth.event_id),
-                ));
-            }
+        if let TruthLabel::Known { value, .. } = label
+            && !valid_identifier(value)
+        {
+            return Err(LocalizationEvaluationError::new(
+                "invalid_truth_identifier",
+                format!("{}:{level}", truth.event_id),
+            ));
         }
     }
     Ok(())
@@ -593,33 +587,29 @@ fn validate_truth_in_candidate_universe(
     truth: &LocalizationTruth,
     assessment: &ObservabilityAssessment,
 ) -> Result<(), LocalizationEvaluationError> {
-    if assessment.maximum_level.supports(LocalizationLevel::Zone) {
-        if let Some(zone) = truth.zone.known_value() {
-            if !assessment
-                .zone_candidate_ids
-                .iter()
-                .any(|candidate| candidate == zone)
-            {
-                return Err(LocalizationEvaluationError::new(
-                    "truth_zone_outside_observable_universe",
-                    truth.event_id.as_str(),
-                ));
-            }
-        }
+    if assessment.maximum_level.supports(LocalizationLevel::Zone)
+        && let Some(zone) = truth.zone.known_value()
+        && !assessment
+            .zone_candidate_ids
+            .iter()
+            .any(|candidate| candidate == zone)
+    {
+        return Err(LocalizationEvaluationError::new(
+            "truth_zone_outside_observable_universe",
+            truth.event_id.as_str(),
+        ));
     }
-    if assessment.maximum_level.supports(LocalizationLevel::Pipe) {
-        if let Some(pipe) = truth.pipe.known_value() {
-            if !assessment
-                .pipe_candidate_ids
-                .iter()
-                .any(|candidate| candidate == pipe)
-            {
-                return Err(LocalizationEvaluationError::new(
-                    "truth_pipe_outside_observable_universe",
-                    truth.event_id.as_str(),
-                ));
-            }
-        }
+    if assessment.maximum_level.supports(LocalizationLevel::Pipe)
+        && let Some(pipe) = truth.pipe.known_value()
+        && !assessment
+            .pipe_candidate_ids
+            .iter()
+            .any(|candidate| candidate == pipe)
+    {
+        return Err(LocalizationEvaluationError::new(
+            "truth_pipe_outside_observable_universe",
+            truth.event_id.as_str(),
+        ));
     }
     Ok(())
 }
@@ -774,7 +764,7 @@ fn build_risk_coverage_curve(
     eligible_events: usize,
 ) -> Vec<RiskCoveragePoint> {
     let mut ordered = predictions.to_vec();
-    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    ordered.sort_by_key(|item| std::cmp::Reverse(item.0));
     let mut points = Vec::new();
     let mut index = 0;
     let mut covered_events = 0;
