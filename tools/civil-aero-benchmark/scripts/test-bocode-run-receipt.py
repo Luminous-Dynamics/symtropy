@@ -203,7 +203,7 @@ def main() -> int:
         (root / "stdout.bin").write_bytes(b"tampered")
         tampered = run_verifier(receipt)
         assert tampered.returncode != 0, "artifact tampering was not rejected"
-        (root / "stdout.bin").write_bytes(b"OK fixture\\n")
+        (root / "stdout.bin").write_bytes(b"OK fixture\n")
 
         wrong = Path(temp) / "wrong-shape"
         wrong.mkdir()
@@ -217,9 +217,9 @@ def main() -> int:
         shutil.copytree(root, campaign_root / "trial-valid")
         expected = Path(temp) / "expected.csv"
         expected.write_text(
-            "task_id,algorithm,seed\\n"
-            "Fixture,random_search,7\\n"
-            "Missing,random_search,8\\n",
+            "task_id,algorithm,seed\n"
+            "Fixture,random_search,7\n"
+            "Missing,random_search,8\n",
             encoding="utf-8",
         )
         ledger = Path(temp) / "campaign-ledger.csv"
