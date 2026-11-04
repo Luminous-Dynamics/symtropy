@@ -726,10 +726,12 @@ mod tests {
         let mut task = node("task-a", &[]);
         task.task_family.clear();
         let report = graph(vec![task]).validate();
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "missing_task_derivation_field"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "missing_task_derivation_field")
+        );
     }
 
     #[test]
@@ -737,10 +739,12 @@ mod tests {
         let mut task = node("task-a", &[]);
         task.parameters[0].source_property.clear();
         let report = graph(vec![task]).validate();
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "incomplete_parameter_binding"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "incomplete_parameter_binding")
+        );
     }
 
     #[test]
