@@ -29,17 +29,17 @@ fn sample(
         partition,
         content_digest: digest(digest_value),
         leakage_groups: vec![
-            group(LeakageDimension::PhysicalEvent, &format!("event-{sample_id}")),
-            group(LeakageDimension::CaptureSession, &format!("session-{sample_id}")),
+            group(
+                LeakageDimension::PhysicalEvent,
+                &format!("event-{sample_id}"),
+            ),
+            group(
+                LeakageDimension::CaptureSession,
+                &format!("session-{sample_id}"),
+            ),
             group(LeakageDimension::PipeAsset, &format!("pipe-{sample_id}")),
-            group(
-                LeakageDimension::Network,
-                network,
-            ),
-            group(
-                LeakageDimension::TopologyFamily,
-                topology,
-            ),
+            group(LeakageDimension::Network, network),
+            group(LeakageDimension::TopologyFamily, topology),
             group(
                 LeakageDimension::ScenarioTemplate,
                 &format!("template-{sample_id}"),
@@ -56,10 +56,7 @@ fn sample(
                 LeakageDimension::DemandProfile,
                 &format!("demand-{sample_id}"),
             ),
-            group(
-                LeakageDimension::TimeBlock,
-                &format!("time-{sample_id}"),
-            ),
+            group(LeakageDimension::TimeBlock, &format!("time-{sample_id}")),
         ],
     }
 }
@@ -92,11 +89,8 @@ fn valid_within_network_samples() -> Vec<BenchmarkSample> {
 
 #[test]
 fn within_network_protocol_allows_common_network_and_topology() {
-    let report = audit_benchmark_split(
-        &valid_within_network_samples(),
-        &within_network_policy(),
-    )
-    .expect("valid within-network split");
+    let report = audit_benchmark_split(&valid_within_network_samples(), &within_network_policy())
+        .expect("valid within-network split");
     assert_eq!(report.sample_count, 4);
     assert_eq!(report.partition_counts[&DataPartition::Train], 2);
     assert_eq!(report.partition_counts[&DataPartition::Validation], 1);
@@ -111,11 +105,10 @@ fn within_network_protocol_allows_common_network_and_topology() {
         report.shared_dimensions,
         within_network_policy().protocol.shared_dimensions()
     );
-    assert!(
-        report
-            .canonical_text()
-            .contains(&format!("manifest_digest={}", within_network_policy().manifest_digest))
-    );
+    assert!(report.canonical_text().contains(&format!(
+        "manifest_digest={}",
+        within_network_policy().manifest_digest
+    )));
 }
 
 #[test]
@@ -133,7 +126,13 @@ fn cross_network_protocol_rejects_a_shared_network() {
 fn cross_network_protocol_accepts_disjoint_networks() {
     let samples = vec![
         sample("train-a", DataPartition::Train, 1, "net-1", "topology-1"),
-        sample("validation-a", DataPartition::Validation, 2, "net-2", "topology-1"),
+        sample(
+            "validation-a",
+            DataPartition::Validation,
+            2,
+            "net-2",
+            "topology-1",
+        ),
         sample("test-a", DataPartition::Test, 3, "net-3", "topology-1"),
     ];
     let report = audit_benchmark_split(&samples, &policy(SplitProtocolPreset::CrossNetwork))
@@ -216,8 +215,9 @@ fn cross_topology_protocol_rejects_shared_topology_family() {
 #[test]
 fn sensor_layout_transfer_requires_common_networks_but_disjoint_sensor_layouts() {
     let samples = valid_within_network_samples();
-    let report = audit_benchmark_split(&samples, &policy(SplitProtocolPreset::SensorLayoutTransfer))
-        .expect("same network with held-out sensor layouts");
+    let report =
+        audit_benchmark_split(&samples, &policy(SplitProtocolPreset::SensorLayoutTransfer))
+            .expect("same network with held-out sensor layouts");
     assert_eq!(report.group_counts[&LeakageDimension::Network], 1);
     assert_eq!(report.group_counts[&LeakageDimension::SensorLayout], 4);
 }
@@ -226,8 +226,8 @@ fn sensor_layout_transfer_requires_common_networks_but_disjoint_sensor_layouts()
 fn exact_content_digest_reuse_across_distinct_samples_fails_closed() {
     let mut samples = valid_within_network_samples();
     samples[3].content_digest = samples[0].content_digest.clone();
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("duplicate payload");
+    let error =
+        audit_benchmark_split(&samples, &within_network_policy()).expect_err("duplicate payload");
     assert_eq!(error.code, "duplicate_content_digest");
 }
 
@@ -257,8 +257,8 @@ fn repeated_dimension_in_one_sample_is_rejected() {
     samples[0]
         .leakage_groups
         .push(group(LeakageDimension::PhysicalEvent, "event-other"));
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("duplicate dimension");
+    let error =
+        audit_benchmark_split(&samples, &within_network_policy()).expect_err("duplicate dimension");
     assert_eq!(error.code, "duplicate_sample_dimension");
 }
 
@@ -276,8 +276,8 @@ fn every_partition_must_be_populated() {
 fn duplicate_sample_ids_are_rejected() {
     let mut samples = valid_within_network_samples();
     samples[1].sample_id = samples[0].sample_id.clone();
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("duplicate sample ID");
+    let error =
+        audit_benchmark_split(&samples, &within_network_policy()).expect_err("duplicate sample ID");
     assert_eq!(error.code, "duplicate_sample_id");
 }
 
@@ -285,8 +285,8 @@ fn duplicate_sample_ids_are_rejected() {
 fn invalid_digest_syntax_is_rejected() {
     let mut samples = valid_within_network_samples();
     samples[0].content_digest = "sha256:00".to_owned();
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("malformed digest");
+    let error =
+        audit_benchmark_split(&samples, &within_network_policy()).expect_err("malformed digest");
     assert_eq!(error.code, "invalid_content_digest");
 }
 
@@ -294,8 +294,8 @@ fn invalid_digest_syntax_is_rejected() {
 fn whitespace_padded_identifiers_are_rejected() {
     let mut samples = valid_within_network_samples();
     samples[0].leakage_groups[0].value = " event-train-a".to_owned();
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("padded reference");
+    let error =
+        audit_benchmark_split(&samples, &within_network_policy()).expect_err("padded reference");
     assert_eq!(error.code, "invalid_leakage_group");
 }
 
@@ -360,8 +360,7 @@ fn digest_comparison_is_case_insensitive() {
     let mut samples = valid_within_network_samples();
     let source_hex = samples[0].content_digest["sha256:".len()..].to_owned();
     samples[3].content_digest = format!("sha256:{}", source_hex.to_ascii_uppercase());
-    let error = audit_benchmark_split(&samples, &within_network_policy())
-        .expect_err("same digest");
+    let error = audit_benchmark_split(&samples, &within_network_policy()).expect_err("same digest");
     assert_eq!(error.code, "duplicate_content_digest");
 }
 
@@ -376,7 +375,6 @@ fn malformed_manifest_digest_is_rejected() {
 
 #[test]
 fn empty_manifest_is_rejected() {
-    let error = audit_benchmark_split(&[], &within_network_policy())
-        .expect_err("empty manifest");
+    let error = audit_benchmark_split(&[], &within_network_policy()).expect_err("empty manifest");
     assert_eq!(error.code, "empty_manifest");
 }
