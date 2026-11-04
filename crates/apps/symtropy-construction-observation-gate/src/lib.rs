@@ -355,9 +355,10 @@ impl ObservationGate {
                 let is_clear = clear.contains(cell.as_str());
                 let is_changed = changed.contains(cell.as_str());
                 let is_occluded = occluded.contains(cell.as_str());
-                let classifications = usize::from(is_clear)
-                    + usize::from(is_changed)
-                    + usize::from(is_occluded);
+                let classifications = [is_clear, is_changed, is_occluded]
+                    .into_iter()
+                    .filter(|classified| *classified)
+                    .count();
                 if classifications > 1 {
                     source_conflicting_cells.insert(cell.clone());
                     reasons.insert(format!(
