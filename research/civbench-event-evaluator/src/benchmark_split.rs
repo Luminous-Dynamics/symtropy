@@ -568,6 +568,7 @@ mod tests {
 
     fn event_session_policy() -> SplitPolicy {
         SplitPolicy {
+            protocol: SplitProtocolPreset::WithinNetworkUnseenEvent,
             protocol_id: "within_network_unseen_event_v1".to_owned(),
             manifest_digest: digest(900),
             exclusive_dimensions: BTreeSet::from([
@@ -629,6 +630,8 @@ mod tests {
     #[test]
     fn cross_network_protocol_rejects_a_shared_network() {
         let mut policy = event_session_policy();
+        policy.protocol = SplitProtocolPreset::CrossNetwork;
+        policy.protocol_id = policy.protocol.as_str().to_owned();
         policy
             .exclusive_dimensions
             .insert(LeakageDimension::Network);
@@ -728,13 +731,33 @@ mod tests {
     #[test]
     fn empty_policy_cannot_claim_an_audited_protocol() {
         let policy = SplitPolicy {
-            protocol_id: "unconstrained".to_owned(),
+            protocol: SplitProtocolPreset::CrossNetwork,
+            protocol_id: "cross_network_v1".to_owned(),
             manifest_digest: digest(900),
             exclusive_dimensions: BTreeSet::new(),
             shared_dimensions: BTreeSet::new(),
         };
         let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("empty policy");
         assert_eq!(error.code, "empty_exclusive_dimensions");
+    }
+
+    #[test]
+    fn registered_preset_rejects_a_mislabelled_generalization_claim() {
+        let mut policy = event_session_policy();
+        policy.protocol = SplitProtocolPreset::CrossNetwork;
+        policy.protocol_id = policy.protocol.as_str().to_owned();
+        let error = audit_benchmark_split(&valid_samples(), &policy)
+            .expect_err("within-network policy cannot claim cross-network transfer");
+        assert_eq!(error.code, "protocol_dimensions_mismatch");
+    }
+
+    #[test]
+    fn protocol_id_must_match_its_registered_preset() {
+        let mut policy = event_session_policy();
+        policy.protocol_id = "cross_network_v1".to_owned();
+        let error = audit_benchmark_split(&valid_samples(), &policy)
+            .expect_err("protocol ID/preset mismatch");
+        assert_eq!(error.code, "protocol_id_preset_mismatch");
     }
 
     #[test]
