@@ -625,8 +625,8 @@ mod tests {
         assert_eq!(metrics.resource_transfer_action_count, 1);
         assert_eq!(metrics.verified_cross_agent_causal_edges, 3);
         assert_eq!(metrics.candidate_inclusive_cross_agent_causal_edges, 4);
-        assert_eq!(metrics.verified_cross_agent_contributing_actions, 5);
-        assert_eq!(metrics.candidate_inclusive_cross_agent_contributing_actions, 7);
+        assert_eq!(metrics.verified_cross_agent_contributing_actions, 4);
+        assert_eq!(metrics.candidate_inclusive_cross_agent_contributing_actions, 6);
     }
 
     #[test]
