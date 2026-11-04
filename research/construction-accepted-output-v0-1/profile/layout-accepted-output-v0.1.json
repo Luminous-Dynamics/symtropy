@@ -95,7 +95,7 @@
       "design_trade_coordination",
       "evidence_closeout"
     ],
-    "privacy_rule": "human resource IDs must be pseudonymous and task-scoped; do not collect names, worker biometrics, inferred intent or affect"
+    "privacy_rule": "human resource IDs must be opaque pseudonyms stable only within the accounting project/study; do not collect names, badge numbers, biometrics, inferred intent or affect"
   },
   "baseline": {
     "required_for_comparative_productivity_claim": true,
