@@ -107,6 +107,61 @@ For every laboratory session:
 
 A digest establishes byte identity, not the truth of a calibration certificate or the physical accuracy of an instrument. Independence must be supported by dependency evidence; different organization names are insufficient.
 
+## Measurement models, uncertainty budgets and decision rules
+
+### Measurands before instruments
+
+Freeze each measurand before selecting the instrument or calculating a score. Examples include signed X/Y coordinate residual in the approved target frame, radial plan-position residual, signed height residual, baseline length error, orientation error, feature completeness and task-unit acceptance. Define the measurand, units, target frame/vertical datum, coordinate epoch, evaluation location, sampling unit and sign convention. Do not conflate a robot's internal estimate with the referee's measurement of the physical output.
+
+### Uncertainty budget
+
+For each continuous measurement, retain a documented measurement model and identify corrections and uncertainty components. Relevant layout contributors may include:
+- control-network adjustment and point-coordinate covariance;
+- reference-instrument calibration and field precision;
+- centering, prism/reflector constants and target geometry;
+- instrument setup, leveling, station resection and orientation;
+- angular/distance observations and atmospheric corrections;
+- environmental change and thermal expansion of reference artifacts;
+- coordinate-frame transformation resources, datum/epoch and grid versions;
+- physical feature extraction, target-centre definition and repeatability;
+- time synchronization and any interpolation or motion compensation;
+- common-mode dependencies and correlations among inputs.
+
+Classify uncertainty inputs as Type A (statistical) or Type B (other documented information), apply significant known corrections, retain covariance/correlation where components share a source, and report combined standard uncertainty and expanded uncertainty with its coverage factor. Do not simply add all instrument catalogue accuracy figures, treat correlated terms as independent, or hide a known bias by inflating uncertainty.
+
+Use the current JCGM/BIPM GUM guidance as the metrological foundation. The BIPM catalogue currently lists JCGM 100:2008 Amendment 1:2026 on nonlinearity in measurement models, GUMsuite:2026, GUM-5:2026 examples, GUM-6:2020 on measurement models, JCGM 101:2008 for Monte Carlo propagation, JCGM 102:2011 for multiple output quantities and JCGM 106:2012 on uncertainty in conformity assessment. Assess nonlinear propagation explicitly for coordinate transformations, range/angle-to-coordinate conversion, radial error, geometric fitting and derived task metrics. Use a documented Monte Carlo method when linearization or distribution assumptions are not adequate; retain the input distributions, correlations, sample count, algorithm and convergence diagnostics.
+
+References:
+- BIPM/JCGM current guide catalogue: https://www.bipm.org/en/web/guest/publications/guides
+- JCGM 100:2008 (GUM): https://www.bipm.org/en/doi/10.59161/jcgm100-2008e
+- NIST TN 1297, combined standard uncertainty: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-5-combined-standard-uncertainty
+- NIST TN 1297, expanded uncertainty: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-6-expanded-uncertainty
+- NIST TN 1297, reporting: https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty
+
+### Decision rules and guard bands
+
+A measurement result and a conformance decision are different outputs. Before confirmatory data collection, freeze the task-specific acceptance limit, the decision rule, the guard band and the risks of false acceptance and false rejection. For a two-sided layout tolerance, define both limits and state the rule for a result close to either boundary. Report the measured value, uncertainty and decision separately.
+
+Use ILAC-G8:09/2019 as guidance for decision rules and statements of conformity where applicable. Its guard-band concept makes the acceptance limit more restrictive than the specification limit to manage decision risk. The appropriate rule depends on the cost and consequences of false acceptance and false rejection; do not import one universal guard-band width or claim that a zero guard band is risk-free.
+
+For this benchmark, the evaluator should be able to return:
+- `accepted_under_named_rule`;
+- `rejected_under_named_rule`;
+- `indeterminate_measurement_capability_or_boundary`;
+- `not_evaluated`.
+
+An uncertainty interval that overlaps the rejection region must not be silently reported as an unconditional pass. If reference uncertainty cannot resolve the task-specific decision margin, the result is indeterminate for that claim, even when the point estimate lies inside tolerance.
+
+References:
+- ILAC G8:09/2019, decision rules and statements of conformity: https://ilac.org/publications-and-resources/ilac-guidance-series/
+- ISO 17123-5:2018, total-station field precision procedures: https://www.iso.org/standard/71689.html
+
+ISO 17123-5 is useful for field verification of total-station coordinate-measurement precision/repeatability. It is not a comprehensive acceptance or performance evaluation of the robot, the full survey network or the entire reference chain. Use it within its actual scope, then retain the additional task-specific control-network, frame, covariance and referee checks required by this protocol.
+
+### Round-robin comparability
+
+A cross-laboratory study must compare both reported values and uncertainty/decision-rule implementations. Two laboratories that report similar millimetre residuals but use materially different uncertainty models or acceptance rules have not demonstrated equivalent measurement procedures. Preserve each laboratory's raw observations, corrections, covariance information, uncertainty budget, coverage factor, decision rule and guard band so disagreements can be diagnosed rather than averaged away.
+
 ## Randomization, blinding and preregistration
 
 Before confirmatory collection, freeze:
