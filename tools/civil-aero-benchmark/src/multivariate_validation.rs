@@ -886,6 +886,19 @@ mod tests {
             !tampered.status.success(),
             "tampered prediction must be rejected"
         );
+
+        let mut unknown_record_csv = csv.clone();
+        unknown_record_csv.push_str(&format!("unknown,{}\\n", vec![""; 29].join(",")));
+        std::fs::write(&csv_path, unknown_record_csv).unwrap();
+        let unknown_record = std::process::Command::new("python3")
+            .arg(&script)
+            .arg(&csv_path)
+            .output()
+            .expect("execute oracle against unknown record type");
+        assert!(
+            !unknown_record.status.success(),
+            "unknown CSV record type must be rejected"
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }
