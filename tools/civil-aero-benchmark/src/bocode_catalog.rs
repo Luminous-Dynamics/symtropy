@@ -517,7 +517,7 @@ mod tests {
 
     fn fixture() -> String {
         format!(
-            "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n",
+            "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n{}\n",
             row("car", "engineering", "so_constrained", 1, 3, "continuous"),
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
             row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
@@ -535,7 +535,7 @@ mod tests {
         assert_eq!(report.engineering_task_count(), 6);
         assert_eq!(report.objective_direction, "maximize");
         assert_eq!(report.constraint_convention, "g(x)<=0_is_feasible");
-        assert_eq!(report.to_csv().lines().count(), 6);
+        assert_eq!(report.to_csv().lines().count(), 7);
         let repeated = import_bocode_catalog_csv(&fixture(), context()).unwrap();
         assert_eq!(report.import_sha256, repeated.import_sha256);
     }
@@ -587,7 +587,7 @@ mod tests {
         let missing_source = format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n",
             row("car", "engineering", "so_unconstrained", 1, 0, "continuous")
-                .replace("https://example.org/source", "")
+                .replace(",present,https://example.org/source,", ",missing,,")
         );
         let missing_source_report = import_bocode_catalog_csv(&missing_source, context())
             .expect("missing upstream citations are retained explicitly");
