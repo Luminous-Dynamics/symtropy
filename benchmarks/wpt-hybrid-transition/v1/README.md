@@ -18,7 +18,7 @@ The contribution here is not a new theory of hybrid passivity. It is a WPT-speci
 
 ## Event contract
 
-Each transition binds two already-qualified modes and a declared state mapping. The total stored-energy inventory is:
+Each transition binds two already-qualified modes and a declared state mapping. The event timestamp must fall inside an explicit, strictly increasing start/end time window. Every adjacent mode's PASSIVE_CERTIFIED status is bound to its mode-certificate SHA-256; the state mapping, source/port-energy receipt, switch-work receipt, dissipation receipt and tolerance policy each have independent SHA-256 bindings. The receipt digests bind the underlying evidence artifacts; a digest alone does not make an uncalibrated or untrusted source valid. Port-energy measurements must use the same declared event window and unique measurement IDs upstream. The total stored-energy inventory is:
 
     H_total = H_physical + H_energy_tank
 
