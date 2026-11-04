@@ -20,6 +20,7 @@ mod flexibility_evaluation;
 mod fuel;
 mod matched_service;
 mod service_contract;
+mod stateful_resource;
 mod trace_validation;
 mod workload_schedule;
 
@@ -44,6 +45,12 @@ pub use fuel::{
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
+};
+pub use stateful_resource::{
+    ResourceTrajectoryError, StatefulResourceContract, StatefulResourceSlot,
+    StatefulResourceSlotReceipt, StatefulResourceTrajectory,
+    StatefulResourceVerificationReport, StorageReserveContract, ThermalZoneContract,
+    verify_stateful_resource_trajectory,
 };
 pub use service_contract::{
     DeliveredServiceSegment, DeliveredServiceTrace, InputEnergyBasis, InputEnergyComparison,
