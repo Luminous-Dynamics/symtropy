@@ -190,6 +190,17 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                 if independent > valid {
                     errors.push("independent_encounters_exceed_valid_encounters".to_owned());
                 }
+                if sample
+                    .and_then(|value| value.get("distinct_sites"))
+                    .and_then(Value::as_u64)
+                    .is_none_or(|count| count == 0)
+                    || sample
+                        .and_then(|value| value.get("distinct_configurations"))
+                        .and_then(Value::as_u64)
+                        .is_none_or(|count| count == 0)
+                {
+                    errors.push("measured_result_missing_site_or_configuration_denominator".to_owned());
+                }
             }
             _ => errors.push("measured_result_missing_sample_denominator".to_owned()),
         }
@@ -241,6 +252,15 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                     .get("expanded_uncertainty_u95")
                     .and_then(Value::as_f64);
                 let margin = measurement.get("decision_margin").and_then(Value::as_f64);
+                let unit = measurement.get("unit").and_then(Value::as_str);
+                let margin_unit = measurement
+                    .get("decision_margin_unit")
+                    .and_then(Value::as_str);
+                if unit.is_none() || unit != margin_unit {
+                    errors.push(format!(
+                        "measurement_decision_margin_unit_mismatch:{measurement_id}"
+                    ));
+                }
                 match (u95, margin) {
                     (Some(u95), Some(margin)) if margin > 0.0 && u95 <= margin / 3.0 => {}
                     (Some(_), Some(margin)) if margin > 0.0 => {
@@ -275,13 +295,23 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                     }
                 }
 
-                if let (Some(sample_count), Some(valid_count)) = (
-                    measurement.get("sample_count").and_then(Value::as_u64),
-                    valid,
-                ) && sample_count > valid_count
+                let sample_count = measurement.get("sample_count").and_then(Value::as_u64);
+                let sample_unit = measurement.get("sample_unit").and_then(Value::as_str);
+                if sample_unit == Some("encounter")
+                    && matches!((sample_count, valid), (Some(count), Some(valid)) if count > valid)
                 {
                     errors.push(format!(
                         "measurement_sample_count_exceeds_valid_encounters:{measurement_id}"
+                    ));
+                }
+                if sample_unit == Some("site")
+                    && matches!(
+                        (sample_count, u64_at(receipt, &["sample_plan", "distinct_sites"])),
+                        (Some(count), Some(sites)) if count > sites
+                    )
+                {
+                    errors.push(format!(
+                        "measurement_sample_count_exceeds_distinct_sites:{measurement_id}"
                     ));
                 }
             }
@@ -439,6 +469,24 @@ mod tests {
         assert!(errors.iter().any(|error| {
             error.starts_with("measurement_uncertainty_exceeds_one_third_margin:")
         }));
+    }
+
+    #[test]
+    fn decision_margin_must_use_the_measurement_unit() {
+        let receipt = fixture("fixtures/invalid/decision-margin-unit-mismatch.json");
+        assert!(semantic_errors(&receipt)
+            .iter()
+            .any(|error| error == "measurement_decision_margin_unit_mismatch:stopping-distance-p95"));
+    }
+
+    #[test]
+    fn feature_sample_count_is_not_misclassified_as_encounter_count() {
+        let mut receipt = fixture("examples/bench-measured-stopping.json");
+        receipt["measurements"][0]["sample_unit"] = Value::String("feature".to_owned());
+        receipt["measurements"][0]["sample_count"] = Value::from(300);
+        assert!(!semantic_errors(&receipt)
+            .iter()
+            .any(|error| error == "measurement_sample_count_exceeds_valid_encounters:stopping-distance-p95"));
     }
 
     #[test]
