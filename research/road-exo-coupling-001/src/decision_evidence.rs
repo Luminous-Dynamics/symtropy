@@ -393,7 +393,7 @@ mod tests {
 
     fn packet(action: &str, index: u8) -> EvidencePacket {
         EvidencePacket {
-            evidence_id: id(format!("observed-record-{action}")),
+            evidence_id: id(&format!("observed-record-{action}")),
             content_digest: [index; 32],
             origin: EvidenceOrigin::ObservedFactual,
             claim: EvidenceClaim::FactualObservation,
