@@ -261,7 +261,13 @@ impl LikelihoodRatioEProcess {
 }
 
 fn validate_candidate_for_eprocess(candidate: &InterventionCandidate) -> Result<(), EProcessError> {
-    if !matches!(candidate.feasibility, Feasibility::Permitted) {
+    if candidate.candidate_id.trim().is_empty()
+        || candidate.protocol_id.trim().is_empty()
+        || candidate.cost_unit_id.trim().is_empty()
+        || !candidate.cost.is_finite()
+        || candidate.cost <= 0.0
+        || !matches!(&candidate.feasibility, Feasibility::Permitted)
+    {
         return Err(EProcessError::CandidateNotPermitted);
     }
     let validity = &candidate.causal_validity;
