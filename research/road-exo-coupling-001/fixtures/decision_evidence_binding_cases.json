@@ -102,6 +102,20 @@
     {
       "id": "unsupported-action-outcome",
       "expected": "no_receipt_required_and_decision_remains_Unsupported"
+    },
+    {
+      "id": "human-adjudication-accepted-for-human-purpose",
+      "purpose": "HumanAdjudication",
+      "expected": "accept_HumanAdjudicationReference_with_rubric_and_assessor_quality"
+    },
+    {
+      "id": "formal-reference-accepted-for-formal-purpose",
+      "purpose": "FormalConformance",
+      "expected": "accept_AnalyticReference_with_exact_domain"
+    },
+    {
+      "id": "unsupported-action-no-receipt",
+      "expected": "no_binding_required_and_decision_status_remains_Unsupported"
     }
   ]
 }
