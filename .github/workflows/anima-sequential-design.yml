@@ -1,0 +1,31 @@
+name: ANIMA Sequential Design Verification
+
+on:
+  pull_request:
+    paths:
+      - 'research/anima-sequential-design-v0/**'
+      - '.github/workflows/anima-sequential-design.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/anima-sequential-design-v0/**'
+      - '.github/workflows/anima-sequential-design.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/anima-sequential-design-v0/Cargo.toml -- --check
+      - name: Run deterministic tests
+        run: cargo test --manifest-path research/anima-sequential-design-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/anima-sequential-design-v0/Cargo.toml --locked --all-targets -- -D warnings
