@@ -376,7 +376,6 @@ mod tests {
     };
     use crate::evidence_provenance::{
         ActionRealization, EvidenceClaim, EvidenceLineage, EvidenceOrigin, EvidenceUse,
-        QualificationReason,
     };
     use std::collections::BTreeSet;
 
@@ -582,7 +581,7 @@ mod tests {
         }
         assert_eq!(
             manifest.validate(),
-            Err(DecisionEvidenceError::QualificationReplayMismatch)
+            Err(DecisionEvidenceError::EvidenceTargetMismatch)
         );
     }
 
