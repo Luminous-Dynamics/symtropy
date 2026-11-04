@@ -22,7 +22,9 @@ A case fixes the reference trace, time grid, evidence class, power-flow directio
 - use exactly the same strictly increasing time grid;
 - expose exactly the same channels with exactly matching units;
 - declare model family, optional state order, model digest and training-data digest;
-- provide finite values for every sample.
+- provide finite values for every sample;
+- bind to the same execution-environment digest as the full-order reference;
+- report median/P95 evaluation runtime and peak memory, measured under a declared repetition protocol.
 
 Energy channels are active power in watts. V1 integrates each receiver independently using the trapezoidal rule and reports signed Wh under the case's declared power-flow direction. It never collapses receivers into a single total before checking individual channel error.
 
@@ -41,11 +43,18 @@ The evaluator does not use a weighted sum that allows a good average score to co
 
 1. All declared NRMSE, peak-error, energy-error and absolute peak limits must pass.
 2. Infeasible candidates rank after feasible candidates, ordered by maximum normalized violation.
-3. Feasible candidates are ordered by maximum per-receiver energy error, then maximum channel NRMSE, then model state order and candidate ID.
+3. Feasible candidates are ordered by maximum per-receiver energy error, then maximum channel NRMSE, then measured speedup against the full-order reference, then model state order and candidate ID.
 
 A reference waveform that itself exceeds a declared absolute peak limit makes every candidate infeasible for that case. This prevents an unsafe scenario from being misreported as a model-only failure.
 
 A low waveform error does not establish passivity, stability, causality or safe operation. Those are separate evidence gates (see the inductance-matrix validator and multiport positive-realness work). V1 does not perform frequency resampling, phase alignment, time warping or uncertainty-interval calibration; traces must be sampled on the same frozen time grid.
+
+
+## Matched runtime and memory
+
+Each case defines the full-order reference's median/P95 runtime and a digest for the execution environment (hardware, OS, compiler/runtime and relevant power/performance settings). Candidate records must use the same environment digest; mismatched hardware is a separate benchmark case, not an apples-to-oranges speedup. Each candidate reports median runtime, P95 runtime and peak memory. Use repeated warm/cold protocols consistently and record the raw run distribution in the source artifact; v1 stores summary statistics.
+
+Runtime is a Pareto dimension, not a substitute for waveform accuracy. The ranking uses it only after feasibility, per-receiver energy error and channel NRMSE. The report includes the exact model and training-data digests so a fast score cannot float free of the model artifact being measured.
 
 ## Synthetic known truth
 
