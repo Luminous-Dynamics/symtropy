@@ -413,6 +413,14 @@ fn validate_record(record: &Value) -> Vec<String> {
         let positions = at(record, &["sampling", "unique_positions_sampled"]).and_then(Value::as_u64);
         let evaluation_points = at(record, &["sampling", "evaluation_point_count"]).and_then(Value::as_u64);
         let inductance_samples = at(record, &["sampling", "inductance_sample_count"]).and_then(Value::as_u64);
+        let region_evaluation_points =
+            at(region, &["evaluated_point_count"]).and_then(Value::as_u64);
+        if evaluation_points != region_evaluation_points {
+            errors.push("qualified_region.evaluated_point_count: must match the sampling evaluation_point_count".into());
+        }
+        if string_at(record, &["sampling", "strategy"]) == Some("UNKNOWN") {
+            errors.push("sampling.strategy: known sampling strategy required for QUALIFIED envelope".into());
+        }
         match (positions, evaluation_points, inductance_samples) {
             (Some(positions), Some(points), Some(samples))
                 if positions >= 189 && points >= positions && samples >= points => {}
@@ -601,6 +609,82 @@ mod tests {
         value["qualification"] = json!("QUALIFIED");
         value["notes"] = json!("Synthetic known-truth fixture only; not physical measurements.");
         value
+    }
+
+
+    #[test]
+    fn geometry_schema_required_keys_match_rust_validator_contract() {
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../benchmarks/wpt-empirical/v1/geometry-compatibility.schema.json"
+        ))
+        .expect("geometry schema parses");
+
+        let required = |path: &[&str]| -> BTreeSet<String> {
+            at(&schema, path)
+                .and_then(Value::as_array)
+                .expect("required field array")
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        };
+        let as_set = |values: &[&str]| -> BTreeSet<String> {
+            values.iter().map(|value| (*value).to_owned()).collect()
+        };
+
+        assert_eq!(required(&["required"]), as_set(TOP_KEYS));
+        assert_eq!(
+            required(&["properties", "geometry_domain", "required"]),
+            as_set(&[
+                "coordinate_frame_id",
+                "coil_to_coil_air_gap_min_m",
+                "coil_to_coil_air_gap_max_m",
+                "vehicle_ground_clearance_min_m",
+                "vehicle_ground_clearance_max_m",
+                "x_offset_min_m",
+                "x_offset_max_m",
+                "y_offset_min_m",
+                "y_offset_max_m",
+                "z_offset_min_m",
+                "z_offset_max_m",
+                "yaw_min_deg",
+                "yaw_max_deg",
+            ])
+        );
+        assert_eq!(
+            required(&["properties", "qualified_region", "required"]),
+            as_set(&[
+                "metric_scope",
+                "evaluated_point_count",
+                "qualified_point_count",
+                "qualified_fraction",
+                "connected_component_count",
+                "confidence_level_percent",
+                "lower_confidence_bound_fraction",
+                "classification_sha256",
+                "analysis_sha256",
+                "convex_hull_used",
+                "disconnected_regions_preserved",
+                "notes",
+            ])
+        );
+        assert_eq!(
+            required(&["properties", "qualification_criteria", "items", "required"]),
+            as_set(&[
+                "criterion_id",
+                "metric_family",
+                "quantity_kind",
+                "unit",
+                "operator",
+                "lower_threshold",
+                "upper_threshold",
+                "observed_value",
+                "outcome",
+                "hard_gate",
+                "evidence_sha256",
+                "notes",
+            ])
+        );
     }
 
     #[test]
