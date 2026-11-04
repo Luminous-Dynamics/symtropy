@@ -11,6 +11,7 @@ pub mod claim_admission;
 pub mod cmo_step_pilot;
 pub mod comparison;
 pub mod coupon;
+pub mod dpw8_protocol_manifest;
 pub mod dpw8_submission;
 pub mod external_solver;
 pub mod grid_convergence;
