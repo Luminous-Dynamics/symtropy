@@ -126,12 +126,9 @@ pub enum CausalQualification {
 /// Frozen schema and diagnostics policy for an instrument design.
 #[derive(Debug, Clone, PartialEq)]
 pub struct InstrumentDesign {
-    /// Stable instrument IDs in the exact column order of every observation.
-    pub instrument_ids: Vec<String>,
-    /// Explicitly declared design-assumption audit.
-    pub assumptions: InstrumentAssumptionAudit,
-    /// Optional user-chosen warning threshold. No universal weak-IV cutoff is imposed.
-    pub minimum_first_stage_f: Option<f64>,
+    instrument_ids: Vec<String>,
+    assumptions: InstrumentAssumptionAudit,
+    minimum_first_stage_f: Option<f64>,
 }
 
 impl InstrumentDesign {
@@ -163,6 +160,24 @@ impl InstrumentDesign {
             assumptions,
             minimum_first_stage_f,
         })
+    }
+
+    /// Returns the frozen instrument column IDs and their required order.
+    #[must_use]
+    pub fn instrument_ids(&self) -> &[String] {
+        &self.instrument_ids
+    }
+
+    /// Returns the caller-supplied assumption audit.
+    #[must_use]
+    pub fn assumptions(&self) -> &InstrumentAssumptionAudit {
+        &self.assumptions
+    }
+
+    /// Returns the optional caller-selected first-stage F warning threshold.
+    #[must_use]
+    pub fn minimum_first_stage_f(&self) -> Option<f64> {
+        self.minimum_first_stage_f
     }
 }
 
@@ -284,7 +299,8 @@ pub fn fit_two_stage_least_squares(
     design: &InstrumentDesign,
 ) -> Result<IvResult, IvError> {
     let n = observations.len();
-    let q = design.instrument_ids.len();
+    let instrument_ids = design.instrument_ids();
+    let q = instrument_ids.len();
 
     if n > MAX_OBSERVATIONS {
         return Err(IvError::TooManyObservations);
@@ -425,7 +441,7 @@ pub fn fit_two_stage_least_squares(
     }
 
     let weak_first_stage = match (
-        design.minimum_first_stage_f,
+        design.minimum_first_stage_f(),
         first_stage_f_statistic,
     ) {
         (Some(threshold), FirstStageF::Finite(value)) => value < threshold,
@@ -439,7 +455,7 @@ pub fn fit_two_stage_least_squares(
 
     Ok(IvResult {
         observations: n,
-        instrument_ids: design.instrument_ids.clone(),
+        instrument_ids: instrument_ids.to_vec(),
         iv_coefficient,
         iv_intercept,
         iv_standard_error_hc0,
@@ -449,7 +465,7 @@ pub fn fit_two_stage_least_squares(
         first_stage_r_squared,
         first_stage_f_statistic,
         weak_first_stage,
-        causal_qualification: design.assumptions.qualification(),
+        causal_qualification: design.assumptions().qualification(),
     })
 }
 
@@ -684,6 +700,36 @@ mod tests {
         assert!(!no_cutoff.weak_first_stage);
         assert!(
             matches!(no_cutoff.first_stage_f_statistic, FirstStageF::Finite(value) if value < 10.0)
+        );
+    }
+
+    #[test]
+    fn multiple_independent_instruments_recover_a_confounded_effect() {
+        let mut rng = TestRng::new(15);
+        let mut rows = Vec::with_capacity(30_000);
+        for _ in 0..30_000 {
+            let z1 = rng.normal();
+            let z2 = rng.normal();
+            let confounder = rng.normal();
+            let source = 0.9 * z1 + 0.6 * z2 + 1.2 * confounder + rng.normal();
+            let target = 2.2 * source + 1.7 * confounder + rng.normal();
+            rows.push(IvObservation {
+                instrument_values: vec![z1, z2],
+                source_activity: source,
+                target_activity: target,
+            });
+        }
+
+        let result = fit_two_stage_least_squares(
+            &rows,
+            &design(vec!["pulse-a", "pulse-b"], Some(10.0)),
+        )
+        .expect("two-instrument IV fit");
+        assert!((result.iv_coefficient - 2.2).abs() < 0.05);
+        assert!(result.weak_first_stage == false);
+        assert_eq!(
+            result.instrument_ids,
+            vec!["pulse-a".to_owned(), "pulse-b".to_owned()]
         );
     }
 
