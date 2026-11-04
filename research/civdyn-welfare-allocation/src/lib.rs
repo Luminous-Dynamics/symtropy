@@ -705,10 +705,10 @@ mod tests {
 
     #[test]
     fn invalid_and_duplicate_recipients_fail_closed() {
-        let mut problem = problem();
-        problem.recipients[1].id = problem.recipients[0].id.clone();
+        let mut duplicate = problem();
+        duplicate.recipients[1].id = duplicate.recipients[0].id.clone();
         assert!(matches!(
-            problem.validate(),
+            duplicate.validate(),
             Err(AllocationError::DuplicateRecipientId(_))
         ));
 
