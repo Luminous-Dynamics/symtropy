@@ -54,8 +54,10 @@ Mechanism hypotheses and every joint transition-likelihood row independently dec
 The adapter now represents three different concepts separately:
 
 - **Afferent channel state:** whether position-, movement-, vibration-, or contact-feedback signals are intact, gated, attenuated, stale, or missing.
-- **Presynaptic movement inhibition:** whether movement-encoding FeCO axons are in a disinhibited or presynaptically inhibited state.
+- **Presynaptic movement inhibition:** whether movement-encoding FeCO axons are in a disinhibited or presynaptically inhibited state. This state has its own axis in the joint sensor-state tuple and cannot be inferred from channel loss.
 - **Acquisition state:** whether the measurement instrument is calibrated, offset, drifting, or noisy.
+
+The action matrix distinguishes active self-generated movement, passive movement, explicit descending inhibition engagement, and descending inhibition release. Active and passive probes produce different presynaptic-state transitions while retaining intact position, movement and vibration channel metadata. Descending actions must declare an explicit target state; the compiler rejects missing targets or a transition that changes unrelated sensory/acquisition variables. Sensor semantic IDs are generated and verified from all typed fields, including presynaptic modulation, so an ID cannot silently omit the new biological dimension.
 
 This distinction is grounded in Dallmann et al. (Nature, 2025), who report that position-encoding claw axons remain active across behaviours while movement-encoding hook axons are suppressed during walking and grooming. The authors identify GABAergic interneurons that provide presynaptic inhibition to hook axons and receive descending input; their activity is correlated with self-generated rather than passive leg movements. DOI: [10.1038/s41586-025-09554-2](https://doi.org/10.1038/s41586-025-09554-2).
 
