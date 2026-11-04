@@ -104,11 +104,11 @@ fn run() -> Result<(), String> {
             .unwrap_or("INVALID_REPORT");
         let expected = record.get("expected_disposition").and_then(Value::as_str);
 
-        if let Some(expected) = expected {
-            if expected != actual {
-                eprintln!("line {line_number} ({event_id}): expected {expected}, got {actual}");
-                mismatches += 1;
-            }
+        if let Some(expected) = expected
+            && expected != actual
+        {
+            eprintln!("line {line_number} ({event_id}): expected {expected}, got {actual}");
+            mismatches += 1;
         }
 
         println!("{report}");
@@ -126,6 +126,16 @@ fn run() -> Result<(), String> {
 
     eprintln!("validated {records} hybrid transition records");
     Ok(())
+}
+
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::FAILURE
+        }
+    }
 }
 
 #[cfg(test)]
@@ -161,15 +171,5 @@ mod tests {
         let mut streams = HashMap::new();
         assert!(validate_stream_order(&mut streams, "roadway-1", 1, 100, 200).is_ok());
         assert!(validate_stream_order(&mut streams, "roadway-2", 1, 100, 200).is_ok());
-    }
-}
-
-fn main() -> ExitCode {
-    match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(error) => {
-            eprintln!("{error}");
-            ExitCode::FAILURE
-        }
     }
 }
