@@ -119,14 +119,38 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
 
-          assert len(rows) >= 1032, f"expected at least 1032 population rows, got {len(rows)}"
-          assert all(len(row) == 23 for row in rows), "population row schema must have 23 columns"
+          assert len(rows) >= 1320, f"expected at least 1320 population rows, got {len(rows)}"
+          assert all(len(row) == 24 for row in rows), "population row schema must have 24 columns"
           fitness = [row for row in rows if row["record_type"] == "mixture_fitness"]
           fixation = [row for row in rows if row["record_type"] == "fixation"]
           stationary = [row for row in rows if row["record_type"] == "stationary"]
           graphs = [row for row in rows if row["record_type"] == "invasion_graph"]
           cycles = [row for row in rows if row["record_type"] == "invasion_cycle"]
-          assert (len(fitness), len(fixation), len(stationary), len(graphs)) == (144, 720, 144, 24)
+          assert (len(fitness), len(fixation), len(stationary), len(graphs)) == (432, 720, 144, 24)
+
+          expected_n30_rosters = {"balanced", "zero_heavy", "fair_share_heavy", "maximum_heavy", "copy_heavy"}
+          observed_n30_rosters = {row["roster_id"] for row in fitness if row["population_size"] == "30"}
+          observed_n6_rosters = {row["roster_id"] for row in fitness if row["population_size"] == "6"}
+          assert observed_n30_rosters == expected_n30_rosters
+          assert observed_n6_rosters == {"one_of_each"}
+
+          roster_totals = defaultdict(int)
+          for row in fitness:
+              key = (row["population_size"], row["risk"], row["beta"], row["roster_id"])
+              roster_totals[key] += int(row["population_count"])
+          assert len(roster_totals) == 72
+          for key, total in roster_totals.items():
+              expected_size = int(key[0])
+              assert total == expected_size, f"roster counts must sum to N for {key}"
+
+          fitness_by_roster = defaultdict(list)
+          for row in fitness:
+              if row["population_size"] == "30":
+                  key = (row["risk"], row["beta"], row["strategy"])
+                  fitness_by_roster[key].append(float(row["expected_fitness"]))
+          assert any(max(values) - min(values) > 1e-6 for values in fitness_by_roster.values()), (
+              "at least one strategy must exhibit composition-dependent expected fitness"
+          )
 
           cycle_counts = {}
           for row in graphs:
