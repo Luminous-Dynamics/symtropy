@@ -104,7 +104,8 @@
         }
       ],
       "expected_disposition": "active",
-      "expected_reason_codes": []
+      "expected_reason_codes": [],
+      "qualification_generation": 1
     },
     {
       "stage_id": "epoch-2",
@@ -142,12 +143,23 @@
           "artifact_id": "lease-rev1",
           "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
           "role": "stage-output"
+        },
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "command-evidence"
+        },
+        {
+          "artifact_id": "epoch-rev2",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "command-evidence"
         }
       ],
       "produced_artifacts": [],
       "expected_disposition": "rejected",
       "expected_reason_codes": [
-        "state_not_active"
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
       ]
     }
   ],
@@ -163,8 +175,13 @@
       "lease_valid_at_command": false,
       "expected_authorized": false,
       "expected_reason_codes": [
-        "state_not_active"
-      ]
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
+      ],
+      "command_stage_id": "stale-command",
+      "observation_stage_id": "observation",
+      "epoch_stage_id": "epoch-2",
+      "qualification_stage_id": "qualification-1"
     }
   ],
   "claim_expectations": [
