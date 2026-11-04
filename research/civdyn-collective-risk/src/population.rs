@@ -110,6 +110,28 @@ pub struct StationaryDistribution {
     pub residual_l1: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InvasionCycleOrientation {
+    Forward,
+    Reverse,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvasionCycle {
+    /// A -> B -> C -> A for Forward; A -> C -> B -> A for Reverse.
+    pub strategies: [Strategy; 3],
+    pub orientation: InvasionCycleOrientation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvasionGraph {
+    /// Edge i -> j means j has fixation probability above neutral 1/N
+    /// when introduced as a single mutant into a population of i.
+    pub adjacency: Vec<Vec<bool>>,
+    pub edge_count: usize,
+    pub three_cycles: Vec<InvasionCycle>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum PopulationError {
     InvalidPopulationSize(usize),
@@ -123,6 +145,7 @@ pub enum PopulationError {
     },
     InvalidFitness(f64),
     InvalidTransitionMatrix,
+    InvalidInvasionMatrix,
     CombinatorialOverflow,
     ProbabilityMassError(f64),
     NoStationaryConvergence {
@@ -173,6 +196,9 @@ impl fmt::Display for PopulationError {
                 f,
                 "transition matrix must be finite, non-negative and row-stochastic"
             ),
+            Self::InvalidInvasionMatrix => {
+                write!(f, "log-fixation matrix must be square and contain valid log probabilities")
+            },
             Self::CombinatorialOverflow => {
                 write!(f, "hypergeometric combination arithmetic overflow")
             }
@@ -493,6 +519,82 @@ pub fn rare_mutation_chain(
     })
 }
 
+/// Construct the directed invasion graph from pairwise fixation probabilities.
+///
+/// An edge from resident i to mutant j is present when rho(j | i) exceeds the
+/// neutral benchmark 1/N. Three-cycles are recorded in canonical strategy-index
+/// order, retaining their orientation rather than forcing a total ranking.
+pub fn invasion_graph(
+    chain: &RareMutationChain,
+    population_size: usize,
+) -> Result<InvasionGraph, PopulationError> {
+    if !(GROUP_SIZE..=MAX_POPULATION_SIZE).contains(&population_size) {
+        return Err(PopulationError::InvalidPopulationSize(population_size));
+    }
+    let matrix = &chain.log_fixation_matrix;
+    if matrix.len() != STRATEGY_COUNT
+        || matrix.iter().any(|row| row.len() != STRATEGY_COUNT)
+        || matrix.iter().flatten().any(|value| value.is_nan() || *value > 1e-12)
+    {
+        return Err(PopulationError::InvalidInvasionMatrix);
+    }
+
+    let neutral_log_fixation = -(population_size as f64).ln();
+    let mut adjacency = vec![vec![false; STRATEGY_COUNT]; STRATEGY_COUNT];
+    let mut edge_count = 0_usize;
+
+    for (resident_index, row) in matrix.iter().enumerate() {
+        for (mutant_index, log_probability) in row.iter().enumerate() {
+            if resident_index == mutant_index {
+                continue;
+            }
+            let edge = *log_probability > neutral_log_fixation + 1e-12;
+            adjacency[resident_index][mutant_index] = edge;
+            edge_count += usize::from(edge);
+        }
+    }
+
+    let mut three_cycles = Vec::new();
+    for first in 0..STRATEGY_COUNT {
+        for second in (first + 1)..STRATEGY_COUNT {
+            for third in (second + 1)..STRATEGY_COUNT {
+                let forward = adjacency[first][second]
+                    && adjacency[second][third]
+                    && adjacency[third][first];
+                let reverse = adjacency[first][third]
+                    && adjacency[third][second]
+                    && adjacency[second][first];
+                if forward {
+                    three_cycles.push(InvasionCycle {
+                        strategies: [
+                            Strategy::ALL[first],
+                            Strategy::ALL[second],
+                            Strategy::ALL[third],
+                        ],
+                        orientation: InvasionCycleOrientation::Forward,
+                    });
+                }
+                if reverse {
+                    three_cycles.push(InvasionCycle {
+                        strategies: [
+                            Strategy::ALL[first],
+                            Strategy::ALL[second],
+                            Strategy::ALL[third],
+                        ],
+                        orientation: InvasionCycleOrientation::Reverse,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(InvasionGraph {
+        adjacency,
+        edge_count,
+        three_cycles,
+    })
+}
+
 pub fn stationary_distribution(
     chain: &RareMutationChain,
     tolerance: f64,
@@ -737,6 +839,71 @@ mod tests {
         assert!(maximum.compositions_evaluated > 1);
         assert!(zero.expected_payoff.is_finite());
         assert!(maximum.expected_payoff.is_finite());
+    }
+
+    #[test]
+    fn invasion_graph_detects_a_directed_three_cycle() {
+        let neutral = -(6.0_f64).ln();
+        let advantaged = 0.4_f64.ln();
+        let mut matrix = vec![vec![f64::NEG_INFINITY; STRATEGY_COUNT]; STRATEGY_COUNT];
+        for (resident, row) in matrix.iter_mut().enumerate() {
+            for (mutant, value) in row.iter_mut().enumerate() {
+                if resident != mutant {
+                    *value = neutral;
+                }
+            }
+        }
+        // AlwaysZero -> FixedFairShare -> FixedMaximum -> AlwaysZero.
+        matrix[0][1] = advantaged;
+        matrix[1][2] = advantaged;
+        matrix[2][0] = advantaged;
+
+        let graph = invasion_graph(
+            &RareMutationChain {
+                transition_matrix: vec![vec![1.0 / 6.0; STRATEGY_COUNT]; STRATEGY_COUNT],
+                log_fixation_matrix: matrix,
+            },
+            6,
+        )
+        .unwrap();
+
+        assert_eq!(graph.edge_count, 3);
+        assert_eq!(graph.three_cycles.len(), 1);
+        assert_eq!(
+            graph.three_cycles[0].strategies,
+            [
+                Strategy::AlwaysZero,
+                Strategy::FixedFairShare,
+                Strategy::FixedMaximum
+            ]
+        );
+        assert_eq!(
+            graph.three_cycles[0].orientation,
+            InvasionCycleOrientation::Forward
+        );
+    }
+
+    #[test]
+    fn neutral_fixation_matrix_has_no_invasion_edges_or_cycles() {
+        let neutral = -(30.0_f64).ln();
+        let mut matrix = vec![vec![f64::NEG_INFINITY; STRATEGY_COUNT]; STRATEGY_COUNT];
+        for (resident, row) in matrix.iter_mut().enumerate() {
+            for (mutant, value) in row.iter_mut().enumerate() {
+                if resident != mutant {
+                    *value = neutral;
+                }
+            }
+        }
+        let graph = invasion_graph(
+            &RareMutationChain {
+                transition_matrix: vec![vec![1.0 / 6.0; STRATEGY_COUNT]; STRATEGY_COUNT],
+                log_fixation_matrix: matrix,
+            },
+            30,
+        )
+        .unwrap();
+        assert_eq!(graph.edge_count, 0);
+        assert!(graph.three_cycles.is_empty());
     }
 
     #[test]
