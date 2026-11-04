@@ -11,6 +11,7 @@ struct Mode {
     id: String,
     topology_sha256: String,
     certificate_status: String,
+    certificate_sha256: String,
     stored_energy_j: f64,
     energy_uncertainty_j: f64,
     state_dimension: usize,
@@ -85,11 +86,18 @@ fn mode(value: &Value, path: &str) -> Result<Mode, String> {
             "{path}.topology_sha256 must be 64 lowercase hex characters"
         ));
     }
+    let certificate_sha256 = text_field(value, "certificate_sha256", path)?;
+    if !valid_sha256(&certificate_sha256) {
+        return Err(format!(
+            "{path}.certificate_sha256 must be 64 lowercase hex characters"
+        ));
+    }
 
     Ok(Mode {
         id,
         topology_sha256,
         certificate_status: text_field(value, "certificate_status", path)?,
+        certificate_sha256,
         stored_energy_j: nonnegative_field(value, "stored_energy_j", path)?,
         energy_uncertainty_j: nonnegative_field(value, "energy_uncertainty_j", path)?,
         state_dimension: dimension_field(value, "state_dimension", path)?,
@@ -137,9 +145,22 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     if validated_event_id != event_id {
         return Err("event_id must be a stable non-empty string".into());
     }
-    field(record, "event_time_ns", "record")?
+    let event_time_ns = field(record, "event_time_ns", "record")?
         .as_u64()
         .ok_or_else(|| "record.event_time_ns must be a nonnegative integer".to_owned())?;
+    let event_window = field(record, "event_window", "record")?;
+    let event_window_start_ns = field(event_window, "start_ns", "event_window")?
+        .as_u64()
+        .ok_or_else(|| "event_window.start_ns must be a nonnegative integer".to_owned())?;
+    let event_window_end_ns = field(event_window, "end_ns", "event_window")?
+        .as_u64()
+        .ok_or_else(|| "event_window.end_ns must be a nonnegative integer".to_owned())?;
+    if event_window_start_ns >= event_window_end_ns {
+        return Err("event_window must have a strictly increasing time range".into());
+    }
+    if event_time_ns < event_window_start_ns || event_time_ns > event_window_end_ns {
+        return Err("event_time_ns must lie inside event_window".into());
+    }
 
     let schema_version = text_field(record, "schema_version", "record")?;
     if schema_version != "1.0.0" {
@@ -161,6 +182,24 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         return Err(
             "switch_event.tolerance_policy_sha256 must be 64 lowercase hex characters".into(),
         );
+    }
+    let port_energy_receipt_sha256 =
+        text_field(transition, "port_energy_receipt_sha256", "switch_event")?;
+    let switch_work_receipt_sha256 =
+        text_field(transition, "switch_work_receipt_sha256", "switch_event")?;
+    let dissipation_receipt_sha256 =
+        text_field(transition, "dissipation_receipt_sha256", "switch_event")?;
+    let state_mapping_receipt_sha256 =
+        text_field(transition, "state_mapping_receipt_sha256", "switch_event")?;
+    for (name, digest) in [
+        ("port_energy_receipt_sha256", &port_energy_receipt_sha256),
+        ("switch_work_receipt_sha256", &switch_work_receipt_sha256),
+        ("dissipation_receipt_sha256", &dissipation_receipt_sha256),
+        ("state_mapping_receipt_sha256", &state_mapping_receipt_sha256),
+    ] {
+        if !valid_sha256(digest) {
+            return Err(format!("switch_event.{name} must be 64 lowercase hex characters"));
+        }
     }
 
     let source_dimension = dimension_field(transition, "source_state_dimension", "switch_event")?;
@@ -323,8 +362,17 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         "post_mode_id": post.id,
         "pre_topology_sha256": pre.topology_sha256,
         "post_topology_sha256": post.topology_sha256,
+        "pre_mode_certificate_sha256": pre.certificate_sha256,
+        "post_mode_certificate_sha256": post.certificate_sha256,
+        "event_time_ns": event_time_ns,
+        "event_window_start_ns": event_window_start_ns,
+        "event_window_end_ns": event_window_end_ns,
         "mapping_kind": mapping_kind,
         "mapping_sha256": mapping_sha256,
+        "state_mapping_receipt_sha256": state_mapping_receipt_sha256,
+        "port_energy_receipt_sha256": port_energy_receipt_sha256,
+        "switch_work_receipt_sha256": switch_work_receipt_sha256,
+        "dissipation_receipt_sha256": dissipation_receipt_sha256,
         "tolerance_policy_sha256": tolerance_policy_sha256,
         "pre_total_stored_energy_j": pre_total_j,
         "post_total_stored_energy_j": post_total_j,
@@ -354,6 +402,9 @@ mod tests {
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DIGEST_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
     const DIGEST_D: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
+    const DIGEST_E: &str = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const DIGEST_F: &str = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const DIGEST_G: &str = "1111111111111111111111111111111111111111111111111111111111111111";
 
     fn event(
         event_id: &str,
@@ -366,10 +417,15 @@ mod tests {
             "schema_version": "1.0.0",
             "event_id": event_id,
             "event_time_ns": 1000,
+            "event_window": {
+                "start_ns": 900,
+                "end_ns": 1100
+            },
             "pre_mode": {
                 "mode_id": "LCC_S",
                 "topology_sha256": DIGEST_A,
                 "certificate_status": "PASSIVE_CERTIFIED",
+                "certificate_sha256": DIGEST_E,
                 "stored_energy_j": pre_energy_j,
                 "energy_uncertainty_j": 0.0,
                 "state_dimension": 2
@@ -378,6 +434,7 @@ mod tests {
                 "mode_id": "LCC_S_S",
                 "topology_sha256": DIGEST_B,
                 "certificate_status": "PASSIVE_CERTIFIED",
+                "certificate_sha256": DIGEST_F,
                 "stored_energy_j": post_energy_j,
                 "energy_uncertainty_j": 0.0,
                 "state_dimension": 2
@@ -498,6 +555,43 @@ mod tests {
         let mut record = event("missing-id", 1.0, 1.0, 0.0, 0.0);
         record.as_object_mut().unwrap().remove("event_id");
         assert_eq!(disposition(&record), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_event_window() {
+        let mut missing = event("missing-window", 1.0, 1.0, 0.0, 0.0);
+        missing.as_object_mut().unwrap().remove("event_window");
+        assert_eq!(disposition(&missing), "INVALID_INPUT");
+
+        let mut reversed = event("reversed-window", 1.0, 1.0, 0.0, 0.0);
+        reversed["event_window"]["start_ns"] = json!(1100);
+        assert_eq!(disposition(&reversed), "INVALID_INPUT");
+
+        let mut outside = event("outside-window", 1.0, 1.0, 0.0, 0.0);
+        outside["event_time_ns"] = json!(1200);
+        assert_eq!(disposition(&outside), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_mode_certificate_digest() {
+        let mut missing = event("missing-mode-certificate", 1.0, 1.0, 0.0, 0.0);
+        missing["pre_mode"].as_object_mut().unwrap().remove("certificate_sha256");
+        assert_eq!(disposition(&missing), "INVALID_INPUT");
+
+        let mut invalid = event("invalid-mode-certificate", 1.0, 1.0, 0.0, 0.0);
+        invalid["post_mode"]["certificate_sha256"] = json!("unsigned");
+        assert_eq!(disposition(&invalid), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_or_invalid_event_receipt_digest() {
+        let mut missing = event("missing-port-receipt", 1.0, 1.0, 0.0, 0.0);
+        missing["switch_event"].as_object_mut().unwrap().remove("port_energy_receipt_sha256");
+        assert_eq!(disposition(&missing), "INVALID_INPUT");
+
+        let mut invalid = event("invalid-switch-receipt", 1.0, 1.0, 0.0, 0.0);
+        invalid["switch_event"]["switch_work_receipt_sha256"] = json!("unsigned");
+        assert_eq!(disposition(&invalid), "INVALID_INPUT");
     }
 
     #[test]
