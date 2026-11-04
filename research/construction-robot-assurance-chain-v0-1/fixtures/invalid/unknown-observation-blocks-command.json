@@ -109,6 +109,7 @@
       "expected_disposition": "rejected",
       "expected_reason_codes": [
         "command_epoch_digest_mismatch",
+        "epoch_not_motion_admissible",
         "observation_not_verified_clear",
         "qualification_lease_invalid_at_command",
         "qualification_missing"
@@ -128,6 +129,7 @@
       "expected_authorized": false,
       "expected_reason_codes": [
         "command_epoch_digest_mismatch",
+        "epoch_not_motion_admissible",
         "observation_not_verified_clear",
         "qualification_lease_invalid_at_command",
         "qualification_missing"
