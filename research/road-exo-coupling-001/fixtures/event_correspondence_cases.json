@@ -1,0 +1,131 @@
+{
+  "schema": "symtropy.road-event-correspondence.fixtures.v0.1",
+  "purpose": "Semantic correspondence fixtures; not tracking ground truth and not probabilistic counterfactual identifications.",
+  "prior_art": {
+    "event_keyed_rng": "https://arxiv.org/abs/2603.11084",
+    "multi_marginal_partial_identification": "https://proceedings.mlr.press/v258/gao25b.html",
+    "driving_world_model_feedback_taxonomy": "https://anxu-its.github.io/publication/2026-driving-world-models-survey"
+  },
+  "cases": [
+    {
+      "id": "unique-actor-identity",
+      "left_event": "l-a",
+      "right_event": "r-a",
+      "basis": "actor",
+      "expected": "unique_within_declared_set"
+    },
+    {
+      "id": "actor-versus-slot-sensitivity",
+      "left_event": "l-a",
+      "right_event": "r-b",
+      "left_actor": "ped-a",
+      "right_actor": "ped-b",
+      "left_slot": "slot-1",
+      "right_slot": "slot-1",
+      "basis": "encounter_slot",
+      "expected": "admissible_alternative_hypothesis"
+    },
+    {
+      "id": "symmetric-two-pedestrians",
+      "candidate_maps": [
+        [
+          [
+            "l-a",
+            "r-a"
+          ],
+          [
+            "l-b",
+            "r-b"
+          ]
+        ],
+        [
+          [
+            "l-a",
+            "r-b"
+          ],
+          [
+            "l-b",
+            "r-a"
+          ]
+        ]
+      ],
+      "expected": "retain_both_maps"
+    },
+    {
+      "id": "directed-dyad-role-reversal",
+      "left": {
+        "initiator": "ego",
+        "recipient": "ped-a"
+      },
+      "right": {
+        "initiator": "ped-a",
+        "recipient": "ego"
+      },
+      "basis": "directed_dyad",
+      "expected": "reject"
+    },
+    {
+      "id": "conditional-event-nonrealization",
+      "left_presence": "observed",
+      "right_presence": "not_realized_with_condition_witness",
+      "expected": "conditional_presence_difference_not_missing"
+    },
+    {
+      "id": "occlusion-or-tracker-dropout",
+      "presence": "unknown",
+      "expected": "incomplete_not_conditionally_absent"
+    },
+    {
+      "id": "runtime-handle-reordering",
+      "left_runtime_handle": 3,
+      "right_runtime_handle": 19,
+      "stable_actor_id": "ped-a",
+      "expected": "correspondence_unchanged"
+    },
+    {
+      "id": "unclassified-event",
+      "candidate_event": "l-c",
+      "hypothesis_disposition": "omitted",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate-endpoint",
+      "pairs": [
+        [
+          "l-a",
+          "r-a"
+        ],
+        [
+          "l-b",
+          "r-a"
+        ]
+      ],
+      "expected": "reject"
+    },
+    {
+      "id": "incomplete-candidate-universe",
+      "universe_status": "incomplete",
+      "expected": "incomplete_not_unique"
+    },
+    {
+      "id": "candidate-order-permutation",
+      "expected": "canonical_bytes_equal"
+    },
+    {
+      "id": "variance-optimized-unsupported-map",
+      "map_selection_reason": "minimum_empirical_paired_variance_only",
+      "expected": "not_qualified_as_causal_justification"
+    },
+    {
+      "id": "hypothesis-search-budget-exhausted",
+      "hypothesis_set_status": "incomplete_or_budget_limited",
+      "expected": "incomplete_not_exhaustive_correspondence_envelope"
+    },
+    {
+      "id": "event-universe-complete_but_matching-family-incomplete",
+      "universe_status": "exhaustive_within_declared_scope",
+      "hypothesis_set_status": "incomplete_or_budget_limited",
+      "expected": "incomplete"
+    }
+  ]
+}
