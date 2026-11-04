@@ -54,6 +54,7 @@ There is deliberately no bare `pass`, `safe`, `certified` or `compliant` result.
 - The validator also cross-checks declared reference-instrument fault-domain identifiers against the evaluated robot's sensor fault domains, and requires a distinct reference clock-domain identifier. These are checks of declared metadata, not proof that the real hardware is independent.
 - The initial protocol gate requires U95 <= one-third of each decision margin. This is a proposed benchmark rule, not a requirement quoted from ISO.
 - Measured values must identify units, sample counts and reference instrument IDs.
+- Decision-margin units must equal measurement units; sample counts declare their unit (encounters, features, frames, sites, task cycles or robot-hours) so feature counts are not incorrectly compared with encounter denominators.
 - A claim ceiling cannot exceed its evidence class.
 - `blind_independent` challenge receipts require an independent custodian and a producer-output commitment. The schema has no field for hidden seeds or oracle answers and rejects unknown fields.
 - Repeated frames are not independent encounters. Clustering and exclusions remain explicit.
