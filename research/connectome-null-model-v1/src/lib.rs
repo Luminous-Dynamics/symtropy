@@ -89,6 +89,10 @@ pub enum NullModelFamily {
     /// Additionally preserve directed source-type × target-type × edge-class
     /// block counts and each block's weight multiset.
     CellTypeAndEdgeClassConstrained,
+    /// Preserve exact directed degree and in/out strength sequences and the
+    /// global integer edge-weight multiset. Proposed switches must join equal
+    /// weight edges; cell-type blocks may change.
+    StrengthAndWeightPreserving,
 }
 
 /// Explicit post-generation invariant checks.
@@ -108,6 +112,14 @@ pub struct InvariantReport {
     pub block_weight_distribution_preserved: bool,
     /// Whether block weight-distribution preservation was required by this family.
     pub block_weight_distribution_required: bool,
+    /// Every node's exact directed in-strength and out-strength are unchanged.
+    pub strength_sequences_preserved: bool,
+    /// Whether exact in/out-strength preservation was required by this family.
+    pub strength_sequences_required: bool,
+    /// The global integer edge-weight multiset is unchanged.
+    pub global_weight_distribution_preserved: bool,
+    /// Whether global edge-weight preservation was required by this family.
+    pub global_weight_distribution_required: bool,
     /// The output remains a simple directed graph without self-loops.
     pub simple_graph_constraints_preserved: bool,
 }
@@ -122,6 +134,9 @@ impl InvariantReport {
             && self.source_weight_constraints_preserved
             && (!self.block_weight_distribution_required
                 || self.block_weight_distribution_preserved)
+            && (!self.strength_sequences_required || self.strength_sequences_preserved)
+            && (!self.global_weight_distribution_required
+                || self.global_weight_distribution_preserved)
             && self.simple_graph_constraints_preserved
     }
 }
@@ -261,6 +276,8 @@ struct GraphInvariants {
     block_weight_counts: BTreeMap<BlockWeightKey, u64>,
     source_weight_counts: BTreeMap<(String, u64), u64>,
     source_strength: BTreeMap<String, u128>,
+    target_strength: BTreeMap<String, u128>,
+    global_weight_counts: BTreeMap<u64, u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -324,6 +341,21 @@ pub fn generate_null_model(
     )
 }
 
+/// Generates a restricted exact-strength null using equal-weight directed edge
+/// switches. It preserves each node's exact in/out degree and in/out strength,
+/// plus the global edge-weight multiset. It deliberately abstains when the input
+/// graph has no eligible equal-weight edge pair.
+pub fn generate_strength_weight_preserving_null_model(
+    input: &ConnectomeGraph,
+    config: NullModelConfig,
+) -> Result<NullModelSample, NullModelError> {
+    generate_null_model_for_family(
+        input,
+        config,
+        NullModelFamily::StrengthAndWeightPreserving,
+    )
+}
+
 fn generate_null_model_for_family(
     input: &ConnectomeGraph,
     config: NullModelConfig,
@@ -345,6 +377,7 @@ fn generate_null_model_for_family(
         .collect();
 
     let mut edge_indices_by_block: BTreeMap<BlockKey, Vec<usize>> = BTreeMap::new();
+    let mut edge_indices_by_weight: BTreeMap<u64, Vec<usize>> = BTreeMap::new();
     let mut source_indices = Vec::with_capacity(input.edges.len());
     let mut target_indices = Vec::with_capacity(input.edges.len());
     let mut adjacency = BTreeSet::new();
@@ -359,6 +392,13 @@ fn generate_null_model_for_family(
         source_indices.push(source_index);
         target_indices.push(target_index);
         adjacency.insert((source_index, target_index));
+
+        if family == NullModelFamily::StrengthAndWeightPreserving {
+            edge_indices_by_weight
+                .entry(edge.weight_units)
+                .or_default()
+                .push(edge_index);
+        }
 
         if family == NullModelFamily::CellTypeAndEdgeClassConstrained {
             let source_type = node_types
@@ -390,9 +430,19 @@ fn generate_null_model_for_family(
         );
     }
 
+    let eligible_groups = match family {
+        NullModelFamily::StrengthAndWeightPreserving => {
+            edge_indices_by_weight.into_values().collect::<Vec<_>>()
+        }
+        NullModelFamily::DirectedDegreeOnly
+        | NullModelFamily::CellTypeAndEdgeClassConstrained => {
+            edge_indices_by_block.into_values().collect::<Vec<_>>()
+        }
+    };
+
     let mut buckets = Vec::new();
     let mut eligible_pair_count = 0_u64;
-    for edge_indices in edge_indices_by_block.into_values() {
+    for edge_indices in eligible_groups {
         if edge_indices.len() < 2 {
             continue;
         }
@@ -611,15 +661,18 @@ fn build_invariants(
     let mut in_degree = BTreeMap::new();
     let mut out_degree = BTreeMap::new();
     let mut source_strength = BTreeMap::new();
+    let mut target_strength = BTreeMap::new();
     for node in &graph.nodes {
         in_degree.insert(node.id.clone(), 0_u64);
         out_degree.insert(node.id.clone(), 0_u64);
         source_strength.insert(node.id.clone(), 0_u128);
+        target_strength.insert(node.id.clone(), 0_u128);
     }
 
     let mut block_counts = BTreeMap::new();
     let mut block_weight_counts = BTreeMap::new();
     let mut source_weight_counts = BTreeMap::new();
+    let mut global_weight_counts = BTreeMap::new();
 
     for edge in &graph.edges {
         *out_degree.entry(edge.source.clone()).or_insert(0) += 1;
@@ -628,6 +681,9 @@ fn build_invariants(
         *source_weight_counts
             .entry((edge.source.clone(), edge.weight_units))
             .or_insert(0) += 1;
+        *target_strength.entry(edge.target.clone()).or_insert(0) +=
+            u128::from(edge.weight_units);
+        *global_weight_counts.entry(edge.weight_units).or_insert(0) += 1;
 
         let source_type = node_types
             .get(&edge.source)
@@ -658,6 +714,8 @@ fn build_invariants(
         block_weight_counts,
         source_weight_counts,
         source_strength,
+        target_strength,
+        global_weight_counts,
     })
 }
 
@@ -667,6 +725,7 @@ fn compare_invariants(
     family: NullModelFamily,
 ) -> InvariantReport {
     let constrained = family == NullModelFamily::CellTypeAndEdgeClassConstrained;
+    let strength_constrained = family == NullModelFamily::StrengthAndWeightPreserving;
     InvariantReport {
         node_identity_and_type_preserved: input.node_identity_and_type
             == output.node_identity_and_type,
@@ -680,6 +739,12 @@ fn compare_invariants(
         block_weight_distribution_preserved: input.block_weight_counts
             == output.block_weight_counts,
         block_weight_distribution_required: constrained,
+        strength_sequences_preserved: input.source_strength == output.source_strength
+            && input.target_strength == output.target_strength,
+        strength_sequences_required: strength_constrained,
+        global_weight_distribution_preserved: input.global_weight_counts
+            == output.global_weight_counts,
+        global_weight_distribution_required: strength_constrained,
         simple_graph_constraints_preserved: true,
     }
 }
@@ -908,6 +973,48 @@ mod tests {
         };
         assert_eq!(
             generate_null_model(&input, config(5, 1, 10)),
+            Err(NullModelError::NoEligibleEdgePairs)
+        );
+    }
+
+    #[test]
+    fn equal_weight_switch_preserves_exact_in_out_strength_and_weight_multiset() {
+        let mut input = fixture_graph();
+        for edge in &mut input.edges {
+            edge.weight_units = 5;
+        }
+        let original = validate_graph(&input).expect("valid input");
+        let sample =
+            generate_strength_weight_preserving_null_model(&input, config(17, 1, 1))
+                .expect("one equal-weight switch");
+
+        assert_eq!(
+            sample.receipt.family,
+            NullModelFamily::StrengthAndWeightPreserving
+        );
+        assert!(sample.receipt.invariants.all_passed());
+        assert!(sample.receipt.invariants.degree_sequences_preserved);
+        assert!(sample.receipt.invariants.strength_sequences_required);
+        assert!(sample.receipt.invariants.strength_sequences_preserved);
+        assert!(sample.receipt.invariants.global_weight_distribution_required);
+        assert!(sample.receipt.invariants.global_weight_distribution_preserved);
+        assert!(!sample.receipt.invariants.cell_type_blocks_required);
+
+        let rewired = validate_graph(&sample.graph).expect("valid rewired graph");
+        assert_eq!(original.in_degree, rewired.in_degree);
+        assert_eq!(original.out_degree, rewired.out_degree);
+        assert_eq!(original.source_strength, rewired.source_strength);
+        assert_eq!(original.target_strength, rewired.target_strength);
+        assert_eq!(original.global_weight_counts, rewired.global_weight_counts);
+        assert_ne!(input.edges, sample.graph.edges);
+        assert!(!sample.receipt.chain_mixing_certified);
+    }
+
+    #[test]
+    fn strength_weight_null_abstains_when_no_equal_weight_pair_exists() {
+        let input = fixture_graph();
+        assert_eq!(
+            generate_strength_weight_preserving_null_model(&input, config(17, 1, 100)),
             Err(NullModelError::NoEligibleEdgePairs)
         );
     }
