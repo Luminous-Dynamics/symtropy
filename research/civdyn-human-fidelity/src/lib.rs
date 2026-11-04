@@ -764,20 +764,20 @@ mod tests {
                 let context_draw = ((participant * 7 + step_index as usize * 11) % 100) as u32;
                 let choice = match participant % 3 {
                     0 => {
-                        if context_draw < 4 { 2 }
+                        if context_draw < 6 { 2 }
                         else if context_draw < 10 { 3 }
                         else if context_draw < 30 { 1 }
                         else { 0 }
                     }
                     1 => {
-                        if context_draw < 4 { 3 }
-                        else if context_draw < 10 { 0 }
-                        else if context_draw < 30 { 2 }
+                        if context_draw < 6 { 2 }
+                        else if context_draw < 10 { 3 }
+                        else if context_draw < 30 { 0 }
                         else { 1 }
                     }
                     _ => {
-                        if context_draw < 4 { 1 }
-                        else if context_draw < 10 { 2 }
+                        if context_draw < 6 { 2 }
+                        else if context_draw < 10 { 1 }
                         else if context_draw < 30 { 0 }
                         else { 3 }
                     }
