@@ -329,10 +329,7 @@ fn validate_provenance(
 }
 
 fn validate_evaluation_artifacts(batch: &PredictionBatch) -> Result<(), ValidationError> {
-    let roles = validate_artifact_set(
-        &batch.evaluation_artifacts,
-        MAX_EVALUATION_ARTIFACTS,
-    )?;
+    let roles = validate_artifact_set(&batch.evaluation_artifacts, MAX_EVALUATION_ARTIFACTS)?;
 
     let required_roles: &[ArtifactRole] = match batch.evaluation_tier {
         EvaluationTier::SyntheticHarness => &[],
@@ -545,9 +542,7 @@ pub fn validate_unblinding_order(
     Ok(())
 }
 
-fn cholesky_positive_definite(
-    matrix: &[Vec<f64>],
-) -> Result<Vec<Vec<f64>>, ValidationError> {
+fn cholesky_positive_definite(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, ValidationError> {
     let dimension = matrix.len();
     let mut lower = vec![vec![0.0_f64; dimension]; dimension];
 
@@ -588,10 +583,7 @@ fn log_determinant_from_cholesky(lower: &[Vec<f64>]) -> Result<f64, ValidationEr
     }
 }
 
-fn quadratic_form_from_cholesky(
-    lower: &[Vec<f64>],
-    delta: &[f64],
-) -> Result<f64, ValidationError> {
+fn quadratic_form_from_cholesky(lower: &[Vec<f64>], delta: &[f64]) -> Result<f64, ValidationError> {
     let mut whitened = vec![0.0_f64; delta.len()];
     for row in 0..delta.len() {
         let mut residual = delta[row];
@@ -703,7 +695,10 @@ fn pairwise_mean_d2(
         whitened_delta[row] = residual / lower[row][row];
     }
 
-    let d2 = whitened_delta.iter().map(|value| value * value).sum::<f64>();
+    let d2 = whitened_delta
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>();
     if d2.is_finite() {
         Ok(d2)
     } else {
@@ -842,7 +837,9 @@ mod tests {
             intervention_id: "intervention-a".to_string(),
             model_family: ModelFamily::SyntheticOracle,
             evidence_tier: EvidenceTier::Synthetic,
-            feature_ids: (0..dimension).map(|index| format!("feature-{index}")).collect(),
+            feature_ids: (0..dimension)
+                .map(|index| format!("feature-{index}"))
+                .collect(),
             mean: means,
             covariance: diagonal_covariance(dimension, variance),
             raw_trajectory_sha256: digest(),
@@ -884,18 +881,36 @@ mod tests {
 
     fn add_sensor_effector_artifacts(forecast: &mut ModelForecast) {
         forecast.provenance.artifacts = vec![
-            ArtifactRef { role: ArtifactRole::SensorMapping, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::EffectorMapping, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::SensorMapping,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::EffectorMapping,
+                sha256: digest(),
+            },
         ];
     }
 
     fn add_connectome_artifacts(forecast: &mut ModelForecast) {
         forecast.model_family = ModelFamily::ConnectomeCircuit;
         forecast.provenance.artifacts = vec![
-            ArtifactRef { role: ArtifactRole::Connectome, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::SensorMapping, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::EffectorMapping, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::Connectome,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::BiologicalSource,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::SensorMapping,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::EffectorMapping,
+                sha256: digest(),
+            },
         ];
     }
 
@@ -976,7 +991,9 @@ mod tests {
                 first,
                 forecast("phenomenological-model", vec![1.0], 0.1),
             ])),
-            Err(ValidationError::MissingArtifactRole(ArtifactRole::Connectome))
+            Err(ValidationError::MissingArtifactRole(
+                ArtifactRole::Connectome
+            ))
         );
     }
 
@@ -986,7 +1003,10 @@ mod tests {
         first.model_family = ModelFamily::ConnectomeCircuit;
         first.evidence_tier = EvidenceTier::ConnectomeConstrained;
         add_connectome_artifacts(&mut first);
-        let candidate = batch(vec![first, forecast("phenomenological-model", vec![1.0], 0.1)]);
+        let candidate = batch(vec![
+            first,
+            forecast("phenomenological-model", vec![1.0], 0.1),
+        ]);
         assert_eq!(validate_prediction_batch(&candidate), Ok(()));
     }
 
@@ -998,8 +1018,14 @@ mod tests {
         ]);
         candidate.evaluation_tier = EvaluationTier::InSilicoEmbodied;
         candidate.evaluation_artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BodyMorphology, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::PhysicsConfiguration, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::BodyMorphology,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::PhysicsConfiguration,
+                sha256: digest(),
+            },
         ];
         for forecast in &mut candidate.forecasts {
             forecast.model_family = ModelFamily::RuleBasedController;
@@ -1016,9 +1042,10 @@ mod tests {
             forecast("learned-policy", vec![1.0], 0.1),
         ]);
         candidate.evaluation_tier = EvaluationTier::InSilicoEmbodied;
-        candidate.evaluation_artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BodyMorphology, sha256: digest() },
-        ];
+        candidate.evaluation_artifacts = vec![ArtifactRef {
+            role: ArtifactRole::BodyMorphology,
+            sha256: digest(),
+        }];
         for forecast in &mut candidate.forecasts {
             forecast.model_family = ModelFamily::RuleBasedController;
             forecast.evidence_tier = EvidenceTier::Phenomenological;
@@ -1026,7 +1053,9 @@ mod tests {
         }
         assert_eq!(
             validate_prediction_batch(&candidate),
-            Err(ValidationError::MissingArtifactRole(ArtifactRole::PhysicsConfiguration))
+            Err(ValidationError::MissingArtifactRole(
+                ArtifactRole::PhysicsConfiguration
+            ))
         );
     }
 
@@ -1064,12 +1093,15 @@ mod tests {
             forecast("learned-policy", vec![1.0], 0.1),
         ]);
         candidate.evaluation_tier = EvaluationTier::MeasuredIntervention;
-        candidate.evaluation_artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
-        ];
+        candidate.evaluation_artifacts = vec![ArtifactRef {
+            role: ArtifactRole::BiologicalSource,
+            sha256: digest(),
+        }];
         assert_eq!(
             validate_prediction_batch(&candidate),
-            Err(ValidationError::MissingArtifactRole(ArtifactRole::MeasuredDataset))
+            Err(ValidationError::MissingArtifactRole(
+                ArtifactRole::MeasuredDataset
+            ))
         );
     }
 
@@ -1079,8 +1111,14 @@ mod tests {
         first.model_family = ModelFamily::LearnedController;
         first.evidence_tier = EvidenceTier::PerturbationGrounded;
         first.provenance.artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::BiologicalSource,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::MeasuredDataset,
+                sha256: digest(),
+            },
         ];
         let mut candidate = batch(vec![
             first,
@@ -1088,8 +1126,14 @@ mod tests {
         ]);
         candidate.evaluation_tier = EvaluationTier::MeasuredIntervention;
         candidate.evaluation_artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::BiologicalSource,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::MeasuredDataset,
+                sha256: digest(),
+            },
         ];
         assert_eq!(validate_prediction_batch(&candidate), Ok(()));
     }
@@ -1102,12 +1146,20 @@ mod tests {
         ]);
         candidate.evaluation_tier = EvaluationTier::IndependentReplication;
         candidate.evaluation_artifacts = vec![
-            ArtifactRef { role: ArtifactRole::BiologicalSource, sha256: digest() },
-            ArtifactRef { role: ArtifactRole::MeasuredDataset, sha256: digest() },
+            ArtifactRef {
+                role: ArtifactRole::BiologicalSource,
+                sha256: digest(),
+            },
+            ArtifactRef {
+                role: ArtifactRole::MeasuredDataset,
+                sha256: digest(),
+            },
         ];
         assert_eq!(
             validate_prediction_batch(&candidate),
-            Err(ValidationError::MissingArtifactRole(ArtifactRole::IndependentReplication))
+            Err(ValidationError::MissingArtifactRole(
+                ArtifactRole::IndependentReplication
+            ))
         );
     }
 
@@ -1257,8 +1309,14 @@ mod tests {
         let precise_result = screen_intervention(&precise, policy(0.05)).expect("precise");
         let uncertain_result = screen_intervention(&uncertain, policy(0.05)).expect("uncertain");
         assert!(precise_result.minimum_pair_mean_d2 > uncertain_result.minimum_pair_mean_d2);
-        assert_eq!(precise_result.status, DiscriminationStatus::AllPairsMeanSeparated);
-        assert_eq!(uncertain_result.status, DiscriminationStatus::NoPairsMeanSeparated);
+        assert_eq!(
+            precise_result.status,
+            DiscriminationStatus::AllPairsMeanSeparated
+        );
+        assert_eq!(
+            uncertain_result.status,
+            DiscriminationStatus::NoPairsMeanSeparated
+        );
         assert_eq!(
             precise_result.gaussian_status,
             GaussianDiscriminationStatus::AllPairsGaussianSeparated
@@ -1276,9 +1334,7 @@ mod tests {
             forecast("model-b", vec![2.0], 0.0),
         ]);
         let result = screen_intervention(&candidate, policy(1.0)).expect("screen");
-        assert!(
-            (result.pairwise[0].gaussian_bhattacharyya_distance - 0.5).abs() < 1.0e-12
-        );
+        assert!((result.pairwise[0].gaussian_bhattacharyya_distance - 0.5).abs() < 1.0e-12);
     }
 
     #[test]
@@ -1376,10 +1432,7 @@ mod tests {
             })
             .collect();
         assert_eq!(
-            validate_prediction_batch(&batch(vec![
-                first,
-                forecast("model-b", vec![1.0], 0.1),
-            ])),
+            validate_prediction_batch(&batch(vec![first, forecast("model-b", vec![1.0], 0.1),])),
             Err(ValidationError::ResourceLimitExceeded)
         );
     }
