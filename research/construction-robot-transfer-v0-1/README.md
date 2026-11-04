@@ -96,22 +96,22 @@ No composite score may hide a false accepted unit, a shift in denominator, adapt
 ## V0.1 evaluator
 
 The dependency-free Rust core checks:
-- source/target split leakage by declared dimension and source-to-target work-item separation;
-- target adaptation work items are disjoint from target evaluation tasks;
-- actual calibration/engineering/operator/inspection effort does not exceed separately declared budgets;
-- accepted, rejected, uninspected and unresolved terminal dispositions do not exceed attempted units;
-- target adaptation/evaluation work-item overlap, source/target work-item overlap and separately budgeted versus actual adaptation effort;
-- accepted/inspected/attempted/planned count invariants;
+- source/target split leakage by declared dimension;
+- source training, target adaptation and target evaluation work-item separation;
+- actual calibration/engineering/operator/inspection effort against separately declared budgets;
+- accepted, rejected, uninspected and unresolved terminal dispositions against attempted units;
 - task-family, functional-unit and acceptance-profile matching before transfer-retention calculation;
 - zero-denominator handling as not estimable;
-- total-workflow crew-hour output rate and adaptation burden accounting;
-- deterministic metric values and typed errors.
+- total-workflow crew-hour output rate and adaptation-burden accounting;
+- deterministic metrics and typed errors.
 
-It validates a supplied data contract, not field truth. It does not authenticate evidence, calculate metrology uncertainty, approve a robot, estimate causal effects, perform power analysis, or establish deployment readiness.
+The Rust source contains 27 tests covering these invariants. The fixture corpus contains 39 synthetic cases. The schemas, fixtures and tests are research contracts and synthetic controls, not field-transfer evidence.
+
+It validates a supplied data contract, not field truth. It does not authenticate evidence, calculate metrology uncertainty, approve a robot, estimate causal effects, perform power analysis, verify the ODD, or establish deployment readiness.
 
 ## Implemented synthetic evaluator
 
-The dependency-free Rust core validates transfer-regime constraints, group-level split leakage, disjoint target adaptation/evaluation work items, accepted-output denominators and matched source/target comparability. It computes first-pass yield using inspected units, finally accepted units per total workflow crew-hour and robot-hour, matched transfer-retention ratios, and an adaptation-burden summary. Zero denominators return not-estimable values rather than fabricated zero/infinity. The evaluator binds acceptance-profile digests but cannot authenticate the referee or establish physical truth.
+The dependency-free Rust core validates transfer-regime constraints, group-level split leakage, disjoint source/adaptation/evaluation work items, budget-versus-actual effort, accepted-output denominators and matched source/target comparability. It computes first-pass yield using inspected units, finally accepted units per total workflow crew-hour and robot-hour, matched transfer-retention ratios, and an adaptation-burden summary. Zero denominators return not-estimable values rather than fabricated zero/infinity. The evaluator binds acceptance-profile digests but cannot authenticate the referee or establish physical truth.
 
 ## Prospective targets (hypotheses, not standards or achieved results)
 
