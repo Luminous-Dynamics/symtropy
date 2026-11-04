@@ -659,7 +659,7 @@ fn score_label(
     label: &TruthLabel,
     prediction: &LocalizationDecision,
     maximum_level: LocalizationLevel,
-    event_id: &str,
+    risk_seeds: &mut BTreeMap<TruthEvidenceClass, Vec<(u32, bool)>>,
 ) -> Result<(), LocalizationEvaluationError> {
     let TruthLabel::Known { value, evidence } = label else {
         match label {
