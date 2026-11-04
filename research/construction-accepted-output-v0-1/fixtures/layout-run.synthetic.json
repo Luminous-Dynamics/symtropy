@@ -157,6 +157,17 @@
       "end_at_unix_ms": 4600000,
       "clock_domain_id": "synthetic-clock",
       "evidence_ref": "synthetic-machine-log"
+    },
+    {
+      "entry_id": "t4",
+      "resource_id": "human-rework-01",
+      "resource_type": "human",
+      "role": "rework_operator",
+      "activity_category": "rework_reprint",
+      "start_at_unix_ms": 1400000,
+      "end_at_unix_ms": 1450000,
+      "clock_domain_id": "synthetic-clock",
+      "evidence_ref": "synthetic-timecard-rework"
     }
   ],
   "interruptions": [
