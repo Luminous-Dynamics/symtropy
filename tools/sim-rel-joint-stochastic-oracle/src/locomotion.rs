@@ -1698,6 +1698,44 @@ mod tests {
                             }
                         };
                         let _next_sensor_index = sensor_index(&sensor_states, &next_sensor);
+                        let outcomes = if matches!(
+                            action.kind,
+                            InterventionKind::ActiveMovementProbe
+                                | InterventionKind::PassiveMovementProbe
+                        ) {
+                            // A deliberately noisy synthetic readout. The acquisition
+                            // confound makes both initial hypotheses produce the same
+                            // observation distribution before calibration. After
+                            // calibration, the physical state separates the likelihoods.
+                            let high_probability = if observation_id == "signal-high" {
+                                Rational::new(3, 4).unwrap()
+                            } else {
+                                Rational::new(1, 4).unwrap()
+                            };
+                            let low_probability =
+                                Rational::one().checked_sub(high_probability).unwrap();
+                            vec![
+                                TransitionOutcome {
+                                    probability: high_probability,
+                                    next_physical_state_id: next_physical.clone(),
+                                    next_sensor_state_id: next_sensor.id.clone(),
+                                    observation_id: Some("signal-high".to_owned()),
+                                },
+                                TransitionOutcome {
+                                    probability: low_probability,
+                                    next_physical_state_id: next_physical.clone(),
+                                    next_sensor_state_id: next_sensor.id.clone(),
+                                    observation_id: Some("signal-low".to_owned()),
+                                },
+                            ]
+                        } else {
+                            vec![TransitionOutcome {
+                                probability: Rational::one(),
+                                next_physical_state_id: next_physical,
+                                next_sensor_state_id: next_sensor.id,
+                                observation_id: Some(observation_id.to_owned()),
+                            }]
+                        };
                         transition_rows.push(JointTransitionRow {
                             hypothesis_id: hypothesis.id.clone(),
                             physical_state_id: physical.id.clone(),
@@ -1705,12 +1743,7 @@ mod tests {
                             action_id: action.id.clone(),
                             source_manifest_ids: vec!["synthetic-models".to_owned()],
                             claim_ceiling: ClaimCeiling::SyntheticQualification,
-                            outcomes: vec![TransitionOutcome {
-                                probability: Rational::one(),
-                                next_physical_state_id: next_physical,
-                                next_sensor_state_id: next_sensor.id,
-                                observation_id: Some(observation_id.to_owned()),
-                            }],
+                            outcomes,
                         });
                     }
                 }
@@ -1750,6 +1783,43 @@ mod tests {
         assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 2048 * 12);
         assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
+    }
+
+    #[test]
+    fn movement_probe_rows_conserve_exact_noisy_observation_mass() {
+        let compiled = spec().compile().unwrap();
+        let sensor = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::PositiveOffset
+                    && state.presynaptic_movement_inhibition.iter().all(|value| {
+                        *value == PresynapticMovementInhibition::Disinhibited
+                    })
+            })
+            .unwrap();
+        let row = compiled.row_index(
+            "central-rhythm-model",
+            "stance-nominal",
+            &sensor.id,
+            "active-movement-probe",
+        ).unwrap();
+        let outcomes = &compiled.kernel.rows[row].outcomes;
+        assert_eq!(outcomes.len(), 2);
+        assert_eq!(
+            outcomes.iter().map(|outcome| outcome.probability)
+                .try_fold(Rational::zero(), |sum, probability| sum.checked_add(probability))
+                .unwrap(),
+            Rational::one()
+        );
+        assert_eq!(
+            outcomes.iter().map(|outcome| outcome.probability).collect::<BTreeSet<_>>(),
+            BTreeSet::from([Rational::new(1, 4).unwrap(), Rational::new(3, 4).unwrap()])
+        );
     }
 
     #[test]
@@ -2254,11 +2324,11 @@ mod tests {
         )
         .unwrap();
         let identifying = exact.frontier.iter().find(|point| {
-            point.correct_identification_probability == Rational::one()
-                && point.false_identification_probability == Rational::zero()
+            point.correct_identification_probability == Rational::new(3, 4).unwrap()
+                && point.false_identification_probability == Rational::new(1, 4).unwrap()
                 && point.hazard_probability == Rational::zero()
                 && point.abstention_probability == Rational::zero()
-        }).expect("reference calibration followed by measurement should identify the synthetic fixture");
+        }).expect("reference calibration should make the noisy synthetic readout informative");
         match &identifying.plan {
             PolicyPlan::Action { action, branches } => {
                 assert_eq!(
