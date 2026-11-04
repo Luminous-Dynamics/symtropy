@@ -211,7 +211,9 @@
       "sample_count": 30,
       "raw_artifact_ids": [
         "raw-reference-trajectory"
-      ]
+      ],
+      "decision_margin_unit": "m",
+      "sample_unit": "encounter"
     }
   ],
   "challenge": {
