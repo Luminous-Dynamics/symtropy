@@ -48,7 +48,8 @@ A positive residual is never reinterpreted as an unknown source. A large negativ
 
 - PASSIVE_TRANSITION_CERTIFIED: energy balance closes within the declared conservative uncertainty/tolerance interval.
 - ENERGY_GENERATING_REJECTED: the conservative lower bound proves stored-energy growth beyond port input and switching work.
-- ENERGY_BALANCE_UNRESOLVED: energy balance does not close tightly enough to certify.
+- ENERGY_GENERATION_UNRESOLVED: the energy-generation interval overlaps a possible positive jump; uncertainty is too large to rule out generation.
+- ENERGY_BALANCE_UNRESOLVED: generation has been bounded out, but the complete energy balance does not close tightly enough to certify.
 - ENERGY_TANK_RESERVE_UNRESOLVED: a conservative pre/post energy-tank reserve lower bound is negative; a wide tolerance cannot make a potentially negative reserve safe.
 - MODE_UNQUALIFIED: at least one adjacent mode lacks PASSIVE_CERTIFIED upstream evidence.
 - INVALID_INPUT: required fields, dimensions, digests, units-by-contract, nonnegative quantities, event identity/time or mapping semantics are invalid.
