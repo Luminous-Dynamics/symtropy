@@ -651,10 +651,24 @@ fn parse_episode(value: &JsonValue, common: &ClosureCommon, path: &str) -> Resul
     let object = object(value, path, &["decision_episode_id", "case_kind", "control", "candidate", "expected_semantics"])?;
     let id = reference_field(object, "decision_episode_id", path)?;
     let case_kind = string_field(object, "case_kind", path)?.to_owned();
-    let control = parse_arm(field(object, "control", path)?, &id, common, &format!("{path}.control"), ArmRole::Control)?;
-    let candidate = parse_arm(field(object, "candidate", path)?, &id, common, &format!("{path}.candidate"), ArmRole::Candidate)?;
-    validate_matched_arms(&control, &candidate, &id, common, path)?;
     let expected = parse_expected(field(object, "expected_semantics", path)?, path)?;
+    let control = parse_arm(
+        field(object, "control", path)?,
+        &id,
+        common,
+        &format!("{path}.control"),
+        ArmRole::Control,
+        None,
+    )?;
+    let candidate = parse_arm(
+        field(object, "candidate", path)?,
+        &id,
+        common,
+        &format!("{path}.candidate"),
+        ArmRole::Candidate,
+        Some(expected.service_effect_claim.as_str()),
+    )?;
+    validate_matched_arms(&control, &candidate, &id, common, path)?;
     validate_expected(&case_kind, &candidate, &expected, path)?;
     Ok(ClosureEpisode { decision_episode_id: id, case_kind, control, candidate, expected })
 }
@@ -671,6 +685,7 @@ fn parse_arm(
     common: &ClosureCommon,
     path: &str,
     role: ArmRole,
+    expected_claim: Option<&str>,
 ) -> Result<ClosureArm, FixtureError> {
     let object = object(
         value,
@@ -707,7 +722,13 @@ fn parse_arm(
     let service_evidence_class = uniform_service_evidence(&outcomes, path)?;
     let service_effect = match role {
         ArmRole::Control => control_effect(service_evidence_class),
-        ArmRole::Candidate => ServiceEffect::Indeterminate,
+        ArmRole::Candidate => candidate_effect_from_claim(
+            expected_claim.ok_or_else(|| {
+                FixtureError::new("missing_candidate_effect_claim", path, "candidate arm requires expected service-effect claim")
+            })?,
+            service_evidence_class,
+            path,
+        )?,
     };
     let receipt_bindings = parse_receipt_bindings(field(object, "receipt_bindings", path)?, episode_id, &common.block_id, path)?;
     let record = DecisionClosureRecord {
@@ -774,11 +795,25 @@ fn validate_matched_arms(
 }
 
 fn parse_expected(value: &JsonValue, path: &str) -> Result<ExpectedClosureSemantics, FixtureError> {
-    let object = object(
-        value,
-        &format!("{path}.expected_semantics"),
-        &["expected_status", "service_effect_claim", "expected_detection_event_ids", "notes", "expected_false_alarm_episodes"],
-    )?;
+    let expected_path = format!("{path}.expected_semantics");
+    let object = as_object(value, &expected_path)?;
+    let allowed = [
+        "expected_status",
+        "service_effect_claim",
+        "expected_detection_event_ids",
+        "expected_false_alarm_episodes",
+        "notes",
+    ];
+    reject_unknown_keys(object, &allowed, &expected_path)?;
+    for key in ["expected_status", "service_effect_claim", "expected_detection_event_ids", "notes"] {
+        if !object.contains_key(key) {
+            return Err(FixtureError::new(
+                "missing_required_field",
+                &expected_path,
+                format!("required field '{key}' is absent"),
+            ));
+        }
+    }
     let expected_status = string_field(object, "expected_status", path)?.to_owned();
     let service_effect_claim = string_field(object, "service_effect_claim", path)?.to_owned();
     let events = array(field(object, "expected_detection_event_ids", path)?, path)?;
@@ -791,10 +826,10 @@ fn parse_expected(value: &JsonValue, path: &str) -> Result<ExpectedClosureSemant
         }
         event_ids.push(id);
     }
-    let false_alarm_count = match field(object, "expected_false_alarm_episodes", path)? {
-        JsonValue::Null => None,
-        JsonValue::Number(number) => Some(parse_u64(number, path)?),
-        _ => return Err(FixtureError::new("invalid_false_alarm_count", path, "expected integer or null")),
+    let false_alarm_count = match object.get("expected_false_alarm_episodes") {
+        None | Some(JsonValue::Null) => None,
+        Some(JsonValue::Number(number)) => Some(parse_u64(number, path)?),
+        Some(_) => return Err(FixtureError::new("invalid_false_alarm_count", path, "expected integer or null")),
     };
     let note_values = array(field(object, "notes", path)?, path)?;
     if note_values.is_empty() {
@@ -819,7 +854,7 @@ fn validate_expected(
     path: &str,
 ) -> Result<(), FixtureError> {
     let record = &candidate.record;
-    let (status, effect) = match expected.service_effect_claim.as_str() {
+    let (status, expected_effect) = match expected.service_effect_claim.as_str() {
         "modelled_only" => ("verified_service_outcome", ServiceEffect::ModelledImprovement),
         "no_improvement_modelled" => ("no_verified_service_improvement", ServiceEffect::ModelledNoImprovement),
         "worse_modelled_service" => ("service_regression_from_capacity_contention", ServiceEffect::ModelledRegression),
@@ -831,12 +866,19 @@ fn validate_expected(
         return Err(FixtureError::new("expected_status_effect_mismatch", path, "expected status and effect claim are inconsistent"));
     }
     let evidence = uniform_service_evidence(&candidate.outcomes, path)?;
-    if matches!(effect, ServiceEffect::ModelledImprovement | ServiceEffect::ModelledNoImprovement | ServiceEffect::ModelledRegression)
+    if record.service_effect != expected_effect {
+        return Err(FixtureError::new(
+            "candidate_effect_does_not_match_expected_claim",
+            path,
+            "typed closure record effect differs from fixture expected claim",
+        ));
+    }
+    if matches!(expected_effect, ServiceEffect::ModelledImprovement | ServiceEffect::ModelledNoImprovement | ServiceEffect::ModelledRegression)
         && evidence != Some(ServiceEvidenceClass::Modelled)
     {
         return Err(FixtureError::new("modelled_effect_without_modelled_outcomes", path, "modelled effect requires modelled outcomes"));
     }
-    if effect == ServiceEffect::Indeterminate && evidence.is_some() {
+    if expected_effect == ServiceEffect::Indeterminate && evidence.is_some() {
         return Err(FixtureError::new("indeterminate_effect_with_numeric_outcomes", path, "not-measured claim has measured outcome class"));
     }
     match case_kind {
@@ -970,6 +1012,36 @@ fn uniform_service_evidence(
         MetricEvidenceStatus::Derived => Ok(Some(ServiceEvidenceClass::Derived)),
         _ => Ok(None),
     }
+}
+
+fn candidate_effect_from_claim(
+    claim: &str,
+    evidence: Option<ServiceEvidenceClass>,
+    path: &str,
+) -> Result<ServiceEffect, FixtureError> {
+    let effect = match (claim, evidence) {
+        ("modelled_only", Some(ServiceEvidenceClass::Modelled)) => ServiceEffect::ModelledImprovement,
+        ("no_improvement_modelled", Some(ServiceEvidenceClass::Modelled)) => ServiceEffect::ModelledNoImprovement,
+        ("worse_modelled_service", Some(ServiceEvidenceClass::Modelled)) => ServiceEffect::ModelledRegression,
+        ("no_action_no_effect", Some(ServiceEvidenceClass::Modelled)) => ServiceEffect::ModelledNoImprovement,
+        ("not_measured", None) => ServiceEffect::Indeterminate,
+        ("modelled_only" | "no_improvement_modelled" | "worse_modelled_service" | "no_action_no_effect", _) => {
+            return Err(FixtureError::new(
+                "expected_effect_evidence_mismatch",
+                path,
+                "modelled claim requires a modelled outcome vector",
+            ));
+        }
+        ("not_measured", Some(_)) => {
+            return Err(FixtureError::new(
+                "not_measured_claim_has_evidence",
+                path,
+                "not_measured claim cannot carry an observed/derived/modelled outcome vector",
+            ));
+        }
+        _ => return Err(FixtureError::new("unknown_expected_effect_claim", path, "unsupported service-effect claim")),
+    };
+    Ok(effect)
 }
 
 fn control_effect(evidence: Option<ServiceEvidenceClass>) -> ServiceEffect {
