@@ -197,7 +197,6 @@ impl<const D: usize> WorldSnapshot<D> {
     }
 }
 
-
 /// Maximum number of simulation frames accepted by one evidence receipt.
 pub const MAX_REPLAY_EVIDENCE_FRAMES: usize = 1_000_000;
 /// Schema identifier for scenario-bound replay evidence.
@@ -258,7 +257,10 @@ impl ReplayEvidenceReceipt {
             || !digest_is_valid(&self.input_tape_digest)
             || !digest_is_valid(&self.initial_snapshot_digest)
             || !digest_is_valid(&self.final_snapshot_digest)
-            || !self.tick_snapshot_digests.iter().all(|digest| digest_is_valid(digest))
+            || !self
+                .tick_snapshot_digests
+                .iter()
+                .all(|digest| digest_is_valid(digest))
             || self.tick_snapshot_digests.last() != Some(&self.final_snapshot_digest)
             || !digest_is_valid(&self.receipt_digest)
         {
@@ -400,7 +402,11 @@ fn validate_replay_tape<const D: usize>(
             if !valid_values {
                 return Err(ReplayEvidenceError::InvalidCommandValue);
             }
-            if !world.bodies.iter().any(|existing| existing.handle == handle) {
+            if !world
+                .bodies
+                .iter()
+                .any(|existing| existing.handle == handle)
+            {
                 return Err(ReplayEvidenceError::MissingBody(handle));
             }
         }
@@ -412,7 +418,11 @@ fn world_snapshot_is_finite<const D: usize>(snapshot: &WorldSnapshot<D>) -> bool
     let bits_are_finite = |bits: &u64| f64::from_bits(*bits).is_finite();
     snapshot.bodies.iter().all(|body| {
         body.translation.iter().all(bits_are_finite)
-            && body.rotation.iter().flat_map(|row| row.iter()).all(bits_are_finite)
+            && body
+                .rotation
+                .iter()
+                .flat_map(|row| row.iter())
+                .all(bits_are_finite)
             && body.linear_velocity.iter().all(bits_are_finite)
             && body
                 .angular_velocity
