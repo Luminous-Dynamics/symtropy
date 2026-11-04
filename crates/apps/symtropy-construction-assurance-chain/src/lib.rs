@@ -259,28 +259,104 @@ fn validate_artifact_lineage(
     Ok(external_inputs)
 }
 
-fn latest_stage<'a>(stages: &'a [Value], kind: &str) -> Option<(usize, &'a Value)> {
+fn latest_stage_before<'a>(
+    stages: &'a [Value],
+    kind: &str,
+    before_index: usize,
+) -> Option<(usize, &'a Value)> {
     stages
         .iter()
+        .take(before_index)
         .enumerate()
         .rev()
         .find(|(_, stage)| stage.get("stage_kind").and_then(Value::as_str) == Some(kind))
 }
 
-fn first_output_digest(stage: &Value) -> Result<&str, String> {
-    let id = text(stage, "stage_id", "stage")?;
-    let outputs = array(stage, "produced_artifacts", &format!("stage[{id}]"))?;
-    let first = outputs
-        .first()
-        .ok_or_else(|| format!("stage[{id}] must produce an artifact for downstream binding"))?;
-    text(first, "sha256", "produced artifact")
+fn referenced_stage<'a>(
+    stage_id: &str,
+    expected_kind: &str,
+    command_stage: &Value,
+    command_index: usize,
+    by_id: &HashMap<String, usize>,
+    stages: &'a [Value],
+) -> Result<(usize, &'a Value), String> {
+    let index = *by_id
+        .get(stage_id)
+        .ok_or_else(|| format!("command references unknown stage {stage_id}"))?;
+    let stage = &stages[index];
+    if stage.get("stage_kind").and_then(Value::as_str) != Some(expected_kind) {
+        return Err(format!(
+            "command reference {stage_id} is not a {expected_kind} stage"
+        ));
+    }
+    if index >= command_index {
+        return Err(format!(
+            "command references future stage {stage_id}"
+        ));
+    }
+    if !stage_is_ancestor(stage_id, command_stage, by_id, stages) {
+        return Err(format!(
+            "command stage does not causally descend from referenced stage {stage_id}"
+        ));
+    }
+    Ok((index, stage))
 }
 
-fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
-    let command_stages: Vec<(usize, &Value)> = stages
+fn require_stage_outputs_consumed(
+    source: &Value,
+    consumer: &Value,
+    source_id: &str,
+    consumer_id: &str,
+) -> Result<(), String> {
+    let outputs = array(source, "produced_artifacts", &format!("stage[{source_id}]"))?;
+    let consumed = array(
+        consumer,
+        "consumed_artifacts",
+        &format!("stage[{consumer_id}]"),
+    )?;
+    if outputs.is_empty() {
+        return Err(format!(
+            "command stage {consumer_id} references {source_id}, which produced no artifact"
+        ));
+    }
+    for output in outputs {
+        let artifact_id = text(output, "artifact_id", "source artifact")?;
+        let digest = text(output, "sha256", "source artifact")?;
+        let found = consumed.iter().any(|item| {
+            item.get("artifact_id").and_then(Value::as_str) == Some(artifact_id)
+                && item.get("sha256").and_then(Value::as_str) == Some(digest)
+        });
+        if !found {
+            return Err(format!(
+                "command stage {consumer_id} does not consume exact output {artifact_id} from {source_id}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn sorted_reason_codes(value: &Value, path: &str) -> Result<Vec<String>, String> {
+    let values = array(value, "expected_reason_codes", path)?;
+    let mut result = values
         .iter()
-        .enumerate()
-        .filter(|(_, stage)| {
+        .map(|item| {
+            item.as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| format!("{path}.expected_reason_codes must contain strings"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    result.sort();
+    Ok(result)
+}
+
+fn validate_commands(
+    scenario: &Value,
+    stages: &[Value],
+    by_id: &HashMap<String, usize>,
+) -> Result<(), String> {
+    let command_stages: Vec<&Value> = stages
+        .iter()
+        .filter(|stage| {
             stage.get("stage_kind").and_then(Value::as_str) == Some("command_authorization")
         })
         .collect();
@@ -297,41 +373,161 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
     let task_scope = text(task, "task_scope", "task_binding")?;
     let configuration = text(task, "robot_configuration_sha256", "task_binding")?;
     let timebase = text(task, "timebase_id", "task_binding")?;
+    let mut used_command_stages = HashSet::new();
+    let mut previous_command_sequence = None;
 
-    for ((command_index, stage), command) in command_stages.into_iter().zip(commands) {
+    for command in commands {
         let command_id = text(command, "command_id", "command attempt")?;
+        let command_sequence = number(command, "sequence", &format!("command[{command_id}]"))?;
+        if previous_command_sequence.is_some_and(|previous| command_sequence <= previous) {
+            return Err(format!(
+                "command attempt sequence must increase strictly; {command_id} has {command_sequence}"
+            ));
+        }
+        previous_command_sequence = Some(command_sequence);
+
+        let command_stage_id = text(command, "command_stage_id", &format!("command[{command_id}]"))?;
+        if !used_command_stages.insert(command_stage_id.to_owned()) {
+            return Err(format!("multiple command attempts reference stage {command_stage_id}"));
+        }
+        let command_index = *by_id
+            .get(command_stage_id)
+            .ok_or_else(|| format!("command {command_id} references unknown stage {command_stage_id}"))?;
+        let command_stage = &stages[command_index];
+        if command_stage.get("stage_kind").and_then(Value::as_str) != Some("command_authorization") {
+            return Err(format!("command {command_id} references a non-command stage"));
+        }
+
         let expected_authorized = command
             .get("expected_authorized")
             .and_then(Value::as_bool)
             .ok_or_else(|| format!("command {command_id} expected_authorized must be boolean"))?;
-        let stage_disposition = text(stage, "expected_disposition", "command stage")?;
+        let stage_disposition = text(command_stage, "expected_disposition", "command stage")?;
         if expected_authorized != (stage_disposition == "authorized") {
             return Err(format!(
                 "command {command_id} expected authorization disagrees with its command stage"
             ));
         }
-        let reasons = array(command, "expected_reason_codes", "command attempt")?;
-        if expected_authorized && !reasons.is_empty() {
+
+        let command_observation_id = text(
+            command,
+            "observation_stage_id",
+            &format!("command[{command_id}]"),
+        )?;
+        let command_epoch_id = text(
+            command,
+            "epoch_stage_id",
+            &format!("command[{command_id}]"),
+        )?;
+        let latest_observation = latest_stage_before(
+            stages,
+            "observation_evaluation",
+            command_index,
+        )
+        .ok_or_else(|| format!("command {command_id} has no prior observation stage"))?;
+        let latest_epoch = latest_stage_before(
+            stages,
+            "worksite_epoch_transition",
+            command_index,
+        )
+        .ok_or_else(|| format!("command {command_id} has no prior epoch stage"))?;
+        let latest_observation_id = text(latest_observation.1, "stage_id", "observation stage")?;
+        let latest_epoch_id = text(latest_epoch.1, "stage_id", "epoch stage")?;
+        if command_observation_id != latest_observation_id {
             return Err(format!(
-                "command {command_id} cannot be authorized with reason codes"
+                "command {command_id} does not reference the latest observation in its causal timeline"
             ));
         }
-        if !expected_authorized && reasons.is_empty() {
+        if command_epoch_id != latest_epoch_id {
             return Err(format!(
-                "rejected command {command_id} must state why it is rejected"
+                "command {command_id} does not reference the latest epoch in its causal timeline"
             ));
         }
 
-        let epoch = latest_stage(stages, "worksite_epoch_transition")
-            .ok_or_else(|| format!("command {command_id} has no upstream worksite epoch stage"))?;
-        let observation = latest_stage(stages, "observation_evaluation")
-            .ok_or_else(|| format!("command {command_id} has no upstream observation stage"))?;
-        let qualification = latest_stage(stages, "qualification_lease");
+        let (observation_index, observation_stage) = referenced_stage(
+            command_observation_id,
+            "observation_evaluation",
+            command_stage,
+            command_index,
+            by_id,
+            stages,
+        )?;
+        let (epoch_index, epoch_stage) = referenced_stage(
+            command_epoch_id,
+            "worksite_epoch_transition",
+            command_stage,
+            command_index,
+            by_id,
+            stages,
+        )?;
+        require_stage_outputs_consumed(
+            observation_stage,
+            command_stage,
+            command_observation_id,
+            command_stage_id,
+        )?;
+        require_stage_outputs_consumed(
+            epoch_stage,
+            command_stage,
+            command_epoch_id,
+            command_stage_id,
+        )?;
+
+        let latest_qualification = latest_stage_before(
+            stages,
+            "qualification_lease",
+            command_index,
+        );
+        let command_qualification_id = command
+            .get("qualification_stage_id")
+            .and_then(Value::as_str);
+        let qualification = match (latest_qualification, command_qualification_id) {
+            (Some((_, latest)), Some(reference))
+                if text(latest, "stage_id", "qualification stage")? == reference =>
+            {
+                let (index, stage) = referenced_stage(
+                    reference,
+                    "qualification_lease",
+                    command_stage,
+                    command_index,
+                    by_id,
+                    stages,
+                )?;
+                require_stage_outputs_consumed(
+                    stage,
+                    command_stage,
+                    reference,
+                    command_stage_id,
+                )?;
+                Some((index, stage))
+            }
+            (None, None) => None,
+            (Some(_), Some(reference)) => {
+                return Err(format!(
+                    "command {command_id} references {reference}, not the latest prior qualification"
+                ));
+            }
+            (Some(_), None) => {
+                return Err(format!(
+                    "command {command_id} omits the latest prior qualification reference"
+                ));
+            }
+            (None, Some(reference)) => {
+                return Err(format!(
+                    "command {command_id} references qualification {reference} that is not prior to it"
+                ));
+            }
+        };
 
         let command_epoch = text(command, "epoch_sha256", "command attempt")?;
         let command_configuration = text(command, "configuration_sha256", "command attempt")?;
         let command_scope = text(command, "task_scope", "command attempt")?;
         let command_timebase = text(command, "timebase_id", "command attempt")?;
+        let command_generation = number(
+            command,
+            "qualification_generation",
+            &format!("command[{command_id}]"),
+        )?;
         let lease_valid = command
             .get("lease_valid_at_command")
             .and_then(Value::as_bool)
@@ -339,21 +535,28 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
                 format!("command {command_id} lease_valid_at_command must be boolean")
             })?;
 
-        if expected_authorized {
-            let (epoch_index, epoch_stage) = epoch;
-            let (observation_index, observation_stage) = observation;
-            let (qualification_index, qualification_stage) = qualification.ok_or_else(|| {
-                format!("command {command_id} cannot authorize without a qualification stage")
-            })?;
-            if text(
-                observation_stage,
-                "expected_disposition",
-                "observation stage",
-            )? != "verified_clear"
-            {
-                return Err(format!(
-                    "command {command_id} authorizes despite latest observation not being verified_clear"
-                ));
+        let mut blockers = Vec::new();
+        let observation_disposition = text(
+            observation_stage,
+            "expected_disposition",
+            "observation stage",
+        )?;
+        if observation_disposition != "verified_clear" {
+            blockers.push("observation_not_verified_clear");
+        }
+        let epoch_disposition = text(epoch_stage, "expected_disposition", "epoch stage")?;
+        if matches!(
+            epoch_disposition,
+            "safe_hold" | "context_stale" | "conflicting" | "aborted"
+        ) {
+            blockers.push("epoch_not_motion_admissible");
+        }
+        if observation_index >= epoch_index {
+            blockers.push("observation_does_not_precede_epoch");
+        }
+        if let Some((qualification_index, qualification_stage)) = qualification {
+            if qualification_index <= epoch_index {
+                blockers.push("qualification_predates_current_epoch");
             }
             if text(
                 qualification_stage,
@@ -361,41 +564,72 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
                 "qualification stage",
             )? != "active"
             {
-                return Err(format!(
-                    "command {command_id} authorizes without an active qualification"
-                ));
+                blockers.push("qualification_not_active");
             }
-            if !(observation_index < epoch_index
-                && epoch_index < qualification_index
-                && qualification_index < command_index)
-            {
-                return Err(format!(
-                    "command {command_id} qualification does not follow the latest observation and epoch transition"
-                ));
+            let recorded_generation = number(
+                qualification_stage,
+                "qualification_generation",
+                "qualification stage",
+            )?;
+            if recorded_generation != command_generation {
+                blockers.push("qualification_generation_mismatch");
             }
-            if !lease_valid {
-                return Err(format!(
-                    "command {command_id} authorizes with an expired or invalid lease"
-                ));
-            }
-            if command_epoch != first_output_digest(epoch_stage)? {
-                return Err(format!(
-                    "command {command_id} epoch digest differs from latest epoch output"
-                ));
-            }
-            if command_configuration != configuration
-                || command_scope != task_scope
-                || command_timebase != timebase
-            {
-                return Err(format!(
-                    "command {command_id} does not bind the scenario configuration/task/timebase"
-                ));
-            }
-        } else if stage_disposition != "rejected" {
+        } else {
+            blockers.push("qualification_missing");
+        }
+        if !lease_valid {
+            blockers.push("qualification_lease_invalid_at_command");
+        }
+        if command_epoch != first_output_digest(epoch_stage)? {
+            blockers.push("command_epoch_digest_mismatch");
+        }
+        if command_configuration != configuration {
+            blockers.push("command_configuration_mismatch");
+        }
+        if command_scope != task_scope {
+            blockers.push("command_task_scope_mismatch");
+        }
+        if command_timebase != timebase {
+            blockers.push("command_timebase_mismatch");
+        }
+        blockers.sort_unstable();
+        blockers.dedup();
+
+        let mut attempt_reasons = sorted_reason_codes(command, &format!("command[{command_id}]"))?;
+        let mut stage_reasons = sorted_reason_codes(
+            command_stage,
+            &format!("stage[{command_stage_id}]"),
+        )?;
+        attempt_reasons.dedup();
+        stage_reasons.dedup();
+        if attempt_reasons != stage_reasons {
             return Err(format!(
-                "command {command_id} expected unauthorized but stage disposition is {stage_disposition}"
+                "command {command_id} reason codes differ from its command stage"
             ));
         }
+        let computed_reasons: Vec<String> = blockers.into_iter().map(str::to_owned).collect();
+        if attempt_reasons != computed_reasons {
+            return Err(format!(
+                "command {command_id} declared reason codes do not match its causal blockers; expected {:?}, got {:?}",
+                computed_reasons, attempt_reasons
+            ));
+        }
+
+        if expected_authorized && !computed_reasons.is_empty() {
+            return Err(format!(
+                "command {command_id} authorizes despite causal blockers: {:?}",
+                computed_reasons
+            ));
+        }
+        if !expected_authorized && computed_reasons.is_empty() {
+            return Err(format!(
+                "command {command_id} is rejected without a causal blocker"
+            ));
+        }
+    }
+
+    if used_command_stages.len() != command_stages.len() {
+        return Err("one or more command-authorization stages have no command attempt binding".to_owned());
     }
     Ok(())
 }
@@ -504,7 +738,7 @@ pub fn validate_scenario(raw: &str) -> Result<ScenarioSummary, String> {
     validate_stage_dispositions(stages)?;
     let (by_id, stage_count) = validate_stage_graph(stages)?;
     let external_input_count = validate_artifact_lineage(stages, &by_id)?;
-    validate_commands(&value, stages)?;
+    validate_commands(&value, stages, &by_id)?;
     validate_claims(&value, stages, &by_id)?;
 
     let units = array(&value, "statistical_units", "scenario")?;
