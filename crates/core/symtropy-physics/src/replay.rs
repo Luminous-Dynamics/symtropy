@@ -211,6 +211,8 @@ pub struct BatchRolloutSnapshot<const D: usize> {
 /// Structural errors in an independent-rollout result set.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BatchResultError {
+    /// A campaign with zero expected rollouts cannot produce a meaningful result set.
+    EmptyCampaign,
     /// A result ID cannot be represented as a host index.
     RolloutIdOutOfRange { rollout_id: u64 },
     /// A result ID is outside the declared campaign.
@@ -233,6 +235,10 @@ pub fn order_batch_results<const D: usize>(
     expected_rollouts: usize,
     results: Vec<BatchRolloutSnapshot<D>>,
 ) -> Result<Vec<BatchRolloutSnapshot<D>>, BatchResultError> {
+    if expected_rollouts == 0 {
+        return Err(BatchResultError::EmptyCampaign);
+    }
+
     let mut slots: Vec<Option<BatchRolloutSnapshot<D>>> =
         std::iter::repeat_with(|| None).take(expected_rollouts).collect();
 
@@ -346,6 +352,14 @@ mod batch_replay_tests {
                 "rollout outputs changed at worker count {workers}"
             );
         }
+    }
+
+    #[test]
+    fn empty_campaign_is_not_treated_as_a_valid_result() {
+        assert_eq!(
+            order_batch_results::<3>(0, Vec::new()),
+            Err(BatchResultError::EmptyCampaign)
+        );
     }
 
     #[test]
