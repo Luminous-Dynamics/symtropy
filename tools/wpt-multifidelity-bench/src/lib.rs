@@ -943,7 +943,7 @@ mod tests {
         );
         assert_eq!(schema["additionalProperties"], false);
 
-        let required_strings = |value: &serde_json::Value| {
+        fn required_strings(value: &serde_json::Value) -> Vec<&str> {
             let mut names = value["required"]
                 .as_array()
                 .expect("schema required fields")
@@ -952,7 +952,7 @@ mod tests {
                 .collect::<Vec<_>>();
             names.sort_unstable();
             names
-        };
+        }
         let candidate_required = required_strings(&schema["$defs"]["candidate"]);
         assert!(candidate_required.contains(&"execution_environment_digest"));
         assert!(candidate_required.contains(&"runtime_median_ms"));
