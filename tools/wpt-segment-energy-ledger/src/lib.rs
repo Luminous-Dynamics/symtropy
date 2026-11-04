@@ -1197,7 +1197,8 @@ mod tests {
         let mut ledger = fixture();
         for measurement in &mut ledger.segments[0].boundary_measurements {
             if measurement.boundary == EnergyBoundary::RoadwayInverterDcInput {
-                measurement.quantity.deterministic_absolute_bound_wh = 100.0;
+                measurement.quantity.deterministic_absolute_bound_wh =
+                    measurement.quantity.energy_wh + 1.0;
             }
         }
         let report = ledger.evaluate().unwrap();
@@ -1229,6 +1230,7 @@ mod tests {
     fn rejects_route_overlap_and_missing_idle_grid_energy() {
         let mut ledger = fixture();
         ledger.segments[1].start_ns = 5_000_000_000;
+        ledger.segments[1].phases[0].start_ns = 5_000_000_000;
         assert!(ledger.validate().unwrap_err().contains("overlap"));
         let mut ledger = fixture();
         ledger.idle_intervals[0].boundary_measurements.clear();
@@ -1293,13 +1295,7 @@ mod tests {
 
     #[test]
     fn separates_idle_inverter_energy_from_active_transfer_efficiency() {
-        let mut ledger = fixture();
-        ledger.idle_intervals[0]
-            .boundary_measurements
-            .push(BoundaryMeasurement {
-                boundary: EnergyBoundary::RoadwayInverterDcInput,
-                quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
-            });
+        let ledger = fixture();
         let baseline = ledger.evaluate().unwrap();
         assert!(
             (baseline
