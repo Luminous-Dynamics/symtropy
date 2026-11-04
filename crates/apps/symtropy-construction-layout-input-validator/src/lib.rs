@@ -625,6 +625,18 @@ mod tests {
     const REUSED_CHECK: &str = include_str!(
         "../../../../research/construction-layout-input-v0-1/fixtures/invalid/fit-point-reused-as-check-point.json"
     );
+    const WRONG_FRAME_CHECK: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/fixtures/invalid/checkpoint-wrong-frame.json"
+    );
+    const FEATURE_EXCLUSION: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/fixtures/invalid/feature-exclusion-self-authorized.json"
+    );
+    const CHECK_OUTSIDE_MARGIN: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/fixtures/invalid/checkpoint-outside-margin.json"
+    );
+    const WRONG_VERTICAL_DATUM: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/fixtures/invalid/wrong-vertical-datum.json"
+    );
 
     fn policy() -> TrustedPolicy {
         serde_json::from_str(POLICY).expect("valid synthetic policy")
@@ -709,6 +721,60 @@ mod tests {
             &policy(),
         )
         .is_err());
+    }
+
+    #[test]
+    fn wrong_vertical_datum_is_inadmissible() {
+        let result = evaluate_manifest(WRONG_VERTICAL_DATUM, &policy()).expect("fixture");
+        assert_eq!(result.decision, Decision::Inadmissible);
+        assert!(result.reason_codes.contains(&"vertical_datum_mismatch".to_owned()));
+    }
+
+    #[test]
+    fn independent_checkpoint_must_use_the_approved_target_frame() {
+        let result = evaluate_manifest(WRONG_FRAME_CHECK, &policy()).expect("fixture");
+        assert_eq!(result.decision, Decision::Inadmissible);
+        assert!(result.reason_codes.contains(
+            &"independent_check_point_coordinate_frame_mismatch".to_owned()
+        ));
+    }
+
+    #[test]
+    fn manifest_cannot_exclude_critical_features_without_a_policy_mechanism() {
+        let result = evaluate_manifest(FEATURE_EXCLUSION, &policy()).expect("fixture");
+        assert_eq!(result.decision, Decision::Inadmissible);
+        assert!(result.reason_codes.contains(
+            &"declared_feature_exclusions_not_supported_in_v0_1".to_owned()
+        ));
+    }
+
+    #[test]
+    fn independent_checkpoint_outside_margin_is_inadmissible() {
+        let result = evaluate_manifest(CHECK_OUTSIDE_MARGIN, &policy()).expect("fixture");
+        assert_eq!(result.decision, Decision::Inadmissible);
+        assert!(result.reason_codes.contains(
+            &"independent_check_point_exceeds_decision_margin".to_owned()
+        ));
+    }
+
+    #[test]
+    fn trusted_policy_cannot_request_unbounded_checkpoint_geometry_work() {
+        let mut policy = policy();
+        policy.maximum_check_points = 129;
+        assert!(evaluate_manifest(VALID, &policy).is_err());
+    }
+
+    #[test]
+    fn unverified_survey_receipt_is_indeterminate() {
+        let mut value: Value = serde_json::from_str(VALID).expect("manifest json");
+        value["control_validation"]["survey_result_sha256"] = serde_json::json!("not-a-digest");
+        let result = evaluate_manifest(
+            &serde_json::to_string(&value).expect("manifest serializes"),
+            &policy(),
+        )
+        .expect("well-formed manifest");
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.reason_codes.contains(&"survey_evidence_digest_malformed".to_owned()));
     }
 
     #[test]
