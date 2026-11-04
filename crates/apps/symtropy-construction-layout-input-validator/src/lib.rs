@@ -424,10 +424,10 @@ fn check_coordinate_frame(manifest: &InputManifest, policy: &TrustedPolicy, out:
     {
         out.unknown("required_coordinate_epoch_missing");
     }
-    if let Some(expected_epoch) = &policy.coordinate_epoch {
-        if frame.coordinate_epoch.as_ref() != Some(expected_epoch) {
-            out.hard("coordinate_epoch_mismatch");
-        }
+    if let Some(expected_epoch) = &policy.coordinate_epoch
+        && frame.coordinate_epoch.as_ref() != Some(expected_epoch)
+    {
+        out.hard("coordinate_epoch_mismatch");
     }
     if !same_set(
         &frame.transform_resource_sha256s,
