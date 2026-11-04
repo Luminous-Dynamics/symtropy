@@ -193,6 +193,8 @@ pub enum LocalizationDecision {
 pub struct LocalizationPrediction {
     /// Event identity shared with truth and observability evidence.
     pub event_id: String,
+    /// Immutable model/policy version reference for this evaluation run.
+    pub policy_ref: String,
     /// Decision emitted by the localization policy.
     pub decision: LocalizationDecision,
 }
@@ -299,9 +301,32 @@ pub struct ObservabilityCounts {
 
 /// Full hierarchical localization evaluation.
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObservabilityBindingReceipt {
+    /// Event identity.
+    pub event_id: String,
+    /// Maximum level supplied by the physical owner.
+    pub maximum_level: LocalizationLevel,
+    /// Count of eligible zone candidates supplied by the physical owner.
+    pub zone_candidate_count: usize,
+    /// Count of eligible pipe candidates supplied by the physical owner.
+    pub pipe_candidate_count: usize,
+    /// Sensor-layout/version reference.
+    pub sensor_layout_ref: String,
+    /// Hydraulic model/calibration version reference.
+    pub hydraulic_model_ref: String,
+    /// Source assessment digest, syntax-checked but not authenticated.
+    pub assessment_digest: String,
+}
+
+/// Full hierarchical localization evaluation.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalizationEvaluationReport {
+    /// Model/policy version used for all predictions in this evaluation.
+    pub policy_ref: String,
     /// Number of truth events in the evaluation.
     pub event_count: usize,
+    /// Physical assessment references bound by the report, sorted by event ID.
+    pub observability_bindings: Vec<ObservabilityBindingReceipt>,
     /// Event counts by the supplied physical observability ceiling.
     pub observability: ObservabilityCounts,
     /// Zone-level metrics.
@@ -318,7 +343,21 @@ impl LocalizationEvaluationReport {
     pub fn canonical_text(&self) -> String {
         let mut output = String::new();
         let _ = writeln!(&mut output, "CIVBENCH_LOCALIZATION_EVALUATION_V0.1");
+        let _ = writeln!(&mut output, "policy_ref={}", self.policy_ref);
         let _ = writeln!(&mut output, "event_count={}", self.event_count);
+        for binding in &self.observability_bindings {
+            let _ = writeln!(
+                &mut output,
+                "observability_binding={},{},{},{},{},{},{}",
+                binding.event_id,
+                binding.maximum_level.as_str(),
+                binding.zone_candidate_count,
+                binding.pipe_candidate_count,
+                binding.sensor_layout_ref,
+                binding.hydraulic_model_ref,
+                binding.assessment_digest
+            );
+        }
         let _ = writeln!(
             &mut output,
             "observability=detection_only,{}",
@@ -517,9 +556,9 @@ fn validate_truth(truth: &LocalizationTruth) -> Result<(), LocalizationEvaluatio
 fn validate_prediction(
     prediction: &LocalizationPrediction,
 ) -> Result<(), LocalizationEvaluationError> {
-    if !valid_identifier(&prediction.event_id) {
+    if !valid_identifier(&prediction.event_id) || !valid_identifier(&prediction.policy_ref) {
         return Err(LocalizationEvaluationError::new(
-            "invalid_event_id",
+            "invalid_prediction_reference",
             prediction.event_id.as_str(),
         ));
     }
@@ -831,7 +870,9 @@ pub fn evaluate_localization(
         }
     }
     let mut prediction_by_event = BTreeMap::new();
+    let mut policy_refs = BTreeSet::new();
     for prediction in predictions {
+        policy_refs.insert(prediction.policy_ref.as_str());
         validate_prediction(prediction)?;
         if prediction_by_event
             .insert(prediction.event_id.as_str(), prediction)
@@ -844,8 +885,17 @@ pub fn evaluate_localization(
         }
     }
 
+    if policy_refs.len() != 1 {
+        return Err(LocalizationEvaluationError::new(
+            "mixed_localization_policy_refs",
+            "all predictions in one evaluation must use the same policy reference",
+        ));
+    }
+    let policy_ref = predictions[0].policy_ref.clone();
     let mut report = LocalizationEvaluationReport {
+        policy_ref,
         event_count: truth_events.len(),
+        observability_bindings: Vec::with_capacity(assessments.len()),
         observability: ObservabilityCounts::default(),
         zone: LocalizationLevelReport::default(),
         pipe: LocalizationLevelReport::default(),
@@ -869,6 +919,16 @@ pub fn evaluate_localization(
             LocalizationLevel::Zone => report.observability.zone += 1,
             LocalizationLevel::Pipe => report.observability.pipe += 1,
         }
+        report.observability_bindings.push(ObservabilityBindingReceipt {
+            event_id: assessment.event_id.clone(),
+            maximum_level: assessment.maximum_level,
+            zone_candidate_count: assessment.zone_candidate_ids.len(),
+            pipe_candidate_count: assessment.pipe_candidate_ids.len(),
+            sensor_layout_ref: assessment.sensor_layout_ref.clone(),
+            hydraulic_model_ref: assessment.hydraulic_model_ref.clone(),
+            assessment_digest: normalized_sha256(&assessment.assessment_digest)
+                .expect("assessment digest validated above"),
+        });
         if matches!(
             &prediction.decision,
             LocalizationDecision::Ranked { level, .. } if *level > assessment.maximum_level
