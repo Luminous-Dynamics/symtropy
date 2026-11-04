@@ -853,8 +853,8 @@ mod tests {
             .iter()
             .find(|value| value["metric_id"] == "critical_feature_inspection_coverage")
             .unwrap();
-        assert_eq!(metric["numerator"], 2);
-        assert_eq!(metric["denominator"], 3);
+        assert_eq!(metric["numerator"].as_f64(), Some(2.0));
+        assert_eq!(metric["denominator"].as_f64(), Some(3.0));
     }
 
     #[test]
@@ -895,10 +895,10 @@ mod tests {
             .iter()
             .find(|metric| metric["metric_id"] == "critical_first_pass_inspection_coverage")
             .unwrap();
-        assert_eq!(all_inspection["numerator"], 3);
-        assert_eq!(all_inspection["denominator"], 3);
-        assert_eq!(first_pass["numerator"], 2);
-        assert_eq!(first_pass["denominator"], 3);
+        assert_eq!(all_inspection["numerator"].as_f64(), Some(3.0));
+        assert_eq!(all_inspection["denominator"].as_f64(), Some(3.0));
+        assert_eq!(first_pass["numerator"].as_f64(), Some(2.0));
+        assert_eq!(first_pass["denominator"].as_f64(), Some(3.0));
     }
 
     #[test]
