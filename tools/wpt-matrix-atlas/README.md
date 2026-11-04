@@ -71,11 +71,11 @@ Extrapolation outside the sampled position domain is always rejected.
 
 ## Adaptive refinement
 
-`refinement_candidates` proposes segment midpoints where:
+`refinement_plan` ranks segment midpoints by normalized error excess and passivity-margin deficit; `refinement_candidates` returns those candidate positions in priority order. The score is an engineering heuristic, not a formal value-of-information estimate. Candidate segments are those where:
 - the segment error bound exceeds the configured maximum; or
 - the conservative endpoint margin minus segment error is below the required passivity margin.
 
-A production adaptive sampler should refine further using held-out matrix residuals, geometry curvature, downstream energy uncertainty, coil proximity/overlap, operating-state transitions and uncertainty in the ferrite B–H model. The candidate list is a deterministic starting policy, not a globally optimal sampling algorithm.
+A production adaptive sampler should refine further using held-out matrix residuals, geometry curvature, downstream energy uncertainty, coil proximity/overlap, operating-state transitions, FEM cost and uncertainty in the ferrite B–H model. The current ranking uses only the interpolation-error threshold and endpoint passivity margin; it is a deterministic starting policy, not a globally optimal sampling algorithm.
 
 ## Synthetic known truth
 
