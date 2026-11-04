@@ -13,6 +13,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 
+pub mod benchmark_split;
 pub mod decision_closure;
 pub mod decision_fixture;
 
