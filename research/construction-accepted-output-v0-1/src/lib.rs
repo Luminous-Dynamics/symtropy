@@ -461,6 +461,32 @@ pub fn derive_report(ledger: &Value) -> Value {
     })
 }
 
+/// Checks that a ledger uses a unit class explicitly declared by its task profile.
+/// This is profile binding, not authentication of the profile publisher or digest.
+pub fn validate_profile_binding(profile: &Value, ledger: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+    let profile_id = profile.get("profile_id").and_then(Value::as_str);
+    let ledger_profile_id = string_at(ledger, &["profile_id"]);
+    let acceptance_profile_id = string_at(ledger, &["functional_unit", "acceptance_profile_id"]);
+    let unit_class = string_at(ledger, &["functional_unit", "unit_class"]);
+    let allowed = profile
+        .get("allowed_unit_classes")
+        .and_then(Value::as_array)
+        .is_some_and(|classes| {
+            classes.iter().any(|item| {
+                item.get("unit_class").and_then(Value::as_str) == unit_class
+            })
+        });
+
+    if profile_id.is_none() || ledger_profile_id != profile_id || acceptance_profile_id != profile_id {
+        errors.push("ledger_profile_identity_mismatch".to_owned());
+    }
+    if unit_class.is_none() || !allowed {
+        errors.push("functional_unit_class_not_allowed_by_profile".to_owned());
+    }
+    errors
+}
+
 /// Checks a report against the machine-readable report schema.
 pub fn validate_report(schema: &Value, report: &Value) -> Vec<String> {
     let validator = match jsonschema::draft202012::options()
@@ -559,6 +585,16 @@ mod tests {
         let errors = validate_ledger(&ledger_schema(), &ledger);
         assert!(errors.iter().any(|error| error.starts_with("duplicate_time_entry_id:")));
         assert!(errors.iter().any(|error| error.starts_with("resource_time_overlap:")));
+    }
+
+    #[test]
+    fn profile_binding_rejects_unlisted_unit_class() {
+        let profile = load("profile/layout-accepted-output-v0.1.json");
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        ledger["functional_unit"]["unit_class"] = Value::String("unlisted_unit".to_owned());
+        assert!(validate_profile_binding(&profile, &ledger)
+            .iter()
+            .any(|error| error == "functional_unit_class_not_allowed_by_profile"));
     }
 
     #[test]
