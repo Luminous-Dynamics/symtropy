@@ -674,7 +674,7 @@ mod tests {
         format!("sha256:{}", character.to_string().repeat(64))
     }
 
-    fn suite() -> BenchmarkSuite {
+    fn benchmark_suite() -> BenchmarkSuite {
         let reference = trace(
             vec![0.0, 4.0, 8.0, 6.0, 4.0, 4.0],
             vec![0.0, 100.0, 250.0, 250.0, 250.0, 250.0],
@@ -709,8 +709,8 @@ mod tests {
                         model_digest: digest('a'),
                         training_data_digest: digest('b'),
                         execution_environment_digest: digest('9'),
-                        runtime_median_ms: 100,
-                        runtime_p95_ms: 120,
+                        runtime_median_ms: 100.0,
+                        runtime_p95_ms: 120.0,
                         peak_memory_bytes: 64000000,
                         trace: trace(
                             vec![0.0, 4.0, 8.0, 6.0, 4.0, 4.0],
@@ -725,8 +725,8 @@ mod tests {
                         model_digest: digest('c'),
                         training_data_digest: digest('d'),
                         execution_environment_digest: digest('9'),
-                        runtime_median_ms: 10,
-                        runtime_p95_ms: 12,
+                        runtime_median_ms: 10.0,
+                        runtime_p95_ms: 12.0,
                         peak_memory_bytes: 8000000,
                         trace: near,
                     },
@@ -737,8 +737,8 @@ mod tests {
                         model_digest: digest('e'),
                         training_data_digest: digest('f'),
                         execution_environment_digest: digest('9'),
-                        runtime_median_ms: 3,
-                        runtime_p95_ms: 4,
+                        runtime_median_ms: 3.0,
+                        runtime_p95_ms: 4.0,
                         peak_memory_bytes: 12000000,
                         trace: far,
                     },
@@ -769,7 +769,7 @@ mod tests {
 
     #[test]
     fn feasibility_first_ranking_keeps_receiver_energy_as_separate_channels() {
-        let report = suite().evaluate().unwrap();
+        let report = benchmark_suite().evaluate().unwrap();
         assert_eq!(
             report.ranking,
             vec![vec![
@@ -789,7 +789,7 @@ mod tests {
 
     #[test]
     fn marks_learned_model_infeasible_when_receiver_peak_limit_is_exceeded() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].acceptance.peak_limits[0].maximum_absolute_value = 8.5;
         let report = suite.evaluate().unwrap();
         let learned = report
@@ -808,10 +808,10 @@ mod tests {
 
     #[test]
     fn rejects_time_grid_mismatch_and_unsorted_time() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].trace.time_s[2] = 0.21;
         assert!(suite.validate().unwrap_err().contains("time grid differs"));
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].reference.time_s.swap(1, 2);
         assert!(
             suite
@@ -823,7 +823,7 @@ mod tests {
 
     #[test]
     fn rejects_missing_channels_duplicate_channels_and_unit_mismatch() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].trace.channels.pop();
         assert!(
             suite
@@ -831,10 +831,10 @@ mod tests {
                 .unwrap_err()
                 .contains("channel counts differ")
         );
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].trace.channels[0].unit = "mA".into();
         assert!(suite.validate().unwrap_err().contains("unit mismatch"));
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0]
             .reference
             .channels
@@ -844,24 +844,24 @@ mod tests {
 
     #[test]
     fn rejects_missing_or_invalid_model_provenance_digests() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].model_digest = "unsigned".into();
         assert!(suite.validate().unwrap_err().contains("digests"));
     }
 
     #[test]
     fn rejects_nonfinite_waveforms_and_nonpositive_state_order() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].trace.channels[0].values[0] = f64::NAN;
         assert!(suite.validate().unwrap_err().contains("non-finite"));
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].state_order = Some(0);
         assert!(suite.validate().unwrap_err().contains("state_order"));
     }
 
     #[test]
     fn rejects_runtime_environment_mismatch_and_invalid_percentile_order() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].execution_environment_digest = digest_for_test('8');
         assert!(
             suite
@@ -870,7 +870,7 @@ mod tests {
                 .contains("execution environments differ")
         );
 
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[0].runtime_p95_ms = 99.0;
         assert!(
             suite
@@ -882,7 +882,7 @@ mod tests {
 
     #[test]
     fn reports_runtime_speedup_without_overriding_accuracy_priority() {
-        let report = suite().evaluate().unwrap();
+        let report = benchmark_suite().evaluate().unwrap();
         let full = report
             .scores
             .iter()
@@ -901,11 +901,11 @@ mod tests {
 
     #[test]
     fn rejects_non_watt_energy_channels_and_missing_state_order_for_rom_families() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].reference.channels[1].unit = "kW".into();
         assert!(suite.validate().unwrap_err().contains("must use watts"));
 
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].candidates[1].state_order = None;
         assert!(
             suite
@@ -917,7 +917,7 @@ mod tests {
 
     #[test]
     fn reference_peak_limit_violation_marks_every_candidate_infeasible() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].acceptance.peak_limits[0].maximum_absolute_value = 7.5;
         let report = suite.evaluate().unwrap();
         assert!(report.scores.iter().all(|score| !score.feasible));
@@ -979,7 +979,7 @@ mod tests {
 
     #[test]
     fn rejects_undefined_nrmse_for_all_zero_reference_channel() {
-        let mut suite = suite();
+        let mut suite = benchmark_suite();
         suite.cases[0].reference.channels[0].values.fill(0.0);
         for candidate in &mut suite.cases[0].candidates {
             candidate.trace.channels[0].values.fill(0.0);
