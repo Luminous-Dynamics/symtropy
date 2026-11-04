@@ -128,7 +128,6 @@ fn cross_network_protocol_rejects_a_shared_network() {
     assert_eq!(error.subject, "network=net-1");
 }
 
-
 #[test]
 fn within_network_protocol_rejects_a_test_only_network() {
     let mut samples = valid_samples();
@@ -144,7 +143,6 @@ fn within_network_protocol_rejects_a_test_only_network() {
     assert_eq!(error.code, "shared_group_not_in_all_partitions");
     assert_eq!(error.subject, "network");
 }
-
 
 #[test]
 fn within_network_protocol_rejects_extra_networks_missing_from_any_partition() {
@@ -205,8 +203,7 @@ fn missing_required_group_is_rejected() {
     samples[2]
         .leakage_groups
         .retain(|group| group.dimension != LeakageDimension::CaptureSession);
-    let error =
-        audit_benchmark_split(&samples, &policy()).expect_err("missing capture session");
+    let error = audit_benchmark_split(&samples, &policy()).expect_err("missing capture session");
     assert_eq!(error.code, "missing_required_dimension");
 }
 
