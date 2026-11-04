@@ -38,7 +38,7 @@ def make_npz(path: Path, wrong_x_shape: bool = False) -> None:
     x_shape = (2, 2 if wrong_x_shape else 3)
     arrays = {
         "algorithm.npy": npy("|S13", (), b"random_search"),
-        "problem.npy": npy("|S7", (), b"fixture"),
+        "problem.npy": npy("|S7", (), b"Fixture"),
         "seed.npy": npy("<i8", (), struct.pack("<q", 7)),
         "best.npy": npy("<f8", (), struct.pack("<d", 1.25)),
         "n_init.npy": npy("<i8", (), struct.pack("<q", 1)),
@@ -74,9 +74,9 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "environment_freeze_stderr": artifact(root, "pip-freeze.stderr", b""),
         "upstream_summary": artifact(root, "summary.csv", b"algorithm,problem,seed,best,gap,npz\nrandom_search,Fixture,7,1.25,,random_search_Fixture_seed7.npz\n"),
     }
-    npz_path = root / "trace.npz"
+    npz_path = root / "random_search_Fixture_seed7.npz"
     make_npz(npz_path, wrong_x_shape)
-    artifacts["upstream_npz"] = artifact(root, "trace.npz", npz_path.read_bytes())
+    artifacts["upstream_npz"] = artifact(root, "random_search_Fixture_seed7.npz", npz_path.read_bytes())
 
     request = {
         "schema": SCHEMA,
