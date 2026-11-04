@@ -152,6 +152,12 @@
       "scenario": "conversion_receipt_missing_output_value",
       "expected": "RejectedInconsistent",
       "description": "Incomplete conversion evidence cannot produce a parameter value."
+    },
+    {
+      "id": "tf-026",
+      "scenario": "target_frame_change_graph_identity",
+      "expected": "different_graph_identity",
+      "description": "Changing the target coordinate frame changes the graph identity even when model/method/template inputs are otherwise identical."
     }
   ]
 }
