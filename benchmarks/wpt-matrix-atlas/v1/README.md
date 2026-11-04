@@ -51,7 +51,7 @@ The entrywise matrix errors and segment interpolation error are reported separat
 
 ## Adaptive refinement
 
-`refinement_candidates` returns segment midpoints when the segment error or conservative passivity margin violates the caller's policy. This is a first deterministic policy, not yet an optimal acquisition function. The next research layer should compare midpoint refinement against error-gradient, curvature, matrix-spectrum, downstream energy-sensitivity and expected value-of-information policies.
+`refinement_plan` ranks segment midpoints by normalized interpolation-error excess and passivity-margin deficit; `refinement_candidates` preserves the simpler position-only API. This is a transparent first deterministic policy, not an optimal acquisition or value-of-information function. It currently does not consume circuit-energy sensitivity, spatial curvature estimates or compute budgets. The next research layer should compare midpoint refinement against error-gradient, curvature, matrix-spectrum, downstream energy-sensitivity and expected value-of-information policies.
 
 ## Input contract
 
