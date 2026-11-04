@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use nalgebra::SVector;
-use symtropy_math::{Point, Sphere};
+use symtropy_math::{Point, Sphere, Transform};
 use symtropy_physics::PhysicsWorld;
-use symtropy_physics::body::{BodyHandle, RigidBody};
+use symtropy_physics::body::{BodyHandle, BodyType, RigidBody};
 use symtropy_physics::replay::{
     ReplayEvidenceContext, ReplayEvidenceError, ReplayTape, WorldCommand, WorldSnapshot,
     apply_commands, execute_with_evidence, verify_replay_evidence,
@@ -221,6 +221,134 @@ fn malformed_receipt_digest_is_rejected_before_replay() {
     assert!(!verify_replay_evidence(
         &mut replay_world,
         &replay_tape,
+        &context,
+        &receipt,
+    )
+    .unwrap());
+}
+
+
+fn add_kinematic_actor(world: &mut PhysicsWorld<3>) -> BodyHandle {
+    let actor = RigidBody::<3>::new(
+        BodyHandle(0),
+        BodyType::Kinematic,
+        Transform::from_translation(Point::new([0.0, 0.0, 0.0])),
+        Box::new(Sphere::<3>::new(Point::origin(), 0.25)),
+        0.0,
+        SVector::zeros(),
+    );
+    world.add_body(actor)
+}
+
+#[test]
+fn kinematic_state_command_is_digest_bound_and_replays_in_a_fresh_world() {
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let context = evidence_context();
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: actor,
+            translation: Box::new(SVector::from([0.125, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+
+    let receipt = execute_with_evidence(&mut record_world, &tape, &context).unwrap();
+    assert!(receipt.identity_is_valid());
+    let recorded_actor = record_world.body(actor).unwrap();
+    assert_eq!(recorded_actor.position(), SVector::from([0.125, 0.0, 0.0]));
+    assert_eq!(
+        recorded_actor.linear_velocity,
+        SVector::from([1.0, 0.0, 0.0])
+    );
+
+    let mut replay_world = PhysicsWorld::<3>::default();
+    let replay_actor = add_kinematic_actor(&mut replay_world);
+    assert_eq!(actor, replay_actor);
+    assert!(verify_replay_evidence(
+        &mut replay_world,
+        &tape,
+        &context,
+        &receipt,
+    )
+    .unwrap());
+}
+
+#[test]
+fn kinematic_state_command_rejects_non_kinematic_body_before_mutation() {
+    let (mut world, handles) = build_world();
+    let before = WorldSnapshot::capture(&world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: handles[0],
+            translation: Box::new(SVector::from([5.0, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::ExpectedKinematicBody(handles[0])
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn kinematic_state_command_rejects_non_finite_target_before_mutation() {
+    let mut world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut world);
+    let before = WorldSnapshot::capture(&world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: actor,
+            translation: Box::new(SVector::from([f64::NAN, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::InvalidCommandValue
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn changed_kinematic_target_cannot_reuse_an_old_replay_receipt() {
+    let context = evidence_context();
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let mut original = ReplayTape::<3>::default();
+    original.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: actor,
+            translation: Box::new(SVector::from([0.125, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+    let receipt = execute_with_evidence(&mut record_world, &original, &context).unwrap();
+
+    let mut changed_world = PhysicsWorld::<3>::default();
+    let changed_actor = add_kinematic_actor(&mut changed_world);
+    let mut changed = ReplayTape::<3>::default();
+    changed.push_frame(
+        1.0 / 64.0,
+        vec![WorldCommand::SetKinematicState {
+            body: changed_actor,
+            translation: Box::new(SVector::from([0.25, 0.0, 0.0])),
+            linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        }],
+    );
+    assert!(!verify_replay_evidence(
+        &mut changed_world,
+        &changed,
         &context,
         &receipt,
     )
