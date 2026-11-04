@@ -52,7 +52,9 @@
       "FEAT-001",
       "FEAT-002",
       "FEAT-003"
-    ]
+    ],
+    "source_model_id": "bim-level-02",
+    "source_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   },
   "site_binding": {
     "site_id": "synthetic-site-01",
