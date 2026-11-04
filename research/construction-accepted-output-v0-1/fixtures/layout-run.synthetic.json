@@ -24,7 +24,7 @@
     "downstream_use": "locate a declared fixture or wall reference in the downstream trade workflow"
   },
   "work_package": {
-    "started_at_unix_ms": 1000000,
+    "started_at_unix_ms": 900000,
     "ended_at_unix_ms": 4600000,
     "clock_domain_id": "synthetic-clock",
     "completion_state": "completed"
