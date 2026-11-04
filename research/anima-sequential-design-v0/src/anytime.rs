@@ -191,11 +191,7 @@ impl LikelihoodRatioEProcess {
             return Err(EProcessError::DuplicateStep(observation.step_id.to_owned()));
         }
         validate_candidate_for_eprocess(candidate)?;
-        validate_conditional_forecast(
-            forecast,
-            &self.null_model_id,
-            &self.alternative_weights,
-        )?;
+        validate_conditional_forecast(forecast, &self.null_model_id, &self.alternative_weights)?;
         let outcome = forecast
             .outcomes
             .iter()
@@ -264,9 +260,7 @@ impl LikelihoodRatioEProcess {
     }
 }
 
-fn validate_candidate_for_eprocess(
-    candidate: &InterventionCandidate,
-) -> Result<(), EProcessError> {
+fn validate_candidate_for_eprocess(candidate: &InterventionCandidate) -> Result<(), EProcessError> {
     if !matches!(candidate.feasibility, Feasibility::Permitted) {
         return Err(EProcessError::CandidateNotPermitted);
     }
@@ -295,8 +289,11 @@ fn validate_conditional_forecast(
         .chain(alternative_weights.keys().cloned())
         .collect();
     let mut observed_models = BTreeSet::new();
-    let mut totals: BTreeMap<String, f64> =
-        expected_models.iter().cloned().map(|id| (id, 0.0)).collect();
+    let mut totals: BTreeMap<String, f64> = expected_models
+        .iter()
+        .cloned()
+        .map(|id| (id, 0.0))
+        .collect();
     let mut outcome_ids = BTreeSet::new();
     for outcome in &forecast.outcomes {
         if outcome.outcome_id.trim().is_empty() {
@@ -305,8 +302,7 @@ fn validate_conditional_forecast(
         if !outcome_ids.insert(outcome.outcome_id.clone()) {
             return Err(EProcessError::DuplicateOutcome(outcome.outcome_id.clone()));
         }
-        let model_ids: BTreeSet<String> =
-            outcome.model_probabilities.keys().cloned().collect();
+        let model_ids: BTreeSet<String> = outcome.model_probabilities.keys().cloned().collect();
         if model_ids != expected_models {
             return Err(EProcessError::ModelSetMismatch);
         }
@@ -328,10 +324,7 @@ fn validate_conditional_forecast(
     Ok(())
 }
 
-fn mixture_log_e_value(
-    weights: &Posterior,
-    log_likelihood_ratios: &BTreeMap<String, f64>,
-) -> f64 {
+fn mixture_log_e_value(weights: &Posterior, log_likelihood_ratios: &BTreeMap<String, f64>) -> f64 {
     let terms: Vec<f64> = weights
         .iter()
         .map(|(id, weight)| weight.ln() + log_likelihood_ratios[id])
@@ -398,7 +391,6 @@ fn receipt_fingerprint(input: ReceiptFingerprintInput<'_>) -> EProcessFingerprin
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -421,12 +413,7 @@ mod tests {
         }
     }
 
-    fn forecast(
-        null_yes: f64,
-        alt_yes: f64,
-        manifest: &str,
-        history: &str,
-    ) -> ConditionalForecast {
+    fn forecast(null_yes: f64, alt_yes: f64, manifest: &str, history: &str) -> ConditionalForecast {
         ConditionalForecast {
             prediction_manifest_digest: manifest.to_owned(),
             conditioning_state_digest: history.to_owned(),
@@ -516,12 +503,12 @@ mod tests {
             &c,
             &f,
             EProcessObservation {
-            assigned_candidate_id: "stim-a",
-            delivered_protocol_id: "protocol-a",
-            step_id: "step-1",
-            outcome_id: "yes",
-            evidence_tier: EvidenceTier::SyntheticFixture,
-        },
+                assigned_candidate_id: "stim-a",
+                delivered_protocol_id: "protocol-a",
+                step_id: "step-1",
+                outcome_id: "yes",
+                evidence_tier: EvidenceTier::SyntheticFixture,
+            },
         );
         assert_eq!(result, Err(EProcessError::PredictionManifestDrift));
         assert_eq!(e.steps_observed(), 0);
