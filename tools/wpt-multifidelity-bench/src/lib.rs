@@ -60,6 +60,11 @@ pub struct ModelCandidate {
     pub state_order: Option<u32>,
     pub model_digest: String,
     pub training_data_digest: String,
+    pub execution_environment_digest: String,
+    /// Median end-to-end evaluation latency over the declared repetition protocol.
+    pub runtime_median_ms: f64,
+    pub runtime_p95_ms: f64,
+    pub peak_memory_bytes: u64,
     pub trace: WaveformTrace,
 }
 
@@ -85,6 +90,9 @@ pub struct BenchmarkCase {
     pub case_id: String,
     pub evidence_class: EvidenceClass,
     pub power_flow_direction: PowerFlowDirection,
+    pub execution_environment_digest: String,
+    pub reference_runtime_median_ms: f64,
+    pub reference_runtime_p95_ms: f64,
     pub reference: WaveformTrace,
     /// Active-power channels in W. Each is integrated independently in its
     /// declared positive flow direction; receiver totals are not collapsed.
@@ -128,6 +136,10 @@ pub struct CandidateScore {
     pub family: ModelFamily,
     pub model_digest: String,
     pub training_data_digest: String,
+    pub runtime_median_ms: f64,
+    pub runtime_p95_ms: f64,
+    pub peak_memory_bytes: u64,
+    pub speedup_vs_reference: f64,
     pub state_order: Option<u32>,
     pub channel_metrics: Vec<ChannelMetric>,
     pub energy_metrics: Vec<EnergyMetric>,
@@ -163,6 +175,14 @@ impl BenchmarkSuite {
             if case.case_id.trim().is_empty() || !case_ids.insert(&case.case_id) {
                 return Err("case IDs must be non-empty and unique".into());
             }
+            if !valid_sha256(&case.execution_environment_digest)
+                || !case.reference_runtime_median_ms.is_finite()
+                || case.reference_runtime_median_ms <= 0.0
+                || !case.reference_runtime_p95_ms.is_finite()
+                || case.reference_runtime_p95_ms < case.reference_runtime_median_ms
+            {
+                return Err("reference runtime or execution-environment metadata is invalid".into());
+            }
             validate_trace(&case.reference)?;
             let reference_channels = channel_index(&case.reference)?;
             if case.candidates.is_empty() {
@@ -190,8 +210,20 @@ impl BenchmarkSuite {
                 }
                 if !valid_sha256(&candidate.model_digest)
                     || !valid_sha256(&candidate.training_data_digest)
+                    || !valid_sha256(&candidate.execution_environment_digest)
                 {
-                    return Err("model and training-data digests must be sha256:<64 lowercase hex>".into());
+                    return Err("model, training-data and execution-environment digests must be sha256:<64 lowercase hex>".into());
+                }
+                if candidate.execution_environment_digest != case.execution_environment_digest {
+                    return Err("candidate and reference execution environments differ".into());
+                }
+                if !candidate.runtime_median_ms.is_finite()
+                    || candidate.runtime_median_ms <= 0.0
+                    || !candidate.runtime_p95_ms.is_finite()
+                    || candidate.runtime_p95_ms < candidate.runtime_median_ms
+                    || candidate.peak_memory_bytes == 0
+                {
+                    return Err("candidate runtime distribution or peak memory is invalid".into());
                 }
                 validate_trace(&candidate.trace)?;
                 if candidate.trace.time_s != case.reference.time_s {
@@ -430,6 +462,10 @@ fn score_candidate(
         family: candidate.family.clone(),
         model_digest: candidate.model_digest.clone(),
         training_data_digest: candidate.training_data_digest.clone(),
+        runtime_median_ms: candidate.runtime_median_ms,
+        runtime_p95_ms: candidate.runtime_p95_ms,
+        peak_memory_bytes: candidate.peak_memory_bytes,
+        speedup_vs_reference: case.reference_runtime_median_ms / candidate.runtime_median_ms,
         state_order: candidate.state_order,
         channel_metrics,
         energy_metrics,
@@ -455,6 +491,7 @@ fn compare_scores(left: &CandidateScore, right: &CandidateScore) -> std::cmp::Or
                 .total_cmp(&right.maximum_energy_relative_error)
         })
         .then_with(|| left.maximum_channel_nrmse.total_cmp(&right.maximum_channel_nrmse))
+        .then_with(|| right.speedup_vs_reference.total_cmp(&left.speedup_vs_reference))
         .then_with(|| {
             left.state_order
                 .unwrap_or(u32::MAX)
@@ -616,6 +653,9 @@ mod tests {
                 case_id: "LOAD-STEP-001".into(),
                 evidence_class: EvidenceClass::SyntheticKnownTruth,
                 power_flow_direction: PowerFlowDirection::GridToVehicle,
+                execution_environment_digest: digest('9'),
+                reference_runtime_median_ms: 100.0,
+                reference_runtime_p95_ms: 120.0,
                 reference,
                 energy_channel_ids: vec!["rx1_power_w".into(), "rx2_power_w".into()],
                 candidates: vec![
@@ -625,6 +665,10 @@ mod tests {
                         state_order: Some(16),
                         model_digest: digest('a'),
                         training_data_digest: digest('b'),
+                        execution_environment_digest: digest('9'),
+                        runtime_median_ms: 100,
+                        runtime_p95_ms: 120,
+                        peak_memory_bytes: 64000000,
                         trace: trace(
                             vec![0.0, 4.0, 8.0, 6.0, 4.0, 4.0],
                             vec![0.0, 100.0, 250.0, 250.0, 250.0, 250.0],
@@ -637,6 +681,10 @@ mod tests {
                         state_order: Some(4),
                         model_digest: digest('c'),
                         training_data_digest: digest('d'),
+                        execution_environment_digest: digest('9'),
+                        runtime_median_ms: 10,
+                        runtime_p95_ms: 12,
+                        peak_memory_bytes: 8000000,
                         trace: near,
                     },
                     ModelCandidate {
@@ -645,6 +693,10 @@ mod tests {
                         state_order: None,
                         model_digest: digest('e'),
                         training_data_digest: digest('f'),
+                        execution_environment_digest: digest('9'),
+                        runtime_median_ms: 3,
+                        runtime_p95_ms: 4,
+                        peak_memory_bytes: 12000000,
                         trace: far,
                     },
                 ],
