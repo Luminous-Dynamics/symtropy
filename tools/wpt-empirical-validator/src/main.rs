@@ -211,6 +211,7 @@ fn validate_sources(records: &[Value], schema: &Value) -> ValidationResult<BTree
                 "peer_reviewed_article",
                 "survey_article",
                 "standard",
+                "preprint",
                 "other",
             ],
             &label,
@@ -550,8 +551,14 @@ fn validate_realizations(
             .get("measurements")
             .and_then(Value::as_array)
             .ok_or_else(|| ValidationError(format!("{label}: measurements must be an array")))?;
-        if measurements.is_empty() {
-            return invalid(format!("{label}: at least one measurement is required"));
+        let engineering_metrics_present = record
+            .get("engineering_metrics")
+            .and_then(Value::as_array)
+            .is_some_and(|metrics| !metrics.is_empty());
+        if measurements.is_empty() && !engineering_metrics_present {
+            return invalid(format!(
+                "{label}: at least one source-grounded measurement or engineering metric is required"
+            ));
         }
         let mut measurement_ids = BTreeSet::new();
         for (measurement_index, measurement) in measurements.iter().enumerate() {
