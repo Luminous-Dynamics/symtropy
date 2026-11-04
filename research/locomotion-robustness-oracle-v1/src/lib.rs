@@ -853,7 +853,7 @@ fn median_f64(values: &mut [f64]) -> Option<f64> {
     }
     values.sort_by(f64::total_cmp);
     let middle = values.len() / 2;
-    if values.len() % 2 == 0 {
+    if values.len().is_multiple_of(2) {
         Some(values[middle - 1] * 0.5 + values[middle] * 0.5)
     } else {
         Some(values[middle])
@@ -869,7 +869,7 @@ fn percentile_nearest_rank_u64(
         return None;
     }
     values.sort_unstable();
-    let rank = (values.len() * numerator + denominator - 1) / denominator;
+    let rank = (values.len() * numerator).div_ceil(denominator);
     values.get(rank.saturating_sub(1)).copied()
 }
 
@@ -882,7 +882,7 @@ fn percentile_nearest_rank_f64(
         return None;
     }
     values.sort_by(f64::total_cmp);
-    let rank = (values.len() * numerator + denominator - 1) / denominator;
+    let rank = (values.len() * numerator).div_ceil(denominator);
     values.get(rank.saturating_sub(1)).copied()
 }
 
@@ -893,7 +893,7 @@ fn lower_tail_cvar(values: &[f64], fraction_basis_points: u16) -> Result<f64, Ro
     let mut ordered = values.to_vec();
     ordered.sort_by(f64::total_cmp);
     let numerator = ordered.len() * usize::from(fraction_basis_points);
-    let tail_count = ((numerator + 9_999) / 10_000).max(1);
+    let tail_count = (numerator.div_ceil(10_000)).max(1);
     stable_mean(&ordered[..tail_count])
 }
 
