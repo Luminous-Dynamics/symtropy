@@ -262,6 +262,8 @@ fn validate_structure(run: &Value) -> Vec<String> {
             "reference_value",
             "relative_error_pct",
             "estimate_uncertainty_pct",
+            "coverage_factor",
+            "coverage_probability_pct",
             "reference_evidence_kind",
             "estimate_artifact_sha256",
         ],
@@ -421,7 +423,9 @@ fn validate_qualified(run: &Value) -> Result<RunMetrics, Vec<String>> {
                 let reference = number_at(estimate, &["reference_value"]);
                 let reported = number_at(estimate, &["relative_error_pct"]);
                 let uncertainty = number_at(estimate, &["estimate_uncertainty_pct"]);
-                match (value, reference, reported, uncertainty) {
+                let coverage_factor = number_at(estimate, &["coverage_factor"]);
+                let coverage_probability = number_at(estimate, &["coverage_probability_pct"]);
+                match (value, reference, reported, uncertainty, coverage_factor, coverage_probability) {
                     (Some(value), Some(reference), Some(reported), Some(uncertainty))
                         if value > 0.0 && reference > 0.0 && uncertainty >= 0.0 =>
                     {
