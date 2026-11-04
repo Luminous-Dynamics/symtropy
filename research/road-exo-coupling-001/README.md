@@ -96,3 +96,46 @@ The resolver's unit tests also pin:
 - seed/source/component separation, receipt recomputation and run-local block-address collision rejection.
 
 The standalone manifest uses `blake3 = =1.8.7` and `rand_philox = =0.2.1`; `Cargo.lock` freezes the resolved transitive graph, and the workflow requires `--locked`.
+
+
+## Address-scoped bounded integer sampling (ROAD-VARIATE-TRANSFORMS-001 #3586)
+
+The crate now includes V0.1 of an unbiased bounded-integer transform over the raw Philox resolver.
+
+### Transform
+
+For a nonzero 32-bit bound n and raw u32 word x:
+- Compute the 64-bit product m = x × n.
+- Candidate result is the high 32 bits of m.
+- Let threshold = 2^32 mod n, computed with unsigned wrapping arithmetic.
+- Accept when the low 32 bits of m are at least threshold; otherwise reject and retry.
+
+This is Lemire's multiply-high/rejection method (Daniel Lemire, 2019, https://doi.org/10.1145/3230636). The result is not computed by modulo reduction.
+
+### Retry isolation
+
+Each attempt's child DrawAddress is derived from:
+- complete root DrawAddress canonical bytes;
+- transform ID and version;
+- the attempt index;
+- a domain-separated BLAKE3 child derivation.
+
+The child component binds the digest of these values. Each attempt resolves one independent Philox block through #3582. A rejected attempt cannot move the cursor of any other event because there is no shared cursor.
+
+### Receipt
+
+The BoundedIntegerReceipt retains the root-address digest, transform ID/version, bound, maximum-attempt budget, accepted result or typed BudgetExceeded disposition, and for every attempt:
+- attempt index and child-address digest;
+- complete raw Philox DrawReceipt;
+- low/high multiply outputs;
+- rejection threshold and accepted/rejected status.
+
+Receipt integrity is an unkeyed checksum only. verify_against recomputes the full sampling trace from the frozen experiment seed and root event address.
+
+### Edge cases and limits
+
+- Bound zero rejects before any random draw.
+- Bound one returns zero with an explicit DeterministicSingleton disposition and no random consumption.
+- Attempt-budget exhaustion produces BudgetExceeded and no output; there is no modulo, zero, biased, or fallback result.
+- V0.1 uses one Philox block per attempt and the first u32 word. The other words remain recorded for reproducibility.
+- Only bounded u32 integers are implemented. Rational Bernoulli, categorical integer weights and continuous samplers remain future work under #3586.

@@ -1,0 +1,99 @@
+{
+  "schema": "symtropy.road-variate-transforms.fixtures.v0.1",
+  "purpose": "Exact bounded-integer transform conformance, not empirical distribution calibration.",
+  "references": {
+    "bounded_integer_method": "https://doi.org/10.1145/3230636",
+    "raw_counter_based_rng": "https://doi.org/10.1145/2063384.2063405",
+    "event_keyed_causal_rng": "https://arxiv.org/abs/2603.11084"
+  },
+  "transform": {
+    "id": "lemire-multiply-high-rejection",
+    "version": "1",
+    "operation": "m = u64(word) * u64(bound); candidate = high32(m); reject iff low32(m) < (2^32 mod bound)",
+    "modulo_reduction": false,
+    "retry_address": "BLAKE3 domain-separated child of complete root address + transform ID/version + attempt index"
+  },
+  "cases": [
+    {
+      "id": "bound-zero",
+      "bound": 0,
+      "expected": "reject_before_draw"
+    },
+    {
+      "id": "singleton-bound",
+      "bound": 1,
+      "expected": {
+        "result": 0,
+        "disposition": "deterministic_singleton",
+        "attempts": 0
+      }
+    },
+    {
+      "id": "exact-multiply-reject-bound-three",
+      "bound": 3,
+      "word": 0,
+      "threshold": 1,
+      "expected": "reject"
+    },
+    {
+      "id": "exact-multiply-accept-bound-three",
+      "bound": 3,
+      "word": 1,
+      "product_low": 3,
+      "candidate": 0,
+      "threshold": 1,
+      "expected": "accept"
+    },
+    {
+      "id": "power-of-two-bound",
+      "bound": 8,
+      "threshold": 0,
+      "expected": "first_word_always_accepted"
+    },
+    {
+      "id": "rejection-then-new-child-address",
+      "bound": 2147483649,
+      "expected": "rejected attempt uses distinct child address and cannot shift sibling"
+    },
+    {
+      "id": "attempt-budget-zero",
+      "bound": 7,
+      "max_attempts": 0,
+      "expected": {
+        "result": null,
+        "disposition": "budget_exceeded",
+        "attempts": 0
+      }
+    },
+    {
+      "id": "attempt-budget-exhausted",
+      "bound": 2147483649,
+      "max_attempts": 1,
+      "expected": {
+        "result": null,
+        "disposition": "budget_exceeded",
+        "attempts": 1
+      }
+    },
+    {
+      "id": "unrelated-draw-insertion",
+      "expected": "target sample and full receipt unchanged"
+    },
+    {
+      "id": "shared-root-cross-branch",
+      "expected": "sample and attempt receipts byte-identical where root canonical address is shared"
+    },
+    {
+      "id": "branch-specific-root",
+      "expected": "root and child derivations differ across branches"
+    },
+    {
+      "id": "transform-version-change",
+      "expected": "child address digest changes"
+    },
+    {
+      "id": "receipt-tampering",
+      "expected": "integrity and replay verification fail"
+    }
+  ]
+}

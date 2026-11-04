@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod philox_adapter;
+pub mod variate_transforms;
 
 use std::collections::{BTreeMap, BTreeSet};
 
