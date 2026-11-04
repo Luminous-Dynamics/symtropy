@@ -180,7 +180,7 @@ impl RouteLedger {
         }
         if self.route_end_ns <= self.route_start_ns
         {
-            return Err("route time range must be finite and increasing".into());
+            return Err("route time range must be increasing".into());
         }
         if self.power_flow_direction != PowerFlowDirection::GridToVehicle {
             return Err("v1 supports grid_to_vehicle only; vehicle_to_grid requires a separate sign/metric contract".into());
@@ -217,7 +217,7 @@ impl RouteLedger {
                 }
                 if phase.end_ns <= phase.start_ns
                 {
-                    return Err("phase time range must be finite and positive".into());
+                    return Err("phase time range must be positive".into());
                 }
                 if index == 0 && phase.start_ns != segment.start_ns {
                     return Err("first phase must start at segment start".into());
@@ -691,6 +691,34 @@ mod tests {
                 }],
             }],
         }
+    }
+
+
+    #[test]
+    fn synthetic_route_fixture_matches_schema_and_replays_all_distinct_energy_boundaries() {
+        const FIXTURE: &str = include_str!(
+            "../../../benchmarks/wpt-segment-energy-ledger/v1/synthetic-highway-pass.json"
+        );
+        const SCHEMA: &str = include_str!(
+            "../../../benchmarks/wpt-segment-energy-ledger/v1/schema.json"
+        );
+        let ledger: RouteLedger =
+            serde_json::from_str(FIXTURE).expect("synthetic segment-energy ledger fixture");
+        let schema: serde_json::Value =
+            serde_json::from_str(SCHEMA).expect("segment-energy JSON schema");
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            SCHEMA_VERSION
+        );
+        assert_eq!(schema["additionalProperties"], false);
+
+        let report = ledger.evaluate().unwrap();
+        assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
+        assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
+        assert!((report.grid_to_battery_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert_eq!(report.total_idle_grid_input_wh, 5.0);
+        assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
+        assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
     }
 
     #[test]
