@@ -334,9 +334,9 @@ impl CorrespondenceSet {
     }
 }
 
-fn event_index<'a>(
-    events: &'a [EventOccurrence],
-) -> Result<BTreeMap<StableId, &'a EventOccurrence>, CorrespondenceError> {
+fn event_index(
+    events: &[EventOccurrence],
+) -> Result<BTreeMap<StableId, &EventOccurrence>, CorrespondenceError> {
     let mut index = BTreeMap::new();
     for event in events {
         if index.insert(event.event_id.clone(), event).is_some() {
