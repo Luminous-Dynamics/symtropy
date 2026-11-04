@@ -122,7 +122,17 @@ The following are distinct evidence lanes:
 4. **SWaT/WaDi and other ICS corpora:** adjacent industrial-control transfer lanes, not water-distribution equivalents. Report them separately.
 5. **Utility-derived observations:** require independent data governance, a declared source/assurance class, and a claim ceiling. Public weak-label utility data are not automatically a blind holdout.
 
+### 7.1 Published transfer and field-transfer controls
+
+Two 2026 results make it essential to distinguish a transfer score from evidence that transfer helped:
+
+- **Cross-plant ICS transfer (SWaT ↔ WADI):** the October 2026 study reports bidirectional few-shot attack recognition macro-F1 of 0.8625 and 0.8528 using five labelled windows per class, but its randomly initialized encoder did not differ detectably on identical episodes. Binary detection also depended strongly on the scoring rule and target plant; some SWaT-to-WADI settings did not exceed chance. These are paper-specific benchmark results, not evidence of utility transfer: https://doi.org/10.3390/s26206360.
+- **Transient leak simulation-to-experiment transfer:** the October 15, 2026 Water Research study reports that, in its expanded 40-scenario experimental evaluation, transfer fine-tuning increased best pipe-classification accuracy from 30.00% to 62.50% and reduced location MAE from 18.44 m to 6.57 m. Its direct-test and post-transfer measurements are not directly comparable to Net3 pipe/node benchmark scores because the task, sensing modality and experimental dataset differ: https://doi.org/10.1016/j.watres.2026.126464.
+- **Operational burst detection:** an August 2026 nine-DMA case study reports 24/24 burst events detected, 0.38 h mean detection delay and 0.40 false alarm episodes/month over 534 days for its selected XGBoost pipeline. Treat this as a strong site-specific operational reference, not a universal threshold or directly comparable result for a different network: https://doi.org/10.3390/app16168143.
+
 For each defensible pair of datasets, report train-on-A/test-on-B and train-on-B/test-on-A, with all transforms and thresholds fitted only on training/calibration partitions. Freeze event groups and chronological boundaries before evaluation; purge lookback, onset and recovery windows at split boundaries to prevent leakage. Report unavailable raw data and un-reconstructable preprocessing explicitly.
+
+For every transfer claim, include (where technically meaningful) a target-only baseline, source-trained/no-adaptation baseline, adapted model, and **same-architecture random-initialization control**. Publish the target label budget, whether target labels influence feature learning or only the episodic classifier, class-disjointness, chronology, and both transfer directions. A high cross-plant macro-F1 is not evidence of learned transferable representations when the random-initialized control performs equivalently.
 
 ## 8. Baseline ladder and matched information budgets
 
