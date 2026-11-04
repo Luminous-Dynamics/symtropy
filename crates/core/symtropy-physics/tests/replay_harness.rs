@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use nalgebra::SVector;
-use symtropy_math::{Point, Sphere};
+use symtropy_math::{Bivector, Point, Rotor, Sphere, Transform};
 use symtropy_physics::PhysicsWorld;
-use symtropy_physics::body::{BodyHandle, RigidBody};
+use symtropy_physics::body::{BodyHandle, BodyType, RigidBody};
 use symtropy_physics::replay::{
     ReplayEvidenceContext, ReplayEvidenceError, ReplayTape, WorldCommand, WorldSnapshot,
     apply_commands, execute_with_evidence, verify_replay_evidence,
@@ -210,4 +210,132 @@ fn malformed_receipt_digest_is_rejected_before_replay() {
     let (mut replay_world, replay_handles) = build_world();
     let replay_tape = build_tape(replay_handles);
     assert!(!verify_replay_evidence(&mut replay_world, &replay_tape, &context, &receipt,).unwrap());
+}
+
+
+fn add_kinematic_actor(world: &mut PhysicsWorld<3>) -> BodyHandle {
+    let actor = RigidBody::<3>::new(
+        BodyHandle(0),
+        BodyType::Kinematic,
+        Transform::from_translation(Point::new([0.0, 0.0, 0.0])),
+        Box::new(Sphere::<3>::new(Point::origin(), 0.25)),
+        0.0,
+        SVector::zeros(),
+    );
+    world.add_body(actor)
+}
+
+fn pose_command(body: BodyHandle, rotation: Rotor<3>, x: f64) -> WorldCommand<3> {
+    WorldCommand::SetKinematicPose {
+        body,
+        translation: Box::new(SVector::from([x, 0.0, 0.0])),
+        rotation: Box::new(rotation),
+        linear_velocity: Box::new(SVector::from([1.0, 0.0, 0.0])),
+        angular_velocity: Box::new(Bivector::<3>::zero()),
+    }
+}
+
+#[test]
+fn kinematic_pose_updates_orientation_and_replays_in_a_fresh_world() {
+    let rotation = Rotor::<3>::from_plane_angle(
+        &Bivector::<3>::unit_plane(0, 1),
+        std::f64::consts::FRAC_PI_2,
+    );
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(1.0 / 64.0, vec![pose_command(actor, rotation.clone(), 0.125)]);
+
+    let receipt =
+        execute_with_evidence(&mut record_world, &tape, &evidence_context()).unwrap();
+    let recorded = record_world.body(actor).unwrap();
+    assert_eq!(*recorded.transform.rotation.to_matrix(), *rotation.to_matrix());
+    assert_eq!(recorded.position(), SVector::from([0.125, 0.0, 0.0]));
+
+    let mut replay_world = PhysicsWorld::<3>::default();
+    let replay_actor = add_kinematic_actor(&mut replay_world);
+    let replay_tape = ReplayTape::<3> {
+        frames: tape.frames.clone(),
+    };
+    assert!(verify_replay_evidence(
+        &mut replay_world,
+        &replay_tape,
+        &evidence_context(),
+        &receipt,
+    )
+    .unwrap());
+    assert_eq!(
+        replay_world.body(replay_actor).unwrap().transform.rotation.to_matrix(),
+        rotation.to_matrix()
+    );
+}
+
+#[test]
+fn kinematic_pose_rejects_reflection_before_world_mutation() {
+    let mut world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut world);
+    let before = WorldSnapshot::capture(&world);
+    let reflection = Rotor::from_matrix(nalgebra::SMatrix::<f64, 3, 3>::from_diagonal(
+        &SVector::from([-1.0, 1.0, 1.0]),
+    ));
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(1.0 / 64.0, vec![pose_command(actor, reflection, 1.0)]);
+
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::InvalidCommandValue
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn kinematic_pose_rejects_non_finite_orientation_before_world_mutation() {
+    let mut world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut world);
+    let before = WorldSnapshot::capture(&world);
+    let mut matrix = nalgebra::SMatrix::<f64, 3, 3>::identity();
+    matrix[(0, 0)] = f64::NAN;
+    let invalid = Rotor::from_matrix(matrix);
+    let mut tape = ReplayTape::<3>::default();
+    tape.push_frame(1.0 / 64.0, vec![pose_command(actor, invalid, 1.0)]);
+
+    assert_eq!(
+        execute_with_evidence(&mut world, &tape, &evidence_context()).unwrap_err(),
+        ReplayEvidenceError::InvalidCommandValue
+    );
+    assert_eq!(WorldSnapshot::capture(&world), before);
+}
+
+#[test]
+fn changing_kinematic_orientation_invalidates_the_old_receipt() {
+    let context = evidence_context();
+    let first_rotation = Rotor::<3>::identity();
+    let second_rotation = Rotor::<3>::from_plane_angle(
+        &Bivector::<3>::unit_plane(0, 1),
+        std::f64::consts::FRAC_PI_4,
+    );
+
+    let mut record_world = PhysicsWorld::<3>::default();
+    let actor = add_kinematic_actor(&mut record_world);
+    let mut original = ReplayTape::<3>::default();
+    original.push_frame(
+        1.0 / 64.0,
+        vec![pose_command(actor, first_rotation, 0.125)],
+    );
+    let receipt = execute_with_evidence(&mut record_world, &original, &context).unwrap();
+
+    let mut changed_world = PhysicsWorld::<3>::default();
+    let changed_actor = add_kinematic_actor(&mut changed_world);
+    let mut changed = ReplayTape::<3>::default();
+    changed.push_frame(
+        1.0 / 64.0,
+        vec![pose_command(changed_actor, second_rotation, 0.125)],
+    );
+    assert!(!verify_replay_evidence(
+        &mut changed_world,
+        &changed,
+        &context,
+        &receipt,
+    )
+    .unwrap());
 }
