@@ -212,6 +212,28 @@ mod tests {
             ),
             [0xd16c_fe09, 0x94fd_cceb, 0x5001_e420, 0x2412_6ea1]
         );
+        assert_eq!(
+            rand_philox::philox4x32_10([1, 0, 0, 0], [0, 0]),
+            [0xf8e4_cca4, 0x5cb2_00db, 0xb1a5_74eb, 0x097e_ff67]
+        );
+        assert_eq!(
+            rand_philox::philox4x32_10([0, 0, 0, 0], [1, 0]),
+            [0xe3e8_0670, 0xe50a_0ebc, 0x95f2_22c0, 0xb615_aa27]
+        );
+    }
+
+    #[test]
+    fn blake3_derive_key_matches_official_zero_length_vector() {
+        let expected = [
+            0x2c, 0xc3, 0x97, 0x83, 0xc2, 0x23, 0x15, 0x4f,
+            0xea, 0x8d, 0xfb, 0x7c, 0x1b, 0x16, 0x60, 0xf2,
+            0xac, 0x2d, 0xcb, 0xd1, 0xc1, 0xde, 0x82, 0x77,
+            0xb0, 0xb0, 0xdd, 0x39, 0xb7, 0xe5, 0x0d, 0x7d,
+        ];
+        assert_eq!(
+            blake3::derive_key("BLAKE3 2019-12-27 16:29:52 test vectors context", b""),
+            expected
+        );
     }
 
     #[test]
