@@ -472,7 +472,13 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             let forward = record.matrix_h[i][j];
             let reverse = record.matrix_h[j][i];
             let mismatch = (forward - reverse).abs();
+            if !mismatch.is_finite() {
+                return Err("reciprocity residual overflow".into());
+            }
             let pair_limit = record.bounds_h[i][j] + record.bounds_h[j][i] + tolerance_h;
+            if !pair_limit.is_finite() {
+                return Err("reciprocity uncertainty limit overflow".into());
+            }
             max_reciprocity_residual_h = max_reciprocity_residual_h.max(mismatch);
             max_reciprocity_limit_h = max_reciprocity_limit_h.max(pair_limit);
             if mismatch > pair_limit {
@@ -493,8 +499,10 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             }
 
             let midpoint = 0.5 * forward + 0.5 * reverse;
-            let bound =
-                0.5 * (record.bounds_h[i][j] + record.bounds_h[j][i] + mismatch) + tolerance_h;
+            let bound = 0.5 * record.bounds_h[i][j]
+                + 0.5 * record.bounds_h[j][i]
+                + 0.5 * mismatch
+                + tolerance_h;
             if !midpoint.is_finite() || !bound.is_finite() {
                 return Err("reciprocity symmetrization overflow".into());
             }
@@ -503,7 +511,9 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             symmetric_bounds[i][j] = bound;
             symmetric_bounds[j][i] = bound;
 
-            let denominator = (record.matrix_h[i][i] * record.matrix_h[j][j]).sqrt();
+            // Geometric mean via separate square roots avoids underflow in
+            // L_ii * L_jj and overflow for matrices spanning wide unit scales.
+            let denominator = record.matrix_h[i][i].sqrt() * record.matrix_h[j][j].sqrt();
             let coupling = midpoint.abs() / denominator;
             if !coupling.is_finite() {
                 return Err("pairwise coupling diagnostic overflow".into());
@@ -525,6 +535,9 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
     let minimum_eigenvalue_h = smallest_symmetric_eigenvalue(&reciprocal)?;
     let lower_bound_h = minimum_eigenvalue_h - uncertainty_bound_h;
     let upper_bound_h = minimum_eigenvalue_h + uncertainty_bound_h;
+    if !lower_bound_h.is_finite() || !upper_bound_h.is_finite() {
+        return Err("eigenvalue uncertainty interval overflow".into());
+    }
     let disposition = if lower_bound_h >= -tolerance_h {
         "PASSIVE_CERTIFIED"
     } else if upper_bound_h < -tolerance_h {
@@ -563,9 +576,11 @@ fn evaluate_value(value: &Value) -> Value {
                     let actual = result
                         .get("disposition")
                         .and_then(Value::as_str)
-                        .unwrap_or("");
+                        .unwrap_or("")
+                        .to_string();
+                    let expected_matches = actual.as_str() == expected.as_str();
                     result["expected_disposition"] = json!(expected);
-                    result["expected_disposition_matches"] = json!(actual == expected);
+                    result["expected_disposition_matches"] = json!(expected_matches);
                 }
                 result
             }
@@ -933,4 +948,130 @@ mod tests {
         assert!(result["max_pairwise_abs_coupling"].as_f64().unwrap() < 1.0);
         assert_eq!(result["disposition"], "NONPASSIVE_REJECTED");
     }
+    
+    #[test]
+    fn accepts_seeded_gram_matrices_across_coil_counts() {
+        // Deterministic property-style corpus: A^T A + I is positive definite.
+        // The seed and construction are fixed so failures reproduce byte-for-byte.
+        let mut seed = 0x6a09_e667_f3bc_c909_u64;
+        for n in 2..=16 {
+            let mut factors = vec![vec![0.0_f64; n]; n];
+            for row in &mut factors {
+                for value in row {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 7;
+                    seed ^= seed << 17;
+                    let unit = (seed >> 11) as f64 / ((1_u64 << 53) as f64);
+                    *value = unit - 0.5;
+                }
+            }
+
+            let mut gram = vec![vec![0.0_f64; n]; n];
+            for i in 0..n {
+                for j in 0..n {
+                    let dot = (0..n)
+                        .map(|k| factors[k][i] * factors[k][j])
+                        .sum::<f64>();
+                    gram[i][j] = dot * 1e-6 + if i == j { 1e-6 } else { 0.0 };
+                }
+            }
+
+            let mut value = fixture(json!(gram), zero_bounds(n), "PASSIVE_CERTIFIED");
+            value["coil_ids"] = json!((0..n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+            value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n]);
+            let result = evaluate_value(&value);
+            assert_eq!(
+                result["disposition"],
+                "PASSIVE_CERTIFIED",
+                "seeded Gram matrix with {n} coils: {result}"
+            );
+        }
+    }
+
+    #[test]
+    fn computes_pairwise_coupling_without_underflow_at_small_inductance_scales() {
+        let mut value = json!({
+            "schema_version": "wpt-inductance-matrix-v1",
+            "matrix_id": "SUBNANOHENRY-SCALE",
+            "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+            "matrix_kind": "SMALL_SIGNAL",
+            "operating_point": {"frequency_hz": 85000.0, "temperature_c": 25.0, "dc_bias_currents_a": [0.0, 0.0]},
+            "coil_ids": ["TX", "RX"],
+            "polarity_reference": "positive current enters each dot",
+            "matrix_h": [[1e-308, 0.5e-308], [0.5e-308, 1e-308]],
+            "entrywise_absolute_bound_h": [[0.0, 0.0], [0.0, 0.0]],
+            "uncertainty_semantics": "DETERMINISTIC_ABSOLUTE_BOUND",
+            "numerical_tolerances": {"absolute_h": 0.0, "relative": 1e-12},
+            "configuration_reference": "synthetic:subnanohenry-scale",
+            "source_reference": null,
+            "artifact_sha256": null
+        });
+        let result = evaluate_value(&value);
+        assert_eq!(result["disposition"], "PASSIVE_CERTIFIED");
+        let coupling = result["max_pairwise_abs_coupling"].as_f64().unwrap();
+        assert!((coupling - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn classifies_extreme_dynamic_range_without_pairwise_product_overflow() {
+        let value = json!({
+            "schema_version": "wpt-inductance-matrix-v1",
+            "matrix_id": "EXTREME-DYNAMIC-RANGE",
+            "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+            "matrix_kind": "SMALL_SIGNAL",
+            "operating_point": {"frequency_hz": 85000.0, "temperature_c": 25.0, "dc_bias_currents_a": [0.0, 0.0]},
+            "coil_ids": ["TX", "RX"],
+            "polarity_reference": "positive current enters each dot",
+            "matrix_h": [[1e308, 1.0], [1.0, 1e-308]],
+            "entrywise_absolute_bound_h": [[0.0, 0.0], [0.0, 0.0]],
+            "uncertainty_semantics": "DETERMINISTIC_ABSOLUTE_BOUND",
+            "numerical_tolerances": {"absolute_h": 0.0, "relative": 1e-12},
+            "configuration_reference": "synthetic:extreme-dynamic-range",
+            "source_reference": null,
+            "artifact_sha256": null
+        });
+        let result = evaluate_value(&value);
+        assert_ne!(result["disposition"], "INVALID_INPUT", "{result}");
+        assert!((result["max_pairwise_abs_coupling"].as_f64().unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rejects_reciprocity_subtraction_overflow_as_invalid_input() {
+        let value = json!({
+            "schema_version": "wpt-inductance-matrix-v1",
+            "matrix_id": "RECIPROCITY-OVERFLOW",
+            "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+            "matrix_kind": "SMALL_SIGNAL",
+            "operating_point": {"frequency_hz": 85000.0, "temperature_c": 25.0, "dc_bias_currents_a": [0.0, 0.0]},
+            "coil_ids": ["TX", "RX"],
+            "polarity_reference": "positive current enters each dot",
+            "matrix_h": [[1.0, 1.0e308], [-1.0e308, 1.0]],
+            "entrywise_absolute_bound_h": [[0.0, 0.0], [0.0, 0.0]],
+            "uncertainty_semantics": "DETERMINISTIC_ABSOLUTE_BOUND",
+            "numerical_tolerances": {"absolute_h": 0.0, "relative": 0.0},
+            "configuration_reference": "synthetic:reciprocity-overflow",
+            "source_reference": null,
+            "artifact_sha256": null
+        });
+        assert_eq!(disposition(value), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn accepts_full_thirty_two_coil_boundary_and_rejects_thirty_three() {
+        let n = 32;
+        let mut value = fixture(
+            json!((0..n).map(|row| (0..n).map(|column| if row == column { 1e-6 } else { 0.0 }).collect::<Vec<_>>()).collect::<Vec<_>>()),
+            zero_bounds(n),
+            "PASSIVE_CERTIFIED",
+        );
+        value["coil_ids"] = json!((0..n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+        value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n]);
+        assert_eq!(disposition(value.clone()), "PASSIVE_CERTIFIED");
+        value["coil_ids"] = json!((0..=n).map(|index| format!("COIL-{index}")).collect::<Vec<_>>());
+        value["operating_point"]["dc_bias_currents_a"] = json!(vec![0.0; n + 1]);
+        value["matrix_h"] = json!((0..=n).map(|row| (0..=n).map(|column| if row == column { 1e-6 } else { 0.0 }).collect::<Vec<_>>()).collect::<Vec<_>>());
+        value["entrywise_absolute_bound_h"] = json!((0..=n).map(|_| vec![0.0; n + 1]).collect::<Vec<_>>());
+        assert_eq!(disposition(value), "INVALID_INPUT");
+    }
+
 }
