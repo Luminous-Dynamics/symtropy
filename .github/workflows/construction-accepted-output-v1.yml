@@ -45,17 +45,23 @@ jobs:
           if-no-files-found: error
           retention-days: 2
       - name: Commit formatted source to one-time diagnostic branch
-        if: always() && github.head_ref == 'qual/construction-accepted-output-rustfmt-final' && github.event.pull_request.head.repo.full_name == github.repository
+        if: always() && github.head_ref == 'qual/construction-accepted-output-rustfmt-run' && github.event.pull_request.head.repo.full_name == github.repository
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp research/construction-accepted-output-v0-1/src/lib.rs /tmp/accepted-output-lib.rs
+          cp research/construction-accepted-output-v0-1/src/main.rs /tmp/accepted-output-main.rs
+          git fetch origin "refs/heads/${GITHUB_HEAD_REF}:refs/remotes/origin/${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "refs/remotes/origin/${GITHUB_HEAD_REF}"
+          cp /tmp/accepted-output-lib.rs research/construction-accepted-output-v0-1/src/lib.rs
+          cp /tmp/accepted-output-main.rs research/construction-accepted-output-v0-1/src/main.rs
           git add research/construction-accepted-output-v0-1/src/lib.rs research/construction-accepted-output-v0-1/src/main.rs
           if git diff --cached --quiet; then
             echo "rustfmt produced no source changes"
           else
             git commit -m "style(research): apply pinned rustfmt to accepted-output package"
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
+            git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
           fi
       - name: Run unit and contract tests
         run: cargo test --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked
