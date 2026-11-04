@@ -173,7 +173,7 @@ impl ScenarioEventDefinition {
         for pair in event.conditions.windows(2) {
             if pair[0].dimension_id == pair[1].dimension_id {
                 return Err(JointScenarioForecastError::DuplicateEventDimension {
-                    event_id: event.event_id,
+                    event_id: event.event_id.clone(),
                     dimension_id: pair[0].dimension_id.clone(),
                 });
             }
@@ -195,6 +195,7 @@ impl ScenarioEventDefinition {
 pub struct JointScenarioForecastContract {
     benchmark_id: String,
     forecast_model_digest: String,
+    evaluation_configuration_digest: String,
     dimensions: Vec<ScenarioDimensionScale>,
     variogram_pairs: Vec<ScenarioVariogramPair>,
     events: Vec<ScenarioEventDefinition>,
@@ -207,6 +208,7 @@ impl JointScenarioForecastContract {
     pub fn new(
         benchmark_id: impl Into<String>,
         forecast_model_digest: impl Into<String>,
+        evaluation_configuration_digest: impl Into<String>,
         dimensions: Vec<ScenarioDimensionScale>,
         mut variogram_pairs: Vec<ScenarioVariogramPair>,
         mut events: Vec<ScenarioEventDefinition>,
@@ -216,6 +218,7 @@ impl JointScenarioForecastContract {
         let contract = Self {
             benchmark_id: benchmark_id.into(),
             forecast_model_digest: forecast_model_digest.into(),
+            evaluation_configuration_digest: evaluation_configuration_digest.into(),
             dimensions,
             variogram_pairs: {
                 variogram_pairs.sort_by(|left, right| {
@@ -234,6 +237,10 @@ impl JointScenarioForecastContract {
         };
         require_id("benchmark ID", &contract.benchmark_id)?;
         require_id("forecast-model digest", &contract.forecast_model_digest)?;
+        require_id(
+            "evaluation configuration digest",
+            &contract.evaluation_configuration_digest,
+        )?;
         if contract.dimensions.is_empty() {
             return Err(JointScenarioForecastError::EmptyDimensionSet);
         }
@@ -308,6 +315,10 @@ impl JointScenarioForecastContract {
 
     pub fn forecast_model_digest(&self) -> &str {
         &self.forecast_model_digest
+    }
+
+    pub fn evaluation_configuration_digest(&self) -> &str {
+        &self.evaluation_configuration_digest
     }
 
     pub fn dimensions(&self) -> &[ScenarioDimensionScale] {
@@ -653,6 +664,7 @@ pub struct JointScenarioForecastCaseReceipt {
     pub scenario_probabilities: Vec<ScenarioPathProbabilityReceipt>,
     pub variogram_pairs: Vec<ScenarioVariogramPairReceipt>,
     pub events: Vec<ScenarioEventCaseReceipt>,
+    pub realization_evidence_ids: Vec<String>,
 }
 
 /// Aggregate forecast-event calibration over the held-out evaluation cases.
@@ -670,6 +682,10 @@ pub struct ScenarioEventAggregateReport {
 pub struct JointScenarioForecastReport {
     pub benchmark_id: String,
     pub forecast_model_digest: String,
+    pub evaluation_configuration_digest: String,
+    pub dimensions: Vec<ScenarioDimensionScale>,
+    pub variogram_pairs: Vec<ScenarioVariogramPair>,
+    pub event_definitions: Vec<ScenarioEventDefinition>,
     pub metric_convention_id: String,
     pub case_count: usize,
     pub total_scenario_count: usize,
@@ -1017,6 +1033,7 @@ pub fn evaluate_joint_scenario_forecasts(
             scenario_probabilities,
             variogram_pairs,
             events: event_receipts,
+            realization_evidence_ids: case.realization.evidence_ids.clone(),
         });
     }
 
@@ -1048,6 +1065,10 @@ pub fn evaluate_joint_scenario_forecasts(
     Ok(JointScenarioForecastReport {
         benchmark_id: contract.benchmark_id.clone(),
         forecast_model_digest: contract.forecast_model_digest.clone(),
+        evaluation_configuration_digest: contract.evaluation_configuration_digest.clone(),
+        dimensions: contract.dimensions.clone(),
+        variogram_pairs: contract.variogram_pairs.clone(),
+        event_definitions: contract.events.clone(),
         metric_convention_id: "SYMTROPY-JOINT-SCENARIO-ENERGY-VARIOGRAM05-BRIER-V0.1"
             .to_string(),
         case_count,
@@ -1294,6 +1315,7 @@ mod tests {
         JointScenarioForecastContract::new(
             "joint-benchmark",
             "model-digest",
+            "evaluation-config-digest",
             dimensions(),
             vec![ScenarioVariogramPair::new("renewable", "workload", 1.0).unwrap()],
             vec![event()],
@@ -1391,8 +1413,14 @@ mod tests {
         let report = evaluate_joint_scenario_forecasts(&input).unwrap();
         let receipts = &report.case_receipts[0].scenario_probabilities;
         assert!((report.case_receipts[0].probability_weight_sum - 0.999_999_999_5).abs() < 1e-15);
-        assert!((receipts[0].raw_probability_weight - 0.499_999_999_5).abs() < 1e-15
-            || (receipts[0].raw_probability_weight - 0.5).abs() < 1e-15);
+        assert!((receipts[0].raw_probability_weight - 0.5).abs() < 1e-15);
+        assert!((receipts[1].raw_probability_weight - 0.499_999_999_5).abs() < 1e-15);
+        assert!(
+            (receipts[0].normalized_probability_weight - 0.500_000_000_25).abs() < 1e-15
+        );
+        assert!(
+            (receipts[1].normalized_probability_weight - 0.499_999_999_75).abs() < 1e-15
+        );
         let normalized_sum: f64 = receipts
             .iter()
             .map(|receipt| receipt.normalized_probability_weight)
@@ -1639,5 +1667,11 @@ mod tests {
         assert!(report.mean_event_brier_score >= 0.0);
         assert_eq!(report.case_receipts[0].scenario_probabilities.len(), 3);
         assert_eq!(report.case_receipts[0].variogram_pairs.len(), 1);
+        assert_eq!(
+            report.case_receipts[0].realization_evidence_ids,
+            vec!["actual-renewable".to_string(), "actual-workload".to_string()]
+        );
+        assert_eq!(report.evaluation_configuration_digest, "evaluation-config-digest");
+        assert_eq!(report.dimensions.len(), 2);
     }
 }
