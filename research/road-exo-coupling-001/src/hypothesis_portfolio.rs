@@ -95,7 +95,7 @@ pub enum ChallengeResult {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ResidualEvidenceOrigin {
     IndependentObservedCalibration,
     ControlledInterventionCalibration,
@@ -650,7 +650,7 @@ impl HypothesisPortfolioManifest {
         let no_counterexample_run_count = self
             .challenge_runs
             .iter()
-            .filter(|run| matches!(run.result, ChallengeResult::NoCounterexampleWithinBudget))
+            .filter(|run| matches!(&run.result, ChallengeResult::NoCounterexampleWithinBudget))
             .count();
 
         let residual_risk = residual_summary(&self.residual_envelope, &self.decision)?;
@@ -729,19 +729,19 @@ fn determine_status(
     residual: &ResidualEnvelope,
     claim_scope: PortfolioClaimScope,
 ) -> PortfolioStatus {
-    if runs.iter().any(|run| matches!(run.result, ChallengeResult::CounterexampleFound { .. })) {
+    if runs.iter().any(|run| matches!(&run.result, ChallengeResult::CounterexampleFound { .. })) {
         return PortfolioStatus::PortfolioFalsified;
     }
     if coverage.iter().any(|obligation| matches!(
-        obligation.disposition,
+        &obligation.disposition,
         CoverageDisposition::OutOfScope { .. }
     )) {
         return PortfolioStatus::OutOfScope;
     }
     if coverage.iter().any(|obligation| matches!(
-        obligation.disposition,
+        &obligation.disposition,
         CoverageDisposition::NotCovered { .. } | CoverageDisposition::Unknown { .. }
-    )) || runs.iter().any(|run| matches!(run.result, ChallengeResult::Incomplete { .. }))
+    )) || runs.iter().any(|run| matches!(&run.result, ChallengeResult::Incomplete { .. }))
         || runs.is_empty()
     {
         return PortfolioStatus::PortfolioIncomplete;
@@ -764,14 +764,14 @@ fn determine_status(
             };
             let all_feasible = bounds
                 .iter()
-                .all(|bound| matches!(bound.feasibility, ResidualFeasibility::GuaranteedFeasible));
+                .all(|bound| matches!(&bound.feasibility, ResidualFeasibility::GuaranteedFeasible));
             if !origin_allowed || !all_feasible {
                 PortfolioStatus::ResidualRiskUnbounded
             } else if coverage.iter().all(|obligation| matches!(
-                obligation.disposition,
+                &obligation.disposition,
                 CoverageDisposition::Covered { .. } | CoverageDisposition::NotApplicable { .. }
             )) && runs.iter().all(|run| matches!(
-                run.result,
+                &run.result,
                 ChallengeResult::NoCounterexampleWithinBudget
             )) {
                 PortfolioStatus::PortfolioCompleteForDeclaredScope
@@ -806,7 +806,7 @@ fn coverage_summary(obligations: &[CoverageObligation]) -> Vec<CoverageDimension
                 out_of_scope: 0,
             };
             for obligation in selected {
-                match obligation.disposition {
+                match &obligation.disposition {
                     CoverageDisposition::Covered { .. } => summary.covered += 1,
                     CoverageDisposition::NotCovered { .. } => summary.not_covered += 1,
                     CoverageDisposition::Unknown { .. } => summary.unknown += 1,
