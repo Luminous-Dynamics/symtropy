@@ -102,6 +102,8 @@ impl GridFirmCapacityIdentity {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GridFirmCapacityContract {
     identity: GridFirmCapacityIdentity,
+    /// Exact opportunity manifest. Its digest is pinned in the identity and
+    /// must be computed independently by the caller from this canonical list.
     scheduled_event_ids: Vec<String>,
     minimum_trial_count: usize,
     minimum_success_probability: f64,
@@ -244,6 +246,8 @@ pub struct GridFirmCapacityTrialReceipt {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GridFirmCapacityReport {
     pub identity: GridFirmCapacityIdentity,
+    /// Complete manifest compared against the supplied trial receipts.
+    pub scheduled_event_ids: Vec<String>,
     pub metric_convention_id: String,
     pub confidence_method_id: String,
     pub confidence_assumption: String,
@@ -504,6 +508,7 @@ pub fn evaluate_grid_firm_capacity(
 
     Ok(GridFirmCapacityReport {
         identity: evaluation.contract.identity.clone(),
+        scheduled_event_ids: evaluation.contract.scheduled_event_ids.clone(),
         metric_convention_id: "SYMTROPY-GRID-FIRM-CAPACITY-HOEFFDING-IID-V0.1".to_string(),
         confidence_method_id: "ONE_SIDED_HOEFFDING_BERNOUlli_LOWER_BOUND".to_string(),
         confidence_assumption: "INDEPENDENT_BERNOULLI_EVENT_TRIALS_DECLARED_BY_CALLER_NOT_PROVEN".to_string(),
@@ -694,6 +699,8 @@ mod tests {
         assert!(report.empirical_success_probability > 0.999);
         assert!(report.firm_capacity_qualified);
         assert_eq!(report.accredited_reduction_kw, Some(100.0));
+        assert_eq!(report.scheduled_event_ids.len(), 100);
+        assert_eq!(report.scheduled_event_ids[0], "event-0");
         assert!(report.lower_confidence_success_probability >= 0.60);
     }
 
@@ -780,21 +787,53 @@ mod tests {
 
     #[test]
     fn mismatched_product_boundary_baseline_or_configuration_is_rejected() {
-        let mut bad = response_report("event-bad", true);
-        bad.identity = GridResponseIdentity::new(
-            "event-bad", "different-product", "pcc-site-1", "baseline-method-v1",
-            "response-config-v1",
-        ).unwrap();
-        let trials = vec![GridFirmCapacityTrial::evaluated(
-            bad, "hot-ambient-high-workload"
-        ).unwrap()];
-        assert!(matches!(
-            GridFirmCapacityEvaluation::new(
-                contract_for(vec!["event-bad".to_string()], 1, 0.60, 0.05),
-                trials
+        let cases = [
+            (
+                GridResponseIdentity::new(
+                    "event-bad", "different-product", "pcc-site-1", "baseline-method-v1",
+                    "response-config-v1",
+                ).unwrap(),
+                0_u8,
             ),
-            Err(GridFirmCapacityError::ServiceProductMismatch { .. })
-        ));
+            (
+                GridResponseIdentity::new(
+                    "event-bad", "frequency-response-class-a", "different-pcc",
+                    "baseline-method-v1", "response-config-v1",
+                ).unwrap(),
+                1_u8,
+            ),
+            (
+                GridResponseIdentity::new(
+                    "event-bad", "frequency-response-class-a", "pcc-site-1",
+                    "different-baseline", "response-config-v1",
+                ).unwrap(),
+                2_u8,
+            ),
+            (
+                GridResponseIdentity::new(
+                    "event-bad", "frequency-response-class-a", "pcc-site-1",
+                    "baseline-method-v1", "different-response-config",
+                ).unwrap(),
+                3_u8,
+            ),
+        ];
+        for (response_identity, expected_error) in cases {
+            let mut report = response_report("event-bad", true);
+            report.identity = response_identity;
+            let evaluation = GridFirmCapacityEvaluation::new(
+                contract_for(vec!["event-bad".to_string()], 1, 0.60, 0.05),
+                vec![GridFirmCapacityTrial::evaluated(
+                    report, "hot-ambient-high-workload"
+                ).unwrap()],
+            );
+            match expected_error {
+                0 => assert!(matches!(evaluation, Err(GridFirmCapacityError::ServiceProductMismatch { .. }))),
+                1 => assert!(matches!(evaluation, Err(GridFirmCapacityError::MeasurementBoundaryMismatch { .. }))),
+                2 => assert!(matches!(evaluation, Err(GridFirmCapacityError::BaselineMethodMismatch { .. }))),
+                3 => assert!(matches!(evaluation, Err(GridFirmCapacityError::ResponseConfigurationMismatch { .. }))),
+                _ => unreachable!(),
+            }
+        }
     }
 
     #[test]
