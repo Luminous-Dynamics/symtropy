@@ -16,8 +16,9 @@ EVIDENCE_LEVEL = (
 )
 HEADER = (
     "problem_id,application,problem_class,dimension,num_objectives,num_constraints,"
-    "variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,"
-    "source_reference_state,source_reference,metadata_sha256,required_extra"
+    "variable_type_class,benchmark_set_member,bounds_state,bounds_sha256,"
+    "variable_types_state,variable_types_sha256,source_reference_state,source_reference,"
+    "metadata_sha256,required_extra"
 ).split(",")
 
 
@@ -95,6 +96,10 @@ def main(path: Path, source_commit: str, package_version: str,
         require(member in ("true", "false"), f"line {line_number}: invalid benchmark_set_member")
         for name in ("bounds_sha256", "variable_types_sha256", "metadata_sha256"):
             require(valid_hex(row[name], 64), f"line {line_number}: {name} must be SHA-256")
+        require(row["bounds_state"] in ("present", "unavailable"),
+                f"line {line_number}: invalid bounds_state")
+        require(row["variable_types_state"] in ("present", "unavailable"),
+                f"line {line_number}: invalid variable_types_state")
         source_state = row["source_reference_state"]
         require(source_state in ("present", "missing"),
                 f"line {line_number}: invalid source_reference_state")
@@ -129,7 +134,9 @@ def main(path: Path, source_commit: str, package_version: str,
             "num_constraints": constraints,
             "variable_type_class": variable_class,
             "benchmark_set_member": member == "true",
+            "bounds_state": row["bounds_state"],
             "bounds_sha256": row["bounds_sha256"],
+            "variable_types_state": row["variable_types_state"],
             "variable_types_sha256": row["variable_types_sha256"],
             "source_reference_state": source_state,
             "source_reference": row["source_reference"],
@@ -150,8 +157,8 @@ def main(path: Path, source_commit: str, package_version: str,
     for task in tasks:
         for name in (
             "problem_id", "application", "problem_class", "variable_type_class",
-            "source_reference_state", "bounds_sha256", "variable_types_sha256",
-            "source_reference",
+            "bounds_state", "bounds_sha256", "variable_types_state",
+            "variable_types_sha256", "source_reference_state", "source_reference",
             "metadata_sha256", "required_extra",
         ):
             append_string(buffer, str(task[name]))
