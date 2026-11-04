@@ -535,11 +535,13 @@ mod tests {
             e.observe(
                 &c,
                 &f,
-                "stim-a",
-                "protocol-a",
-                "step-1",
-                "yes",
-                EvidenceTier::SyntheticFixture
+                EProcessObservation {
+                    assigned_candidate_id: "stim-a",
+                    delivered_protocol_id: "protocol-a",
+                    step_id: "step-1",
+                    outcome_id: "yes",
+                    evidence_tier: EvidenceTier::SyntheticFixture,
+                }
             ),
             Err(EProcessError::NullModelAssignedZeroProbability)
         );
@@ -556,11 +558,13 @@ mod tests {
             e.observe(
                 &c,
                 &f,
-                "stim-a",
-                "protocol-a",
-                "step-1",
-                "yes",
-                EvidenceTier::SyntheticFixture
+                EProcessObservation {
+                    assigned_candidate_id: "stim-a",
+                    delivered_protocol_id: "protocol-a",
+                    step_id: "step-1",
+                    outcome_id: "yes",
+                    evidence_tier: EvidenceTier::SyntheticFixture,
+                }
             ),
             Err(EProcessError::DuplicateStep("step-1".to_owned()))
         );
@@ -579,11 +583,13 @@ mod tests {
             e.observe(
                 &c,
                 &f,
-                "stim-a",
-                "protocol-a",
-                "step-1",
-                "yes",
-                EvidenceTier::SyntheticFixture
+                EProcessObservation {
+                    assigned_candidate_id: "stim-a",
+                    delivered_protocol_id: "protocol-a",
+                    step_id: "step-1",
+                    outcome_id: "yes",
+                    evidence_tier: EvidenceTier::SyntheticFixture,
+                }
             ),
             Err(EProcessError::CandidateNotPermitted)
         );
