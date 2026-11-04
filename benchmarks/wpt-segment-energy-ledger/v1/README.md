@@ -46,14 +46,14 @@ The route score is a **ratio of summed energies**, not the arithmetic mean of pe
 
 Only active segment transfer windows enter this metric. Idle inverter draw is reported separately so waiting/standby power does not silently degrade or contaminate the matched rated-power transfer metric.
 
-### Grid to battery route ratio
+### Grid AC to battery-terminal route ratio
 
 \[
 \eta_{grid\to batt}=\frac{\sum E_{battery\ terminal,in}}
 {\sum E_{grid\ AC,in}+\sum E_{idle\ grid,in}}.
 \]
 
-This is a route-level energy ratio across a much wider boundary. It should not be compared as though it were the IEC SPC-to-EVPC segment efficiency. This v1 metric includes idle grid energy and battery-terminal input; it does not infer missing measurements or make BESS conversion losses disappear. BESS DC output is separately reported when present.
+This is a direct grid-AC-to-battery-terminal route ratio across a much wider boundary. It should not be compared as though it were the IEC SPC-to-EVPC segment efficiency. This v1 metric includes idle grid energy and battery-terminal input; it does not infer missing measurements or make BESS conversion losses disappear. BESS DC output and its uncertainty are separately reported when present. When BESS contributes energy, the grid-AC ratio is not the total upstream-source-to-battery ratio; v1 does not calculate a BESS-to-battery efficiency without a separately metered downstream BESS path.
 
 ## Uncertainty semantics
 
