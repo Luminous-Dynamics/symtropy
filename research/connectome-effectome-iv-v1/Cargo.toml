@@ -1,0 +1,12 @@
+[package]
+name = "connectome-effectome-iv"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Auditable scalar instrumental-variable estimator for connectome-informed effectome research."
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
