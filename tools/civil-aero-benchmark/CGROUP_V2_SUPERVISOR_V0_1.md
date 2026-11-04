@@ -91,7 +91,14 @@ python3 tools/civil-aero-benchmark/scripts/verify-cgroup-v2-resource-independent
   /var/tmp/symtropy-runs/<unique-run-id>/resource-evidence.csv
 ```
 
-This verifies the raw snapshot digests, snapshot/report canonical hashes, counter deltas and evidence ceiling. A run-receipt verifier should additionally replay the artifact inventory and exact command/environment artifact hashes before campaign admission.
+This verifies the raw snapshot digests, snapshot/report canonical hashes, counter deltas and evidence ceiling. Then verify the complete run bundle:
+
+```sh
+python3 tools/civil-aero-benchmark/scripts/verify-cgroup-v2-run-independent.py \
+  /var/tmp/symtropy-runs/<unique-run-id>/run-receipt.csv
+```
+
+The run verifier re-hashes the artifact inventory, checks exact raw counter files against the snapshot CSV, checks command/environment identity manifests and receipt accounting, and invokes the independent resource oracle. The verifier's synthetic self-test creates a known-answer run bundle and rejects an artifact tamper.
 
 ## Known limitations before a live-host qualification
 
