@@ -392,7 +392,9 @@ pub fn audit_benchmark_split(
             .expect("all partitions initialized") += 1;
 
         let mut dimensions_in_sample = BTreeSet::new();
-        for group in &sample.leakage_groups {
+        let mut ordered_groups: Vec<_> = sample.leakage_groups.iter().collect();
+        ordered_groups.sort_by_key(|group| group.dimension);
+        for group in ordered_groups {
             if !valid_identifier(&group.value) {
                 return Err(SplitAuditError::new(
                     "invalid_leakage_group",
@@ -527,7 +529,10 @@ mod tests {
             leakage_groups: vec![
                 group(LeakageDimension::PhysicalEvent, event),
                 group(LeakageDimension::CaptureSession, session),
-                group(LeakageDimension::ScenarioTemplate, "template-1"),
+                group(
+                    LeakageDimension::ScenarioTemplate,
+                    &format!("template-{sample_id}"),
+                ),
                 group(LeakageDimension::Network, network),
             ],
         }
