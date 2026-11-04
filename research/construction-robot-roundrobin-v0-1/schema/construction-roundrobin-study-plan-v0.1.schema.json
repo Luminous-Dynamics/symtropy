@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/construction-robot-roundrobin-v0-1/schema/construction-roundrobin-study-plan-v0.1.schema.json",
+  "$id": "https://raw.githubusercontent.com/Luminous-Dynamics/symtropy/main/research/construction-robot-roundrobin-v0-1/schema/construction-roundrobin-study-plan-v0.1.schema.json",
   "title": "Construction Robot Round-Robin Study Plan V0.1",
   "type": "object",
   "additionalProperties": false,
@@ -17,9 +17,6 @@
     "safety_separation"
   ],
   "properties": {
-    "$schema": {
-      "const": "https://json-schema.org/draft/2020-12/schema"
-    },
     "profile_id": {
       "const": "construction-layout-roundrobin-v0.1"
     },
@@ -296,6 +293,9 @@
     },
     "execution_status": {
       "const": "not_executed"
+    },
+    "schema_version": {
+      "const": "construction-roundrobin-study-plan-v0.1"
     }
   }
 }
