@@ -82,6 +82,27 @@ The IEA 4E July 2026 report distinguishes market-serving, grid-serving and syste
 
 The May 2026 LAD-Flex study used more than one million Alibaba cluster tasks and reported up to 22% load shedding during modeled flexibility windows. It is useful as a workload-model comparator, not as a universal capacity credit. The 2026 multi-region system study by Senga, Wang and Knittel found that flexibility reduced system costs but its emissions effect depended on renewable penetration and generation mix. Thus, capacity value, operating cost, carbon and service quality need separate outcomes. [LAD-Flex study](https://doi.org/10.1016/j.ijepes.2026.111940) [Senga et al.](https://cs3.mit.edu/publication/118896).
 
+## 4A. First regional benchmark: South Africa
+
+South Africa should be an early regional validation target rather than an afterthought to a U.S.-centric benchmark suite. NTCSA's official system-status page lists the MTSAO 2027–2036 and explains that the ten-year horizon covers demand, planned plant shutdowns, dispatchable capacity and major transmission-project delivery. The official report and underlying assumptions must be archived and reconciled before any numerical replication claim is made. [NTCSA MTSAO page](https://www.ntcsa.co.za/system-status-reports/).
+
+There is a timely fuel-deliverability sensitivity. On 28 October 2026, the Department of Electricity and Energy reported that GASIPPPP Bid Window 1 sought 2,000 MW and received four bids totaling 2,830 MW, but appointed no preferred bidders because the required gas-supply assurances were not met. The Department also stated that it remains committed to gas-to-power and is considering the enabling conditions for a future BW1.5. The correct model treatment is therefore **not** “gas is cancelled”; it is to keep strategic procurement intent distinct from a committed, fuel-secured, commissioned and available resource. Run on-time, delayed, constrained and absent-gas cases. [DEE official statement, 28 October 2026](https://www.dee.gov.za/government-announces-gasipppp-bid-window-1-outcome-reaffirms-market-commitment-and-outlines-the-path-forward).
+
+A government statement on 7 October 2026 identifies a first IRP 2025 section 34 determination prioritising 4.6 GW of BESS and 5 GW of gas-to-power. Treat BESS as energy-limited storage, not flat capacity: preserve power, energy, duration, efficiency, degradation and state-of-charge constraints in every chronology. [South African Government statement](https://www.gov.za/news/media-statements/minister-kgosientsho-ramokgopa-prioritises-battery-storage-and-gas-power).
+
+A secondary analysis of the MTSAO reports High Demand trajectory values of 49.1 GW peak and 329.7 TWh sent-out energy in 2036 (versus 35.8 GW and 238.3 TWh in 2026) and reports 13.42 GWh unserved energy and 377 hours in the 2036 Reference Case. These are provisional extraction targets only: they must be reconciled to the official report's tables, metric definitions, horizon and scenario boundaries before use as benchmark truth. [Moneyweb analysis, 2 November 2026](https://www.moneyweb.co.za/moneyweb-opinion/fragile-assumptions-behind-south-africas-optimistic-electricity-outlook/).
+
+The South African benchmark should include:
+- EAF sensitivities and explicit thermal forced-outage correlations;
+- delayed, constrained and absent gas with fuel-network/terminal dependencies;
+- planned, delayed, reduced and energy-limited BESS, including duration and reserve floor;
+- low-wind/solar periods coincident with demand peaks and thermal outages;
+- coal retirement, major transmission-project delay and N-1 network constraints;
+- Gauteng and other candidate data-centre PCC nodes with actual transmission/substation deliverability, wheeling and tariff boundaries;
+- high-demand and lower-demand trajectories, as well as high-temperature cooling derates and water stress.
+
+Do not infer local PCC deliverability from national adequacy, nor infer a national capacity credit from the V0.1 copperplate prototype. The official MTSAO report itself has not yet been ingested and independently reconciled in this prototype branch.
+
 ## 5. Paradigm shifts for V0.2–V1.0
 
 1. **From event reliability to chronological resource value.** Preserve the full sequence across dispatch, recovery, consecutive stress days and common-mode failures. A service that succeeds for two hours but shifts the shortage into the next peak is not a dependable capacity resource.
