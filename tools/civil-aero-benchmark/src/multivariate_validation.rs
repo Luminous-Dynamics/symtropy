@@ -126,8 +126,11 @@ fn cholesky_lower(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
     for row in 0..dimension {
         for column in 0..=row {
             let mut value = matrix[row][column];
-            for inner in 0..column {
-                value -= lower[row][inner] * lower[column][inner];
+            for (left, right) in lower[row][..column]
+                .iter()
+                .zip(lower[column][..column].iter())
+            {
+                value -= left * right;
             }
             if row == column {
                 if !value.is_finite() || value <= CHOLESKY_PIVOT_TOLERANCE {
