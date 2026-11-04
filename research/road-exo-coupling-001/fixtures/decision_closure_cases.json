@@ -1,0 +1,175 @@
+{
+  "schema": "symtropy.road-decision-closure.fixtures.v0.1",
+  "purpose": "Exact finite minimax-regret decision certificate conformance. No probabilities over epistemic model hypotheses are assumed.",
+  "actions": [
+    "action-a",
+    "action-b"
+  ],
+  "cases": [
+    {
+      "id": "stable-ranking",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "utility": {
+            "action_a": "10",
+            "action_b": "2"
+          }
+        },
+        {
+          "id": "h2",
+          "utility": {
+            "action_a": "8",
+            "action_b": "4"
+          }
+        }
+      ],
+      "expected": {
+        "status": "DecisionStable",
+        "minimax_action": "action-a",
+        "stable_best_action": "action-a",
+        "worst_case_regret": {
+          "action_a": "0",
+          "action_b": "8"
+        }
+      }
+    },
+    {
+      "id": "ranking-reversal-unique-minimax",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "utility": {
+            "action_a": "10",
+            "action_b": "8"
+          }
+        },
+        {
+          "id": "h2",
+          "utility": {
+            "action_a": "0",
+            "action_b": "6"
+          }
+        }
+      ],
+      "expected": {
+        "status": "DecisionSensitive",
+        "minimax_action": "action-b",
+        "stable_best_action": null,
+        "worst_case_regret": {
+          "action_a": "6",
+          "action_b": "2"
+        }
+      }
+    },
+    {
+      "id": "symmetric-ranking-reversal",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "utility": {
+            "action_a": "10",
+            "action_b": "0"
+          }
+        },
+        {
+          "id": "h2",
+          "utility": {
+            "action_a": "0",
+            "action_b": "10"
+          }
+        }
+      ],
+      "expected": {
+        "status": "NoRobustDecision",
+        "minimax_action": null,
+        "stable_best_action": null,
+        "worst_case_regret": {
+          "action_a": "10",
+          "action_b": "10"
+        }
+      }
+    },
+    {
+      "id": "unsupported-action-hypothesis",
+      "expected": {
+        "status": "Unsupported",
+        "minimax_action": null
+      }
+    },
+    {
+      "id": "not-identified-action-hypothesis",
+      "expected": {
+        "status": "Incomplete",
+        "minimax_action": null
+      }
+    },
+    {
+      "id": "incomplete-action-hypothesis",
+      "expected": {
+        "status": "Incomplete",
+        "minimax_action": null
+      }
+    },
+    {
+      "id": "no-hypothesis-weights",
+      "expected": "every admitted hypothesis contributes equally to worst-case regret; no invented probability weights"
+    },
+    {
+      "id": "hypothesis-declaration-order",
+      "expected": "identical digest and certificate"
+    },
+    {
+      "id": "action-declaration-order",
+      "expected": "identical digest and certificate"
+    },
+    {
+      "id": "outcome-declaration-order",
+      "expected": "identical digest and certificate"
+    },
+    {
+      "id": "equivalent-rational-utility-encoding",
+      "representations": [
+        "3/1",
+        "30/10"
+      ],
+      "expected": "identical digest and certificate"
+    },
+    {
+      "id": "zero-denominator",
+      "expected": "reject"
+    },
+    {
+      "id": "missing-action-outcome",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate-action",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate-hypothesis",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate-action-outcome",
+      "expected": "reject"
+    },
+    {
+      "id": "unknown-action",
+      "expected": "reject"
+    },
+    {
+      "id": "missing-reference-manifest-digest",
+      "expected": "reject"
+    },
+    {
+      "id": "receipt-tampering",
+      "expected": "integrity_check_false"
+    },
+    {
+      "id": "manifest-mutation",
+      "expected": "verify_against_rejects"
+    }
+  ]
+}
