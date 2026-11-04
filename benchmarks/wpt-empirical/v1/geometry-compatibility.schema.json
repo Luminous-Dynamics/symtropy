@@ -16,7 +16,9 @@
     "coupling_range_metric",
     "evidence",
     "qualification",
-    "notes"
+    "notes",
+    "qualified_region",
+    "qualification_criteria"
   ],
   "properties": {
     "schema_version": {
@@ -507,6 +509,210 @@
     "notes": {
       "type": "string",
       "minLength": 1
+    },
+    "qualified_region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_scope",
+        "evaluated_point_count",
+        "qualified_point_count",
+        "qualified_fraction",
+        "connected_component_count",
+        "confidence_level_percent",
+        "lower_confidence_bound_fraction",
+        "classification_sha256",
+        "analysis_sha256",
+        "convex_hull_used",
+        "disconnected_regions_preserved",
+        "notes"
+      ],
+      "properties": {
+        "metric_scope": {
+          "enum": [
+            "COUPLING_ONLY",
+            "POWER_TRANSFER",
+            "EFFICIENCY",
+            "THERMAL",
+            "SAFETY",
+            "SYSTEM_INTEROPERABILITY",
+            "UNKNOWN"
+          ]
+        },
+        "evaluated_point_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "qualified_point_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "qualified_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "connected_component_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "confidence_level_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 90,
+          "maximum": 99.99
+        },
+        "lower_confidence_bound_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "classification_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "analysis_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "convex_hull_used": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "disconnected_regions_preserved": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "qualification_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion_id",
+          "metric_family",
+          "quantity_kind",
+          "unit",
+          "operator",
+          "lower_threshold",
+          "upper_threshold",
+          "observed_value",
+          "outcome",
+          "hard_gate",
+          "evidence_sha256",
+          "notes"
+        ],
+        "properties": {
+          "criterion_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metric_family": {
+            "enum": [
+              "COUPLING",
+              "OUTPUT_POWER",
+              "OUTPUT_REGULATION",
+              "EFFICIENCY",
+              "THERMAL",
+              "SAFETY",
+              "COMPONENT_STRESS",
+              "EMC",
+              "RELIABILITY",
+              "OTHER"
+            ]
+          },
+          "quantity_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "operator": {
+            "enum": [
+              "GTE",
+              "LTE",
+              "BETWEEN",
+              "BOOLEAN_PASS"
+            ]
+          },
+          "lower_threshold": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "upper_threshold": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "observed_value": {
+            "type": [
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "INCOMPLETE",
+              "NOT_RUN"
+            ]
+          },
+          "hard_gate": {
+            "type": "boolean"
+          },
+          "evidence_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     }
   }
 }
