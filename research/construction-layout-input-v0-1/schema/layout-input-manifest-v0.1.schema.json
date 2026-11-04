@@ -102,7 +102,9 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "source_model_id",
         "source_model_revision",
+        "source_model_sha256",
         "export_id",
         "sha256",
         "exporter_id",
@@ -174,6 +176,15 @@
             "minLength": 1,
             "maxLength": 256
           }
+        },
+        "source_model_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "source_model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
