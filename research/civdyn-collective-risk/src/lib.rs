@@ -3,6 +3,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod population;
+
 //! Exact reference task for a six-seat collective-risk dilemma.
 //!
 //! The task contract is source-aligned with Huynh et al. (2026),
