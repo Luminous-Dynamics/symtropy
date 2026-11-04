@@ -79,16 +79,14 @@ The merge gap is selected using a calibration partition and frozen before evalua
 
 Keep these separate:
 
-- **Association:** whether an episode is plausibly related to an event based on the declared class-compatibility policy and temporal relation, including late alarms.
-- **Timely detection:** whether the first alarm-episode onset falls inside the pre-registered event window `[event_onset - allowed_lead_ms, event_onset + maximum_delay_ms]`.
+- **Association window:** an episode can be associated with a confirmed event when it has the same scenario, satisfies the declared class-compatibility policy, and starts in `[event_onset - allowed_lead_ms, event_end + late_association_grace_ms]`. Association is not proof of correct classification or timely detection.
+- **Timely detection window:** the first alarm-episode onset falls in `[event_onset - allowed_lead_ms, event_onset + maximum_detection_delay_ms]`.
 
-This distinction prevents a very late alarm during a known incident from being counted as a timely detection, while also avoiding automatically calling every late response a false alarm.
-
-For overlapping eligibility windows, perform deterministic **maximum-cardinality one-to-one matching**, then apply the frozen tie-break rule (minimum absolute onset difference, then event ID, then episode ID). One event can receive at most one timely detection; one episode can match at most one event. Any alternate matching rule requires a protocol version change.
+First perform deterministic **maximum-cardinality one-to-one timely matching**, then apply the frozen tie-break rule (minimum absolute onset difference, then event ID, then episode ID). On the remaining episodes/events, perform one-to-one late association with the same deterministic tie-break. One event can receive at most one timely match and one late association; one episode can be assigned to at most one event in either stage. Any alternate matching rule requires a protocol version change.
 
 Class scoring has two outputs: event detection (timely detection regardless of correct asserted class, when the alarm is unclassified or otherwise compatible under the declared rule) and event classification (whether the asserted class is correct). Publish the class-compatibility matrix before testing. Unclassified alarms can contribute to detection but never to correct class attribution.
 
-Additional episodes associated with an already matched event are **fragmentation/re-alert burden**, not extra true positives. An episode associated with a confirmed event but outside the timely window is a **late associated alarm**. A wholly unmatched episode outside unresolved-truth intervals is a false alarm episode. An episode overlapping unknown truth is unscorable unless an independent truth source resolves the interval.
+Additional episodes associated with an already timely matched event are **fragmentation/re-alert burden**, not extra true positives. An episode associated with a confirmed event but outside the timely window is a **late associated alarm**. A wholly unmatched episode outside unresolved-truth intervals is a false alarm episode. An episode overlapping unknown truth is unscorable unless an independent truth source resolves the interval.
 
 ## 6. Required metrics
 
