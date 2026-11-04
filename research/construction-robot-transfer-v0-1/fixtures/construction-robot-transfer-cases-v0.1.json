@@ -218,6 +218,24 @@
       "scenario": "same_model_diff_robot_config",
       "expected": "requalified_comparison",
       "description": "Robot configuration change is explicit and reported as a distinct regime."
+    },
+    {
+      "id": "tr-037",
+      "scenario": "adaptation_person_hours_exceed_declared_budget",
+      "expected": "reject_budget",
+      "description": "Actual calibration/engineering/operator/inspection hours exceed their separately declared budgets."
+    },
+    {
+      "id": "tr-038",
+      "scenario": "source_target_evaluation_work_item_overlap",
+      "expected": "reject_leakage",
+      "description": "A source work item is reused as a target evaluation work item."
+    },
+    {
+      "id": "tr-039",
+      "scenario": "terminal_disposition_counts_exceed_attempted",
+      "expected": "reject_denominator",
+      "description": "Accepted, rejected, uninspected and unresolved disposition counts cannot exceed attempted units."
     }
   ]
 }
