@@ -58,3 +58,8 @@ Targets are hypotheses, not achieved results or certification limits: zero false
 ## Statistical validation
 
 See [evaluation-plan.md](evaluation-plan.md) for preregistered independent-unit definitions, ODD stratification, confidence bounds, challenge-versus-operational sampling, latency/metrology rules, matched baselines and stop conditions.
+
+
+## Frozen transition scenarios
+
+The `scenarios/` directory contains ordered epoch change, stale replay/rollback, and communications recovery traces. The Rust oracle replays them in tests and rejects unknown fixture fields. These fixtures test the software transition contract only; they are not physical safety evidence.
