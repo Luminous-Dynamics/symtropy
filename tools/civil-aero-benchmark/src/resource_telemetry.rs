@@ -203,21 +203,38 @@ fn report_canonical_bytes(report: &CgroupV2ResourceReport) -> Vec<u8> {
     bytes
 }
 
+/// Raw, same-operation inputs captured from one cgroup v2 boundary observation.
+#[derive(Debug, Clone, Copy)]
+pub struct CgroupV2SnapshotInput<'a> {
+    pub cgroup_id: &'a str,
+    pub memory_peak_reader_id: &'a str,
+    pub memory_peak_reader_flags: u64,
+    pub cgroup2_mount_options: &'a str,
+    pub monotonic_time_ns: u64,
+    pub cpu_stat: &'a str,
+    pub memory_peak: &'a str,
+    pub memory_events: &'a str,
+    pub cgroup_events: &'a str,
+}
+
 /// Parse one coherent cgroup v2 snapshot from the raw contents of its measurement files.
 ///
 /// cgroup_id must be a stable per-operation identity, not merely a reusable directory path.
 /// monotonic_time_ns must come from a monotonic clock, not wall-clock time.
 pub fn parse_cgroup_v2_snapshot(
-    cgroup_id: &str,
-    memory_peak_reader_id: &str,
-    memory_peak_reader_flags: u64,
-    cgroup2_mount_options: &str,
-    monotonic_time_ns: u64,
-    cpu_stat: &str,
-    memory_peak: &str,
-    memory_events: &str,
-    cgroup_events: &str,
+    input: CgroupV2SnapshotInput<'_>,
 ) -> Result<CgroupV2Snapshot, String> {
+    let CgroupV2SnapshotInput {
+        cgroup_id,
+        memory_peak_reader_id,
+        memory_peak_reader_flags,
+        cgroup2_mount_options,
+        monotonic_time_ns,
+        cpu_stat,
+        memory_peak,
+        memory_events,
+        cgroup_events,
+    } = input;
     if cgroup_id.trim().is_empty() {
         return Err("cgroup identity must not be empty".to_owned());
     }
@@ -496,17 +513,17 @@ mod tests {
         oom: u64,
         kill: u64,
     ) -> CgroupV2Snapshot {
-        parse_cgroup_v2_snapshot(
-            "solver-operation-42",
-            "memory-peak-reader-42",
-            0,
-            "rw,nosuid,nodev,relatime",
-            time_ns,
-            &format!("usage_usec {cpu}\nuser_usec {user}\nsystem_usec {system}\nnr_periods 10\n"),
-            &format!("{peak}\n"),
-            &format!("low 0\nhigh 0\nmax 0\noom {oom}\noom_kill {kill}\noom_group_kill 0\n"),
-            "populated 0\nfrozen 0\n",
-        )
+        parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
+            cgroup_id: "solver-operation-42",
+            memory_peak_reader_id: "memory-peak-reader-42",
+            memory_peak_reader_flags: 0,
+            cgroup2_mount_options: "rw,nosuid,nodev,relatime",
+            monotonic_time_ns: time_ns,
+            cpu_stat: &format!("usage_usec {cpu}\nuser_usec {user}\nsystem_usec {system}\nnr_periods 10\n"),
+            memory_peak: &format!("{peak}\n"),
+            memory_events: &format!("low 0\nhigh 0\nmax 0\noom {oom}\noom_kill {kill}\noom_group_kill 0\n"),
+            cgroup_events: "populated 0\nfrozen 0\n",
+        })
         .expect("parse cgroup snapshot fixture")
     }
 
@@ -585,32 +602,32 @@ mod tests {
     #[test]
     fn rejects_malformed_and_duplicate_kernel_counter_fields() {
         assert!(
-            parse_cgroup_v2_snapshot(
-                "x",
-                "reader-x",
-                0,
-                "rw,nosuid,nodev",
-                1,
-                "usage_usec 1\nuser_usec 1\n",
-                "10\n",
-                "oom 0\noom_kill 0\n",
-                "populated 0\nfrozen 0\n",
-            )
+            parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
+            cgroup_id: "x",
+            memory_peak_reader_id: "reader-x",
+            memory_peak_reader_flags: 0,
+            cgroup2_mount_options: "rw,nosuid,nodev",
+            monotonic_time_ns: 1,
+            cpu_stat: "usage_usec 1\nuser_usec 1\n",
+            memory_peak: "10\n",
+            memory_events: "oom 0\noom_kill 0\n",
+            cgroup_events: "populated 0\nfrozen 0\n",
+        })
             .expect_err("missing system_usec")
             .contains("system_usec")
         );
         assert!(
-            parse_cgroup_v2_snapshot(
-                "x",
-                "reader-x",
-                0,
-                "rw,nosuid,nodev",
-                1,
-                "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
-                "10\n",
-                "oom 0\noom_kill 0\n",
-                "populated 0\nfrozen 0\n",
-            )
+            parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
+            cgroup_id: "x",
+            memory_peak_reader_id: "reader-x",
+            memory_peak_reader_flags: 0,
+            cgroup2_mount_options: "rw,nosuid,nodev",
+            monotonic_time_ns: 1,
+            cpu_stat: "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
+            memory_peak: "10\n",
+            memory_events: "oom 0\noom_kill 0\n",
+            cgroup_events: "populated 0\nfrozen 0\n",
+        })
             .expect_err("duplicate CPU stat")
             .contains("duplicate")
         );
@@ -619,17 +636,17 @@ mod tests {
     #[test]
     fn rejects_local_only_memory_events_and_changed_memory_peak_reader() {
         assert!(
-            parse_cgroup_v2_snapshot(
-                "x",
-                "reader-x",
-                0,
-                "rw,nosuid,nodev,memory_localevents",
-                1,
-                "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
-                "10\n",
-                "oom 0\noom_kill 0\n",
-                "populated 0\nfrozen 0\n",
-            )
+            parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
+            cgroup_id: "x",
+            memory_peak_reader_id: "reader-x",
+            memory_peak_reader_flags: 0,
+            cgroup2_mount_options: "rw,nosuid,nodev,memory_localevents",
+            monotonic_time_ns: 1,
+            cpu_stat: "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
+            memory_peak: "10\n",
+            memory_events: "oom 0\noom_kill 0\n",
+            cgroup_events: "populated 0\nfrozen 0\n",
+        })
             .expect_err("local-only memory events are not process-tree evidence")
             .contains("hierarchical")
         );
