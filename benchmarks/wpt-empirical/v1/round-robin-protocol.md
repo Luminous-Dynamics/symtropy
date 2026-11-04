@@ -295,3 +295,16 @@ The companion foreign-object-scenarios.jsonl freezes 14 scenario IDs and expecte
 A qualified FOD record captures sensor modality, pre-transfer and active-transfer frame counts, distinct conductive/non-conductive objects, held-out objects and sessions, an object-and-session-held-out split, TP/TN/FP/FN counts, derived recall/FNR/FPR/accuracy, p99 detection latency, p95 localization error, expected calibration error, OOD and sensor-fault abstentions, mitigation mode, auxiliary energy, maximum object temperature rise, calibrated thermal ground truth and SHA-256-bound evidence.
 
 A high classifier accuracy does not by itself qualify FOD. The assessment must measure session drift, held-out materials, active-transfer EMI, localization uncertainty, sensor faults and correct safe-action selection. Active DeMag is only allowed inside an independently validated material/location/power envelope. Otherwise the safe action is inhibit, abstain or de-energize.
+
+## 18. Dynamic receiver spatial-stability measurements
+
+For dynamic WPT, store output-power and output-voltage fluctuation as separate quantities. Record the transmitter type, receiver architecture, speed profile, segment pitch, lateral/longitudinal/angular offset, sample rate, measurement window, spatial coordinate range, RMS/peak-to-peak/worst-point statistics and uncertainty. A paper's phrase "within ±x% of coil width" must not be converted into millimetres without the coil-width reference and coordinate definition.
+
+Per receiver/transmitter pair, report:
+- along-track output power fluctuation and output-voltage fluctuation separately;
+- average and peak efficiency separately and with named meter planes;
+- spatially resolved power and voltage curves, not just a single average;
+- transition/dropout counts and the fraction of route for which the receiver is inside the qualified operating envelope;
+- behavior with both unipolar rectangular and bipolar DD transmitter types where interoperability is claimed.
+
+Do not rank the Zhang 1 kW dual-channel average system-efficiency figures against the Cheng 2 kW peak DC–DC result. Do not rank output-power fluctuation against output-voltage fluctuation. Those are different metrics and are frozen as NOT_COMPARABLE negative controls in typed v1.
