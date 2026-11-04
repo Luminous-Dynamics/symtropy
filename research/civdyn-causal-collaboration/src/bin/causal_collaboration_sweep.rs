@@ -18,49 +18,181 @@ fn fmt_opt(value: Option<f64>) -> String {
     value.map(fmt).unwrap_or_default()
 }
 
+fn blank_row(record_type: &str, fixture_id: &str) -> Vec<String> {
+    let mut row = vec![String::new(); CSV_COLUMNS];
+    row[0] = record_type.into();
+    row[1] = fixture_id.into();
+    row
+}
+
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "each collaboration record has 36 columns");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "each collaboration record has 36 columns"
+    );
     println!("{}", fields.join(","));
 }
 
 fn trace(success: bool) -> CollaborationTrace {
     CollaborationTrace {
         agents: vec![
-            AgentRecord { agent_id: "miner".into(), role: "extract resources".into() },
-            AgentRecord { agent_id: "courier".into(), role: "transport resources".into() },
-            AgentRecord { agent_id: "smith".into(), role: "craft equipment".into() },
-            AgentRecord { agent_id: "wizard".into(), role: "provide instructions".into() },
-            AgentRecord { agent_id: "idle".into(), role: "standby".into() },
+            AgentRecord {
+                agent_id: "miner".into(),
+                role: "extract resources".into(),
+            },
+            AgentRecord {
+                agent_id: "courier".into(),
+                role: "transport resources".into(),
+            },
+            AgentRecord {
+                agent_id: "smith".into(),
+                role: "craft equipment".into(),
+            },
+            AgentRecord {
+                agent_id: "wizard".into(),
+                role: "provide instructions".into(),
+            },
+            AgentRecord {
+                agent_id: "idle".into(),
+                role: "standby".into(),
+            },
         ],
         actions: vec![
-            ActionRecord { action_id: "ore".into(), agent_id: "miner".into(), sequence: 1, round: 1, kind: ActionKind::EnvironmentAction, fingerprint: Some("mine-iron".into()), resource_ref: Some("ore-1".into()) },
-            ActionRecord { action_id: "message".into(), agent_id: "miner".into(), sequence: 2, round: 1, kind: ActionKind::Communication, fingerprint: None, resource_ref: None },
-            ActionRecord { action_id: "wood".into(), agent_id: "courier".into(), sequence: 3, round: 2, kind: ActionKind::EnvironmentAction, fingerprint: Some("gather-wood".into()), resource_ref: Some("wood-1".into()) },
-            ActionRecord { action_id: "transfer".into(), agent_id: "courier".into(), sequence: 4, round: 2, kind: ActionKind::ResourceTransfer, fingerprint: Some("transfer-ore-1".into()), resource_ref: Some("ore-1".into()) },
-            ActionRecord { action_id: "craft".into(), agent_id: "smith".into(), sequence: 5, round: 3, kind: ActionKind::EnvironmentAction, fingerprint: Some("craft-vanguard".into()), resource_ref: None },
-            ActionRecord { action_id: "hint".into(), agent_id: "wizard".into(), sequence: 6, round: 3, kind: ActionKind::Communication, fingerprint: None, resource_ref: None },
-            ActionRecord { action_id: "duplicate-craft".into(), agent_id: "smith".into(), sequence: 7, round: 4, kind: ActionKind::EnvironmentAction, fingerprint: Some("craft-vanguard".into()), resource_ref: None },
-            ActionRecord { action_id: "deliver".into(), agent_id: "smith".into(), sequence: 8, round: 5, kind: ActionKind::Checkpoint, fingerprint: Some("deliver-vanguard".into()), resource_ref: None },
+            ActionRecord {
+                action_id: "ore".into(),
+                agent_id: "miner".into(),
+                sequence: 1,
+                round: 1,
+                kind: ActionKind::EnvironmentAction,
+                fingerprint: Some("mine-iron".into()),
+                resource_ref: Some("ore-1".into()),
+            },
+            ActionRecord {
+                action_id: "message".into(),
+                agent_id: "miner".into(),
+                sequence: 2,
+                round: 1,
+                kind: ActionKind::Communication,
+                fingerprint: None,
+                resource_ref: None,
+            },
+            ActionRecord {
+                action_id: "wood".into(),
+                agent_id: "courier".into(),
+                sequence: 3,
+                round: 2,
+                kind: ActionKind::EnvironmentAction,
+                fingerprint: Some("gather-wood".into()),
+                resource_ref: Some("wood-1".into()),
+            },
+            ActionRecord {
+                action_id: "transfer".into(),
+                agent_id: "courier".into(),
+                sequence: 4,
+                round: 2,
+                kind: ActionKind::ResourceTransfer,
+                fingerprint: Some("transfer-ore-1".into()),
+                resource_ref: Some("ore-1".into()),
+            },
+            ActionRecord {
+                action_id: "craft".into(),
+                agent_id: "smith".into(),
+                sequence: 5,
+                round: 3,
+                kind: ActionKind::EnvironmentAction,
+                fingerprint: Some("craft-vanguard".into()),
+                resource_ref: None,
+            },
+            ActionRecord {
+                action_id: "hint".into(),
+                agent_id: "wizard".into(),
+                sequence: 6,
+                round: 3,
+                kind: ActionKind::Communication,
+                fingerprint: None,
+                resource_ref: None,
+            },
+            ActionRecord {
+                action_id: "duplicate-craft".into(),
+                agent_id: "smith".into(),
+                sequence: 7,
+                round: 4,
+                kind: ActionKind::EnvironmentAction,
+                fingerprint: Some("craft-vanguard".into()),
+                resource_ref: None,
+            },
+            ActionRecord {
+                action_id: "deliver".into(),
+                agent_id: "smith".into(),
+                sequence: 8,
+                round: 5,
+                kind: ActionKind::Checkpoint,
+                fingerprint: Some("deliver-vanguard".into()),
+                resource_ref: None,
+            },
         ],
         causal_edges: vec![
-            CausalEdge { cause_action_id: "ore".into(), effect_action_id: "transfer".into(), evidence_ref: "ledger/ore-1".into(), evidence_kind: CausalEvidenceKind::ResourceLineageReceipt, status: CausalEdgeStatus::Verified },
-            CausalEdge { cause_action_id: "message".into(), effect_action_id: "transfer".into(), evidence_ref: "chat/ack-44".into(), evidence_kind: CausalEvidenceKind::AcknowledgedCommunication, status: CausalEdgeStatus::Candidate },
-            CausalEdge { cause_action_id: "wood".into(), effect_action_id: "craft".into(), evidence_ref: "ledger/wood-1".into(), evidence_kind: CausalEvidenceKind::ResourceLineageReceipt, status: CausalEdgeStatus::Verified },
-            CausalEdge { cause_action_id: "transfer".into(), effect_action_id: "craft".into(), evidence_ref: "inventory/receipt-7".into(), evidence_kind: CausalEvidenceKind::EnvironmentStateTransition, status: CausalEdgeStatus::Verified },
-            CausalEdge { cause_action_id: "craft".into(), effect_action_id: "deliver".into(), evidence_ref: "task/verifier-1".into(), evidence_kind: CausalEvidenceKind::DeterministicPrecondition, status: CausalEdgeStatus::Verified },
-            CausalEdge { cause_action_id: "hint".into(), effect_action_id: "craft".into(), evidence_ref: "model-judge/proposal-2".into(), evidence_kind: CausalEvidenceKind::ModelProposed, status: CausalEdgeStatus::Candidate },
+            CausalEdge {
+                cause_action_id: "ore".into(),
+                effect_action_id: "transfer".into(),
+                evidence_ref: "ledger/ore-1".into(),
+                evidence_kind: CausalEvidenceKind::ResourceLineageReceipt,
+                status: CausalEdgeStatus::Verified,
+            },
+            CausalEdge {
+                cause_action_id: "message".into(),
+                effect_action_id: "transfer".into(),
+                evidence_ref: "chat/ack-44".into(),
+                evidence_kind: CausalEvidenceKind::AcknowledgedCommunication,
+                status: CausalEdgeStatus::Candidate,
+            },
+            CausalEdge {
+                cause_action_id: "wood".into(),
+                effect_action_id: "craft".into(),
+                evidence_ref: "ledger/wood-1".into(),
+                evidence_kind: CausalEvidenceKind::ResourceLineageReceipt,
+                status: CausalEdgeStatus::Verified,
+            },
+            CausalEdge {
+                cause_action_id: "transfer".into(),
+                effect_action_id: "craft".into(),
+                evidence_ref: "inventory/receipt-7".into(),
+                evidence_kind: CausalEvidenceKind::EnvironmentStateTransition,
+                status: CausalEdgeStatus::Verified,
+            },
+            CausalEdge {
+                cause_action_id: "craft".into(),
+                effect_action_id: "deliver".into(),
+                evidence_ref: "task/verifier-1".into(),
+                evidence_kind: CausalEvidenceKind::DeterministicPrecondition,
+                status: CausalEdgeStatus::Verified,
+            },
+            CausalEdge {
+                cause_action_id: "hint".into(),
+                effect_action_id: "craft".into(),
+                evidence_ref: "model-judge/proposal-2".into(),
+                evidence_kind: CausalEvidenceKind::ModelProposed,
+                status: CausalEdgeStatus::Candidate,
+            },
         ],
-        success_action_ids: if success { vec!["deliver".into()] } else { Vec::new() },
+        success_action_ids: if success {
+            vec!["deliver".into()]
+        } else {
+            Vec::new()
+        },
         task_succeeded: success,
         partial_success_count: if success { 4 } else { 2 },
         partial_success_total: 4,
     }
 }
 
-fn summary_row(fixture_id: &str, metrics: &civdyn_causal_collaboration::CollaborationMetrics) -> Vec<String> {
-    vec![
-        "summary".into(),
-        fixture_id.into(),
+fn summary_row(
+    fixture_id: &str,
+    metrics: &civdyn_causal_collaboration::CollaborationMetrics,
+) -> Vec<String> {
+    let mut row = blank_row("summary", fixture_id);
+    let values = [
         metrics.task_succeeded.to_string(),
         metrics.action_count.to_string(),
         metrics.agent_count.to_string(),
@@ -82,9 +214,11 @@ fn summary_row(fixture_id: &str, metrics: &civdyn_causal_collaboration::Collabor
         metrics.resource_transfer_action_count.to_string(),
         metrics.duplicate_action_count.to_string(),
         metrics.duplicate_fingerprint_groups.to_string(),
-        String::new(), String::new(), String::new(), String::new(), String::new(), String::new(), String::new(),
-        String::new(), String::new(), String::new(), String::new(), String::new(), String::new(),
-    ]
+    ];
+    for (index, value) in values.into_iter().enumerate() {
+        row[index + 2] = value;
+    }
+    row
 }
 
 fn evidence_kind_name(kind: CausalEvidenceKind) -> &'static str {
@@ -110,9 +244,7 @@ fn main() {
         emit(summary_row(fixture_id, &metrics));
 
         for agent in &metrics.per_agent {
-            let mut row = vec![String::new(); CSV_COLUMNS];
-            row[0] = "agent".into();
-            row[1] = fixture_id.into();
+            let mut row = blank_row("agent", fixture_id);
             row[2] = metrics.task_succeeded.to_string();
             row[23] = agent.agent_id.clone();
             row[24] = agent.role.clone();
@@ -125,17 +257,21 @@ fn main() {
         }
 
         for edge in &trace.causal_edges {
-            let cause_agent = trace.actions.iter()
+            let cause_agent = trace
+                .actions
+                .iter()
                 .find(|action| action.action_id == edge.cause_action_id)
                 .expect("causal source exists")
-                .agent_id.as_str();
-            let effect_agent = trace.actions.iter()
+                .agent_id
+                .as_str();
+            let effect_agent = trace
+                .actions
+                .iter()
                 .find(|action| action.action_id == edge.effect_action_id)
                 .expect("causal target exists")
-                .agent_id.as_str();
-            let mut row = vec![String::new(); CSV_COLUMNS];
-            row[0] = "causal_edge".into();
-            row[1] = fixture_id.into();
+                .agent_id
+                .as_str();
+            let mut row = blank_row("causal_edge", fixture_id);
             row[2] = metrics.task_succeeded.to_string();
             row[30] = edge.cause_action_id.clone();
             row[31] = edge.effect_action_id.clone();
@@ -144,7 +280,8 @@ fn main() {
             row[34] = match edge.status {
                 CausalEdgeStatus::Verified => "verified",
                 CausalEdgeStatus::Candidate => "candidate",
-            }.into();
+            }
+            .into();
             row[35] = (cause_agent != effect_agent).to_string();
             emit(row);
         }
@@ -160,8 +297,18 @@ mod tests {
         let successful = trace(true);
         assert_eq!(successful.agents.len(), 5);
         assert_eq!(successful.actions.len(), 8);
-        assert!(successful.causal_edges.iter().any(|edge| edge.evidence_kind == CausalEvidenceKind::ModelProposed));
-        assert!(successful.causal_edges.iter().any(|edge| edge.evidence_kind == CausalEvidenceKind::ResourceLineageReceipt));
+        assert!(
+            successful
+                .causal_edges
+                .iter()
+                .any(|edge| edge.evidence_kind == CausalEvidenceKind::ModelProposed)
+        );
+        assert!(
+            successful
+                .causal_edges
+                .iter()
+                .any(|edge| edge.evidence_kind == CausalEvidenceKind::ResourceLineageReceipt)
+        );
     }
 
     #[test]
