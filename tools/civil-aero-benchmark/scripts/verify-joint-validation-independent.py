@@ -224,7 +224,9 @@ def main(path: Path) -> int:
         require(all(math.isfinite(value) for value in standardized),
                 "standardized residual must be finite")
         whitened = solve_lower(lower, standardized)
-        squared = sum(value * value for value in whitened)
+        squared = 0.0
+        for value in whitened:
+            squared += value * value
         distance = math.sqrt(squared)
         require(vectors_close(standardized_report, standardized),
                 f"{observation_id}: standardized residual mismatch")
@@ -255,7 +257,10 @@ def main(path: Path) -> int:
 
     in_domain = sum(row["domain_status"] == "in_domain" for row in replayed)
     out_domain = len(replayed) - in_domain
-    mean = sum(float(row["mahalanobis_squared"]) for row in replayed) / len(replayed)
+    total_squared = 0.0
+    for row in replayed:
+        total_squared += float(row["mahalanobis_squared"])
+    mean = total_squared / len(replayed)
     maximum = max(float(row["mahalanobis_squared"]) for row in replayed)
     require(int(meta_row["in_domain_observation_count"]) == in_domain,
             "in-domain count mismatch")
