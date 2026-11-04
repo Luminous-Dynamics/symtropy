@@ -8,11 +8,24 @@
     "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "approval_reference": "synthetic-model-approval-17",
     "discipline_revisions": [
-      {"discipline_id": "architecture", "revision": "A-17"},
-      {"discipline_id": "electrical", "revision": "E-04"},
-      {"discipline_id": "mechanical", "revision": "M-08"}
+      {
+        "discipline_id": "architecture",
+        "revision": "A-17"
+      },
+      {
+        "discipline_id": "electrical",
+        "revision": "E-04"
+      },
+      {
+        "discipline_id": "mechanical",
+        "revision": "M-08"
+      }
     ],
-    "feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"]
+    "feature_ids": [
+      "FEAT-001",
+      "FEAT-002",
+      "FEAT-003"
+    ]
   },
   "export": {
     "source_model_revision": "bim-r17",
@@ -22,11 +35,24 @@
     "exporter_version": "4.2.0",
     "exporter_config_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "discipline_revisions": [
-      {"discipline_id": "architecture", "revision": "A-17"},
-      {"discipline_id": "electrical", "revision": "E-04"},
-      {"discipline_id": "mechanical", "revision": "M-08"}
+      {
+        "discipline_id": "architecture",
+        "revision": "A-17"
+      },
+      {
+        "discipline_id": "electrical",
+        "revision": "E-04"
+      },
+      {
+        "discipline_id": "mechanical",
+        "revision": "M-08"
+      }
     ],
-    "feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"]
+    "feature_ids": [
+      "FEAT-001",
+      "FEAT-002",
+      "FEAT-003"
+    ]
   },
   "site_binding": {
     "site_id": "synthetic-site-01",
@@ -43,7 +69,11 @@
     "vertical_datum": "project-level-datum:01",
     "coordinate_epoch": "2026.75",
     "units": "millimetres",
-    "axis_order": ["x", "y", "z"],
+    "axis_order": [
+      "x",
+      "y",
+      "z"
+    ],
     "handedness": "right_handed",
     "transform_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "transform_resource_sha256s": [
@@ -51,43 +81,62 @@
     ]
   },
   "inventory": {
-    "expected_feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"],
-    "exported_feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"],
+    "expected_feature_ids": [
+      "FEAT-001",
+      "FEAT-002",
+      "FEAT-003"
+    ],
+    "exported_feature_ids": [
+      "FEAT-001",
+      "FEAT-002",
+      "FEAT-003"
+    ],
     "declared_excluded_feature_ids": []
   },
   "control_validation": {
-    "fit_point_ids": ["FIT-001", "FIT-002", "FIT-003"],
+    "fit_point_ids": [
+      "FIT-001",
+      "FIT-002",
+      "FIT-003"
+    ],
     "independent_check_points": [
       {
         "point_id": "CHK-001",
-        "x_m": 0.0,
-        "y_m": 0.0,
+        "x_m": 0,
+        "y_m": 0,
         "residual_x_mm": 0.1,
         "residual_y_mm": 0.1,
         "u95_mm": 0.15,
         "independence_status": "independent_under_profile",
-        "independence_assessment_reference": "synthetic-independent-survey-assessment"
+        "independence_assessment_reference": "synthetic-independent-survey-assessment",
+        "coordinate_frame_id": "SURVEY_GRID:LEVEL_02"
       },
       {
         "point_id": "CHK-002",
-        "x_m": 10.0,
-        "y_m": 0.0,
+        "x_m": 10,
+        "y_m": 0,
         "residual_x_mm": 0.2,
-        "residual_y_mm": 0.0,
+        "residual_y_mm": 0,
         "u95_mm": 0.15,
         "independence_status": "independent_under_profile",
-        "independence_assessment_reference": "synthetic-independent-survey-assessment"
+        "independence_assessment_reference": "synthetic-independent-survey-assessment",
+        "coordinate_frame_id": "SURVEY_GRID:LEVEL_02"
       },
       {
         "point_id": "CHK-003",
-        "x_m": 0.0,
-        "y_m": 10.0,
-        "residual_x_mm": 0.0,
+        "x_m": 0,
+        "y_m": 10,
+        "residual_x_mm": 0,
         "residual_y_mm": -0.1,
         "u95_mm": 0.15,
         "independence_status": "independent_under_profile",
-        "independence_assessment_reference": "synthetic-independent-survey-assessment"
+        "independence_assessment_reference": "synthetic-independent-survey-assessment",
+        "coordinate_frame_id": "SURVEY_GRID:LEVEL_02"
       }
-    ]
+    ],
+    "survey_result_reference": "synthetic-survey-result-001",
+    "survey_result_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "survey_adjustment_reference": "synthetic-adjustment-001",
+    "survey_adjustment_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
   }
 }
