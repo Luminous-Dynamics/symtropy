@@ -4,7 +4,7 @@
 //! This validator is intentionally narrower than a circuit simulator: it checks
 //! a supplied transition energy receipt and never invents a state-reset rule.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Debug, Clone)]
 struct Mode {
@@ -201,11 +201,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         "port_net_energy_uncertainty_j",
         "switch_event",
     )?;
-    let dissipation_j = nonnegative_field(
-        transition,
-        "event_dissipation_j",
-        "switch_event",
-    )?;
+    let dissipation_j = nonnegative_field(transition, "event_dissipation_j", "switch_event")?;
     let dissipation_u = nonnegative_field(
         transition,
         "event_dissipation_uncertainty_j",
@@ -213,8 +209,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     )?;
     let absolute_tolerance_j =
         nonnegative_field(transition, "absolute_tolerance_j", "switch_event")?;
-    let relative_tolerance =
-        nonnegative_field(transition, "relative_tolerance", "switch_event")?;
+    let relative_tolerance = nonnegative_field(transition, "relative_tolerance", "switch_event")?;
     if relative_tolerance > 1.0 {
         return Err("switch_event.relative_tolerance must not exceed 1.0".into());
     }
@@ -454,10 +449,7 @@ mod tests {
             "post_energy_j": 0.1,
             "post_energy_uncertainty_j": 0.00001
         });
-        assert_eq!(
-            disposition(&record),
-            "PASSIVE_TRANSITION_CERTIFIED"
-        );
+        assert_eq!(disposition(&record), "PASSIVE_TRANSITION_CERTIFIED");
     }
 
     #[test]
