@@ -340,6 +340,44 @@ fn calculate_session_contrasts(
         abc: effects[6],
     })
 }
+/// Computes a finite mean without overflowing on an intermediate sum.
+///
+/// Values are first scaled by their largest absolute magnitude. A compensated
+/// sum is then accumulated in the bounded [-1, 1] domain and rescaled once.
+fn mean(values: &[f64]) -> Result<f64, FactorialError> {
+    if values.is_empty() {
+        return Err(FactorialError::EmptyObservations);
+    }
+
+    let mut scale = 0.0_f64;
+    for value in values {
+        if !value.is_finite() {
+            return Err(FactorialError::NonFiniteSummary);
+        }
+        scale = scale.max(value.abs());
+    }
+    if scale == 0.0 {
+        return Ok(0.0);
+    }
+
+    let mut sum = 0.0_f64;
+    let mut correction = 0.0_f64;
+    for value in values {
+        let adjusted = value / scale - correction;
+        let next = sum + adjusted;
+        correction = (next - sum) - adjusted;
+        sum = next;
+    }
+
+    let scaled_mean = sum / values.len() as f64;
+    let result = scaled_mean * scale;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(FactorialError::NonFiniteSummary)
+    }
+}
+
 fn mean_contrasts(values: &[FactorialContrasts]) -> Result<FactorialContrasts, FactorialError> {
     Ok(FactorialContrasts {
         a: mean(&values.iter().map(|value| value.a).collect::<Vec<_>>())?,
@@ -965,6 +1003,25 @@ mod tests {
         }
         assert_eq!(
             analyze_factorial(&protocol(), &observations),
+            Err(FactorialError::NonFiniteSummary)
+        );
+    }
+
+    #[test]
+    fn scaled_mean_avoids_overflow_for_large_same_sign_values() {
+        assert_eq!(mean(&[f64::MAX, f64::MAX]), Ok(f64::MAX));
+    }
+
+    #[test]
+    fn scaled_mean_preserves_finite_cancellation() {
+        assert_eq!(mean(&[f64::MAX, -f64::MAX]), Ok(0.0));
+    }
+
+    #[test]
+    fn scaled_mean_rejects_empty_and_non_finite_inputs() {
+        assert_eq!(mean(&[]), Err(FactorialError::EmptyObservations));
+        assert_eq!(
+            mean(&[f64::INFINITY]),
             Err(FactorialError::NonFiniteSummary)
         );
     }
