@@ -710,31 +710,43 @@ fn validate_action_transition_semantics(
             .then_some("washout must clear physical carryover while preserving sensor state")
         }
         InterventionKind::ActiveMovementProbe => {
-            (next_sensor.presynaptic_movement_inhibition
-                != PresynapticMovementInhibition::Engaged
+            let target_is_engaged = action.target_leg.is_some_and(|leg| {
+                next_sensor.presynaptic_movement_inhibition[leg.index()]
+                    == PresynapticMovementInhibition::Engaged
+                    && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
+            });
+            (!target_is_engaged
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
-                .then_some(
-                    "active self-generated movement must engage movement-axon presynaptic inhibition without altering channel or acquisition state",
-                )
+            .then_some(
+                "active self-generated movement must engage presynaptic inhibition on its target leg only, without altering channels or acquisition state",
+            )
         }
         InterventionKind::PassiveMovementProbe => {
-            (next_sensor.presynaptic_movement_inhibition
-                != PresynapticMovementInhibition::Disinhibited
+            let target_is_disinhibited = action.target_leg.is_some_and(|leg| {
+                next_sensor.presynaptic_movement_inhibition[leg.index()]
+                    == PresynapticMovementInhibition::Disinhibited
+                    && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
+            });
+            (!target_is_disinhibited
                 || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
-                .then_some(
-                    "passive movement must leave movement-axon presynaptic inhibition disinhibited",
-                )
+            .then_some(
+                "passive movement must leave its target leg presynaptically disinhibited and preserve other legs",
+            )
         }
         InterventionKind::DescendingPathwayModulation => {
-            (action.presynaptic_inhibition_target != Some(
-                next_sensor.presynaptic_movement_inhibition,
-            ) || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
+            let target_matches = action.target_leg.is_some_and(|leg| {
+                action.presynaptic_inhibition_target
+                    == Some(next_sensor.presynaptic_movement_inhibition[leg.index()])
+                    && presynaptic_legs_except_unchanged(current_sensor, next_sensor, leg)
+            });
+            (!target_matches
+                || !sensor_afferent_channels_unchanged(current_sensor, next_sensor)
                 || current_sensor.acquisition != next_sensor.acquisition)
-                .then_some(
-                    "descending modulation must set its declared presynaptic inhibition target only",
-                )
+            .then_some(
+                "descending modulation must set its declared presynaptic target leg and state only",
+            )
         }
     };
 
@@ -913,13 +925,19 @@ impl LocomotionKernelSpec {
         }
 
         for action in &self.actions {
+            let target_leg_valid = match action.kind {
+                InterventionKind::ActiveMovementProbe
+                | InterventionKind::PassiveMovementProbe
+                | InterventionKind::DescendingPathwayModulation => action.target_leg.is_some(),
+                _ => action.target_leg.is_none(),
+            };
             let presynaptic_target_valid = match action.kind {
                 InterventionKind::DescendingPathwayModulation => {
                     action.presynaptic_inhibition_target.is_some()
                 }
                 _ => action.presynaptic_inhibition_target.is_none(),
             };
-            if !presynaptic_target_valid {
+            if !target_leg_valid || !presynaptic_target_valid {
                 return Err(AdapterError::InvalidPresynapticInterventionTarget {
                     action_id: action.id.clone(),
                 });
