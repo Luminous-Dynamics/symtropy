@@ -121,15 +121,32 @@ def validate_npz(
 
         actual_algorithm = str(scalar("algorithm"))
         actual_problem = str(scalar("problem"))
+        for integer_name in ("seed", "n_init"):
+            integer_array = np.asarray(archive[integer_name])
+            if integer_array.size != 1 or not np.issubdtype(integer_array.dtype, np.integer):
+                raise ValueError(f"NPZ {integer_name} must be a single integer-typed scalar")
         actual_seed = int(scalar("seed"))
+        best_array = np.asarray(archive["best"])
+        if best_array.size != 1 or best_array.dtype.kind not in "fiu":
+            raise ValueError("NPZ best must be a single real numeric scalar")
         best = float(scalar("best"))
         n_init = int(scalar("n_init"))
-        X = np.asarray(archive["X"], dtype=float)
-        y = np.asarray(archive["y"], dtype=float)
-        c = np.asarray(archive["c"], dtype=float)
+        raw_arrays = {name: np.asarray(archive[name]) for name in ("X", "y", "c")}
+        for name, array in raw_arrays.items():
+            if array.dtype.kind not in "fiu":
+                raise ValueError(f"NPZ {name} must use a real numeric dtype, got {array.dtype}")
+        X = raw_arrays["X"].astype(float, copy=False)
+        y = raw_arrays["y"].astype(float, copy=False)
+        c = raw_arrays["c"].astype(float, copy=False)
         iterations = np.asarray(archive["iterations"])
-        best_trace = np.asarray(archive["per_iteration_value"], dtype=float)
-        wall_trace = np.asarray(archive["wall_time"], dtype=float)
+        raw_best_trace = np.asarray(archive["per_iteration_value"])
+        raw_wall_trace = np.asarray(archive["wall_time"])
+        if not np.issubdtype(iterations.dtype, np.integer):
+            raise ValueError("NPZ iteration indices must use an integer dtype")
+        if raw_best_trace.dtype.kind not in "fiu" or raw_wall_trace.dtype.kind not in "fiu":
+            raise ValueError("NPZ best-history and wall-time traces must use real numeric dtypes")
+        best_trace = raw_best_trace.astype(float, copy=False)
+        wall_trace = raw_wall_trace.astype(float, copy=False)
 
         if actual_algorithm != algorithm or actual_problem != task_id or actual_seed != seed:
             raise ValueError(
