@@ -49,7 +49,21 @@ Each source manifest binds source kind, paper/source URI, dataset identity, rele
 
 Mechanism hypotheses and every joint transition-likelihood row independently declare their source manifest IDs and claim ceiling. The compiled adapter preserves row-level provenance in canonical order alongside the numeric `JointKernel`; source references are not discarded after compilation. A missing transition-row source or a claim ceiling unsupported by its cited manifests fails closed. Connectome-derived anatomy can support an anatomical constraint but cannot satisfy a measured-neural or measured-behaviour claim. Measured trial receipts require a source whose evidence class matches the receipt and require animal/preparation identity. Randomized assignment and actual delivered protocol remain distinct; a delivery mismatch is retained as a failure record and cannot be scored as a valid intervention. The compiled adapter also carries a preregistered minimum delivery-fidelity threshold (0.90 in the synthetic fixture), and each trial receipt records numeric fidelity using exact rational arithmetic. A boolean "verified" flag cannot override a below-threshold delivery. Every receipt binds a SHA-256 digest of the complete pre-outcome history used for its conditional forecast. Batch validation rejects duplicate sample IDs but allows repeated samples from the same animal/session when sample IDs and conditioning-history digests are distinct; this is an identity/ordering check, not proof that the digest correctly represents the biological history. Compilation canonicalizes entities and transition rows by semantic IDs, so storage-order permutations produce identical compiled kernels. Typed intervention semantics are checked for every transition row: position, movement, vibration and contact/load actions cannot silently alter unrelated sensor channels; calibration preserves physical state; washout clears physical carryover without erasing sensor/acquisition state.
 
-### Synthetic locomotion confounding fixture
+### Presynaptic modulation is not sensory-channel loss
+
+The adapter now represents three different concepts separately:
+
+- **Afferent channel state:** whether position-, movement-, vibration-, or contact-feedback signals are intact, gated, attenuated, stale, or missing.
+- **Presynaptic movement inhibition:** whether movement-encoding FeCO axons are in a disinhibited or presynaptically inhibited state.
+- **Acquisition state:** whether the measurement instrument is calibrated, offset, drifting, or noisy.
+
+This distinction is grounded in Dallmann et al. (Nature, 2025), who report that position-encoding claw axons remain active across behaviours while movement-encoding hook axons are suppressed during walking and grooming. The authors identify GABAergic interneurons that provide presynaptic inhibition to hook axons and receive descending input; their activity is correlated with self-generated rather than passive leg movements. DOI: [10.1038/s41586-025-09554-2](https://doi.org/10.1038/s41586-025-09554-2).
+
+The synthetic action vocabulary therefore distinguishes active movement probes, passive movement probes, and explicit descending modulation with an engaged/disinhibited target. Active/passive actions change the presynaptic state in the synthetic kernel without gating the movement channel or changing acquisition state. Descending actions must declare their target explicitly. The compiler rejects inconsistent transition rows, and a movement-afferent channel gate is required to preserve the presynaptic state.
+
+**Claim boundary:** these are typed, synthetic software fixtures informed by a published mechanism. They do not reproduce the measured neural response distributions, prove the exact descending circuit dynamics, or establish a causal effect in a real fly. A measured-data claim requires a source-locked measurement likelihood and independent held-out validation.
+
+## Synthetic locomotion confounding fixture
 
 The adapter tests include a deliberately synthetic case in which:
 - a latent gait/contact state is confounded with a persistent acquisition offset;
