@@ -16,8 +16,13 @@ permissions:
 
 jobs:
   event-evaluator:
-    name: Test CivBench event evaluator
-    runs-on: ubuntu-latest
+    name: Test CivBench event evaluator (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +32,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Validate standalone package and committed lock
+        shell: bash
         run: |
           set -euo pipefail
           cargo metadata --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --no-deps >/dev/null
@@ -44,16 +50,15 @@ jobs:
           set -euo pipefail
           cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all
           mkdir -p /tmp/civbench-event-evaluator-rustfmt
-          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs
-          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs.formatted
-          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/lib.rs > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+          cp -R research/civbench-event-evaluator/src /tmp/civbench-event-evaluator-rustfmt/src
+          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/ > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
           test -s /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
 
       - name: Upload rustfmt diagnostic source
-        if: steps.fmt.outcome == 'failure'
+        if: steps.fmt.outcome == 'failure' && runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: civbench-event-evaluator-rustfmt
+          name: civbench-event-evaluator-rustfmt-${{ matrix.os }}
           path: /tmp/civbench-event-evaluator-rustfmt/
           if-no-files-found: error
 
