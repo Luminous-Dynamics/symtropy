@@ -534,6 +534,7 @@ mod tests {
                     &format!("template-{sample_id}"),
                 ),
                 group(LeakageDimension::Network, network),
+                group(LeakageDimension::TopologyFamily, "topology-1"),
             ],
         }
     }
