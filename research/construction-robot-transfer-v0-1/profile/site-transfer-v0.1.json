@@ -29,14 +29,21 @@
     "target_label_count",
     "elapsed_time_to_first_accepted_unit",
     "actual_adaptation_person_hours_by_role",
-    "label_budget_utilization"
+    "label_budget_utilization",
+    "domain_bound_acceptance_evidence_coverage"
   ],
   "hard_rules": {
     "source_training_target_evaluation_overlap": 0,
     "target_adaptation_target_evaluation_work_item_overlap": 0,
     "accepted_without_independent_inspection": 0,
     "unsupported_domain_silent_admission": 0,
-    "source_target_config_digest": "explicitly bound"
+    "source_target_config_digest": "explicitly bound",
+    "source_target_sites_must_differ": true,
+    "evaluation_domain_matches_domain_manifest": true,
+    "acceptance_evidence_manifest_required": true,
+    "independent_adjudication_reference_required": true,
+    "measurement_protocol_digest_required": true,
+    "evidence_class_matches_for_retention": true
   },
   "limitations": [
     "No inference of safety from productivity",
