@@ -583,3 +583,220 @@ mod tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod frozen_scenario_tests {
+    use serde::Deserialize;
+
+    use super::{
+        CommandBinding, Epoch, Model, Qualification, State,
+    };
+
+    const ORDERED: &str = include_str!(
+        "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/ordered-epoch-change.json"
+    );
+    const REPLAY: &str = include_str!(
+        "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/replayed-epoch-fails-closed.json"
+    );
+    const RECONNECT: &str = include_str!(
+        "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/reconnect-needs-requalification.json"
+    );
+
+    #[derive(Debug, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Scenario {
+        scenario_id: String,
+        task_scope: String,
+        initial_configuration_digest: String,
+        expected_final_state: String,
+        events: Vec<ScenarioEvent>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    #[serde(tag = "event", rename_all = "snake_case", deny_unknown_fields)]
+    enum ScenarioEvent {
+        AcceptEpoch {
+            revision: u64,
+            digest: String,
+            predecessor_digest: Option<String>,
+            task_scope: String,
+            authenticated: bool,
+            expected: String,
+        },
+        Requalify {
+            epoch_digest: String,
+            configuration_digest: String,
+            task_scope: String,
+            evidence_digest: String,
+            record_reference: String,
+            accepted_by_upstream: bool,
+            expected: String,
+        },
+        Command {
+            epoch_digest: String,
+            configuration_digest: String,
+            task_scope: String,
+            context_fresh: bool,
+            clock_within_bound: bool,
+            expected: String,
+        },
+        CommunicationsLost,
+        CommunicationsRestored,
+        OperatorAcknowledged,
+        MarkContextStale,
+        ConfigurationChanged {
+            new_digest: String,
+            expected: String,
+        },
+    }
+
+    fn expected_bool(scenario: &str, index: usize, actual: bool, expected: &str) {
+        let expected_result = match expected {
+            "accepted" | "activated" | "authorized" => true,
+            "rejected" | "denied" => false,
+            other => panic!(
+                "scenario {scenario} event {index}: unknown expected result {other}"
+            ),
+        };
+        assert_eq!(
+            actual, expected_result,
+            "scenario {scenario} event {index} expected {expected}"
+        );
+    }
+
+    fn state_name(state: &State) -> &'static str {
+        match state {
+            State::AwaitingEpoch => "awaiting_epoch",
+            State::RequalificationRequired => "requalification_required",
+            State::Active => "active",
+            State::SafeHold(_) => "safe_hold",
+            State::ContextStale => "context_stale",
+            State::ContextConflict => "context_conflict",
+            State::Aborted(_) => "aborted",
+        }
+    }
+
+    fn replay_scenario(raw: &str) {
+        let scenario: Scenario = serde_json::from_str(raw).expect("strict scenario JSON");
+        let mut model = Model::new(
+            scenario.task_scope.clone(),
+            scenario.initial_configuration_digest,
+        )
+        .expect("scenario model");
+
+        for (index, event) in scenario.events.into_iter().enumerate() {
+            match event {
+                ScenarioEvent::AcceptEpoch {
+                    revision,
+                    digest,
+                    predecessor_digest,
+                    task_scope,
+                    authenticated,
+                    expected,
+                } => {
+                    let result = model.accept_epoch(
+                        Epoch {
+                            revision,
+                            digest,
+                            predecessor_digest,
+                            task_scope,
+                        },
+                        authenticated,
+                    );
+                    expected_bool(&scenario.scenario_id, index, result.is_ok(), &expected);
+                }
+                ScenarioEvent::Requalify {
+                    epoch_digest,
+                    configuration_digest,
+                    task_scope,
+                    evidence_digest,
+                    record_reference,
+                    accepted_by_upstream,
+                    expected,
+                } => {
+                    let result = model.requalify(
+                        Qualification {
+                            epoch_digest,
+                            configuration_digest,
+                            task_scope,
+                            evidence_digest,
+                            record_reference,
+                        },
+                        accepted_by_upstream,
+                    );
+                    expected_bool(
+                        &scenario.scenario_id,
+                        index,
+                        result.is_ok(),
+                        &expected,
+                    );
+                }
+                ScenarioEvent::Command {
+                    epoch_digest,
+                    configuration_digest,
+                    task_scope,
+                    context_fresh,
+                    clock_within_bound,
+                    expected,
+                } => {
+                    let result = model.authorize(&CommandBinding {
+                        epoch_digest,
+                        configuration_digest,
+                        task_scope,
+                        context_fresh,
+                        clock_within_bound,
+                    });
+                    expected_bool(
+                        &scenario.scenario_id,
+                        index,
+                        result.is_ok(),
+                        &expected,
+                    );
+                }
+                ScenarioEvent::CommunicationsLost => model.communications_lost(),
+                ScenarioEvent::CommunicationsRestored => model.communications_restored(),
+                ScenarioEvent::OperatorAcknowledged => model.operator_acknowledged(),
+                ScenarioEvent::MarkContextStale => model.mark_context_stale(),
+                ScenarioEvent::ConfigurationChanged {
+                    new_digest,
+                    expected,
+                } => {
+                    let result = model.configuration_changed(new_digest);
+                    expected_bool(
+                        &scenario.scenario_id,
+                        index,
+                        result.is_ok(),
+                        &expected,
+                    );
+                }
+            }
+        }
+
+        assert_eq!(
+            state_name(model.state()),
+            scenario.expected_final_state,
+            "scenario {} final state",
+            scenario.scenario_id
+        );
+    }
+
+    #[test]
+    fn frozen_transition_scenarios_replay_to_expected_decisions() {
+        for fixture in [ORDERED, REPLAY, RECONNECT] {
+            replay_scenario(fixture);
+        }
+    }
+
+    #[test]
+    fn frozen_scenario_parser_rejects_unknown_fields() {
+        let malformed = ORDERED.replace(
+            "\"revision\": 1,",
+            "\"revision\": 1, \"silent_fallback\": true,",
+        );
+        assert!(
+            serde_json::from_str::<Scenario>(&malformed).is_err(),
+            "unknown scenario fields must not be silently ignored"
+        );
+    }
+}
