@@ -41,6 +41,7 @@ fn sample(
 fn policy() -> SplitPolicy {
     SplitPolicy {
         protocol_id: "within_network_unseen_event_v1".to_owned(),
+        manifest_digest: digest(900),
         exclusive_dimensions: BTreeSet::from([
             LeakageDimension::PhysicalEvent,
             LeakageDimension::CaptureSession,
@@ -66,6 +67,21 @@ fn within_network_protocol_allows_shared_network_but_blocks_event_and_session_le
     assert_eq!(report.partition_counts[&DataPartition::Validation], 1);
     assert_eq!(report.partition_counts[&DataPartition::Test], 1);
     assert_eq!(report.group_counts[&LeakageDimension::Network], 1);
+    assert_eq!(
+        report.exclusive_dimensions,
+        BTreeSet::from([
+            LeakageDimension::PhysicalEvent,
+            LeakageDimension::CaptureSession,
+        ])
+    );
+    assert_eq!(
+        report.shared_dimensions,
+        BTreeSet::from([LeakageDimension::Network])
+    );
+    assert!(report.canonical_text().contains(&format!(
+        "manifest_digest={}",
+        policy().manifest_digest
+    )));
 }
 
 #[test]
@@ -194,6 +210,7 @@ fn whitespace_padded_identifiers_are_rejected() {
 fn empty_policy_cannot_claim_an_audited_protocol() {
     let empty_policy = SplitPolicy {
         protocol_id: "unconstrained".to_owned(),
+        manifest_digest: digest(900),
         exclusive_dimensions: BTreeSet::new(),
         shared_dimensions: BTreeSet::new(),
     };
@@ -220,6 +237,16 @@ fn digest_comparison_is_case_insensitive() {
     samples[3].content_digest = format!("sha256:{}", source_hex.to_ascii_uppercase());
     let error = audit_benchmark_split(&samples, &policy()).expect_err("same digest");
     assert_eq!(error.code, "duplicate_content_digest");
+}
+
+
+#[test]
+fn malformed_manifest_digest_is_rejected() {
+    let mut invalid_policy = policy();
+    invalid_policy.manifest_digest = "sha256:00".to_owned();
+    let error =
+        audit_benchmark_split(&valid_samples(), &invalid_policy).expect_err("manifest digest");
+    assert_eq!(error.code, "invalid_manifest_digest");
 }
 
 #[test]
