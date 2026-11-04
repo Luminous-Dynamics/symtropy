@@ -36,6 +36,37 @@ The water-specific gap is the **composition after information acquisition**: dec
 
 The 2026 review of 86 leak-detection studies identifies operational constraints and false-alarm burden as deployment bottlenecks, while recommending hierarchical sensor-aware evaluation and explicit SCADA/GIS feasibility: https://doi.org/10.2166/hydro.2026.069. A separate 2026 review recommends cross-site validation, task-valid explanations, controlled decision loops, lifecycle sustainability and explicit cost/equity measurement: https://www.mdpi.com/2073-4441/18/19/2443.
 
+### 2.1 Real operating baselines already exist in Johannesburg
+
+CivBench must not compare itself only against a hypothetical utility with no sensing or inspection workflow.
+
+Johannesburg Water's published Active Leak Detection programme reports:
+- 15 technical teams undertaking daily active leak detection;
+- more than 10,500 km of infrastructure inspected per year, described as approximately 85% of the network;
+- use of acoustic listening sticks, ground microphones and correlators;
+- average annual detection figures of 1,456 burst pipes, 5,227 leaking meters, 341 leaking valves and 217 leaking hydrants;
+- approximately 8,100 ML/year of water saved, as reported by the utility.
+
+Source: [Johannesburg Water — Active Leak Detection Programme](https://johannesburgwater-bygkashncch7dndx.southafricanorth-01.azurewebsites.net/about-us/campaigns/active-leak-detection-programme/).
+
+These are utility-published aggregate operational claims. The page does not provide event-level denominators, confidence intervals, counterfactual attribution or independent outcome audit. Treat the reported 8,100 ML as a **utility-reported estimate**, not an independently verified causal effect or a current CivBench baseline value.
+
+Johannesburg Water's July 23, 2026 media release also reports a smart-control and sensor rollout:
+- smart hydraulic-flow controls being retrofitted to 28 high-consumption reservoirs/towers;
+- 53 smart pressure controllers commissioned/installed as of April 2025;
+- 306 additional controllers procured and being installed, with a stated September 2026 completion target;
+- 225 noise loggers installed, with 125 additional loggers planned by October 2026.
+
+Source: [Johannesburg Water — Smart Technology Rollout, July 23, 2026](https://www.johannesburgwater.co.za/blog/2026/07/23/johannesburg-water-accelerates-smart-technology-rollout-to-reduce-water-losses/).
+
+The September/October 2026 target dates have elapsed, but this release does not verify the final completion totals. Do not infer that all 306 controllers or 125 planned loggers were installed. A current installation inventory would require a later authoritative source.
+
+**Benchmark implication:** include a public-information baseline representing the described inspection/acoustic/correlator/depot workflow, and keep the smart-controller/noise-logger deployment profile as a separate, date-qualified lane. Do not fabricate crew dispatch rates, sensor uptime, false-alarm rate, repair completion or savings attribution from the aggregate page. For a real utility comparison, obtain authorized event-level workflow data and independently qualified service outcomes.
+
+A further 2026 research comparator is the DBSCAN-Leak campus case study, which reports 16 confirmed leaks detected versus one by its original DBSCAN comparator, with 100% precision, 80% recall and F1 0.89 on Lille University Scientific Campus flow data. This is a distinct site/task and a paper-reported case study, not a municipal-network or Johannesburg result: https://doi.org/10.1109/ACCESS.2026.3664702.
+
+A 2026 Macao campus study provides another useful system-composition reference: monitored pressure/flow, pressure-driven demand modelling, digital-twin analytics and a digital work-order system were joined for leak detection, dispatch and repair confirmation. It reports hydraulic state errors below 5% and a two-week detection-to-validation cycle for its campus deployment. Again, this is a campus-specific case study, not proof of utility-scale transfer: https://doi.org/10.2166/aqua.2026.125.
+
 ## 3. Existing owners and reference boundaries
 
 | Component | Authoritative owner | Composition rule |
