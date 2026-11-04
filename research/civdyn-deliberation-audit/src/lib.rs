@@ -493,14 +493,14 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
     let summary_proposal_count = session.summary_proposal_ids.len();
     let suppressed_proposal_count = raised_ids
         .iter()
-        .filter(|proposal_id| !summary_ids.contains(**proposal_id))
+        .filter(|proposal_id| !summary_ids.contains(*proposal_id))
         .count();
     let proposal_summary_coverage = if raised_proposal_count == 0 {
         None
     } else {
         let raised_and_summarized = raised_ids
             .iter()
-            .filter(|proposal_id| summary_ids.contains(**proposal_id))
+            .filter(|proposal_id| summary_ids.contains(*proposal_id))
             .count();
         Some(raised_and_summarized as f64 / raised_proposal_count as f64)
     };
@@ -560,7 +560,6 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
     let false_consensus_declaration = session.facilitator_declares_consensus
         && preference_consensus_share < 1.0 - TOLERANCE;
 
-    let total_turns = turns_by_member.iter().sum::<usize>();
     let total_speaking_time = speaking_time_by_member.iter().sum::<u64>();
     let members = session
         .participants
@@ -593,7 +592,6 @@ pub fn audit_session(session: &DeliberationSession) -> Result<SessionAudit, Deli
         })
         .collect::<Vec<_>>();
 
-    let _ = total_turns;
     Ok(SessionAudit {
         session_id: session.session_id.clone(),
         participant_count: member_count,
