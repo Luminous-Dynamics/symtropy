@@ -24,7 +24,7 @@ Each route is an event stream over integer nanoseconds:
 
 Every phase has its own SPC/EVPC Wh values and deterministic absolute uncertainty bounds. The six phase sums must reconcile with independent whole-segment meter totals within the combined bounds. A route is rejected when segments/idle intervals overlap, leave an unaccounted time gap, or fail to cover the full route interval.
 
-The measurement-plane identifier is checked against the expected plane. Each measurement has meter ID, measurement ID, calibration receipt digest and raw source artifact digest. Measurement IDs must be globally unique within a route to prevent accidental double-counting.
+The measurement-plane identifier is checked against the expected plane. Each measurement has meter ID, measurement ID, calibration receipt digest and raw source artifact digest. Measurement IDs must be globally unique within a route to prevent accidental double-counting. Reports preserve route/segment geometry digests, evidence class, per-phase meter IDs and a sorted provenance index for every meter reading, calibration receipt and source artifact.
 
 ## Metric definitions
 
@@ -73,7 +73,7 @@ The synthetic-highway-pass.json fixture contains two synthetic six-phase segment
 - roadway inverter DC to vehicle DC bus: 130 / 140 ≈ 92.86%;
 - grid AC to battery terminal across the route: 96 / 185 ≈ 51.89%.
 
-The route contains 5 Wh of idle grid input and 20 Wh of idle roadway-inverter draw. The latter is separately reported and is intentionally not included in the active inverter-to-vehicle transfer denominator. The fixture also includes BESS DC output values to demonstrate that this is another measurement boundary, not an alias for grid energy.
+The route contains 5 Wh of idle grid input and 20 Wh of idle roadway-inverter draw. The latter is separately reported with its uncertainty and is intentionally not included in the active inverter-to-vehicle transfer denominator. The fixture also includes BESS DC output values to demonstrate that this is another measurement boundary, not an alias for grid energy. The CLI report carries the BESS energy and summed uncertainty separately, alongside the full meter-provenance index.
 
 These values are synthetic regression data, not Purdue, Electreon, IEC or vehicle test results.
 
