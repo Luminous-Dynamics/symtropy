@@ -131,7 +131,7 @@ impl ReservationBook {
         request: ReservationRequest,
         now_ms: u64,
     ) -> Result<ReservationOutcome, ReservationError> {
-        validate_request(&request, now_ms)?;
+        validate_request(&request)?;
         self.expire(now_ms);
 
         if request.site_epoch != self.current_site_epoch {
@@ -156,6 +156,13 @@ impl ReservationBook {
             } else {
                 Err(ReservationError::ReservationIdConflict)
             };
+        }
+
+        if request.interval_start_ms < now_ms {
+            return Err(ReservationError::InvalidInterval);
+        }
+        if request.expires_at_ms <= now_ms {
+            return Err(ReservationError::RequestAlreadyExpired);
         }
 
         let mut used_capacity = 0_u32;
@@ -270,10 +277,7 @@ impl ReservationBook {
     }
 }
 
-fn validate_request(
-    request: &ReservationRequest,
-    now_ms: u64,
-) -> Result<(), ReservationError> {
+fn validate_request(request: &ReservationRequest) -> Result<(), ReservationError> {
     require_non_empty("reservation_id", &request.reservation_id)?;
     require_non_empty("resource_id", &request.resource_id)?;
     require_non_empty("task_id", &request.task_id)?;
@@ -284,16 +288,11 @@ fn validate_request(
     if request.units == 0 {
         return Err(ReservationError::ZeroUnits);
     }
-    if request.interval_start_ms < now_ms
-        || request.interval_start_ms >= request.interval_end_ms
-    {
+    if request.interval_start_ms >= request.interval_end_ms {
         return Err(ReservationError::InvalidInterval);
     }
     if request.expires_at_ms < request.interval_end_ms {
         return Err(ReservationError::ExpiryBeforeEnd);
-    }
-    if request.expires_at_ms <= now_ms {
-        return Err(ReservationError::RequestAlreadyExpired);
     }
     Ok(())
 }
