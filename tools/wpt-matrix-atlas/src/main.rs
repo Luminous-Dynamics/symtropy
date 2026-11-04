@@ -46,6 +46,10 @@ fn main() -> ExitCode {
                     );
                     return ExitCode::FAILURE;
                 }
+                if result.disposition == "UNRESOLVED" {
+                    eprintln!("matrix-atlas result is UNRESOLVED; refusing successful exit");
+                    return ExitCode::FAILURE;
+                }
                 ExitCode::SUCCESS
             }
             Err(error) => {
