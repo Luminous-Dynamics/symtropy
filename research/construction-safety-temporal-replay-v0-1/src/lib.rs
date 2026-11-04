@@ -195,8 +195,7 @@ fn policy_is_valid(policy: &TracePolicy) -> bool {
         || !is_sha256_reference(&policy.policy_sha256)
         || !is_sha256_reference(&policy.coverage_grid_sha256)
         || policy.maximum_event_age_ms == 0
-        || (policy.required_evidence_window_ms > 0
-            && policy.maximum_inter_sample_gap_ms == 0)
+        || (policy.required_evidence_window_ms > 0 && policy.maximum_inter_sample_gap_ms == 0)
         || policy.minimum_confidence_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_coverage_ppm > MAX_CONFIDENCE_PPM
         || policy.minimum_independent_modalities == 0
@@ -563,9 +562,7 @@ pub fn evaluate(policy: &TracePolicy, input_events: &[SafetyEvidenceEvent]) -> T
 
             let first_source_time_ms = history[0].source_time_ms;
             let last_source_time_ms = history[history.len() - 1].source_time_ms;
-            let latest_age_ms = policy
-                .evaluated_at_ms
-                .saturating_sub(last_source_time_ms);
+            let latest_age_ms = policy.evaluated_at_ms.saturating_sub(last_source_time_ms);
             maximum_age_ms = maximum_age_ms.max(latest_age_ms);
 
             // A positive or conflicting observation inside the declared
