@@ -45,7 +45,19 @@
         "compliant_sample_fraction": 1,
         "maximum_measured_ramp_kw_per_second": 100,
         "pass": true
-      }
+      },
+      "baseline_evidence_ids": [
+        "fast-sustained-exact-baseline-0",
+        "fast-sustained-exact-baseline-1",
+        "fast-sustained-exact-baseline-2",
+        "fast-sustained-exact-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "fast-sustained-exact-response-0",
+        "fast-sustained-exact-response-1",
+        "fast-sustained-exact-response-2",
+        "fast-sustained-exact-response-3"
+      ]
     },
     {
       "case_id": "late-initial-response",
@@ -69,7 +81,19 @@
         "response_latency_pass": true,
         "underdelivery_energy_pass": false,
         "pass": false
-      }
+      },
+      "baseline_evidence_ids": [
+        "late-initial-response-baseline-0",
+        "late-initial-response-baseline-1",
+        "late-initial-response-baseline-2",
+        "late-initial-response-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "late-initial-response-response-0",
+        "late-initial-response-response-1",
+        "late-initial-response-response-2",
+        "late-initial-response-response-3"
+      ]
     },
     {
       "case_id": "initial-response-then-sustained-under-delivery",
@@ -92,7 +116,19 @@
         "compliant_sample_fraction": 0.5,
         "sustained_delivery_pass": false,
         "pass": false
-      }
+      },
+      "baseline_evidence_ids": [
+        "initial-response-then-sustained-under-delivery-baseline-0",
+        "initial-response-then-sustained-under-delivery-baseline-1",
+        "initial-response-then-sustained-under-delivery-baseline-2",
+        "initial-response-then-sustained-under-delivery-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "initial-response-then-sustained-under-delivery-response-0",
+        "initial-response-then-sustained-under-delivery-response-1",
+        "initial-response-then-sustained-under-delivery-response-2",
+        "initial-response-then-sustained-under-delivery-response-3"
+      ]
     },
     {
       "case_id": "excessive-overshoot",
@@ -115,7 +151,19 @@
         "maximum_overshoot_kw": 20,
         "overshoot_energy_pass": false,
         "pass": false
-      }
+      },
+      "baseline_evidence_ids": [
+        "excessive-overshoot-baseline-0",
+        "excessive-overshoot-baseline-1",
+        "excessive-overshoot-baseline-2",
+        "excessive-overshoot-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "excessive-overshoot-response-0",
+        "excessive-overshoot-response-1",
+        "excessive-overshoot-response-2",
+        "excessive-overshoot-response-3"
+      ]
     },
     {
       "case_id": "negative-delivery-import-increased",
@@ -137,7 +185,19 @@
         "underdelivery_energy_fraction": 1.2,
         "response_latency_pass": false,
         "pass": false
-      }
+      },
+      "baseline_evidence_ids": [
+        "negative-delivery-import-increased-baseline-0",
+        "negative-delivery-import-increased-baseline-1",
+        "negative-delivery-import-increased-baseline-2",
+        "negative-delivery-import-increased-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "negative-delivery-import-increased-response-0",
+        "negative-delivery-import-increased-response-1",
+        "negative-delivery-import-increased-response-2",
+        "negative-delivery-import-increased-response-3"
+      ]
     },
     {
       "case_id": "excessive-ramp",
@@ -160,7 +220,19 @@
         "maximum_measured_ramp_kw_per_second": 100,
         "ramp_limit_pass": false,
         "pass": false
-      }
+      },
+      "baseline_evidence_ids": [
+        "excessive-ramp-baseline-0",
+        "excessive-ramp-baseline-1",
+        "excessive-ramp-baseline-2",
+        "excessive-ramp-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "excessive-ramp-response-0",
+        "excessive-ramp-response-1",
+        "excessive-ramp-response-2",
+        "excessive-ramp-response-3"
+      ]
     }
   ],
   "hostile_contracts": [
