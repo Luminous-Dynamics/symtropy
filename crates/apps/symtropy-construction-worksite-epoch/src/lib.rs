@@ -686,6 +686,9 @@ mod frozen_scenario_tests {
     const EXPIRED: &str = include_str!(
         "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/qualification-lease-expiry-fails-closed.json"
     );
+    const SCENARIO_SCHEMA: &str = include_str!(
+        "../../../../research/construction-worksite-epoch-transition-benchmark-v0-1/scenarios/worksite-epoch-scenario-v0.1.schema.json"
+    );
 
     #[derive(Debug, Deserialize)]
     #[serde(deny_unknown_fields)]
@@ -911,6 +914,18 @@ mod frozen_scenario_tests {
         for fixture in [ORDERED, REPLAY, RECONNECT, EXPIRED] {
             replay_scenario(fixture);
         }
+    }
+
+    #[test]
+    fn scenario_schema_is_parseable_and_closed() {
+        let schema: serde_json::Value =
+            serde_json::from_str(SCENARIO_SCHEMA).expect("scenario schema JSON");
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(schema["additionalProperties"], false);
+        assert!(schema["properties"]["events"]["items"]["oneOf"].is_array());
     }
 
     #[test]
