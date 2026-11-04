@@ -12,14 +12,14 @@
     "graph_schema": "construction-task-graph-v0.1",
     "compile_verdicts": [
       "CompiledForReview",
-      "CompiledWithObligations",
       "RejectedUnsupported",
-      "RejectedInconsistent",
-      "StaleInputs",
-      "OutOfScope"
+      "RejectedInconsistent"
     ],
     "execution_authority": false,
-    "acceptance_authority": false
+    "acceptance_authority": false,
+    "graph_identity_semantics": "length_prefixed_source_and_toolchain_label_not_a_cryptographic_digest",
+    "task_id_semantics": "length_prefixed_design_element_and_method_step_identity",
+    "parameter_conversion": "externally_approved_value_and_evidence_reference_required_when_units_differ"
   },
   "invariants": {
     "source_lineage_required": true,
