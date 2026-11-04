@@ -297,6 +297,14 @@ impl StatefulResourceContract {
     pub fn thermal_zone(&self) -> &ThermalZoneContract {
         &self.thermal_zone
     }
+
+    pub const fn maximum_facility_input_power_kw(&self) -> f64 {
+        self.maximum_facility_input_power_kw
+    }
+
+    pub const fn maximum_grid_import_power_kw(&self) -> f64 {
+        self.maximum_grid_import_power_kw
+    }
 }
 
 /// One proposed interval of site operation.
@@ -413,6 +421,30 @@ impl StatefulResourceSlot {
 
     pub const fn end_unix_seconds(&self) -> i64 {
         self.end_unix_seconds
+    }
+
+    pub fn site_id(&self) -> &str {
+        &self.site_id
+    }
+
+    pub fn boundary_id(&self) -> &str {
+        &self.boundary_id
+    }
+
+    pub const fn base_facility_power_kw(&self) -> f64 {
+        self.base_facility_power_kw
+    }
+
+    pub const fn other_facility_power_kw(&self) -> f64 {
+        self.other_facility_power_kw
+    }
+
+    pub const fn onsite_non_storage_supply_kw(&self) -> f64 {
+        self.onsite_non_storage_supply_kw
+    }
+
+    pub const fn ambient_temperature_c(&self) -> f64 {
+        self.ambient_temperature_c
     }
 }
 
