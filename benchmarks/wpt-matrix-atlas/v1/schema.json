@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/wpt-matrix-atlas-v1.schema.json",
+  "title": "WPT spatial inductance matrix atlas v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "atlas_id",
+    "geometry_digest",
+    "matrix_kind",
+    "coil_ids",
+    "operating_point",
+    "samples",
+    "segments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-matrix-atlas-v1"
+    },
+    "atlas_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "geometry_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "matrix_kind": {
+      "enum": [
+        "SMALL_SIGNAL",
+        "DIFFERENTIAL"
+      ]
+    },
+    "coil_ids": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "operating_point": {
+      "$ref": "#/$defs/operatingPoint"
+    },
+    "samples": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/sample"
+      }
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "operatingPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frequency_hz",
+        "temperature_c",
+        "dc_bias_currents_a"
+      ],
+      "properties": {
+        "frequency_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "temperature_c": {
+          "type": "number"
+        },
+        "dc_bias_currents_a": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 32,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "matrix": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 32,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 32,
+        "items": {
+          "type": "number"
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "position_m",
+        "matrix_h",
+        "entrywise_absolute_bound_h",
+        "minimum_eigenvalue_lower_bound_h",
+        "matrix_digest",
+        "source_artifact_digest",
+        "validator_receipt_digest",
+        "numerical_tolerance_h"
+      ],
+      "properties": {
+        "position_m": {
+          "type": "number"
+        },
+        "matrix_h": {
+          "$ref": "#/$defs/matrix"
+        },
+        "entrywise_absolute_bound_h": {
+          "$ref": "#/$defs/matrix"
+        },
+        "minimum_eigenvalue_lower_bound_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "matrix_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "validator_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "numerical_tolerance_h": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "segment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_sample_index",
+        "to_sample_index",
+        "interpolation_error_frobenius_bound_h",
+        "error_bound_method",
+        "validation_receipt_digest"
+      ],
+      "properties": {
+        "from_sample_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "to_sample_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "interpolation_error_frobenius_bound_h": {
+          "type": "number",
+          "minimum": 0
+        },
+        "error_bound_method": {
+          "enum": [
+            "HELD_OUT_DENSE_REFERENCE",
+            "ANALYTIC_DERIVATIVE_BOUND",
+            "FORMAL_INTERVAL_BOUND"
+          ]
+        },
+        "validation_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

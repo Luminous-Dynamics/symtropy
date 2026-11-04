@@ -1,0 +1,85 @@
+{
+  "schema_version": "wpt-matrix-atlas-v1",
+  "atlas_id": "SYNTHETIC-2COIL-TRAJECTORY",
+  "geometry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "matrix_kind": "SMALL_SIGNAL",
+  "coil_ids": [
+    "TX",
+    "RX"
+  ],
+  "operating_point": {
+    "frequency_hz": 85000,
+    "temperature_c": 25,
+    "dc_bias_currents_a": [
+      0,
+      0
+    ]
+  },
+  "samples": [
+    {
+      "position_m": 0,
+      "matrix_h": [
+        [
+          0.00001,
+          0.000001
+        ],
+        [
+          0.000001,
+          0.000008
+        ]
+      ],
+      "entrywise_absolute_bound_h": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "minimum_eigenvalue_lower_bound_h": 0.0000075,
+      "matrix_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "source_artifact_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "validator_receipt_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "numerical_tolerance_h": 1e-12
+    },
+    {
+      "position_m": 10,
+      "matrix_h": [
+        [
+          0.000009,
+          0.000002
+        ],
+        [
+          0.000002,
+          0.000009
+        ]
+      ],
+      "entrywise_absolute_bound_h": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "minimum_eigenvalue_lower_bound_h": 0.0000069,
+      "matrix_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_artifact_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "validator_receipt_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "numerical_tolerance_h": 1e-12
+    }
+  ],
+  "segments": [
+    {
+      "from_sample_index": 0,
+      "to_sample_index": 1,
+      "interpolation_error_frobenius_bound_h": 2e-7,
+      "error_bound_method": "ANALYTIC_DERIVATIVE_BOUND",
+      "validation_receipt_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ]
+}
