@@ -82,6 +82,20 @@ The frozen corpus includes:
 
 The pairwise-plausible/global-invalid case is the key negative control. It prevents the weaker check from being mistaken for a physical realizability certificate.
 
+## Numerical regression and property checks
+
+The authored Rust test suite includes deterministic property-style cases in addition to the frozen JSONL corpus:
+
+- 15 seeded Gram-matrix cases from 2 through 16 coils, constructed as A^T A + I and required to remain positive definite;
+- the 32-coil supported boundary and rejection immediately above it;
+- sub-nanohenry values, where naïvely forming L_ii * L_jj can underflow before the square root;
+- extreme diagonal dynamic range, where the geometric-mean coupling denominator must remain finite;
+- opposite-sign finite off-diagonal inputs whose subtraction overflows, which must become INVALID_INPUT rather than emit non-finite JSON diagnostics.
+
+The independent NumPy oracle for the scale regressions gives eigenvalues [5e-309, 1.5e-308] H and coupling 0.5 for the sub-nanohenry case; the extreme-range fixture has coupling 1.0. These are numerical regression values, not hardware measurements.
+
+**Execution status:** 20 Rust tests are authored, but authored is not executed. Only the exact-head CI run can establish Rust compile/test status. The six JSONL dispositions and added extreme-scale cases have separate external numerical checks; those checks do not substitute for the Rust suite or an independent high-precision library comparison at the full 32-coil limit.
+
 ## Scope and claim ceiling
 
 V1 handles real-valued, reciprocal, passive small-signal or differential inductance matrices at a single declared operating point. It does not qualify:
