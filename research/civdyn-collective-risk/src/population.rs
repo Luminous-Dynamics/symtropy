@@ -201,7 +201,7 @@ impl fmt::Display for PopulationError {
                     f,
                     "log-fixation matrix must be square and contain valid log probabilities"
                 )
-            },
+            }
             Self::CombinatorialOverflow => {
                 write!(f, "hypergeometric combination arithmetic overflow")
             }
