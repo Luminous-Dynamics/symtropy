@@ -1213,6 +1213,41 @@ mod tests {
         }));
     }
 
+
+    #[test]
+    fn service_signal_schema_matches_versioned_rust_contract() {
+        const SCHEMA: &str = include_str!(
+            "../../../benchmarks/wpt-matrix-atlas/v1/service-sensitivity-signal.schema.json"
+        );
+        let schema: serde_json::Value =
+            serde_json::from_str(SCHEMA).expect("valid service-sensitivity JSON schema");
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            SERVICE_SENSITIVITY_SCHEMA_VERSION
+        );
+        assert_eq!(schema["additionalProperties"], false);
+
+        let mut required = schema["required"]
+            .as_array()
+            .expect("schema required array")
+            .iter()
+            .map(|value| value.as_str().expect("required field name"))
+            .collect::<Vec<_>>();
+        required.sort_unstable();
+        let mut expected = vec![
+            "schema_version",
+            "segment_index",
+            "route_energy_uncertainty_upper_bound_wh",
+            "route_energy_uncertainty_budget_wh",
+            "expected_uncertainty_reduction_fraction",
+            "estimated_field_solve_cost_seconds",
+            "circuit_model_digest",
+            "sensitivity_receipt_digest",
+        ];
+        expected.sort_unstable();
+        assert_eq!(required, expected);
+    }
+
     #[test]
     fn deserializes_versioned_service_signals_and_rejects_missing_segment_coverage() {
         const SIGNALS: &str = include_str!(
