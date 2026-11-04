@@ -43,7 +43,8 @@ pub use fuel::{
 };
 
 pub use measurement_verification::{
-    EnergyMvDataset, EnergyMvError, EnergyMvMethod, EnergyMvPlan, EnergyMvReportingPoint,
+    EnergyMvBaselinePredictionBasis, EnergyMvDataset, EnergyMvError, EnergyMvMethod,
+    EnergyMvPlan, EnergyMvReportingPoint,
     EnergyMvReportingReceipt, EnergyMvValidationPoint, EnergyMvValidationReceipt,
     EnergyMvVerificationReport, verify_energy_mv,
 };
