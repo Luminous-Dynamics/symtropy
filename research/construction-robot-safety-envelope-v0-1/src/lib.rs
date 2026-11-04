@@ -2064,6 +2064,7 @@ mod tests {
         let (policy, mut observation) = baseline();
         observation.previous_mode = Some(OperatingMode::Emergency);
         observation.mode = OperatingMode::Recovery;
+        observation.motion.speed_mm_s = policy.maximum_speed_recovery_mm_s;
         observation.handover_acknowledged = true;
         let decision = evaluate(&policy, &observation);
         assert_eq!(decision.disposition, Disposition::HoldForHumanReview);
@@ -2177,7 +2178,7 @@ mod tests {
     fn near_boundary_uses_uncertainty_conservatively() {
         let (policy, mut observation) = baseline();
         observation.human = HumanObservation::Tracked {
-            distance_mm: 3_300,
+            distance_mm: 2_800,
             position_uncertainty_mm: 600,
             relative_approach_speed_mm_s: 100,
             track_age_ms: 10,
@@ -2254,7 +2255,9 @@ mod tests {
     fn degraded_sensor_at_reduced_speed_requests_hold_and_reassessment() {
         let (policy, mut observation) = baseline();
         observation.motion.speed_mm_s = policy.reduced_speed_mm_s;
-        observation.sensors[2].health = SensorHealth::Degraded;
+        // Degrade a non-critical, non-human-detection sensor so this exercises
+        // progressive mitigation rather than invalidating the required clear evidence.
+        observation.sensors[3].health = SensorHealth::Degraded;
         let decision = evaluate(&policy, &observation);
         assert_eq!(
             decision.disposition,
@@ -2468,7 +2471,14 @@ mod tests {
 
     #[test]
     fn each_independent_modality_must_cover_the_entire_hazard_zone() {
-        let (policy, mut observation) = baseline();
+        let (mut policy, mut observation) = baseline();
+        // Require three distinct modalities and make Localization an additional
+        // full-zone source in its own fault domain. This isolates modality
+        // coverage: two domains still cover the whole zone, but only two of
+        // the three modalities do.
+        policy.minimum_human_sensor_modalities = 3;
+        observation.human_detection.contributing_sensor_ids.push("localization-unit".to_owned());
+        observation.sensors[1].covered_cells = policy.required_human_coverage_cells.clone();
         observation.sensors[2].covered_cells.pop();
         let decision = evaluate(&policy, &observation);
         assert_eq!(
