@@ -336,7 +336,11 @@ fn wasserstein_one(left: &[f64], right: &[f64]) -> f64 {
     while i < left.len() || j < right.len() {
         let next = match (left.get(i), right.get(j)) {
             (Some(a), Some(b)) => {
-                if a.total_cmp(b).is_le() { *a } else { *b }
+                if a.total_cmp(b).is_le() {
+                    *a
+                } else {
+                    *b
+                }
             }
             (Some(a), None) => *a,
             (None, Some(b)) => *b,
