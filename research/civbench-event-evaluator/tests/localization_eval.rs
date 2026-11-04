@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civbench_event_evaluator::localization_eval::{
-    evaluate_localization, AbstentionReason, LocalizationDecision, LocalizationLevel,
-    LocalizationPrediction, LocalizationTruth, ObservabilityAssessment, TruthEvidenceClass,
-    TruthLabel,
+    AbstentionReason, LocalizationDecision, LocalizationLevel, LocalizationPrediction,
+    LocalizationTruth, ObservabilityAssessment, TruthEvidenceClass, TruthLabel,
+    evaluate_localization,
 };
 
 fn digest(value: u64) -> String {
@@ -100,11 +100,20 @@ fn zone_top_k_metrics_and_risk_coverage_are_reported() {
     assert_eq!(report.zone.observed.top1_hits, 1);
     assert_eq!(report.zone.observed.top5_hits, 1);
     assert_eq!(report.zone.observed.coverage_ppm, Some(1_000_000));
-    assert_eq!(report.zone.observed.conditional_top1_accuracy_ppm, Some(1_000_000));
-    assert_eq!(report.zone.observed.system_top1_accuracy_ppm, Some(1_000_000));
+    assert_eq!(
+        report.zone.observed.conditional_top1_accuracy_ppm,
+        Some(1_000_000)
+    );
+    assert_eq!(
+        report.zone.observed.system_top1_accuracy_ppm,
+        Some(1_000_000)
+    );
     assert_eq!(report.zone.observed.risk_coverage.len(), 1);
     assert_eq!(report.zone.observed.risk_coverage[0].risk_ppm, Some(0));
-    assert_eq!(report.zone.observed.risk_coverage[0].coverage_ppm, Some(1_000_000));
+    assert_eq!(
+        report.zone.observed.risk_coverage[0].coverage_ppm,
+        Some(1_000_000)
+    );
     assert_eq!(report.pipe.not_measured_events, 1);
 }
 
@@ -245,7 +254,7 @@ fn observed_derived_and_modelled_truth_are_never_pooled() {
     ];
     let assessments = vec![
         assessment("observed-event", LocalizationLevel::Zone, &["zone-a"], &[], 6),
-        assessment("derived-event", LocalizationLevel::Zone, &["zone-a"], &[], 7),
+        assessment("derived-event", LocalizationLevel::Zone, &["zone-a", "zone-b"], &[], 7),
         assessment("modelled-event", LocalizationLevel::Zone, &["zone-b"], &[], 8),
     ];
     let predictions = vec![
@@ -374,8 +383,8 @@ fn risk_coverage_groups_equal_confidence_thresholds() {
     assessments[1].zone_candidate_ids.push("wrong-b".to_owned());
     assessments[3].zone_candidate_ids.push("wrong-d".to_owned());
 
-    let report = evaluate_localization(&truths, &assessments, &predictions)
-        .expect("risk-coverage fixture");
+    let report =
+        evaluate_localization(&truths, &assessments, &predictions).expect("risk-coverage fixture");
     let curve = &report.zone.observed.risk_coverage;
     assert_eq!(curve.len(), 3);
     assert_eq!(curve[0].minimum_confidence_ppm, 950_000);
@@ -483,8 +492,8 @@ fn malformed_observability_digest_is_rejected() {
         &["zone-a"],
         900_000,
     )];
-    let error = evaluate_localization(&truths, &[invalid], &predictions)
-        .expect_err("malformed digest");
+    let error =
+        evaluate_localization(&truths, &[invalid], &predictions).expect_err("malformed digest");
     assert_eq!(error.code, "invalid_observability_digest");
 }
 
@@ -668,8 +677,7 @@ fn report_binds_policy_and_physical_observability_receipts() {
         &["zone-a"],
         920_000,
     )];
-    let report = evaluate_localization(&truths, &assessments, &predictions)
-        .expect("bound report");
+    let report = evaluate_localization(&truths, &assessments, &predictions).expect("bound report");
     let receipt = report.canonical_text();
     assert!(receipt.contains("policy_ref=localizer-policy-v1"));
     assert!(receipt.contains("observability_binding=event-1,zone,2,0,sensor-layout-v1,hydraulic-model-v1,"));
