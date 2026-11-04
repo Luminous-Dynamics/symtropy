@@ -7,6 +7,7 @@ import hashlib
 import json
 import struct
 import subprocess
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -187,9 +188,45 @@ def main() -> int:
         shape_result = run_verifier(wrong_receipt)
         assert shape_result.returncode != 0, "NPZ dimension mismatch was not rejected"
 
+        # A campaign must preserve a scheduled trial that has no receipt.
+        campaign_root = Path(temp) / "campaign"
+        campaign_root.mkdir()
+        shutil.copytree(root / "valid", campaign_root / "trial-valid")
+        expected = Path(temp) / "expected.csv"
+        expected.write_text(
+            "task_id,algorithm,seed\\n"
+            "Fixture,random_search,7\\n"
+            "Missing,random_search,8\\n",
+            encoding="utf-8",
+        )
+        ledger = Path(temp) / "campaign-ledger.csv"
+        summary = Path(temp) / "campaign-summary.json"
+        aggregate = Path(__file__).with_name("aggregate-bocode-campaign.py")
+        campaign_result = subprocess.run(
+            [
+                sys.executable, str(aggregate),
+                "--expected", str(expected),
+                "--receipts", str(campaign_root),
+                "--output", str(ledger),
+                "--summary", str(summary),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+        assert campaign_result.returncode == 2, campaign_result.stderr
+        campaign_summary = json.loads(summary.read_text(encoding="utf-8"))
+        assert campaign_summary["missing_trial_count"] == 1
+        assert campaign_summary["campaign_complete"] is False
+        with ledger.open("r", encoding="utf-8", newline="") as stream:
+            ledger_rows = list(csv.DictReader(stream))
+        assert any(row["trial_state"] == "missing" for row in ledger_rows)
+
         print(
             "bocode_receipt_verifier_selftest=pass "
-            "valid_receipt=1 artifact_tamper_rejected=1 npz_shape_tamper_rejected=1"
+            "valid_receipt=1 artifact_tamper_rejected=1 npz_shape_tamper_rejected=1 "
+            "missing_campaign_trial_retained=1"
         )
     return 0
 
