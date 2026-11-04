@@ -1,0 +1,512 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/wpt-empirical/v1/geometry-compatibility.schema.json",
+  "title": "WPT Geometry Compatibility Envelope v1",
+  "description": "A cross-generation GA/VA compatibility envelope with explicit geometry coordinates, sampling evidence and a coupling-range metric. Coupling range is not efficiency.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "compatibility_id",
+    "vehicle_assembly",
+    "ground_assembly",
+    "installation",
+    "geometry_domain",
+    "sampling",
+    "coupling_range_metric",
+    "evidence",
+    "qualification",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "wpt-geometry-compatibility-v1"
+    },
+    "compatibility_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]+$"
+    },
+    "vehicle_assembly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assembly_id",
+        "generation",
+        "power_rating_w",
+        "mounting_type",
+        "coil_geometry",
+        "ferrite_material",
+        "shielding"
+      ],
+      "properties": {
+        "assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "enum": [
+            "WPT1",
+            "WPT2",
+            "WPT3",
+            "WPT4_PROPOSED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "power_rating_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "mounting_type": {
+          "enum": [
+            "VEHICLE_UNDERBODY",
+            "GROUND_SURFACE",
+            "FLUSH_MOUNTED",
+            "EMBEDDED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "coil_geometry": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ferrite_material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shielding": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ground_assembly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assembly_id",
+        "generation",
+        "power_rating_w",
+        "mounting_type",
+        "coil_geometry",
+        "ferrite_material",
+        "shielding"
+      ],
+      "properties": {
+        "assembly_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "enum": [
+            "WPT1",
+            "WPT2",
+            "WPT3",
+            "WPT4_PROPOSED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "power_rating_w": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "mounting_type": {
+          "enum": [
+            "VEHICLE_UNDERBODY",
+            "GROUND_SURFACE",
+            "FLUSH_MOUNTED",
+            "EMBEDDED",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "coil_geometry": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ferrite_material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shielding": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "surface_material",
+        "roadway_or_floor_reference"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "SURFACE_MOUNTED",
+            "FLUSH_MOUNTED",
+            "EMBEDDED",
+            "PORTABLE",
+            "LAB_BENCH",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "surface_material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "roadway_or_floor_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "geometry_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordinate_frame_id",
+        "coil_to_coil_air_gap_min_m",
+        "coil_to_coil_air_gap_max_m",
+        "vehicle_ground_clearance_min_m",
+        "vehicle_ground_clearance_max_m",
+        "x_offset_min_m",
+        "x_offset_max_m",
+        "y_offset_min_m",
+        "y_offset_max_m",
+        "z_offset_min_m",
+        "z_offset_max_m",
+        "yaw_min_deg",
+        "yaw_max_deg"
+      ],
+      "properties": {
+        "coordinate_frame_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coil_to_coil_air_gap_min_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "coil_to_coil_air_gap_max_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_ground_clearance_min_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "vehicle_ground_clearance_max_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "x_offset_min_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "x_offset_max_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "y_offset_min_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "y_offset_max_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "z_offset_min_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "z_offset_max_m": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yaw_min_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "yaw_max_deg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "unique_positions_sampled",
+        "evaluation_point_count",
+        "inductance_sample_count",
+        "open_circuit_sample_count",
+        "short_circuit_sample_count",
+        "raw_geometry_data_sha256",
+        "instrumentation_reference"
+      ],
+      "properties": {
+        "strategy": {
+          "enum": [
+            "UNIFORM_GRID",
+            "ADAPTIVE_BOUNDARY",
+            "FULL_RANGE_DISCRETE",
+            "OTHER",
+            "UNKNOWN"
+          ]
+        },
+        "unique_positions_sampled": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "evaluation_point_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inductance_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "open_circuit_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "short_circuit_sample_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "raw_geometry_data_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "instrumentation_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "coupling_range_metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_definition_id",
+        "metric_name",
+        "comparison_direction",
+        "relative_change_percent",
+        "qualifier",
+        "baseline_compatibility_id",
+        "baseline_definition",
+        "absolute_region_measure",
+        "confidence_interval_lower_percent",
+        "confidence_interval_upper_percent",
+        "notes"
+      ],
+      "properties": {
+        "metric_definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metric_name": {
+          "const": "MAGNETIC_COUPLING_OPERATING_RANGE"
+        },
+        "comparison_direction": {
+          "enum": [
+            "REDUCTION",
+            "INCREASE",
+            "NO_CHANGE",
+            "UNKNOWN"
+          ]
+        },
+        "relative_change_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "qualifier": {
+          "enum": [
+            "EXACT",
+            "APPROX",
+            "GREATER_THAN",
+            "LESS_THAN",
+            "NOT_REPORTED"
+          ]
+        },
+        "baseline_compatibility_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseline_definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "absolute_region_measure": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "confidence_interval_lower_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "confidence_interval_upper_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "method",
+        "source_doi",
+        "source_locator",
+        "uncertainty_reported"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "MEASURED",
+            "AUTHOR_CALCULATED",
+            "SIMULATED",
+            "SECONDARY_REPORTED",
+            "UNKNOWN"
+          ]
+        },
+        "method": {
+          "enum": [
+            "INSTRUMENTED_INDUCTANCE_MEASUREMENT",
+            "CALCULATION_FROM_MEASURED_COIL_PARAMETERS",
+            "NUMERICAL_MODEL",
+            "ABSTRACT_EXTRACTION",
+            "NOT_REPORTED"
+          ]
+        },
+        "source_doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_reported": {
+          "type": "boolean"
+        }
+      }
+    },
+    "qualification": {
+      "enum": [
+        "NOT_RUN",
+        "SOURCE_CLAIM_ONLY",
+        "INCOMPLETE",
+        "QUALIFIED",
+        "REJECTED"
+      ]
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
