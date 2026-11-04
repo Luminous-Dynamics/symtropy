@@ -143,3 +143,30 @@ The graph is currently bipartite: primitive finite exogenous variables feed one 
 - Zero duplicate/omitted variable values or zero-weight states admitted.
 - Zero receipt replay accepted against a different manifest or intervention.
 - Exact declaration-order-independent manifest digest and receipts.
+
+
+## Coordinate-stable finite-rank spatial field (ROAD-SPATIAL-DEPENDENCE-001 #3604)
+
+The spatial_dependence module adds a finite-rank linear field on the rational domain [0,1]:
+
+Z(x) = (1-x) A0 + x A1,
+
+where A0 and A1 are stable, independent, equiprobable binary basis coefficients in {-1,+1}. Their identities, source IDs, source-profile digests, units, coupling dispositions and evidence are bound in the field manifest. Mesh identity and vertex ordinal occur only in the query receipt; they do not choose or rekey the coefficients.
+
+### Exact analytic oracle
+
+At x=1/4 and x=3/4, each point has the same four-point marginal {-1,-1/2,+1/2,+1}, each with probability 1/4. Exact moments:
+- mean = 0 at each site;
+- variance = 5/8 at each site;
+- cross-site covariance = 3/8;
+- cross-site correlation = 3/5.
+
+The independent-site negative control draws from the same pointwise marginal at each site, so its marginals and variances match exactly while cross-site covariance is zero. This makes pointwise fit insufficient as a field-quality metric.
+
+### Coordinate and mesh invariance
+
+Coordinates are reduced nonnegative rationals. For example, 2/8 normalizes to 1/4. The same physical coordinate queried in a coarse mesh and a refined/reordered mesh returns identical exact field values. Query receipts deliberately retain the distinct mesh/refinement/vertex context; the receipts need not be byte-identical because the query contexts differ. Their field-value payloads must be identical.
+
+### V0.1 boundaries
+
+This is a finite-rank, one-dimensional, two-coefficient exact field. The coefficients are independent by an explicit finite-table factorization check. It is not a Gaussian random-field generator, covariance fitter, spatially varying empirical profile, tail-dependent multivariate field, or mesh interpolation solver. It does not sample the coefficients from Philox yet; #3582/#3586 provide the random draw/transform layers. The field is an analytic reference proving that stochastic identity is basis/coordinate based, not mesh-index based.

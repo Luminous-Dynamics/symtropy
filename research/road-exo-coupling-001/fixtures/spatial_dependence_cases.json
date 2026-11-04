@@ -1,0 +1,137 @@
+{
+  "schema": "symtropy.road-spatial-dependence.fixtures.v0.1",
+  "purpose": "Exact finite-rank linear field with coordinate-stable coefficients; not a fitted empirical field.",
+  "domain": {
+    "coordinate_frame": "road-local-x",
+    "domain": "[0,1]",
+    "coordinate_representation": "reduced nonnegative rational"
+  },
+  "basis": {
+    "left": "A0 in {-1,+1}",
+    "right": "A1 in {-1,+1}",
+    "joint_distribution": "independent fair binary coefficients",
+    "field": "Z(x) = (1-x)*A0 + x*A1"
+  },
+  "analytic_case": {
+    "coordinates": [
+      "1/4",
+      "3/4"
+    ],
+    "point_marginals": {
+      "numerator_support": [
+        -4,
+        -2,
+        2,
+        4
+      ],
+      "denominator": 4,
+      "mass_each": "1/4"
+    },
+    "moments": {
+      "mean_each": 0,
+      "variance_each": "5/8",
+      "cross_covariance": "3/8",
+      "cross_correlation": "3/5"
+    }
+  },
+  "negative_control": {
+    "construction": "independently sample each site from the exact same four-point marginal distribution",
+    "expected": {
+      "point_marginals_match": true,
+      "point_variances_match": true,
+      "cross_covariance": 0
+    }
+  },
+  "mesh_refinement": {
+    "same_physical_coordinate_representations": [
+      "1/4",
+      "2/8"
+    ],
+    "contexts": [
+      {
+        "mesh": "coarse",
+        "level": "L0",
+        "vertex_ordinal": 1
+      },
+      {
+        "mesh": "refined",
+        "level": "L1",
+        "vertex_ordinal": 7
+      }
+    ],
+    "expected": "exact field outputs match; receipt context remains distinct"
+  },
+  "cases": [
+    {
+      "id": "coordinate-reduction",
+      "input": "2/8",
+      "expected": "1/4"
+    },
+    {
+      "id": "left-boundary",
+      "coordinate": "0/1",
+      "expected": "A0"
+    },
+    {
+      "id": "right-boundary",
+      "coordinate": "1/1",
+      "expected": "A1"
+    },
+    {
+      "id": "same-marginal-different-cross-covariance",
+      "expected": "shared-field=3/8; independent-site=0"
+    },
+    {
+      "id": "mesh-id-and-vertex-order-invariance",
+      "expected": "same rational coordinate yields same field outputs"
+    },
+    {
+      "id": "basis-declaration-order",
+      "expected": "canonical digest and receipts stable"
+    },
+    {
+      "id": "source-profile-digest-change",
+      "expected": "manifest digest changes"
+    },
+    {
+      "id": "basis-id-change",
+      "expected": "manifest digest changes"
+    },
+    {
+      "id": "units-change",
+      "expected": "manifest digest changes"
+    },
+    {
+      "id": "coordinate-frame-change",
+      "expected": "manifest digest changes"
+    },
+    {
+      "id": "unknown-coupling",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "branch-specific-coupling-sibling",
+      "expected": "WrongBranchScope"
+    },
+    {
+      "id": "coordinate-outside-domain",
+      "expected": "reject"
+    },
+    {
+      "id": "zero-denominator",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate-joint-coefficient-state",
+      "expected": "reject"
+    },
+    {
+      "id": "zero-state-weight",
+      "expected": "reject"
+    },
+    {
+      "id": "receipt-context-tampering",
+      "expected": "integrity and exact replay verification fail"
+    }
+  ]
+}
