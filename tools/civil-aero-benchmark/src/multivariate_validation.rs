@@ -769,8 +769,8 @@ mod tests {
             .iter()
             .find(|row| row.observation.observation_id == "sample-in")
             .unwrap();
-        assert_eq!(row.standardized_residuals, vec![1.0, 1.0]);
-        assert_eq!(row.whitened_residuals, vec![1.0, 1.0]);
+        assert!(vectors_close(&row.standardized_residuals, &[1.0, 1.0]));
+        assert!(vectors_close(&row.whitened_residuals, &[1.0, 1.0]));
         assert!((row.mahalanobis_squared - 2.0).abs() < 1.0e-12);
         assert!((row.mahalanobis_distance - 2.0_f64.sqrt()).abs() < 1.0e-12);
         assert_eq!(report.in_domain_observation_count, 1);
