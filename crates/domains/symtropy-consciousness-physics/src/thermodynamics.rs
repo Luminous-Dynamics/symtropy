@@ -252,12 +252,11 @@ impl ThermodynamicLedger {
             return None;
         }
 
-        Some(
-            BOLTZMANN_CONSTANT_J_PER_K
-                * temperature_k
-                * std::f64::consts::LN_2
-                * bits_erased,
-        )
+        let floor = BOLTZMANN_CONSTANT_J_PER_K
+            * temperature_k
+            * std::f64::consts::LN_2
+            * bits_erased;
+        floor.is_finite().then_some(floor)
     }
 
     /// Compatibility helper: 310 K Landauer heat bound for bits_erased
@@ -267,10 +266,11 @@ impl ThermodynamicLedger {
         LANDAUER_BOUND_310K * bits_erased
     }
 
-    /// Whether energy meets the 310 K Landauer heat bound for the specified
-    /// number of logically irreversible bit erasures. Passing this comparison
-    /// does not establish the feasibility or thermodynamic cost of a general
-    /// computation; failing it only violates this erasure-bound comparison.
+    /// Whether heat dissipated meets the 310 K Landauer bound for the
+    /// specified number of logically irreversible bit erasures. The energy
+    /// argument must represent heat from those erasures, not total energy used
+    /// by an arbitrary computation. Passing this comparison does not establish
+    /// general computational feasibility or thermodynamic efficiency.
     pub fn above_landauer_floor(energy: f64, bits_erased: f64) -> bool {
         if !energy.is_finite() || energy < 0.0 {
             return false;
@@ -397,7 +397,9 @@ mod tests {
         assert!(ThermodynamicLedger::landauer_erasure_floor(f64::NAN, 310.0).is_none());
         assert!(ThermodynamicLedger::landauer_erasure_floor(1.0, 0.0).is_none());
         assert!(ThermodynamicLedger::landauer_erasure_floor(1.0, f64::INFINITY).is_none());
+        assert!(ThermodynamicLedger::landauer_erasure_floor(f64::MAX, f64::MAX).is_none());
         assert!(!ThermodynamicLedger::above_landauer_floor(f64::NAN, 1.0));
+        assert!(!ThermodynamicLedger::above_landauer_floor(-1.0, 1.0));
         assert!(!ThermodynamicLedger::above_landauer_floor(1.0, -1.0));
     }
 
