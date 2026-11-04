@@ -81,7 +81,12 @@ All methods must receive identical forecast vintages, issue times, calibration/e
 | Adaptive Conformal Inference (ACI) | Online adaptation of miscoverage level | Must be evaluated prequentially; marginal long-run behaviour is not a per-regime guarantee |
 | Ensemble Conformalized Quantile Regression (EnCQR) | Heteroscedastic, ensemble-based interval sharpness | Must disclose its time-series dependence treatment |
 | State-conditioned / local online conformal | Regime- and operating-condition-aware calibration | Can widen intervals; horizon-specific performance can differ |
+| Symtropy MINE-ACP ACI/COP adapters (#2197 / PR #2224, parity gate #2231) | Existing adaptive industrial-interval methods and independent trust-gate composition | Reference parity and cross-domain transfer must be verified; do not silently treat adapters as identical to published algorithms |
 | Regime-conditioned joint calibration (V0.2 research target) | Conditional path coverage for ramps, peaks and unusual states | Requires preregistered regimes and sufficient independent examples |
+
+The repository already has complementary owners that this work deliberately consumes rather than reimplements:
+- [MINE-ACP-001 #2197 / PR #2224](https://github.com/Luminous-Dynamics/symtropy/pull/2224) contains synthetic regime-shift comparisons with ACI/COP-derived adapters and a separate model-credibility gate. [#2231](https://github.com/Luminous-Dynamics/symtropy/issues/2231) requires golden-trace parity against a pinned reference implementation. Use those policies as adaptive comparators after their parity boundary is satisfied; this energy crate owns the simultaneous multi-resource channel × horizon envelope and energy-specific evidence/chronology contract.
+- [Joint predictive-distribution coherence #2191](https://github.com/Luminous-Dynamics/symtropy/issues/2191) owns coherent joint predictive samples/distributions. V0.1 here deliberately does not build a second copula or probabilistic reconciliation engine. A later scenario-path adapter should consume that owner and only then feed #3581's weighted empirical risk evaluation.
 
 Relevant external research already exists and must be treated as competitive work, not ignored:
 
