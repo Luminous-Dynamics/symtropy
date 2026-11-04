@@ -305,6 +305,10 @@ pub enum AdapterError {
     InvalidActionCost {
         action_id: String,
     },
+    ActionSemanticsViolation {
+        action_id: String,
+        reason: String,
+    },
     InconsistentCostUnits,
     IncompleteTransitionRow {
         hypothesis_id: String,
@@ -498,6 +502,95 @@ fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
             ) && source.evidence_class == EvidenceClass::PeerReviewedMeasured
         }
     }
+}
+
+fn sensor_channels_unchanged(current: &SensorState, next: &SensorState) -> bool {
+    current.position_afferent == next.position_afferent
+        && current.movement_afferent == next.movement_afferent
+        && current.vibration_afferent == next.vibration_afferent
+        && current.contact_feedback == next.contact_feedback
+        && current.acquisition == next.acquisition
+}
+
+fn sensor_modalities_unchanged(current: &SensorState, next: &SensorState) -> bool {
+    current.position_afferent == next.position_afferent
+        && current.movement_afferent == next.movement_afferent
+        && current.vibration_afferent == next.vibration_afferent
+        && current.contact_feedback == next.contact_feedback
+}
+
+fn validate_action_transition_semantics(
+    action: &InterventionAction,
+    current_physical: &PhysicalState,
+    current_sensor: &SensorState,
+    next_physical: &PhysicalState,
+    next_sensor: &SensorState,
+) -> Result<(), AdapterError> {
+    let preserve_non_target_channels = |position_target: bool,
+                                        movement_target: bool,
+                                        vibration_target: bool| {
+        (position_target || current_sensor.position_afferent == next_sensor.position_afferent)
+            && (movement_target || current_sensor.movement_afferent == next_sensor.movement_afferent)
+            && (vibration_target || current_sensor.vibration_afferent == next_sensor.vibration_afferent)
+            && current_sensor.contact_feedback == next_sensor.contact_feedback
+            && current_sensor.acquisition == next_sensor.acquisition
+    };
+
+    let reason = match action.kind {
+        InterventionKind::PositionAfferentPerturbation => {
+            let perturbed = matches!(
+                next_sensor.position_afferent,
+                ChannelState::Gated | ChannelState::Attenuated
+            );
+            (!perturbed || !preserve_non_target_channels(true, false, false))
+                .then_some("position perturbation must affect the position channel only")
+        }
+        InterventionKind::MovementAfferentGate => {
+            (next_sensor.movement_afferent != ChannelState::Gated
+                || !preserve_non_target_channels(false, true, false))
+            .then_some("movement gate must gate movement feedback only")
+        }
+        InterventionKind::VibrationAfferentPerturbation => {
+            let perturbed = matches!(
+                next_sensor.vibration_afferent,
+                ChannelState::Gated | ChannelState::Attenuated
+            );
+            (!perturbed || !preserve_non_target_channels(false, false, true))
+                .then_some("vibration perturbation must affect the vibration channel only")
+        }
+        InterventionKind::AcquisitionReferenceCalibration => {
+            (!sensor_modalities_unchanged(current_sensor, next_sensor)
+                || next_sensor.acquisition != AcquisitionState::Calibrated
+                || current_physical != next_physical)
+                .then_some(
+                    "reference calibration must change acquisition only and preserve physical state",
+                )
+        }
+        InterventionKind::ContactLoadPerturbation => {
+            (!sensor_channels_unchanged(current_sensor, next_sensor)
+                || (current_physical.load_state == next_physical.load_state
+                    && current_physical.contact_state == next_physical.contact_state))
+            .then_some(
+                "contact/load perturbation must change contact or load without changing sensor state",
+            )
+        }
+        InterventionKind::Washout => {
+            (next_physical.carryover != PhysicalCarryover::Baseline
+                || !sensor_channels_unchanged(current_sensor, next_sensor))
+            .then_some("washout must clear physical carryover while preserving sensor state")
+        }
+        InterventionKind::ActiveMovementProbe
+        | InterventionKind::PassiveMovementProbe
+        | InterventionKind::DescendingPathwayModulation => None,
+    };
+
+    if let Some(reason) = reason {
+        return Err(AdapterError::ActionSemanticsViolation {
+            action_id: action.id.clone(),
+            reason: reason.to_owned(),
+        });
+    }
+    Ok(())
 }
 
 impl LocomotionKernelSpec {
@@ -743,18 +836,27 @@ impl LocomotionKernelSpec {
                         })?;
                         let mut outcomes = Vec::with_capacity(row.outcomes.len());
                         for outcome in &row.outcomes {
+                            let next_physical_state = lookup(
+                                &physical_indices,
+                                "physical_state_id",
+                                &outcome.next_physical_state_id,
+                            )?;
+                            let next_sensor_state = lookup(
+                                &sensor_indices,
+                                "sensor_state_id",
+                                &outcome.next_sensor_state_id,
+                            )?;
+                            validate_action_transition_semantics(
+                                &self.actions[action],
+                                &self.physical_states[physical_state],
+                                &self.sensor_states[sensor_state],
+                                &self.physical_states[next_physical_state],
+                                &self.sensor_states[next_sensor_state],
+                            )?;
                             outcomes.push(JointOutcome {
                                 probability: outcome.probability,
-                                next_physical_state: lookup(
-                                    &physical_indices,
-                                    "physical_state_id",
-                                    &outcome.next_physical_state_id,
-                                )?,
-                                next_sensor_state: lookup(
-                                    &sensor_indices,
-                                    "sensor_state_id",
-                                    &outcome.next_sensor_state_id,
-                                )?,
+                                next_physical_state,
+                                next_sensor_state,
                                 observation: outcome
                                     .observation_id
                                     .as_deref()
@@ -1219,8 +1321,15 @@ mod tests {
                                 };
                                 "load-shifted"
                             }
-                            InterventionKind::DescendingPathwayModulation
-                            | InterventionKind::Washout => "load-shifted",
+                            InterventionKind::DescendingPathwayModulation => "load-shifted",
+                            InterventionKind::Washout => {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
+                                    physical.id.clone()
+                                } else {
+                                    "stance-nominal".to_owned()
+                                };
+                                "load-shifted"
+                            },
                         };
                         let _next_sensor_index = sensor_index(&sensor_states, &next_sensor);
                         transition_rows.push(JointTransitionRow {
