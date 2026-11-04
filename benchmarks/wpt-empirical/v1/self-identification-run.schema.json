@@ -361,7 +361,6 @@
     },
     "estimates": {
       "type": "array",
-      "minItems": 4,
       "maxItems": 4,
       "items": {
         "type": "object",
@@ -374,7 +373,9 @@
           "relative_error_pct",
           "estimate_uncertainty_pct",
           "reference_evidence_kind",
-          "estimate_artifact_sha256"
+          "estimate_artifact_sha256",
+          "coverage_factor",
+          "coverage_probability_pct"
         ],
         "properties": {
           "parameter": {
@@ -418,6 +419,15 @@
           "estimate_artifact_sha256": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "coverage_factor": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "coverage_probability_pct": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100
           }
         }
       }
