@@ -9,6 +9,8 @@ use std::fmt;
 const NORMAL_90: f64 = 1.644_853_626_951_472_2;
 const LOG_SQRT_2PI: f64 = 0.918_938_533_204_672_7;
 const MAX_MONTE_CARLO_SAMPLES_PER_MODEL: usize = 1_000_000;
+/// Default numerical floor that prevents floating-point EIG residue from being ranked.
+const MINIMUM_NUMERICAL_EIG_NATS: f64 = 1.0e-12;
 const MAX_BOOTSTRAP_RESAMPLES: usize = 1_000_000;
 const SPLITMIX_GAMMA: u64 = 0x9e37_79b9_7f4a_7c15;
 
@@ -967,6 +969,17 @@ pub fn estimate_expected_information_gain_with_uncertainty(
     ordered_predictions.sort_by(|a, b| a.model_family_id.cmp(&b.model_family_id));
 
     let model_count = ordered_predictions.len();
+    if ordered_predictions.iter().all(|prediction| {
+        prediction.mean == ordered_predictions[0].mean
+            && prediction.standard_deviation == ordered_predictions[0].standard_deviation
+    }) {
+        return Ok(InformationGainEstimate {
+            mean_nats: 0.0,
+            standard_error_nats: 0.0,
+            lower_95_nats: 0.0,
+            upper_95_nats: 0.0,
+        });
+    }
     let log_prior = -(model_count as f64).ln();
     let mut rng = SplitMix64(seed);
     let mut sum_of_stratum_means = 0.0_f64;
@@ -1073,14 +1086,20 @@ pub fn estimate_expected_information_gain(
 /// exceed the preregistered threshold are excluded; if every feasible candidate
 /// is excluded, the result is an explicit abstention.
 ///
-/// A zero threshold is only a Monte Carlo-noise gate. It is not a biological
-/// equivalence margin or a declaration that two models are globally equivalent.
+/// The default API uses a 1e-12-nat numerical floor. A caller may set a
+/// different preregistered threshold; it is not a biological equivalence margin
+/// or a declaration that two models are globally equivalent.
 pub fn rank_interventions(
     candidates: &[InterventionCandidate],
     samples_per_model: usize,
     seed: u64,
 ) -> Result<Vec<InterventionRanking>, BenchError> {
-    rank_interventions_with_minimum_information_gain(candidates, samples_per_model, seed, 0.0)
+    rank_interventions_with_minimum_information_gain(
+        candidates,
+        samples_per_model,
+        seed,
+        MINIMUM_NUMERICAL_EIG_NATS,
+    )
 }
 
 /// Rank with a preregistered minimum 95% lower EIG bound in nats.
@@ -1737,9 +1756,10 @@ mod tests {
             predictions: high.predictions.clone(),
         };
         let ranked = rank_interventions(&[low, infeasible, high], 1000, 99).unwrap();
-        assert_eq!(ranked.len(), 2);
+        assert_eq!(ranked.len(), 1);
         assert_eq!(ranked[0].intervention_id, "local-inhibitory-ablation");
-        assert!(ranked[0].information_gain_per_cost > ranked[1].information_gain_per_cost);
+        assert!(ranked[0].information_gain_lower_95_nats > 0.0);
+        assert!(ranked[0].lower_95_information_gain_per_cost > 0.0);
     }
 
     #[test]
