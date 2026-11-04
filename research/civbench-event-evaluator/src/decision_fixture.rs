@@ -927,10 +927,10 @@ fn validate_expected(
 }
 
 fn parse_optional_acquisition(
-    object: &BTreeMap<String, JsonValue>,
+    parent: &BTreeMap<String, JsonValue>,
     path: &str,
 ) -> Result<Option<AcquisitionResult>, FixtureError> {
-    match field(object, "acquisition_summary", path)? {
+    match field(parent, "acquisition_summary", path)? {
         JsonValue::Null => Ok(None),
         value => {
             let acquisition = object(
