@@ -25,16 +25,23 @@ def canonical(value) -> bytes:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
 
 
-def npy(descr: str, shape: tuple[int, ...], payload: bytes) -> bytes:
+def npy(
+    descr: str, shape: tuple[int, ...], payload: bytes, *, fortran_order: bool = False
+) -> bytes:
     shape_text = "()" if not shape else "(" + ", ".join(str(x) for x in shape) + ("," if len(shape) == 1 else "") + ")"
-    header = "{'descr': %r, 'fortran_order': False, 'shape': %s, }" % (descr, shape_text)
+    header = "{'descr': %r, 'fortran_order': %r, 'shape': %s, }" % (
+        descr, fortran_order, shape_text
+    )
     encoded = header.encode("latin1")
     padding = (16 - ((10 + len(encoded) + 1) % 16)) % 16
     encoded += b" " * padding + b"\n"
     return b"\x93NUMPY\x01\x00" + struct.pack("<H", len(encoded)) + encoded + payload
 
 
-def make_npz(path: Path, wrong_x_shape: bool = False) -> None:
+def make_npz(
+    path: Path, wrong_x_shape: bool = False, fortran_x: bool = False,
+    wrong_best_history: bool = False,
+) -> None:
     x_shape = (2, 2 if wrong_x_shape else 3)
     arrays = {
         "algorithm.npy": npy("|S13", (), b"random_search"),
@@ -43,9 +50,16 @@ def make_npz(path: Path, wrong_x_shape: bool = False) -> None:
         "best.npy": npy("<f8", (), struct.pack("<d", 1.25)),
         "n_init.npy": npy("<i8", (), struct.pack("<q", 1)),
         "iterations.npy": npy("<i8", (2,), struct.pack("<qq", 0, 1)),
-        "per_iteration_value.npy": npy("<f8", (2,), struct.pack("<dd", 0.5, 1.25)),
+        "per_iteration_value.npy": npy(
+            "<f8", (2,), struct.pack("<dd", 0.5, 1.2 if wrong_best_history else 1.25)
+        ),
         "wall_time.npy": npy("<f8", (2,), struct.pack("<dd", 0.0, 0.2)),
-        "X.npy": npy("<f8", x_shape, struct.pack("<" + "d" * (x_shape[0] * x_shape[1]), *([0.25] * (x_shape[0] * x_shape[1])))),
+        "X.npy": npy(
+            "<f8",
+            x_shape,
+            struct.pack("<" + "d" * (x_shape[0] * x_shape[1]), *([0.25] * (x_shape[0] * x_shape[1]))),
+            fortran_order=fortran_x,
+        ),
         "y.npy": npy("<f8", (2, 1), struct.pack("<dd", 0.5, 1.25)),
         "c.npy": npy("<f8", (2, 1), struct.pack("<dd", -0.1, -0.2)),
     }
@@ -59,7 +73,10 @@ def artifact(root: Path, name: str, data: bytes) -> dict:
     return {"path": name, "byte_length": len(data), "sha256": sha(data)}
 
 
-def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
+def build_fixture(
+    root: Path, wrong_x_shape: bool = False, fortran_x: bool = False,
+    wrong_best_history: bool = False,
+) -> Path:
     metadata_bytes = (
         b'{"name":"Fixture","dim":3,"num_objectives":1,"num_constraints":1,'
         b'"input_type":"continuous","application":"Engineering"}\n'
@@ -75,7 +92,7 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "upstream_summary": artifact(root, "summary.csv", b"algorithm,problem,seed,best,gap,npz\nrandom_search,Fixture,7,1.25,,random_search_Fixture_seed7.npz\n"),
     }
     npz_path = root / "random_search_Fixture_seed7.npz"
-    make_npz(npz_path, wrong_x_shape)
+    make_npz(npz_path, wrong_x_shape, fortran_x, wrong_best_history)
     artifacts["upstream_npz"] = artifact(root, "random_search_Fixture_seed7.npz", npz_path.read_bytes())
 
     request = {
@@ -211,6 +228,20 @@ def main() -> int:
         shape_result = run_verifier(wrong_receipt)
         assert shape_result.returncode != 0, "NPZ dimension mismatch was not rejected"
 
+        fortran_root = Path(temp) / "fortran-layout"
+        fortran_root.mkdir()
+        fortran_receipt = build_fixture(fortran_root, fortran_x=True)
+        fortran_result = run_verifier(fortran_receipt)
+        assert fortran_result.returncode != 0, "Fortran-order NPZ array was not rejected"
+
+        wrong_history_root = Path(temp) / "wrong-best-history"
+        wrong_history_root.mkdir()
+        wrong_history_receipt = build_fixture(
+            wrong_history_root, wrong_best_history=True
+        )
+        wrong_history_result = run_verifier(wrong_history_receipt)
+        assert wrong_history_result.returncode != 0, "NPZ best-history mismatch was not rejected"
+
         # A campaign must preserve a scheduled trial that has no receipt.
         campaign_root = Path(temp) / "campaign"
         campaign_root.mkdir()
@@ -249,6 +280,7 @@ def main() -> int:
         print(
             "bocode_receipt_verifier_selftest=pass "
             "valid_receipt=1 artifact_tamper_rejected=1 npz_shape_tamper_rejected=1 "
+            "fortran_order_rejected=1 best_history_tamper_rejected=1 "
             "missing_campaign_trial_retained=1"
         )
     return 0
