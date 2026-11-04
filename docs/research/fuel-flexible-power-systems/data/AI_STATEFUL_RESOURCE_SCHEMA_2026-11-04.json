@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ai-stateful-resource-trajectory-0.1.0.json",
+  "title": "AI Data-Centre Stateful Storage and Thermal Resource Trajectory",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "status",
+    "intended_use",
+    "reference_register",
+    "fixtures",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "const": "synthetic_stateful_resource_oracles"
+    },
+    "intended_use": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_register": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/fixture"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "required": [
+        "reference_id",
+        "title",
+        "doi",
+        "publication_period",
+        "evidence_class",
+        "scope_note"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\."
+        },
+        "publication_period": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])(-[0-3]\\d)?$"
+        },
+        "evidence_class": {
+          "enum": [
+            "peer_reviewed_modelled_case_study",
+            "peer_reviewed_field_measurement",
+            "published_dataset"
+          ]
+        },
+        "scope_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "storage": {
+      "type": "object",
+      "required": [
+        "capacity_kwh",
+        "initial_energy_kwh",
+        "minimum_operating_energy_kwh",
+        "maximum_charge_power_kw",
+        "maximum_discharge_power_kw",
+        "charge_efficiency",
+        "discharge_efficiency",
+        "critical_load_power_kw",
+        "ride_through_seconds",
+        "reserve_margin_fraction"
+      ],
+      "properties": {
+        "capacity_kwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "initial_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_operating_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_charge_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_discharge_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "charge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "discharge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "critical_load_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ride_through_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserve_margin_fraction": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "thermal_zone": {
+      "type": "object",
+      "required": [
+        "zone_id",
+        "initial_temperature_c",
+        "maximum_temperature_c",
+        "thermal_capacitance_kwh_per_c",
+        "ambient_conductance_kw_per_c",
+        "maximum_cooling_heat_removal_kw",
+        "maximum_cooling_electric_power_kw",
+        "minimum_cop",
+        "maximum_cop"
+      ],
+      "properties": {
+        "zone_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_temperature_c": {
+          "type": "number"
+        },
+        "maximum_temperature_c": {
+          "type": "number"
+        },
+        "thermal_capacitance_kwh_per_c": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ambient_conductance_kw_per_c": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_cooling_heat_removal_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_cooling_electric_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_cop": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_cop": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "resource_contract": {
+      "type": "object",
+      "required": [
+        "scenario_id",
+        "site_id",
+        "boundary_id",
+        "configuration_digest",
+        "storage",
+        "thermal_zone",
+        "maximum_facility_input_power_kw",
+        "maximum_grid_import_power_kw"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage": {
+          "$ref": "#/$defs/storage"
+        },
+        "thermal_zone": {
+          "$ref": "#/$defs/thermal_zone"
+        },
+        "maximum_facility_input_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_grid_import_power_kw": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "slot": {
+      "type": "object",
+      "required": [
+        "sample_id",
+        "site_id",
+        "boundary_id",
+        "start_unix_seconds",
+        "end_unix_seconds",
+        "base_facility_power_kw",
+        "it_power_kw",
+        "cooling_electric_power_kw",
+        "other_facility_power_kw",
+        "onsite_non_storage_supply_kw",
+        "storage_charge_power_kw",
+        "storage_discharge_power_kw",
+        "it_heat_injection_kw",
+        "ambient_temperature_c",
+        "cooling_heat_removal_kw",
+        "power_evidence_id",
+        "storage_evidence_id",
+        "thermal_evidence_id"
+      ],
+      "properties": {
+        "sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_unix_seconds": {
+          "type": "integer"
+        },
+        "end_unix_seconds": {
+          "type": "integer"
+        },
+        "base_facility_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "it_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cooling_electric_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "other_facility_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "onsite_non_storage_supply_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "storage_charge_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "storage_discharge_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "it_heat_injection_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ambient_temperature_c": {
+          "type": "number"
+        },
+        "cooling_heat_removal_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "power_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thermal_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixture": {
+      "type": "object",
+      "required": [
+        "fixture_id",
+        "expected_result",
+        "resource_contract",
+        "slots",
+        "expected_oracle",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_result": {
+          "enum": [
+            "pass",
+            "reject"
+          ]
+        },
+        "resource_contract": {
+          "$ref": "#/$defs/resource_contract"
+        },
+        "slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/slot"
+          }
+        },
+        "expected_oracle": {
+          "type": "object",
+          "properties": {
+            "protected_reserve_floor_kwh": {
+              "type": "number"
+            },
+            "minimum_storage_energy_kwh": {
+              "type": "number"
+            },
+            "minimum_reserve_margin_kwh": {
+              "type": "number"
+            },
+            "maximum_zone_temperature_c": {
+              "type": "number"
+            },
+            "total_facility_energy_kwh": {
+              "type": "number"
+            },
+            "total_grid_import_energy_kwh": {
+              "type": "number"
+            },
+            "peak_facility_input_power_kw": {
+              "type": "number"
+            },
+            "peak_grid_import_power_kw": {
+              "type": "number"
+            },
+            "failed_gates": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
