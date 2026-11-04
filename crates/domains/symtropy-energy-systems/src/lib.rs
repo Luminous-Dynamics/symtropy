@@ -46,7 +46,8 @@ pub use joint_scenario::{
     JointScenarioForecastEvaluation, JointScenarioForecastReport,
     RealizedScenarioPath, ScenarioConditionOperator, ScenarioDimensionScale,
     ScenarioEventAggregateReport, ScenarioEventCaseReceipt, ScenarioEventCondition,
-    ScenarioEventDefinition, ScenarioPathProbabilityReceipt, ScenarioVariogramPair,
+    ScenarioDimensionScoreAggregate, ScenarioEventDefinition, ScenarioMarginalScoreReceipt,
+    ScenarioPathProbabilityReceipt, ScenarioVariogramPair,
     ScenarioVariogramPairReceipt, WeightedScenarioPath,
     evaluate_joint_scenario_forecasts,
 };
