@@ -64,9 +64,6 @@ impl WorkloadFlexibilityTrajectoryIdentity {
         ] {
             require_id(name, value)?;
         }
-        if identity.baseline_schedule_digest == identity.flexible_schedule_digest {
-            return Err(WorkloadFlexibilityTrajectoryError::ScheduleDigestsMustDiffer);
-        }
         Ok(identity)
     }
 
@@ -132,7 +129,6 @@ pub struct WorkloadFlexibilityTrajectoryReport {
 #[derive(Debug, Clone, PartialEq)]
 pub enum WorkloadFlexibilityTrajectoryError {
     MissingIdentity { name: &'static str },
-    ScheduleDigestsMustDiffer,
     ScheduleIdsMustDiffer,
     ServiceContractMismatch { baseline: String, flexible: String },
     WorkUnitMismatch { baseline: String, flexible: String },
@@ -149,9 +145,6 @@ impl fmt::Display for WorkloadFlexibilityTrajectoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingIdentity { name } => write!(f, "{name} must not be empty"),
-            Self::ScheduleDigestsMustDiffer => {
-                write!(f, "baseline and flexible schedule digests must differ")
-            }
             Self::ScheduleIdsMustDiffer => {
                 write!(f, "baseline and flexible schedule IDs must differ")
             }
@@ -573,17 +566,14 @@ mod tests {
     }
 
     #[test]
-    fn empty_identity_and_equal_digests_are_rejected() {
+    fn empty_identity_is_rejected_and_equal_content_digests_are_allowed() {
         assert!(matches!(
             WorkloadFlexibilityTrajectoryIdentity::new("", "site", "pcc", "base", "flex"),
             Err(WorkloadFlexibilityTrajectoryError::MissingIdentity { .. })
         ));
-        assert_eq!(
-            WorkloadFlexibilityTrajectoryIdentity::new(
-                "trajectory", "site", "pcc", "same-digest", "same-digest"
-            ),
-            Err(WorkloadFlexibilityTrajectoryError::ScheduleDigestsMustDiffer)
-        );
+        assert!(WorkloadFlexibilityTrajectoryIdentity::new(
+            "trajectory", "site", "pcc", "same-digest", "same-digest"
+        ).is_ok());
     }
 
     #[test]
