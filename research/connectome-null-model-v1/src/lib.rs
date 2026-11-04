@@ -280,10 +280,10 @@ impl SplitMix64 {
 
 /// Generates one constrained rewiring sample or returns an explicit failure.
 ///
-/// The switch proposal is selected uniformly over all unordered edge pairs
-/// inside eligible source-type/target-type/edge-class blocks. An invalid
-/// proposal is a hold, preserving reversibility of the labelled-slot proposal.
-/// The caller must still assess mixing and dependence across samples.
+/// Candidate pairs are selected by a fixed, seed-reproducible rule over eligible
+/// source-type/target-type/edge-class blocks. An invalid proposal is a hold.
+/// V1 makes no stationary-distribution, irreducibility or finite-run mixing
+/// claim; callers must qualify the ensemble before statistical use.
 pub fn generate_null_model(
     input: &ConnectomeGraph,
     config: NullModelConfig,
