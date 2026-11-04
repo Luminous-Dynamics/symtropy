@@ -226,6 +226,8 @@ pub enum DecisionClosureError {
     VerifierNotIndependent,
     /// Resource settlement is inconsistent with work progress.
     ResourceSettlementMismatch,
+    /// Rejected/deferred decisions cannot retain a resource reservation.
+    ResourceReservationAfterNonAuthorization,
     /// A decision-change result is present without an acquisition receipt.
     DecisionChangeWithoutAcquisition,
     /// Rejected/deferred recommendations were followed by action.
@@ -298,6 +300,9 @@ impl std::fmt::Display for DecisionClosureError {
             }
             Self::ResourceSettlementMismatch => {
                 write!(f, "resource settlement does not match work progress")
+            }
+            Self::ResourceReservationAfterNonAuthorization => {
+                write!(f, "rejected/deferred decision cannot retain reserved resources")
             }
             Self::DecisionChangeWithoutAcquisition => {
                 write!(f, "decision-change result requires an acquisition receipt")
@@ -548,6 +553,20 @@ impl DecisionClosureRecord {
             && self.human_disposition != HumanDisposition::Authorized
         {
             return Err(DecisionClosureError::ActionAfterNonAuthorization);
+        }
+
+        if matches!(
+            self.human_disposition,
+            HumanDisposition::Rejected | HumanDisposition::Deferred
+        ) && (self.resource_feasibility == ResourceFeasibility::FeasibleAndReserved
+            || matches!(
+                self.resource_settlement,
+                ResourceSettlement::Reserved
+                    | ResourceSettlement::Settled
+                    | ResourceSettlement::Released
+            ))
+        {
+            return Err(DecisionClosureError::ResourceReservationAfterNonAuthorization);
         }
 
         if self.action_progress != ActionProgress::NotStarted {
