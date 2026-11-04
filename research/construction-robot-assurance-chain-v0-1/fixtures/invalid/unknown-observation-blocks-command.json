@@ -1,0 +1,143 @@
+{
+  "schema_version": "construction-robot-assurance-chain/0.1",
+  "task_binding": {
+    "project_id": "synthetic-project",
+    "site_id": "synthetic-site",
+    "work_package_revision": "wp-r1",
+    "task_scope": "floor-1-layout",
+    "work_zone_id": "zone-a",
+    "robot_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "initial_worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timebase_id": "synthetic-boot-001"
+  },
+  "scenario_id": "unknown-observation-blocks-command",
+  "scenario_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "stages": [
+    {
+      "stage_id": "input",
+      "stage_kind": "layout_input_admission",
+      "sequence": 0,
+      "predecessor_stage_ids": [],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "source-export",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "model-export"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "admissible_for_named_layout_input",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "observation",
+      "stage_kind": "observation_evaluation",
+      "sequence": 1,
+      "predecessor_stage_ids": [
+        "input"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "observation-unknown",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "unknown_or_unobserved",
+      "expected_reason_codes": [
+        "required_cell_unobserved:zone-a"
+      ]
+    },
+    {
+      "stage_id": "epoch",
+      "stage_kind": "worksite_epoch_transition",
+      "sequence": 2,
+      "predecessor_stage_ids": [
+        "observation"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "observation-unknown",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "epoch-hold",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "safe_hold",
+      "expected_reason_codes": [
+        "observation_unknown_invalidates_permission"
+      ]
+    },
+    {
+      "stage_id": "command",
+      "stage_kind": "command_authorization",
+      "sequence": 3,
+      "predecessor_stage_ids": [
+        "epoch"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "epoch-hold",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [],
+      "expected_disposition": "rejected",
+      "expected_reason_codes": [
+        "state_not_active"
+      ]
+    }
+  ],
+  "command_attempts": [
+    {
+      "command_id": "blocked-command",
+      "sequence": 1,
+      "epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "task_scope": "floor-1-layout",
+      "timebase_id": "synthetic-boot-001",
+      "qualification_generation": 0,
+      "lease_valid_at_command": false,
+      "expected_authorized": false,
+      "expected_reason_codes": [
+        "state_not_active"
+      ]
+    }
+  ],
+  "claim_expectations": [
+    {
+      "claim_id": "field-safety-claim",
+      "claim_kind": "field_human_detection",
+      "evidence_origin": "synthetic",
+      "intended_scope": "field",
+      "expected_decision": "not_evaluated",
+      "supporting_stage_ids": [
+        "input",
+        "observation",
+        "epoch",
+        "command"
+      ]
+    }
+  ],
+  "statistical_units": []
+}
