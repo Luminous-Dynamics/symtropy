@@ -1748,7 +1748,8 @@ mod tests {
                                 }
                             }
                             InterventionKind::Washout => {
-                                next_physical = if physical.carryover == PhysicalCarryover::Baseline {
+                                next_physical = if physical.carryover == PhysicalCarryover::Baseline
+                                {
                                     physical.id.clone()
                                 } else {
                                     match physical.behavioral_context {
@@ -2133,14 +2134,8 @@ mod tests {
             .unwrap();
 
         for (physical_id, expected) in [
-            (
-                "stance-nominal",
-                PresynapticMovementInhibition::Engaged,
-            ),
-            (
-                "grooming-supported",
-                PresynapticMovementInhibition::Engaged,
-            ),
+            ("stance-nominal", PresynapticMovementInhibition::Engaged),
+            ("grooming-supported", PresynapticMovementInhibition::Engaged),
             (
                 "other-supported",
                 PresynapticMovementInhibition::Disinhibited,
@@ -2154,14 +2149,17 @@ mod tests {
                     "active-movement-probe",
                 )
                 .unwrap();
-            let next = &compiled.sensor_states
-                [compiled.kernel.rows[row].outcomes[0].next_sensor_state];
+            let next =
+                &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
             assert_eq!(
                 next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
                 expected,
                 "unexpected presynaptic state in context {physical_id}"
             );
-            for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+            for leg in LegId::ALL
+                .into_iter()
+                .filter(|leg| *leg != LegId::FrontLeft)
+            {
                 assert_eq!(
                     next.presynaptic_movement_inhibition[leg.index()],
                     PresynapticMovementInhibition::Disinhibited
@@ -2200,12 +2198,13 @@ mod tests {
                     "passive-movement-probe",
                 )
                 .unwrap();
-            let next = &compiled.sensor_states
-                [compiled.kernel.rows[row].outcomes[0].next_sensor_state];
-            assert!(next
-                .presynaptic_movement_inhibition
-                .iter()
-                .all(|value| *value == PresynapticMovementInhibition::Disinhibited));
+            let next =
+                &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
+            assert!(
+                next.presynaptic_movement_inhibition
+                    .iter()
+                    .all(|value| *value == PresynapticMovementInhibition::Disinhibited)
+            );
         }
     }
 
@@ -2213,11 +2212,7 @@ mod tests {
     fn washout_preserves_behavioral_context_while_clearing_carryover() {
         let compiled = spec().compile().unwrap();
         for (physical_id, expected_context, expected_state) in [
-            (
-                "swing-loaded",
-                BehavioralContext::Walking,
-                "stance-nominal",
-            ),
+            ("swing-loaded", BehavioralContext::Walking, "stance-nominal"),
             (
                 "grooming-unloaded",
                 BehavioralContext::Grooming,
