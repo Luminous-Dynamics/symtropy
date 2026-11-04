@@ -152,7 +152,7 @@ fn exact_division(
     divisor: u64,
     name: &'static str,
 ) -> Result<u64, AdapterError> {
-    if value % divisor != 0 {
+    if !value.is_multiple_of(divisor) {
         return Err(AdapterError::NonIntegralUnitConversion(name));
     }
     Ok(value / divisor)
