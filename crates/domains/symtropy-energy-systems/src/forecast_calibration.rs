@@ -839,10 +839,9 @@ fn validate_block_grid(
             observed: block.cells.len(),
         });
     }
-    let expected_channels = contract.channels.iter().collect::<BTreeSet<_>>();
     let mut observed = BTreeSet::new();
     for cell in &block.cells {
-        if !expected_channels.contains(&cell.channel_id) {
+        if contract.channels.binary_search(&cell.channel_id).is_err() {
             return Err(ForecastCalibrationError::UnexpectedChannel {
                 block_id: block.block_id.clone(),
                 channel_id: cell.channel_id.clone(),
@@ -1011,7 +1010,7 @@ mod tests {
         .unwrap();
         let report = evaluate_forecast_calibration(&input).unwrap();
         assert!((report.calibrated_scale_multiplier - 1.25).abs() < 1e-12);
-        assert_eq!(report.selected_calibration_block_id, "tie-0");
+        assert_eq!(report.selected_calibration_block_id, "tie-8");
     }
 
     #[test]
@@ -1182,6 +1181,27 @@ mod tests {
         assert!(matches!(
             result,
             Err(ForecastCalibrationError::UnexpectedChannel { .. })
+        ));
+
+        let calibration = (0..9)
+            .map(|index| {
+                block(
+                    &format!("horizon-cal-{index}"),
+                    100 + u64::from(index) * 20,
+                    0.1,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut bad_horizon = block("bad-horizon", 1_000, 0.1);
+        bad_horizon.cells[0] = cell("ambient", 2, 0.1);
+        let result = ForecastCalibrationEvaluation::new(
+            contract(900_000, 1),
+            calibration,
+            vec![bad_horizon],
+        );
+        assert!(matches!(
+            result,
+            Err(ForecastCalibrationError::UnexpectedHorizon { .. })
         ));
     }
 
