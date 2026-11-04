@@ -95,7 +95,6 @@ impl TruthLabel {
             Self::NotMeasured | Self::Unsupported | Self::Withheld | Self::NotApplicable => None,
         }
     }
-
 }
 
 /// Independently sourced localization truth for one event.
@@ -758,7 +757,6 @@ fn score_label(
     Ok(())
 }
 
-
 fn build_risk_coverage_curve(
     predictions: &[(u32, bool)],
     eligible_events: usize,
@@ -792,10 +790,8 @@ fn finalize_evidence_metrics(
     predictions: &[(u32, bool)],
 ) {
     metrics.coverage_ppm = ratio_ppm(metrics.localized_events, metrics.eligible_events);
-    metrics.conditional_top1_accuracy_ppm =
-        ratio_ppm(metrics.top1_hits, metrics.localized_events);
-    metrics.conditional_top5_accuracy_ppm =
-        ratio_ppm(metrics.top5_hits, metrics.localized_events);
+    metrics.conditional_top1_accuracy_ppm = ratio_ppm(metrics.top1_hits, metrics.localized_events);
+    metrics.conditional_top5_accuracy_ppm = ratio_ppm(metrics.top5_hits, metrics.localized_events);
     metrics.system_top1_accuracy_ppm = ratio_ppm(metrics.top1_hits, metrics.eligible_events);
     metrics.system_top5_accuracy_ppm = ratio_ppm(metrics.top5_hits, metrics.eligible_events);
     metrics.risk_coverage = build_risk_coverage_curve(predictions, metrics.eligible_events);
@@ -920,12 +916,13 @@ pub fn evaluate_localization(
             LocalizationLevel::Zone => report.observability.zone += 1,
             LocalizationLevel::Pipe => report.observability.pipe += 1,
         }
-        let assessment_digest = normalized_sha256(&assessment.assessment_digest).ok_or_else(|| {
-            LocalizationEvaluationError::new(
-                "invalid_observability_digest",
-                assessment.event_id.as_str(),
-            )
-        })?;
+        let assessment_digest =
+            normalized_sha256(&assessment.assessment_digest).ok_or_else(|| {
+                LocalizationEvaluationError::new(
+                    "invalid_observability_digest",
+                    assessment.event_id.as_str(),
+                )
+            })?;
         report
             .observability_bindings
             .push(ObservabilityBindingReceipt {
