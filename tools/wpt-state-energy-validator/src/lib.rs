@@ -266,10 +266,8 @@ fn jacobi(mut a: Vec<Vec<f64>>) -> Result<(f64, f64, f64, bool), String> {
                 let (before_q, from_q) = a.split_at_mut(q);
                 let row_p = &mut before_q[p];
                 let row_q = &mut from_q[0];
-                for (p_value, q_value, update) in
-                    row_p.iter_mut().zip(row_q.iter_mut()).zip(&updates).map(
-                        |((p_value, q_value), update)| (p_value, q_value, update),
-                    )
+                for ((p_value, q_value), update) in
+                    row_p.iter_mut().zip(row_q.iter_mut()).zip(&updates)
                 {
                     if let Some((new_kp, new_kq)) = update {
                         *p_value = *new_kp;
