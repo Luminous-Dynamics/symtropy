@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-robot-site-transfer-v0.1",
+  "owner_issue": 3672,
+  "source_of_truth": {
+    "split_integrity": "group-level source/target split guards; frames/cycles are not independent site units",
+    "accepted_output": "external receipt/adjudication reference under the declared acceptance profile",
+    "safety": "external, non-compensable; not scored by transfer evaluator"
+  },
+  "regimes": [
+    "zero_shot",
+    "calibration_only",
+    "bounded_offline_adaptation",
+    "human_supervised_method_adaptation"
+  ],
+  "dimensions": [
+    "physical_environment",
+    "materials_and_work",
+    "digital_and_operational_context",
+    "robot_and_fleet"
+  ],
+  "primary_metrics": [
+    "first_pass_yield",
+    "final_acceptance_fraction",
+    "finally_accepted_units_per_total_workflow_crew_hour",
+    "finally_accepted_units_per_robot_hour",
+    "matched_transfer_retention_ratio",
+    "adaptation_person_hours",
+    "target_label_count",
+    "elapsed_time_to_first_accepted_unit"
+  ],
+  "hard_rules": {
+    "source_training_target_evaluation_overlap": 0,
+    "target_adaptation_target_evaluation_work_item_overlap": 0,
+    "accepted_without_independent_inspection": 0,
+    "unsupported_domain_silent_admission": 0
+  },
+  "limitations": [
+    "No inference of safety from productivity",
+    "No field-transfer claim from synthetic fixtures",
+    "No causal claim without matched/randomized design and appropriate independent units",
+    "No universal retention threshold"
+  ]
+}
