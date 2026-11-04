@@ -174,10 +174,14 @@ pub struct EvaluationReport {
     pub false_alarm_duration_ms: u64,
     /// Union duration of all alarm-active intervals divided by monitoring exposure.
     pub alarm_duty_cycle_ppm: u64,
-    /// Nearest-rank median of timely onset offsets.
-    pub p50_onset_offset_ms: Option<i64>,
-    /// Nearest-rank 95th percentile of timely onset offsets.
-    pub p95_onset_offset_ms: Option<i64>,
+    /// Nearest-rank median of non-negative timely detection delays.
+    pub p50_detection_delay_ms: Option<i64>,
+    /// Nearest-rank 95th percentile of non-negative timely detection delays.
+    pub p95_detection_delay_ms: Option<i64>,
+    /// Nearest-rank median of early-warning lead times.
+    pub p50_early_lead_ms: Option<i64>,
+    /// Nearest-rank 95th percentile of early-warning lead times.
+    pub p95_early_lead_ms: Option<i64>,
 }
 
 impl EvaluationReport {
@@ -248,13 +252,23 @@ impl EvaluationReport {
         );
         let _ = writeln!(
             &mut out,
-            "p50_onset_offset_ms={}",
-            option_i64(self.p50_onset_offset_ms)
+            "p50_detection_delay_ms={}",
+            option_i64(self.p50_detection_delay_ms)
         );
         let _ = writeln!(
             &mut out,
-            "p95_onset_offset_ms={}",
-            option_i64(self.p95_onset_offset_ms)
+            "p95_detection_delay_ms={}",
+            option_i64(self.p95_detection_delay_ms)
+        );
+        let _ = writeln!(
+            &mut out,
+            "p50_early_lead_ms={}",
+            option_i64(self.p50_early_lead_ms)
+        );
+        let _ = writeln!(
+            &mut out,
+            "p95_early_lead_ms={}",
+            option_i64(self.p95_early_lead_ms)
         );
         for record in &self.matches {
             let kind = match record.kind {
@@ -682,7 +696,8 @@ pub fn evaluate(
     let mut used_episodes = BTreeSet::new();
     let mut matched_events = BTreeSet::new();
     let mut matches = Vec::new();
-    let mut delays = Vec::new();
+    let mut detection_delays = Vec::new();
+    let mut early_leads = Vec::new();
 
     for (event_index, episode_index) in timely_assignment.iter().enumerate() {
         if let Some(episode_index) = episode_index {
@@ -695,7 +710,11 @@ pub fn evaluate(
                 AlarmClass::Unclassified | AlarmClass::Conflicting => None,
             };
             let offset = onset_offset(episode.start_ms, event.onset_ms);
-            delays.push(offset);
+            if offset >= 0 {
+                detection_delays.push(offset);
+            } else {
+                early_leads.push(-offset);
+            }
             matches.push(MatchRecord {
                 event_id: event.event_id.clone(),
                 episode_id: episode.episode_id.clone(),
@@ -921,8 +940,10 @@ pub fn evaluate(
         false_alarm_episodes_per_system_day: false_rate,
         false_alarm_duration_ms: false_duration_ms.min(u128::from(u64::MAX)) as u64,
         alarm_duty_cycle_ppm: duty_ppm,
-        p50_onset_offset_ms: percentile_nearest_rank(&delays, 50),
-        p95_onset_offset_ms: percentile_nearest_rank(&delays, 95),
+        p50_detection_delay_ms: percentile_nearest_rank(&detection_delays, 50),
+        p95_detection_delay_ms: percentile_nearest_rank(&detection_delays, 95),
+        p50_early_lead_ms: percentile_nearest_rank(&early_leads, 50),
+        p95_early_lead_ms: percentile_nearest_rank(&early_leads, 95),
     })
 }
 
