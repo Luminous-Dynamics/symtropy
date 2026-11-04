@@ -182,7 +182,7 @@ fn nearest_legal_action(value: f64, legal_max: u8) -> u8 {
         .unwrap_or(0)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GameError {
     InvalidRisk(f64),
     WrongSeatCount {
@@ -384,7 +384,7 @@ fn run_internal(
                     seat,
                 ),
             };
-            if !ACTIONS.contains(&requested) || requested > remaining {
+            if !ACTIONS.contains(&requested) || u32::from(requested) > remaining {
                 return Err(GameError::InvalidActionPlan {
                     seat,
                     round,
