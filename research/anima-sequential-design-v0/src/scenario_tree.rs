@@ -26,7 +26,6 @@ pub struct ScenarioTreeConfig {
     /// Exceeding this limit fails closed; no truncated plan is called exact.
     pub maximum_tree_nodes: u64,
     pub discount_factor: f64,
-    pub minimum_delivery_fidelity: f64,
     pub transitions: TransitionConstraints,
 }
 
@@ -36,7 +35,6 @@ impl Default for ScenarioTreeConfig {
             horizon: 3,
             maximum_tree_nodes: 100_000,
             discount_factor: 1.0,
-            minimum_delivery_fidelity: 0.90,
             transitions: TransitionConstraints::default(),
         }
     }
@@ -110,11 +108,6 @@ fn validate_config(
     }
     if !config.discount_factor.is_finite() || !(0.0..=1.0).contains(&config.discount_factor) {
         return Err(ScenarioTreeError::InvalidDiscountFactor);
-    }
-    if !config.minimum_delivery_fidelity.is_finite()
-        || !(0.0..=1.0).contains(&config.minimum_delivery_fidelity)
-    {
-        return Err(ScenarioTreeError::InvalidDeliveryFidelity);
     }
 
     let ids: BTreeSet<String> = candidates
