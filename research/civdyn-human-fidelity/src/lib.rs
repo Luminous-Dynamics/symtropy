@@ -761,20 +761,24 @@ mod tests {
             let participant_id = format!("participant_{participant:03}");
             let cohort_id = format!("cohort_{}", participant % 3);
             for step_index in 0..3_u32 {
+                let context_draw = ((participant * 7 + step_index as usize * 11) % 100) as u32;
                 let choice = match participant % 3 {
                     0 => {
-                        if (participant as u32 + step_index) % 7 == 0 { 3 }
-                        else if (participant as u32 + step_index) % 4 == 0 { 1 }
+                        if context_draw < 4 { 2 }
+                        else if context_draw < 10 { 3 }
+                        else if context_draw < 30 { 1 }
                         else { 0 }
                     }
                     1 => {
-                        if (participant as u32 + step_index) % 6 == 0 { 2 }
-                        else if (participant as u32 + step_index) % 3 == 0 { 3 }
+                        if context_draw < 4 { 3 }
+                        else if context_draw < 10 { 0 }
+                        else if context_draw < 30 { 2 }
                         else { 1 }
                     }
                     _ => {
-                        if (participant as u32 + step_index) % 5 == 0 { 0 }
-                        else if (participant as u32 + step_index) % 4 == 0 { 2 }
+                        if context_draw < 4 { 1 }
+                        else if context_draw < 10 { 2 }
+                        else if context_draw < 30 { 0 }
                         else { 3 }
                     }
                 };
