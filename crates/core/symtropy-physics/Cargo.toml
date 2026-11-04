@@ -36,3 +36,7 @@ path = "src/bin/replay_cli.rs"
 [[bench]]
 name = "physics_bench"
 harness = false
+
+[[bench]]
+name = "batch_replay_bench"
+harness = false
