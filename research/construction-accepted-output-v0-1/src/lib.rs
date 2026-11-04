@@ -422,6 +422,21 @@ pub fn derive_report(ledger: &Value) -> Value {
         .iter()
         .filter(|unit| unit.get("criticality").and_then(Value::as_str) == Some("critical"))
         .count() as u64;
+    let critical_inspected_units = units
+        .iter()
+        .filter(|unit| {
+            unit.get("criticality").and_then(Value::as_str) == Some("critical")
+                && unit
+                    .get("attempts")
+                    .and_then(Value::as_array)
+                    .is_some_and(|attempts| {
+                        attempts.iter().any(|attempt| {
+                            inspection_outcome(attempt)
+                                .is_some_and(|outcome| matches!(outcome, "accepted" | "rejected"))
+                        })
+                    })
+        })
+        .count() as u64;
     let critical_first_pass_inspected_units = units
         .iter()
         .filter(|unit| {
@@ -508,7 +523,8 @@ pub fn derive_report(ledger: &Value) -> Value {
 
     let metrics = vec![
         metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio", provisional),
-        metric("critical_feature_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
+        metric("critical_feature_inspection_coverage", critical_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
+        metric("critical_first_pass_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
         metric("first_pass_critical_defects_per_first_pass_inspected_unit", first_pass_critical_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
         metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
         metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
@@ -535,6 +551,7 @@ pub fn derive_report(ledger: &Value) -> Value {
             "uninspected_units": uninspected,
             "rework_attempts": rework_attempts,
             "critical_planned_units": critical_planned_units,
+            "critical_inspected_units": critical_inspected_units,
             "critical_first_pass_inspected_units": critical_first_pass_inspected_units,
             "first_pass_critical_defects": first_pass_critical_defects,
             "first_pass_major_defects": first_pass_major_defects,
