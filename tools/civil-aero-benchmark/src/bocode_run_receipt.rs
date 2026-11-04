@@ -408,10 +408,26 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn independent_python_receipt_verifier_passes_and_rejects_tampering() {
-        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("scripts/test-bocode-run-receipt.py");
+        let scripts = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts");
+        let compile = std::process::Command::new("python3")
+            .arg("-m")
+            .arg("py_compile")
+            .arg(scripts.join("run-bocode-single-trial.py"))
+            .arg(scripts.join("verify-bocode-run-receipt.py"))
+            .arg(scripts.join("test-bocode-run-receipt.py"))
+            .arg(scripts.join("aggregate-bocode-campaign.py"))
+            .output()
+            .expect("compile BOCoDe run receipt scripts");
+        assert!(
+            compile.status.success(),
+            "BOCoDe receipt script compilation failed: {}{}",
+            String::from_utf8_lossy(&compile.stdout),
+            String::from_utf8_lossy(&compile.stderr)
+        );
+
+        let self_test = scripts.join("test-bocode-run-receipt.py");
         let output = std::process::Command::new("python3")
-            .arg(&script)
+            .arg(&self_test)
             .output()
             .expect("run BOCoDe receipt verifier synthetic self-test");
         assert!(
