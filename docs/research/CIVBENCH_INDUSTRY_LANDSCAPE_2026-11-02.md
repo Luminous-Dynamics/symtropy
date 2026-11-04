@@ -422,3 +422,10 @@ Implementation extension: [CIVDYN-SWF-001 issue #3610](https://github.com/Lumino
 ### Benchmark target discipline
 
 SimBench's 40.80/100 is an upstream result, not a directly comparable Symthaea score. Reproduce its exact evaluation, datasets, prompts, splits, scoring and uncertainty before making a comparison. The aspirational +5-point target is valid only under that matched protocol and must be accompanied by per-dataset and cohort non-regression checks.
+
+
+## 12. Cross-scale resilience trajectory implementation
+
+CIVDYN-RES-001 has its first executable slice in [Symtropy draft PR #3666](https://github.com/Luminous-Dynamics/symtropy/pull/3666), stacked on the conserved resource-ledger PR #3391. The reference uses 7 inventory nodes across basin/district/household scales, three shock types and four transfer policies. It reports sustained recovery only after every household clears the 0.95 service threshold for two consecutive post-shock ticks. This is a synthetic code fixture, not regional evidence or a forecast.
+
+Source motivation: Balali et al. (2026) find major fragmentation and a shortage of dynamic, uncertainty-aware, cross-scale socio-ecological resilience assessments. https://doi.org/10.1016/j.ecolind.2026.114792
