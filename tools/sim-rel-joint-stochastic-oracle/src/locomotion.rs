@@ -2114,6 +2114,155 @@ mod tests {
     }
 
     #[test]
+    fn active_presynaptic_modulation_is_walking_grooming_context_dependent() {
+        let compiled = spec().compile().unwrap();
+        let sensor = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+                    && state
+                        .presynaptic_movement_inhibition
+                        .iter()
+                        .all(|value| *value == PresynapticMovementInhibition::Disinhibited)
+            })
+            .unwrap();
+
+        for (physical_id, expected) in [
+            (
+                "stance-nominal",
+                PresynapticMovementInhibition::Engaged,
+            ),
+            (
+                "grooming-supported",
+                PresynapticMovementInhibition::Engaged,
+            ),
+            (
+                "other-supported",
+                PresynapticMovementInhibition::Disinhibited,
+            ),
+        ] {
+            let row = compiled
+                .row_index(
+                    "central-rhythm-model",
+                    physical_id,
+                    &sensor.id,
+                    "active-movement-probe",
+                )
+                .unwrap();
+            let next = &compiled.sensor_states
+                [compiled.kernel.rows[row].outcomes[0].next_sensor_state];
+            assert_eq!(
+                next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
+                expected,
+                "unexpected presynaptic state in context {physical_id}"
+            );
+            for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+                assert_eq!(
+                    next.presynaptic_movement_inhibition[leg.index()],
+                    PresynapticMovementInhibition::Disinhibited
+                );
+            }
+            assert_eq!(next.position_afferent, ChannelState::Intact);
+            assert_eq!(next.movement_afferent, ChannelState::Intact);
+            assert_eq!(next.vibration_afferent, ChannelState::Intact);
+        }
+    }
+
+    #[test]
+    fn passive_probe_remains_disinhibited_in_walking_and_grooming_contexts() {
+        let compiled = spec().compile().unwrap();
+        let sensor = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+                    && state
+                        .presynaptic_movement_inhibition
+                        .iter()
+                        .all(|value| *value == PresynapticMovementInhibition::Disinhibited)
+            })
+            .unwrap();
+        for physical_id in ["stance-nominal", "grooming-supported", "other-supported"] {
+            let row = compiled
+                .row_index(
+                    "central-rhythm-model",
+                    physical_id,
+                    &sensor.id,
+                    "passive-movement-probe",
+                )
+                .unwrap();
+            let next = &compiled.sensor_states
+                [compiled.kernel.rows[row].outcomes[0].next_sensor_state];
+            assert!(next
+                .presynaptic_movement_inhibition
+                .iter()
+                .all(|value| *value == PresynapticMovementInhibition::Disinhibited));
+        }
+    }
+
+    #[test]
+    fn washout_preserves_behavioral_context_while_clearing_carryover() {
+        let compiled = spec().compile().unwrap();
+        for (physical_id, expected_context, expected_state) in [
+            (
+                "swing-loaded",
+                BehavioralContext::Walking,
+                "stance-nominal",
+            ),
+            (
+                "grooming-unloaded",
+                BehavioralContext::Grooming,
+                "grooming-supported",
+            ),
+            (
+                "other-unloaded",
+                BehavioralContext::Other,
+                "other-supported",
+            ),
+        ] {
+            let sensor = compiled
+                .sensor_states
+                .iter()
+                .find(|state| {
+                    state.position_afferent == ChannelState::Intact
+                        && state.movement_afferent == ChannelState::Intact
+                        && state.vibration_afferent == ChannelState::Intact
+                        && state.contact_feedback == ChannelState::Intact
+                        && state.acquisition == AcquisitionState::PositiveOffset
+                        && state
+                            .presynaptic_movement_inhibition
+                            .iter()
+                            .all(|value| *value == PresynapticMovementInhibition::Disinhibited)
+                })
+                .unwrap();
+            let row = compiled
+                .row_index(
+                    "central-rhythm-model",
+                    physical_id,
+                    &sensor.id,
+                    "washout-carryover",
+                )
+                .unwrap();
+            let outcome = &compiled.kernel.rows[row].outcomes[0];
+            let next_physical = &compiled.physical_states[outcome.next_physical_state];
+            let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
+            assert_eq!(next_physical.id, expected_state);
+            assert_eq!(next_physical.behavioral_context, expected_context);
+            assert_eq!(next_physical.carryover, PhysicalCarryover::Baseline);
+            assert_eq!(next_sensor, sensor);
+        }
+    }
+
+    #[test]
     fn descending_modulation_uses_explicit_presynaptic_target_only() {
         let compiled = spec().compile().unwrap();
         let initial = compiled
