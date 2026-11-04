@@ -41,6 +41,8 @@ impl AllocationProblem {
         let mut ids = BTreeSet::new();
         let mut minimum_total = 0_u32;
         let mut capacity_total = 0_u32;
+        let mut verified_return_capacity = 0.0_f64;
+        let mut asserted_return_capacity = 0.0_f64;
         for recipient in &self.recipients {
             if recipient.id.trim().is_empty() {
                 return Err(AllocationError::EmptyRecipientId);
@@ -69,6 +71,13 @@ impl AllocationProblem {
                         value,
                     });
                 }
+            }
+            verified_return_capacity +=
+                f64::from(recipient.useful_capacity) * recipient.verified_return_per_unit;
+            asserted_return_capacity +=
+                f64::from(recipient.useful_capacity) * recipient.asserted_return_per_unit;
+            if !verified_return_capacity.is_finite() || !asserted_return_capacity.is_finite() {
+                return Err(AllocationError::AggregateReturnOverflow);
             }
             minimum_total = minimum_total
                 .checked_add(recipient.essential_floor)
@@ -162,6 +171,7 @@ pub enum AllocationError {
     BudgetExceedsUsefulCapacity { budget: u32, capacity_total: u32 },
     ArithmeticOverflow,
     SearchBudgetExceeded { limit: usize },
+    AggregateReturnOverflow,
     InvalidAllocationLength { expected: usize, actual: usize },
     AllocationExceedsCapacity { recipient: String },
     AllocationDoesNotExhaustBudget { budget: u32, allocated: u32 },
@@ -196,6 +206,9 @@ impl fmt::Display for AllocationError {
             Self::ArithmeticOverflow => write!(f, "allocation arithmetic overflow"),
             Self::SearchBudgetExceeded { limit } => {
                 write!(f, "exact allocation enumeration exceeded {limit} candidates")
+            }
+            Self::AggregateReturnOverflow => {
+                write!(f, "aggregate verified or asserted return exceeds finite f64 range")
             }
             Self::InvalidAllocationLength { expected, actual } => {
                 write!(f, "expected {expected} allocations, got {actual}")
@@ -345,7 +358,7 @@ fn enumerate_recursive(
     current: &mut [u32],
     results: &mut Vec<AllocationResult>,
 ) -> Result<(), AllocationError> {
-    if results.len() > MAX_ENUMERATED_ALLOCATIONS {
+    if results.len() >= MAX_ENUMERATED_ALLOCATIONS {
         return Err(AllocationError::SearchBudgetExceeded {
             limit: MAX_ENUMERATED_ALLOCATIONS,
         });
@@ -631,6 +644,16 @@ mod tests {
             invalid.validate(),
             Err(AllocationError::InvalidReturn { .. })
         ));
+    }
+
+    #[test]
+    fn aggregate_return_overflow_is_rejected_before_search() {
+        let mut problem = problem();
+        problem.recipients[0].verified_return_per_unit = f64::MAX;
+        assert_eq!(
+            problem.validate(),
+            Err(AllocationError::AggregateReturnOverflow)
+        );
     }
 
     #[test]
