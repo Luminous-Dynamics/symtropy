@@ -12,6 +12,7 @@ import csv
 import hashlib
 import importlib.metadata
 import importlib.resources
+import importlib.util
 import json
 import os
 import re
@@ -19,7 +20,6 @@ import resource
 import subprocess
 import sys
 import time
-import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -223,6 +223,7 @@ def main() -> int:
         "seed": args.seed,
         "n_init_requested": args.n_init,
         "iterations_requested": args.iters,
+        "environment_overrides": sorted(args.environment),
     }
     run_id = sha256(canonical_json(request))
     run_root = result_root / run_id
@@ -239,6 +240,13 @@ def main() -> int:
             raise ValueError("bocode-root must contain examples/run_experiments.py")
 
         source_commit, _clean = git_identity(root, args.source_commit)
+        sys.path.insert(0, str(root))
+        bocode_spec = importlib.util.find_spec("bocode")
+        if bocode_spec is None or bocode_spec.origin is None:
+            raise ValueError("cannot resolve BOCoDe package from the pinned source tree")
+        package_origin = Path(bocode_spec.origin).resolve()
+        if not package_origin.is_relative_to(root):
+            raise ValueError("imported BOCoDe package does not resolve inside the pinned source tree")
         package_version = importlib.metadata.version("bocode")
         if package_version != args.package_version:
             raise ValueError(
@@ -318,57 +326,61 @@ def main() -> int:
         artifacts["stdout"] = write_artifact(run_root, "stdout.bin", stdout)
         artifacts["stderr"] = write_artifact(run_root, "stderr.bin", stderr)
 
+        summary_path = outdir / "summary_task0.csv"
+        npz_path = outdir / f"{args.algorithm}_{args.task_id}_seed{args.seed}.npz"
+        if summary_path.is_file():
+            artifacts["upstream_summary"] = write_artifact(
+                run_root, "summary_task0.csv", summary_path.read_bytes()
+            )
+        if npz_path.is_file():
+            artifacts["upstream_npz"] = write_artifact(
+                run_root, "upstream_trace.npz", npz_path.read_bytes()
+            )
+
         if SKIP_RE.search(stdout.decode("utf-8", errors="replace")):
             state = "failed"
             reason = "upstream runner emitted SKIP for the requested trial"
         elif exit_code != 0:
             state = "failed"
             reason = f"upstream process exited with status {exit_code}"
+        elif not summary_path.is_file():
+            state = "failed"
+            reason = "upstream summary CSV is missing"
+        elif not npz_path.is_file():
+            state = "failed"
+            reason = "upstream NPZ trace is missing"
         else:
-            summary_path = outdir / "summary_task0.csv"
-            npz_path = outdir / f"{args.algorithm}_{args.task_id}_seed{args.seed}.npz"
-            if not summary_path.is_file():
-                state = "failed"
-                reason = "upstream summary CSV is missing"
-            elif not npz_path.is_file():
-                state = "failed"
-                reason = "upstream NPZ trace is missing"
-            else:
-                summary_bytes = summary_path.read_bytes()
-                npz_bytes = npz_path.read_bytes()
-                artifacts["upstream_summary"] = write_artifact(run_root, "summary_task0.csv", summary_bytes)
-                artifacts["upstream_npz"] = write_artifact(run_root, "upstream_trace.npz", npz_bytes)
-                try:
-                    with summary_path.open("r", encoding="utf-8", newline="") as stream:
-                        summary_rows = list(csv.DictReader(stream))
-                    if len(summary_rows) != 1:
-                        raise ValueError(f"expected one summary row, got {len(summary_rows)}")
-                    summary = summary_rows[0]
-                    if (
-                        summary.get("algorithm") != args.algorithm
-                        or summary.get("problem") != args.task_id
-                        or int(summary.get("seed", "-1")) != args.seed
-                    ):
-                        raise ValueError("upstream summary identity mismatch")
-                    metrics = validate_npz(
-                        npz_path,
-                        task_id=args.task_id,
-                        algorithm=args.algorithm,
-                        seed=args.seed,
-                        dimension=dimension,
-                        num_objectives=num_objectives,
-                        num_constraints=num_constraints,
-                    )
-                    summary_best = float(summary["best"])
-                    if abs(summary_best - metrics["best_encoded_maximization_value"]) > (
-                        1.0e-10 * max(abs(summary_best), abs(metrics["best_encoded_maximization_value"]), 1.0)
-                    ):
-                        raise ValueError("summary best value differs from raw NPZ best")
-                    state = "succeeded"
-                    reason = "one trial completed and raw objective/constraint history replayed structurally"
-                except Exception as error:
-                    state = "invalid_trace"
-                    reason = f"{type(error).__name__}: {error}"
+            try:
+                with summary_path.open("r", encoding="utf-8", newline="") as stream:
+                    summary_rows = list(csv.DictReader(stream))
+                if len(summary_rows) != 1:
+                    raise ValueError(f"expected one summary row, got {len(summary_rows)}")
+                summary = summary_rows[0]
+                if (
+                    summary.get("algorithm") != args.algorithm
+                    or summary.get("problem") != args.task_id
+                    or int(summary.get("seed", "-1")) != args.seed
+                ):
+                    raise ValueError("upstream summary identity mismatch")
+                metrics = validate_npz(
+                    npz_path,
+                    task_id=args.task_id,
+                    algorithm=args.algorithm,
+                    seed=args.seed,
+                    dimension=dimension,
+                    num_objectives=num_objectives,
+                    num_constraints=num_constraints,
+                )
+                summary_best = float(summary["best"])
+                if abs(summary_best - metrics["best_encoded_maximization_value"]) > (
+                    1.0e-10 * max(abs(summary_best), abs(metrics["best_encoded_maximization_value"]), 1.0)
+                ):
+                    raise ValueError("summary best value differs from raw NPZ best")
+                state = "succeeded"
+                reason = "one trial completed and raw objective/constraint history replayed structurally"
+            except Exception as error:
+                state = "invalid_trace"
+                reason = f"{type(error).__name__}: {error}"
 
         environment_projection = {
             key: env[key] for key in ENV_ALLOWLIST if key in env
