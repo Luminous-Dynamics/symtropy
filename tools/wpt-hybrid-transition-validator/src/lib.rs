@@ -390,7 +390,7 @@ mod tests {
                 "topology_sha256": DIGEST_A,
                 "certificate_status": "PASSIVE_CERTIFIED",
                 "stored_energy_j": pre_energy_j,
-                "energy_uncertainty_j": 0.00001,
+                "energy_uncertainty_j": 0.0,
                 "state_dimension": 2
             },
             "post_mode": {
@@ -398,7 +398,7 @@ mod tests {
                 "topology_sha256": DIGEST_B,
                 "certificate_status": "PASSIVE_CERTIFIED",
                 "stored_energy_j": post_energy_j,
-                "energy_uncertainty_j": 0.00001,
+                "energy_uncertainty_j": 0.0,
                 "state_dimension": 2
             },
             "switch_event": {
@@ -407,11 +407,11 @@ mod tests {
                 "source_state_dimension": 2,
                 "target_state_dimension": 2,
                 "switch_work_net_j": switch_work_j,
-                "switch_work_uncertainty_j": 0.00001,
+                "switch_work_uncertainty_j": 0.0,
                 "port_net_energy_j": 0.0,
-                "port_net_energy_uncertainty_j": 0.00001,
+                "port_net_energy_uncertainty_j": 0.0,
                 "event_dissipation_j": dissipation_j,
-                "event_dissipation_uncertainty_j": 0.00001,
+                "event_dissipation_uncertainty_j": 0.0,
                 "absolute_tolerance_j": 0.0001,
                 "relative_tolerance": 0.000001
             }
@@ -466,9 +466,9 @@ mod tests {
         record["switch_event"]["target_state_dimension"] = json!(3);
         record["energy_tank"] = json!({
             "pre_energy_j": 0.5,
-            "pre_energy_uncertainty_j": 0.00001,
+            "pre_energy_uncertainty_j": 0.0,
             "post_energy_j": 0.1,
-            "post_energy_uncertainty_j": 0.00001
+            "post_energy_uncertainty_j": 0.0
         });
         assert_eq!(disposition(&record), "PASSIVE_TRANSITION_CERTIFIED");
     }
@@ -536,7 +536,7 @@ mod tests {
         record["switch_event"]["mapping_kind"] = json!("ENERGY_TANK");
         record["energy_tank"] = json!({
             "pre_energy_j": 0.5,
-            "pre_energy_uncertainty_j": 0.00001,
+            "pre_energy_uncertainty_j": 0.0,
             "post_energy_j": 0.01,
             "post_energy_uncertainty_j": 0.02
         });
