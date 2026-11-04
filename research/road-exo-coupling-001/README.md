@@ -254,3 +254,43 @@ The evaluator reports this disagreement. It does not decide that maximin or mini
 ### Claim limits
 
 This finite reference does not prove the admitted hypothesis set is complete, the utility scale is morally or operationally appropriate, hard feasibility assumptions are empirically correct or one normative criterion is universal. It is a qualification layer that makes criterion dependence visible and replayable.
+
+
+## Decision-criterion sensitivity oracle (ROAD-DECISION-CRITERION-SENSITIVITY-001 #3642)
+
+The decision_criteria module separates model uncertainty from normative decision-rule uncertainty. It compares maximin utility and minimax regret on the same frozen action × hypothesis table, computes epsilon-regret sets, reports robust dominance and keeps hard feasibility separate from utility.
+
+### Criteria
+
+- **Maximin utility:** maximize each action's minimum utility across all admitted hypotheses.
+- **Minimax regret:** minimize each action's maximum regret across all admitted hypotheses.
+- **Epsilon-regret:** retain every action within a predeclared epsilon of the minimum worst-case regret.
+- **Robust dominance:** A dominates B only if A is no worse in every hypothesis and strictly better in at least one.
+
+The certificate reports complete selected sets and whether the two strict criteria uniquely agree, agree only as tied sets, partially overlap or are disjoint. A criterion disagreement is not collapsed into one "robust" winner.
+
+### Hard feasibility
+
+Every action/hypothesis pair carries Feasible, Infeasible with a reason, or Unknown with a reason. An action infeasible in any admitted hypothesis is excluded from the robust feasible set; it is not merely assigned a large negative utility. Any unknown feasibility produces an Incomplete certificate retaining the exact gap. If no action is feasible under every hypothesis, the result is NoRobustFeasibleAction.
+
+### Hypothesis portfolio sensitivity
+
+The benchmark does not assign weight by number of rows, seeds, vendors or correlated model clones. Duplicating a row with identical utility values must not change the decision projection. Adding a new independently justified adverse hypothesis may change the decision and is reported as explicit set sensitivity. The input manifest digest will still change when the portfolio changes; only the projected decision results are expected to remain invariant under an equivalent duplicate.
+
+### Utility-scale and epsilon contract
+
+The epsilon scale ID must equal the common cardinal utility scale ID already bound by #3637. Epsilon is nonnegative, normalized, predeclared and frozen. Positive affine utility rescaling preserves selected sets only when epsilon is transformed by the same positive factor and the transformed values are justified on the declared target scale. Nonlinear transformations can change the decision and must not be presented as harmless.
+
+### Exact analytic example
+
+H1: A=100, B=90. H2: A=0, B=5.
+
+- Maximin floors: A=0, B=5; maximin selects B.
+- Worst-case regrets: A=5, B=10; minimax regret selects A.
+- Criterion agreement: Disjoint; status CriterionSensitive.
+
+The evaluator reports this disagreement. It does not decide that maximin or minimax regret is normatively correct.
+
+### Claim limits
+
+This finite reference does not prove the admitted hypothesis set is complete, the utility scale is morally or operationally appropriate, hard feasibility assumptions are empirically correct or one normative criterion is universal. It is a qualification layer that makes criterion dependence visible and replayable.
