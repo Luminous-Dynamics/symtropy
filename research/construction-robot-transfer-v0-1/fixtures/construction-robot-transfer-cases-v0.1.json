@@ -236,6 +236,24 @@
       "scenario": "terminal_disposition_counts_exceed_attempted",
       "expected": "reject_denominator",
       "description": "Accepted, rejected, uninspected and unresolved disposition counts cannot exceed attempted units."
+    },
+    {
+      "id": "tr-040",
+      "scenario": "zero_shot_robot_configuration_digest_changes",
+      "expected": "reject_regime",
+      "description": "Zero-shot transfer cannot silently change the robot configuration digest."
+    },
+    {
+      "id": "tr-041",
+      "scenario": "calibration_only_configuration_change_without_receipt",
+      "expected": "reject_regime",
+      "description": "Calibration-only configuration change requires an explicit calibration change receipt."
+    },
+    {
+      "id": "tr-042",
+      "scenario": "calibration_only_configuration_change_with_receipt",
+      "expected": "valid",
+      "description": "Calibration-only transfer may change the robot configuration only with a bound calibration receipt and frozen policy/model digest."
     }
   ]
 }
