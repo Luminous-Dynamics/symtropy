@@ -458,7 +458,10 @@ mod tests {
             source_id: source_id.to_owned(),
             task_scope: "floor-3-layout".to_owned(),
             sequence,
-            evidence_digest: digest(if source_id == "tracker" { 'a' } else { 'b' }),
+            evidence_digest: format!(
+                "{:064x}",
+                (u64::from(source_id.as_bytes()[0]) << 32) | sequence
+            ),
             timebase_id: "boot-001".to_owned(),
             observed_at_monotonic_ns: 100,
             clock_uncertainty_ns: 2,
@@ -472,6 +475,50 @@ mod tests {
             changed_cells: changed_cells.iter().map(|v| (*v).to_owned()).collect(),
             occluded_cells: occluded_cells.iter().map(|v| (*v).to_owned()).collect(),
         }
+    }
+
+    #[test]
+    fn missing_required_source_is_unknown_not_clear() {
+        let gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        let result = gate.evaluate("boot-001", 150);
+        assert_eq!(result.state, GateState::UnknownOrUnobserved);
+        assert!(result.must_hold);
+        assert!(result.reason_codes.iter().any(|v| v.starts_with("required_source_missing")));
+    }
+
+    #[test]
+    fn unknown_source_cannot_extend_the_policy() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        assert_eq!(
+            gate.ingest(observation("unconfigured", 1, &["z1"], &[], &[])),
+            Err(IngestError::UnknownSource)
+        );
+        assert_eq!(
+            gate.evaluate("boot-001", 150).state,
+            GateState::UnknownOrUnobserved
+        );
+    }
+
+    #[test]
+    fn malformed_digest_quarantines_source() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        let mut malformed = observation("tracker", 1, &["z1"], &[], &[]);
+        malformed.evidence_digest = "not-a-digest".to_owned();
+        assert_eq!(
+            gate.ingest(malformed),
+            Err(IngestError::MalformedEvidenceDigest)
+        );
+        assert_eq!(
+            gate.evaluate("boot-001", 150).state,
+            GateState::UnknownOrUnobserved
+        );
+        assert_eq!(
+            gate.ingest(observation("tracker", 1, &["z1"], &[], &[])),
+            Err(IngestError::SourceQuarantined)
+        );
     }
 
     #[test]
@@ -571,6 +618,18 @@ mod tests {
             gate.evaluate("boot-001", 150).state,
             GateState::UnknownOrUnobserved
         );
+    }
+
+    #[test]
+    fn measurement_uncertainty_outside_policy_forces_unknown() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        let mut uncertain = observation("tracker", 1, &["z1"], &[], &[]);
+        uncertain.measurement_uncertainty_um = 251;
+        gate.ingest(uncertain).expect("observation");
+        let result = gate.evaluate("boot-001", 150);
+        assert_eq!(result.state, GateState::UnknownOrUnobserved);
+        assert!(result.reason_codes.iter().any(|v| v.starts_with("measurement_uncertainty_exceeds_policy")));
     }
 
     #[test]
