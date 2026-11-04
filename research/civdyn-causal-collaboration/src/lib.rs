@@ -97,25 +97,53 @@ pub enum CollaborationError {
     InvalidAgentCount(usize),
     TooManyActions(usize),
     EmptyAgentId,
-    EmptyAgentRole { agent_id: String },
+    EmptyAgentRole {
+        agent_id: String,
+    },
     DuplicateAgentId(String),
-    EmptyActionId { index: usize },
+    EmptyActionId {
+        index: usize,
+    },
     DuplicateActionId(String),
-    UnknownActionAgent { action_id: String, agent_id: String },
+    UnknownActionAgent {
+        action_id: String,
+        agent_id: String,
+    },
     DuplicateSequence(u64),
-    EmptyFingerprint { action_id: String },
-    EmptyResourceReference { action_id: String },
-    NonMonotonicRound { earlier_action: String, later_action: String },
+    EmptyFingerprint {
+        action_id: String,
+    },
+    EmptyResourceReference {
+        action_id: String,
+    },
+    NonMonotonicRound {
+        earlier_action: String,
+        later_action: String,
+    },
     InvalidSuccessActionSet,
     DuplicateSuccessAction(String),
     UnknownSuccessAction(String),
-    PartialSuccessOutOfRange { count: u32, total: u32 },
+    PartialSuccessOutOfRange {
+        count: u32,
+        total: u32,
+    },
     EmptyCausalEvidenceReference,
-    UnknownCausalAction { action_id: String },
+    UnknownCausalAction {
+        action_id: String,
+    },
     SelfCausalEdge(String),
-    NonForwardCausalEdge { cause: String, effect: String },
-    DuplicateCausalEdge { cause: String, effect: String },
-    ModelProposalMarkedVerified { cause: String, effect: String },
+    NonForwardCausalEdge {
+        cause: String,
+        effect: String,
+    },
+    DuplicateCausalEdge {
+        cause: String,
+        effect: String,
+    },
+    ModelProposalMarkedVerified {
+        cause: String,
+        effect: String,
+    },
 }
 
 impl fmt::Display for CollaborationError {
@@ -136,7 +164,10 @@ impl fmt::Display for CollaborationError {
                 write!(f, "action at index {index} has an empty ID")
             }
             Self::DuplicateActionId(id) => write!(f, "duplicate action ID: {id}"),
-            Self::UnknownActionAgent { action_id, agent_id } => {
+            Self::UnknownActionAgent {
+                action_id,
+                agent_id,
+            } => {
                 write!(f, "action {action_id} refers to unknown agent {agent_id}")
             }
             Self::DuplicateSequence(sequence) => {
@@ -148,12 +179,18 @@ impl fmt::Display for CollaborationError {
             Self::EmptyResourceReference { action_id } => {
                 write!(f, "action {action_id} has an empty resource reference")
             }
-            Self::NonMonotonicRound { earlier_action, later_action } => write!(
+            Self::NonMonotonicRound {
+                earlier_action,
+                later_action,
+            } => write!(
                 f,
                 "round order decreases from action {earlier_action} to {later_action}"
             ),
             Self::InvalidSuccessActionSet => {
-                write!(f, "successful tasks need success actions; failed tasks must not list them")
+                write!(
+                    f,
+                    "successful tasks need success actions; failed tasks must not list them"
+                )
             }
             Self::DuplicateSuccessAction(id) => {
                 write!(f, "success action ID is duplicated: {id}")
@@ -162,7 +199,10 @@ impl fmt::Display for CollaborationError {
                 write!(f, "success action ID is unknown: {id}")
             }
             Self::PartialSuccessOutOfRange { count, total } => {
-                write!(f, "partial success count {count} exceeds declared total {total}")
+                write!(
+                    f,
+                    "partial success count {count} exceeds declared total {total}"
+                )
             }
             Self::EmptyCausalEvidenceReference => {
                 write!(f, "causal edge evidence reference must not be empty")
@@ -172,7 +212,10 @@ impl fmt::Display for CollaborationError {
             }
             Self::SelfCausalEdge(id) => write!(f, "action {id} cannot cause itself"),
             Self::NonForwardCausalEdge { cause, effect } => {
-                write!(f, "causal edge {cause} -> {effect} is not strictly forward in sequence")
+                write!(
+                    f,
+                    "causal edge {cause} -> {effect} is not strictly forward in sequence"
+                )
             }
             Self::DuplicateCausalEdge { cause, effect } => {
                 write!(f, "causal edge {cause} -> {effect} is duplicated")
@@ -259,8 +302,13 @@ impl CollaborationTrace {
             if action.action_id.trim().is_empty() {
                 return Err(CollaborationError::EmptyActionId { index });
             }
-            if action_ids.insert(action.action_id.as_str(), action).is_some() {
-                return Err(CollaborationError::DuplicateActionId(action.action_id.clone()));
+            if action_ids
+                .insert(action.action_id.as_str(), action)
+                .is_some()
+            {
+                return Err(CollaborationError::DuplicateActionId(
+                    action.action_id.clone(),
+                ));
             }
             if !agent_ids.contains(action.agent_id.as_str()) {
                 return Err(CollaborationError::UnknownActionAgent {
@@ -271,12 +319,20 @@ impl CollaborationTrace {
             if !sequences.insert(action.sequence) {
                 return Err(CollaborationError::DuplicateSequence(action.sequence));
             }
-            if action.fingerprint.as_ref().is_some_and(|value| value.trim().is_empty()) {
+            if action
+                .fingerprint
+                .as_ref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
                 return Err(CollaborationError::EmptyFingerprint {
                     action_id: action.action_id.clone(),
                 });
             }
-            if action.resource_ref.as_ref().is_some_and(|value| value.trim().is_empty()) {
+            if action
+                .resource_ref
+                .as_ref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
                 return Err(CollaborationError::EmptyResourceReference {
                     action_id: action.action_id.clone(),
                 });
@@ -324,16 +380,16 @@ impl CollaborationTrace {
             if edge.evidence_ref.trim().is_empty() {
                 return Err(CollaborationError::EmptyCausalEvidenceReference);
             }
-            let cause = action_ids.get(edge.cause_action_id.as_str()).ok_or_else(|| {
-                CollaborationError::UnknownCausalAction {
+            let cause = action_ids
+                .get(edge.cause_action_id.as_str())
+                .ok_or_else(|| CollaborationError::UnknownCausalAction {
                     action_id: edge.cause_action_id.clone(),
-                }
-            })?;
-            let effect = action_ids.get(edge.effect_action_id.as_str()).ok_or_else(|| {
-                CollaborationError::UnknownCausalAction {
+                })?;
+            let effect = action_ids
+                .get(edge.effect_action_id.as_str())
+                .ok_or_else(|| CollaborationError::UnknownCausalAction {
                     action_id: edge.effect_action_id.clone(),
-                }
-            })?;
+                })?;
             if edge.cause_action_id == edge.effect_action_id {
                 return Err(CollaborationError::SelfCausalEdge(
                     edge.cause_action_id.clone(),
@@ -401,8 +457,11 @@ impl CollaborationTrace {
             }
             if action.kind.is_communication() {
                 message_action_count += 1;
-                verified_contributing_messages +=
-                    if verified.contains(&action.action_id) { 1 } else { 0 };
+                verified_contributing_messages += if verified.contains(&action.action_id) {
+                    1
+                } else {
+                    0
+                };
                 candidate_inclusive_contributing_messages +=
                     if candidate_inclusive.contains(&action.action_id) {
                         1
@@ -452,10 +511,8 @@ impl CollaborationTrace {
             .values()
             .map(|count| count.saturating_sub(1))
             .sum::<usize>();
-        let duplicate_fingerprint_groups = fingerprints
-            .values()
-            .filter(|count| **count > 1)
-            .count();
+        let duplicate_fingerprint_groups =
+            fingerprints.values().filter(|count| **count > 1).count();
 
         let per_agent = self
             .agents
@@ -473,9 +530,15 @@ impl CollaborationTrace {
                     verified_contributing_actions,
                     candidate_inclusive_contributing_actions,
                     pac_verified_lower: ratio(verified_contributing_actions, action_count),
-                    pac_candidate_upper: ratio(candidate_inclusive_contributing_actions, action_count),
+                    pac_candidate_upper: ratio(
+                        candidate_inclusive_contributing_actions,
+                        action_count,
+                    ),
                     useful_effort_share_lower: ratio(verified_contributing_actions, verified_count),
-                    useful_effort_share_upper: ratio(candidate_inclusive_contributing_actions, candidate_count),
+                    useful_effort_share_upper: ratio(
+                        candidate_inclusive_contributing_actions,
+                        candidate_count,
+                    ),
                 }
             })
             .collect();
@@ -493,7 +556,12 @@ impl CollaborationTrace {
             task_succeeded: self.task_succeeded,
             action_count,
             agent_count: self.agents.len(),
-            round_count: self.actions.iter().map(|action| action.round).max().unwrap_or(0),
+            round_count: self
+                .actions
+                .iter()
+                .map(|action| action.round)
+                .max()
+                .unwrap_or(0),
             partial_success_ratio: ratio(
                 self.partial_success_count as usize,
                 self.partial_success_total as usize,
@@ -504,8 +572,10 @@ impl CollaborationTrace {
             cce_candidate_upper,
             verified_cross_agent_causal_edges,
             candidate_inclusive_cross_agent_causal_edges,
-            verified_cross_agent_contributing_actions: verified_cross_agent_contributing_actions.len(),
-            candidate_inclusive_cross_agent_contributing_actions: candidate_inclusive_cross_agent_contributing_actions.len(),
+            verified_cross_agent_contributing_actions: verified_cross_agent_contributing_actions
+                .len(),
+            candidate_inclusive_cross_agent_contributing_actions:
+                candidate_inclusive_cross_agent_contributing_actions.len(),
             message_action_count,
             verified_contributing_messages,
             candidate_inclusive_contributing_messages,
@@ -600,10 +670,26 @@ mod tests {
     #[test]
     fn per_agent_pac_and_idle_agent_are_reported() {
         let metrics = fixture().score().unwrap();
-        let miner = metrics.per_agent.iter().find(|agent| agent.agent_id == "miner").unwrap();
-        let smith = metrics.per_agent.iter().find(|agent| agent.agent_id == "smith").unwrap();
-        let wizard = metrics.per_agent.iter().find(|agent| agent.agent_id == "wizard").unwrap();
-        let idle = metrics.per_agent.iter().find(|agent| agent.agent_id == "idle").unwrap();
+        let miner = metrics
+            .per_agent
+            .iter()
+            .find(|agent| agent.agent_id == "miner")
+            .unwrap();
+        let smith = metrics
+            .per_agent
+            .iter()
+            .find(|agent| agent.agent_id == "smith")
+            .unwrap();
+        let wizard = metrics
+            .per_agent
+            .iter()
+            .find(|agent| agent.agent_id == "wizard")
+            .unwrap();
+        let idle = metrics
+            .per_agent
+            .iter()
+            .find(|agent| agent.agent_id == "idle")
+            .unwrap();
 
         assert_eq!(miner.pac_verified_lower, Some(0.5));
         assert_eq!(miner.pac_candidate_upper, Some(1.0));
@@ -631,7 +717,10 @@ mod tests {
         assert_eq!(metrics.verified_cross_agent_causal_edges, 3);
         assert_eq!(metrics.candidate_inclusive_cross_agent_causal_edges, 5);
         assert_eq!(metrics.verified_cross_agent_contributing_actions, 4);
-        assert_eq!(metrics.candidate_inclusive_cross_agent_contributing_actions, 6);
+        assert_eq!(
+            metrics.candidate_inclusive_cross_agent_contributing_actions,
+            6
+        );
     }
 
     #[test]
@@ -659,7 +748,9 @@ mod tests {
     fn candidate_edge_changes_upper_bound_but_not_verified_lower_bound() {
         let mut trace = fixture();
         let before = trace.score().unwrap();
-        trace.causal_edges.retain(|edge| edge.cause_action_id != "message");
+        trace
+            .causal_edges
+            .retain(|edge| edge.cause_action_id != "message");
         let after = trace.score().unwrap();
         assert_eq!(before.cce_verified_lower, after.cce_verified_lower);
         assert!(after.cce_candidate_upper < before.cce_candidate_upper);
@@ -702,7 +793,9 @@ mod tests {
         ));
 
         let mut duplicate = fixture();
-        duplicate.causal_edges.push(duplicate.causal_edges[0].clone());
+        duplicate
+            .causal_edges
+            .push(duplicate.causal_edges[0].clone());
         assert!(matches!(
             duplicate.validate(),
             Err(CollaborationError::DuplicateCausalEdge { .. })
