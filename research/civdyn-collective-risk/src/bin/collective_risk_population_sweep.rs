@@ -4,7 +4,8 @@
 //! Exact N=6/N=30 population-composition, Fermi and rare-mutation sweep.
 
 use civdyn_collective_risk::population::{
-    DEFAULT_SELECTION_INTENSITY, PopulationState, expected_type_fitness, rare_mutation_chain, stationary_distribution,
+    DEFAULT_SELECTION_INTENSITY, PopulationState, expected_type_fitness, rare_mutation_chain,
+    stationary_distribution,
 };
 use civdyn_collective_risk::{GameConfig, Strategy};
 
