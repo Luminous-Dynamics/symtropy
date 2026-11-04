@@ -184,36 +184,54 @@ impl ReservationBook {
             return Err(ReservationError::ExpiryBeforeEnd);
         }
 
-        let mut used_capacity = 0_u32;
+        let mut occupancy_events: Vec<(u64, bool, u64)> = Vec::new();
         for existing in self.reservations.values() {
-            if existing.state == ReservationState::Active
-                && existing.request.resource_id == request.resource_id
-                && overlaps(
-                    earliest_start,
-                    latest_end,
-                    existing
-                        .request
-                        .interval_start_ms
-                        .saturating_sub(existing.request.clock_uncertainty_ms),
-                    existing
-                        .request
-                        .interval_end_ms
-                        .saturating_add(existing.request.clock_uncertainty_ms),
-                )
+            if existing.state != ReservationState::Active
+                || existing.request.resource_id != request.resource_id
             {
-                used_capacity = used_capacity
-                    .checked_add(existing.request.units)
+                continue;
+            }
+
+            let existing_start = existing
+                .request
+                .interval_start_ms
+                .saturating_sub(existing.request.clock_uncertainty_ms);
+            let existing_end = existing
+                .request
+                .interval_end_ms
+                .saturating_add(existing.request.clock_uncertainty_ms);
+            if overlaps(earliest_start, latest_end, existing_start, existing_end) {
+                occupancy_events.push((existing_start, true, u64::from(existing.request.units)));
+                occupancy_events.push((existing_end, false, u64::from(existing.request.units)));
+            }
+        }
+        occupancy_events.push((earliest_start, true, u64::from(request.units)));
+        occupancy_events.push((latest_end, false, u64::from(request.units)));
+
+        // For half-open intervals, process end events before start events at the same
+        // timestamp. The peak concurrent occupancy, not the sum of all intersecting
+        // reservations, determines whether the candidate can be admitted.
+        occupancy_events.sort_unstable_by_key(|(timestamp, is_start, _)| (*timestamp, *is_start));
+        let mut current_units = 0_u64;
+        let mut peak_units = 0_u64;
+        for (_, is_start, units) in occupancy_events {
+            if is_start {
+                current_units = current_units
+                    .checked_add(units)
+                    .ok_or(ReservationError::CapacityOverflow)?;
+                peak_units = peak_units.max(current_units);
+            } else {
+                current_units = current_units
+                    .checked_sub(units)
                     .ok_or(ReservationError::CapacityOverflow)?;
             }
         }
 
-        let requested_total = used_capacity
-            .checked_add(request.units)
-            .ok_or(ReservationError::CapacityOverflow)?;
-        if requested_total > capacity {
+        if peak_units > u64::from(capacity) {
             return Err(ReservationError::CapacityExceeded {
                 capacity,
-                requested_total,
+                requested_total: u32::try_from(peak_units)
+                    .map_err(|_| ReservationError::CapacityOverflow)?,
             });
         }
 
@@ -432,6 +450,56 @@ mod tests {
         assert_eq!(
             book.reserve(request("r1", "robot-2", 100, 200, 250, 1), 50),
             Err(ReservationError::ReservationIdConflict)
+        );
+    }
+
+
+    #[test]
+    fn capacity_sweep_accepts_candidate_across_disjoint_existing_reservations() {
+        let mut book = book(2);
+        book.reserve(request("r1", "robot-1", 100, 200, 250, 1), 50)
+            .expect("first interval");
+        book.reserve(request("r2", "robot-2", 200, 300, 350, 1), 50)
+            .expect("second disjoint interval");
+
+        assert_eq!(
+            book.reserve(request("r3", "robot-3", 100, 300, 350, 1), 50),
+            Ok(ReservationOutcome::Granted)
+        );
+    }
+
+    #[test]
+    fn capacity_sweep_rejects_peak_concurrent_overbooking() {
+        let mut book = book(2);
+        book.reserve(request("r1", "robot-1", 100, 250, 300, 1), 50)
+            .expect("first interval");
+        book.reserve(request("r2", "robot-2", 200, 300, 350, 1), 50)
+            .expect("second interval");
+
+        assert_eq!(
+            book.reserve(request("r3", "robot-3", 100, 300, 350, 1), 50),
+            Err(ReservationError::CapacityExceeded {
+                capacity: 2,
+                requested_total: 3
+            })
+        );
+    }
+
+    #[test]
+    fn uncertainty_expanded_boundaries_use_half_open_peak_occupancy() {
+        let mut book = book_with_uncertainty(1, 5);
+        let mut first = request("r1", "robot-1", 100, 200, 230, 1);
+        first.clock_uncertainty_ms = 5;
+        book.reserve(first, 50).expect("first reservation");
+
+        let mut touching = request("r2", "robot-2", 210, 300, 330, 1);
+        touching.clock_uncertainty_ms = 5;
+        assert_eq!(
+            book.reserve(touching, 50),
+            Err(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2
+            })
         );
     }
 
