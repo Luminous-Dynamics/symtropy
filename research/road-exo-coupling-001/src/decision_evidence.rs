@@ -687,6 +687,73 @@ mod tests {
     }
 
     #[test]
+    fn human_adjudication_is_accepted_only_for_human_reference_purpose() {
+        let mut manifest = decision_and_bindings();
+        let binding = &mut manifest.bindings[0];
+        binding.purpose = DecisionEvidencePurpose::HumanAdjudication;
+        binding.packet.origin = EvidenceOrigin::HumanAdjudication;
+        binding.packet.claim = EvidenceClaim::HumanJudgement;
+        binding.packet.annotation = Some(crate::evidence_provenance::AnnotationQuality {
+            rubric_id: id("crossing-behavior-rubric-v1"),
+            assessor_protocol_id: id("double-blind-panel-v1"),
+            disagreement_digest: [12; 32],
+            assessor_count: 3,
+        });
+        binding.target = QualificationTarget::HumanLabel {
+            rubric_id: id("crossing-behavior-rubric-v1"),
+        };
+        binding.qualification =
+            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported { evidence_digest, .. } =
+            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        {
+            *evidence_digest = binding.qualification.receipt_digest;
+        }
+        assert_eq!(manifest.validate(), Ok(()));
+    }
+
+    #[test]
+    fn formal_reference_is_accepted_only_for_formal_conformance_purpose() {
+        let mut manifest = decision_and_bindings();
+        let binding = &mut manifest.bindings[0];
+        binding.purpose = DecisionEvidencePurpose::FormalConformance;
+        binding.packet.origin = EvidenceOrigin::FormalReference;
+        binding.packet.claim = EvidenceClaim::FormalResult;
+        binding.packet.formal_domain_id = Some(id("finite-decision-fixture-v1"));
+        binding.target = QualificationTarget::FormalConformance {
+            domain_id: id("finite-decision-fixture-v1"),
+        };
+        binding.qualification =
+            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported { evidence_digest, .. } =
+            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        {
+            *evidence_digest = binding.qualification.receipt_digest;
+        }
+        assert_eq!(manifest.validate(), Ok(()));
+    }
+
+    #[test]
+    fn unsupported_outcome_needs_no_evidence_binding_and_stays_unsupported() {
+        let mut manifest = decision_and_bindings();
+        manifest.bindings.pop();
+        manifest.decision.hypotheses[0].outcomes[1].support =
+            OutcomeSupport::Unsupported {
+                reason_id: id("counterfactual-action-outside-support"),
+            };
+        let certificate = manifest.evaluate().unwrap();
+        assert_eq!(
+            certificate.decision_status(),
+            DecisionStatus::Unsupported
+        );
+        assert_eq!(certificate.evidence_references.len(), 1);
+        assert_eq!(
+            certificate.decision_certificate.minimax_regret_action,
+            None
+        );
+    }
+
+    #[test]
     fn evidence_receipt_digest_is_stable_when_only_utility_changes() {
         let mut manifest = decision_and_bindings();
         let digest = manifest.bindings[0].qualification.receipt_digest;
