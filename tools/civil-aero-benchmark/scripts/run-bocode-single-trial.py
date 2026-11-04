@@ -179,6 +179,12 @@ def validate_npz(
             raise ValueError("NPZ iteration, best and wall traces have inconsistent lengths")
         if not np.isfinite(best_trace).all() or not np.isfinite(wall_trace).all():
             raise ValueError("NPZ best and wall traces must be finite")
+        if not np.array_equal(iterations, np.arange(len(iterations))):
+            raise ValueError("NPZ iteration indices must be exactly 0..n")
+        if np.any(np.diff(best_trace) < -1.0e-10):
+            raise ValueError("NPZ best-so-far trace regresses under maximization")
+        if abs(float(best_trace[-1]) - best) > 1.0e-10 * max(abs(best), 1.0):
+            raise ValueError("NPZ final best-so-far value differs from best")
         if np.any(np.diff(wall_trace) < -1.0e-12):
             raise ValueError("NPZ wall-time trace is not monotonic")
         if abs(float(wall_trace[0])) > 1.0e-9:
@@ -456,12 +462,7 @@ def main() -> int:
                 state = "invalid_trace"
                 reason = f"{type(error).__name__}: {error}"
 
-        environment_projection = {
-            key: env[key] for key in ENV_ALLOWLIST if key in env
-        }
-        for item in args.environment:
-            key, value = item.split("=", 1)
-            environment_projection[key] = value
+        environment_projection = dict(sorted(env.items()))
 
         receipt = {
             **request,
