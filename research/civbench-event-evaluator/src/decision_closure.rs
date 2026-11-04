@@ -415,13 +415,12 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::ServiceEffectEvidenceMismatch);
         }
 
-        if is_improvement(self.service_effect) {
-            if self.human_disposition != HumanDisposition::Authorized
+        if is_improvement(self.service_effect)
+            && (self.human_disposition != HumanDisposition::Authorized
                 || self.action_progress != ActionProgress::IndependentlyVerified
-                || self.verification_receipt_id.is_none()
-            {
-                return Err(DecisionClosureError::ImprovementWithoutVerifiedAction);
-            }
+                || self.verification_receipt_id.is_none())
+        {
+            return Err(DecisionClosureError::ImprovementWithoutVerifiedAction);
         }
 
         Ok(())
