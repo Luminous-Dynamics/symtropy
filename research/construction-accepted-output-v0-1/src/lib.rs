@@ -470,15 +470,43 @@ pub fn derive_report(ledger: &Value) -> Value {
         .iter()
         .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("rejected"))
         .count() as u64;
+    let not_attempted = units
+        .iter()
+        .filter(|unit| {
+            unit.get("attempts")
+                .and_then(Value::as_array)
+                .is_none_or(Vec::is_empty)
+        })
+        .count() as u64;
     let uninspected = units
         .iter()
         .filter(|unit| {
             unit.get("attempts")
                 .and_then(Value::as_array)
-                .and_then(|attempts| attempts.last())
-                .and_then(inspection_outcome)
-                .is_none_or(|outcome| outcome == "not_inspected")
+                .is_some_and(|attempts| {
+                    !attempts.is_empty()
+                        && attempts
+                            .last()
+                            .and_then(inspection_outcome)
+                            .is_none_or(|outcome| outcome == "not_inspected")
+                })
         })
+        .count() as u64;
+    let cancelled_units = units
+        .iter()
+        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("cancelled"))
+        .count() as u64;
+    let superseded_units = units
+        .iter()
+        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("superseded"))
+        .count() as u64;
+    let unresolved_units = units
+        .iter()
+        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("unresolved"))
+        .count() as u64;
+    let active_units = units
+        .iter()
+        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("active"))
         .count() as u64;
     let rework_attempts = units
         .iter()
@@ -692,7 +720,12 @@ pub fn derive_report(ledger: &Value) -> Value {
             "first_pass_accepted_units": first_pass_accepted,
             "finally_accepted_units": finally_accepted,
             "finally_rejected_units": finally_rejected,
+            "not_attempted_units": not_attempted,
             "uninspected_units": uninspected,
+            "cancelled_units": cancelled_units,
+            "superseded_units": superseded_units,
+            "unresolved_units": unresolved_units,
+            "active_units": active_units,
             "rework_attempts": rework_attempts,
             "critical_planned_units": critical_planned_units,
             "critical_inspected_units": critical_inspected_units,
@@ -815,6 +848,17 @@ mod tests {
         assert!(errors.iter().any(|error| {
             error == "accepted_disposition_without_latest_accepted_inspection:p3"
         }));
+    }
+
+    #[test]
+    fn not_attempted_units_are_not_reported_as_uninspected_outputs() {
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        ledger["work_units"][2]["attempts"] = json!([]);
+        ledger["work_units"][2]["terminal_disposition"] = Value::String("superseded".to_owned());
+        let report = derive_report(&ledger);
+        assert_eq!(report["derived_counts"]["not_attempted_units"], 1);
+        assert_eq!(report["derived_counts"]["uninspected_units"], 0);
+        assert_eq!(report["derived_counts"]["superseded_units"], 1);
     }
 
     #[test]
