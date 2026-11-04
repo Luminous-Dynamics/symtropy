@@ -19,7 +19,9 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
-      - name: Check locked dependency graph
+      - name: Generate isolated lockfile from pinned manifest
+        run: cargo generate-lockfile --manifest-path research/road-exo-coupling-001/Cargo.toml
+      - name: Check generated dependency graph
         run: cargo metadata --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --format-version 1 --no-deps
       - name: Check formatting
         run: cargo fmt --manifest-path research/road-exo-coupling-001/Cargo.toml -- --check
@@ -29,3 +31,10 @@ jobs:
         run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets -- -D warnings
       - name: Validate machine-readable fixtures
         run: python3 -c 'import json; paths = ["research/road-exo-coupling-001/fixtures/event_identity_cases.json", "research/road-exo-coupling-001/fixtures/event_correspondence_cases.json"]; [json.load(open(path, encoding="utf-8")) for path in paths]'
+      - name: Upload generated lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: road-exo-coupling-cargo-lock
+          path: research/road-exo-coupling-001/Cargo.lock
+          if-no-files-found: error
+          retention-days: 2
