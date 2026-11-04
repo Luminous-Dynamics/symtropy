@@ -24,6 +24,8 @@ The Rust `localization_eval` module consumes two independent evidence streams:
 1. **Oracle observability evidence** from Sol-Atlas or another hydraulic/physical owner: the pipe ambiguity set consistent with the frozen observations, network model, sensor layout and declared tolerance; resolution class; source receipt digest.
 2. **Model prediction evidence:** ranked pipe IDs, explicit abstention, and a probability (parts per million) that its stated Top-K list contains the true pipe.
 
+Each case is receipt-bound before scoring. The hydraulic owner receipt must carry an owner reference, unique receipt reference, case ID, network ID, sensor-layout ID, hydraulic model/calibration reference and observation-window reference. Each must match the enclosing evaluation case. The candidate side carries its own model/policy reference and unique prediction receipt; an explicit abstention still requires a prediction receipt. Reusing an oracle or prediction receipt ID across cases is rejected. These checks establish reference integrity, not cryptographic authenticity: the module syntax-checks the SHA-256 string but does not verify a signature or recompute the source payload digest.
+
 The evaluator validates:
 - the true pipe belongs to the declared network;
 - every oracle candidate and every model-ranked pipe belongs to the same frozen network/version universe;
@@ -31,6 +33,8 @@ The evaluator validates:
 - the independently supplied truth belongs to trusted oracle candidate sets;
 - prediction IDs are unique; abstention cannot carry a hidden ranking or confidence; and issued predictions require an in-range confidence;
 - oracle and predicted evidence are referenced by digests, with the explicit limit that digest syntax is checked but cryptographic authentication is outside this module.
+
+The oracle candidate set is evaluator-only evidence and must not be provided to the candidate model as a feature or target. It is joined to the model output after the model's ranking/abstention has been frozen. The owner receipt, candidate prediction receipt, model version, network/sensor/model context, and observation window are all part of the case evidence.
 
 Trusted oracle resolutions are `unique_pipe`, `ambiguous_pipe_set` and `zone_only`. `event_only`, `model_uncertain`, `not_measured` and `unsupported` remain distinct unscorable classes. Unknown is never converted to zero.
 
