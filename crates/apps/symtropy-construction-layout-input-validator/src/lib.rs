@@ -791,13 +791,15 @@ mod tests {
                 let child_schema = properties
                     .get(key)
                     .unwrap_or_else(|| panic!("{path}: field {key} is absent from schema"));
-                assert_schema_covers_instance(child_schema, value, &format!("{path}/{key}"));
+                assert_schema_covers_instance(
+                    child_schema,
+                    value,
+                    &format!("{path}/{key}"),
+                );
             }
         } else if schema["type"] == "array" {
-            let items = schema["items"]
-                .as_object()
-                .map(|_| &schema["items"])
-                .unwrap_or_else(|| panic!("{path}: array schema has no item schema"));
+            let items = &schema["items"];
+            assert!(items.is_object(), "{path}: array schema has no item schema");
             for (index, value) in instance
                 .as_array()
                 .unwrap_or_else(|| panic!("{path}: instance is not an array"))
@@ -824,7 +826,11 @@ mod tests {
         let export_required = manifest_schema["properties"]["export"]["required"]
             .as_array()
             .expect("export required array");
-        for field in ["source_model_id", "source_model_revision", "source_model_sha256"] {
+        for field in [
+            "source_model_id",
+            "source_model_revision",
+            "source_model_sha256",
+        ] {
             assert!(
                 export_required.iter().any(|value| value == field),
                 "export schema must require Rust field {field}"
