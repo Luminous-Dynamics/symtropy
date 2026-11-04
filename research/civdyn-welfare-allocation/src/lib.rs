@@ -48,6 +48,11 @@ impl AllocationProblem {
             if !ids.insert(recipient.id.clone()) {
                 return Err(AllocationError::DuplicateRecipientId(recipient.id.clone()));
             }
+            if recipient.useful_capacity == 0 {
+                return Err(AllocationError::ZeroUsefulCapacity {
+                    recipient: recipient.id.clone(),
+                });
+            }
             if recipient.essential_floor > recipient.useful_capacity {
                 return Err(AllocationError::FloorExceedsCapacity {
                     recipient: recipient.id.clone(),
@@ -147,6 +152,7 @@ pub enum AllocationError {
     EmptyRecipientId,
     DuplicateRecipientId(String),
     FloorExceedsCapacity { recipient: String },
+    ZeroUsefulCapacity { recipient: String },
     InvalidReturn {
         recipient: String,
         field: &'static str,
@@ -172,6 +178,9 @@ impl fmt::Display for AllocationError {
             Self::DuplicateRecipientId(id) => write!(f, "duplicate recipient ID: {id}"),
             Self::FloorExceedsCapacity { recipient } => {
                 write!(f, "essential floor exceeds useful capacity for {recipient}")
+            }
+            Self::ZeroUsefulCapacity { recipient } => {
+                write!(f, "useful capacity must be positive for {recipient}")
             }
             Self::InvalidReturn { recipient, field, value } => {
                 write!(f, "{recipient}.{field} must be finite and non-negative, got {value}")
@@ -622,6 +631,19 @@ mod tests {
             invalid.validate(),
             Err(AllocationError::InvalidReturn { .. })
         ));
+    }
+
+    #[test]
+    fn zero_useful_capacity_is_rejected_before_coverage_division() {
+        let mut problem = problem();
+        problem.recipients[0].useful_capacity = 0;
+        problem.recipients[0].essential_floor = 0;
+        assert_eq!(
+            problem.validate(),
+            Err(AllocationError::ZeroUsefulCapacity {
+                recipient: "A".into(),
+            })
+        );
     }
 
     #[test]
