@@ -7,6 +7,9 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourcePolicy {
     pub source_id: String,
+    /// Trusted source checkpoint installed by the upstream re-baseline process.
+    pub baseline_sequence: u64,
+    pub baseline_digest: String,
     pub required_cells: Vec<String>,
     pub max_age_ns: u64,
     pub max_clock_uncertainty_ns: u64,
@@ -45,6 +48,8 @@ pub struct Observation {
     pub sequence: u64,
     /// SHA-256 identity asserted by the owning evidence pipeline.
     pub evidence_digest: String,
+    /// Must match the previous accepted observation digest or policy baseline.
+    pub predecessor_digest: String,
     pub timebase_id: String,
     pub observed_at_monotonic_ns: u64,
     pub clock_uncertainty_ns: u64,
@@ -96,6 +101,7 @@ pub enum IngestError {
     SequenceGap,
     SequenceRollback,
     SequenceDigestConflict,
+    PredecessorDigestMismatch,
     SourceQuarantined,
 }
 
@@ -142,6 +148,12 @@ impl ObservationGate {
                     "source identifiers must be unique and non-empty".to_owned(),
                 ));
             }
+            if !valid_sha256(&source.baseline_digest) {
+                return Err(IngestError::InvalidPolicy(format!(
+                    "source {} has a malformed baseline digest",
+                    source.source_id
+                )));
+            }
             if source.required_cells.is_empty() || !unique_nonempty(&source.required_cells) {
                 return Err(IngestError::InvalidPolicy(format!(
                     "source {} needs unique, non-empty required cells",
@@ -175,10 +187,12 @@ impl ObservationGate {
         };
         let source_id = source_policy.source_id.clone();
 
-        if !valid_sha256(&observation.evidence_digest) {
+        if !valid_sha256(&observation.evidence_digest)
+            || !valid_sha256(&observation.predecessor_digest)
+        {
             self.channels.insert(
                 source_id,
-                ChannelState::Unknown("source_evidence_digest_malformed".to_owned()),
+                ChannelState::Unknown("source_evidence_or_predecessor_digest_malformed".to_owned()),
             );
             return Err(IngestError::MalformedEvidenceDigest);
         }
@@ -221,15 +235,31 @@ impl ObservationGate {
                     );
                     return Err(IngestError::SequenceGap);
                 }
+                if observation.predecessor_digest != previous.evidence_digest {
+                    self.channels.insert(
+                        source_id,
+                        ChannelState::Conflicting("observation_predecessor_digest_mismatch".to_owned()),
+                    );
+                    return Err(IngestError::PredecessorDigestMismatch);
+                }
             }
-            None if observation.sequence != 1 => {
-                self.channels.insert(
-                    source_id,
-                    ChannelState::Unknown("initial_observation_sequence_gap".to_owned()),
-                );
-                return Err(IngestError::InitialSequenceGap);
+            None => {
+                let expected = source_policy.baseline_sequence.checked_add(1);
+                if Some(observation.sequence) != expected {
+                    self.channels.insert(
+                        source_id,
+                        ChannelState::Unknown("initial_observation_sequence_gap".to_owned()),
+                    );
+                    return Err(IngestError::InitialSequenceGap);
+                }
+                if observation.predecessor_digest != source_policy.baseline_digest {
+                    self.channels.insert(
+                        source_id,
+                        ChannelState::Conflicting("initial_observation_predecessor_mismatch".to_owned()),
+                    );
+                    return Err(IngestError::PredecessorDigestMismatch);
+                }
             }
-            None => {}
         }
 
         self.channels
@@ -431,6 +461,8 @@ mod tests {
     fn source(source_id: &str, required_cells: &[&str]) -> SourcePolicy {
         SourcePolicy {
             source_id: source_id.to_owned(),
+            baseline_sequence: 0,
+            baseline_digest: digest('0'),
             required_cells: required_cells.iter().map(|v| (*v).to_owned()).collect(),
             max_age_ns: 100,
             max_clock_uncertainty_ns: 10,
@@ -463,6 +495,14 @@ mod tests {
                 "{:064x}",
                 (u64::from(source_id.as_bytes()[0]) << 32) | sequence
             ),
+            predecessor_digest: if sequence == 1 {
+                digest('0')
+            } else {
+                format!(
+                    "{:064x}",
+                    (u64::from(source_id.as_bytes()[0]) << 32) | (sequence - 1)
+                )
+            },
             timebase_id: "boot-001".to_owned(),
             observed_at_monotonic_ns: 100,
             clock_uncertainty_ns: 2,
@@ -771,6 +811,33 @@ mod tests {
             Err(IngestError::SequenceRollback)
         );
         assert_eq!(gate.evaluate("boot-001", 150).state, GateState::Conflicting);
+    }
+
+    #[test]
+    fn wrong_predecessor_digest_latches_conflict() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1"])]))
+            .expect("valid policy");
+        gate.ingest(observation("tracker", 1, &["z1"], &[], &[]))
+            .expect("sequence 1");
+        let mut tampered = observation("tracker", 2, &["z1"], &[], &[]);
+        tampered.predecessor_digest = digest('f');
+        assert_eq!(
+            gate.ingest(tampered),
+            Err(IngestError::PredecessorDigestMismatch)
+        );
+        assert_eq!(gate.evaluate("boot-001", 150).state, GateState::Conflicting);
+    }
+
+    #[test]
+    fn trusted_midstream_baseline_supports_gate_restart_without_accepting_a_gap() {
+        let mut p = policy(vec![source("tracker", &["z1"])]);
+        p.sources[0].baseline_sequence = 7;
+        p.sources[0].baseline_digest = digest('7');
+        let mut gate = ObservationGate::new(p).expect("valid baseline policy");
+        let mut first_after_baseline = observation("tracker", 8, &["z1"], &[], &[]);
+        first_after_baseline.predecessor_digest = digest('7');
+        gate.ingest(first_after_baseline).expect("sequence after trusted baseline");
+        assert_eq!(gate.evaluate("boot-001", 150).state, GateState::VerifiedClear);
     }
 
     #[test]
