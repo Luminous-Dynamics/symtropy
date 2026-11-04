@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-task-compiler-v0.1",
+  "owner_issue": 3664,
+  "input_contract": {
+    "design_manifest": "approved-normalized-model-manifest",
+    "method_template": "approved-versioned-method-template",
+    "capability_match": "external-receipt-from-1834",
+    "site_admission": "external-evidence-from-3561-and-3569"
+  },
+  "output_contract": {
+    "graph_schema": "construction-task-graph-v0.1",
+    "compile_verdicts": [
+      "CompiledForReview",
+      "CompiledWithObligations",
+      "RejectedUnsupported",
+      "RejectedInconsistent",
+      "StaleInputs",
+      "OutOfScope"
+    ],
+    "execution_authority": false,
+    "acceptance_authority": false
+  },
+  "invariants": {
+    "source_lineage_required": true,
+    "method_step_lineage_required": true,
+    "transformation_rule_digest_required": true,
+    "explicit_units": true,
+    "explicit_frame": true,
+    "acyclic_dependencies": true,
+    "physical_measurement_is_external": true,
+    "independent_acceptance_is_external": true
+  },
+  "target_thresholds": {
+    "false_executable_admissions": 0,
+    "source_lineage_fraction": 1,
+    "mandatory_obligation_preservation": 1,
+    "oracle_agreement": 1,
+    "implicit_unit_or_frame_inference": 0,
+    "cyclic_graphs_admitted": 0
+  },
+  "claim_ceiling": "The v0.1 validator checks structure and lineage in a normalized synthetic work graph. It does not authenticate authorities, parse arbitrary IFC, approve methods, establish capability, prove physical feasibility, grant motion/safety authority or accept physical construction output."
+}
