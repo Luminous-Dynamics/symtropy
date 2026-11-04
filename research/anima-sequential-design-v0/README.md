@@ -31,7 +31,7 @@ The caller must supply:
 - a valid candidate that passed assignment, safety, delivery-fidelity, interference and carryover gates;
 - the complete outcome space, with each model's conditional probabilities summing to one.
 
-An exact-zero likelihood under the null is rejected as a model-adequacy failure; it is not converted into infinite evidence. Alternative weights are frozen at construction. Testing several null models requires a predeclared familywise alpha allocation across the separate e-processes.
+An exact-zero likelihood under the null is rejected as a model-adequacy failure; it is not converted into infinite evidence. Every event records a unique sample ID, replication-unit ID and session ID in the receipt; repeated observations from the same unit/session are allowed only when the conditional forecast is based on the complete prior history, which is bound by the conditioning-state digest. Duplicate sample identities are rejected. Alternative weights are frozen at construction. Testing several null models requires a predeclared familywise alpha allocation across the separate e-processes.
 
 This is **not** a generic guarantee for arbitrary adaptive experiments: likelihood-ratio validity fails if forecasts are not correct conditional distributions, if outcomes are selected after inspection, if the action uses future data, or if serial dependence / individual clustering is ignored. The digest fields bind the declared conditioning inputs but cannot prove their scientific correctness. The e-process is a software primitive; biological inference requires a calibrated conditional likelihood model and an externally validated protocol.
 
