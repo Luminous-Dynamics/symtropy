@@ -1176,6 +1176,13 @@ mod tests {
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
             },
+            InterventionAction {
+                id: "washout-carryover".to_owned(),
+                kind: InterventionKind::Washout,
+                protocol_id: "protocol-washout".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+            },
         ];
         let observations = vec![
             Observation {
@@ -1205,6 +1212,10 @@ mod tests {
             Observation {
                 id: "load-shifted".to_owned(),
                 kind: ObservationKind::ContactTransition,
+            },
+            Observation {
+                id: "washout-cleared".to_owned(),
+                kind: ObservationKind::WashoutResponse,
             },
         ];
 
@@ -1330,7 +1341,7 @@ mod tests {
                                 } else {
                                     "stance-nominal".to_owned()
                                 };
-                                "load-shifted"
+                                "washout-cleared"
                             }
                         };
                         let _next_sensor_index = sensor_index(&sensor_states, &next_sensor);
@@ -1380,7 +1391,7 @@ mod tests {
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
             "raw-untyped-endpoint-17"
         );
-        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 6);
+        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 7);
         compiled.kernel.validate().unwrap();
     }
 
@@ -1553,7 +1564,7 @@ mod tests {
                 "central-rhythm-model",
                 "swing-loaded",
                 &sensor.id,
-                "washout",
+                "washout-carryover",
             )
             .unwrap();
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
