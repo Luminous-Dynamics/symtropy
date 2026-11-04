@@ -893,13 +893,13 @@ fn validate_expected(
         "no_value_sensor" => {
             if record.action_progress != ActionProgress::NotStarted
                 || record.resource_feasibility != ResourceFeasibility::RejectedNoCapacity
-                || effect != ServiceEffect::ModelledNoImprovement
+                || record.service_effect != ServiceEffect::ModelledNoImprovement
             {
                 return Err(FixtureError::new("no_value_case_inconsistent", path, "no-value case must remain no-action/no-improvement"));
             }
         }
         "false_alarm_overload" => {
-            if record.action_progress != ActionProgress::IndependentlyVerified || effect != ServiceEffect::ModelledRegression {
+            if record.action_progress != ActionProgress::IndependentlyVerified || record.service_effect != ServiceEffect::ModelledRegression {
                 return Err(FixtureError::new("capacity_externality_case_inconsistent", path, "overload case requires verified modelled regression"));
             }
         }
@@ -907,7 +907,7 @@ fn validate_expected(
             if record.human_disposition != HumanDisposition::Authorized
                 || record.resource_feasibility != ResourceFeasibility::RejectedMissingPart
                 || record.action_progress != ActionProgress::NotStarted
-                || effect != ServiceEffect::ModelledNoImprovement
+                || record.service_effect != ServiceEffect::ModelledNoImprovement
             {
                 return Err(FixtureError::new("resource_exhaustion_case_inconsistent", path, "authorized but infeasible action must not execute"));
             }
@@ -915,7 +915,7 @@ fn validate_expected(
         "unverified_repair" => {
             if record.action_progress != ActionProgress::RepairClaimed
                 || record.verification_receipt_id.is_some()
-                || effect != ServiceEffect::Indeterminate
+                || record.service_effect != ServiceEffect::Indeterminate
                 || candidate.outcomes.iter().any(|metric| metric.value.is_some())
             {
                 return Err(FixtureError::new("unverified_repair_case_inconsistent", path, "repair claim must remain unverified and unmeasured"));
