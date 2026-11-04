@@ -331,10 +331,56 @@ impl RouteLedger {
                     return Err("measurement IDs must be globally unique within a route".into());
                 }
             }
-            if !idle.boundary_measurements.iter().any(|m| m.boundary == EnergyBoundary::GridAcInput) {
-                return Err("each idle interval requires a grid AC input measurement to preserve standby energy".into());
+            if !idle
+                .boundary_measurements
+                .iter()
+                .any(|m| m.boundary == EnergyBoundary::GridAcInput)
+            {
+                return Err(
+                    "each idle interval requires a grid AC input measurement to preserve standby energy"
+                        .into(),
+                );
+            }
+            if !idle
+                .boundary_measurements
+                .iter()
+                .any(|m| m.boundary == EnergyBoundary::RoadwayInverterDcInput)
+            {
+                return Err(
+                    "each idle interval requires roadway inverter DC input, including zero-draw readings"
+                        .into(),
+                );
             }
             intervals.push((idle.start_ns, idle.end_ns, idle.interval_id.clone()));
+        }
+
+        let bess_is_in_route = self.segments.iter().any(|segment| {
+            segment
+                .boundary_measurements
+                .iter()
+                .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
+        }) || self.idle_intervals.iter().any(|idle| {
+            idle.boundary_measurements
+                .iter()
+                .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
+        });
+        if bess_is_in_route {
+            if self.segments.iter().any(|segment| {
+                !segment
+                    .boundary_measurements
+                    .iter()
+                    .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
+            }) || self.idle_intervals.iter().any(|idle| {
+                !idle
+                    .boundary_measurements
+                    .iter()
+                    .any(|measurement| measurement.boundary == EnergyBoundary::BessDcOutput)
+            }) {
+                return Err(
+                    "BESS DC output must be measured for every route interval when BESS is present"
+                        .into(),
+                );
+            }
         }
 
         intervals.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
@@ -1066,6 +1112,34 @@ mod tests {
         assert!((baseline.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
         assert_eq!(baseline.total_idle_roadway_inverter_dc_input_wh, 20.0);
     }
+    #[test]
+    fn rejects_partial_bess_coverage_when_bess_is_present() {
+        let mut ledger = fixture();
+        ledger.segments[1]
+            .boundary_measurements
+            .retain(|measurement| measurement.boundary != EnergyBoundary::BessDcOutput);
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("BESS DC output must be measured for every route interval")
+        );
+    }
+
+    #[test]
+    fn rejects_idle_interval_without_inverter_meter_even_when_draw_is_zero() {
+        let mut ledger = fixture();
+        ledger.idle_intervals[0]
+            .boundary_measurements
+            .retain(|measurement| measurement.boundary != EnergyBoundary::RoadwayInverterDcInput);
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("idle interval requires roadway inverter DC input")
+        );
+    }
+
     #[test]
     fn reports_bess_output_separately_and_does_not_add_idle_inverter_to_transfer_denominator() {
         let report = fixture().evaluate().unwrap();
