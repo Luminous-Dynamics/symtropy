@@ -631,7 +631,7 @@ mod tests {
 
     #[test]
     fn paired_battery_shift_reconciles_soc_and_counts_round_trip_losses() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0), (5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0), (5.0, 0.0, 0.0, 25.0)]);
         let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0), (5.0, 5.54016620498615, 0.0, 25.0)]);
         let report = compare_stateful_resource_trajectories(
             identity(), &baseline, &flexible, tolerance()
@@ -648,7 +648,7 @@ mod tests {
 
     #[test]
     fn terminal_soc_debt_is_rejected_even_when_each_path_individually_passes() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
         let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0, 0.0)]);
         assert!(verify_stateful_resource_trajectory(&baseline).expect("base").passed);
         assert!(verify_stateful_resource_trajectory(&flexible).expect("flex").passed);
@@ -670,7 +670,7 @@ mod tests {
 
     #[test]
     fn different_weather_context_is_rejected() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 25.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
         let flex = StatefulResourceTrajectory::new(
             contract("flexible"),
             vec![slot("flex-slot-0", 0, 10.0, 20.0, 5.0, 5.0, 0.0, 0.0, 20.0, 26.0, 25.0)],
@@ -683,7 +683,7 @@ mod tests {
 
     #[test]
     fn different_initial_storage_contract_is_rejected() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
         let flex_contract = StatefulResourceContract::new(
             "stress-scenario-1", "site-1", "site-pcc", "flexible",
             StorageReserveContract::new(100.0, 89.0, 20.0, 50.0, 50.0, 0.95, 0.95, 10.0, 3_600, 0.20).expect("storage"),
@@ -701,7 +701,7 @@ mod tests {
 
     #[test]
     fn different_time_windows_are_rejected() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
         let flex_contract = contract("flexible");
         let shifted = StatefulResourceSlot::new(
             "flex-shifted", "site-1", "site-pcc", 100_001, 103_601,
@@ -717,7 +717,7 @@ mod tests {
 
     #[test]
     fn failed_physical_gate_emits_no_paired_trajectory() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
         let flexible = trajectory("flexible", &[(5.0, 0.0, 60.0, 25.0)]);
         assert!(matches!(
             compare_stateful_resource_trajectories(identity(), &baseline, &flexible, tolerance()),
