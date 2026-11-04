@@ -105,6 +105,18 @@ The independent NumPy oracle for the scale regressions gives eigenvalues [5e-309
 
 The Rust regression test checks each source matrix's symmetry, minimum-eigenvalue reference and positive lower margin after a conservative displayed-digit rounding bound. The bound assumes half a unit in the last displayed off-diagonal decimal place and treats the unit diagonal as exact normalization. Expected minimum eigenvalues are retained with each matrix as independent numeric regression references.
 
+Independent NumPy results from the transcribed matrices:
+
+| Appendix | Receivers (+ TX) | Minimum eigenvalue | Frobenius rounding bound | Lower margin |
+|---|---:|---:|---:|---:|
+| A1 | 3 (+1) | 0.67731315 | 0.00017321 | 0.67713995 |
+| A2 | 4 (+1) | 0.44858118 | 0.00022361 | 0.44835757 |
+| A3 | 5 (+1) | 0.44855565 | 0.00273861 | 0.44581704 |
+| A4 | 6 (+1) | 0.36555122 | 0.00032404 | 0.36522719 |
+| A5 | 7 (+1) | 0.36102491 | 0.00037417 | 0.36065075 |
+
+All five have a large positive eigenvalue margin relative to the displayed-digit rounding envelope. These reference values are regression oracles derived from the published rounded tables, not independently measured physical values.
+
 **This is a separate dimensionless audit, not a physical-passivity certificate.** The paper does not type these matrices as SMALL_SIGNAL or DIFFERENTIAL, and supplies no matrix extraction uncertainty/covariance. Do not relabel K as an H-valued L matrix or feed it to the production physical qualification gate. It tests the eigensolver against published multi-coil source data without overstating the source's model semantics.
 
 ## Scope and claim ceiling
