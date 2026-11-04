@@ -209,9 +209,8 @@ fn validate_artifact_lineage(
 }
 
 fn latest_stage<'a>(stages: &'a [Value], kind: &str) -> Option<(usize, &'a Value)> {
-    stages.iter().enumerate()
-        .filter(|(_, stage)| stage.get("stage_kind").and_then(Value::as_str) == Some(kind))
-        .last()
+    stages.iter().enumerate().rev()
+        .find(|(_, stage)| stage.get("stage_kind").and_then(Value::as_str) == Some(kind))
 }
 
 fn first_output_digest(stage: &Value) -> Result<&str, String> {
