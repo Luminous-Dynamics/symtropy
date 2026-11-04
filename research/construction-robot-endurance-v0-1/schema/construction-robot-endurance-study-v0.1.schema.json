@@ -7,6 +7,7 @@
   "required": [
     "schema_version",
     "profile_id",
+    "source_issue",
     "version",
     "status",
     "subject",
@@ -302,6 +303,10 @@
     },
     "execution_status": {
       "const": "not_executed"
+    },
+    "source_issue": {
+      "type": "string",
+      "format": "uri"
     }
   }
 }
