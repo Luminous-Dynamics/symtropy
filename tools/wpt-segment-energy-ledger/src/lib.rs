@@ -829,7 +829,9 @@ mod tests {
         assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
         assert!((report.grid_ac_to_battery_terminal_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
+        assert_eq!(report.total_idle_grid_input_bound_wh, 0.01);
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
+        assert_eq!(report.total_idle_roadway_inverter_dc_input_bound_wh, 0.01);
         assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
         assert_eq!(report.total_bess_dc_output_bound_wh, Some(0.03));
         assert_eq!(report.evidence_class, EvidenceClass::SyntheticKnownTruth);
