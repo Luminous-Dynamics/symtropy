@@ -904,6 +904,23 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn independent_python_run_receipt_verifier_accepts_and_rejects_tampering() {
+        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/test-cgroup-v2-run-receipt.py");
+        let output = std::process::Command::new("python3")
+            .arg(&script)
+            .output()
+            .expect("run independent cgroup process-tree receipt self-test");
+        assert!(
+            output.status.success(),
+            "independent cgroup process-tree receipt self-test failed: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn child_cannot_exec_until_pid_placement_write_completes() {
         let root = std::env::temp_dir().join(format!(
             "cgroup-v2-gate-{}-{}",
