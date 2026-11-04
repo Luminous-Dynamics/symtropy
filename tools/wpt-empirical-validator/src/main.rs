@@ -224,7 +224,7 @@ fn validate_sources(records: &[Value], schema: &Value) -> ValidationResult<BTree
         enum_value(
             record,
             "content_access",
-            &["metadata_only", "limited_use", "full_text"],
+            &["metadata_only", "limited_use", "full_text", "abstract_only"],
             &label,
         )?;
         enum_value(
@@ -342,6 +342,21 @@ fn validate_measurement(measurement: &Value, schema: &Value, label: &str) -> Val
         Some(100.0),
         &format!("{label}.efficiency"),
     )?;
+    if measurement.get("power_in_w_qualifier").is_some() {
+        enum_value(
+            measurement,
+            "power_in_w_qualifier",
+            &[
+                "EXACT",
+                "APPROX",
+                "GREATER_THAN",
+                "LESS_THAN",
+                "RANGE",
+                "NOT_REPORTED",
+            ],
+            label,
+        )?;
+    }
     for key in ["power_in_w", "transfer_gap_m", "frequency_hz"] {
         if let Some(number) = optional_number(measurement, key, label)? {
             if number < 0.0 || (key == "frequency_hz" && number == 0.0) {
