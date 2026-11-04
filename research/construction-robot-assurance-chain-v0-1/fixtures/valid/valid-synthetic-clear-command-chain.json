@@ -187,7 +187,8 @@
         "observation",
         "epoch",
         "qualification",
-        "command"
+        "command",
+        "claim"
       ]
     }
   ],
