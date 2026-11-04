@@ -41,8 +41,8 @@ fn canonical_fixture_receipt_is_deterministic_and_preserves_not_measured() {
 #[test]
 fn unknown_top_level_field_fails_closed() {
     let mutated = FIXTURE.replacen(
-        "{\n  \"fixture_id\":",
-        "{\n  \"unrecognized_field\": true,\n  \"fixture_id\":",
+        "\"fixture_id\":",
+        "\"unrecognized_field\": true,\n  \"fixture_id\":",
         1,
     );
     let error = parse_closure_fixture(&mutated).expect_err("unknown field must fail");
@@ -52,8 +52,8 @@ fn unknown_top_level_field_fails_closed() {
 #[test]
 fn duplicate_json_key_fails_before_typed_conversion() {
     let mutated = FIXTURE.replacen(
-        "{\n  \"fixture_id\":",
-        "{\n  \"fixture_id\": \"duplicate\",\n  \"fixture_id\":",
+        "\"fixture_id\":",
+        "\"fixture_id\": \"duplicate\",\n  \"fixture_id\":",
         1,
     );
     let error = parse_closure_fixture(&mutated).expect_err("duplicate key must fail");
@@ -96,8 +96,8 @@ fn zero_digest_fails_closed() {
 #[test]
 fn measured_status_with_null_value_fails_closed() {
     let mutated = FIXTURE.replacen(
-        "\"value\": 120000,\n            \"status\": \"modelled\"",
-        "\"value\": null,\n            \"status\": \"modelled\"",
+        "\"value\": 120000,",
+        "\"value\": null,",
         1,
     );
     assert_ne!(mutated, FIXTURE, "mutation must target a real fixture value");
