@@ -265,18 +265,46 @@ pub struct CompiledLocomotionKernel {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AdapterError {
     EmptyIdentifier(&'static str),
-    DuplicateIdentifier { kind: &'static str, id: String },
-    UnknownIdentifier { kind: &'static str, id: String },
-    InvalidSha256 { source_id: String },
-    SourcePinMismatch { source_id: String },
-    UnpinnedNonSyntheticSource { source_id: String },
-    MissingConnectomeSnapshot { source_id: String },
-    IncompleteUnknownEndpointInventory { source_id: String },
-    InvalidUnknownEndpoint { source_id: String, raw_endpoint_id: String },
-    InvalidEvidenceClaim { hypothesis_id: String, claim: ClaimCeiling },
-    MissingHypothesisSource { hypothesis_id: String },
-    MissingProtocolSource { action_id: String },
-    InvalidActionCost { action_id: String },
+    DuplicateIdentifier {
+        kind: &'static str,
+        id: String,
+    },
+    UnknownIdentifier {
+        kind: &'static str,
+        id: String,
+    },
+    InvalidSha256 {
+        source_id: String,
+    },
+    SourcePinMismatch {
+        source_id: String,
+    },
+    UnpinnedNonSyntheticSource {
+        source_id: String,
+    },
+    MissingConnectomeSnapshot {
+        source_id: String,
+    },
+    IncompleteUnknownEndpointInventory {
+        source_id: String,
+    },
+    InvalidUnknownEndpoint {
+        source_id: String,
+        raw_endpoint_id: String,
+    },
+    InvalidEvidenceClaim {
+        hypothesis_id: String,
+        claim: ClaimCeiling,
+    },
+    MissingHypothesisSource {
+        hypothesis_id: String,
+    },
+    MissingProtocolSource {
+        action_id: String,
+    },
+    InvalidActionCost {
+        action_id: String,
+    },
     InconsistentCostUnits,
     IncompleteTransitionRow {
         hypothesis_id: String,
@@ -429,7 +457,10 @@ fn validate_source(source: &SourceManifest) -> Result<(), AdapterError> {
     let mut endpoint_ids = BTreeSet::new();
     for endpoint in &source.unknown_endpoints {
         nonempty(&endpoint.raw_endpoint_id, "unknown_raw_endpoint_id")?;
-        nonempty(&endpoint.missingness_reason, "unknown_endpoint_missingness_reason")?;
+        nonempty(
+            &endpoint.missingness_reason,
+            "unknown_endpoint_missingness_reason",
+        )?;
         if !endpoint_ids.insert(endpoint.raw_endpoint_id.clone()) {
             return Err(AdapterError::InvalidUnknownEndpoint {
                 source_id: source.id.clone(),
@@ -484,20 +515,15 @@ impl LocomotionKernelSpec {
             ));
         }
 
-        let source_indices = index_ids(
-            &self.source_manifests,
-            "source_manifest_id",
-            |item| &item.id,
-        )?;
-        let hypothesis_indices =
-            index_ids(&self.hypotheses, "hypothesis_id", |item| &item.id)?;
+        let source_indices = index_ids(&self.source_manifests, "source_manifest_id", |item| {
+            &item.id
+        })?;
+        let hypothesis_indices = index_ids(&self.hypotheses, "hypothesis_id", |item| &item.id)?;
         let physical_indices =
             index_ids(&self.physical_states, "physical_state_id", |item| &item.id)?;
-        let sensor_indices =
-            index_ids(&self.sensor_states, "sensor_state_id", |item| &item.id)?;
+        let sensor_indices = index_ids(&self.sensor_states, "sensor_state_id", |item| &item.id)?;
         let action_indices = index_ids(&self.actions, "action_id", |item| &item.id)?;
-        let observation_indices =
-            index_ids(&self.observations, "observation_id", |item| &item.id)?;
+        let observation_indices = index_ids(&self.observations, "observation_id", |item| &item.id)?;
 
         for source in &self.source_manifests {
             validate_source(source)?;
@@ -505,8 +531,11 @@ impl LocomotionKernelSpec {
 
         let mut pins_seen = BTreeSet::new();
         for pin in &self.source_pins {
-            let source_index =
-                lookup(&source_indices, "source_manifest_id", &pin.source_manifest_id)?;
+            let source_index = lookup(
+                &source_indices,
+                "source_manifest_id",
+                &pin.source_manifest_id,
+            )?;
             nonempty(&pin.expected_sha256, "expected_source_sha256")?;
             if !valid_sha256(&pin.expected_sha256) {
                 return Err(AdapterError::InvalidSha256 {
@@ -553,10 +582,8 @@ impl LocomotionKernelSpec {
                     });
                 }
                 let index = lookup(&source_indices, "source_manifest_id", source_id)?;
-                supports_claim |= source_supports_claim(
-                    &self.source_manifests[index],
-                    hypothesis.claim_ceiling,
-                );
+                supports_claim |=
+                    source_supports_claim(&self.source_manifests[index], hypothesis.claim_ceiling);
             }
             if !supports_claim {
                 return Err(AdapterError::InvalidEvidenceClaim {
@@ -595,12 +622,13 @@ impl LocomotionKernelSpec {
         let mut initial_belief = Vec::with_capacity(self.initial_belief.len());
         let mut initial_keys = BTreeSet::new();
         for point in &self.initial_belief {
-            let hypothesis =
-                lookup(&hypothesis_indices, "hypothesis_id", &point.hypothesis_id)?;
-            let physical_state =
-                lookup(&physical_indices, "physical_state_id", &point.physical_state_id)?;
-            let sensor_state =
-                lookup(&sensor_indices, "sensor_state_id", &point.sensor_state_id)?;
+            let hypothesis = lookup(&hypothesis_indices, "hypothesis_id", &point.hypothesis_id)?;
+            let physical_state = lookup(
+                &physical_indices,
+                "physical_state_id",
+                &point.physical_state_id,
+            )?;
+            let sensor_state = lookup(&sensor_indices, "sensor_state_id", &point.sensor_state_id)?;
             if !initial_keys.insert((hypothesis, physical_state, sensor_state)) {
                 return Err(AdapterError::InvalidKernel(
                     "initial belief contains a duplicate joint tuple".to_owned(),
@@ -619,7 +647,11 @@ impl LocomotionKernelSpec {
         for row in &self.transition_rows {
             let key = (
                 lookup(&hypothesis_indices, "hypothesis_id", &row.hypothesis_id)?,
-                lookup(&physical_indices, "physical_state_id", &row.physical_state_id)?,
+                lookup(
+                    &physical_indices,
+                    "physical_state_id",
+                    &row.physical_state_id,
+                )?,
                 lookup(&sensor_indices, "sensor_state_id", &row.sensor_state_id)?,
                 lookup(&action_indices, "action_id", &row.action_id)?,
             );
@@ -669,9 +701,7 @@ impl LocomotionKernelSpec {
                                 observation: outcome
                                     .observation_id
                                     .as_deref()
-                                    .map(|id| {
-                                        lookup(&observation_indices, "observation_id", id)
-                                    })
+                                    .map(|id| lookup(&observation_indices, "observation_id", id))
                                     .transpose()?,
                             });
                         }
@@ -697,14 +727,16 @@ impl LocomotionKernelSpec {
             physical_state_count: self.physical_states.len(),
             sensor_state_count: self.sensor_states.len(),
             action_ids: self.actions.iter().map(|item| item.id.clone()).collect(),
-            observation_ids: self.observations.iter().map(|item| item.id.clone()).collect(),
+            observation_ids: self
+                .observations
+                .iter()
+                .map(|item| item.id.clone())
+                .collect(),
             action_costs: self.actions.iter().map(|item| item.cost_units).collect(),
             initial_belief,
             rows,
         };
-        kernel
-            .validate()
-            .map_err(AdapterError::InvalidKernel)?;
+        kernel.validate().map_err(AdapterError::InvalidKernel)?;
 
         Ok(CompiledLocomotionKernel {
             kernel,
@@ -782,12 +814,11 @@ impl CompiledLocomotionKernel {
         match receipt.evidence_class {
             EvidenceClass::SyntheticFixture | EvidenceClass::InSilicoGenerated => {}
             _ => {
-                let individual = receipt
-                    .animal_or_preparation_id
-                    .as_deref()
-                    .ok_or(AdapterError::InvalidTrialReceipt(
+                let individual = receipt.animal_or_preparation_id.as_deref().ok_or(
+                    AdapterError::InvalidTrialReceipt(
                         "measured trial lacks animal/preparation replication identity",
-                    ))?;
+                    ),
+                )?;
                 nonempty(individual, "animal_or_preparation_id")?;
             }
         }
@@ -833,11 +864,12 @@ impl CompiledLocomotionKernel {
                 kind: "action_id",
                 id: action_id.to_owned(),
             })?;
-        Ok((((hypothesis * self.physical_states.len()) + physical)
-            * self.sensor_states.len()
-            + sensor)
-            * self.actions.len()
-            + action)
+        Ok(
+            (((hypothesis * self.physical_states.len()) + physical) * self.sensor_states.len()
+                + sensor)
+                * self.actions.len()
+                + action,
+        )
     }
 }
 
@@ -845,7 +877,7 @@ impl CompiledLocomotionKernel {
 mod tests {
     use super::*;
     use crate::baseline::rank_by_one_step_eig;
-    use crate::{optimize_joint_kernel, PolicyPlan, SolverConfig};
+    use crate::{PolicyPlan, SolverConfig, optimize_joint_kernel};
 
     fn sha(fill: char) -> String {
         std::iter::repeat_n(fill, 64).collect()
@@ -868,7 +900,10 @@ mod tests {
     fn sensor_states() -> Vec<SensorState> {
         let channels = [ChannelState::Intact, ChannelState::Gated];
         let vibration = [ChannelState::Intact, ChannelState::Attenuated];
-        let acquisition = [AcquisitionState::Calibrated, AcquisitionState::PositiveOffset];
+        let acquisition = [
+            AcquisitionState::Calibrated,
+            AcquisitionState::PositiveOffset,
+        ];
         let mut states = Vec::new();
         for position in channels {
             for movement in channels {
@@ -983,13 +1018,34 @@ mod tests {
             },
         ];
         let observations = vec![
-            Observation { id: "signal-low".to_owned(), kind: ObservationKind::NeuralMotorRhythm },
-            Observation { id: "signal-high".to_owned(), kind: ObservationKind::NeuralMotorRhythm },
-            Observation { id: "reference-calibrated".to_owned(), kind: ObservationKind::AcquisitionReference },
-            Observation { id: "movement-gated".to_owned(), kind: ObservationKind::MovementFeedback },
-            Observation { id: "position-perturbed".to_owned(), kind: ObservationKind::PositionFeedback },
-            Observation { id: "vibration-perturbed".to_owned(), kind: ObservationKind::VibrationResponse },
-            Observation { id: "load-shifted".to_owned(), kind: ObservationKind::ContactTransition },
+            Observation {
+                id: "signal-low".to_owned(),
+                kind: ObservationKind::NeuralMotorRhythm,
+            },
+            Observation {
+                id: "signal-high".to_owned(),
+                kind: ObservationKind::NeuralMotorRhythm,
+            },
+            Observation {
+                id: "reference-calibrated".to_owned(),
+                kind: ObservationKind::AcquisitionReference,
+            },
+            Observation {
+                id: "movement-gated".to_owned(),
+                kind: ObservationKind::MovementFeedback,
+            },
+            Observation {
+                id: "position-perturbed".to_owned(),
+                kind: ObservationKind::PositionFeedback,
+            },
+            Observation {
+                id: "vibration-perturbed".to_owned(),
+                kind: ObservationKind::VibrationResponse,
+            },
+            Observation {
+                id: "load-shifted".to_owned(),
+                kind: ObservationKind::ContactTransition,
+            },
         ];
 
         let mut initial_belief = vec![
@@ -998,12 +1054,16 @@ mod tests {
                 physical_state_id: physical_states[0].id.clone(),
                 sensor_state_id: sensor_states
                     .iter()
-                    .find(|sensor| sensor.position_afferent == ChannelState::Intact
-                        && sensor.movement_afferent == ChannelState::Intact
-                        && sensor.vibration_afferent == ChannelState::Intact
-                        && sensor.contact_feedback == ChannelState::Intact
-                        && sensor.acquisition == AcquisitionState::PositiveOffset)
-                    .unwrap().id.clone(),
+                    .find(|sensor| {
+                        sensor.position_afferent == ChannelState::Intact
+                            && sensor.movement_afferent == ChannelState::Intact
+                            && sensor.vibration_afferent == ChannelState::Intact
+                            && sensor.contact_feedback == ChannelState::Intact
+                            && sensor.acquisition == AcquisitionState::PositiveOffset
+                    })
+                    .unwrap()
+                    .id
+                    .clone(),
                 mass: Rational::new(1, 2).unwrap(),
             },
             InitialJointMass {
@@ -1011,12 +1071,16 @@ mod tests {
                 physical_state_id: physical_states[1].id.clone(),
                 sensor_state_id: sensor_states
                     .iter()
-                    .find(|sensor| sensor.position_afferent == ChannelState::Intact
-                        && sensor.movement_afferent == ChannelState::Intact
-                        && sensor.vibration_afferent == ChannelState::Intact
-                        && sensor.contact_feedback == ChannelState::Intact
-                        && sensor.acquisition == AcquisitionState::Calibrated)
-                    .unwrap().id.clone(),
+                    .find(|sensor| {
+                        sensor.position_afferent == ChannelState::Intact
+                            && sensor.movement_afferent == ChannelState::Intact
+                            && sensor.vibration_afferent == ChannelState::Intact
+                            && sensor.contact_feedback == ChannelState::Intact
+                            && sensor.acquisition == AcquisitionState::Calibrated
+                    })
+                    .unwrap()
+                    .id
+                    .clone(),
                 mass: Rational::new(1, 2).unwrap(),
             },
         ];
@@ -1033,8 +1097,9 @@ mod tests {
                             InterventionKind::ActiveMovementProbe
                             | InterventionKind::PassiveMovementProbe => {
                                 let physical_bit = usize::from(physical.id == "swing-loaded");
-                                let bias_bit =
-                                    usize::from(sensor.acquisition == AcquisitionState::PositiveOffset);
+                                let bias_bit = usize::from(
+                                    sensor.acquisition == AcquisitionState::PositiveOffset,
+                                );
                                 if physical_bit ^ bias_bit == 0 {
                                     "signal-low"
                                 } else {
@@ -1135,11 +1200,13 @@ mod tests {
     #[test]
     fn compiles_canonical_joint_kernel_and_preserves_unknown_endpoint_records() {
         let mut input = spec();
-        input.source_manifests[0].unknown_endpoints.push(UnknownEndpoint {
-            raw_endpoint_id: "raw-untyped-endpoint-17".to_owned(),
-            role: EndpointRole::UnknownSide,
-            missingness_reason: "source snapshot does not identify this endpoint".to_owned(),
-        });
+        input.source_manifests[0]
+            .unknown_endpoints
+            .push(UnknownEndpoint {
+                raw_endpoint_id: "raw-untyped-endpoint-17".to_owned(),
+                role: EndpointRole::UnknownSide,
+                missingness_reason: "source snapshot does not identify this endpoint".to_owned(),
+            });
         let compiled = input.compile().unwrap();
         assert_eq!(
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
@@ -1152,20 +1219,27 @@ mod tests {
     #[test]
     fn movement_gate_does_not_change_position_or_vibration_channels() {
         let compiled = spec().compile().unwrap();
-        let original = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::Calibrated
-        }).unwrap();
-        let row_index = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &original.id,
-            "movement-afferent-gate",
-        ).unwrap();
-        let next = &compiled.sensor_states[compiled.kernel.rows[row_index].outcomes[0].next_sensor_state];
+        let original = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+            })
+            .unwrap();
+        let row_index = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &original.id,
+                "movement-afferent-gate",
+            )
+            .unwrap();
+        let next =
+            &compiled.sensor_states[compiled.kernel.rows[row_index].outcomes[0].next_sensor_state];
         assert_eq!(next.movement_afferent, ChannelState::Gated);
         assert_eq!(next.position_afferent, ChannelState::Intact);
         assert_eq!(next.vibration_afferent, ChannelState::Intact);
@@ -1175,35 +1249,41 @@ mod tests {
     #[test]
     fn position_and_vibration_interventions_remain_modality_specific() {
         let compiled = spec().compile().unwrap();
-        let original = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::Calibrated
-        }).unwrap();
-        let position_row = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &original.id,
-            "position-afferent-perturbation",
-        ).unwrap();
-        let position_next = &compiled.sensor_states[
-            compiled.kernel.rows[position_row].outcomes[0].next_sensor_state
-        ];
+        let original = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+            })
+            .unwrap();
+        let position_row = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &original.id,
+                "position-afferent-perturbation",
+            )
+            .unwrap();
+        let position_next = &compiled.sensor_states
+            [compiled.kernel.rows[position_row].outcomes[0].next_sensor_state];
         assert_eq!(position_next.position_afferent, ChannelState::Gated);
         assert_eq!(position_next.movement_afferent, ChannelState::Intact);
         assert_eq!(position_next.vibration_afferent, ChannelState::Intact);
 
-        let vibration_row = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &original.id,
-            "vibration-afferent-perturbation",
-        ).unwrap();
-        let vibration_next = &compiled.sensor_states[
-            compiled.kernel.rows[vibration_row].outcomes[0].next_sensor_state
-        ];
+        let vibration_row = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &original.id,
+                "vibration-afferent-perturbation",
+            )
+            .unwrap();
+        let vibration_next = &compiled.sensor_states
+            [compiled.kernel.rows[vibration_row].outcomes[0].next_sensor_state];
         assert_eq!(vibration_next.vibration_afferent, ChannelState::Attenuated);
         assert_eq!(vibration_next.position_afferent, ChannelState::Intact);
         assert_eq!(vibration_next.movement_afferent, ChannelState::Intact);
@@ -1212,19 +1292,25 @@ mod tests {
     #[test]
     fn physical_load_perturbation_does_not_reset_sensor_drift() {
         let compiled = spec().compile().unwrap();
-        let sensor = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::PositiveOffset
-        }).unwrap();
-        let row_index = compiled.row_index(
-            "central-rhythm-model",
-            "stance-nominal",
-            &sensor.id,
-            "contact-load-perturbation",
-        ).unwrap();
+        let sensor = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::PositiveOffset
+            })
+            .unwrap();
+        let row_index = compiled
+            .row_index(
+                "central-rhythm-model",
+                "stance-nominal",
+                &sensor.id,
+                "contact-load-perturbation",
+            )
+            .unwrap();
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
         let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
         assert_eq!(outcome.next_physical_state, 1);
@@ -1234,11 +1320,26 @@ mod tests {
     #[test]
     fn joint_optimizer_resolves_synthetic_sensor_physical_confounding() {
         let compiled = spec().compile().unwrap();
-        let scores = rank_by_one_step_eig(&compiled.kernel, &compiled.kernel.initial_belief).unwrap();
-        assert!(scores.iter().find(|score| score.action_id == "active-movement-probe").unwrap()
-            .expected_information_gain_nats.abs() < 1.0e-12);
-        assert!(scores.iter().find(|score| score.action_id == "acquisition-reference-calibration").unwrap()
-            .expected_information_gain_nats.abs() < 1.0e-12);
+        let scores =
+            rank_by_one_step_eig(&compiled.kernel, &compiled.kernel.initial_belief).unwrap();
+        assert!(
+            scores
+                .iter()
+                .find(|score| score.action_id == "active-movement-probe")
+                .unwrap()
+                .expected_information_gain_nats
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            scores
+                .iter()
+                .find(|score| score.action_id == "acquisition-reference-calibration")
+                .unwrap()
+                .expected_information_gain_nats
+                .abs()
+                < 1.0e-12
+        );
 
         let exact = optimize_joint_kernel(
             &compiled.kernel,
@@ -1246,7 +1347,8 @@ mod tests {
                 horizon: 2,
                 ..SolverConfig::default()
             },
-        ).unwrap();
+        )
+        .unwrap();
         let identifying = exact.frontier.iter().find(|point| {
             point.correct_identification_probability == Rational::one()
                 && point.false_identification_probability == Rational::zero()
@@ -1255,11 +1357,20 @@ mod tests {
         }).expect("reference calibration followed by measurement should identify the synthetic fixture");
         match &identifying.plan {
             PolicyPlan::Action { action, branches } => {
-                assert_eq!(compiled.kernel.action_ids[*action], "acquisition-reference-calibration");
+                assert_eq!(
+                    compiled.kernel.action_ids[*action],
+                    "acquisition-reference-calibration"
+                );
                 assert_eq!(branches.len(), 1);
                 match branches[0].plan.as_ref() {
-                    PolicyPlan::Action { action: next_action, .. } => {
-                        assert_eq!(compiled.kernel.action_ids[*next_action], "active-movement-probe");
+                    PolicyPlan::Action {
+                        action: next_action,
+                        ..
+                    } => {
+                        assert_eq!(
+                            compiled.kernel.action_ids[*next_action],
+                            "active-movement-probe"
+                        );
                     }
                     other => panic!("expected follow-up measurement, got {other:?}"),
                 }
@@ -1286,12 +1397,22 @@ mod tests {
             source_manifest_id: "fanc-connectome-v840".to_owned(),
             expected_sha256: sha('b'),
         });
-        input.hypotheses[0].source_manifest_ids.push("fanc-connectome-v840".to_owned());
+        input.hypotheses[0]
+            .source_manifest_ids
+            .push("fanc-connectome-v840".to_owned());
         input.hypotheses[0].claim_ceiling = ClaimCeiling::AnatomicalConnectomeConstrained;
         assert!(input.compile().is_ok());
 
-        input.source_manifests.iter_mut().find(|source| source.id == "fanc-connectome-v840").unwrap().sha256 = Some(sha('c'));
-        assert!(matches!(input.compile(), Err(AdapterError::SourcePinMismatch { .. })));
+        input
+            .source_manifests
+            .iter_mut()
+            .find(|source| source.id == "fanc-connectome-v840")
+            .unwrap()
+            .sha256 = Some(sha('c'));
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::SourcePinMismatch { .. })
+        ));
     }
 
     #[test]
@@ -1308,7 +1429,9 @@ mod tests {
             unknown_endpoint_inventory_complete: true,
             unknown_endpoints: vec![],
         });
-        input.hypotheses[0].source_manifest_ids.push("connectome-unpinned".to_owned());
+        input.hypotheses[0]
+            .source_manifest_ids
+            .push("connectome-unpinned".to_owned());
         input.hypotheses[0].claim_ceiling = ClaimCeiling::AnatomicalConnectomeConstrained;
         assert!(matches!(
             input.compile(),
@@ -1389,7 +1512,9 @@ mod tests {
             source_manifest_id: "connectome-no-inventory".to_owned(),
             expected_sha256: sha('1'),
         });
-        input.hypotheses[0].source_manifest_ids.push("connectome-no-inventory".to_owned());
+        input.hypotheses[0]
+            .source_manifest_ids
+            .push("connectome-no-inventory".to_owned());
         input.hypotheses[0].claim_ceiling = ClaimCeiling::AnatomicalConnectomeConstrained;
         assert!(matches!(
             input.compile(),
@@ -1411,7 +1536,9 @@ mod tests {
             unknown_endpoint_inventory_complete: true,
             unknown_endpoints: vec![],
         });
-        input.hypotheses[0].source_manifest_ids.push("connectome-only".to_owned());
+        input.hypotheses[0]
+            .source_manifest_ids
+            .push("connectome-only".to_owned());
         input.hypotheses[0].claim_ceiling = ClaimCeiling::PeerReviewedMeasuredNeuralReproduction;
         assert!(matches!(
             input.compile(),
