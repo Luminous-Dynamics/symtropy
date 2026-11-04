@@ -144,7 +144,7 @@ impl CorrespondenceSet {
         let mut hypothesis_ids = BTreeSet::new();
         let mut summaries = Vec::with_capacity(self.hypotheses.len());
         let mut any_unknown = matches!(
-            self.universe_status,
+            &self.universe_status,
             CandidateUniverseStatus::Incomplete { .. }
         );
 
@@ -195,13 +195,13 @@ impl CorrespondenceSet {
                     return Err(CorrespondenceError::DuplicateLeftEndpoint);
                 }
                 if matches!(
-                    unmatched.reason,
+                    &unmatched.reason,
                     UnmatchedReason::CorrespondenceUnknown { .. }
                 ) {
                     unknown_presence_or_correspondence = true;
                 }
                 if matches!(
-                    left[&unmatched.event_id].presence,
+                    &left[&unmatched.event_id].presence,
                     EventPresence::Unknown { .. }
                 ) {
                     unknown_presence_or_correspondence = true;
@@ -222,7 +222,7 @@ impl CorrespondenceSet {
                     unknown_presence_or_correspondence = true;
                 }
                 if matches!(
-                    right[&unmatched.event_id].presence,
+                    &right[&unmatched.event_id].presence,
                     EventPresence::Unknown { .. }
                 ) {
                     unknown_presence_or_correspondence = true;
