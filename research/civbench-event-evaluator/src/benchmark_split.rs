@@ -471,7 +471,7 @@ mod tests {
     fn event_session_policy() -> SplitPolicy {
         SplitPolicy {
             protocol_id: "within_network_unseen_event_v1".to_owned(),
-            manifest_digest: format!("sha256:{:064x}", 900),
+            manifest_digest: digest(900),
             exclusive_dimensions: BTreeSet::from([
                 LeakageDimension::PhysicalEvent,
                 LeakageDimension::CaptureSession,
@@ -504,6 +504,9 @@ mod tests {
     fn cross_network_protocol_rejects_a_shared_network() {
         let mut policy = event_session_policy();
         policy.exclusive_dimensions.insert(LeakageDimension::Network);
+        policy
+            .shared_dimensions
+            .remove(&LeakageDimension::Network);
         let error =
             audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
         assert_eq!(error.code, "cross_partition_group_overlap");
@@ -601,7 +604,7 @@ mod tests {
     fn empty_policy_cannot_claim_an_audited_protocol() {
         let policy = SplitPolicy {
             protocol_id: "unconstrained".to_owned(),
-            manifest_digest: format!("sha256:{:064x}", 900),
+            manifest_digest: digest(900),
             exclusive_dimensions: BTreeSet::new(),
             shared_dimensions: BTreeSet::new(),
         };
