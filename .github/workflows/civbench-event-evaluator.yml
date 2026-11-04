@@ -6,6 +6,8 @@ on:
       - "research/civbench-event-evaluator/**"
       - ".github/workflows/civbench-event-evaluator.yml"
   push:
+    branches:
+      - main
     paths:
       - "research/civbench-event-evaluator/**"
       - ".github/workflows/civbench-event-evaluator.yml"
