@@ -1802,6 +1802,97 @@ mod tests {
         ));
     }
 
+    fn spec_with_measured_source() -> LocomotionKernelSpec {
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "peer-reviewed-neural-source".to_owned(),
+            kind: SourceKind::NeuralMeasurement,
+            evidence_class: EvidenceClass::PeerReviewedMeasured,
+            citation_or_source_uri: "https://example.org/synthetic-measurement-fixture".to_owned(),
+            dataset_id: Some("synthetic-recording-set".to_owned()),
+            release_or_materialization: Some("fixture-v1".to_owned()),
+            sha256: Some(sha('7')),
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        });
+        input.source_pins.push(SourceDigestPin {
+            source_manifest_id: "peer-reviewed-neural-source".to_owned(),
+            expected_sha256: sha('7'),
+        });
+        input
+    }
+
+    fn measured_receipt(sample_id: &str, history_digest: char) -> LocomotionTrialReceipt {
+        LocomotionTrialReceipt {
+            sample_id: sample_id.to_owned(),
+            assigned_action_id: "movement-afferent-gate".to_owned(),
+            delivered_protocol_id: "protocol-movement-gate".to_owned(),
+            delivery_verified: true,
+            delivery_fidelity: Rational::one(),
+            conditioning_state_digest: sha(history_digest),
+            animal_or_preparation_id: Some("animal-1".to_owned()),
+            session_id: "session-1".to_owned(),
+            source_manifest_id: "peer-reviewed-neural-source".to_owned(),
+            evidence_class: EvidenceClass::PeerReviewedMeasured,
+        }
+    }
+
+    #[test]
+    fn receipt_delivery_fidelity_must_meet_preregistered_minimum() {
+        let compiled = spec().compile().unwrap();
+        let mut receipt = LocomotionTrialReceipt {
+            sample_id: "low-fidelity-sample".to_owned(),
+            assigned_action_id: "movement-afferent-gate".to_owned(),
+            delivered_protocol_id: "protocol-movement-gate".to_owned(),
+            delivery_verified: true,
+            delivery_fidelity: Rational::new(4, 5).unwrap(),
+            conditioning_state_digest: sha('a'),
+            animal_or_preparation_id: None,
+            session_id: "synthetic-session".to_owned(),
+            source_manifest_id: "synthetic-protocols".to_owned(),
+            evidence_class: EvidenceClass::SyntheticFixture,
+        };
+        assert!(matches!(
+            compiled.validate_trial_receipt(&receipt),
+            Err(AdapterError::InvalidTrialReceipt(
+                "delivered protocol fidelity is below the pre-registered minimum"
+            ))
+        ));
+        receipt.delivery_fidelity = Rational::new(19, 20).unwrap();
+        assert!(compiled.validate_trial_receipt(&receipt).is_ok());
+    }
+
+    #[test]
+    fn receipt_requires_a_valid_pre_outcome_history_digest() {
+        let compiled = spec_with_measured_source().compile().unwrap();
+        let mut receipt = measured_receipt("sample-history-test", 'a');
+        receipt.conditioning_state_digest = "history-hash-not-sha256".to_owned();
+        assert_eq!(
+            compiled.validate_trial_receipt(&receipt),
+            Err(AdapterError::InvalidConditioningStateDigest)
+        );
+    }
+
+    #[test]
+    fn repeated_cluster_samples_are_allowed_but_duplicate_sample_ids_are_rejected() {
+        let compiled = spec_with_measured_source().compile().unwrap();
+        let first = measured_receipt("sample-1", 'a');
+        let second = measured_receipt("sample-2", 'b');
+        assert!(compiled
+            .validate_trial_receipts(&[first.clone(), second.clone()])
+            .is_ok());
+        assert_eq!(
+            compiled.validate_trial_receipts(&[first.clone(), first]),
+            Err(AdapterError::DuplicateSampleId("sample-1".to_owned()))
+        );
+        assert_eq!(second.animal_or_preparation_id, Some("animal-1".to_owned()));
+        assert_eq!(second.session_id, "session-1");
+        assert_ne!(
+            second.conditioning_state_digest,
+            measured_receipt("sample-3", 'a').conditioning_state_digest
+        );
+    }
+
     #[test]
     fn connectome_anatomy_cannot_be_substituted_for_trial_measurements() {
         let mut input = spec();
