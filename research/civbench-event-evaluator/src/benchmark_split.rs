@@ -527,6 +527,7 @@ mod tests {
             leakage_groups: vec![
                 group(LeakageDimension::PhysicalEvent, event),
                 group(LeakageDimension::CaptureSession, session),
+                group(LeakageDimension::ScenarioTemplate, "template-1"),
                 group(LeakageDimension::Network, network),
             ],
         }
@@ -599,6 +600,21 @@ mod tests {
         let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
         assert_eq!(error.code, "cross_partition_group_overlap");
         assert_eq!(error.subject, "network=net-1");
+    }
+
+    #[test]
+    fn scenario_template_reuse_across_partitions_fails_closed() {
+        let mut samples = valid_samples();
+        samples[3]
+            .leakage_groups
+            .iter_mut()
+            .find(|group| group.dimension == LeakageDimension::ScenarioTemplate)
+            .expect("scenario template")
+            .value = "template-train".to_owned();
+        let error =
+            audit_benchmark_split(&samples, &event_session_policy()).expect_err("template reuse");
+        assert_eq!(error.code, "cross_partition_group_overlap");
+        assert_eq!(error.subject, "scenario_template=template-train");
     }
 
     #[test]
