@@ -329,15 +329,31 @@ impl EnergyMvReportingPoint {
         ] {
             require_non_negative(name, value)?;
         }
-        if self.routine_adjustment_kwh != 0.0 {
-            require_optional_id("routine adjustment evidence ID", &self.routine_adjustment_evidence_id)?;
-        } else if let Some(id) = &self.routine_adjustment_evidence_id {
-            require_id("routine adjustment evidence ID", id)?;
+        if self.routine_adjustment_kwh != 0.0
+            && self.routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+        {
+            return Err(EnergyMvError::MissingEvidence {
+                sample_id: self.sample_id.clone(),
+                evidence_kind: "routine adjustment",
+            });
         }
-        if self.non_routine_adjustment_kwh != 0.0 {
-            require_optional_id("non-routine adjustment evidence ID", &self.non_routine_adjustment_evidence_id)?;
-        } else if let Some(id) = &self.non_routine_adjustment_evidence_id {
-            require_id("non-routine adjustment evidence ID", id)?;
+        if self.routine_adjustment_kwh == 0.0 {
+            if let Some(id) = &self.routine_adjustment_evidence_id {
+                require_id("routine adjustment evidence ID", id)?;
+            }
+        }
+        if self.non_routine_adjustment_kwh != 0.0
+            && self.non_routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+        {
+            return Err(EnergyMvError::MissingEvidence {
+                sample_id: self.sample_id.clone(),
+                evidence_kind: "non-routine adjustment",
+            });
+        }
+        if self.non_routine_adjustment_kwh == 0.0 {
+            if let Some(id) = &self.non_routine_adjustment_evidence_id {
+                require_id("non-routine adjustment evidence ID", id)?;
+            }
         }
         Ok(())
     }
@@ -802,16 +818,6 @@ fn require_id(name: &'static str, value: &str) -> Result<(), EnergyMvError> {
         return Err(EnergyMvError::EmptyIdentifier(name));
     }
     Ok(())
-}
-
-fn require_optional_id(
-    name: &'static str,
-    value: &Option<String>,
-) -> Result<(), EnergyMvError> {
-    match value {
-        Some(id) => require_id(name, id),
-        None => Err(EnergyMvError::EmptyIdentifier(name)),
-    }
 }
 
 fn require_non_negative(name: &'static str, value: f64) -> Result<(), EnergyMvError> {
