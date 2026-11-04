@@ -171,5 +171,10 @@
       "id": "manifest-mutation",
       "expected": "verify_against_rejects"
     }
-  ]
+  ],
+  "decision": {
+    "utility_scale_id": "common-utility-scale-v1",
+    "utility_semantics_id": "expected-net-utility-higher-is-better-v1",
+    "scope": "all actions and admitted hypotheses must use the same cardinal scale and utility meaning"
+  }
 }
