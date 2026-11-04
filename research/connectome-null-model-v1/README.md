@@ -1,8 +1,8 @@
 # Connectome Null Model V1
 
-A dependency-free Rust implementation of a deterministic, directed, cell-type-constrained edge-swap null model.
+A dependency-free Rust implementation of two deterministic, directed connectome edge-swap null families: a degree-only baseline (N0) and a cell-type/edge-class-constrained null (N1).
 
-This crate implements the negative-control family required by the Locomotion Mechanism Identifiability Contract in Symtropy #3450: the observed connectome must compete against rewired alternatives that preserve declared low-order structure.
+This crate implements the N0/N1 negative-control ladder required by the Locomotion Mechanism Identifiability Contract in Symtropy #3450. The observed connectome must compete against rewired alternatives that preserve declared low-order structure.
 
 ## V1 graph contract
 
@@ -27,18 +27,28 @@ into:
     source_1 -> target_2
     source_2 -> target_1
 
-The switch is eligible only when both edges have the same source cell type, target cell type and edge class. Self-loops and duplicate directed edges are rejected.
+Self-loops and duplicate directed edges are rejected.
 
-The implementation verifies, before returning a sample:
+### N0 — directed degree-only baseline
 
-- the same node IDs, cell-type assignments and edge count;
-- exact per-node in-degree and out-degree sequences;
-- exact directed cell-type mixing and edge-class block counts;
-- the same edge-weight multiset inside every cell-type/edge-class block;
+Any two edges may be proposed, regardless of source/target cell type or edge class. This preserves:
+- node IDs and cell-type assignments;
+- exact per-node in-degree and out-degree;
 - exact per-source outgoing strength and per-source edge-weight multiset;
+- total edge count and global edge-class counts;
 - no self-loops and no duplicate directed connections.
 
-Weights stay attached to their source-edge slots. Consequently, source-side weighted strength is preserved exactly; target-side incoming strength is **not** preserved. This is intentional and must not be described as a full in-/out-strength-preserving null.
+Cell-type mixing and type/edge-class block weight distributions are allowed to change. This is the baseline that tests whether a connectome result exceeds degree and source-side weight constraints alone.
+
+### N1 — cell-type and edge-class constrained
+
+The switch is eligible only when both edges have the same source cell type, target cell type and edge class. N1 additionally preserves:
+- exact directed source-type × target-type × edge-class block counts;
+- the edge-weight multiset inside every such block.
+
+The receipt records which constraints were required and which were preserved. A non-required property may change without being treated as an invariant violation.
+
+Weights stay attached to their source-edge slots in both families. Consequently, source-side weighted strength is preserved exactly; target-side incoming strength is **not** preserved. Neither N0 nor N1 must be described as a full in-/out-strength-preserving null.
 
 ## Randomization and reproducibility
 
