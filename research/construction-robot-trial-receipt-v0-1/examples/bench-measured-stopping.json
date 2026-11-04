@@ -55,7 +55,9 @@
         "firmware_revision": "lidar-fw-1",
         "calibration_id": "lidar-cal-1",
         "calibration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "fault_domain": "robot-range-power"
+        "fault_domain": "robot-range-power",
+        "calibration_valid_from_unix_ns": 900,
+        "calibration_valid_until_unix_ns": 2100
       },
       {
         "sensor_id": "camera-front",
@@ -63,7 +65,9 @@
         "firmware_revision": "camera-fw-1",
         "calibration_id": "camera-cal-1",
         "calibration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "fault_domain": "robot-vision-power"
+        "fault_domain": "robot-vision-power",
+        "calibration_valid_from_unix_ns": 900,
+        "calibration_valid_until_unix_ns": 2100
       }
     ]
   },
