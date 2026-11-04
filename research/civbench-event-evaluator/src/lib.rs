@@ -1016,6 +1016,8 @@ mod tests {
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
         assert_eq!(report.matches[0].episode_id, "episode:alarm-a");
+        assert_eq!(report.p50_early_lead_ms, Some(100_000));
+        assert_eq!(report.p50_detection_delay_ms, None);
         assert!(report.fragmentation_episode_ids.is_empty());
     }
 
@@ -1058,6 +1060,8 @@ mod tests {
         assert_eq!(report.timely_event_count, 1);
         assert_eq!(report.matches[0].class_correct, None);
         assert_eq!(report.matches[0].onset_offset_ms, 200);
+        assert_eq!(report.p50_detection_delay_ms, Some(200));
+        assert_eq!(report.p50_early_lead_ms, None);
     }
 
     #[test]
