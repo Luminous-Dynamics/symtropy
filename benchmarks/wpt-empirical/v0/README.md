@@ -388,3 +388,13 @@ Koch et al., DOI 10.1109/JWPT.2026.3721477, is now a separate source/realization
 The 34% is an author-derived relative coupling-operating-range reduction, not transfer-efficiency loss or percentage-point degradation. Full-text coordinates, raw point-level values, baseline threshold and uncertainty remain unavailable; the realization is development/source-claim evidence only.
 
 Latest empirical fetch-back: 57 sources, 27 prototype/realization records, 41 v0 measurement records and 146 auxiliary metrics. The 27 records represent publication/device families, not 27 independent standardized systems or a matched performance ranking.
+
+## 2026 communication-independent online self-identification
+
+Zakerian et al., IEEE Transactions on Power Electronics, early access 1 October 2026, DOI 10.1109/TPEL.2026.3739481, demonstrate an experimental WPT control/system-identification method based on enhanced multi-sine phase perturbation. The controller perturbs the inverter output voltage, observes primary-side input impedance, and estimates primary self-inductance, secondary self-inductance, mutual inductance and equivalent load resistance. The authors experimentally study lateral/angular misalignment and air-gap changes and use frequency adaptation to restore an optimum operating point/ZVS without a primary-secondary data link.
+
+This is an important architecture result, but not a published high-power EV performance result. The indexed abstract does not state nominal power, operating frequency, exact gap/misalignment ranges, numerical estimator errors, estimator latency, perturbation energy, ripple or efficiency. The catalogue records the experiment as a control-identification realization with null power/efficiency fields, rather than fabricating a WPT leaderboard point.
+
+Related work already in the catalogue: a separate 50 W 2026 communication-free CC/CV reflected-impedance prototype reports <6.4% mutual-inductance estimation error, <=3.1% equivalent-load estimation error and <1% CC/CV regulation error under tested misalignment (DOI 10.1109/JESTPE.2026.3694075). The two approaches are complementary but not yet a matched benchmark comparison: one focuses on joint Lp/Ls/M/R_eq identification and frequency/ZVS adaptation; the other focuses on reflected-impedance decoupling and CC/CV regulation.
+
+The follow-on benchmark is [WPT-SELF-IDENTIFICATION-001 #3512](https://github.com/Luminous-Dynamics/symtropy/issues/3512). Its central idea is to separate a secure session/authorization plane from a fast local estimation/control plane. This does not mean removing authentication or safety communications; it means testing whether fast coupling-state regulation can remain stable without a live secondary telemetry dependency.
