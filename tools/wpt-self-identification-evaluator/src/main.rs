@@ -708,20 +708,30 @@ fn main() -> Result<(), Box<dyn Error>> {
     let content = fs::read_to_string(&path)?;
     let mut qualified = Vec::new();
     let mut errors_found = false;
-    let mut records_seen = 0usize;
-    for (line_no, line) in content.lines().enumerate() {
-        if line.trim().is_empty() || line.trim_start().starts_with('#') {
-            continue;
-        }
-        records_seen += 1;
-        let run: Value = match serde_json::from_str(line) {
-            Ok(value) => value,
-            Err(error) => {
-                eprintln!("line {}: invalid JSON: {error}", line_no + 1);
-                errors_found = true;
-                continue;
+    let mut records: Vec<(usize, Value)> = Vec::new();
+
+    // Accept either one pretty-printed JSON run manifest or a JSONL batch.
+    // A JSONL file with multiple objects fails whole-file JSON parsing and is
+    // then parsed one non-empty line at a time.
+    match serde_json::from_str::<Value>(&content) {
+        Ok(value) => records.push((1, value)),
+        Err(_) => {
+            for (line_no, line) in content.lines().enumerate() {
+                if line.trim().is_empty() || line.trim_start().starts_with('#') {
+                    continue;
+                }
+                match serde_json::from_str::<Value>(line) {
+                    Ok(value) => records.push((line_no + 1, value)),
+                    Err(error) => {
+                        eprintln!("line {}: invalid JSON: {error}", line_no + 1);
+                        errors_found = true;
+                    }
+                }
             }
-        };
+        }
+    }
+    let records_seen = records.len();
+    for (line_no, run) in records {
         let mut errors = validate_structure(&run);
         let disposition = string_at(&run, &["qualification"]).unwrap_or("INVALID");
         if errors.is_empty() && disposition == "QUALIFIED" {
@@ -749,16 +759,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         if !errors.is_empty() {
-            eprintln!("REJECT line {}: {} issue(s)", line_no + 1, errors.len());
+            eprintln!("REJECT line {}: {} issue(s)", line_no, errors.len());
             for error in errors {
                 eprintln!("  - {error}");
             }
             errors_found = true;
         }
-    }
-    if records_seen == 0 {
-        eprintln!("error: no JSONL records found");
-        process::exit(2);
     }
     for notice in evaluate_batch(&qualified) {
         println!("{notice}");
