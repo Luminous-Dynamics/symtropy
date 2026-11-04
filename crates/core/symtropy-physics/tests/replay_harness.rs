@@ -227,7 +227,6 @@ fn malformed_receipt_digest_is_rejected_before_replay() {
     .unwrap());
 }
 
-
 fn add_kinematic_actor(world: &mut PhysicsWorld<3>) -> BodyHandle {
     let actor = RigidBody::<3>::new(
         BodyHandle(0),
