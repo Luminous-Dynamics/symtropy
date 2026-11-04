@@ -31,24 +31,27 @@ pub struct ScenarioSummary {
 }
 
 fn text<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
-    value.get(key).and_then(Value::as_str)
+    value
+        .get(key)
+        .and_then(Value::as_str)
         .ok_or_else(|| format!("{path}.{key} must be a string"))
 }
 
 fn array<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Vec<Value>, String> {
-    value.get(key).and_then(Value::as_array)
+    value
+        .get(key)
+        .and_then(Value::as_array)
         .ok_or_else(|| format!("{path}.{key} must be an array"))
 }
 
 fn number(value: &Value, key: &str, path: &str) -> Result<u64, String> {
-    value.get(key).and_then(Value::as_u64)
+    value
+        .get(key)
+        .and_then(Value::as_u64)
         .ok_or_else(|| format!("{path}.{key} must be a non-negative integer"))
 }
 
-fn unique_ids<'a>(
-    items: impl Iterator<Item = Option<&'a str>>,
-    label: &str,
-) -> Result<(), String> {
+fn unique_ids<'a>(items: impl Iterator<Item = Option<&'a str>>, label: &str) -> Result<(), String> {
     let mut seen = HashSet::new();
     for value in items {
         let id = value.ok_or_else(|| format!("{label} contains a missing/non-string id"))?;
@@ -59,8 +62,14 @@ fn unique_ids<'a>(
     Ok(())
 }
 
-fn stage_is_ancestor(stage_id: &str, current: &Value, by_id: &HashMap<String, usize>, stages: &[Value]) -> bool {
-    let mut pending: Vec<String> = current.get("predecessor_stage_ids")
+fn stage_is_ancestor(
+    stage_id: &str,
+    current: &Value,
+    by_id: &HashMap<String, usize>,
+    stages: &[Value],
+) -> bool {
+    let mut pending: Vec<String> = current
+        .get("predecessor_stage_ids")
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
@@ -76,7 +85,10 @@ fn stage_is_ancestor(stage_id: &str, current: &Value, by_id: &HashMap<String, us
             continue;
         }
         if let Some(index) = by_id.get(&candidate) {
-            if let Some(parents) = stages[*index].get("predecessor_stage_ids").and_then(Value::as_array) {
+            if let Some(parents) = stages[*index]
+                .get("predecessor_stage_ids")
+                .and_then(Value::as_array)
+            {
                 pending.extend(parents.iter().filter_map(Value::as_str).map(str::to_owned));
             }
         }
@@ -130,7 +142,12 @@ fn validate_stage_graph(stages: &[Value]) -> Result<(HashMap<String, usize>, usi
     if stages.is_empty() {
         return Err("scenario must contain at least one stage".to_owned());
     }
-    unique_ids(stages.iter().map(|stage| stage.get("stage_id").and_then(Value::as_str)), "stage ids")?;
+    unique_ids(
+        stages
+            .iter()
+            .map(|stage| stage.get("stage_id").and_then(Value::as_str)),
+        "stage ids",
+    )?;
 
     let mut by_id = HashMap::new();
     let mut previous_sequence = None;
@@ -138,7 +155,9 @@ fn validate_stage_graph(stages: &[Value]) -> Result<(HashMap<String, usize>, usi
         let id = text(stage, "stage_id", "stage")?.to_owned();
         let sequence = number(stage, "sequence", &format!("stage[{id}]"))?;
         if previous_sequence.is_some_and(|previous| sequence <= previous) {
-            return Err(format!("stage sequence must increase strictly; {id} has {sequence}"));
+            return Err(format!(
+                "stage sequence must increase strictly; {id} has {sequence}"
+            ));
         }
         previous_sequence = Some(sequence);
         by_id.insert(id, index);
@@ -147,12 +166,16 @@ fn validate_stage_graph(stages: &[Value]) -> Result<(HashMap<String, usize>, usi
     for (index, stage) in stages.iter().enumerate() {
         let id = text(stage, "stage_id", "stage")?;
         for predecessor in array(stage, "predecessor_stage_ids", &format!("stage[{id}]"))? {
-            let predecessor = predecessor.as_str()
+            let predecessor = predecessor
+                .as_str()
                 .ok_or_else(|| format!("stage[{id}] predecessor must be a string"))?;
-            let predecessor_index = by_id.get(predecessor)
-                .ok_or_else(|| format!("stage[{id}] references unknown predecessor {predecessor}"))?;
+            let predecessor_index = by_id.get(predecessor).ok_or_else(|| {
+                format!("stage[{id}] references unknown predecessor {predecessor}")
+            })?;
             if *predecessor_index >= index {
-                return Err(format!("stage[{id}] predecessor {predecessor} must appear earlier"));
+                return Err(format!(
+                    "stage[{id}] predecessor {predecessor} must appear earlier"
+                ));
             }
         }
     }
@@ -169,7 +192,10 @@ fn validate_artifact_lineage(
         for artifact in array(stage, "produced_artifacts", &format!("stage[{stage_id}]"))? {
             let artifact_id = text(artifact, "artifact_id", "produced artifact")?.to_owned();
             let digest = text(artifact, "sha256", "produced artifact")?.to_owned();
-            if producers.insert(artifact_id.clone(), (digest, index)).is_some() {
+            if producers
+                .insert(artifact_id.clone(), (digest, index))
+                .is_some()
+            {
                 return Err(format!("artifact {artifact_id} has more than one producer"));
             }
         }
@@ -178,21 +204,31 @@ fn validate_artifact_lineage(
     let mut external_inputs = 0;
     for (index, stage) in stages.iter().enumerate() {
         let stage_id = text(stage, "stage_id", "stage")?;
-        let predecessors = array(stage, "predecessor_stage_ids", &format!("stage[{stage_id}]"))?;
+        let predecessors = array(
+            stage,
+            "predecessor_stage_ids",
+            &format!("stage[{stage_id}]"),
+        )?;
         for consumed in array(stage, "consumed_artifacts", &format!("stage[{stage_id}]"))? {
             let artifact_id = text(consumed, "artifact_id", "consumed artifact")?;
             let digest = text(consumed, "sha256", "consumed artifact")?;
             match producers.get(artifact_id) {
                 Some((produced_digest, producer_index)) => {
                     if produced_digest != digest {
-                        return Err(format!("stage[{stage_id}] consumes artifact {artifact_id} with a digest different from its producer"));
+                        return Err(format!(
+                            "stage[{stage_id}] consumes artifact {artifact_id} with a digest different from its producer"
+                        ));
                     }
                     if *producer_index >= index {
-                        return Err(format!("stage[{stage_id}] consumes artifact {artifact_id} before it is produced"));
+                        return Err(format!(
+                            "stage[{stage_id}] consumes artifact {artifact_id} before it is produced"
+                        ));
                     }
                     let producer_id = text(&stages[*producer_index], "stage_id", "producer stage")?;
                     if !stage_is_ancestor(producer_id, stage, by_id, stages) {
-                        return Err(format!("stage[{stage_id}] consumes artifact {artifact_id} from a non-ancestor stage"));
+                        return Err(format!(
+                            "stage[{stage_id}] consumes artifact {artifact_id} from a non-ancestor stage"
+                        ));
                     }
                 }
                 None if predecessors.is_empty() => {
@@ -200,7 +236,9 @@ fn validate_artifact_lineage(
                     external_inputs += 1;
                 }
                 None => {
-                    return Err(format!("stage[{stage_id}] consumes unknown artifact {artifact_id} despite having predecessors"));
+                    return Err(format!(
+                        "stage[{stage_id}] consumes unknown artifact {artifact_id} despite having predecessors"
+                    ));
                 }
             }
         }
@@ -209,24 +247,37 @@ fn validate_artifact_lineage(
 }
 
 fn latest_stage<'a>(stages: &'a [Value], kind: &str) -> Option<(usize, &'a Value)> {
-    stages.iter().enumerate().rev()
+    stages
+        .iter()
+        .enumerate()
+        .rev()
         .find(|(_, stage)| stage.get("stage_kind").and_then(Value::as_str) == Some(kind))
 }
 
 fn first_output_digest(stage: &Value) -> Result<&str, String> {
     let id = text(stage, "stage_id", "stage")?;
     let outputs = array(stage, "produced_artifacts", &format!("stage[{id}]"))?;
-    let first = outputs.first().ok_or_else(|| format!("stage[{id}] must produce an artifact for downstream binding"))?;
+    let first = outputs
+        .first()
+        .ok_or_else(|| format!("stage[{id}] must produce an artifact for downstream binding"))?;
     text(first, "sha256", "produced artifact")
 }
 
 fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
-    let command_stages: Vec<(usize, &Value)> = stages.iter().enumerate()
-        .filter(|(_, stage)| stage.get("stage_kind").and_then(Value::as_str) == Some("command_authorization"))
+    let command_stages: Vec<(usize, &Value)> = stages
+        .iter()
+        .enumerate()
+        .filter(|(_, stage)| {
+            stage.get("stage_kind").and_then(Value::as_str) == Some("command_authorization")
+        })
         .collect();
     let commands = array(scenario, "command_attempts", "scenario")?;
     if command_stages.len() != commands.len() {
-        return Err(format!("command stage count {} differs from command attempt count {}", command_stages.len(), commands.len()));
+        return Err(format!(
+            "command stage count {} differs from command attempt count {}",
+            command_stages.len(),
+            commands.len()
+        ));
     }
 
     let task = scenario.get("task_binding").ok_or("task_binding missing")?;
@@ -236,18 +287,26 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
 
     for ((command_index, stage), command) in command_stages.into_iter().zip(commands) {
         let command_id = text(command, "command_id", "command attempt")?;
-        let expected_authorized = command.get("expected_authorized").and_then(Value::as_bool)
+        let expected_authorized = command
+            .get("expected_authorized")
+            .and_then(Value::as_bool)
             .ok_or_else(|| format!("command {command_id} expected_authorized must be boolean"))?;
         let stage_disposition = text(stage, "expected_disposition", "command stage")?;
         if expected_authorized != (stage_disposition == "authorized") {
-            return Err(format!("command {command_id} expected authorization disagrees with its command stage"));
+            return Err(format!(
+                "command {command_id} expected authorization disagrees with its command stage"
+            ));
         }
         let reasons = array(command, "expected_reason_codes", "command attempt")?;
         if expected_authorized && !reasons.is_empty() {
-            return Err(format!("command {command_id} cannot be authorized with reason codes"));
+            return Err(format!(
+                "command {command_id} cannot be authorized with reason codes"
+            ));
         }
         if !expected_authorized && reasons.is_empty() {
-            return Err(format!("rejected command {command_id} must state why it is rejected"));
+            return Err(format!(
+                "rejected command {command_id} must state why it is rejected"
+            ));
         }
 
         let epoch = latest_stage(stages, "worksite_epoch_transition")
@@ -260,40 +319,79 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
         let command_configuration = text(command, "configuration_sha256", "command attempt")?;
         let command_scope = text(command, "task_scope", "command attempt")?;
         let command_timebase = text(command, "timebase_id", "command attempt")?;
-        let lease_valid = command.get("lease_valid_at_command").and_then(Value::as_bool)
-            .ok_or_else(|| format!("command {command_id} lease_valid_at_command must be boolean"))?;
+        let lease_valid = command
+            .get("lease_valid_at_command")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| {
+                format!("command {command_id} lease_valid_at_command must be boolean")
+            })?;
 
         if expected_authorized {
             let (epoch_index, epoch_stage) = epoch;
             let (observation_index, observation_stage) = observation;
-            let (qualification_index, qualification_stage) = qualification
-                .ok_or_else(|| format!("command {command_id} cannot authorize without a qualification stage"))?;
-            if text(observation_stage, "expected_disposition", "observation stage")? != "verified_clear" {
-                return Err(format!("command {command_id} authorizes despite latest observation not being verified_clear"));
+            let (qualification_index, qualification_stage) = qualification.ok_or_else(|| {
+                format!("command {command_id} cannot authorize without a qualification stage")
+            })?;
+            if text(
+                observation_stage,
+                "expected_disposition",
+                "observation stage",
+            )? != "verified_clear"
+            {
+                return Err(format!(
+                    "command {command_id} authorizes despite latest observation not being verified_clear"
+                ));
             }
-            if text(qualification_stage, "expected_disposition", "qualification stage")? != "active" {
-                return Err(format!("command {command_id} authorizes without an active qualification"));
+            if text(
+                qualification_stage,
+                "expected_disposition",
+                "qualification stage",
+            )? != "active"
+            {
+                return Err(format!(
+                    "command {command_id} authorizes without an active qualification"
+                ));
             }
-            if !(observation_index < epoch_index && epoch_index < qualification_index && qualification_index < command_index) {
-                return Err(format!("command {command_id} qualification does not follow the latest observation and epoch transition"));
+            if !(observation_index < epoch_index
+                && epoch_index < qualification_index
+                && qualification_index < command_index)
+            {
+                return Err(format!(
+                    "command {command_id} qualification does not follow the latest observation and epoch transition"
+                ));
             }
             if !lease_valid {
-                return Err(format!("command {command_id} authorizes with an expired or invalid lease"));
+                return Err(format!(
+                    "command {command_id} authorizes with an expired or invalid lease"
+                ));
             }
             if command_epoch != first_output_digest(epoch_stage)? {
-                return Err(format!("command {command_id} epoch digest differs from latest epoch output"));
+                return Err(format!(
+                    "command {command_id} epoch digest differs from latest epoch output"
+                ));
             }
-            if command_configuration != configuration || command_scope != task_scope || command_timebase != timebase {
-                return Err(format!("command {command_id} does not bind the scenario configuration/task/timebase"));
+            if command_configuration != configuration
+                || command_scope != task_scope
+                || command_timebase != timebase
+            {
+                return Err(format!(
+                    "command {command_id} does not bind the scenario configuration/task/timebase"
+                ));
             }
         } else if stage_disposition != "rejected" {
-            return Err(format!("command {command_id} expected unauthorized but stage disposition is {stage_disposition}"));
+            return Err(format!(
+                "command {command_id} expected unauthorized but stage disposition is {stage_disposition}"
+            ));
         }
     }
     Ok(())
 }
 
-fn validate_claims(scenario: &Value, stages: &[Value], by_id: &HashMap<String, usize>) -> Result<(), String> {
+fn validate_claims(
+    scenario: &Value,
+    stages: &[Value],
+    by_id: &HashMap<String, usize>,
+) -> Result<(), String> {
     let mut claim_ids = HashSet::new();
     for claim in array(scenario, "claim_expectations", "scenario")? {
         let id = text(claim, "claim_id", "claim")?.to_owned();
@@ -309,27 +407,39 @@ fn validate_claims(scenario: &Value, stages: &[Value], by_id: &HashMap<String, u
             && origin != "field_observed"
             && decision == "admissible_for_named_claim"
         {
-            return Err(format!("claim[{id}] promotes {origin} evidence to {scope} scope"));
+            return Err(format!(
+                "claim[{id}] promotes {origin} evidence to {scope} scope"
+            ));
         }
-        if kind == "field_human_detection" && scope == "field" && origin != "field_observed"
+        if kind == "field_human_detection"
+            && scope == "field"
+            && origin != "field_observed"
             && decision == "admissible_for_named_claim"
         {
-            return Err(format!("field human-detection claim[{id}] has non-field evidence origin"));
+            return Err(format!(
+                "field human-detection claim[{id}] has non-field evidence origin"
+            ));
         }
         let supporting = array(claim, "supporting_stage_ids", &format!("claim[{id}]"))?;
         for stage_id in supporting {
-            let stage_id = stage_id.as_str().ok_or_else(|| format!("claim[{id}] stage reference must be string"))?;
+            let stage_id = stage_id
+                .as_str()
+                .ok_or_else(|| format!("claim[{id}] stage reference must be string"))?;
             if !by_id.contains_key(stage_id) {
                 return Err(format!("claim[{id}] references unknown stage {stage_id}"));
             }
         }
 
-        let claim_stage = stages.iter().find(|stage|
+        let claim_stage = stages.iter().find(|stage| {
             stage.get("stage_kind").and_then(Value::as_str) == Some("claim_admissibility")
-            && claim.get("supporting_stage_ids").and_then(Value::as_array).is_some_and(|ids|
-                ids.iter().any(|v| v.as_str() == stage.get("stage_id").and_then(Value::as_str))
-            )
-        );
+                && claim
+                    .get("supporting_stage_ids")
+                    .and_then(Value::as_array)
+                    .is_some_and(|ids| {
+                        ids.iter()
+                            .any(|v| v.as_str() == stage.get("stage_id").and_then(Value::as_str))
+                    })
+        });
         if let Some(stage) = claim_stage {
             let expected = match decision {
                 "admissible_for_named_claim" => "admissible_for_named_claim",
@@ -339,7 +449,9 @@ fn validate_claims(scenario: &Value, stages: &[Value], by_id: &HashMap<String, u
                 other => return Err(format!("claim[{id}] has unknown decision {other}")),
             };
             if text(stage, "expected_disposition", "claim stage")? != expected {
-                return Err(format!("claim[{id}] expected decision differs from its claim stage"));
+                return Err(format!(
+                    "claim[{id}] expected decision differs from its claim stage"
+                ));
             }
         }
     }
@@ -353,20 +465,26 @@ pub fn validate_scenario(raw: &str) -> Result<ScenarioSummary, String> {
     let schema: Value = serde_json::from_str(SCHEMA)
         .map_err(|e| format!("embedded scenario schema is invalid JSON: {e}"))?;
     if schema.get("$schema").and_then(Value::as_str)
-        != Some("https://json-schema.org/draft/2020-12/schema") {
+        != Some("https://json-schema.org/draft/2020-12/schema")
+    {
         return Err("scenario schema must declare Draft 2020-12".to_owned());
     }
     jsonschema::draft202012::meta::validate(&schema)
         .map_err(|e| format!("scenario schema failed meta-validation: {e}"))?;
     let validator = jsonschema::draft202012::new(&schema)
         .map_err(|e| format!("cannot compile scenario schema: {e}"))?;
-    let value: Value = serde_json::from_str(raw)
-        .map_err(|e| format!("scenario is invalid JSON: {e}"))?;
+    let value: Value =
+        serde_json::from_str(raw).map_err(|e| format!("scenario is invalid JSON: {e}"))?;
     if let Err(errors) = validator.validate(&value) {
-        let details: Vec<String> = validator.iter_errors(&value)
+        let details: Vec<String> = validator
+            .iter_errors(&value)
             .map(|e| format!("{e} at {}", e.instance_path()))
             .collect();
-        return Err(if details.is_empty() { errors.to_string() } else { details.join("\n") });
+        return Err(if details.is_empty() {
+            errors.to_string()
+        } else {
+            details.join("\n")
+        });
     }
     let scenario_id = text(&value, "scenario_id", "scenario")?.to_owned();
     let stages = array(&value, "stages", "scenario")?;
@@ -377,7 +495,12 @@ pub fn validate_scenario(raw: &str) -> Result<ScenarioSummary, String> {
     validate_claims(&value, stages, &by_id)?;
 
     let units = array(&value, "statistical_units", "scenario")?;
-    unique_ids(units.iter().map(|unit| unit.get("unit_id").and_then(Value::as_str)), "statistical unit ids")?;
+    unique_ids(
+        units
+            .iter()
+            .map(|unit| unit.get("unit_id").and_then(Value::as_str)),
+        "statistical unit ids",
+    )?;
 
     Ok(ScenarioSummary {
         scenario_id,
@@ -423,13 +546,17 @@ mod tests {
     #[test]
     fn bench_evidence_cannot_be_declared_admissible_for_field_claim() {
         let summary = validate_scenario(BENCH_FIELD).expect("well-formed claim-scope scenario");
-        assert_eq!(summary.scenario_id, "bench-evidence-cannot-support-field-human-detection");
+        assert_eq!(
+            summary.scenario_id,
+            "bench-evidence-cannot-support-field-human-detection"
+        );
     }
 
     #[test]
     fn consumed_artifact_cannot_change_digest() {
         let mut scenario: Value = serde_json::from_str(VALID).expect("valid scenario JSON");
-        scenario["stages"][1]["consumed_artifacts"][0]["sha256"] = serde_json::json!("0".repeat(64));
+        scenario["stages"][1]["consumed_artifacts"][0]["sha256"] =
+            serde_json::json!("0".repeat(64));
         assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
@@ -460,7 +587,8 @@ mod tests {
     #[test]
     fn field_claim_cannot_be_promoted_from_bench_evidence() {
         let mut scenario: Value = serde_json::from_str(BENCH_FIELD).expect("scenario JSON");
-        scenario["claim_expectations"][0]["expected_decision"] = serde_json::json!("admissible_for_named_claim");
+        scenario["claim_expectations"][0]["expected_decision"] =
+            serde_json::json!("admissible_for_named_claim");
         assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
