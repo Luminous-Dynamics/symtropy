@@ -5,6 +5,7 @@
 //! every result screening_only. Parameters and declared provenance are not independently
 //! authenticated by this crate.
 
+pub mod bocode_catalog;
 pub mod budget;
 pub mod cfd_admission;
 pub mod claim_admission;
