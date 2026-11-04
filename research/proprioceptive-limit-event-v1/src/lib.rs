@@ -74,8 +74,7 @@ fn valid_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
         && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric()
-                || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
+            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':' | b'/')
         })
 }
 
@@ -276,8 +275,7 @@ mod tests {
 
     #[test]
     fn upper_limit_emits_one_event_on_safe_to_limit_crossing() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         assert_eq!(detector.observe(sample(1, 900_000)), Ok(None));
         let event = detector.observe(sample(2, 1_000_000)).expect("observation");
         let event = event.expect("crossing should emit event");
@@ -289,20 +287,28 @@ mod tests {
 
     #[test]
     fn upper_limit_does_not_repeat_until_hysteresis_release() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(1, 900_000)).expect("sample");
-        assert!(detector.observe(sample(2, 1_000_000)).expect("sample").is_some());
+        assert!(
+            detector
+                .observe(sample(2, 1_000_000))
+                .expect("sample")
+                .is_some()
+        );
         assert_eq!(detector.observe(sample(3, 1_100_000)), Ok(None));
         assert_eq!(detector.observe(sample(4, 950_000)), Ok(None));
         assert!(detector.is_armed());
-        assert!(detector.observe(sample(5, 1_000_000)).expect("sample").is_some());
+        assert!(
+            detector
+                .observe(sample(5, 1_000_000))
+                .expect("sample")
+                .is_some()
+        );
     }
 
     #[test]
     fn lower_limit_emits_on_downward_crossing() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Lower)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Lower)).expect("valid config");
         assert_eq!(detector.observe(sample(1, -900_000)), Ok(None));
         let event = detector.observe(sample(2, -1_000_000)).expect("sample");
         assert_eq!(event.expect("crossing").side, LimitSide::Lower);
@@ -310,16 +316,14 @@ mod tests {
 
     #[test]
     fn initial_state_beyond_limit_does_not_invent_crossing() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         assert_eq!(detector.observe(sample(1, 1_100_000)), Ok(None));
         assert!(!detector.is_armed());
     }
 
     #[test]
     fn sample_gap_rebaselines_without_interpolating_a_crossing() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(1, 900_000)).expect("sample");
         assert_eq!(
             detector.observe(sample(12, 1_100_000)),
@@ -331,8 +335,7 @@ mod tests {
 
     #[test]
     fn sampling_gap_does_not_bypass_latched_hysteresis() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(1, 900_000)).expect("initial");
         assert!(detector.observe(sample(2, 1_000_000)).expect("crossing").is_some());
         assert_eq!(
@@ -348,8 +351,7 @@ mod tests {
 
     #[test]
     fn out_of_order_sample_is_rejected_without_replacing_state() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(4, 900_000)).expect("sample");
         assert_eq!(
             detector.observe(sample(3, 1_100_000)),
@@ -360,20 +362,15 @@ mod tests {
 
     #[test]
     fn wrong_joint_is_rejected() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         let mut input = sample(1, 900_000);
         input.joint_id = "knee.front-left".to_string();
-        assert_eq!(
-            detector.observe(input),
-            Err(DetectorError::JointMismatch)
-        );
+        assert_eq!(detector.observe(input), Err(DetectorError::JointMismatch));
     }
 
     #[test]
     fn malformed_body_snapshot_digest_is_rejected() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         let mut input = sample(1, 900_000);
         input.body_state_sha256 = "unbound".to_string();
         assert_eq!(
@@ -384,8 +381,7 @@ mod tests {
 
     #[test]
     fn angle_outside_declared_joint_range_is_rejected() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         assert_eq!(
             detector.observe(sample(1, 2_000_001)),
             Err(DetectorError::AngleOutOfRange)
@@ -394,8 +390,7 @@ mod tests {
 
     #[test]
     fn zero_tick_is_rejected() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         assert_eq!(
             detector.observe(sample(0, 900_000)),
             Err(DetectorError::ZeroSampleTick)
@@ -432,8 +427,7 @@ mod tests {
 
     #[test]
     fn event_binds_both_samples_and_their_body_states() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         let first = JointAngleSample {
             body_state_sha256: digest('b'),
             ..sample(1, 900_000)
@@ -450,8 +444,7 @@ mod tests {
 
     #[test]
     fn release_requires_reaching_the_hysteresis_boundary() {
-        let mut detector =
-            JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
+        let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(1, 900_000)).expect("sample");
         detector.observe(sample(2, 1_000_000)).expect("sample");
         assert_eq!(detector.observe(sample(3, 960_000)), Ok(None));
