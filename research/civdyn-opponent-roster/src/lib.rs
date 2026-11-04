@@ -329,30 +329,23 @@ pub fn evaluate_roster(
     let mut outcomes = Vec::with_capacity(strategy_count);
 
     for focal in 0..strategy_count {
-        let mut opponent_counts = roster.counts.clone();
-        if opponent_counts[focal] > 0 {
-            opponent_counts[focal] -= 1;
-        }
-        let opponent_count = opponent_counts.iter().sum::<usize>();
-        if opponent_count == 0 {
-            return Err(MetaGameError::RosterTooSmall(population_size));
-        }
-
+        // The roster describes opponents faced by each focal strategy. Do not
+        // subtract the focal strategy from this distribution.
         let expected_payoff = (0..strategy_count)
             .map(|opponent| {
-                game.payoffs[focal][opponent] * opponent_counts[opponent] as f64
+                game.payoffs[focal][opponent] * roster.counts[opponent] as f64
             })
             .sum::<f64>()
-            / opponent_count as f64;
+            / population_size as f64;
 
         let best_response_payoff = (0..strategy_count)
             .map(|candidate| {
                 (0..strategy_count)
                     .map(|opponent| {
-                        game.payoffs[candidate][opponent] * opponent_counts[opponent] as f64
+                        game.payoffs[candidate][opponent] * roster.counts[opponent] as f64
                     })
                     .sum::<f64>()
-                    / opponent_count as f64
+                    / population_size as f64
             })
             .fold(f64::NEG_INFINITY, f64::max);
 
