@@ -736,12 +736,12 @@ mod tests {
 
     #[test]
     fn unknown_or_wrong_branch_coupling_is_rejected() {
-        let manifest = manifest();
-        let unknown = SpatialCoupling::NotIdentified {
+        let mut unknown_manifest = manifest();
+        unknown_manifest.left_basis.coupling = SpatialCoupling::NotIdentified {
             evidence_ref: id("evidence:unknown"),
         };
         assert_eq!(
-            manifest.evaluate(
+            unknown_manifest.evaluate(
                 RationalCoordinate::new(1, 4).unwrap(),
                 id("branch-a"),
                 context("mesh", "L0", 0),
@@ -749,19 +749,16 @@ mod tests {
             Err(SpatialError::NotIdentified)
         );
 
-        let branch_local = SpatialCoupling::BranchSpecific {
+        let mut branch_manifest = manifest();
+        branch_manifest.left_basis.coupling = SpatialCoupling::BranchSpecific {
             branch: id("branch-b"),
         };
         assert_eq!(
-            {
-                let mut branch_manifest = manifest.clone();
-                branch_manifest.left_basis.coupling = branch_local;
-                branch_manifest.evaluate(
-                    RationalCoordinate::new(1, 4).unwrap(),
-                    id("branch-a"),
-                    context("mesh", "L0", 0),
-                )
-            },
+            branch_manifest.evaluate(
+                RationalCoordinate::new(1, 4).unwrap(),
+                id("branch-a"),
+                context("mesh", "L0", 0),
+            ),
             Err(SpatialError::WrongBranchScope)
         );
     }
