@@ -209,3 +209,8 @@ Every action/hypothesis pair must carry a support status. Any Unsupported pair r
 The decision manifest binds action IDs, hypothesis IDs, per-hypothesis reference-manifest digests, support statuses and exact rational utility. The certificate records manifest digest, per-hypothesis best-action/regret tables, per-action worst-case regret, support gaps and decision status. It is replay-verified against the exact manifest.
 
 V0.1 is a finite exact regret oracle. It does not estimate real-world utilities, identify causal effects, establish hypothesis completeness, calibrate a probability distribution over model families, or certify a driving policy. It only verifies that the finite declared decision problem is handled without silently inventing support or weights.
+
+
+### Utility comparability contract
+
+Minimax regret across hypotheses is valid only when all utilities use the same declared cardinal scale and semantic direction. The decision manifest therefore binds both a utility-scale ID and a utility-semantics ID (including the "higher is better" convention). Changing either changes the manifest digest. This is a declared comparability contract; future evidence-bound decision integration must verify that each source utility was transformed onto that scale under a reviewed rule. The oracle does not infer scale equivalence from numeric values.
