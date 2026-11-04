@@ -269,10 +269,16 @@ impl std::fmt::Display for ArError {
                 )
             }
             Self::InvalidDegreesOfFreedom => {
-                write!(formatter, "F distribution degrees of freedom must be positive")
+                write!(
+                    formatter,
+                    "F distribution degrees of freedom must be positive"
+                )
             }
             Self::IncompleteBetaDidNotConverge => {
-                write!(formatter, "regularized incomplete beta continued fraction did not converge")
+                write!(
+                    formatter,
+                    "regularized incomplete beta continued fraction did not converge"
+                )
             }
             Self::InvalidQuadraticTolerance => {
                 write!(formatter, "quadratic tolerance must be positive and finite")
