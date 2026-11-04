@@ -146,7 +146,9 @@ fn parse_optional_sha(value: &str, field: &str) -> Result<Option<String>, String
         return Ok(None);
     }
     if !valid_hex(value, 64) {
-        return Err(format!("{field} must be a 64-character hexadecimal SHA-256"));
+        return Err(format!(
+            "{field} must be a 64-character hexadecimal SHA-256"
+        ));
     }
     Ok(Some(value.to_ascii_lowercase()))
 }
@@ -252,7 +254,10 @@ impl BoCoDeRunLedgerRow {
             _ => {}
         }
         if let Some(count) = row.objective_evaluation_count {
-            if row.initial_design_count.is_some_and(|initial| initial > count) {
+            if row
+                .initial_design_count
+                .is_some_and(|initial| initial > count)
+            {
                 return Err(format!(
                     "line {line_number}: initial design count exceeds observed evaluations"
                 ));
@@ -261,7 +266,9 @@ impl BoCoDeRunLedgerRow {
         match row.state {
             BoCoDeTrialState::Succeeded => {
                 if row.process_exit_code != Some(0)
-                    || row.objective_evaluation_count.is_none_or(|count| count == 0)
+                    || row
+                        .objective_evaluation_count
+                        .is_none_or(|count| count == 0)
                     || row.npz_sha256.is_none()
                     || row.summary_sha256.is_none()
                     || row.wall_seconds.is_none()
@@ -301,7 +308,9 @@ pub fn parse_bocode_run_ledger_csv(input: &str) -> Result<Vec<BoCoDeRunLedgerRow
     for (index, line) in lines.enumerate() {
         let line_number = index + 2;
         if line.trim().is_empty() {
-            return Err(format!("line {line_number}: blank run ledger rows are not permitted"));
+            return Err(format!(
+                "line {line_number}: blank run ledger rows are not permitted"
+            ));
         }
         let fields = parse_csv_record(line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
@@ -377,16 +386,20 @@ mod tests {
         let mut fields = parse_csv_record(&success_row()).unwrap();
         fields[19] = "1".to_owned();
         let false_success = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
-        assert!(parse_bocode_run_ledger_csv(&false_success)
-            .unwrap_err()
-            .contains("successful trial lacks"));
+        assert!(
+            parse_bocode_run_ledger_csv(&false_success)
+                .unwrap_err()
+                .contains("successful trial lacks")
+        );
 
         let mut fields = parse_csv_record(&success_row()).unwrap();
         fields[16] = "10".to_owned();
         let wrong_counts = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
-        assert!(parse_bocode_run_ledger_csv(&wrong_counts)
-            .unwrap_err()
-            .contains("evaluation counts differ"));
+        assert!(
+            parse_bocode_run_ledger_csv(&wrong_counts)
+                .unwrap_err()
+                .contains("evaluation counts differ")
+        );
     }
 
     #[test]
@@ -400,9 +413,11 @@ mod tests {
         assert_eq!(parse_bocode_run_ledger_csv(&csv).unwrap().len(), 2);
 
         let duplicate = format!("{BOCODE_RUN_ROW_HEADER}\n{first}\n{first}\n");
-        assert!(parse_bocode_run_ledger_csv(&duplicate)
-            .unwrap_err()
-            .contains("duplicate attempt_id"));
+        assert!(
+            parse_bocode_run_ledger_csv(&duplicate)
+                .unwrap_err()
+                .contains("duplicate attempt_id")
+        );
     }
 
     #[cfg(unix)]
