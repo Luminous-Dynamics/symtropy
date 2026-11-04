@@ -612,11 +612,11 @@ mod tests {
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
             row("car", "engineering", "so_constrained", 1, 3, "continuous"),
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
+            row("hoip", "engineering", "so_discrete_extension", 1, 0, "discrete"),
             row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
             row("truss", "engineering", "so_unconstrained", 1, 0, "continuous"),
             row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed"),
-            row("vehicle_mixed_constrained", "engineering", "so_mixed_variable_constrained_extension", 1, 2, "mixed"),
-            row("hoip", "engineering", "so_discrete_extension", 1, 0, "discrete")
+            row("vehicle_mixed_constrained", "engineering", "so_mixed_variable_constrained_extension", 1, 2, "mixed")
         )
     }
 
