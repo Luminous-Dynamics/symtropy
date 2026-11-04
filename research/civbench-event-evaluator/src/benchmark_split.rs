@@ -739,6 +739,22 @@ mod tests {
                 .exclusive_dimensions()
                 .contains(&LeakageDimension::TopologyFamily)
         );
+        assert!(
+            SplitProtocolPreset::WithinNetworkUnseenEvent
+                .shared_dimensions()
+                .contains(&LeakageDimension::TopologyFamily)
+        );
+        assert!(
+            SplitProtocolPreset::CrossNetwork
+                .shared_dimensions()
+                .contains(&LeakageDimension::TopologyFamily)
+        );
+        assert!(
+            SplitProtocolPreset::CrossTopology
+                .exclusive_dimensions()
+                .contains(&LeakageDimension::Network)
+        );
+
     }
 
     #[test]
