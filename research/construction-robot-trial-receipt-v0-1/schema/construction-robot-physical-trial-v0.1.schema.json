@@ -775,7 +775,10 @@
           "expanded_uncertainty_u95",
           "decision_margin",
           "reference_instrument_ids",
-          "sample_count"
+          "sample_count",
+          "decision_margin_unit",
+          "sample_unit",
+          "raw_artifact_ids"
         ],
         "properties": {
           "measurement_id": {
@@ -833,7 +836,24 @@
             "items": {
               "$ref": "#/$defs/id"
             },
-            "uniqueItems": true
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "decision_margin_unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "sample_unit": {
+            "enum": [
+              "encounter",
+              "feature",
+              "frame",
+              "site",
+              "task_cycle",
+              "robot_hour",
+              "other_declared_unit"
+            ]
           }
         }
       }
