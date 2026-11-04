@@ -357,9 +357,8 @@ impl MatrixAtlas {
                 segment.interpolation_error_frobenius_bound_h
                     / policy.maximum_interpolation_error_frobenius_bound_h
             };
-            let margin_deficit = (policy.minimum_required_eigenvalue_margin_h
-                - conservative_margin)
-                .max(0.0);
+            let margin_deficit =
+                (policy.minimum_required_eigenvalue_margin_h - conservative_margin).max(0.0);
             let endpoint_scale = left
                 .minimum_eigenvalue_lower_bound_h
                 .max(right.minimum_eigenvalue_lower_bound_h);
@@ -746,9 +745,11 @@ mod tests {
         assert!(plan[0].priority_score > plan[1].priority_score);
         assert_eq!(plan[0].position_m, 15.0);
         assert_eq!(plan[1].position_m, 5.0);
-        assert!(plan
-            .iter()
-            .all(|candidate| candidate.triggers.contains(&"INTERPOLATION_ERROR_EXCEEDED".into())));
+        assert!(plan.iter().all(|candidate| {
+            candidate
+                .triggers
+                .contains(&"INTERPOLATION_ERROR_EXCEEDED".into())
+        }));
     }
 
     #[test]
