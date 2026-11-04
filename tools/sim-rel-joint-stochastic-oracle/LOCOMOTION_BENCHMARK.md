@@ -13,7 +13,7 @@ The mechanism hypothesis axis should distinguish, at minimum:
 - reflex-dominant alternatives;
 - mechanics-dominant alternatives.
 
-Do not collapse the physical state and sensor state. Physical state includes gait phase, contact/load condition, mechanical carryover and relevant limb/leg context. Sensor state keeps position-, movement-, vibration- and contact-feedback channels distinct, acquisition/instrument state separate, and movement-axon presynaptic inhibition separate from afferent-channel loss.
+Do not collapse the physical state and sensor state. The current adapter has coarse whole-animal physical archetypes for gait phase, contact/load condition and carryover; a per-leg physical/contact/kinematic state vector is a follow-on extension, not yet implemented. Sensor state keeps position-, movement-, vibration- and contact-feedback channels distinct, acquisition/instrument state separate, and movement-axon presynaptic inhibition separately represented for each of the six legs. Do not imply that per-leg physical dynamics are already represented merely because per-leg presynaptic state is.
 
 The published FeCO distinctions should stay explicit: position-encoding claw-like afferents, movement-encoding hook-like afferents, and vibration-sensitive club-like afferents. Dallmann et al. report that position-encoding claw axons remain active across behaviours while movement-encoding hook axons are suppressed during walking and grooming by GABAergic presynaptic inhibition with descending input. Their data also distinguish self-generated from passive movements. The adapter's current transitions are synthetic and do not reproduce the measured calcium-imaging distributions.
 
@@ -37,6 +37,7 @@ Source anchor: Dallmann et al., Nature 647, 445–453 (2025), DOI https://doi.or
 
 ### C. Per-leg descending modulation
 - Model presynaptic movement inhibition as a six-leg state vector.
+- Current limitation: the adapter's mechanical state remains coarse whole-animal phase/contact/load/carryover. Per-leg joint angles, contact forces, segment identity, gait phase and mechanical carryover need an explicit physical-state extension before claiming six-leg embodied dynamics.
 - A descending intervention targeting one leg must leave the other five leg states unchanged.
 - Compare left/right homologous limbs and front/middle/hind limbs under held-out target-leg tests.
 - Test both engagement and release; do not assume the same state is optimal across behaviours.
