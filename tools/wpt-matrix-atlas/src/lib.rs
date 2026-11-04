@@ -1290,7 +1290,7 @@ mod tests {
 
     #[test]
     fn rejects_unverified_or_invalid_service_sensitivity_signals() {
-        let mut atlas = fixture();
+        let atlas = fixture();
         let mut signal = ServiceSensitivitySignal {
             schema_version: SERVICE_SENSITIVITY_SCHEMA_VERSION.into(),
             segment_index: 0,
