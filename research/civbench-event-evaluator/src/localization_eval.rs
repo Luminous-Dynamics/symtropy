@@ -355,7 +355,7 @@ impl LocalizationEvaluationReport {
                 binding.pipe_candidate_count,
                 binding.sensor_layout_ref,
                 binding.hydraulic_model_ref,
-                binding.assessment_digest
+                format!("sha256:{}", binding.assessment_digest)
             );
         }
         let _ = writeln!(
@@ -363,8 +363,16 @@ impl LocalizationEvaluationReport {
             "observability=detection_only,{}",
             self.observability.detection_only
         );
-        let _ = writeln!(&mut output, "observability=zone,{}", self.observability.zone);
-        let _ = writeln!(&mut output, "observability=pipe,{}", self.observability.pipe);
+        let _ = writeln!(
+            &mut output,
+            "observability=zone,{}",
+            self.observability.zone
+        );
+        let _ = writeln!(
+            &mut output,
+            "observability=pipe,{}",
+            self.observability.pipe
+        );
         let _ = writeln!(
             &mut output,
             "unsupported_granularity_predictions={}",
@@ -376,11 +384,7 @@ impl LocalizationEvaluationReport {
     }
 }
 
-fn append_level_report(
-    output: &mut String,
-    level: &str,
-    report: &LocalizationLevelReport,
-) {
+fn append_level_report(output: &mut String, level: &str, report: &LocalizationLevelReport) {
     for (class, metrics) in [
         ("observed", &report.observed),
         ("derived", &report.derived),
@@ -591,7 +595,11 @@ fn validate_truth_in_candidate_universe(
 ) -> Result<(), LocalizationEvaluationError> {
     if assessment.maximum_level.supports(LocalizationLevel::Zone) {
         if let Some(zone) = truth.zone.known_value() {
-            if !assessment.zone_candidate_ids.iter().any(|candidate| candidate == zone) {
+            if !assessment
+                .zone_candidate_ids
+                .iter()
+                .any(|candidate| candidate == zone)
+            {
                 return Err(LocalizationEvaluationError::new(
                     "truth_zone_outside_observable_universe",
                     truth.event_id.as_str(),
@@ -601,7 +609,11 @@ fn validate_truth_in_candidate_universe(
     }
     if assessment.maximum_level.supports(LocalizationLevel::Pipe) {
         if let Some(pipe) = truth.pipe.known_value() {
-            if !assessment.pipe_candidate_ids.iter().any(|candidate| candidate == pipe) {
+            if !assessment
+                .pipe_candidate_ids
+                .iter()
+                .any(|candidate| candidate == pipe)
+            {
                 return Err(LocalizationEvaluationError::new(
                     "truth_pipe_outside_observable_universe",
                     truth.event_id.as_str(),
@@ -679,10 +691,7 @@ fn ratio_ppm(numerator: usize, denominator: usize) -> Option<u32> {
     if denominator == 0 {
         return None;
     }
-    Some(
-        (numerator as u128 * 1_000_000_u128 / denominator as u128)
-            .min(1_000_000) as u32,
-    )
+    Some((numerator as u128 * 1_000_000_u128 / denominator as u128).min(1_000_000) as u32)
 }
 
 fn evidence_slice_mut(
@@ -740,7 +749,9 @@ fn score_label(
                 metrics.more_specific_predictions += 1;
                 return Ok(());
             }
-            let top1 = candidate_ids.first().is_some_and(|candidate| candidate == value);
+            let top1 = candidate_ids
+                .first()
+                .is_some_and(|candidate| candidate == value);
             let top5 = candidate_ids
                 .iter()
                 .take(5)
@@ -810,10 +821,7 @@ fn finalize_level_report(
         (TruthEvidenceClass::Derived, &mut report.derived),
         (TruthEvidenceClass::Modelled, &mut report.modelled),
     ] {
-        finalize_evidence_metrics(
-            metrics,
-            risk_seeds.get(&class).unwrap_or(&empty),
-        );
+        finalize_evidence_metrics(metrics, risk_seeds.get(&class).unwrap_or(&empty));
     }
 }
 
@@ -849,7 +857,10 @@ pub fn evaluate_localization(
     let mut truth_by_event = BTreeMap::new();
     for truth in truth_events {
         validate_truth(truth)?;
-        if truth_by_event.insert(truth.event_id.as_str(), truth).is_some() {
+        if truth_by_event
+            .insert(truth.event_id.as_str(), truth)
+            .is_some()
+        {
             return Err(LocalizationEvaluationError::new(
                 "duplicate_truth_event",
                 truth.event_id.as_str(),
@@ -919,16 +930,23 @@ pub fn evaluate_localization(
             LocalizationLevel::Zone => report.observability.zone += 1,
             LocalizationLevel::Pipe => report.observability.pipe += 1,
         }
-        report.observability_bindings.push(ObservabilityBindingReceipt {
-            event_id: assessment.event_id.clone(),
-            maximum_level: assessment.maximum_level,
-            zone_candidate_count: assessment.zone_candidate_ids.len(),
-            pipe_candidate_count: assessment.pipe_candidate_ids.len(),
-            sensor_layout_ref: assessment.sensor_layout_ref.clone(),
-            hydraulic_model_ref: assessment.hydraulic_model_ref.clone(),
-            assessment_digest: normalized_sha256(&assessment.assessment_digest)
-                .expect("assessment digest validated above"),
-        });
+        let assessment_digest = normalized_sha256(&assessment.assessment_digest).ok_or_else(|| {
+            LocalizationEvaluationError::new(
+                "invalid_observability_digest",
+                assessment.event_id.as_str(),
+            )
+        })?;
+        report
+            .observability_bindings
+            .push(ObservabilityBindingReceipt {
+                event_id: assessment.event_id.clone(),
+                maximum_level: assessment.maximum_level,
+                zone_candidate_count: assessment.zone_candidate_ids.len(),
+                pipe_candidate_count: assessment.pipe_candidate_ids.len(),
+                sensor_layout_ref: assessment.sensor_layout_ref.clone(),
+                hydraulic_model_ref: assessment.hydraulic_model_ref.clone(),
+                assessment_digest,
+            });
         if matches!(
             &prediction.decision,
             LocalizationDecision::Ranked { level, .. } if *level > assessment.maximum_level
