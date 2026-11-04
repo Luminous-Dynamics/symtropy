@@ -30,7 +30,10 @@ pub enum ScenarioConditionOperator {
     GreaterThanOrEqual,
 }
 
-/// Fixed normalization scale and its provenance for one forecast dimension.
+/// Fixed score-normalization scale and its provenance for one forecast dimension.
+///
+/// The same frozen scale is used in the marginal CRPS, Energy Score and
+/// Variogram Score. Event thresholds remain in the original dimension units.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ScenarioDimensionScale {
     dimension_id: String,
@@ -1149,6 +1152,10 @@ pub fn evaluate_joint_scenario_forecasts(
 
 /// Weighted multivariate Energy Score using dimension-normalized Euclidean
 /// distance and the standard within-ensemble dispersion correction.
+///
+/// The distance is sqrt(mean_d(((x_d - y_d) / scale_d)^2)). Dividing by the
+/// square root of dimension count is a fixed positive rescaling of Euclidean
+/// distance; it makes scores comparable across the declared vector width.
 fn weighted_energy_score(
     scenarios: &[WeightedScenarioPath],
     observed: &[f64],
@@ -1229,6 +1236,9 @@ fn weighted_marginal_crps(
 }
 
 /// Variogram Score with p = 0.5 for caller-selected dimension pairs.
+///
+/// Both endpoints are transformed by their own frozen normalization scales.
+/// Pair weights are caller-pinned; the reported score is their weighted sum.
 fn weighted_variogram_score(
     scenarios: &[WeightedScenarioPath],
     observed: &[f64],
