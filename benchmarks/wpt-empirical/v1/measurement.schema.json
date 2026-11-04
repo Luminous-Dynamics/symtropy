@@ -80,7 +80,9 @@
         "control_settling_time",
         "output_regulation_error",
         "foreign_object_detection_accuracy",
-        "relative_coupling_operating_range_reduction"
+        "relative_coupling_operating_range_reduction",
+        "output_power_fluctuation",
+        "output_voltage_fluctuation"
       ]
     },
     "measurement_purpose": {
