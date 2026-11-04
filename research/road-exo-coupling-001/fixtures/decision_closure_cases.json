@@ -1,6 +1,6 @@
 {
   "schema": "symtropy.road-decision-closure.fixtures.v0.1",
-  "purpose": "Exact finite minimax-regret decision certificate conformance. No probabilities over epistemic model hypotheses are assumed.",
+  "purpose": "Exact finite minimax-regret decision certificate conformance; no probability weights over epistemic hypotheses are assumed.",
   "actions": [
     "action-a",
     "action-b"
@@ -113,7 +113,7 @@
     },
     {
       "id": "no-hypothesis-weights",
-      "expected": "every admitted hypothesis contributes equally to worst-case regret; no invented probability weights"
+      "expected": "every admitted hypothesis contributes to worst-case regret; no epistemic probability weights are invented"
     },
     {
       "id": "hypothesis-declaration-order",
