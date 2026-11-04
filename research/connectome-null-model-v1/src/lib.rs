@@ -80,6 +80,17 @@ pub struct SwapRejections {
     pub duplicate_edge: u64,
 }
 
+/// Declared null-family constraints for a rewired graph.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NullModelFamily {
+    /// Preserve directed degree and source-attached edge weights, but allow
+    /// cell-type and edge-class mixing to change.
+    DirectedDegreeOnly,
+    /// Additionally preserve directed source-type × target-type × edge-class
+    /// block counts and each block's weight multiset.
+    CellTypeAndEdgeClassConstrained,
+}
+
 /// Explicit post-generation invariant checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvariantReport {
@@ -89,21 +100,28 @@ pub struct InvariantReport {
     pub degree_sequences_preserved: bool,
     /// Directed source-type × target-type × edge-class counts are unchanged.
     pub cell_type_blocks_preserved: bool,
-    /// Per-source weight multisets, per-source outgoing strengths and
-    /// cell-type-block weight multisets are unchanged.
+    /// Whether cell-type block preservation was required by this null family.
+    pub cell_type_blocks_required: bool,
+    /// Per-source weight multisets and per-source outgoing strengths are unchanged.
     pub source_weight_constraints_preserved: bool,
+    /// Weight multisets within cell-type/edge-class blocks are unchanged.
+    pub block_weight_distribution_preserved: bool,
+    /// Whether block weight-distribution preservation was required by this family.
+    pub block_weight_distribution_required: bool,
     /// The output remains a simple directed graph without self-loops.
     pub simple_graph_constraints_preserved: bool,
 }
 
 impl InvariantReport {
-    /// True only when every declared V1 invariant passed.
+    /// True only when the base constraints and every family-required invariant passed.
     #[must_use]
     pub const fn all_passed(self) -> bool {
         self.node_identity_and_type_preserved
             && self.degree_sequences_preserved
-            && self.cell_type_blocks_preserved
+            && (!self.cell_type_blocks_required || self.cell_type_blocks_preserved)
             && self.source_weight_constraints_preserved
+            && (!self.block_weight_distribution_required
+                || self.block_weight_distribution_preserved)
             && self.simple_graph_constraints_preserved
     }
 }
@@ -113,6 +131,8 @@ impl InvariantReport {
 pub struct NullModelReceipt {
     /// Exact input graph identity.
     pub graph_id: String,
+    /// Null family whose constraint set was applied.
+    pub family: NullModelFamily,
     /// Seed used by the local deterministic generator.
     pub seed: u64,
     /// Requested accepted swaps.
@@ -284,9 +304,30 @@ impl SplitMix64 {
 /// source-type/target-type/edge-class blocks. An invalid proposal is a hold.
 /// V1 makes no stationary-distribution, irreducibility or finite-run mixing
 /// claim; callers must qualify the ensemble before statistical use.
+/// Generates a degree-only directed switch null.
+pub fn generate_degree_only_null_model(
+    input: &ConnectomeGraph,
+    config: NullModelConfig,
+) -> Result<NullModelSample, NullModelError> {
+    generate_null_model_for_family(input, config, NullModelFamily::DirectedDegreeOnly)
+}
+
+/// Generates a cell-type- and edge-class-constrained directed switch null.
 pub fn generate_null_model(
     input: &ConnectomeGraph,
     config: NullModelConfig,
+) -> Result<NullModelSample, NullModelError> {
+    generate_null_model_for_family(
+        input,
+        config,
+        NullModelFamily::CellTypeAndEdgeClassConstrained,
+    )
+}
+
+fn generate_null_model_for_family(
+    input: &ConnectomeGraph,
+    config: NullModelConfig,
+    family: NullModelFamily,
 ) -> Result<NullModelSample, NullModelError> {
     let input_invariants = validate_graph(input)?;
     validate_config(input, config)?;
@@ -319,21 +360,30 @@ pub fn generate_null_model(
         target_indices.push(target_index);
         adjacency.insert((source_index, target_index));
 
-        let source_type = node_types
-            .get(&edge.source)
-            .ok_or_else(|| NullModelError::UnknownEndpoint(edge.source.clone()))?;
-        let target_type = node_types
-            .get(&edge.target)
-            .ok_or_else(|| NullModelError::UnknownEndpoint(edge.target.clone()))?;
-        let key = (
-            source_type.clone(),
-            target_type.clone(),
-            edge.edge_class.clone(),
+        if family == NullModelFamily::CellTypeAndEdgeClassConstrained {
+            let source_type = node_types
+                .get(&edge.source)
+                .ok_or_else(|| NullModelError::UnknownEndpoint(edge.source.clone()))?;
+            let target_type = node_types
+                .get(&edge.target)
+                .ok_or_else(|| NullModelError::UnknownEndpoint(edge.target.clone()))?;
+            let key = (
+                source_type.clone(),
+                target_type.clone(),
+                edge.edge_class.clone(),
+            );
+            edge_indices_by_block
+                .entry(key)
+                .or_default()
+                .push(edge_index);
+        }
+    }
+
+    if family == NullModelFamily::DirectedDegreeOnly {
+        edge_indices_by_block.insert(
+            ("__all_sources__".to_string(), "__all_targets__".to_string(), "__all_edges__".to_string()),
+            (0..input.edges.len()).collect(),
         );
-        edge_indices_by_block
-            .entry(key)
-            .or_default()
-            .push(edge_index);
     }
 
     let mut buckets = Vec::new();
@@ -425,7 +475,7 @@ pub fn generate_null_model(
     }
 
     let output_invariants = validate_graph(&output)?;
-    let invariant_report = compare_invariants(&input_invariants, &output_invariants);
+    let invariant_report = compare_invariants(&input_invariants, &output_invariants, family);
     if !invariant_report.all_passed() {
         return Err(NullModelError::InvariantViolation);
     }
@@ -447,6 +497,7 @@ pub fn generate_null_model(
 
     let receipt = NullModelReceipt {
         graph_id: input.graph_id.clone(),
+        family,
         seed: config.seed,
         requested_accepted_swaps: config.requested_accepted_swaps,
         accepted_swaps,
@@ -606,17 +657,25 @@ fn build_invariants(
     })
 }
 
-fn compare_invariants(input: &GraphInvariants, output: &GraphInvariants) -> InvariantReport {
+fn compare_invariants(
+    input: &GraphInvariants,
+    output: &GraphInvariants,
+    family: NullModelFamily,
+) -> InvariantReport {
+    let constrained = family == NullModelFamily::CellTypeAndEdgeClassConstrained;
     InvariantReport {
         node_identity_and_type_preserved: input.node_identity_and_type
             == output.node_identity_and_type,
         degree_sequences_preserved: input.in_degree == output.in_degree
             && input.out_degree == output.out_degree,
         cell_type_blocks_preserved: input.block_counts == output.block_counts,
-        source_weight_constraints_preserved: input.block_weight_counts
-            == output.block_weight_counts
-            && input.source_weight_counts == output.source_weight_counts
+        cell_type_blocks_required: constrained,
+        source_weight_constraints_preserved: input.source_weight_counts
+            == output.source_weight_counts
             && input.source_strength == output.source_strength,
+        block_weight_distribution_preserved: input.block_weight_counts
+            == output.block_weight_counts,
+        block_weight_distribution_required: constrained,
         simple_graph_constraints_preserved: true,
     }
 }
@@ -733,6 +792,105 @@ mod tests {
         assert_eq!(original.source_strength, rewired.source_strength);
         assert_eq!(original.source_weight_counts, rewired.source_weight_counts);
         assert_eq!(original.block_weight_counts, rewired.block_weight_counts);
+    }
+
+    #[test]
+    fn degree_only_null_preserves_degree_but_can_change_cell_type_mixing() {
+        let input = ConnectomeGraph {
+            graph_id: "degree-only-fixture".to_string(),
+            weight_unit_id: "synapse-count".to_string(),
+            nodes: vec![
+                ConnectomeNode {
+                    id: "a".to_string(),
+                    cell_type: "type-a".to_string(),
+                },
+                ConnectomeNode {
+                    id: "b".to_string(),
+                    cell_type: "type-b".to_string(),
+                },
+                ConnectomeNode {
+                    id: "c".to_string(),
+                    cell_type: "type-b".to_string(),
+                },
+                ConnectomeNode {
+                    id: "d".to_string(),
+                    cell_type: "type-a".to_string(),
+                },
+            ],
+            edges: vec![
+                ConnectomeEdge {
+                    source: "a".to_string(),
+                    target: "b".to_string(),
+                    edge_class: "excitatory".to_string(),
+                    weight_units: 2,
+                },
+                ConnectomeEdge {
+                    source: "c".to_string(),
+                    target: "d".to_string(),
+                    edge_class: "inhibitory".to_string(),
+                    weight_units: 5,
+                },
+            ],
+        };
+
+        let sample =
+            generate_degree_only_null_model(&input, config(5, 1, 1)).expect("degree-only switch");
+        assert_eq!(sample.receipt.family, NullModelFamily::DirectedDegreeOnly);
+        assert!(sample.receipt.invariants.all_passed());
+        assert!(sample.receipt.invariants.degree_sequences_preserved);
+        assert!(sample.receipt.invariants.source_weight_constraints_preserved);
+        assert!(!sample.receipt.invariants.cell_type_blocks_required);
+        assert!(!sample.receipt.invariants.cell_type_blocks_preserved);
+        assert!(!sample.receipt.invariants.block_weight_distribution_required);
+        assert!(!sample.receipt.invariants.block_weight_distribution_preserved);
+        assert_eq!(
+            sample.graph.edges.iter().map(|edge| (edge.source.as_str(), edge.target.as_str())).collect::<BTreeSet<_>>(),
+            BTreeSet::from([("a", "d"), ("c", "b")])
+        );
+    }
+
+    #[test]
+    fn cell_type_constrained_family_abstains_when_only_cross_block_pairs_exist() {
+        let input = ConnectomeGraph {
+            graph_id: "typed-degree-only-fixture".to_string(),
+            weight_unit_id: "synapse-count".to_string(),
+            nodes: vec![
+                ConnectomeNode {
+                    id: "a".to_string(),
+                    cell_type: "type-a".to_string(),
+                },
+                ConnectomeNode {
+                    id: "b".to_string(),
+                    cell_type: "type-b".to_string(),
+                },
+                ConnectomeNode {
+                    id: "c".to_string(),
+                    cell_type: "type-b".to_string(),
+                },
+                ConnectomeNode {
+                    id: "d".to_string(),
+                    cell_type: "type-a".to_string(),
+                },
+            ],
+            edges: vec![
+                ConnectomeEdge {
+                    source: "a".to_string(),
+                    target: "b".to_string(),
+                    edge_class: "excitatory".to_string(),
+                    weight_units: 2,
+                },
+                ConnectomeEdge {
+                    source: "c".to_string(),
+                    target: "d".to_string(),
+                    edge_class: "inhibitory".to_string(),
+                    weight_units: 5,
+                },
+            ],
+        };
+        assert_eq!(
+            generate_null_model(&input, config(5, 1, 10)),
+            Err(NullModelError::NoEligibleEdgePairs)
+        );
     }
 
     #[test]
