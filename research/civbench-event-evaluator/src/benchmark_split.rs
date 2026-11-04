@@ -599,8 +599,7 @@ mod tests {
             protocol: SplitProtocolPreset::CrossNetwork,
             manifest_digest: digest(900),
         };
-        let error =
-            audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
+        let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
         assert_eq!(error.code, "cross_partition_group_overlap");
         assert_eq!(error.subject, "network=net-1");
     }
