@@ -444,6 +444,16 @@
               "string",
               "null"
             ]
+          },
+          "power_in_w_qualifier": {
+            "enum": [
+              "EXACT",
+              "APPROX",
+              "GREATER_THAN",
+              "LESS_THAN",
+              "RANGE",
+              "NOT_REPORTED"
+            ]
           }
         }
       }
