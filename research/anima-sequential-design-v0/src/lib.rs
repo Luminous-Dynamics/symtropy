@@ -1,3 +1,5 @@
+pub mod anytime;
+
 //! Sequential, causality-gated intervention design primitives.
 //!
 //! This is an offline policy oracle, not a biological model, wet-lab controller,
