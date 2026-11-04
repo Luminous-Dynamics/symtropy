@@ -138,9 +138,25 @@ def validate_npz(
             raise ValueError(
                 f"NPZ y must have shape ({X.shape[0]}, {num_objectives}), got {y.shape}"
             )
-        if c.ndim != 2 or c.shape[0] != X.shape[0] or c.shape[1] != num_constraints:
+        if c.ndim != 2 or c.shape[0] != X.shape[0]:
             raise ValueError(
-                f"NPZ c must have shape ({X.shape[0]}, {num_constraints}), got {c.shape}"
+                f"NPZ c must have {X.shape[0]} rows, got {c.shape}"
+            )
+        if num_constraints == 0:
+            if c.shape[1] != 0:
+                raise ValueError("unconstrained task must have an empty c matrix")
+            constraint_history_state = "not_applicable"
+        elif c.shape[1] == 0:
+            # Some BOCoDe mixed-variable methods optimize a penalized objective and
+            # intentionally do not preserve raw constraint observations in Result.c.
+            # Retain the objective trace but do not infer feasibility from the penalty.
+            constraint_history_state = "unavailable"
+        elif c.shape[1] == num_constraints:
+            constraint_history_state = "available"
+        else:
+            raise ValueError(
+                f"NPZ c must have either zero columns (unavailable) or "
+                f"{num_constraints} observed constraint columns, got {c.shape}"
             )
         if not np.isfinite(X).all() or not np.isfinite(y).all() or not np.isfinite(c).all():
             raise ValueError("NPZ X/y/c must contain only finite values")
@@ -159,21 +175,28 @@ def validate_npz(
         if abs(float(wall_trace[0])) > 1.0e-9:
             raise ValueError("NPZ wall-time trace must start at zero")
 
-        feasible = (
-            np.all(c <= 0.0, axis=1)
-            if num_constraints > 0
-            else np.ones(X.shape[0], dtype=bool)
-        )
+        if constraint_history_state == "available":
+            feasible = np.all(c <= 0.0, axis=1)
+            feasible_count = int(feasible.sum())
+            infeasible_count = int((~feasible).sum())
+            feasible_fraction = float(feasible.mean())
+            constraint_observation_count = int(c.shape[0])
+        else:
+            feasible_count = None
+            infeasible_count = None
+            feasible_fraction = None
+            constraint_observation_count = 0
         return {
             "objective_evaluation_count": int(X.shape[0]),
             "initial_design_count": n_init,
             "objective_observation_count": int(y.shape[0]),
             "objective_count": int(y.shape[1]),
-            "constraint_observation_count": int(c.shape[0]),
-            "constraint_count": int(c.shape[1]),
-            "feasible_evaluation_count": int(feasible.sum()),
-            "infeasible_evaluation_count": int((~feasible).sum()),
-            "feasible_evaluation_fraction": float(feasible.mean()),
+            "constraint_history_state": constraint_history_state,
+            "constraint_observation_count": constraint_observation_count,
+            "constraint_count": num_constraints,
+            "feasible_evaluation_count": feasible_count,
+            "infeasible_evaluation_count": infeasible_count,
+            "feasible_evaluation_fraction": feasible_fraction,
             "best_encoded_maximization_value": best,
             "trace_point_count": int(len(iterations)),
             "trace_final_wall_seconds": float(wall_trace[-1]),
@@ -483,6 +506,7 @@ def main() -> int:
         "n_init_requested": str(args.n_init),
         "iterations_requested": str(args.iters),
         "objective_evaluation_count": str(metrics.get("objective_evaluation_count", "")),
+        "constraint_history_state": str(metrics.get("constraint_history_state", "")),
         "initial_design_count": str(metrics.get("initial_design_count", "")),
         "feasible_evaluation_count": str(metrics.get("feasible_evaluation_count", "")),
         "infeasible_evaluation_count": str(metrics.get("infeasible_evaluation_count", "")),
