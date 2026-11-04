@@ -1,0 +1,142 @@
+{
+  "schema": "symtropy.road-temporal-dependence.fixtures.v0.1",
+  "purpose": "Exact finite temporal process conformance; not an empirical human-driving or measured reaction-time model.",
+  "assumptions": {
+    "state_support": [
+      -1,
+      1
+    ],
+    "initial_state_distribution": {
+      "minus_one": "1/2",
+      "plus_one": "1/2"
+    },
+    "transition_innovation_distribution": {
+      "minus_one": "1/4",
+      "plus_one": "3/4"
+    },
+    "initial_state_and_innovation": "independent, checked by exact joint-mass factorization",
+    "transition": "x_1 = x_0 * f_1",
+    "intervention_descendant": "x_1_intervened = x_0 * f_1 + delta"
+  },
+  "references": {
+    "philox_event_addressing": "https://arxiv.org/abs/2603.11084",
+    "counter_based_generators": "https://doi.org/10.1145/2063384.2063405",
+    "temporal_random_fields": "https://doi.org/10.1029/2019WR026331"
+  },
+  "cases": [
+    {
+      "id": "two_step_markov_exact-law",
+      "paths": [
+        {
+          "x0": -1,
+          "f1": -1,
+          "weight": 1,
+          "x1": 1
+        },
+        {
+          "x0": -1,
+          "f1": 1,
+          "weight": 3,
+          "x1": -1
+        },
+        {
+          "x0": 1,
+          "f1": -1,
+          "weight": 1,
+          "x1": -1
+        },
+        {
+          "x0": 1,
+          "f1": 1,
+          "weight": 3,
+          "x1": 1
+        }
+      ],
+      "total_weight": 8,
+      "expected": {
+        "mean_x0": 0,
+        "mean_x1": 0,
+        "variance_x0": 1,
+        "variance_x1": 1,
+        "covariance_x0_x1": "1/2",
+        "correlation_lag_1": "1/2"
+      }
+    },
+    {
+      "id": "independent_per_tick_negative_control",
+      "initial_state_distribution": "same_as_markov_case",
+      "next_state_distribution": "same_as_markov_case",
+      "expected": {
+        "marginals_equal": true,
+        "variances_equal": true,
+        "covariance_x0_x1": 0
+      }
+    },
+    {
+      "id": "cross_world_intervention",
+      "branches": [
+        {
+          "branch": "continue",
+          "offset": 0
+        },
+        {
+          "branch": "yield",
+          "offset": 2
+        }
+      ],
+      "expected": {
+        "latent_initial_state_equal": true,
+        "latent_innovation_equal": true,
+        "next_state_difference": 2
+      }
+    },
+    {
+      "id": "unknown_cross_world_innovation",
+      "expected": "NotIdentified"
+    },
+    {
+      "id": "wrong_branch_specific_innovation",
+      "expected": "reject"
+    },
+    {
+      "id": "initial_and_innovation_dependence_violation",
+      "expected": "reject"
+    },
+    {
+      "id": "declaration_order_permutation",
+      "expected": "same_manifest_digest_and_receipts"
+    },
+    {
+      "id": "duplicate_path",
+      "expected": "reject"
+    },
+    {
+      "id": "zero_path_weight",
+      "expected": "reject"
+    },
+    {
+      "id": "non_contiguous_tick",
+      "expected": "reject"
+    },
+    {
+      "id": "source_profile_digest_change",
+      "expected": "manifest_digest_changes"
+    },
+    {
+      "id": "mechanism_version_change",
+      "expected": "manifest_digest_changes"
+    },
+    {
+      "id": "receipt_tampering",
+      "expected": "integrity_and_replay_verification_fail"
+    },
+    {
+      "id": "branch_intervention_mismatch",
+      "expected": "replay_verification_fails"
+    },
+    {
+      "id": "joint_mass_overflow",
+      "expected": "typed_error"
+    }
+  ]
+}
