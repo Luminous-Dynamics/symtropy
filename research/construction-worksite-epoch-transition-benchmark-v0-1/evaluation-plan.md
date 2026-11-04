@@ -4,7 +4,7 @@ Issue/PR: #3542. This is a preregistration template, not a result.
 
 ## 1. Separate deterministic conformance from physical reliability
 
-The frozen transition corpus is a software-contract test. Its target is exact: zero false-safe transitions, zero stale/conflict command leakage and zero implicit restart. Report corpus version, scenario count, test count, oracle version and exact source SHA. Generated/fuzzed sequences are a separate denominator.
+The frozen transition corpus is a software-contract test. Its target is exact: zero false-safe transitions, zero stale/conflict command leakage and zero implicit restart. Report corpus version, scenario count, test count, oracle version and exact source SHA. The current oracle includes four versioned scenarios, strict Draft 2020-12 fixture validation, and a bounded invariant sweep across 14,641 event sequences (16,105 prefixes). Keep this deterministic sequence corpus separate from generated/fuzzed tests and from physical encounter denominators.
 
 A physical encounter campaign estimates performance only within its declared task, machine configuration, ODD and sampling frame. Passing the frozen corpus is not evidence of a field probability of failure.
 
