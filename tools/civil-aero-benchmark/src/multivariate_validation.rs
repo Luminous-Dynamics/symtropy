@@ -888,7 +888,9 @@ mod tests {
         );
 
         let mut unknown_record_csv = csv.clone();
-        unknown_record_csv.push_str(&format!("unknown,{}\\n", vec![""; 29].join(",")));
+        unknown_record_csv.push_str("unknown,");
+        unknown_record_csv.push_str(&",".repeat(28));
+        unknown_record_csv.push('\n');
         std::fs::write(&csv_path, unknown_record_csv).unwrap();
         let unknown_record = std::process::Command::new("python3")
             .arg(&script)
