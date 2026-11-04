@@ -175,9 +175,7 @@ impl SpatialFieldManifest {
         let mut total = 0u64;
 
         for state in &self.states {
-            if !matches!(state.left_value, -1 | 1)
-                || !matches!(state.right_value, -1 | 1)
-            {
+            if !matches!(state.left_value, -1 | 1) || !matches!(state.right_value, -1 | 1) {
                 return Err(SpatialError::InvalidCoefficientValue);
             }
             if state.weight == 0 {
@@ -385,12 +383,8 @@ impl SpatialFieldEvaluation {
             .ok_or(SpatialError::ArithmeticOverflow)?;
         let denominator = u128::from(self.total_weight)
             .checked_mul(u128::from(self.total_weight))
-            .and_then(|value| {
-                value.checked_mul(u128::from(self.coordinate.denominator))
-            })
-            .and_then(|value| {
-                value.checked_mul(u128::from(other.coordinate.denominator))
-            })
+            .and_then(|value| value.checked_mul(u128::from(self.coordinate.denominator)))
+            .and_then(|value| value.checked_mul(u128::from(other.coordinate.denominator)))
             .ok_or(SpatialError::ArithmeticOverflow)?;
         ExactRational::new(numerator, denominator)
     }
@@ -412,16 +406,17 @@ impl SpatialFieldReceipt {
         *blake3::hash(&receipt_bytes(self)).as_bytes() == self.receipt_digest
     }
 
-    pub fn verify_against(
-        &self,
-        manifest: &SpatialFieldManifest,
-    ) -> Result<(), SpatialError> {
+    pub fn verify_against(&self, manifest: &SpatialFieldManifest) -> Result<(), SpatialError> {
         let evaluation = manifest.evaluate(
             self.coordinate.clone(),
             self.branch_id.clone(),
             self.query_context.clone(),
         )?;
-        if evaluation.receipts.iter().any(|candidate| candidate == self) {
+        if evaluation
+            .receipts
+            .iter()
+            .any(|candidate| candidate == self)
+        {
             Ok(())
         } else {
             Err(SpatialError::ReceiptMismatch)
@@ -429,10 +424,7 @@ impl SpatialFieldReceipt {
     }
 }
 
-fn validate_coupling(
-    coupling: &SpatialCoupling,
-    branch: &StableId,
-) -> Result<(), SpatialError> {
+fn validate_coupling(coupling: &SpatialCoupling, branch: &StableId) -> Result<(), SpatialError> {
     match coupling {
         SpatialCoupling::SharedInvariant { .. } => Ok(()),
         SpatialCoupling::BranchSpecific { branch: scope } if scope == branch => Ok(()),
@@ -469,8 +461,7 @@ fn push_basis_spec(out: &mut Vec<u8>, spec: &BasisCoefficientSpec) {
 fn receipt_bytes(receipt: &SpatialFieldReceipt) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(b"symtropy.road-spatial-dependence.receipt.v0.1\0");
-    push_bytes(&mut out, receipt.schema_id.as_bytes())
-        .expect("static schema ID length fits u64");
+    push_bytes(&mut out, receipt.schema_id.as_bytes()).expect("static schema ID length fits u64");
     out.extend_from_slice(&receipt.manifest_digest);
     push_id(&mut out, &receipt.branch_id);
     out.extend_from_slice(&receipt.coordinate.numerator.to_le_bytes());
@@ -646,7 +637,10 @@ mod tests {
         let manifest = manifest();
         let left = evaluate(&manifest, 1, 4, "mesh-coarse", "L0", 1);
         let right = evaluate(&manifest, 3, 4, "mesh-coarse", "L0", 3);
-        assert_eq!(left.marginal_counts().unwrap(), right.marginal_counts().unwrap());
+        assert_eq!(
+            left.marginal_counts().unwrap(),
+            right.marginal_counts().unwrap()
+        );
 
         // The independent-per-site joint law is the Cartesian product of
         // the same pointwise marginal, producing a 16-state joint table.
@@ -706,8 +700,14 @@ mod tests {
         let left = evaluate(&manifest, 0, 1, "mesh", "L0", 0);
         let right = evaluate(&manifest, 1, 1, "mesh", "L0", 1);
         for (receipt_left, receipt_right) in left.receipts.iter().zip(&right.receipts) {
-            assert_eq!(receipt_left.field_value_numerator, receipt_left.left_coefficient.into());
-            assert_eq!(receipt_right.field_value_numerator, receipt_right.right_coefficient.into());
+            assert_eq!(
+                receipt_left.field_value_numerator,
+                receipt_left.left_coefficient.into()
+            );
+            assert_eq!(
+                receipt_right.field_value_numerator,
+                receipt_right.right_coefficient.into()
+            );
         }
     }
 
@@ -805,10 +805,7 @@ mod tests {
 
         let mut duplicate = manifest();
         duplicate.states.push(duplicate.states[0].clone());
-        assert_eq!(
-            duplicate.validate(),
-            Err(SpatialError::DuplicateJointState)
-        );
+        assert_eq!(duplicate.validate(), Err(SpatialError::DuplicateJointState));
 
         let mut zero = manifest();
         zero.states[0].weight = 0;
