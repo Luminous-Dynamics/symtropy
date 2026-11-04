@@ -1,0 +1,193 @@
+{
+  "schema": "symtropy.road-decision-criterion-sensitivity.fixtures.v0.1",
+  "purpose": "Exact comparison of robust decision criteria over a finite action × hypothesis utility table and explicit action feasibility matrix. No epistemic probabilities are assigned.",
+  "cases": [
+    {
+      "id": "maximin-vs-minimax-regret-disagree",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "utility": {
+            "action_a": "100",
+            "action_b": "90"
+          }
+        },
+        {
+          "id": "h2",
+          "utility": {
+            "action_a": "0",
+            "action_b": "5"
+          }
+        }
+      ],
+      "expected": {
+        "maximin": [
+          "action-b"
+        ],
+        "minimax_regret": [
+          "action-a"
+        ],
+        "agreement": "Disjoint",
+        "status": "CriterionSensitive"
+      }
+    },
+    {
+      "id": "unique-criterion-agreement",
+      "hypotheses": [
+        {
+          "id": "h1",
+          "utility": {
+            "action_a": "10",
+            "action_b": "2"
+          }
+        },
+        {
+          "id": "h2",
+          "utility": {
+            "action_a": "8",
+            "action_b": "4"
+          }
+        }
+      ],
+      "expected": {
+        "maximin": [
+          "action-a"
+        ],
+        "minimax_regret": [
+          "action-a"
+        ],
+        "agreement": "UniqueAgreement",
+        "status": "CriterionStable"
+      }
+    },
+    {
+      "id": "epsilon-regret-zero",
+      "epsilon": "0",
+      "expected": "minimum_worst_regret_actions_only"
+    },
+    {
+      "id": "epsilon-regret-near-optimal-set",
+      "epsilon": "1",
+      "expected": {
+        "actions": [
+          "action-a",
+          "action-b"
+        ]
+      }
+    },
+    {
+      "id": "maximin-tie-and-minimax-tie",
+      "expected": {
+        "agreement": "SetAgreementWithTie",
+        "status": "NoUniqueRecommendation"
+      }
+    },
+    {
+      "id": "robust-dominance",
+      "expected": {
+        "dominates": [
+          [
+            "action-a",
+            "action-b"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "hard-infeasible-action",
+      "expected": "exclude_action_from_all_criteria_not_utility_penalty"
+    },
+    {
+      "id": "hard-infeasible-in-one-hypothesis",
+      "expected": "action_not_robustly_feasible"
+    },
+    {
+      "id": "unknown-feasibility",
+      "expected": "Incomplete_with_gap_reason"
+    },
+    {
+      "id": "no-robust-feasible-action",
+      "expected": "NoRobustFeasibleAction"
+    },
+    {
+      "id": "duplicate-hypothesis-identical-row",
+      "expected": "same_decision_projection"
+    },
+    {
+      "id": "new-adverse-hypothesis",
+      "expected": "decision_projection_may_change_and_is_reported"
+    },
+    {
+      "id": "epsilon-utility-scale-mismatch",
+      "expected": "reject_UtilityScaleMismatch"
+    },
+    {
+      "id": "negative-epsilon",
+      "expected": "reject_NegativeEpsilon"
+    },
+    {
+      "id": "duplicate-epsilon-after-normalization",
+      "representations": [
+        "1/2",
+        "2/4"
+      ],
+      "expected": "reject_DuplicateEpsilon"
+    },
+    {
+      "id": "zero-epsilon-denominator",
+      "expected": "reject_ZeroDenominator"
+    },
+    {
+      "id": "positive-affine-utility-rescaling",
+      "expected": "selected_sets_preserved_when_epsilon_is_scaled_by_same_positive_factor"
+    },
+    {
+      "id": "nonlinear-utility-transform",
+      "expected": "do_not_claim_invariance"
+    },
+    {
+      "id": "declaration-order-permutation",
+      "expected": "same_digest_and_certificate"
+    },
+    {
+      "id": "hard-feasibility-reason",
+      "expected": "reason_id_retained_in_certificate"
+    },
+    {
+      "id": "unknown-action-feasibility-cell",
+      "expected": "reject_UnknownAction"
+    },
+    {
+      "id": "unknown-hypothesis-feasibility-cell",
+      "expected": "reject_UnknownHypothesis"
+    },
+    {
+      "id": "missing-feasibility-cell",
+      "expected": "reject_MissingFeasibilityCell"
+    },
+    {
+      "id": "duplicate-feasibility-cell",
+      "expected": "reject_DuplicateFeasibilityCell"
+    },
+    {
+      "id": "incomplete-decision-utility",
+      "expected": "reject_DecisionNotFullySupported"
+    },
+    {
+      "id": "receipt-tampering",
+      "expected": "integrity_check_false"
+    },
+    {
+      "id": "manifest-mutation",
+      "expected": "verify_against_rejects"
+    }
+  ],
+  "reporting": {
+    "maximin": "maximize minimum utility across admitted hypotheses",
+    "minimax_regret": "minimize maximum regret across admitted hypotheses",
+    "epsilon_regret": "retain all actions within epsilon of minimum worst-case regret",
+    "robust_dominance": "A dominates B only when no worse in all hypotheses and strictly better in at least one",
+    "no_hypothesis_weights": true,
+    "hard_feasibility": "feasibility is not scalarized into utility"
+  }
+}
