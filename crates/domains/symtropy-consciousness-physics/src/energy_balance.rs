@@ -592,10 +592,10 @@ mod tests {
             },
         );
         let strict = input
-            .evaluate(EnergyBalanceTolerances::new(0.0, 1e-5))
+            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-5))
             .unwrap();
         let loose = input
-            .evaluate(EnergyBalanceTolerances::new(0.0, 1e-3))
+            .evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), 1e-3))
             .unwrap();
 
         assert_eq!(strict.status, EnergyBalanceStatus::Imbalanced);
