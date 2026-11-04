@@ -348,3 +348,37 @@ The systematic review analyzes 121 peer-reviewed studies and reports that 59% us
 Implementation: [Symtropy issue #3621](https://github.com/Luminous-Dynamics/symtropy/issues/3621).
 
 These studies are research anchors, not evidence that a single shared resilience or governance metric exists.
+
+
+## 11. Population-relative ranking and non-transitive strategy ecologies
+
+### Population-dependent selection in collective-risk games
+
+**Huynh et al. (2026), "Cooperation Without Adaptation: LLM Agents in a Collective-Risk Dilemma".**  
+https://arxiv.org/abs/2610.22882
+
+The paper's selection protocol samples five partners without replacement, computes hypergeometric composition-weighted fitness, applies pairwise Fermi imitation (beta=1 per payoff unit), and uses rare mutation/fixation to construct a Markov chain over homogeneous populations. It compares N=6 (one population-wide group) with N=30 (overlapping random groups), and reports that selection changes with population size/composition.
+
+**CivBench response:** report N, group size, partner composition, risk, beta and mutation assumptions beside every ranking. Use exact finite-population group composition and a fixation/stationary reference before running expensive cognitive agents. Implementation: [issue #3646](https://github.com/Luminous-Dynamics/symtropy/issues/3646), [draft PR #3648](https://github.com/Luminous-Dynamics/symtropy/pull/3648).
+
+### Non-transitive opponent pools and regret certificates
+
+**Deng et al. (Scientific Reports, 4 June 2026), "Population-dependent agent performance in non-transitive games: a multi-agent rock–paper–scissors benchmark".**  
+https://www.nature.com/articles/s41598-026-55417-9
+
+The study compares 54 agents across 18 archetypes in 500-round double round-robin play over ten seeds (14.31 million evaluated rounds). It reports opponent-roster-sensitive rankings (Spearman rho=0.83 between two rosters), 134 detected three-agent cycles in the empirical meta-game, and a regret certificate bounding best-response regret by twice the L1 error in predicted opponent action probabilities for its normalized stage payoff. It also records end-to-end CPU milliseconds per decision to expose resource cost.
+
+**CivBench response:**
+- Freeze multiple opponent rosters and held-out compositions; do not use one static leaderboard.
+- Report the complete cross-play payoff matrix and ranking changes across rosters.
+- Detect non-transitive three-cycles and invasion cycles instead of forcing a total order.
+- Record exploitability/regret against exact best-response oracles where the game permits.
+- When policies expose probabilistic predictions, log proper scoring/calibration and a game-specific regret certificate; do not claim the RPS constant transfers unchanged to CRG.
+- Report seed-paired uncertainty, decision latency and compute budgets beside payoff.
+
+### SOTA comparison discipline
+
+The ICML 2026 position paper *Time to Close the Validation Gap in LLM Social Simulations* argues for consolidation through shared benchmarks, open data and reproducible evaluation rather than expansion of unvalidated simulators.  
+https://proceedings.mlr.press/v306/puelma-touzel26a.html
+
+Our advantage should therefore be independently checkable reference tasks, exact group-composition oracles, distributional and procedural validity checks, and explicit claim ceilings—not the number of agent personas or the size of a simulation.
