@@ -124,11 +124,7 @@ fn validate_stage_dispositions(stages: &[Value]) -> Result<(), String> {
             ),
             "qualification_lease" => matches!(
                 disposition,
-                "active"
-                    | "requalification_required"
-                    | "safe_hold"
-                    | "context_stale"
-                    | "aborted"
+                "active" | "requalification_required" | "safe_hold" | "context_stale" | "aborted"
             ),
             "command_authorization" => matches!(disposition, "authorized" | "rejected"),
             "physical_outcome_receipt" => {
