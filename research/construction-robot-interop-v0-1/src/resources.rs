@@ -148,12 +148,11 @@ impl ReservationBook {
             .ok_or(ReservationError::UnknownResource)?;
 
         if let Some(existing) = self.reservations.get(&request.reservation_id) {
-            return if existing.request == request
-                && existing.state == ReservationState::Active
-            {
+            if existing.state != ReservationState::Active {
+                return Err(ReservationError::ReservationIdConsumed);
+            }
+            return if existing.request == request {
                 Ok(ReservationOutcome::Duplicate)
-            } else if existing.request == request {
-                Err(ReservationError::ReservationIdConsumed)
             } else {
                 Err(ReservationError::ReservationIdConflict)
             };
