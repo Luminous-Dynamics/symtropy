@@ -228,6 +228,12 @@ pub enum BenchError {
     InconsistentOutcomeSchema {
         intervention_id: String,
     },
+    InvalidMultivariateDistribution {
+        model_id: String,
+        reason: &'static str,
+    },
+    InvalidModelPriors,
+    ModelPriorSetMismatch,
 }
 
 impl fmt::Display for BenchError {
@@ -337,6 +343,16 @@ impl fmt::Display for BenchError {
                 f,
                 "intervention candidates do not share one metric/unit schema: {intervention_id}"
             ),
+            Self::InvalidMultivariateDistribution { model_id, reason } => write!(
+                f,
+                "invalid multivariate predictive distribution for model {model_id}: {reason}"
+            ),
+            Self::InvalidModelPriors => {
+                write!(f, "model priors must be finite, non-negative and sum to one")
+            }
+            Self::ModelPriorSetMismatch => {
+                write!(f, "model-prior identities do not exactly match prediction identities")
+            }
         }
     }
 }
@@ -861,6 +877,28 @@ pub struct ModelOutcomeDistribution {
     pub unit_id: String,
     pub mean: f64,
     pub standard_deviation: f64,
+}
+
+/// Joint Gaussian predictive distribution over an ordered vector of outcomes.
+///
+/// Metric and unit identifiers at index i describe mean[i] and covariance row
+/// and column i. Covariance must be finite, symmetric and strictly positive
+/// definite. Singular covariance, including an exactly redundant endpoint, is
+/// rejected rather than treating a deterministic relation as new evidence.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MultivariateOutcomeDistribution {
+    pub model_family_id: String,
+    pub metric_ids: Vec<String>,
+    pub unit_ids: Vec<String>,
+    pub mean: Vec<f64>,
+    pub covariance: Vec<Vec<f64>>,
+}
+
+/// Explicit prior probability for one competing model family.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelFamilyPrior {
+    pub model_family_id: String,
+    pub probability: f64,
 }
 
 /// Candidate intervention with a model prediction for every competing family.
