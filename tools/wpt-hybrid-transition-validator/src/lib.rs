@@ -81,7 +81,9 @@ fn mode(value: &Value, path: &str) -> Result<Mode, String> {
     let id = text_field(value, "mode_id", path)?;
     let topology_sha256 = text_field(value, "topology_sha256", path)?;
     if !valid_sha256(&topology_sha256) {
-        return Err(format!("{path}.topology_sha256 must be 64 lowercase hex characters"));
+        return Err(format!(
+            "{path}.topology_sha256 must be 64 lowercase hex characters"
+        ));
     }
 
     Ok(Mode {
@@ -101,17 +103,9 @@ fn tank(value: Option<&Value>) -> Result<Option<Tank>, String> {
 
     Ok(Some(Tank {
         pre_j: nonnegative_field(value, "pre_energy_j", "energy_tank")?,
-        pre_uncertainty_j: nonnegative_field(
-            value,
-            "pre_energy_uncertainty_j",
-            "energy_tank",
-        )?,
+        pre_uncertainty_j: nonnegative_field(value, "pre_energy_uncertainty_j", "energy_tank")?,
         post_j: nonnegative_field(value, "post_energy_j", "energy_tank")?,
-        post_uncertainty_j: nonnegative_field(
-            value,
-            "post_energy_uncertainty_j",
-            "energy_tank",
-        )?,
+        post_uncertainty_j: nonnegative_field(value, "post_energy_uncertainty_j", "energy_tank")?,
     }))
 }
 
@@ -164,19 +158,13 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     let tolerance_policy_sha256 =
         text_field(transition, "tolerance_policy_sha256", "switch_event")?;
     if !valid_sha256(&tolerance_policy_sha256) {
-        return Err("switch_event.tolerance_policy_sha256 must be 64 lowercase hex characters".into());
+        return Err(
+            "switch_event.tolerance_policy_sha256 must be 64 lowercase hex characters".into(),
+        );
     }
 
-    let source_dimension = dimension_field(
-        transition,
-        "source_state_dimension",
-        "switch_event",
-    )?;
-    let target_dimension = dimension_field(
-        transition,
-        "target_state_dimension",
-        "switch_event",
-    )?;
+    let source_dimension = dimension_field(transition, "source_state_dimension", "switch_event")?;
+    let target_dimension = dimension_field(transition, "target_state_dimension", "switch_event")?;
     if source_dimension != pre.state_dimension || target_dimension != post.state_dimension {
         return Err("state mapping dimensions do not match the pre/post mode declarations".into());
     }
@@ -195,17 +183,10 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     }
 
     let switch_work_j = number_field(transition, "switch_work_net_j", "switch_event")?;
-    let switch_work_u = nonnegative_field(
-        transition,
-        "switch_work_uncertainty_j",
-        "switch_event",
-    )?;
+    let switch_work_u = nonnegative_field(transition, "switch_work_uncertainty_j", "switch_event")?;
     let port_net_j = number_field(transition, "port_net_energy_j", "switch_event")?;
-    let port_net_u = nonnegative_field(
-        transition,
-        "port_net_energy_uncertainty_j",
-        "switch_event",
-    )?;
+    let port_net_u =
+        nonnegative_field(transition, "port_net_energy_uncertainty_j", "switch_event")?;
     let dissipation_j = nonnegative_field(transition, "event_dissipation_j", "switch_event")?;
     let dissipation_u = nonnegative_field(
         transition,
@@ -367,7 +348,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::evaluate;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
