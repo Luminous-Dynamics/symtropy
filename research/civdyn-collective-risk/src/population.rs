@@ -197,7 +197,10 @@ impl fmt::Display for PopulationError {
                 "transition matrix must be finite, non-negative and row-stochastic"
             ),
             Self::InvalidInvasionMatrix => {
-                write!(f, "log-fixation matrix must be square and contain valid log probabilities")
+                write!(
+                    f,
+                    "log-fixation matrix must be square and contain valid log probabilities"
+                )
             },
             Self::CombinatorialOverflow => {
                 write!(f, "hypergeometric combination arithmetic overflow")
@@ -534,7 +537,10 @@ pub fn invasion_graph(
     let matrix = &chain.log_fixation_matrix;
     if matrix.len() != STRATEGY_COUNT
         || matrix.iter().any(|row| row.len() != STRATEGY_COUNT)
-        || matrix.iter().flatten().any(|value| value.is_nan() || *value > 1e-12)
+        || matrix
+            .iter()
+            .flatten()
+            .any(|value| value.is_nan() || *value > 1e-12)
     {
         return Err(PopulationError::InvalidInvasionMatrix);
     }
@@ -558,12 +564,10 @@ pub fn invasion_graph(
     for first in 0..STRATEGY_COUNT {
         for second in (first + 1)..STRATEGY_COUNT {
             for third in (second + 1)..STRATEGY_COUNT {
-                let forward = adjacency[first][second]
-                    && adjacency[second][third]
-                    && adjacency[third][first];
-                let reverse = adjacency[first][third]
-                    && adjacency[third][second]
-                    && adjacency[second][first];
+                let forward =
+                    adjacency[first][second] && adjacency[second][third] && adjacency[third][first];
+                let reverse =
+                    adjacency[first][third] && adjacency[third][second] && adjacency[second][first];
                 if forward {
                     three_cycles.push(InvasionCycle {
                         strategies: [
