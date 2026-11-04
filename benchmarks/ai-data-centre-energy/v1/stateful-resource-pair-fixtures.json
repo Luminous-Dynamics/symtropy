@@ -1,0 +1,92 @@
+{
+  "schema_version": "symtropy.stateful-resource-pair-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "scope": "paired_battery_site_trajectory_with_terminal_state_reconciliation",
+  "note": "Synthetic two-hour site trajectories only; not workload service equivalence, grid resource adequacy, market accreditation, or site telemetry.",
+  "units": {"power": "kW", "energy": "kWh", "time": "hours", "temperature": "degC"},
+  "common_context": {
+    "scenario_id": "stress-scenario-1",
+    "site_id": "site-1",
+    "boundary_id": "site-pcc",
+    "storage": {
+      "capacity_kwh": 100,
+      "initial_energy_kwh": 90,
+      "minimum_operating_energy_kwh": 20,
+      "maximum_charge_power_kw": 50,
+      "maximum_discharge_power_kw": 50,
+      "charge_efficiency": 0.95,
+      "discharge_efficiency": 0.95,
+      "critical_load_power_kw": 10,
+      "ride_through_seconds": 3600,
+      "reserve_margin_fraction": 0.2,
+      "protected_reserve_floor_kwh": 20
+    },
+    "thermal_zone": {
+      "zone_id": "zone-a",
+      "initial_temperature_c": 25,
+      "maximum_temperature_c": 32,
+      "thermal_capacitance_kwh_per_c": 10,
+      "ambient_conductance_kw_per_c": 1,
+      "ambient_temperature_c": 25,
+      "maximum_cooling_heat_removal_kw": 80,
+      "maximum_cooling_electric_power_kw": 30,
+      "cooling_cop": 5,
+      "minimum_cop": 2,
+      "maximum_cop": 8,
+      "it_heat_injection_kw": 20,
+      "cooling_heat_removal_kw": 25
+    },
+    "facility": {
+      "base_facility_power_kw": 10,
+      "it_power_kw": 20,
+      "cooling_electric_power_kw": 5,
+      "other_facility_power_kw": 2,
+      "onsite_non_storage_supply_kw": 5,
+      "maximum_facility_input_power_kw": 200,
+      "maximum_grid_import_power_kw": 150
+    },
+    "slots": [
+      {"slot_index": 0, "start_unix_seconds": 100000, "end_unix_seconds": 103600},
+      {"slot_index": 1, "start_unix_seconds": 103600, "end_unix_seconds": 107200}
+    ]
+  },
+  "baseline": {
+    "configuration_digest": "baseline-config",
+    "storage_actions_kw": [
+      {"charge": 0, "discharge": 0},
+      {"charge": 0, "discharge": 0}
+    ],
+    "expected_grid_import_kw": [32, 32],
+    "expected_terminal_storage_kwh": 90
+  },
+  "flexible": {
+    "configuration_digest": "flexible-config",
+    "storage_actions_kw": [
+      {"charge": 0, "discharge": 5},
+      {"charge": 5.54016620498615, "discharge": 0}
+    ],
+    "expected_grid_import_kw": [27, 37.54016620498615],
+    "expected_terminal_storage_kwh": 90
+  },
+  "expected_pair": {
+    "net_import_reduction_kw_by_slot": [5, -5.54016620498615],
+    "gross_reduction_energy_kwh": 5,
+    "rebound_energy_kwh": 5.54016620498615,
+    "net_grid_import_reduction_energy_kwh": -0.54016620498615,
+    "terminal_storage_energy_delta_kwh": 0,
+    "terminal_zone_temperature_delta_c": 0,
+    "both_individual_trajectories_pass": true,
+    "pair_eligible": true,
+    "interpretation": "Storage shifts 5 kWh of grid import away from slot 0, but round-trip losses require 5.540166 kWh of recharge in slot 1. Terminal SoC and thermal state are equal; no energy debt is hidden beyond the horizon."
+  },
+  "negative_controls": [
+    "terminal_soc_debt_rejected",
+    "terminal_thermal_debt_rejected",
+    "ambient_weather_mismatch_rejected",
+    "time_window_mismatch_rejected",
+    "initial_storage_contract_mismatch_rejected",
+    "failed_physical_gate_rejected",
+    "missing_identity_rejected",
+    "negative_terminal_state_tolerance_rejected"
+  ]
+}
