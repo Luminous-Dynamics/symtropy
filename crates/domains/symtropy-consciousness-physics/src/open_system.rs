@@ -109,6 +109,9 @@ impl EnergyBalanceTolerance {
 pub struct OpenSystemEnergyBalance {
     /// Non-empty identifier for the exact system boundary being evaluated.
     pub boundary_id: String,
+    /// Non-empty identifier for the exact time interval represented by both
+    /// stored-energy endpoints and every listed boundary flow.
+    pub interval_id: String,
     /// Total stored energy inside the boundary at the start, in joules.
     pub initial_stored_energy_j: Option<f64>,
     /// Total stored energy inside the boundary at the end, in joules.
@@ -134,6 +137,7 @@ pub enum EnergyBalanceStatus {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnergyBalanceReport {
     pub boundary_id: String,
+    pub interval_id: String,
     pub status: EnergyBalanceStatus,
     /// Final stored energy minus initial stored energy, in joules.
     pub delta_stored_energy_j: Option<f64>,
@@ -159,6 +163,7 @@ pub struct EnergyBalanceReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnergyBalanceError {
     EmptyBoundaryId,
+    EmptyIntervalId,
     InvalidEnergyValue {
         field: EnergyBalanceTerm,
     },
@@ -199,6 +204,9 @@ impl OpenSystemEnergyBalance {
     ) -> Result<EnergyBalanceReport, EnergyBalanceError> {
         if self.boundary_id.trim().is_empty() {
             return Err(EnergyBalanceError::EmptyBoundaryId);
+        }
+        if self.interval_id.trim().is_empty() {
+            return Err(EnergyBalanceError::EmptyIntervalId);
         }
         validate_tolerance(tolerance)?;
 
@@ -251,7 +259,11 @@ impl OpenSystemEnergyBalance {
         }
 
         if !missing_terms.is_empty() {
-            return Ok(incomplete_report(&self.boundary_id, missing_terms));
+            return Ok(incomplete_report(
+                &self.boundary_id,
+                &self.interval_id,
+                missing_terms,
+            ));
         }
 
         let initial = self.initial_stored_energy_j.expect("validated above");
@@ -318,6 +330,7 @@ impl OpenSystemEnergyBalance {
 
         Ok(EnergyBalanceReport {
             boundary_id: self.boundary_id.clone(),
+            interval_id: self.interval_id.clone(),
             status: if residual.abs() <= allowed {
                 EnergyBalanceStatus::Balanced
             } else {
@@ -338,10 +351,12 @@ impl OpenSystemEnergyBalance {
 
 fn incomplete_report(
     boundary_id: &str,
+    interval_id: &str,
     missing_terms: Vec<EnergyBalanceTerm>,
 ) -> EnergyBalanceReport {
     EnergyBalanceReport {
         boundary_id: boundary_id.to_string(),
+        interval_id: interval_id.to_string(),
         status: EnergyBalanceStatus::Incomplete { missing_terms },
         delta_stored_energy_j: None,
         net_work_j: None,
@@ -396,6 +411,7 @@ mod tests {
     ) -> OpenSystemEnergyBalance {
         OpenSystemEnergyBalance {
             boundary_id: "test-system".to_string(),
+            interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(initial),
             final_stored_energy_j: Some(final_energy),
             boundary_flows: Some(flows),
@@ -498,6 +514,7 @@ mod tests {
     fn missing_terms_are_incomplete_not_implicit_zero() {
         let record = OpenSystemEnergyBalance {
             boundary_id: "test-system".to_string(),
+            interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(0.0),
             final_stored_energy_j: Some(10.0),
             boundary_flows: None,
@@ -516,6 +533,7 @@ mod tests {
     fn malformed_flow_is_not_hidden_by_missing_stored_energy() {
         let record = OpenSystemEnergyBalance {
             boundary_id: "test-system".to_string(),
+            interval_id: "tick-0001".to_string(),
             initial_stored_energy_j: Some(0.0),
             final_stored_energy_j: None,
             boundary_flows: Some(vec![flow(
@@ -599,6 +617,12 @@ mod tests {
         assert_eq!(
             record.evaluate(zero_tolerance()),
             Err(EnergyBalanceError::EmptyBoundaryId)
+        );
+        record.boundary_id = "test-system".to_string();
+        record.interval_id = "  ".to_string();
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::EmptyIntervalId)
         );
 
         assert_eq!(
