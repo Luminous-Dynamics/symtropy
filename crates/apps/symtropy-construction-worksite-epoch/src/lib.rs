@@ -671,7 +671,7 @@ mod frozen_scenario_tests {
     use serde::Deserialize;
 
     use super::{
-        CommandBinding, Epoch, Model, Qualification, State,
+        CommandBinding, Epoch, FreshnessPolicy, Model, Qualification, State,
     };
 
     const ORDERED: &str = include_str!(
@@ -690,6 +690,10 @@ mod frozen_scenario_tests {
         scenario_id: String,
         task_scope: String,
         initial_configuration_digest: String,
+        timebase_id: String,
+        max_context_age_ns: u64,
+        max_clock_uncertainty_ns: u64,
+        max_qualification_lease_ns: u64,
         expected_final_state: String,
         events: Vec<ScenarioEvent>,
     }
@@ -712,14 +716,22 @@ mod frozen_scenario_tests {
             evidence_digest: String,
             record_reference: String,
             accepted_by_upstream: bool,
+            revalidation_generation: u64,
+            context_observation_reference: String,
+            clock_assessment_reference: String,
+            timebase_id: String,
+            issued_at_monotonic_ns: u64,
+            valid_until_monotonic_ns: u64,
             expected: String,
         },
         Command {
             epoch_digest: String,
             configuration_digest: String,
             task_scope: String,
-            context_fresh: bool,
-            clock_within_bound: bool,
+            context_age_ns: u64,
+            clock_uncertainty_ns: u64,
+            timebase_id: String,
+            now_monotonic_ns: u64,
             expected: String,
         },
         CommunicationsLost,
@@ -763,6 +775,12 @@ mod frozen_scenario_tests {
         let mut model = Model::new(
             scenario.task_scope.clone(),
             scenario.initial_configuration_digest,
+            scenario.timebase_id.clone(),
+            FreshnessPolicy {
+                max_context_age_ns: scenario.max_context_age_ns,
+                max_clock_uncertainty_ns: scenario.max_clock_uncertainty_ns,
+                max_qualification_lease_ns: scenario.max_qualification_lease_ns,
+            },
         )
         .expect("scenario model");
 
@@ -794,6 +812,12 @@ mod frozen_scenario_tests {
                     evidence_digest,
                     record_reference,
                     accepted_by_upstream,
+                    revalidation_generation,
+                    context_observation_reference,
+                    clock_assessment_reference,
+                    timebase_id,
+                    issued_at_monotonic_ns,
+                    valid_until_monotonic_ns,
                     expected,
                 } => {
                     let result = model.requalify(
@@ -803,6 +827,12 @@ mod frozen_scenario_tests {
                             task_scope,
                             evidence_digest,
                             record_reference,
+                            revalidation_generation,
+                            context_observation_reference,
+                            clock_assessment_reference,
+                            timebase_id,
+                            issued_at_monotonic_ns,
+                            valid_until_monotonic_ns,
                         },
                         accepted_by_upstream,
                     );
@@ -817,16 +847,20 @@ mod frozen_scenario_tests {
                     epoch_digest,
                     configuration_digest,
                     task_scope,
-                    context_fresh,
-                    clock_within_bound,
+                    context_age_ns,
+                    clock_uncertainty_ns,
+                    timebase_id,
+                    now_monotonic_ns,
                     expected,
                 } => {
                     let result = model.authorize(&CommandBinding {
                         epoch_digest,
                         configuration_digest,
                         task_scope,
-                        context_fresh,
-                        clock_within_bound,
+                        context_age_ns,
+                        clock_uncertainty_ns,
+                        timebase_id,
+                        now_monotonic_ns,
                     });
                     expected_bool(
                         &scenario.scenario_id,
