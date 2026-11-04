@@ -190,7 +190,11 @@ cargo run --manifest-path research/construction-accepted-output-v0-1/Cargo.toml
 
 The crate's validator checks structural consistency and profile binding only. It does not fetch or authenticate referenced artifacts, verify signatures/actors, validate instrument calibration or independence, adjudicate physical quality, or qualify safety. The fixture values are invented and must not be cited as observed performance.
 
-The direct crew-hour category mapping in v0.1 is an initial explicit convention. A future version must freeze it as a signed study policy before confirmatory studies and allow project-specific role classifications without changing historical reports.
+Direct crew-hours in v0.1 include on-site survey/control, robot setup/calibration, operator supervision, spotting, execution, charging/changeover, waiting, QA inspection, rework/reprint, interruption recovery and site coordination/requalification. Total workflow crew-hours include every human entry, adding upstream VDC/model preparation, design/trade coordination and evidence closeout. This is an explicit initial convention; freeze the mapping as a signed study policy before confirmatory use and version any later change.
+
+Human resource IDs should be pseudonymous and task-scoped. Do not collect worker names, badge numbers, biometrics, inferred intent or affect. Retain only the role/time evidence needed for the declared productivity claim.
+
+The derived report keeps critical-feature inspection coverage and first-pass defect counts by severity as separate measures. It also rejects a work package labelled completed while any unit remains active or unresolved. The partially measured example is correctly marked unresolved.
 
 ## 9. Ownership
 
