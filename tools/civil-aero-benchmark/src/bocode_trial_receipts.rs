@@ -14,7 +14,7 @@ use crate::integrity::verify_source_file;
 use crate::shapebench::parse_csv_record;
 
 pub const BOCODE_TRIAL_RECEIPT_SCHEMA: &str = "bocode-trial-receipt/0.1.0";
-pub const BOCODE_TRIAL_RECEIPT_CSV_HEADER: &str = "schema,trial_id,problem_id,algorithm,seed,source_commit,bocode_version,python_version,wrapper_script_sha256,metadata_sha256,dimension,num_objectives,num_constraints,input_type,requested_n_init,requested_iters,state,objective_evaluation_count,initial_design_count,feasible_evaluation_count,first_feasible_eval_index,best_value,archive_path,archive_bytes,archive_sha256,summary_path,summary_bytes,summary_sha256,stdout_path,stdout_bytes,stdout_sha256,stderr_path,stderr_bytes,stderr_sha256,metadata_path,metadata_bytes,metadata_file_sha256,freeze_path,freeze_bytes,freeze_sha256,environment_path,environment_bytes,environment_sha256,command_path,command_bytes,command_sha256,diagnostic_path,diagnostic_bytes,diagnostic_sha256,elapsed_monotonic_ns,child_user_cpu_ns,child_system_cpu_ns,process_exit_code,skip_detected,summary_row_present,trace_valid,diagnostic_code,receipt_sha256";
+pub const BOCODE_TRIAL_RECEIPT_CSV_HEADER: &str = "schema,trial_id,problem_id,algorithm,seed,source_commit,bocode_version,python_version,wrapper_script_sha256,metadata_sha256,dimension,num_objectives,num_constraints,input_type,requested_n_init,requested_iters,state,objective_evaluation_count,initial_design_count,feasible_evaluation_count,first_feasible_eval_index,best_value,archive_path,archive_bytes,archive_sha256,summary_path,summary_bytes,summary_sha256,stdout_path,stdout_bytes,stdout_sha256,stderr_path,stderr_bytes,stderr_sha256,metadata_path,metadata_bytes,metadata_file_sha256,freeze_path,freeze_bytes,freeze_sha256,environment_path,environment_bytes,environment_sha256,command_path,command_bytes,command_sha256,diagnostic_path,diagnostic_bytes,diagnostic_sha256,elapsed_monotonic_ns,child_user_cpu_ns,child_system_cpu_ns,peak_rss_bytes,gpu_compute_ns,energy_microjoules,process_exit_code,skip_detected,summary_row_present,trace_valid,diagnostic_code,receipt_sha256";
 
 const RECEIPT_FIELDS: &[&str] = &[
     "schema",
@@ -69,6 +69,9 @@ const RECEIPT_FIELDS: &[&str] = &[
     "elapsed_monotonic_ns",
     "child_user_cpu_ns",
     "child_system_cpu_ns",
+    "peak_rss_bytes",
+    "gpu_compute_ns",
+    "energy_microjoules",
     "process_exit_code",
     "skip_detected",
     "summary_row_present",
@@ -413,6 +416,9 @@ impl BocodeTrialReceipt {
         let _elapsed = parse_optional_u64(&values, "elapsed_monotonic_ns")?;
         let _child_user = parse_optional_u64(&values, "child_user_cpu_ns")?;
         let _child_system = parse_optional_u64(&values, "child_system_cpu_ns")?;
+        let _peak_rss = parse_optional_u64(&values, "peak_rss_bytes")?;
+        let _gpu_compute = parse_optional_u64(&values, "gpu_compute_ns")?;
+        let _energy = parse_optional_u64(&values, "energy_microjoules")?;
 
         let artifact = |role: &str| {
             artifacts
