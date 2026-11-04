@@ -670,11 +670,12 @@ mod tests {
         );
         assert_eq!(machine.task.state, TaskState::MeasurementPending);
 
+        let valid_receipt = receipt(&machine, "receipt-valid");
         send(
             &mut machine,
             6,
             TransitionKind::InspectionAccepted {
-                receipt: receipt(&machine, "receipt-valid"),
+                receipt: valid_receipt,
             },
         )
         .expect("valid receipt");
