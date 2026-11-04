@@ -82,6 +82,9 @@ pub struct TransferStudy {
     pub regime: TransferRegime,
     pub source_model_digest: String,
     pub target_model_digest: String,
+    pub source_robot_config_digest: String,
+    pub target_robot_config_digest: String,
+    pub calibration_change_receipt_ref: Option<String>,
     pub adaptation_budget: AdaptationBudget,
     pub adaptation_effort: AdaptationEffort,
     pub split_guards: Vec<SplitGuard>,
@@ -156,6 +159,8 @@ impl TransferStudy {
             ("study_id", self.study_id.as_str()),
             ("source_model_digest", self.source_model_digest.as_str()),
             ("target_model_digest", self.target_model_digest.as_str()),
+            ("source_robot_config_digest", self.source_robot_config_digest.as_str()),
+            ("target_robot_config_digest", self.target_robot_config_digest.as_str()),
         ] {
             if value.trim().is_empty() {
                 errors.push(ValidationError::EmptyField(field));
@@ -284,6 +289,16 @@ impl TransferStudy {
                         "zero_shot_model_digest_must_remain_frozen",
                     ));
                 }
+                if self.source_robot_config_digest != self.target_robot_config_digest {
+                    errors.push(ValidationError::InvalidRegime(
+                        "zero_shot_robot_config_digest_must_remain_frozen",
+                    ));
+                }
+                if self.calibration_change_receipt_ref.is_some() {
+                    errors.push(ValidationError::InvalidRegime(
+                        "zero_shot_must_not_claim_calibration_change_receipt",
+                    ));
+                }
             }
             TransferRegime::CalibrationOnly => {
                 if self.adaptation_effort.target_label_count != 0 {
@@ -294,6 +309,16 @@ impl TransferStudy {
                 if self.source_model_digest != self.target_model_digest {
                     errors.push(ValidationError::InvalidRegime(
                         "calibration_only_policy_digest_must_remain_frozen",
+                    ));
+                }
+                if self.source_robot_config_digest != self.target_robot_config_digest
+                    && self
+                        .calibration_change_receipt_ref
+                        .as_deref()
+                        .is_none_or(str::is_empty)
+                {
+                    errors.push(ValidationError::InvalidRegime(
+                        "calibration_only_config_change_requires_receipt",
                     ));
                 }
             }
@@ -575,6 +600,9 @@ mod tests {
             regime: TransferRegime::BoundedOfflineAdaptation,
             source_model_digest: "sha256:model-source".to_owned(),
             target_model_digest: "sha256:model-target".to_owned(),
+            source_robot_config_digest: "sha256:robot-config-source".to_owned(),
+            target_robot_config_digest: "sha256:robot-config-target".to_owned(),
+            calibration_change_receipt_ref: None,
             adaptation_budget: AdaptationBudget {
                 max_target_label_count: 10,
                 max_calibration_person_hours: 1.0,
@@ -695,6 +723,42 @@ mod tests {
                 "calibration_only_policy_digest_must_remain_frozen"
             ))
         ));
+    }
+
+
+    #[test]
+    fn zero_shot_requires_frozen_robot_configuration() {
+        let mut input = study();
+        input.regime = TransferRegime::ZeroShot;
+        input.target_label_count = 0;
+        input.target_model_digest = input.source_model_digest.clone();
+        input.target_robot_config_digest = "sha256:different-config".to_owned();
+        input.target_adaptation_work_item_ids.clear();
+        input.adaptation_effort.target_label_count = 0;
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::InvalidRegime(
+                "zero_shot_robot_config_digest_must_remain_frozen"
+            ))
+        ));
+    }
+
+    #[test]
+    fn calibration_only_config_change_requires_explicit_receipt() {
+        let mut input = study();
+        input.regime = TransferRegime::CalibrationOnly;
+        input.target_label_count = 0;
+        input.target_model_digest = input.source_model_digest.clone();
+        input.adaptation_effort.target_label_count = 0;
+        assert!(matches!(
+            input.validate(),
+            Err(errors) if errors.contains(&ValidationError::InvalidRegime(
+                "calibration_only_config_change_requires_receipt"
+            ))
+        ));
+
+        input.calibration_change_receipt_ref = Some("calibration-receipt-1".to_owned());
+        assert_eq!(input.validate(), Ok(()));
     }
 
     #[test]
