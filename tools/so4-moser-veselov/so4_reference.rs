@@ -767,6 +767,51 @@ fn campaign() -> Result<(), StepError> {
     Ok(())
 }
 
+/// Public immutable snapshot returned by the continuous-time RK4 oracle.
+///
+/// Matrices are row-major arrays. The reference attitude maps body coordinates
+/// to world coordinates; body momentum uses the physical sign convention.
+#[derive(Clone, Copy, Debug)]
+pub struct Rk4ReferenceState {
+    pub attitude: [[f64; N]; N],
+    pub body_momentum: [[f64; N]; N],
+}
+
+/// Integrate the physical SO(4) Euler-Arnold equations with classical RK4.
+///
+/// This entry point exists for production-vs-independent-oracle tests. The
+/// reference state uses body-to-world attitude Q and physical body momentum M;
+/// production stored quantities must be converted before comparison.
+pub fn integrate_rk4_reference(
+    second_moment: [[f64; N]; N],
+    initial_body_momentum: [[f64; N]; N],
+    dt: f64,
+    steps: usize,
+) -> Result<Rk4ReferenceState, &'static str> {
+    if !dt.is_finite() || dt <= 0.0 || steps == 0 {
+        return Err("reference dt and step count must be positive and finite");
+    }
+    let model = Model {
+        second_moment: Mat4(second_moment),
+    };
+    model.validate().map_err(|_| "reference inertia is invalid")?;
+    let mut state = State {
+        attitude: Mat4::IDENTITY,
+        body_momentum: Mat4(initial_body_momentum),
+    };
+    state.validate().map_err(|_| "reference initial state is invalid")?;
+    state = integrate_rk4(model, state, dt, steps)
+        .map_err(|_| "reference RK4 integration failed")?;
+    if !state.attitude.is_finite() || !state.body_momentum.is_finite() {
+        return Err("reference RK4 produced a non-finite state");
+    }
+
+    Ok(Rk4ReferenceState {
+        attitude: state.attitude.0,
+        body_momentum: state.body_momentum.0,
+    })
+}
+
 fn main() {
     if let Err(error) = campaign() {
         eprintln!("SO(4) reference campaign failed closed: {error:?}");
