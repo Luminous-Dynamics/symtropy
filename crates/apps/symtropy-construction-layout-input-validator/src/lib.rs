@@ -153,7 +153,6 @@ pub enum Decision {
 }
 
 #[derive(Clone, Debug, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct Evaluation {
     pub schema_version: String,
     pub manifest_id: String,
@@ -423,6 +422,9 @@ fn check_control_validation(
     }
     if points.len() > policy.maximum_check_points {
         out.hard("check_point_count_exceeds_policy_limit");
+        // Do not perform an unbounded cubic geometry sweep on attacker-controlled
+        // input. The configured policy also has a hard maximum below.
+        return None;
     }
     if points.is_empty() {
         out.unknown("independent_check_points_missing");
@@ -453,8 +455,16 @@ fn check_control_validation(
         if !nonempty(&point.independence_assessment_reference) {
             out.unknown("independence_assessment_reference_missing");
         }
+        if !point.x_m.is_finite() || !point.y_m.is_finite() {
+            out.unknown("check_point_coordinate_not_finite");
+            continue;
+        }
         if !point.u95_mm.is_finite() || point.u95_mm < 0.0 {
             out.unknown("check_point_uncertainty_invalid");
+            continue;
+        }
+        if !point.residual_x_mm.is_finite() || !point.residual_y_mm.is_finite() {
+            out.unknown("check_point_residual_not_finite");
             continue;
         }
         let residual_mm = point.residual_x_mm.hypot(point.residual_y_mm);
@@ -495,7 +505,33 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
     {
         return Err("trusted policy contains malformed SHA-256 references".to_owned());
     }
+    if !nonempty(&policy.policy_id)
+        || !nonempty(&policy.project_id)
+        || !nonempty(&policy.site_id)
+        || !nonempty(&policy.task_scope)
+        || !nonempty(&policy.work_package_revision)
+        || !nonempty(&policy.work_zone_id)
+        || !nonempty(&policy.source_model_revision)
+        || !nonempty(&policy.expected_exporter_id)
+        || !nonempty(&policy.source_frame_id)
+        || !nonempty(&policy.target_frame_id)
+        || !nonempty(&policy.horizontal_reference)
+        || !nonempty(&policy.vertical_datum)
+        || !nonempty(&policy.units)
+        || !nonempty(&policy.handedness)
+        || policy.axis_order.is_empty()
+        || !unique_nonempty(&policy.axis_order)
+        || !unique_nonempty(&policy.discipline_revisions.iter().map(|v| v.discipline_id.clone()).collect::<Vec<_>>())
+        || !unique_nonempty(&policy.critical_feature_ids)
+        || !unique_nonempty(&policy.transform_resource_sha256s)
+    {
+        return Err("trusted policy contains missing or duplicated required identity fields".to_owned());
+    }
+    if policy.coordinate_epoch_required && policy.coordinate_epoch.as_ref().is_none_or(|v| !nonempty(v)) {
+        return Err("trusted policy requires a coordinate epoch but does not pin one".to_owned());
+    }
     if policy.minimum_check_points < 3
+        || policy.maximum_check_points > 128
         || policy.maximum_check_points < policy.minimum_check_points
         || !policy.minimum_spread_area_m2.is_finite()
         || policy.minimum_spread_area_m2 <= 0.0
@@ -648,9 +684,7 @@ mod tests {
     fn no_check_point_count_is_reported_as_an_exact_denominator() {
         let result = evaluate_manifest(VALID, &policy()).expect("valid fixture");
         assert_eq!(result.check_point_count, 3);
-        assert_eq!(
-            result.maximum_observed_bound_mm,
-            Some(0.2914213562373095)
-        );
+        let bound = result.maximum_observed_bound_mm.expect("three checkpoints");
+        assert!((bound - 0.2914213562373095).abs() < 1e-12);
     }
 }
