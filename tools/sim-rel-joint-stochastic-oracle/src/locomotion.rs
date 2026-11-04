@@ -233,6 +233,10 @@ pub struct JointTransitionRow {
     pub physical_state_id: String,
     pub sensor_state_id: String,
     pub action_id: String,
+    /// Sources supporting this row's transition likelihood, not just its
+    /// mechanism label or intervention protocol.
+    pub source_manifest_ids: Vec<String>,
+    pub claim_ceiling: ClaimCeiling,
     pub outcomes: Vec<TransitionOutcome>,
 }
 
@@ -261,6 +265,8 @@ pub struct CompiledLocomotionKernel {
     pub sensor_states: Vec<SensorState>,
     pub actions: Vec<InterventionAction>,
     pub observations: Vec<Observation>,
+    /// Canonically ordered source-bearing rows used to compile the kernel.
+    pub transition_rows: Vec<JointTransitionRow>,
     pub cost_unit_id: String,
     pub minimum_delivery_fidelity: Rational,
 }
@@ -301,6 +307,15 @@ pub enum AdapterError {
     },
     MissingHypothesisSource {
         hypothesis_id: String,
+    },
+    MissingTransitionSource {
+        hypothesis_id: String,
+        action_id: String,
+    },
+    DuplicateTransitionSource {
+        hypothesis_id: String,
+        action_id: String,
+        source_id: String,
     },
     MissingProtocolSource {
         action_id: String,
@@ -620,6 +635,9 @@ impl LocomotionKernelSpec {
         for hypothesis in &mut self.hypotheses {
             hypothesis.source_manifest_ids.sort();
         }
+        for row in &mut self.transition_rows {
+            row.source_manifest_ids.sort();
+        }
         self.physical_states
             .sort_by(|left, right| left.id.cmp(&right.id));
         self.sensor_states
@@ -822,6 +840,35 @@ impl LocomotionKernelSpec {
                     action_id: row.action_id.clone(),
                 });
             }
+            if row.source_manifest_ids.is_empty() {
+                return Err(AdapterError::MissingTransitionSource {
+                    hypothesis_id: row.hypothesis_id.clone(),
+                    action_id: row.action_id.clone(),
+                });
+            }
+            let mut row_sources = BTreeSet::new();
+            let mut supports_claim = false;
+            for source_id in &row.source_manifest_ids {
+                if !row_sources.insert(source_id.clone()) {
+                    return Err(AdapterError::DuplicateTransitionSource {
+                        hypothesis_id: row.hypothesis_id.clone(),
+                        action_id: row.action_id.clone(),
+                        source_id: source_id.clone(),
+                    });
+                }
+                let source_index =
+                    lookup(&source_indices, "transition_source_manifest_id", source_id)?;
+                supports_claim |= source_supports_claim(
+                    &self.source_manifests[source_index],
+                    row.claim_ceiling,
+                );
+            }
+            if !supports_claim {
+                return Err(AdapterError::InvalidEvidenceClaim {
+                    hypothesis_id: row.hypothesis_id.clone(),
+                    claim: row.claim_ceiling,
+                });
+            }
         }
 
         let mut rows = Vec::with_capacity(
@@ -914,6 +961,7 @@ impl LocomotionKernelSpec {
             sensor_states: self.sensor_states.clone(),
             actions: self.actions.clone(),
             observations: self.observations.clone(),
+            transition_rows: self.transition_rows.clone(),
             cost_unit_id: self.cost_unit_id.clone(),
             minimum_delivery_fidelity: self.minimum_delivery_fidelity,
         })
@@ -1389,6 +1437,8 @@ mod tests {
                             physical_state_id: physical.id.clone(),
                             sensor_state_id: sensor.id.clone(),
                             action_id: action.id.clone(),
+                            source_manifest_ids: vec!["synthetic-models".to_owned()],
+                            claim_ceiling: ClaimCeiling::SyntheticQualification,
                             outcomes: vec![TransitionOutcome {
                                 probability: Rational::one(),
                                 next_physical_state_id: next_physical,
