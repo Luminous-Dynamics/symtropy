@@ -24,6 +24,21 @@ pub enum EnergyMvMethod {
     CalibratedSimulation,
 }
 
+/// Declares which operating-condition basis the baseline-model output represents.
+///
+/// For `BaselinePeriodConditions`, a separately evidenced routine adjustment
+/// may restate the prediction to reporting-period conditions. For
+/// `ReportingPeriodConditions`, routine adjustment must be zero because the
+/// baseline prediction already contains that normalization. This guard prevents
+/// applying the same routine adjustment twice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum EnergyMvBaselinePredictionBasis {
+    /// Frozen baseline output before routine adjustment to reporting conditions.
+    BaselinePeriodConditions,
+    /// Frozen baseline output already evaluated at reporting-period conditions.
+    ReportingPeriodConditions,
+}
+
 /// Frozen identity and caller-declared acceptance limits for an M&V plan.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct EnergyMvPlan {
@@ -32,6 +47,7 @@ pub struct EnergyMvPlan {
     site_id: String,
     boundary_id: String,
     method: EnergyMvMethod,
+    prediction_basis: EnergyMvBaselinePredictionBasis,
     baseline_digest: String,
     model_digest: String,
     minimum_validation_points: usize,
@@ -47,6 +63,7 @@ impl EnergyMvPlan {
         site_id: impl Into<String>,
         boundary_id: impl Into<String>,
         method: EnergyMvMethod,
+        prediction_basis: EnergyMvBaselinePredictionBasis,
         baseline_digest: impl Into<String>,
         model_digest: impl Into<String>,
         minimum_validation_points: usize,
@@ -59,6 +76,7 @@ impl EnergyMvPlan {
             site_id: site_id.into(),
             boundary_id: boundary_id.into(),
             method,
+            prediction_basis,
             baseline_digest: baseline_digest.into(),
             model_digest: model_digest.into(),
             minimum_validation_points,
@@ -112,6 +130,10 @@ impl EnergyMvPlan {
 
     pub const fn method(&self) -> EnergyMvMethod {
         self.method
+    }
+
+    pub const fn prediction_basis(&self) -> EnergyMvBaselinePredictionBasis {
+        self.prediction_basis
     }
 
     pub fn baseline_digest(&self) -> &str {
@@ -408,6 +430,7 @@ pub enum EnergyMvError {
     BaselineDigestMismatch { sample_id: String },
     ModelDigestMismatch { sample_id: String },
     MissingEvidence { sample_id: String, evidence_kind: &'static str },
+    RoutineAdjustmentAlreadyApplied { sample_id: String },
     NegativeAdjustedBaseline { sample_id: String, adjusted_kwh: f64 },
     NumericalOverflow(&'static str),
     TooFewValidationPoints { minimum: usize, observed: usize },
@@ -437,6 +460,10 @@ impl fmt::Display for EnergyMvError {
             Self::MissingEvidence { sample_id, evidence_kind } => {
                 write!(f, "M&V sample {sample_id} is missing {evidence_kind} evidence")
             }
+            Self::RoutineAdjustmentAlreadyApplied { sample_id } => write!(
+                f,
+                "M&V sample {sample_id} cannot add a routine adjustment when the prediction already uses reporting-period conditions"
+            ),
             Self::NegativeAdjustedBaseline { sample_id, adjusted_kwh } => write!(
                 f,
                 "M&V sample {sample_id} has negative adjusted baseline energy: {adjusted_kwh} kWh"
@@ -486,6 +513,10 @@ pub struct EnergyMvReportingReceipt {
     pub non_routine_adjustment_evidence_id: Option<String>,
     pub adjusted_baseline_energy_kwh: f64,
     pub adjusted_energy_difference_kwh: f64,
+    pub baseline_uncertainty_bound_kwh: f64,
+    pub measurement_uncertainty_bound_kwh: f64,
+    pub routine_adjustment_uncertainty_bound_kwh: f64,
+    pub non_routine_adjustment_uncertainty_bound_kwh: f64,
     pub uncertainty_bound_kwh: f64,
     pub baseline_digest: String,
     pub model_digest: String,
@@ -507,6 +538,7 @@ pub struct EnergyMvVerificationReport {
     site_id: String,
     boundary_id: String,
     method: EnergyMvMethod,
+    prediction_basis: EnergyMvBaselinePredictionBasis,
     baseline_digest: String,
     model_digest: String,
     validation_sample_ids: Vec<String>,
@@ -621,9 +653,18 @@ impl EnergyMvVerificationReport {
 
 /// Reconstruct baseline fit, adjusted energy difference and conservative bound.
 ///
-/// NMBE is sum(predicted - observed) / sum(observed). CV(RMSE) is
-/// sqrt(mean(residual^2)) / mean(observed). A positive adjustment increases
-/// expected baseline energy. All reported energy values are in kWh.
+/// This v0.1 verifier pins the following explicit descriptive conventions:
+/// NMBE = 100 * sum(predicted - observed) / sum(observed), and
+/// CV(RMSE) = 100 * sqrt(mean(residual^2)) / mean(observed), using the
+/// population mean-square residual (denominator n). These diagnostics are
+/// independently recomputed from holdout observations; they are not asserted
+/// to be a universal standards formula or a causal-identification test.
+///
+/// A positive routine adjustment restates a baseline-period prediction upward
+/// to reporting conditions. If the prediction is already evaluated at reporting
+/// conditions, the plan prohibits a further routine adjustment. A positive
+/// non-routine adjustment increases counterfactual baseline energy. All energy
+/// values are in kWh.
 pub fn verify_energy_mv(
     plan: &EnergyMvPlan,
     dataset: &EnergyMvDataset,
@@ -706,8 +747,15 @@ pub fn verify_energy_mv(
     let mut non_routine_total = 0.0;
     let mut uncertainty_total = 0.0;
     for point in &dataset.reporting_points {
+        if plan.prediction_basis == EnergyMvBaselinePredictionBasis::ReportingPeriodConditions
+            && point.routine_adjustment_kwh != 0.0
+        {
+            return Err(EnergyMvError::RoutineAdjustmentAlreadyApplied {
+                sample_id: point.sample_id.clone(),
+            });
+        }
         if point.routine_adjustment_kwh != 0.0
-            && point.routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+            && point.routine_adjustment_evidence_id.as_deref().is_none_or(|id| id.trim().is_empty())
         {
             return Err(EnergyMvError::MissingEvidence {
                 sample_id: point.sample_id.clone(),
@@ -715,7 +763,7 @@ pub fn verify_energy_mv(
             });
         }
         if point.non_routine_adjustment_kwh != 0.0
-            && point.non_routine_adjustment_evidence_id.as_deref().is_none_or(str::is_empty)
+            && point.non_routine_adjustment_evidence_id.as_deref().is_none_or(|id| id.trim().is_empty())
         {
             return Err(EnergyMvError::MissingEvidence {
                 sample_id: point.sample_id.clone(),
@@ -811,6 +859,10 @@ pub fn verify_energy_mv(
             non_routine_adjustment_evidence_id: point.non_routine_adjustment_evidence_id.clone(),
             adjusted_baseline_energy_kwh: adjusted_baseline,
             adjusted_energy_difference_kwh: adjusted_baseline - point.observed_energy_kwh,
+            baseline_uncertainty_bound_kwh: point.baseline_uncertainty_bound_kwh,
+            measurement_uncertainty_bound_kwh: point.measurement_uncertainty_bound_kwh,
+            routine_adjustment_uncertainty_bound_kwh: point.routine_adjustment_uncertainty_bound_kwh,
+            non_routine_adjustment_uncertainty_bound_kwh: point.non_routine_adjustment_uncertainty_bound_kwh,
             uncertainty_bound_kwh: uncertainty,
             baseline_digest: point.baseline_digest.clone(),
             model_digest: point.model_digest.clone(),
@@ -826,6 +878,7 @@ pub fn verify_energy_mv(
         site_id: plan.site_id.clone(),
         boundary_id: plan.boundary_id.clone(),
         method: plan.method,
+        prediction_basis: plan.prediction_basis,
         baseline_digest: plan.baseline_digest.clone(),
         model_digest: plan.model_digest.clone(),
         validation_sample_ids: dataset.validation_points.iter().map(|point| point.sample_id.clone()).collect(),
@@ -882,7 +935,7 @@ fn validate_identity(
         ("measurement", measurement_evidence_id),
         ("prediction", prediction_evidence_id),
     ] {
-        if id.is_empty() {
+        if id.trim().is_empty() {
             return Err(EnergyMvError::MissingEvidence {
                 sample_id: sample_id.to_string(),
                 evidence_kind: kind,
@@ -977,7 +1030,8 @@ mod tests {
     fn plan() -> EnergyMvPlan {
         EnergyMvPlan::new(
             "mv-plan-1", "project-1", "site-1", "facility-pcc",
-            EnergyMvMethod::WholeFacility, BASELINE, MODEL, 3, 2.0, 5.0,
+            EnergyMvMethod::WholeFacility, EnergyMvBaselinePredictionBasis::BaselinePeriodConditions,
+            BASELINE, MODEL, 3, 2.0, 5.0,
         ).unwrap()
     }
 
@@ -1126,6 +1180,33 @@ mod tests {
         let report = verify_energy_mv(&plan(), &data).unwrap();
         assert!(report.verification_passed());
         assert!(!report.positive_savings_claim_supported());
+    }
+
+    #[test]
+    fn rejects_routine_adjustment_when_prediction_is_already_at_reporting_conditions() {
+        let reporting_basis_plan = EnergyMvPlan::new(
+            "mv-plan-reporting", "project-1", "site-1", "facility-pcc",
+            EnergyMvMethod::WholeFacility,
+            EnergyMvBaselinePredictionBasis::ReportingPeriodConditions,
+            BASELINE, MODEL, 3, 2.0, 5.0,
+        ).unwrap();
+        assert!(matches!(
+            verify_energy_mv(&reporting_basis_plan, &valid_dataset()),
+            Err(EnergyMvError::RoutineAdjustmentAlreadyApplied { sample_id }) if sample_id == "r1"
+        ));
+    }
+
+    #[test]
+    fn rejects_whitespace_only_adjustment_evidence_id() {
+        let mut data = valid_dataset();
+        data.reporting_points[0].routine_adjustment_evidence_id = Some("   ".into());
+        assert!(matches!(
+            verify_energy_mv(&plan(), &data),
+            Err(EnergyMvError::MissingEvidence {
+                evidence_kind: "routine adjustment",
+                ..
+            })
+        ));
     }
 
     #[test]
