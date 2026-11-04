@@ -214,7 +214,8 @@
         "site_epoch_binding",
         "exclusive_conflict_policy",
         "is_safety_permit",
-        "clock_domain_binding"
+        "clock_domain_binding",
+        "clock_uncertainty_policy"
       ],
       "properties": {
         "resource_types": {
@@ -239,6 +240,9 @@
         },
         "clock_domain_binding": {
           "const": true
+        },
+        "clock_uncertainty_policy": {
+          "const": "explicit_project_limit_and_conservative_interval_expansion"
         }
       }
     },
