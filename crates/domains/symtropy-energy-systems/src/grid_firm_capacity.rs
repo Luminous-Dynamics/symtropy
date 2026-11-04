@@ -28,6 +28,7 @@ use crate::GridResponseReport;
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GridFirmCapacityIdentity {
     portfolio_id: String,
+    opportunity_set_digest: String,
     service_product_id: String,
     measurement_boundary_id: String,
     baseline_method_id: String,
@@ -41,6 +42,7 @@ impl GridFirmCapacityIdentity {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         portfolio_id: impl Into<String>,
+        opportunity_set_digest: impl Into<String>,
         service_product_id: impl Into<String>,
         measurement_boundary_id: impl Into<String>,
         baseline_method_id: impl Into<String>,
@@ -51,6 +53,7 @@ impl GridFirmCapacityIdentity {
     ) -> Result<Self, GridFirmCapacityError> {
         let identity = Self {
             portfolio_id: portfolio_id.into(),
+            opportunity_set_digest: opportunity_set_digest.into(),
             service_product_id: service_product_id.into(),
             measurement_boundary_id: measurement_boundary_id.into(),
             baseline_method_id: baseline_method_id.into(),
@@ -61,6 +64,7 @@ impl GridFirmCapacityIdentity {
         };
         for (name, value) in [
             ("portfolio ID", identity.portfolio_id.as_str()),
+            ("opportunity-set digest", identity.opportunity_set_digest.as_str()),
             ("service product ID", identity.service_product_id.as_str()),
             ("measurement boundary ID", identity.measurement_boundary_id.as_str()),
             ("baseline method ID", identity.baseline_method_id.as_str()),
@@ -82,6 +86,7 @@ impl GridFirmCapacityIdentity {
     }
 
     pub fn portfolio_id(&self) -> &str { &self.portfolio_id }
+    pub fn opportunity_set_digest(&self) -> &str { &self.opportunity_set_digest }
     pub fn service_product_id(&self) -> &str { &self.service_product_id }
     pub fn measurement_boundary_id(&self) -> &str { &self.measurement_boundary_id }
     pub fn baseline_method_id(&self) -> &str { &self.baseline_method_id }
@@ -97,6 +102,7 @@ impl GridFirmCapacityIdentity {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct GridFirmCapacityContract {
     identity: GridFirmCapacityIdentity,
+    scheduled_event_ids: Vec<String>,
     minimum_trial_count: usize,
     minimum_success_probability: f64,
     confidence_failure_probability: f64,
@@ -105,12 +111,29 @@ pub struct GridFirmCapacityContract {
 impl GridFirmCapacityContract {
     pub fn new(
         identity: GridFirmCapacityIdentity,
+        mut scheduled_event_ids: Vec<String>,
         minimum_trial_count: usize,
         minimum_success_probability: f64,
         confidence_failure_probability: f64,
     ) -> Result<Self, GridFirmCapacityError> {
         if minimum_trial_count == 0 {
             return Err(GridFirmCapacityError::InvalidMinimumTrialCount);
+        }
+        if scheduled_event_ids.is_empty() {
+            return Err(GridFirmCapacityError::EmptyScheduledOpportunitySet);
+        }
+        scheduled_event_ids.sort();
+        for event_id in &scheduled_event_ids {
+            require_id("scheduled event ID", event_id)?;
+        }
+        if scheduled_event_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(GridFirmCapacityError::DuplicateScheduledEventId);
+        }
+        if scheduled_event_ids.len() < minimum_trial_count {
+            return Err(GridFirmCapacityError::ScheduledOpportunityCountBelowMinimum {
+                observed: scheduled_event_ids.len(),
+                required: minimum_trial_count,
+            });
         }
         for (name, value) in [
             ("minimum success probability", minimum_success_probability),
@@ -122,6 +145,7 @@ impl GridFirmCapacityContract {
         }
         Ok(Self {
             identity,
+            scheduled_event_ids,
             minimum_trial_count,
             minimum_success_probability,
             confidence_failure_probability,
@@ -129,6 +153,7 @@ impl GridFirmCapacityContract {
     }
 
     pub fn identity(&self) -> &GridFirmCapacityIdentity { &self.identity }
+    pub fn scheduled_event_ids(&self) -> &[String] { &self.scheduled_event_ids }
     pub const fn minimum_trial_count(&self) -> usize { self.minimum_trial_count }
     pub const fn minimum_success_probability(&self) -> f64 {
         self.minimum_success_probability
@@ -244,6 +269,12 @@ pub enum GridFirmCapacityError {
     InvalidQuantity { name: &'static str, value: f64 },
     InvalidProbability { name: &'static str, value: f64 },
     InvalidMinimumTrialCount,
+    EmptyScheduledOpportunitySet,
+    DuplicateScheduledEventId,
+    ScheduledOpportunityCountBelowMinimum { observed: usize, required: usize },
+    ScheduledOpportunityCountMismatch { observed: usize, expected: usize },
+    MissingScheduledOpportunity(String),
+    UnexpectedScheduledOpportunity(String),
     EmptyTrialSet,
     InsufficientTrials { observed: usize, required: usize },
     DuplicateEventId(String),
@@ -278,6 +309,24 @@ impl fmt::Display for GridFirmCapacityError {
             }
             Self::InvalidMinimumTrialCount => {
                 write!(f, "minimum event trial count must be positive")
+            }
+            Self::EmptyScheduledOpportunitySet => {
+                write!(f, "scheduled opportunity set must not be empty")
+            }
+            Self::DuplicateScheduledEventId => {
+                write!(f, "scheduled opportunity IDs must be unique")
+            }
+            Self::ScheduledOpportunityCountBelowMinimum { observed, required } => write!(
+                f, "scheduled opportunity set has {observed} events; {required} minimum trials required"
+            ),
+            Self::ScheduledOpportunityCountMismatch { observed, expected } => write!(
+                f, "trial set has {observed} events but opportunity manifest pins {expected}"
+            ),
+            Self::MissingScheduledOpportunity(id) => {
+                write!(f, "scheduled event opportunity {id} is missing from the trial set")
+            }
+            Self::UnexpectedScheduledOpportunity(id) => {
+                write!(f, "trial event {id} is not in the frozen opportunity manifest")
             }
             Self::EmptyTrialSet => write!(f, "firm-capacity evaluation requires event trials"),
             Self::InsufficientTrials { observed, required } => write!(
@@ -332,6 +381,12 @@ impl GridFirmCapacityEvaluation {
         if trials.is_empty() {
             return Err(GridFirmCapacityError::EmptyTrialSet);
         }
+        if trials.len() != contract.scheduled_event_ids.len() {
+            return Err(GridFirmCapacityError::ScheduledOpportunityCountMismatch {
+                observed: trials.len(),
+                expected: contract.scheduled_event_ids.len(),
+            });
+        }
         if trials.len() < contract.minimum_trial_count {
             return Err(GridFirmCapacityError::InsufficientTrials {
                 observed: trials.len(),
@@ -340,9 +395,15 @@ impl GridFirmCapacityEvaluation {
         }
         trials.sort_by(|left, right| left.event_id.cmp(&right.event_id));
         let mut event_ids = BTreeSet::new();
+        let scheduled_ids = contract.scheduled_event_ids.iter().collect::<BTreeSet<_>>();
         for trial in &trials {
             if !event_ids.insert(trial.event_id.clone()) {
                 return Err(GridFirmCapacityError::DuplicateEventId(
+                    trial.event_id.clone(),
+                ));
+            }
+            if !scheduled_ids.contains(&trial.event_id) {
+                return Err(GridFirmCapacityError::UnexpectedScheduledOpportunity(
                     trial.event_id.clone(),
                 ));
             }
@@ -355,6 +416,13 @@ impl GridFirmCapacityEvaluation {
             }
             if let GridFirmCapacityTrialOutcome::Evaluated(report) = &trial.outcome {
                 validate_response_report(&contract.identity, trial, report)?;
+            }
+        }
+        for expected_event_id in &contract.scheduled_event_ids {
+            if !event_ids.contains(expected_event_id) {
+                return Err(GridFirmCapacityError::MissingScheduledOpportunity(
+                    expected_event_id.clone(),
+                ));
             }
         }
         Ok(Self { contract, trials })
@@ -428,7 +496,7 @@ pub fn evaluate_grid_firm_capacity(
         successful_trial_count as f64 / trial_count as f64;
     let delta = evaluation.contract.confidence_failure_probability;
     let hoeffding_radius =
-        ( (1.0 / delta).ln() / (2.0 * trial_count as f64) ).sqrt();
+        ((-delta.ln()) / (2.0 * trial_count as f64)).sqrt();
     let lower_confidence_success_probability =
         (empirical_success_probability - hoeffding_radius).max(0.0);
     if !empirical_success_probability.is_finite()
@@ -537,6 +605,7 @@ mod tests {
     fn identity() -> GridFirmCapacityIdentity {
         GridFirmCapacityIdentity::new(
             "portfolio-north",
+            "scheduled-opportunity-manifest-v1",
             "frequency-response-class-a",
             "pcc-site-1",
             "baseline-method-v1",
@@ -548,7 +617,13 @@ mod tests {
     }
 
     fn contract() -> GridFirmCapacityContract {
-        GridFirmCapacityContract::new(identity(), 5, 0.60, 0.05).unwrap()
+        GridFirmCapacityContract::new(
+            identity(),
+            (0..5).map(|i| format!("event-{i}")).collect(),
+            5,
+            0.60,
+            0.05,
+        ).unwrap()
     }
 
     fn response_report(event_id: &str, passed: bool) -> GridResponseReport {
@@ -602,7 +677,12 @@ mod tests {
 
     #[test]
     fn all_passes_accredit_only_the_committed_capacity_when_bound_is_sufficient() {
-        let input = GridFirmCapacityEvaluation::new(contract(), passing_trials(100)).unwrap();
+        let mut trials = passing_trials(100);
+        let mut expected = (0..100).map(|i| format!("event-{i}")).collect::<Vec<_>>();
+        let expanded = GridFirmCapacityContract::new(
+            identity(), expected.clone(), 5, 0.60, 0.05
+        ).unwrap();
+        let input = GridFirmCapacityEvaluation::new(expanded, trials).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.successful_trial_count, 100);
         assert_eq!(report.failed_trial_count, 0);
@@ -696,6 +776,16 @@ mod tests {
     }
 
     #[test]
+    fn missing_scheduled_opportunity_is_rejected_instead_of_silently_dropped() {
+        let mut trials = passing_trials(5);
+        trials.pop();
+        assert!(matches!(
+            GridFirmCapacityEvaluation::new(contract(), trials),
+            Err(GridFirmCapacityError::ScheduledOpportunityCountMismatch { .. })
+        ));
+    }
+
+    #[test]
     fn duplicate_event_ids_are_rejected() {
         let first = GridFirmCapacityTrial::evaluated(
             response_report("same-event", true),
@@ -715,7 +805,13 @@ mod tests {
 
     #[test]
     fn hoeding_lower_bound_can_fail_despite_a_high_empirical_pass_rate() {
-        let weak_contract = GridFirmCapacityContract::new(identity(), 5, 0.99, 0.05).unwrap();
+        let weak_contract = GridFirmCapacityContract::new(
+            identity(),
+            (0..20).map(|i| format!("event-{i}")).collect(),
+            5,
+            0.99,
+            0.05,
+        ).unwrap();
         let input = GridFirmCapacityEvaluation::new(weak_contract, passing_trials(20)).unwrap();
         let report = evaluate_grid_firm_capacity(&input).unwrap();
         assert_eq!(report.empirical_success_probability, 1.0);
@@ -739,12 +835,19 @@ mod tests {
     #[test]
     fn rejects_invalid_probabilities_and_missing_independence_identity() {
         assert!(GridFirmCapacityIdentity::new(
-            "portfolio", "product", "pcc", "baseline", "config", "stratum", "", 100.0
+            "portfolio", "opportunities", "product", "pcc", "baseline", "config", "stratum", "", 100.0
         ).is_err());
-        assert!(GridFirmCapacityContract::new(identity(), 0, 0.9, 0.05).is_err());
-        assert!(GridFirmCapacityContract::new(identity(), 5, 1.0, 0.05).is_err());
-        assert!(GridFirmCapacityContract::new(identity(), 5, 0.9, 0.0).is_err());
-        assert!(GridFirmCapacityContract::new(identity(), 5, 0.9, 1.0).is_err());
+        let ids = (0..5).map(|i| format!("event-{i}")).collect::<Vec<_>>();
+        assert!(GridFirmCapacityContract::new(identity(), ids.clone(), 0, 0.9, 0.05).is_err());
+        assert!(GridFirmCapacityContract::new(identity(), ids.clone(), 5, 1.0, 0.05).is_err());
+        assert!(GridFirmCapacityContract::new(identity(), ids.clone(), 5, 0.9, 0.0).is_err());
+        assert!(GridFirmCapacityContract::new(identity(), ids.clone(), 5, 0.9, 1.0).is_err());
+        assert!(GridFirmCapacityContract::new(
+            identity(), vec!["event-0".to_string()], 5, 0.9, 0.05
+        ).is_err());
+        assert!(GridFirmCapacityContract::new(
+            identity(), vec!["same".to_string(), "same".to_string()], 1, 0.9, 0.05
+        ).is_err());
     }
 
     #[test]
