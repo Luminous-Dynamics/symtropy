@@ -135,7 +135,7 @@ impl GridResponseContract {
             ("minimum delivery fraction", minimum_delivery_fraction),
             ("minimum compliant sample fraction", minimum_compliant_sample_fraction),
         ] {
-            if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+            if !value.is_finite() || !(0.0..=1.0).contains(&value) || value == 0.0 {
                 return Err(GridResponseError::InvalidFraction { name, value });
             }
         }
@@ -322,7 +322,7 @@ impl fmt::Display for GridResponseError {
             Self::InvalidQuantity { name, value } => write!(
                 f, "{name} must be finite and within its non-negative range; got {value}"
             ),
-            Self::InvalidFraction { name, value } => write!(f, "{name} must be in [0, 1]; got {value}"),
+            Self::InvalidFraction { name, value } => write!(f, "{name} must be in (0, 1]; got {value}"),
             Self::EvidenceReferenceCollision { elapsed_ns } => write!(
                 f, "baseline and response evidence IDs collide at sample {elapsed_ns}"
             ),
@@ -700,6 +700,14 @@ mod tests {
         assert!(GridResponseContract::new(
             identity(), 0, 4 * SECOND_NS, SECOND_NS, 100.0, 1.1,
             SECOND_NS, 0.75, 0.1, 0.05, 150.0,
+        ).is_err());
+        assert!(GridResponseContract::new(
+            identity(), 0, 4 * SECOND_NS, SECOND_NS, 100.0, 0.0,
+            SECOND_NS, 0.75, 0.1, 0.05, 150.0,
+        ).is_err());
+        assert!(GridResponseContract::new(
+            identity(), 0, 4 * SECOND_NS, SECOND_NS, 100.0, 0.9,
+            SECOND_NS, 0.0, 0.1, 0.05, 150.0,
         ).is_err());
     }
 
