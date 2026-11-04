@@ -117,6 +117,9 @@ impl ScenarioVariogramPair {
 }
 
 /// One conjunction term for an operational event probability.
+///
+/// Thresholds use the original units of their declared dimension; score
+/// normalization scales are never applied to event predicates.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ScenarioEventCondition {
     dimension_id: String,
@@ -1638,6 +1641,7 @@ mod tests {
             JointScenarioForecastContract::new(
                 "b",
                 "m",
+                "config",
                 duplicate_dimensions,
                 vec![ScenarioVariogramPair::new("x", "y", 1.0).unwrap()],
                 vec![event()],
@@ -1645,6 +1649,51 @@ mod tests {
                 1,
             ),
             Err(JointScenarioForecastError::DuplicateDimension(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_duplicate_case_identity_and_unknown_event_dimensions() {
+        let duplicate_case = JointScenarioForecastEvaluation::new(
+            contract(),
+            vec![
+                case("reused", vec![scenario("s1", 1.0, [0.0, 10.0])], [0.0, 10.0]),
+                case_at(
+                    "reused",
+                    120,
+                    vec![scenario("s2", 1.0, [10.0, 0.0])],
+                    [10.0, 0.0],
+                ),
+            ],
+        );
+        assert!(matches!(
+            duplicate_case,
+            Err(JointScenarioForecastError::DuplicateCaseId(_))
+        ));
+
+        let unknown_event = ScenarioEventDefinition::new(
+            "unknown-dimension-event",
+            vec![ScenarioEventCondition::new(
+                "unregistered-channel",
+                ScenarioConditionOperator::GreaterThan,
+                0.0,
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        let result = JointScenarioForecastContract::new(
+            "benchmark",
+            "model",
+            "config",
+            dimensions(),
+            vec![ScenarioVariogramPair::new("renewable", "workload", 1.0).unwrap()],
+            vec![unknown_event],
+            1e-9,
+            1,
+        );
+        assert!(matches!(
+            result,
+            Err(JointScenarioForecastError::UnknownEventDimension { .. })
         ));
     }
 
