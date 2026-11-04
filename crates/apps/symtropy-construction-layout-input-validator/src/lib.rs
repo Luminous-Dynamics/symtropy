@@ -93,6 +93,10 @@ pub struct FeatureInventory {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ControlValidation {
+    pub survey_result_reference: String,
+    pub survey_result_sha256: String,
+    pub survey_adjustment_reference: String,
+    pub survey_adjustment_sha256: String,
     pub fit_point_ids: Vec<String>,
     pub independent_check_points: Vec<CheckPoint>,
 }
@@ -101,6 +105,7 @@ pub struct ControlValidation {
 #[serde(deny_unknown_fields)]
 pub struct CheckPoint {
     pub point_id: String,
+    pub coordinate_frame_id: String,
     pub x_m: f64,
     pub y_m: f64,
     pub residual_x_mm: f64,
@@ -115,6 +120,7 @@ pub struct CheckPoint {
 pub struct TrustedPolicy {
     pub policy_id: String,
     pub project_id: String,
+    pub source_model_id: String,
     pub site_id: String,
     pub task_scope: String,
     pub work_package_revision: String,
@@ -267,6 +273,12 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
     let source = &manifest.source_model;
     let export = &manifest.export;
 
+    if !nonempty(&source.model_id) {
+        out.unknown("source_model_id_missing");
+    }
+    if source.model_id != policy.source_model_id {
+        out.hard("source_model_id_mismatch");
+    }
     if source.revision != policy.source_model_revision
         || source.sha256 != policy.source_model_sha256
     {
@@ -356,6 +368,11 @@ fn check_inventory(manifest: &InputManifest, policy: &TrustedPolicy, out: &mut F
     let inventory = &manifest.inventory;
     let excluded = &inventory.declared_excluded_feature_ids;
 
+    if !excluded.is_empty() {
+        // V0.1 deliberately has no self-authorized feature exclusion mechanism.
+        // A future version must bind exclusions to an approved policy and reason.
+        out.hard("declared_feature_exclusions_not_supported_in_v0_1");
+    }
     if !unique_nonempty(&policy.critical_feature_ids)
         || !unique_nonempty(source_ids)
         || !unique_nonempty(&manifest.export.feature_ids)
@@ -378,15 +395,9 @@ fn check_inventory(manifest: &InputManifest, policy: &TrustedPolicy, out: &mut F
     }
 
     let expected_export: BTreeSet<&String> = inventory.expected_feature_ids.iter().collect();
-    let excluded_set: BTreeSet<&String> = excluded.iter().collect();
-    let effective_expected: BTreeSet<&String> =
-        expected_export.difference(&excluded_set).copied().collect();
     let exported: BTreeSet<&String> = inventory.exported_feature_ids.iter().collect();
-    if effective_expected != exported {
+    if expected_export != exported {
         out.hard("exported_feature_inventory_missing_or_unexpected");
-    }
-    if !excluded_set.is_subset(&expected_export) {
-        out.hard("declared_exclusion_not_in_approved_inventory");
     }
 }
 
@@ -412,8 +423,18 @@ fn check_control_validation(
     policy: &TrustedPolicy,
     out: &mut Findings,
 ) -> Option<f64> {
+    if !nonempty(&control.survey_result_reference)
+        || !nonempty(&control.survey_adjustment_reference)
+    {
+        out.unknown("survey_evidence_reference_missing");
+    }
+    if !valid_sha256(&control.survey_result_sha256)
+        || !valid_sha256(&control.survey_adjustment_sha256)
+    {
+        out.unknown("survey_evidence_digest_malformed");
+    }
     if !unique_nonempty(&control.fit_point_ids) {
-        out.hard("fit_point_ids_empty_or_duplicated");
+        out.unknown("fit_point_ids_empty_or_duplicated");
     }
 
     let points = &control.independent_check_points;
@@ -438,6 +459,9 @@ fn check_control_validation(
     for point in points {
         if !nonempty(&point.point_id) || !point_ids.insert(point.point_id.as_str()) {
             out.hard("independent_check_point_id_empty_or_duplicated");
+        }
+        if point.coordinate_frame_id != policy.target_frame_id {
+            out.hard("independent_check_point_coordinate_frame_mismatch");
         }
         if fit_ids.contains(point.point_id.as_str()) {
             out.hard("fit_point_reused_as_independent_check_point");
@@ -507,10 +531,12 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
     }
     if !nonempty(&policy.policy_id)
         || !nonempty(&policy.project_id)
+        || !nonempty(&policy.source_model_id)
         || !nonempty(&policy.site_id)
         || !nonempty(&policy.task_scope)
         || !nonempty(&policy.work_package_revision)
         || !nonempty(&policy.work_zone_id)
+        || !nonempty(&policy.source_model_revision)
         || !nonempty(&policy.source_model_revision)
         || !nonempty(&policy.expected_exporter_id)
         || !nonempty(&policy.source_frame_id)
@@ -522,6 +548,8 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         || policy.axis_order.is_empty()
         || !unique_nonempty(&policy.axis_order)
         || !unique_nonempty(&policy.discipline_revisions.iter().map(|v| v.discipline_id.clone()).collect::<Vec<_>>())
+        || policy.discipline_revisions.is_empty()
+        || policy.critical_feature_ids.is_empty()
         || !unique_nonempty(&policy.critical_feature_ids)
         || !unique_nonempty(&policy.transform_resource_sha256s)
     {
@@ -529,6 +557,9 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
     }
     if policy.coordinate_epoch_required && policy.coordinate_epoch.as_ref().is_none_or(|v| !nonempty(v)) {
         return Err("trusted policy requires a coordinate epoch but does not pin one".to_owned());
+    }
+    if policy.coordinate_epoch.as_ref().is_some_and(|v| !nonempty(v)) {
+        return Err("trusted policy contains an empty coordinate epoch".to_owned());
     }
     if policy.minimum_check_points < 3
         || policy.maximum_check_points > 128
