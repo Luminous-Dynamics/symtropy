@@ -337,7 +337,12 @@ mod tests {
     fn sampling_gap_does_not_bypass_latched_hysteresis() {
         let mut detector = JointLimitDetector::new(config(LimitSide::Upper)).expect("valid config");
         detector.observe(sample(1, 900_000)).expect("initial");
-        assert!(detector.observe(sample(2, 1_000_000)).expect("crossing").is_some());
+        assert!(
+            detector
+                .observe(sample(2, 1_000_000))
+                .expect("crossing")
+                .is_some()
+        );
         assert_eq!(
             detector.observe(sample(20, 980_000)),
             Err(DetectorError::SampleGapExceeded)
