@@ -1534,7 +1534,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
         Disposition::EvidenceInconsistent,
     );
 
-    let mut events = window_baseline;
+    let mut events = window_baseline.clone();
     for item in &mut events {
         if item.source_id == "lidar-front" {
             item.source_time_ms = match item.source_sequence {
@@ -1548,7 +1548,7 @@ pub fn frozen_trace_cases() -> Vec<TraceCase> {
     add_case(
         &mut cases,
         "TIME-069-last-observation-too-old-for-cutoff".to_owned(),
-        window_policy,
+        window_policy.clone(),
         events,
         Disposition::StopRequiredBySyntheticPolicy,
     );
