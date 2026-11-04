@@ -1,11 +1,11 @@
-pub mod anytime;
-
 //! Sequential, causality-gated intervention design primitives.
 //!
 //! This is an offline policy oracle, not a biological model, wet-lab controller,
 //! or evidence of a biological/SOTA result. It consumes model-conditional
 //! likelihood tables from separately versioned model and inference components.
 //! All tests use synthetic fixtures.
+
+pub mod anytime;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -366,7 +366,7 @@ pub fn condition_on_outcome(
         return Err(EngineError::InvalidUpdateValidityThreshold);
     }
     let validity = &candidate.causal_validity;
-    if !matches!(candidate.feasibility, Feasibility::Permitted)
+    if !matches!(&candidate.feasibility, Feasibility::Permitted)
         || !validity.assignment_design_valid
         || !validity.delivery_identity_verified
         || validity.delivery_fidelity < minimum_delivery_fidelity
