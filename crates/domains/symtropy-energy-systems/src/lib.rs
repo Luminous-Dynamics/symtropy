@@ -19,6 +19,7 @@ mod duty_cycle;
 mod flexibility_evaluation;
 mod fuel;
 mod matched_service;
+mod scenario_risk;
 mod service_contract;
 mod trace_validation;
 mod workload_schedule;
@@ -44,6 +45,10 @@ pub use fuel::{
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
+};
+pub use scenario_risk::{
+    ScenarioRiskContract, ScenarioRiskError, ScenarioRiskEvaluation, ScenarioRiskOutcome,
+    ScenarioRiskReceipt, ScenarioRiskReport, evaluate_scenario_risk,
 };
 pub use service_contract::{
     DeliveredServiceSegment, DeliveredServiceTrace, InputEnergyBasis, InputEnergyComparison,
