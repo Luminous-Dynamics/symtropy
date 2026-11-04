@@ -30,6 +30,21 @@ The policy distinguishes two different properties:
 
 The audit always rejects duplicate content digests, duplicate sample IDs, malformed or padded identifiers, missing policy keys, empty partitions, and contradictory shared/exclusive declarations. Exact digest syntax is checked, but the caller is responsible for computing the digest over a canonical payload and retaining the raw manifest. A digest is not a signature, source attestation, or proof of truth.
 
+## Registered split protocols
+
+The Rust audit binds each protocol ID to a registered preset. Callers cannot provide an arbitrary protocol label with a weaker dimension set and still receive a passing audit.
+
+| Registered preset | Exclusive dimensions | Shared dimensions | Valid interpretation |
+|---|---|---|---|
+| `within_network_unseen_event_v1` | physical event, capture session | network | New events/sessions within the same network |
+| `new_operating_regime_v1` | physical event, capture session, demand profile, time block | network, topology family | New demand/temporal regimes within known network/topology |
+| `cross_network_v1` | physical event, capture session, network | — | New network instances |
+| `cross_topology_v1` | physical event, capture session, network, topology family, scenario template | — | New network and topology/scenario families |
+| `sensor_layout_transfer_v1` | physical event, capture session, sensor layout | network, topology family | New sensor placements on known network/topology |
+| `asset_transfer_v1` | physical event, capture session, pipe/asset | network | Unseen pipe/asset identities within known network |
+
+The registered requirements are exact in v0.1: adding or omitting a dimension is not silently accepted. A genuinely different protocol needs a new registered preset and explicit review rather than an arbitrary string. For a new-operating-regime study, temporal ordering still requires an independent check that held-out time blocks occur after the training blocks; this module only checks group membership.
+
 ## Generalization ladder
 
 Do not publish one headline score called "generalization." Publish separate results for these registered protocols:
