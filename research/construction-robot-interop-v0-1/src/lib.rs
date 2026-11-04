@@ -160,6 +160,7 @@ pub enum ApplyError {
     MissingOutputEvidence,
     InvalidAcceptanceReceipt(&'static str),
     TaskAlreadyTerminal,
+    SequenceExhausted,
 }
 
 impl fmt::Display for ApplyError {
@@ -170,7 +171,7 @@ impl fmt::Display for ApplyError {
 
 impl std::error::Error for ApplyError {}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskMachine {
     task: TaskRecord,
     seen_messages: BTreeMap<String, String>,
@@ -273,7 +274,7 @@ impl TaskMachine {
             .insert(event.message_id.clone(), event.payload_digest.clone());
 
         if !matches!(
-            event.transition,
+            &event.transition,
             TransitionKind::Revoke { .. } | TransitionKind::MarkIndeterminate { .. }
         ) && event.binding != self.task.binding
         {
@@ -323,7 +324,7 @@ impl TaskMachine {
             });
         }
 
-        let expected = last + 1;
+        let expected = last.checked_add(1).ok_or(ApplyError::SequenceExhausted)?;
         if event.task_sequence != expected {
             return Err(ApplyError::InvalidSequence {
                 expected,
@@ -577,11 +578,12 @@ mod tests {
         assert_eq!(machine.task.state, TaskState::ExecutorCompleted);
 
         send(&mut machine, 5, TransitionKind::SubmitForMeasurement).expect("submit");
+        let accepted_receipt = receipt(&machine, "acceptance-receipt-1");
         send(
             &mut machine,
             6,
             TransitionKind::InspectionAccepted {
-                receipt: receipt(&machine, "acceptance-receipt-1"),
+                receipt: accepted_receipt,
             },
         )
         .expect("independent acceptance");
@@ -823,11 +825,12 @@ mod tests {
         )
         .expect("complete");
         send(&mut machine, 4, TransitionKind::SubmitForMeasurement).expect("measure");
+        let rejected_receipt = receipt(&machine, "rejection-receipt-1");
         send(
             &mut machine,
             5,
             TransitionKind::InspectionRejected {
-                receipt: receipt(&machine, "rejection-receipt-1"),
+                receipt: rejected_receipt,
             },
         )
         .expect("independent rejection");
