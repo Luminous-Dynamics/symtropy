@@ -276,7 +276,9 @@ pub fn order_batch_results<const D: usize>(
 
 #[cfg(test)]
 mod batch_replay_tests {
-    use super::*;
+    use super::{
+        BatchResultError, BatchRolloutSnapshot, WorldSnapshot, order_batch_results,
+    };
     use crate::world::PhysicsWorld;
     use nalgebra::SVector;
     use std::sync::Mutex;
