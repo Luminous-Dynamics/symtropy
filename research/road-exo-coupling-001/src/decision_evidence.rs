@@ -725,10 +725,12 @@ mod tests {
         binding.target = QualificationTarget::FormalConformance {
             domain_id: id("finite-decision-fixture-v1"),
         };
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
