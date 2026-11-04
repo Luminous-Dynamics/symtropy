@@ -245,3 +245,8 @@ The certificate contains the exact regret certificate, a canonical evidence-bund
 ### V0.1 limits
 
 This does not make utilities unbiased or prove causal assumptions. It ensures that every supported value used by the finite minimax-regret calculation is bound to an evidence packet whose declared origin, target, lineage and use-role pass the inherited evidence verifier. Natural-experiment assumptions and utility construction still require independent review.
+
+
+### Positive and negative purpose tests
+
+The Rust fixtures now cover valid human-adjudication and formal-conformance references in their own purposes, in addition to rejection of those sources for empirical claims. An Unsupported action cell requires no evidence packet and remains Unsupported; it cannot be silently omitted or turned into an empirical result.
