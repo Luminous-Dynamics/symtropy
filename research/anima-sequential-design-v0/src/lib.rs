@@ -140,6 +140,8 @@ pub enum EngineError {
     DeliveryMismatch,
     WashoutNotCleared,
     InvalidReplicationIdentity,
+    CandidateNotPermittedForUpdate,
+    InvalidUpdateValidityThreshold,
     RepeatedReplicationUnit(String),
     RepeatedSession(String),
     InvalidDeliveryFidelity,
@@ -353,10 +355,26 @@ pub fn condition_on_outcome(
     candidate: &InterventionCandidate,
     record: &ExperimentRecord,
     prior_history: &[ExperimentRecord],
+    minimum_delivery_fidelity: f64,
 ) -> Result<PosteriorUpdate, EngineError> {
     validate_posterior(posterior)?;
     let model_ids: BTreeSet<String> = posterior.keys().cloned().collect();
     validate_candidate(candidate, &model_ids)?;
+    if !minimum_delivery_fidelity.is_finite()
+        || !(0.0..=1.0).contains(&minimum_delivery_fidelity)
+    {
+        return Err(EngineError::InvalidUpdateValidityThreshold);
+    }
+    let validity = &candidate.causal_validity;
+    if !matches!(candidate.feasibility, Feasibility::Permitted)
+        || !validity.assignment_design_valid
+        || !validity.delivery_identity_verified
+        || validity.delivery_fidelity < minimum_delivery_fidelity
+        || !validity.interference_controlled
+        || !validity.carryover_cleared
+    {
+        return Err(EngineError::CandidateNotPermittedForUpdate);
+    }
     if record.assigned_candidate_id != candidate.candidate_id {
         return Err(EngineError::AssignmentMismatch);
     }
@@ -960,7 +978,7 @@ mod tests {
         .unwrap();
         assert!(matches!(first, Decision::Select(ref s) if s.candidate_id == "alpha"));
         let update =
-            condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[]).unwrap();
+            condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[], 0.9).unwrap();
         let new_posterior = match update {
             PosteriorUpdate::Updated { posterior, .. } => posterior,
             other => panic!("unexpected update: {other:?}"),
@@ -978,7 +996,7 @@ mod tests {
         let mut r = record(&c, "yes");
         r.assigned_candidate_id = "wrong".to_owned();
         assert_eq!(
-            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            condition_on_outcome(&posterior(0.5), &c, &r, &[], 0.9),
             Err(EngineError::AssignmentMismatch)
         );
     }
@@ -989,7 +1007,7 @@ mod tests {
         let mut r = record(&c, "yes");
         r.delivered_protocol_id = "wrong".to_owned();
         assert_eq!(
-            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            condition_on_outcome(&posterior(0.5), &c, &r, &[], 0.9),
             Err(EngineError::DeliveryMismatch)
         );
     }
@@ -1000,8 +1018,28 @@ mod tests {
         let mut r = record(&c, "yes");
         r.washout_cleared = false;
         assert_eq!(
-            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            condition_on_outcome(&posterior(0.5), &c, &r, &[], 0.9),
             Err(EngineError::WashoutNotCleared)
+        );
+    }
+
+    #[test]
+    fn invalid_or_unsafe_candidate_cannot_update_posterior() {
+        let mut c = candidate("unsafe", 0.9, 0.1, 1.0);
+        c.feasibility = Feasibility::SafetyRejected { reason: "dose ceiling".into() };
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &record(&c, "yes"), &[], 0.9),
+            Err(EngineError::CandidateNotPermittedForUpdate)
+        );
+    }
+
+    #[test]
+    fn failed_delivery_fidelity_cannot_update_posterior() {
+        let mut c = candidate("weak-delivery", 0.9, 0.1, 1.0);
+        c.causal_validity.delivery_fidelity = 0.5;
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &record(&c, "yes"), &[], 0.9),
+            Err(EngineError::CandidateNotPermittedForUpdate)
         );
     }
 
@@ -1012,7 +1050,7 @@ mod tests {
         let mut next = record(&c, "no");
         next.sample_id = "sample-2".to_owned();
         assert_eq!(
-            condition_on_outcome(&posterior(0.5), &c, &next, &[previous]),
+            condition_on_outcome(&posterior(0.5), &c, &next, &[previous], 0.9),
             Err(EngineError::RepeatedReplicationUnit("animal-1".to_owned()))
         );
     }
@@ -1020,7 +1058,7 @@ mod tests {
     #[test]
     fn zero_probability_observation_requests_model_revision() {
         let c = candidate("stim", 1.0, 1.0, 1.0);
-        let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[]).unwrap();
+        let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[], 0.9).unwrap();
         assert_eq!(
             result,
             PosteriorUpdate::ModelInadequate {
@@ -1151,7 +1189,7 @@ mod tests {
             ..DecisionConfig::default()
         };
         assert!(matches!(
-            choose_next(&state(0.5), &[c.clone()], &fixed).unwrap(),
+            choose_next(&state(0.5), std::slice::from_ref(&c), &fixed).unwrap(),
             Decision::Select(_)
         ));
         assert!(matches!(
