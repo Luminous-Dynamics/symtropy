@@ -38,8 +38,7 @@
     "matrix_kind": {
       "enum": [
         "SMALL_SIGNAL",
-        "DIFFERENTIAL",
-        "SECANT"
+        "DIFFERENTIAL"
       ]
     },
     "operating_point": {
@@ -157,5 +156,6 @@
         "INVALID_INPUT"
       ]
     }
-  }
+  },
+  "description": "Passivity is evaluated only for real-valued local linear or differential inductance matrices at one declared operating point. Secant matrices are outside v1 because 1/2 i^T L_sec i does not generally represent nonlinear stored energy."
 }
