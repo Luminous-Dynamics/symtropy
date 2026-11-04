@@ -44,7 +44,8 @@ pub use fuel::{
 
 pub use measurement_verification::{
     EnergyMvDataset, EnergyMvError, EnergyMvMethod, EnergyMvPlan, EnergyMvReportingPoint,
-    EnergyMvValidationPoint, EnergyMvVerificationReport, verify_energy_mv,
+    EnergyMvReportingReceipt, EnergyMvValidationPoint, EnergyMvValidationReceipt,
+    EnergyMvVerificationReport, verify_energy_mv,
 };
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
