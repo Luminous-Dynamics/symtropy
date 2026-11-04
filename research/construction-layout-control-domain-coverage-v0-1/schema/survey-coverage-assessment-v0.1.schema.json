@@ -1,0 +1,454 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:construction-survey-coverage-assessment:0.1",
+  "title": "Construction Layout Survey Coverage Assessment",
+  "description": "#1607-owned, task-bound coverage/uncertainty assessment for independent survey control. It is consumed by layout admission; it does not perform CRS transforms or adjustment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "task_binding",
+    "frame_binding",
+    "source_artifacts",
+    "independence",
+    "coverage_domain",
+    "uncertainty",
+    "policy_binding",
+    "assessment"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-survey-coverage-assessment/0.1"
+    },
+    "assessment_id": {
+      "$ref": "#/$defs/id"
+    },
+    "task_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "site_id",
+        "work_package_revision",
+        "task_scope",
+        "work_zone_id",
+        "worksite_epoch_sha256",
+        "source_model_sha256",
+        "task_footprint_geometry_sha256"
+      ],
+      "properties": {
+        "project_id": {
+          "$ref": "#/$defs/id"
+        },
+        "site_id": {
+          "$ref": "#/$defs/id"
+        },
+        "work_package_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "task_scope": {
+          "$ref": "#/$defs/id"
+        },
+        "work_zone_id": {
+          "$ref": "#/$defs/id"
+        },
+        "worksite_epoch_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "task_footprint_geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "frame_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "horizontal_crs",
+        "vertical_datum",
+        "coordinate_epoch",
+        "units",
+        "axis_order",
+        "handedness",
+        "transform_bundle_sha256"
+      ],
+      "properties": {
+        "frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "horizontal_crs": {
+          "$ref": "#/$defs/id"
+        },
+        "vertical_datum": {
+          "$ref": "#/$defs/id"
+        },
+        "coordinate_epoch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 128
+        },
+        "units": {
+          "enum": [
+            "metre",
+            "millimetre",
+            "international_foot",
+            "us_survey_foot"
+          ]
+        },
+        "axis_order": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "east",
+              "north",
+              "up",
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        },
+        "handedness": {
+          "enum": [
+            "right_handed",
+            "left_handed"
+          ]
+        },
+        "transform_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source_artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_footprint",
+        "coverage_domain",
+        "survey_adjustment",
+        "control_network",
+        "checkpoint_set",
+        "transform_bundle"
+      ],
+      "properties": {
+        "task_footprint": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "coverage_domain": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "survey_adjustment": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "control_network": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "checkpoint_set": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "transform_bundle": {
+          "$ref": "#/$defs/artifact_ref"
+        },
+        "local_uncertainty_surface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/artifact_ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "independence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fit_point_ids",
+        "independent_check_point_ids",
+        "fit_check_sets_disjoint",
+        "assessment_reference",
+        "profile_reference"
+      ],
+      "properties": {
+        "fit_point_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "independent_check_point_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "fit_check_sets_disjoint": {
+          "const": true
+        },
+        "assessment_reference": {
+          "$ref": "#/$defs/id"
+        },
+        "profile_reference": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "coverage_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "local_support_method",
+        "task_footprint_relation",
+        "task_area_m2",
+        "supported_area_m2",
+        "unsupported_area_m2",
+        "maximum_unsupported_distance_mm",
+        "maximum_control_gap_mm",
+        "maximum_delaunay_circumradius_mm",
+        "minimum_support_hull_margin_mm",
+        "unsupported_critical_segments"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "independent_control_hull_with_local_support",
+            "survey_coverage_polygon_with_local_support",
+            "other_declared_method"
+          ]
+        },
+        "local_support_method": {
+          "enum": [
+            "maximum_nearest_control_distance",
+            "delaunay_gap_bound",
+            "uncertainty_surface",
+            "combined_local_support_model",
+            "other_declared_method"
+          ]
+        },
+        "task_footprint_relation": {
+          "enum": [
+            "fully_inside",
+            "partially_outside",
+            "indeterminate"
+          ]
+        },
+        "task_area_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "supported_area_m2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unsupported_area_m2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_unsupported_distance_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_control_gap_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_delaunay_circumradius_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_support_hull_margin_mm": {
+          "type": "number"
+        },
+        "unsupported_critical_segments": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "maximum_local_u95_mm",
+        "uncertainty_method_reference",
+        "uncertainty_surface_reference"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "qualified",
+            "exceeds_policy",
+            "not_established",
+            "indeterminate"
+          ]
+        },
+        "maximum_local_u95_mm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "uncertainty_method_reference": {
+          "$ref": "#/$defs/id"
+        },
+        "uncertainty_surface_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        }
+      }
+    },
+    "policy_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "policy_sha256",
+        "maximum_u95_mm",
+        "maximum_unsupported_distance_mm",
+        "maximum_unsupported_area_m2",
+        "minimum_hull_margin_mm",
+        "require_zero_critical_extrapolation"
+      ],
+      "properties": {
+        "policy_id": {
+          "$ref": "#/$defs/id"
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "maximum_u95_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum_unsupported_distance_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_unsupported_area_m2": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_hull_margin_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "require_zero_critical_extrapolation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "reason_codes",
+        "limitations",
+        "producer_tool_id",
+        "producer_version",
+        "producer_config_sha256",
+        "independent_review_status",
+        "record_reference"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "fully_supported",
+            "partially_supported",
+            "outside_domain",
+            "indeterminate",
+            "not_evaluated"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "producer_tool_id": {
+          "$ref": "#/$defs/id"
+        },
+        "producer_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "producer_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "independent_review_status": {
+          "enum": [
+            "not_reviewed",
+            "internal_review",
+            "independent_survey_reviewed"
+          ]
+        },
+        "record_reference": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "role"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "role": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    }
+  }
+}
