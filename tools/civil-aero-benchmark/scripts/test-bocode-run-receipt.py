@@ -181,6 +181,7 @@ def main() -> int:
         (root / "stdout.bin").write_bytes(b"tampered")
         tampered = run_verifier(receipt)
         assert tampered.returncode != 0, "artifact tampering was not rejected"
+        (root / "stdout.bin").write_bytes(b"OK fixture\\n")
 
         wrong = Path(temp) / "wrong-shape"
         wrong.mkdir()
