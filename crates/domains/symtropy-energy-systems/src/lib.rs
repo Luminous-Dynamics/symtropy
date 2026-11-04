@@ -56,7 +56,7 @@ pub use matched_service::{
 };
 
 pub use online_adaptive::{
-    OnlineAdaptiveBlockReceipt, OnlineAdaptiveCalibrationContract,
+    OnlineAdaptiveBlockReceipt, OnlineAdaptiveCalibrationContract, OnlineAdaptiveCellReceipt,
     OnlineAdaptiveCalibrationError, OnlineAdaptiveCalibrationReport,
     evaluate_online_adaptive_calibration,
 };
