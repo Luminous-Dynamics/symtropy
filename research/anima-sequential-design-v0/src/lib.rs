@@ -206,13 +206,22 @@ pub struct Selection {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Decision {
     Select(Selection),
-    Stop { reason: StopReason, receipt: PolicyReceipt },
-    Abstain { reason: AbstainReason, receipt: PolicyReceipt },
+    Stop {
+        reason: StopReason,
+        receipt: PolicyReceipt,
+    },
+    Abstain {
+        reason: AbstainReason,
+        receipt: PolicyReceipt,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PosteriorUpdate {
-    Updated { posterior: Posterior, marginal_likelihood: f64 },
+    Updated {
+        posterior: Posterior,
+        marginal_likelihood: f64,
+    },
     /// The observation is impossible under every surviving model; request revision.
     ModelInadequate { marginal_likelihood: f64 },
 }
@@ -268,8 +277,7 @@ fn validate_candidate(
     }
 
     let mut outcome_ids = BTreeSet::new();
-    let mut totals: BTreeMap<String, f64> =
-        model_ids.iter().cloned().map(|id| (id, 0.0)).collect();
+    let mut totals: BTreeMap<String, f64> = model_ids.iter().cloned().map(|id| (id, 0.0)).collect();
     for outcome in &candidate.outcomes {
         if outcome.outcome_id.trim().is_empty() {
             return Err(EngineError::EmptyIdentifier("outcome_id"));
@@ -311,7 +319,12 @@ pub fn expected_information_gain(
         let marginal: f64 = posterior
             .iter()
             .map(|(model, prior)| {
-                prior * outcome.model_probabilities.get(model).copied().unwrap_or(0.0)
+                prior
+                    * outcome
+                        .model_probabilities
+                        .get(model)
+                        .copied()
+                        .unwrap_or(0.0)
             })
             .sum();
         if marginal == 0.0 {
@@ -364,7 +377,9 @@ pub fn condition_on_outcome(
             return Err(EngineError::DuplicateSample(record.sample_id.clone()));
         }
         if previous.replication_unit_id == record.replication_unit_id {
-            return Err(EngineError::RepeatedReplicationUnit(record.replication_unit_id.clone()));
+            return Err(EngineError::RepeatedReplicationUnit(
+                record.replication_unit_id.clone(),
+            ));
         }
         if previous.session_id == record.session_id {
             return Err(EngineError::RepeatedSession(record.session_id.clone()));
@@ -400,10 +415,7 @@ pub fn condition_on_outcome(
     })
 }
 
-fn validate_state(
-    state: &DecisionState,
-    config: &DecisionConfig,
-) -> Result<(), EngineError> {
+fn validate_state(state: &DecisionState, config: &DecisionConfig) -> Result<(), EngineError> {
     validate_posterior(&state.posterior)?;
     if !state.remaining_cost_budget.is_finite() || state.remaining_cost_budget < 0.0 {
         return Err(EngineError::InvalidBudget);
@@ -411,7 +423,9 @@ fn validate_state(
     if !config.minimum_information_gain_nats.is_finite()
         || config.minimum_information_gain_nats < 0.0
     {
-        return Err(EngineError::InvalidThreshold("minimum_information_gain_nats"));
+        return Err(EngineError::InvalidThreshold(
+            "minimum_information_gain_nats",
+        ));
     }
     if !config.posterior_stop_probability.is_finite()
         || !(0.0..=1.0).contains(&config.posterior_stop_probability)
@@ -503,9 +517,7 @@ fn fingerprint(bytes: &[u8]) -> ReproducibilityFingerprint {
     }
 }
 
-fn candidate_fingerprint(
-    candidates: &[InterventionCandidate],
-) -> ReproducibilityFingerprint {
+fn candidate_fingerprint(candidates: &[InterventionCandidate]) -> ReproducibilityFingerprint {
     let mut sorted: Vec<&InterventionCandidate> = candidates.iter().collect();
     sorted.sort_by(|a, b| a.candidate_id.cmp(&b.candidate_id));
     let mut bytes = Vec::new();
@@ -549,18 +561,17 @@ fn candidate_fingerprint(
     fingerprint(&bytes)
 }
 
-fn state_fingerprint(
-    state: &DecisionState,
-    config: &DecisionConfig,
-) -> ReproducibilityFingerprint {
+fn state_fingerprint(state: &DecisionState, config: &DecisionConfig) -> ReproducibilityFingerprint {
     let mut bytes = Vec::new();
     push_len(&mut bytes, state.posterior.len());
     for (model, probability) in &state.posterior {
         push_str(&mut bytes, model);
         push_f64(&mut bytes, *probability);
     }
-    let mut ambiguity: Vec<ReproducibilityFingerprint> =
-        state.ambiguity_posteriors.iter().map(|posterior| {
+    let mut ambiguity: Vec<ReproducibilityFingerprint> = state
+        .ambiguity_posteriors
+        .iter()
+        .map(|posterior| {
             let mut encoded = Vec::new();
             push_len(&mut encoded, posterior.len());
             for (model, probability) in posterior {
@@ -568,7 +579,8 @@ fn state_fingerprint(
                 push_f64(&mut encoded, *probability);
             }
             fingerprint(&encoded)
-        }).collect();
+        })
+        .collect();
     ambiguity.sort_by(|a, b| a.value_hex.cmp(&b.value_hex));
     push_len(&mut bytes, ambiguity.len());
     for item in ambiguity {
@@ -653,18 +665,23 @@ pub fn choose_next(
         validate_candidate(candidate, &model_ids)?;
         cost_units.insert(candidate.cost_unit_id.clone());
         if !candidate_ids.insert(candidate.candidate_id.clone()) {
-            return Err(EngineError::DuplicateCandidate(candidate.candidate_id.clone()));
+            return Err(EngineError::DuplicateCandidate(
+                candidate.candidate_id.clone(),
+            ));
         }
     }
     if cost_units.len() > 1 {
         return Err(EngineError::CostUnitMismatch);
     }
-    let rejected: Vec<CandidateRejection> = candidates.iter().filter_map(|candidate| {
-        reject_candidate(candidate, config, state).map(|reason| CandidateRejection {
-            candidate_id: candidate.candidate_id.clone(),
-            reason,
+    let rejected: Vec<CandidateRejection> = candidates
+        .iter()
+        .filter_map(|candidate| {
+            reject_candidate(candidate, config, state).map(|reason| CandidateRejection {
+                candidate_id: candidate.candidate_id.clone(),
+                reason,
+            })
         })
-    }).collect();
+        .collect();
 
     let summary = |selected, eig, robust, rejected| ReceiptSummary {
         selected_candidate_id: selected,
@@ -673,7 +690,12 @@ pub fn choose_next(
         rejected_candidates: rejected,
     };
     if state.model_adequacy == ModelAdequacy::FailedPosteriorPredictiveCheck {
-        let receipt = make_receipt(state, candidates, config, summary(None, None, None, rejected));
+        let receipt = make_receipt(
+            state,
+            candidates,
+            config,
+            summary(None, None, None, rejected),
+        );
         return Ok(Decision::Stop {
             reason: StopReason::ModelInadequateRequestRevision,
             receipt,
@@ -682,31 +704,55 @@ pub fn choose_next(
     if state.posterior.values().copied().fold(0.0_f64, f64::max)
         >= config.posterior_stop_probability
     {
-        let receipt = make_receipt(state, candidates, config, summary(None, None, None, rejected));
-        return Ok(Decision::Stop { reason: StopReason::PosteriorThresholdReached, receipt });
+        let receipt = make_receipt(
+            state,
+            candidates,
+            config,
+            summary(None, None, None, rejected),
+        );
+        return Ok(Decision::Stop {
+            reason: StopReason::PosteriorThresholdReached,
+            receipt,
+        });
     }
     if state.completed_experiments >= config.maximum_experiments {
-        let receipt = make_receipt(state, candidates, config, summary(None, None, None, rejected));
+        let receipt = make_receipt(
+            state,
+            candidates,
+            config,
+            summary(None, None, None, rejected),
+        );
         return Ok(Decision::Stop {
             reason: StopReason::PreregisteredExperimentLimitReached,
             receipt,
         });
     }
 
-    let mut eligible: Vec<&InterventionCandidate> = candidates.iter()
+    let mut eligible: Vec<&InterventionCandidate> = candidates
+        .iter()
         .filter(|candidate| reject_candidate(candidate, config, state).is_none())
         .collect();
     eligible.sort_by(|a, b| a.candidate_id.cmp(&b.candidate_id));
     if eligible.is_empty() {
-        let receipt = make_receipt(state, candidates, config, summary(None, None, None, rejected));
-        return Ok(Decision::Abstain { reason: AbstainReason::NoPermittedCandidate, receipt });
+        let receipt = make_receipt(
+            state,
+            candidates,
+            config,
+            summary(None, None, None, rejected),
+        );
+        return Ok(Decision::Abstain {
+            reason: AbstainReason::NoPermittedCandidate,
+            receipt,
+        });
     }
 
     let mut scored = Vec::with_capacity(eligible.len());
     for candidate in eligible {
         let current_gain = expected_information_gain(&state.posterior, candidate)?;
         let robust_gain = if config.policy == SelectionPolicy::RobustMaximin {
-            let gains = state.ambiguity_posteriors.iter()
+            let gains = state
+                .ambiguity_posteriors
+                .iter()
                 .map(|posterior| expected_information_gain(posterior, candidate))
                 .collect::<Result<Vec<_>, _>>()?;
             gains.into_iter().fold(current_gain, f64::min)
@@ -718,22 +764,23 @@ pub fn choose_next(
             SelectionPolicy::CostNormalizedEig | SelectionPolicy::RobustMaximin => {
                 robust_gain / candidate.cost
             }
-            SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedCanonicalOrder => 0.0,
+            SelectionPolicy::DeterministicRandom { .. } | SelectionPolicy::FixedCanonicalOrder => {
+                0.0
+            }
         };
         scored.push((candidate, current_gain, robust_gain, score));
     }
 
     let selected_index = match config.policy {
-        SelectionPolicy::DeterministicRandom { seed } => {
-            (splitmix64(seed) as usize) % scored.len()
-        }
+        SelectionPolicy::DeterministicRandom { seed } => (splitmix64(seed) as usize) % scored.len(),
         SelectionPolicy::FixedCanonicalOrder => {
             scored.sort_by(|a, b| a.0.candidate_id.cmp(&b.0.candidate_id));
             0
         }
         _ => {
             scored.sort_by(|a, b| {
-                b.3.total_cmp(&a.3).then_with(|| a.0.candidate_id.cmp(&b.0.candidate_id))
+                b.3.total_cmp(&a.3)
+                    .then_with(|| a.0.candidate_id.cmp(&b.0.candidate_id))
             });
             0
         }
@@ -750,7 +797,10 @@ pub fn choose_next(
             config,
             summary(None, Some(current_gain), Some(robust_gain), rejected),
         );
-        return Ok(Decision::Abstain { reason: AbstainReason::NoInformativeCandidate, receipt });
+        return Ok(Decision::Abstain {
+            reason: AbstainReason::NoInformativeCandidate,
+            receipt,
+        });
     }
     let receipt = make_receipt(
         state,
@@ -777,10 +827,7 @@ mod tests {
     use super::*;
 
     fn posterior(p: f64) -> Posterior {
-        BTreeMap::from([
-            ("model-a".to_owned(), p),
-            ("model-b".to_owned(), 1.0 - p),
-        ])
+        BTreeMap::from([("model-a".to_owned(), p), ("model-b".to_owned(), 1.0 - p)])
     }
 
     fn candidate(id: &str, a_yes: f64, b_yes: f64, cost: f64) -> InterventionCandidate {
@@ -842,14 +889,21 @@ mod tests {
 
     #[test]
     fn identical_predictions_have_zero_eig() {
-        assert!(expected_information_gain(&posterior(0.5), &candidate("same", 0.8, 0.8, 1.0))
-            .unwrap().abs() < 1.0e-12);
+        assert!(
+            expected_information_gain(&posterior(0.5), &candidate("same", 0.8, 0.8, 1.0))
+                .unwrap()
+                .abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
     fn disagreement_has_positive_eig() {
-        assert!(expected_information_gain(&posterior(0.5), &candidate("separating", 0.9, 0.1, 1.0))
-            .unwrap() > 0.3);
+        assert!(
+            expected_information_gain(&posterior(0.5), &candidate("separating", 0.9, 0.1, 1.0))
+                .unwrap()
+                > 0.3
+        );
     }
 
     #[test]
@@ -858,10 +912,15 @@ mod tests {
             candidate("weak", 0.6, 0.4, 1.0),
             candidate("strong", 0.9, 0.1, 1.0),
         ];
-        let result = choose_next(&state(0.5), &items, &DecisionConfig {
-            policy: SelectionPolicy::GreedyEig,
-            ..DecisionConfig::default()
-        }).unwrap();
+        let result = choose_next(
+            &state(0.5),
+            &items,
+            &DecisionConfig {
+                policy: SelectionPolicy::GreedyEig,
+                ..DecisionConfig::default()
+            },
+        )
+        .unwrap();
         assert!(matches!(result, Decision::Select(s) if s.candidate_id == "strong"));
     }
 
@@ -893,9 +952,15 @@ mod tests {
     fn sequential_update_changes_the_next_best_intervention() {
         let alpha = candidate("alpha", 0.8, 0.1, 1.0);
         let beta = candidate("beta", 0.1, 0.8, 1.0);
-        let first = choose_next(&state(0.5), &[alpha.clone(), beta.clone()], &DecisionConfig::default()).unwrap();
+        let first = choose_next(
+            &state(0.5),
+            &[alpha.clone(), beta.clone()],
+            &DecisionConfig::default(),
+        )
+        .unwrap();
         assert!(matches!(first, Decision::Select(ref s) if s.candidate_id == "alpha"));
-        let update = condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[]).unwrap();
+        let update =
+            condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[]).unwrap();
         let new_posterior = match update {
             PosteriorUpdate::Updated { posterior, .. } => posterior,
             other => panic!("unexpected update: {other:?}"),
@@ -912,7 +977,10 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.assigned_candidate_id = "wrong".to_owned();
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::AssignmentMismatch));
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            Err(EngineError::AssignmentMismatch)
+        );
     }
 
     #[test]
@@ -920,7 +988,10 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.delivered_protocol_id = "wrong".to_owned();
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::DeliveryMismatch));
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            Err(EngineError::DeliveryMismatch)
+        );
     }
 
     #[test]
@@ -928,7 +999,10 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.washout_cleared = false;
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::WashoutNotCleared));
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &r, &[]),
+            Err(EngineError::WashoutNotCleared)
+        );
     }
 
     #[test]
@@ -947,15 +1021,27 @@ mod tests {
     fn zero_probability_observation_requests_model_revision() {
         let c = candidate("stim", 1.0, 1.0, 1.0);
         let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[]).unwrap();
-        assert_eq!(result, PosteriorUpdate::ModelInadequate { marginal_likelihood: 0.0 });
+        assert_eq!(
+            result,
+            PosteriorUpdate::ModelInadequate {
+                marginal_likelihood: 0.0
+            }
+        );
     }
 
     #[test]
     fn safety_gate_overrides_information_gain() {
         let mut unsafe_item = candidate("unsafe", 0.99, 0.01, 1.0);
-        unsafe_item.feasibility = Feasibility::SafetyRejected { reason: "protocol ceiling".into() };
+        unsafe_item.feasibility = Feasibility::SafetyRejected {
+            reason: "protocol ceiling".into(),
+        };
         let safe = candidate("safe", 0.7, 0.3, 1.0);
-        let result = choose_next(&state(0.5), &[unsafe_item, safe], &DecisionConfig::default()).unwrap();
+        let result = choose_next(
+            &state(0.5),
+            &[unsafe_item, safe],
+            &DecisionConfig::default(),
+        )
+        .unwrap();
         assert!(matches!(result, Decision::Select(s) if s.candidate_id == "safe"));
     }
 
@@ -965,7 +1051,10 @@ mod tests {
         c.causal_validity.assignment_design_valid = false;
         assert!(matches!(
             choose_next(&state(0.5), &[c], &DecisionConfig::default()).unwrap(),
-            Decision::Abstain { reason: AbstainReason::NoPermittedCandidate, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NoPermittedCandidate,
+                ..
+            }
         ));
     }
 
@@ -975,7 +1064,10 @@ mod tests {
         c.causal_validity.delivery_fidelity = 0.5;
         assert!(matches!(
             choose_next(&state(0.5), &[c], &DecisionConfig::default()).unwrap(),
-            Decision::Abstain { reason: AbstainReason::NoPermittedCandidate, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NoPermittedCandidate,
+                ..
+            }
         ));
     }
 
@@ -984,24 +1076,48 @@ mod tests {
         let mut s = state(0.5);
         s.remaining_cost_budget = 0.5;
         assert!(matches!(
-            choose_next(&s, &[candidate("costly", 0.99, 0.01, 1.0)], &DecisionConfig::default()).unwrap(),
-            Decision::Abstain { reason: AbstainReason::NoPermittedCandidate, .. }
+            choose_next(
+                &s,
+                &[candidate("costly", 0.99, 0.01, 1.0)],
+                &DecisionConfig::default()
+            )
+            .unwrap(),
+            Decision::Abstain {
+                reason: AbstainReason::NoPermittedCandidate,
+                ..
+            }
         ));
     }
 
     #[test]
     fn no_information_causes_abstention() {
         assert!(matches!(
-            choose_next(&state(0.5), &[candidate("none", 0.5, 0.5, 1.0)], &DecisionConfig::default()).unwrap(),
-            Decision::Abstain { reason: AbstainReason::NoInformativeCandidate, .. }
+            choose_next(
+                &state(0.5),
+                &[candidate("none", 0.5, 0.5, 1.0)],
+                &DecisionConfig::default()
+            )
+            .unwrap(),
+            Decision::Abstain {
+                reason: AbstainReason::NoInformativeCandidate,
+                ..
+            }
         ));
     }
 
     #[test]
     fn posterior_threshold_causes_preregistered_stop() {
         assert!(matches!(
-            choose_next(&state(0.96), &[candidate("x", 0.9, 0.1, 1.0)], &DecisionConfig::default()).unwrap(),
-            Decision::Stop { reason: StopReason::PosteriorThresholdReached, .. }
+            choose_next(
+                &state(0.96),
+                &[candidate("x", 0.9, 0.1, 1.0)],
+                &DecisionConfig::default()
+            )
+            .unwrap(),
+            Decision::Stop {
+                reason: StopReason::PosteriorThresholdReached,
+                ..
+            }
         ));
     }
 
@@ -1010,18 +1126,38 @@ mod tests {
         let mut s = state(0.5);
         s.model_adequacy = ModelAdequacy::FailedPosteriorPredictiveCheck;
         assert!(matches!(
-            choose_next(&s, &[candidate("x", 0.9, 0.1, 1.0)], &DecisionConfig::default()).unwrap(),
-            Decision::Stop { reason: StopReason::ModelInadequateRequestRevision, .. }
+            choose_next(
+                &s,
+                &[candidate("x", 0.9, 0.1, 1.0)],
+                &DecisionConfig::default()
+            )
+            .unwrap(),
+            Decision::Stop {
+                reason: StopReason::ModelInadequateRequestRevision,
+                ..
+            }
         ));
     }
 
     #[test]
     fn fixed_and_random_baselines_are_not_filtered_by_eig() {
         let c = candidate("low", 0.5, 0.5, 1.0);
-        let fixed = DecisionConfig { policy: SelectionPolicy::FixedCanonicalOrder, ..DecisionConfig::default() };
-        let random = DecisionConfig { policy: SelectionPolicy::DeterministicRandom { seed: 7 }, ..DecisionConfig::default() };
-        assert!(matches!(choose_next(&state(0.5), &[c.clone()], &fixed).unwrap(), Decision::Select(_)));
-        assert!(matches!(choose_next(&state(0.5), &[c], &random).unwrap(), Decision::Select(_)));
+        let fixed = DecisionConfig {
+            policy: SelectionPolicy::FixedCanonicalOrder,
+            ..DecisionConfig::default()
+        };
+        let random = DecisionConfig {
+            policy: SelectionPolicy::DeterministicRandom { seed: 7 },
+            ..DecisionConfig::default()
+        };
+        assert!(matches!(
+            choose_next(&state(0.5), &[c.clone()], &fixed).unwrap(),
+            Decision::Select(_)
+        ));
+        assert!(matches!(
+            choose_next(&state(0.5), &[c], &random).unwrap(),
+            Decision::Select(_)
+        ));
     }
 
     #[test]
@@ -1029,20 +1165,33 @@ mod tests {
         let mut s = state(0.5);
         s.ambiguity_posteriors = vec![posterior(0.99)];
         let c = candidate("robust", 0.9, 0.1, 1.0);
-        let expected = expected_information_gain(&s.posterior, &c).unwrap()
+        let expected = expected_information_gain(&s.posterior, &c)
+            .unwrap()
             .min(expected_information_gain(&s.ambiguity_posteriors[0], &c).unwrap());
-        let result = choose_next(&s, &[c], &DecisionConfig {
-            policy: SelectionPolicy::RobustMaximin,
-            ..DecisionConfig::default()
-        }).unwrap();
-        assert!(matches!(result, Decision::Select(s) if (s.robust_information_gain_nats - expected).abs() < 1.0e-12));
+        let result = choose_next(
+            &s,
+            &[c],
+            &DecisionConfig {
+                policy: SelectionPolicy::RobustMaximin,
+                ..DecisionConfig::default()
+            },
+        )
+        .unwrap();
+        assert!(
+            matches!(result, Decision::Select(s) if (s.robust_information_gain_nats - expected).abs() < 1.0e-12)
+        );
     }
 
     #[test]
     fn candidate_order_does_not_change_deterministic_decision() {
         let a = candidate("alpha", 0.9, 0.1, 1.0);
         let b = candidate("beta", 0.7, 0.3, 1.0);
-        let first = choose_next(&state(0.5), &[a.clone(), b.clone()], &DecisionConfig::default()).unwrap();
+        let first = choose_next(
+            &state(0.5),
+            &[a.clone(), b.clone()],
+            &DecisionConfig::default(),
+        )
+        .unwrap();
         let second = choose_next(&state(0.5), &[b, a], &DecisionConfig::default()).unwrap();
         assert_eq!(first, second);
     }
@@ -1050,7 +1199,10 @@ mod tests {
     #[test]
     fn random_policy_is_seed_reproducible() {
         let items = vec![candidate("a", 0.7, 0.3, 1.0), candidate("b", 0.8, 0.2, 1.0)];
-        let config = DecisionConfig { policy: SelectionPolicy::DeterministicRandom { seed: 31 }, ..DecisionConfig::default() };
+        let config = DecisionConfig {
+            policy: SelectionPolicy::DeterministicRandom { seed: 31 },
+            ..DecisionConfig::default()
+        };
         assert_eq!(
             choose_next(&state(0.5), &items, &config).unwrap(),
             choose_next(&state(0.5), &items, &config).unwrap()
@@ -1101,23 +1253,45 @@ mod tests {
                 let mut config = DecisionConfig::default();
                 match regime {
                     0 => {}
-                    1 => { items.reverse(); }
-                    2 => { good.outcomes.reverse(); items[1] = good; }
-                    3 => { poor.feasibility = Feasibility::SafetyRejected { reason: "fixture".into() }; items[0] = poor; }
-                    4 => { poor.causal_validity.assignment_design_valid = false; items[0] = poor; }
-                    5 => { s.remaining_cost_budget = 0.5; }
+                    1 => {
+                        items.reverse();
+                    }
+                    2 => {
+                        good.outcomes.reverse();
+                        items[1] = good;
+                    }
+                    3 => {
+                        poor.feasibility = Feasibility::SafetyRejected {
+                            reason: "fixture".into(),
+                        };
+                        items[0] = poor;
+                    }
+                    4 => {
+                        poor.causal_validity.assignment_design_valid = false;
+                        items[0] = poor;
+                    }
+                    5 => {
+                        s.remaining_cost_budget = 0.5;
+                    }
                     6 => {
                         s.ambiguity_posteriors = vec![posterior(0.5)];
                         config.policy = SelectionPolicy::RobustMaximin;
                     }
-                    7 => { items[1].causal_validity.delivery_fidelity = 0.2; }
+                    7 => {
+                        items[1].causal_validity.delivery_fidelity = 0.2;
+                    }
                     _ => unreachable!(),
                 }
                 let result = choose_next(&s, &items, &config).unwrap();
                 if regime == 7 {
-                    assert!(matches!(result, Decision::Select(ref selection) if selection.candidate_id != format!("good-{regime}-{variant}")));
+                    assert!(
+                        matches!(result, Decision::Select(ref selection) if selection.candidate_id != format!("good-{regime}-{variant}"))
+                    );
                 } else {
-                    assert!(matches!(result, Decision::Select(_)), "regime={regime}, variant={variant}: {result:?}");
+                    assert!(
+                        matches!(result, Decision::Select(_)),
+                        "regime={regime}, variant={variant}: {result:?}"
+                    );
                 }
             }
         }
