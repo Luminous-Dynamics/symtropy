@@ -156,27 +156,27 @@ impl SplitAuditReport {
         let mut output = String::new();
         let _ = writeln!(&mut output, "CIVBENCH_SPLIT_AUDIT_V0.1");
         let _ = writeln!(&mut output, "protocol_id={}", self.protocol_id);
-        let _ = writeln!(&mut output, "manifest_digest=sha256:{}", self.manifest_digest);
+        let _ = writeln!(
+            &mut output,
+            "manifest_digest=sha256:{}",
+            self.manifest_digest
+        );
         for dimension in &self.exclusive_dimensions {
-            let _ = writeln!(
-                &mut output,
-                "exclusive_dimension={}",
-                dimension.as_str()
-            );
+            let _ = writeln!(&mut output, "exclusive_dimension={}", dimension.as_str());
         }
         for dimension in &self.shared_dimensions {
             let _ = writeln!(&mut output, "shared_dimension={}", dimension.as_str());
         }
         let _ = writeln!(&mut output, "sample_count={}", self.sample_count);
         for (partition, count) in &self.partition_counts {
-            let _ = writeln!(&mut output, "partition={},count={count}", partition.as_str());
-        }
-        for (dimension, count) in &self.group_counts {
             let _ = writeln!(
                 &mut output,
-                "groups={},count={count}",
-                dimension.as_str()
+                "partition={},count={count}",
+                partition.as_str()
             );
+        }
+        for (dimension, count) in &self.group_counts {
+            let _ = writeln!(&mut output, "groups={},count={count}", dimension.as_str());
         }
         let _ = writeln!(
             &mut output,
@@ -292,12 +292,10 @@ pub fn audit_benchmark_split(
 
     let mut sample_ids = BTreeSet::new();
     let mut content_digests = BTreeMap::<String, String>::new();
-    let mut group_partitions =
-        BTreeMap::<(LeakageDimension, String), DataPartition>::new();
+    let mut group_partitions = BTreeMap::<(LeakageDimension, String), DataPartition>::new();
     let mut shared_group_partitions =
         BTreeMap::<(LeakageDimension, String), BTreeSet<DataPartition>>::new();
-    let mut group_values =
-        BTreeMap::<LeakageDimension, BTreeSet<String>>::new();
+    let mut group_values = BTreeMap::<LeakageDimension, BTreeSet<String>>::new();
     let mut partition_counts = BTreeMap::from([
         (DataPartition::Train, 0_usize),
         (DataPartition::Validation, 0_usize),
@@ -355,15 +353,14 @@ pub fn audit_benchmark_split(
 
             let key = (group.dimension, group.value.clone());
             if policy.exclusive_dimensions.contains(&group.dimension) {
-                if let Some(previous_partition) =
-                    group_partitions.insert(key.clone(), sample.partition)
+                if group_partitions
+                    .insert(key.clone(), sample.partition)
+                    .is_some_and(|previous_partition| previous_partition != sample.partition)
                 {
-                    if previous_partition != sample.partition {
-                        return Err(SplitAuditError::new(
-                            "cross_partition_group_overlap",
-                            format!("{}={}", key.0.as_str(), key.1),
-                        ));
-                    }
+                    return Err(SplitAuditError::new(
+                        "cross_partition_group_overlap",
+                        format!("{}={}", key.0.as_str(), key.1),
+                    ));
                 }
             }
             if policy.shared_dimensions.contains(&group.dimension) {
@@ -389,11 +386,13 @@ pub fn audit_benchmark_split(
         DataPartition::Validation,
         DataPartition::Test,
     ] {
-        if partition_counts.get(&partition).copied().unwrap_or_default() == 0 {
-            return Err(SplitAuditError::new(
-                "empty_partition",
-                partition.as_str(),
-            ));
+        if partition_counts
+            .get(&partition)
+            .copied()
+            .unwrap_or_default()
+            == 0
+        {
+            return Err(SplitAuditError::new("empty_partition", partition.as_str()));
         }
     }
 
@@ -489,10 +488,38 @@ mod tests {
 
     fn valid_samples() -> Vec<BenchmarkSample> {
         vec![
-            sample("train-a", DataPartition::Train, 1, "event-a", "session-a", "net-1"),
-            sample("train-b", DataPartition::Train, 2, "event-b", "session-b", "net-1"),
-            sample("validation-a", DataPartition::Validation, 3, "event-c", "session-c", "net-1"),
-            sample("test-a", DataPartition::Test, 4, "event-d", "session-d", "net-1"),
+            sample(
+                "train-a",
+                DataPartition::Train,
+                1,
+                "event-a",
+                "session-a",
+                "net-1",
+            ),
+            sample(
+                "train-b",
+                DataPartition::Train,
+                2,
+                "event-b",
+                "session-b",
+                "net-1",
+            ),
+            sample(
+                "validation-a",
+                DataPartition::Validation,
+                3,
+                "event-c",
+                "session-c",
+                "net-1",
+            ),
+            sample(
+                "test-a",
+                DataPartition::Test,
+                4,
+                "event-d",
+                "session-d",
+                "net-1",
+            ),
         ]
     }
 
@@ -510,12 +537,11 @@ mod tests {
     #[test]
     fn cross_network_protocol_rejects_a_shared_network() {
         let mut policy = event_session_policy();
-        policy.exclusive_dimensions.insert(LeakageDimension::Network);
         policy
-            .shared_dimensions
-            .remove(&LeakageDimension::Network);
-        let error =
-            audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
+            .exclusive_dimensions
+            .insert(LeakageDimension::Network);
+        policy.shared_dimensions.remove(&LeakageDimension::Network);
+        let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
         assert_eq!(error.code, "cross_partition_group_overlap");
         assert_eq!(error.subject, "network=net-1");
     }
@@ -593,8 +619,8 @@ mod tests {
     fn invalid_digest_syntax_is_rejected() {
         let mut samples = valid_samples();
         samples[0].content_digest = "sha256:00".to_owned();
-        let error = audit_benchmark_split(&samples, &event_session_policy())
-            .expect_err("malformed digest");
+        let error =
+            audit_benchmark_split(&samples, &event_session_policy()).expect_err("malformed digest");
         assert_eq!(error.code, "invalid_content_digest");
     }
 
@@ -602,8 +628,8 @@ mod tests {
     fn whitespace_padded_identifiers_are_rejected() {
         let mut samples = valid_samples();
         samples[0].leakage_groups[0].value = " event-a".to_owned();
-        let error = audit_benchmark_split(&samples, &event_session_policy())
-            .expect_err("padded reference");
+        let error =
+            audit_benchmark_split(&samples, &event_session_policy()).expect_err("padded reference");
         assert_eq!(error.code, "invalid_leakage_group");
     }
 
@@ -615,16 +641,14 @@ mod tests {
             exclusive_dimensions: BTreeSet::new(),
             shared_dimensions: BTreeSet::new(),
         };
-        let error =
-            audit_benchmark_split(&valid_samples(), &policy).expect_err("empty policy");
+        let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("empty policy");
         assert_eq!(error.code, "empty_exclusive_dimensions");
     }
 
     #[test]
     fn canonical_report_is_invariant_to_sample_order() {
         let samples = valid_samples();
-        let first =
-            audit_benchmark_split(&samples, &event_session_policy()).expect("valid split");
+        let first = audit_benchmark_split(&samples, &event_session_policy()).expect("valid split");
         let mut reversed = samples;
         reversed.reverse();
         let second =
