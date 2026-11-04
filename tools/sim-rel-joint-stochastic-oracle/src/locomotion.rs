@@ -858,10 +858,8 @@ impl LocomotionKernelSpec {
                 }
                 let source_index =
                     lookup(&source_indices, "transition_source_manifest_id", source_id)?;
-                supports_claim |= source_supports_claim(
-                    &self.source_manifests[source_index],
-                    row.claim_ceiling,
-                );
+                supports_claim |=
+                    source_supports_claim(&self.source_manifests[source_index], row.claim_ceiling);
             }
             if !supports_claim {
                 return Err(AdapterError::InvalidEvidenceClaim {
