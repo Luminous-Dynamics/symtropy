@@ -303,9 +303,7 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
     {
         out.hard("source_model_revision_or_digest_not_approved");
     }
-    if export.source_model_id != source.model_id
-        || export.source_model_sha256 != source.sha256
-    {
+    if export.source_model_id != source.model_id || export.source_model_sha256 != source.sha256 {
         out.hard("export_source_model_identity_or_digest_mismatch");
     }
     if export.source_model_revision != source.revision {
@@ -331,7 +329,11 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
     }
 
     check_digest(&source.sha256, "source_model_digest_malformed", out);
-    check_digest(&export.source_model_sha256, "export_source_model_digest_malformed", out);
+    check_digest(
+        &export.source_model_sha256,
+        "export_source_model_digest_malformed",
+        out,
+    );
     check_digest(&export.sha256, "export_digest_malformed", out);
     check_digest(
         &export.exporter_config_sha256,
