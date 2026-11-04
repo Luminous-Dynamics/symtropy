@@ -1486,6 +1486,76 @@ mod tests {
     }
 
     #[test]
+    fn compiler_rejects_cross_modal_effect_in_a_movement_gate_row() {
+        let mut input = spec();
+        let base_sensor = input
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+            })
+            .unwrap()
+            .id
+            .clone();
+        let wrong_target = input
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Gated
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::Calibrated
+            })
+            .unwrap()
+            .id
+            .clone();
+        let row = input
+            .transition_rows
+            .iter_mut()
+            .find(|row| {
+                row.hypothesis_id == "central-rhythm-model"
+                    && row.physical_state_id == "stance-nominal"
+                    && row.sensor_state_id == base_sensor
+                    && row.action_id == "movement-afferent-gate"
+            })
+            .unwrap();
+        row.outcomes[0].next_sensor_state_id = wrong_target;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::ActionSemanticsViolation { action_id, .. })
+                if action_id == "movement-afferent-gate"
+        ));
+    }
+
+    #[test]
+    fn washout_clears_physical_carryover_without_clearing_sensor_state() {
+        let compiled = spec().compile().unwrap();
+        let sensor = compiled.sensor_states.iter().find(|state| {
+            state.position_afferent == ChannelState::Intact
+                && state.movement_afferent == ChannelState::Intact
+                && state.vibration_afferent == ChannelState::Intact
+                && state.contact_feedback == ChannelState::Intact
+                && state.acquisition == AcquisitionState::PositiveOffset
+        }).unwrap();
+        let row_index = compiled.row_index(
+            "central-rhythm-model",
+            "swing-loaded",
+            &sensor.id,
+            "washout",
+        ).unwrap();
+        let outcome = &compiled.kernel.rows[row_index].outcomes[0];
+        let next_physical = &compiled.physical_states[outcome.next_physical_state];
+        let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
+        assert_eq!(next_physical.carryover, PhysicalCarryover::Baseline);
+        assert_eq!(next_sensor, sensor);
+    }
+
+    #[test]
     fn physical_load_perturbation_does_not_reset_sensor_drift() {
         let compiled = spec().compile().unwrap();
         let sensor = compiled
