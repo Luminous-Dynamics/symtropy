@@ -612,12 +612,12 @@ mod tests {
     fn variable(id_value: &str, scope: FactorScope) -> FactorVariable {
         FactorVariable {
             id: id(id_value),
-            source_id: id(format!("source-{id_value}")),
+            source_id: StableId::new(format!("source-{id_value}")).expect("fixture ID"),
             source_profile_digest: *blake3::hash(id_value.as_bytes()).as_bytes(),
             units: id("dimensionless"),
             scope,
-            equivalence_group: id(format!("equivalence-{id_value}")),
-            invariance_justification: id(format!("scm:shared-{id_value}")),
+            equivalence_group: StableId::new(format!("equivalence-{id_value}")).expect("fixture ID"),
+            invariance_justification: StableId::new(format!("scm:shared-{id_value}")).expect("fixture ID"),
         }
     }
 
