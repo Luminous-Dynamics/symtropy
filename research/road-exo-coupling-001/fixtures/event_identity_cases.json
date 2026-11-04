@@ -1,18 +1,215 @@
 {
-  "schema": "symtropy.road-exo-coupling.fixtures.v0.1",
+  "schema": "symtropy.road-exo-coupling.fixtures.v0.2",
   "purpose": "Semantic conformance cases, not PRNG test vectors.",
   "prior_art": {
     "event_keyed_rng": "https://arxiv.org/abs/2603.11084",
-    "counter_based_rng": "https://doi.org/10.1145/2063384.2063405"
+    "counter_based_rng": "https://doi.org/10.1145/2063384.2063405",
+    "random123_kat_vectors": "https://github.com/DEShawResearch/random123/blob/main/tests/kat_vectors",
+    "philox_implementation": "https://github.com/pawlenartowicz/rand_philox",
+    "blake3_kdf_vectors": "https://github.com/BLAKE3-team/BLAKE3/blob/master/test_vectors/test_vectors.json"
   },
   "cases": [
-    {"id":"actor-event-same-across-branches","identity_basis":"actor_event","left":{"actor_id":"ped-004","tick":120,"event_kind":"policy-reaction-noise"},"right":{"actor_id":"ped-004","tick":120,"event_kind":"policy-reaction-noise"},"coupling":"shared_invariant","expected":"same_address"},
-    {"id":"scene-slot-versus-actor-identity","identity_basis_left":"actor_event","identity_basis_right":"scene_slot_event","coupling":"sensitivity_hypotheses","expected":"different_addresses_not_implicitly_matched"},
-    {"id":"directed-pair-role-change","identity_basis":"directed_pair_event","left":{"initiator":"ego-1","recipient":"ped-004","tick":121,"event_kind":"gap-acceptance"},"right":{"initiator":"ped-004","recipient":"ego-1","tick":121,"event_kind":"gap-acceptance"},"coupling":"shared_invariant","expected":"different_addresses"},
-    {"id":"branch-local-policy-draw","identity_basis":"actor_event","left_branch":"continue","right_branch":"yield","coupling":"branch_specific","expected":"different_addresses"},
-    {"id":"conditional-event-not-realized","left_presence":"realized","right_presence":"not_realized_with_causal_condition_witness","expected":"conditional_presence_not_value_mismatch"},
-    {"id":"unreported-counterpart","left_presence":"realized","right_presence":"missing_record","expected":"incomplete"},
-    {"id":"control-flow-insertion","left_extra_policy_draws":0,"right_extra_policy_draws":1,"expected":"unrelated_shared_address_unchanged"},
-    {"id":"endogenous-key-contamination","forbidden_identity_inputs":["action","cue_contents","velocity","current_pose","planner_output","collision_state"],"expected":"reject_by_contract"}
-  ]
+    {
+      "id": "actor-event-same-across-branches",
+      "identity_basis": "actor_event",
+      "left": {
+        "actor_id": "ped-004",
+        "tick": 120,
+        "event_kind": "policy-reaction-noise"
+      },
+      "right": {
+        "actor_id": "ped-004",
+        "tick": 120,
+        "event_kind": "policy-reaction-noise"
+      },
+      "coupling": "shared_invariant",
+      "expected": "same_address"
+    },
+    {
+      "id": "scene-slot-versus-actor-identity",
+      "identity_basis_left": "actor_event",
+      "identity_basis_right": "scene_slot_event",
+      "coupling": "sensitivity_hypotheses",
+      "expected": "different_addresses_not_implicitly_matched"
+    },
+    {
+      "id": "directed-pair-role-change",
+      "identity_basis": "directed_pair_event",
+      "left": {
+        "initiator": "ego-1",
+        "recipient": "ped-004",
+        "tick": 121,
+        "event_kind": "gap-acceptance"
+      },
+      "right": {
+        "initiator": "ped-004",
+        "recipient": "ego-1",
+        "tick": 121,
+        "event_kind": "gap-acceptance"
+      },
+      "coupling": "shared_invariant",
+      "expected": "different_addresses"
+    },
+    {
+      "id": "branch-local-policy-draw",
+      "identity_basis": "actor_event",
+      "left_branch": "continue",
+      "right_branch": "yield",
+      "coupling": "branch_specific",
+      "expected": "different_addresses"
+    },
+    {
+      "id": "conditional-event-not-realized",
+      "left_presence": "realized",
+      "right_presence": "not_realized_with_causal_condition_witness",
+      "expected": "conditional_presence_not_value_mismatch"
+    },
+    {
+      "id": "unreported-counterpart",
+      "left_presence": "realized",
+      "right_presence": "missing_record",
+      "expected": "incomplete"
+    },
+    {
+      "id": "control-flow-insertion",
+      "left_extra_policy_draws": 0,
+      "right_extra_policy_draws": 1,
+      "expected": "unrelated_shared_address_unchanged"
+    },
+    {
+      "id": "endogenous-key-contamination",
+      "forbidden_identity_inputs": [
+        "action",
+        "cue_contents",
+        "velocity",
+        "current_pose",
+        "planner_output",
+        "collision_state"
+      ],
+      "expected": "reject_by_contract"
+    },
+    {
+      "id": "philox-branch-key-counter-mapping",
+      "expected": "same qualified shared canonical address maps to identical 64-bit key, 128-bit counter and four output words"
+    },
+    {
+      "id": "philox-call-order-invariance",
+      "extra_unrelated_draws": [
+        "policy-local",
+        "sensor-local"
+      ],
+      "expected": "target address output unchanged"
+    },
+    {
+      "id": "experiment-seed-separation",
+      "expected": "changing 32-byte experiment seed changes full derivation digest"
+    },
+    {
+      "id": "draw-address-length-prefix",
+      "expected": "seed and canonical address each have separate u64-le length prefix"
+    },
+    {
+      "id": "philox-truncation-collision-detection",
+      "expected": "same 192-bit key-counter with different 256-bit digest rejected by run registry"
+    },
+    {
+      "id": "address-kdf-length-prefix",
+      "seed_length": 32,
+      "length_encoding": "u64-little-endian",
+      "address_length": "canonical_address_byte_length",
+      "expected": "distinct-length-delimited-fields"
+    },
+    {
+      "id": "address-kdf-domain-separation",
+      "context": "Symtropy ROAD-EXO-COUPLING-001 Philox4x32-10 draw-address v0.1",
+      "expected": "different-context-changes-derived-key"
+    }
+  ],
+  "prng": {
+    "algorithm": "Philox4x32-10",
+    "implementation": "rand_philox",
+    "version": "0.2.1",
+    "derivation": "BLAKE3 derive-key v0.1",
+    "dependency_pins": {
+      "blake3": "1.8.7",
+      "rand_philox": "0.2.1"
+    },
+    "consumption": "one Philox4x32-10 block and four u32 words per semantic DrawAddress",
+    "mapping": {
+      "experiment_seed": "exactly 32 bytes",
+      "address": "DrawAddress.canonical_bytes()",
+      "key_material": "u64le(seed_length) || seed || u64le(address_length) || canonical_address",
+      "context": "Symtropy ROAD-EXO-COUPLING-001 Philox4x32-10 draw-address v0.1",
+      "digest_bytes_0_8": "two little-endian u32 key words",
+      "digest_bytes_8_24": "one little-endian u128 Philox block counter",
+      "digest_bytes_24_32": "retained collision audit tag; not part of the Philox block address",
+      "collision_model": "192-bit Philox (key,counter) mapping derived from 256-bit digest; full digest retained and run-local registry detects conflicting truncations"
+    }
+  },
+  "known_answer_vectors": {
+    "philox4x32_10": [
+      {
+        "id": "random123-zero",
+        "counter": [
+          "00000000",
+          "00000000",
+          "00000000",
+          "00000000"
+        ],
+        "key": [
+          "00000000",
+          "00000000"
+        ],
+        "output": [
+          "6627e8d5",
+          "e169c58d",
+          "bc57ac4c",
+          "9b00dbd8"
+        ]
+      },
+      {
+        "id": "random123-all-ones",
+        "counter": [
+          "ffffffff",
+          "ffffffff",
+          "ffffffff",
+          "ffffffff"
+        ],
+        "key": [
+          "ffffffff",
+          "ffffffff"
+        ],
+        "output": [
+          "408f276d",
+          "41c83b0e",
+          "a20bc7c6",
+          "6d5451fd"
+        ]
+      },
+      {
+        "id": "random123-mixed-pi-digits",
+        "counter": [
+          "243f6a88",
+          "85a308d3",
+          "13198a2e",
+          "03707344"
+        ],
+        "key": [
+          "a4093822",
+          "299f31d0"
+        ],
+        "output": [
+          "d16cfe09",
+          "94fdcceb",
+          "5001e420",
+          "24126ea1"
+        ]
+      }
+    ],
+    "blake3_derive_key": {
+      "context": "BLAKE3 2019-12-27 16:29:52 test vectors context",
+      "key_material_hex": "",
+      "output_32_bytes_hex": "2cc39783c223154fea8dfb7c1b1660f2ac2dcbd1c1de8277b0b0dd39b7e50d7d"
+    }
+  }
 }

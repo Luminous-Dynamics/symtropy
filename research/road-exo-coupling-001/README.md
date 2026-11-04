@@ -37,3 +37,62 @@ The standalone Rust crate has no third-party dependencies and is isolated from t
 ## Claim ceiling
 
 Passing establishes only that this small reference implementation serializes the declared identity contract and checks represented pair records. It does not validate the causal graph, select an event identity map, prove random-number quality, identify real-world counterfactuals, validate actor behavior or physics, establish a safety case, or authorize vehicle actuation.
+
+
+## Deterministic Philox resolver (ROAD-PHILOX-ADAPTER-001)
+
+The crate now includes an adapter over two pinned dependencies:
+
+- `rand_philox = 0.2.1`, default features disabled: Philox4x32-10 block generation.
+- `blake3 = 1.8.7`, default features disabled: BLAKE3 derive-key mode for deterministic semantic-address mapping.
+
+The adapter is not a new PRNG. It uses the documented `Philox::new([u32; 2], u128)` API and reads exactly four words from exactly one block. It does not use a sequential stream seed or random-draw cursor.
+
+### Frozen v0.1 address derivation
+
+1. Accept a 32-byte experiment root seed and an already-qualified DrawAddress.
+2. Obtain DrawAddress canonical bytes. Shared versus branch-local semantics are entirely decided upstream by the DrawAddress/coupling record.
+3. Length-prefix the seed and canonical address bytes as little-endian u64 lengths.
+4. Apply BLAKE3 derive-key mode with the fixed context string in the source.
+5. Map digest bytes [0..8] to the two little-endian u32 Philox key words, [8..24] to a little-endian u128 counter, and retain [24..32] as an eight-byte collision audit tag.
+6. Generate one Philox block and retain its four u32 words in canonical output order.
+
+The Philox input is 192 bits (64-bit key + 128-bit counter), derived from a 256-bit digest. It is not collision-free. Each receipt retains the full derivation digest; a run-local registry rejects one key/counter pair claimed by different full digests. Cross-run receipt comparison is still required. This is not authentication or a cryptographic security boundary.
+
+### Receipt and limits
+
+A DrawReceipt binds the address schema ID, KDF ID/context, PRNG crate/algorithm version, full derivation digest, collision tag, key, counter and all four output words. verify_receipt recomputes the full mapping from the frozen experiment seed and canonical address.
+
+The algorithm is a reproducible simulation RNG, not a CSPRNG. The 32-byte experiment root seed is reproducibility material, not a secret. Distinct semantic addresses do not automatically prove independent random variables or a valid causal coupling. Event identity and causal admissibility remain upstream responsibilities.
+
+The adapter uses raw u32 words only. It deliberately adds no float conversion, bounded sampling, modulo reduction or rejection loop. Domain-specific distribution transforms and their consumption semantics must be specified separately.
+
+### Verification
+
+Tests include the three Random123 Philox4x32-10 known-answer vectors, same-address determinism, shared-vs-branch-specific behavior, call-order invariance, seed/source/component separation, receipt recomputation and run-local collision handling. Exact-head GitHub CI is required before this resolver is considered qualified.
+
+
+## Reproducible dependency and fixture contract
+
+The isolated package now has a committed `Cargo.lock`. Direct dependencies are exact-pinned and the focused workflow uses `cargo metadata/test/clippy --locked`; a resolver may not silently change the dependency graph.
+
+The Philox test suite pins the three upstream Random123 Philox4x32-10 KAT rows (zero, all ones, and mixed pi-digit input) from `tests/kat_vectors`. Separate property tests check that changing key or counter changes the block; those are not mislabeled as upstream KAT rows.
+
+The BLAKE3 adapter tests the official derive-key KAT using the official context string and zero-length key material from BLAKE3's `test_vectors/test_vectors.json`. The address serializer separately length-prefixes the 32-byte experiment seed and canonical event address.
+
+Machine-readable `event_identity_cases.json` now records the dependency versions, KAT inputs/outputs, KDF context, address mapping, length-prefix convention and the 192-bit collision model. The workflow checks both event-identity and correspondence fixture JSON.
+
+The locked dependency graph is a reproducibility contract. Any dependency update must update the lockfile intentionally and rerun KATs, formatting, tests, Clippy and cross-target checks.
+
+
+### Additional adapter invariants
+
+The resolver's unit tests also pin:
+- the official BLAKE3 derive-key zero-length-input vector;
+- exact little-endian u64 length-prefix framing for the experiment seed and canonical address as separate fields;
+- fixed BLAKE3 KDF context domain separation;
+- raw Philox output sensitivity to key and counter changes;
+- unchanged output after unrelated address draws;
+- seed/source/component separation, receipt recomputation and run-local block-address collision rejection.
+
+The standalone manifest uses `blake3 = =1.8.7` and `rand_philox = =0.2.1`; `Cargo.lock` freezes the resolved transitive graph, and the workflow requires `--locked`.

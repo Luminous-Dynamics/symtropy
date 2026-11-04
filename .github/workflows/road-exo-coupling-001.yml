@@ -12,18 +12,25 @@ permissions:
 
 jobs:
   standalone-reference:
-    runs-on: ubuntu-latest
+    name: Philox semantic resolver (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           components: rustfmt, clippy
+      - name: Check locked dependency graph
+        run: cargo metadata --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --format-version 1 --no-deps
       - name: Check formatting
         run: cargo fmt --manifest-path research/road-exo-coupling-001/Cargo.toml -- --check
       - name: Run conformance tests
-        run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets
+        run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets
       - name: Run Clippy
-        run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets -- -D warnings
-      - name: Validate machine-readable fixtures
+        run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Validate event identity fixtures
         run: python3 -c 'import json; json.load(open("research/road-exo-coupling-001/fixtures/event_identity_cases.json", encoding="utf-8"))'
