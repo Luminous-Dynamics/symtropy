@@ -186,11 +186,18 @@ impl fmt::Display for FidelityError {
             Self::EmptyIdentifier { side, field, index } => {
                 write!(f, "{side} trial {index} has an empty {field}")
             }
-            Self::DuplicateParticipantStep { side, participant_id, step_index } => write!(
+            Self::DuplicateParticipantStep {
+                side,
+                participant_id,
+                step_index,
+            } => write!(
                 f,
                 "{side} has duplicate participant/step key ({participant_id}, {step_index})"
             ),
-            Self::InconsistentParticipantCohort { side, participant_id } => write!(
+            Self::InconsistentParticipantCohort {
+                side,
+                participant_id,
+            } => write!(
                 f,
                 "{side} assigns participant {participant_id} to multiple declared cohorts"
             ),
@@ -221,7 +228,11 @@ impl fmt::Display for FidelityError {
                 f,
                 "prediction for {participant_id} at step {step_index}, option {option}, has invalid probability {value}"
             ),
-            Self::ProbabilityMassMismatch { participant_id, step_index, sum } => write!(
+            Self::ProbabilityMassMismatch {
+                participant_id,
+                step_index,
+                sum,
+            } => write!(
                 f,
                 "prediction probabilities for {participant_id} at step {step_index} sum to {sum}, not one"
             ),
@@ -234,23 +245,38 @@ impl fmt::Display for FidelityError {
                 f,
                 "generated choice {choice} for {participant_id} at step {step_index} is outside 0..{option_count}"
             ),
-            Self::TrialCountMismatch { observed, simulated } => write!(
+            Self::TrialCountMismatch {
+                observed,
+                simulated,
+            } => write!(
                 f,
                 "observed and simulated trial counts differ: {observed} vs {simulated}"
             ),
-            Self::MissingPrediction { participant_id, step_index } => write!(
+            Self::MissingPrediction {
+                participant_id,
+                step_index,
+            } => write!(
                 f,
                 "missing simulated prediction for {participant_id} at step {step_index}"
             ),
-            Self::UnmatchedPrediction { participant_id, step_index } => write!(
+            Self::UnmatchedPrediction {
+                participant_id,
+                step_index,
+            } => write!(
                 f,
                 "simulated prediction has no matched observation for {participant_id} at step {step_index}"
             ),
-            Self::MatchedTrialMetadataMismatch { participant_id, step_index } => write!(
+            Self::MatchedTrialMetadataMismatch {
+                participant_id,
+                step_index,
+            } => write!(
                 f,
                 "context or cohort mismatch for matched trial ({participant_id}, {step_index})"
             ),
-            Self::InvalidCoverageRequest { requested, available } => write!(
+            Self::InvalidCoverageRequest {
+                requested,
+                available,
+            } => write!(
                 f,
                 "requested population coverage {requested} exceeds available participants {available}"
             ),
@@ -391,7 +417,11 @@ pub fn population_coverage_curve(
                 available,
             });
         }
-        let selected = participants.iter().take(requested).cloned().collect::<BTreeSet<_>>();
+        let selected = participants
+            .iter()
+            .take(requested)
+            .cloned()
+            .collect::<BTreeSet<_>>();
         let observed = dataset
             .observed
             .iter()
@@ -674,7 +704,8 @@ fn trajectory_transition_metrics(
             if observed_after.step_index != observed_before.step_index + 1 {
                 continue;
             }
-            observed_transitions[observed_before.choice * option_count + observed_after.choice] += 1.0;
+            observed_transitions[observed_before.choice * option_count + observed_after.choice] +=
+                1.0;
             generated_transitions[simulated_before.generated_choice * option_count
                 + simulated_after.generated_choice] += 1.0;
             transition_count += 1;
@@ -734,8 +765,7 @@ fn jensen_shannon_bits(left: &[f64], right: &[f64]) -> f64 {
         .zip(right)
         .map(|(left, right)| (left + right) / 2.0)
         .collect::<Vec<_>>();
-    0.5 * kl_divergence_bits(left, &midpoint)
-        + 0.5 * kl_divergence_bits(right, &midpoint)
+    0.5 * kl_divergence_bits(left, &midpoint) + 0.5 * kl_divergence_bits(right, &midpoint)
 }
 
 fn kl_divergence_bits(left: &[f64], right: &[f64]) -> f64 {
@@ -751,7 +781,10 @@ mod tests {
     use super::*;
 
     fn options() -> Vec<String> {
-        ["A", "B", "C", "D"].into_iter().map(str::to_owned).collect()
+        ["A", "B", "C", "D"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
     }
 
     fn fixture_dataset(participant_count: usize, mode_collapse: bool) -> HumanFidelityDataset {
@@ -764,22 +797,37 @@ mod tests {
                 let context_draw = ((participant * 7 + step_index as usize * 11) % 100) as u32;
                 let choice = match participant % 3 {
                     0 => {
-                        if context_draw < 6 { 2 }
-                        else if context_draw < 10 { 3 }
-                        else if context_draw < 30 { 1 }
-                        else { 0 }
+                        if context_draw < 6 {
+                            2
+                        } else if context_draw < 10 {
+                            3
+                        } else if context_draw < 30 {
+                            1
+                        } else {
+                            0
+                        }
                     }
                     1 => {
-                        if context_draw < 6 { 2 }
-                        else if context_draw < 10 { 3 }
-                        else if context_draw < 30 { 0 }
-                        else { 1 }
+                        if context_draw < 6 {
+                            2
+                        } else if context_draw < 10 {
+                            3
+                        } else if context_draw < 30 {
+                            0
+                        } else {
+                            1
+                        }
                     }
                     _ => {
-                        if context_draw < 6 { 2 }
-                        else if context_draw < 10 { 1 }
-                        else if context_draw < 30 { 0 }
-                        else { 3 }
+                        if context_draw < 6 {
+                            2
+                        } else if context_draw < 10 {
+                            1
+                        } else if context_draw < 30 {
+                            0
+                        } else {
+                            3
+                        }
                     }
                 };
                 let context_id = format!("scenario_{step_index}");
@@ -848,11 +896,24 @@ mod tests {
     #[test]
     fn cohort_and_context_metrics_are_reported_separately() {
         let result = evaluate(&fixture_dataset(60, true)).unwrap();
-        let contexts = result.slices.iter().map(|slice| slice.context_id.as_str()).collect::<BTreeSet<_>>();
-        let cohorts = result.slices.iter().map(|slice| slice.cohort_id.as_str()).collect::<BTreeSet<_>>();
+        let contexts = result
+            .slices
+            .iter()
+            .map(|slice| slice.context_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let cohorts = result
+            .slices
+            .iter()
+            .map(|slice| slice.cohort_id.as_str())
+            .collect::<BTreeSet<_>>();
         assert_eq!(contexts.len(), 3);
         assert_eq!(cohorts.len(), 3);
-        assert!(result.slices.iter().all(|slice| slice.participant_count == 20));
+        assert!(
+            result
+                .slices
+                .iter()
+                .all(|slice| slice.participant_count == 20)
+        );
     }
 
     #[test]
@@ -863,7 +924,10 @@ mod tests {
         let second = population_coverage_curve(&dataset, &sizes).unwrap();
         assert_eq!(first, second);
         assert_eq!(
-            first.iter().map(|point| point.participant_count).collect::<Vec<_>>(),
+            first
+                .iter()
+                .map(|point| point.participant_count)
+                .collect::<Vec<_>>(),
             vec![10, 20, 30, 50, 60]
         );
         assert_eq!(first.last().unwrap().trial_count, 180);
