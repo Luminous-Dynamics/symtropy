@@ -81,6 +81,23 @@ The study develops a transient multi-coupling model for segmented transmitters a
 
 **Competitive implication:** static mutual-inductance admissibility is a precondition, not a transient model. A later benchmark must test time-varying coupling matrices and controller response across segment handover and acceleration profiles.
 
+
+### Dual-receiver dynamic WPT with observer and MPC
+
+**Output Control Method for Dual-Receiver Dynamic WPT System Based on Optimal Efficiency and Sliding Mode Observer-Enhanced Model Predictive Control**, IEEE Journal of Emerging and Selected Topics in Power Electronics 14(3), 4130–4142 (June 2026; published 13 January 2026). DOI: https://doi.org/10.1109/JESTPE.2026.3653770.
+
+The paper addresses receiver-side cross-coupling using an overlapping decoupled receiver structure, a sliding-mode observer and model-predictive control. Its 360 W experimental platform reports output-voltage fluctuation no greater than 2.5% and 90.4% optimal efficiency.
+
+**Competitive implication:** this is a direct dynamic dual-receiver IPT reference for transient output regulation and observer-based control. It is not a large-scale multi-receiver benchmark and the abstract does not make its efficiency boundary fully comparable to an EV grid-to-battery result. Our reproduction must report converter boundaries, per-channel output, transient overshoot, dropout/reattachment, and the same trajectory/load profile.
+
+### Parallel multi-receiver logistics WPT with soft switching
+
+Zeng et al., **Design and Implementation of a High-Efficiency Multi-Receiver WPT System With Soft-Switching**, International Journal of Circuit Theory and Applications (first published 15 September 2025). DOI: https://doi.org/10.1002/cta.70144.
+
+The logistics-sorting study designs parallel multi-receiver power delivery and derives soft-switching conditions. It reports a 1.2 kW experimental platform with inverter soft switching and 91.9% overall system efficiency.
+
+**Competitive implication:** a relevant kW-scale multi-receiver logistics baseline. To claim improvement, compare at matched delivered power, coil/air-gap geometry, receiver count, converter inclusion and measurement boundary. We should target higher useful delivered energy and lower loss under multi-load variation, not claim superiority from comparing unlike efficiency figures.
+
 ## Standards and interoperability boundaries
 
 ### SAE J2954_202408
