@@ -524,6 +524,47 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_psd_capacitance_matrix() {
+        let mut value = basic("indefinite-capacitance");
+        value["capacitance"]["matrix_f"] = json!([[1e-6, 2e-6], [2e-6, 1e-6]]);
+        value["capacitance"]["abs_uncertainty_f"] = json!([[0.0, 0.0], [0.0, 0.0]]);
+        assert_eq!(disposition(&value), "STORAGE_MODEL_REJECTED");
+    }
+
+    #[test]
+    fn conservative_energy_interval_contains_seeded_perturbations() {
+        let output = evaluate(&basic("perturbation-coverage"));
+        let lower = output["total_stored_energy_j"]["lower"].as_f64().unwrap();
+        let upper = output["total_stored_energy_j"]["upper"].as_f64().unwrap();
+        let mut seed = 0xd1b54a32d192ed03_u64;
+        let mut unit = || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed >> 11) as f64 / ((1_u64 << 53) as f64)
+        };
+
+        for _ in 0..1000 {
+            let l00 = 2.0e-6 + (unit() - 0.5) * 2.0e-12;
+            let l11 = 1.0e-6 + (unit() - 0.5) * 2.0e-12;
+            let l01 = 0.5e-6 + (unit() - 0.5) * 2.0e-12;
+            let i0 = 0.4 + (unit() - 0.5) * 0.002;
+            let i1 = 0.2 + (unit() - 0.5) * 0.002;
+            let magnetic = 0.5 * (l00 * i0 * i0 + 2.0 * l01 * i0 * i1 + l11 * i1 * i1);
+
+            let c00 = 1.0e-6 + (unit() - 0.5) * 2.0e-12;
+            let c11 = 0.8e-6 + (unit() - 0.5) * 2.0e-12;
+            let c01 = 0.2e-6 + (unit() - 0.5) * 2.0e-12;
+            let v0 = 100.0 + (unit() - 0.5) * 0.2;
+            let v1 = 50.0 + (unit() - 0.5) * 0.2;
+            let electric = 0.5 * (c00 * v0 * v0 + 2.0 * c01 * v0 * v1 + c11 * v1 * v1);
+            let total = magnetic + electric;
+            assert!(total >= lower, "sampled energy {total:e} below {lower:e}");
+            assert!(total <= upper, "sampled energy {total:e} above {upper:e}");
+        }
+    }
+
+    #[test]
     fn energy_interval_contains_nominal_value() {
         let output = evaluate(&basic("interval"));
         let nominal = output["total_stored_energy_j"]["nominal"].as_f64().unwrap();
