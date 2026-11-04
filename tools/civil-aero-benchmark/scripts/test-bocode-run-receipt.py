@@ -37,7 +37,7 @@ def npy(descr: str, shape: tuple[int, ...], payload: bytes) -> bytes:
 def make_npz(path: Path, wrong_x_shape: bool = False) -> None:
     x_shape = (2, 2 if wrong_x_shape else 3)
     arrays = {
-        "algorithm.npy": npy("|S9", (), b"random___"),
+        "algorithm.npy": npy("|S13", (), b"random_search"),
         "problem.npy": npy("|S7", (), b"fixture"),
         "seed.npy": npy("<i8", (), struct.pack("<q", 7)),
         "best.npy": npy("<f8", (), struct.pack("<d", 1.25)),
@@ -65,7 +65,7 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "stderr": artifact(root, "stderr.bin", b""),
         "environment_freeze": artifact(root, "pip-freeze.txt", b"bocode==1.0.2.dev2\n"),
         "environment_freeze_stderr": artifact(root, "pip-freeze.stderr", b""),
-        "upstream_summary": artifact(root, "summary.csv", b"algorithm,problem,seed,best,gap,npz\nrandom_search,Fixture,7,1.25,,trace.npz\n"),
+        "upstream_summary": artifact(root, "summary.csv", b"algorithm,problem,seed,best,gap,npz\nrandom_search,Fixture,7,1.25,,random_search_Fixture_seed7.npz\n"),
     }
     npz_path = root / "trace.npz"
     make_npz(npz_path, wrong_x_shape)
@@ -198,7 +198,7 @@ def main() -> int:
         # A campaign must preserve a scheduled trial that has no receipt.
         campaign_root = Path(temp) / "campaign"
         campaign_root.mkdir()
-        shutil.copytree(root / "valid", campaign_root / "trial-valid")
+        shutil.copytree(root, campaign_root / "trial-valid")
         expected = Path(temp) / "expected.csv"
         expected.write_text(
             "task_id,algorithm,seed\\n"
