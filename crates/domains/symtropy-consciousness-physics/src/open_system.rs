@@ -28,6 +28,7 @@ pub enum EnergyBalanceTerm {
     InitialStoredEnergy,
     FinalStoredEnergy,
     BoundaryFlows,
+    UncertaintyBounds,
 }
 
 impl EnergyBalanceTerm {
@@ -37,6 +38,7 @@ impl EnergyBalanceTerm {
             Self::InitialStoredEnergy => "initial_stored_energy_j",
             Self::FinalStoredEnergy => "final_stored_energy_j",
             Self::BoundaryFlows => "boundary_flows",
+            Self::UncertaintyBounds => "uncertainty_bounds",
         }
     }
 }
@@ -68,6 +70,9 @@ pub struct BoundaryEnergyFlow {
     pub carrier: EnergyCarrier,
     pub direction: FlowDirection,
     pub energy_j: f64,
+    /// Conservative absolute uncertainty bound for this flow, in joules.
+    /// `None` means the uncertainty is unknown, not zero.
+    pub uncertainty_bound_j: Option<f64>,
 }
 
 /// Tolerance used to classify an energy-balance residual.
@@ -114,8 +119,12 @@ pub struct OpenSystemEnergyBalance {
     pub interval_id: String,
     /// Total stored energy inside the boundary at the start, in joules.
     pub initial_stored_energy_j: Option<f64>,
+    /// Conservative absolute uncertainty bound for the initial stored energy.
+    pub initial_stored_energy_uncertainty_bound_j: Option<f64>,
     /// Total stored energy inside the boundary at the end, in joules.
     pub final_stored_energy_j: Option<f64>,
+    /// Conservative absolute uncertainty bound for the final stored energy.
+    pub final_stored_energy_uncertainty_bound_j: Option<f64>,
     /// Explicit inventory of every work/heat flow crossing the boundary.
     pub boundary_flows: Option<Vec<BoundaryEnergyFlow>>,
 }
@@ -127,10 +136,13 @@ pub enum EnergyBalanceStatus {
     Incomplete {
         missing_terms: Vec<EnergyBalanceTerm>,
     },
-    /// Every term was supplied and the residual met the declared tolerance.
+    /// The complete possible residual interval lies within the declared tolerance.
     Balanced,
-    /// Every term was supplied but the residual exceeded the declared tolerance.
+    /// The complete possible residual interval lies outside the declared tolerance.
     Imbalanced,
+    /// The uncertainty interval overlaps the tolerance boundary; evidence is
+    /// insufficient to classify the balance as either balanced or imbalanced.
+    Inconclusive,
 }
 
 /// Result of evaluating the first-law balance for one declared boundary.
@@ -147,8 +159,12 @@ pub struct EnergyBalanceReport {
     pub net_heat_j: Option<f64>,
     /// Net boundary energy input: net work + net heat.
     pub net_boundary_energy_j: Option<f64>,
-    /// Residual: ΔE_stored - net_boundary_energy.
+    /// Point-estimate residual: ΔE_stored - net_boundary_energy.
     pub residual_j: Option<f64>,
+    /// Conservative absolute bound on residual uncertainty, in joules.
+    pub residual_uncertainty_bound_j: Option<f64>,
+    /// Conservative possible residual interval [lower, upper], in joules.
+    pub residual_interval_j: Option<(f64, f64)>,
     /// Absolute acceptance threshold used for classification, in joules.
     pub allowed_residual_j: Option<f64>,
     /// Scale-normalized absolute residual. Zero when every energy scale is zero.
@@ -175,6 +191,10 @@ pub enum EnergyBalanceError {
     },
     InvalidFlowAmount {
         flow_id: String,
+    },
+    InvalidUncertaintyBound {
+        field: &'static str,
+        flow_id: Option<String>,
     },
     InvalidTolerance {
         field: &'static str,
@@ -213,12 +233,38 @@ impl OpenSystemEnergyBalance {
         // Validate all supplied values even when another required term is
         // missing. Incomplete records must not hide malformed evidence.
         for (term, value) in [
-            (EnergyBalanceTerm::InitialStoredEnergy, self.initial_stored_energy_j),
-            (EnergyBalanceTerm::FinalStoredEnergy, self.final_stored_energy_j),
+            (
+                EnergyBalanceTerm::InitialStoredEnergy,
+                self.initial_stored_energy_j,
+            ),
+            (
+                EnergyBalanceTerm::FinalStoredEnergy,
+                self.final_stored_energy_j,
+            ),
         ] {
             if let Some(value) = value {
                 if !value.is_finite() {
                     return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
+                }
+            }
+        }
+
+        for (field, value) in [
+            (
+                "initial_stored_energy_uncertainty_bound_j",
+                self.initial_stored_energy_uncertainty_bound_j,
+            ),
+            (
+                "final_stored_energy_uncertainty_bound_j",
+                self.final_stored_energy_uncertainty_bound_j,
+            ),
+        ] {
+            if let Some(value) = value {
+                if !value.is_finite() || value < 0.0 {
+                    return Err(EnergyBalanceError::InvalidUncertaintyBound {
+                        field,
+                        flow_id: None,
+                    });
                 }
             }
         }
@@ -239,6 +285,14 @@ impl OpenSystemEnergyBalance {
                         flow_id: flow.flow_id.clone(),
                     });
                 }
+                if let Some(uncertainty) = flow.uncertainty_bound_j {
+                    if !uncertainty.is_finite() || uncertainty < 0.0 {
+                        return Err(EnergyBalanceError::InvalidUncertaintyBound {
+                            field: "boundary_flow_uncertainty_bound_j",
+                            flow_id: Some(flow.flow_id.clone()),
+                        });
+                    }
+                }
                 if !flow_ids.insert(flow.flow_id.as_str()) {
                     return Err(EnergyBalanceError::DuplicateFlowId {
                         flow_id: flow.flow_id.clone(),
@@ -257,6 +311,16 @@ impl OpenSystemEnergyBalance {
         if self.boundary_flows.is_none() {
             missing_terms.push(EnergyBalanceTerm::BoundaryFlows);
         }
+        let flow_uncertainties_complete = self
+            .boundary_flows
+            .as_ref()
+            .is_some_and(|flows| flows.iter().all(|flow| flow.uncertainty_bound_j.is_some()));
+        if self.initial_stored_energy_uncertainty_bound_j.is_none()
+            || self.final_stored_energy_uncertainty_bound_j.is_none()
+            || !flow_uncertainties_complete
+        {
+            missing_terms.push(EnergyBalanceTerm::UncertaintyBounds);
+        }
 
         if !missing_terms.is_empty() {
             return Ok(incomplete_report(
@@ -270,9 +334,17 @@ impl OpenSystemEnergyBalance {
         let final_energy = self.final_stored_energy_j.expect("validated above");
         let flows = self.boundary_flows.as_deref().expect("validated above");
 
+        let initial_uncertainty = self
+            .initial_stored_energy_uncertainty_bound_j
+            .expect("uncertainty completeness checked above");
+        let final_uncertainty = self
+            .final_stored_energy_uncertainty_bound_j
+            .expect("uncertainty completeness checked above");
+
         let mut net_work = 0.0;
         let mut net_heat = 0.0;
         let mut gross_boundary_flow = 0.0;
+        let mut residual_uncertainty_bound = initial_uncertainty + final_uncertainty;
         let mut reservoir_ids = BTreeSet::new();
 
         for flow in flows {
@@ -286,9 +358,16 @@ impl OpenSystemEnergyBalance {
                 EnergyCarrier::Heat => net_heat += signed_energy,
             }
             gross_boundary_flow += flow.energy_j;
+            residual_uncertainty_bound += flow
+                .uncertainty_bound_j
+                .expect("uncertainty completeness checked above");
             reservoir_ids.insert(flow.reservoir_id.clone());
 
-            if !net_work.is_finite() || !net_heat.is_finite() || !gross_boundary_flow.is_finite() {
+            if !net_work.is_finite()
+                || !net_heat.is_finite()
+                || !gross_boundary_flow.is_finite()
+                || !residual_uncertainty_bound.is_finite()
+            {
                 return Err(EnergyBalanceError::OverflowedBalance {
                     field: "boundary_flows",
                 });
@@ -322,25 +401,38 @@ impl OpenSystemEnergyBalance {
             });
         }
 
+        let residual_lower = residual - residual_uncertainty_bound;
+        let residual_upper = residual + residual_uncertainty_bound;
+        if !residual_lower.is_finite() || !residual_upper.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "residual_interval_j",
+            });
+        }
+
         let normalized_residual = if scale == 0.0 {
             0.0
         } else {
             residual.abs() / scale
         };
+        let status = if residual_lower >= -allowed && residual_upper <= allowed {
+            EnergyBalanceStatus::Balanced
+        } else if residual_lower > allowed || residual_upper < -allowed {
+            EnergyBalanceStatus::Imbalanced
+        } else {
+            EnergyBalanceStatus::Inconclusive
+        };
 
         Ok(EnergyBalanceReport {
             boundary_id: self.boundary_id.clone(),
             interval_id: self.interval_id.clone(),
-            status: if residual.abs() <= allowed {
-                EnergyBalanceStatus::Balanced
-            } else {
-                EnergyBalanceStatus::Imbalanced
-            },
+            status,
             delta_stored_energy_j: Some(delta_stored),
             net_work_j: Some(net_work),
             net_heat_j: Some(net_heat),
             net_boundary_energy_j: Some(net_boundary),
             residual_j: Some(residual),
+            residual_uncertainty_bound_j: Some(residual_uncertainty_bound),
+            residual_interval_j: Some((residual_lower, residual_upper)),
             allowed_residual_j: Some(allowed),
             normalized_residual: Some(normalized_residual),
             flow_count: Some(flows.len()),
@@ -363,6 +455,8 @@ fn incomplete_report(
         net_heat_j: None,
         net_boundary_energy_j: None,
         residual_j: None,
+        residual_uncertainty_bound_j: None,
+        residual_interval_j: None,
         allowed_residual_j: None,
         normalized_residual: None,
         flow_count: None,
