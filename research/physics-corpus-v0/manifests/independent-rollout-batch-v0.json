@@ -54,8 +54,11 @@
       "end_exclusive": 64
     },
     "seed_rule": "all scenario variation is a deterministic function of rollout_id; it is never a function of worker identity, completion order, wall clock or process scheduling",
-    "parallel_backend": "std_threads_independent_worlds",
-    "thread_lifecycle_included_in_timing": true
+    "parallel_backends": ["std_threads_spawned_independent_worlds", "rayon_persistent_independent_worlds"],
+    "worker_pool_construction_in_timed_region": {
+      "std_threads_spawned": true,
+      "rayon_persistent": false
+    }
   },
   "outputs": {
     "per_rollout": [
