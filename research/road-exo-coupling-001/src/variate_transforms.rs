@@ -56,6 +56,15 @@ pub enum SamplingError {
     ReceiptMismatch,
 }
 
+#[derive(Clone, Debug)]
+struct ReceiptContext {
+    transform_id: StableId,
+    transform_version: StableId,
+    root_address_digest: [u8; 32],
+    bound_exclusive: u32,
+    max_attempts: u32,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct WordMapping {
     product_low: u32,
@@ -85,15 +94,17 @@ pub fn sample_bounded_u32(
         return Err(SamplingError::InvalidTransformId);
     }
 
-    let root_address_digest = *blake3::hash(&root_address.canonical_bytes()).as_bytes();
+    let context = ReceiptContext {
+        transform_id: transform_id.clone(),
+        transform_version: transform_version.clone(),
+        root_address_digest: *blake3::hash(&root_address.canonical_bytes()).as_bytes(),
+        bound_exclusive,
+        max_attempts,
+    };
 
     if bound_exclusive == 1 {
         return Ok(finish_receipt(
-            transform_id.clone(),
-            transform_version.clone(),
-            root_address_digest,
-            bound_exclusive,
-            max_attempts,
+            context,
             SamplingDisposition::DeterministicSingleton,
             Some(0),
             Vec::new(),
@@ -125,11 +136,7 @@ pub fn sample_bounded_u32(
 
         if mapping.accepted {
             return Ok(finish_receipt(
-                transform_id.clone(),
-                transform_version.clone(),
-                root_address_digest,
-                bound_exclusive,
-                max_attempts,
+                context,
                 SamplingDisposition::Sampled,
                 Some(mapping.candidate),
                 attempts,
@@ -138,11 +145,7 @@ pub fn sample_bounded_u32(
     }
 
     Ok(finish_receipt(
-        transform_id.clone(),
-        transform_version.clone(),
-        root_address_digest,
-        bound_exclusive,
-        max_attempts,
+        context,
         SamplingDisposition::BudgetExceeded,
         None,
         attempts,
@@ -195,22 +198,18 @@ fn attempt_child_address(
 }
 
 fn finish_receipt(
-    transform_id: StableId,
-    transform_version: StableId,
-    root_address_digest: [u8; 32],
-    bound_exclusive: u32,
-    max_attempts: u32,
+    context: ReceiptContext,
     disposition: SamplingDisposition,
     result: Option<u32>,
     attempts: Vec<BoundedAttempt>,
 ) -> BoundedIntegerReceipt {
     let mut receipt = BoundedIntegerReceipt {
         schema_id: TRANSFORM_SCHEMA_ID,
-        transform_id,
-        transform_version,
-        root_address_digest,
-        bound_exclusive,
-        max_attempts,
+        transform_id: context.transform_id,
+        transform_version: context.transform_version,
+        root_address_digest: context.root_address_digest,
+        bound_exclusive: context.bound_exclusive,
+        max_attempts: context.max_attempts,
         disposition,
         result,
         attempts,
