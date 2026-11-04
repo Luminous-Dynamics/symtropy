@@ -83,6 +83,13 @@ pub struct ActionExclusion {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FeasibilityGap {
+    pub action_id: StableId,
+    pub hypothesis_id: StableId,
+    pub reason_id: StableId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DecisionCriterionCertificate {
     pub schema_id: &'static str,
     pub manifest_digest: [u8; 32],
@@ -90,6 +97,7 @@ pub struct DecisionCriterionCertificate {
     pub agreement: Option<CriterionAgreement>,
     pub robust_feasible_actions: Vec<StableId>,
     pub excluded_actions: Vec<ActionExclusion>,
+    pub unknown_feasibility: Vec<FeasibilityGap>,
     /// Minimum utility over hypotheses, then maximin selection across actions.
     pub maximin_floor_by_action: Vec<ActionValue>,
     pub maximin_actions: Vec<StableId>,
@@ -128,13 +136,22 @@ impl DecisionCriterionManifest {
         }
 
         let mut normalized_epsilons = BTreeSet::new();
+        let mut epsilon_values = Vec::with_capacity(self.epsilon_values.len());
         for epsilon in &self.epsilon_values {
             let normalized = normalize(epsilon)?;
             if normalized.numerator < 0 {
                 return Err(CriterionSensitivityError::NegativeEpsilon);
             }
-            if !normalized_epsilons.insert(normalized) {
+            if !normalized_epsilons.insert(normalized.clone()) {
                 return Err(CriterionSensitivityError::DuplicateEpsilon);
+            }
+            epsilon_values.push(normalized);
+        }
+        // Check every comparison before canonical sorting so a huge rational
+        // denominator returns an error instead of panicking in sort_by.
+        for left in 0..epsilon_values.len() {
+            for right in left + 1..epsilon_values.len() {
+                let _ = cmp(&epsilon_values[left], &epsilon_values[right])?;
             }
         }
 
@@ -254,8 +271,23 @@ impl DecisionCriterionManifest {
 
         // Unknown feasibility can change the feasible action set. Do not produce
         // a recommendation by assuming the unknown cell is feasible or infeasible.
-        if self.feasibility.iter().any(|cell| matches!(cell.status, FeasibilityStatus::Unknown { .. })) {
-            return Ok(empty_incomplete_certificate(manifest_digest));
+        let unknown_feasibility = self
+            .feasibility
+            .iter()
+            .filter_map(|cell| match &cell.status {
+                FeasibilityStatus::Unknown { reason_id } => Some(FeasibilityGap {
+                    action_id: cell.action_id.clone(),
+                    hypothesis_id: cell.hypothesis_id.clone(),
+                    reason_id: reason_id.clone(),
+                }),
+                FeasibilityStatus::Feasible | FeasibilityStatus::Infeasible { .. } => None,
+            })
+            .collect::<Vec<_>>();
+        if !unknown_feasibility.is_empty() {
+            return Ok(empty_incomplete_certificate(
+                manifest_digest,
+                unknown_feasibility,
+            ));
         }
 
         let mut robust_feasible_actions = Vec::new();
@@ -292,6 +324,7 @@ impl DecisionCriterionManifest {
                 agreement: None,
                 robust_feasible_actions,
                 excluded_actions,
+                unknown_feasibility: Vec::new(),
                 maximin_floor_by_action: Vec::new(),
                 maximin_actions: Vec::new(),
                 worst_case_regret_by_action: Vec::new(),
@@ -398,6 +431,7 @@ impl DecisionCriterionManifest {
             agreement: Some(agreement),
             robust_feasible_actions,
             excluded_actions,
+            unknown_feasibility: Vec::new(),
             maximin_floor_by_action,
             maximin_actions,
             worst_case_regret_by_action,
@@ -459,7 +493,10 @@ pub struct DecisionProjection {
     pub robust_dominance: Vec<DominancePair>,
 }
 
-fn empty_incomplete_certificate(manifest_digest: [u8; 32]) -> DecisionCriterionCertificate {
+fn empty_incomplete_certificate(
+    manifest_digest: [u8; 32],
+    unknown_feasibility: Vec<FeasibilityGap>,
+) -> DecisionCriterionCertificate {
     let mut certificate = DecisionCriterionCertificate {
         schema_id: "symtropy.road-decision-criterion-sensitivity.certificate.v0.1",
         manifest_digest,
@@ -467,6 +504,7 @@ fn empty_incomplete_certificate(manifest_digest: [u8; 32]) -> DecisionCriterionC
         agreement: None,
         robust_feasible_actions: Vec::new(),
         excluded_actions: Vec::new(),
+        unknown_feasibility,
         maximin_floor_by_action: Vec::new(),
         maximin_actions: Vec::new(),
         worst_case_regret_by_action: Vec::new(),
@@ -653,6 +691,12 @@ fn certificate_bytes(certificate: &DecisionCriterionCertificate) -> Vec<u8> {
     for exclusion in &certificate.excluded_actions {
         push_id(&mut out, &exclusion.action_id);
         push_ids(&mut out, &exclusion.infeasible_under);
+    }
+    push_len(&mut out, certificate.unknown_feasibility.len());
+    for gap in &certificate.unknown_feasibility {
+        push_id(&mut out, &gap.action_id);
+        push_id(&mut out, &gap.hypothesis_id);
+        push_id(&mut out, &gap.reason_id);
     }
     push_scores(&mut out, &certificate.maximin_floor_by_action);
     push_ids(&mut out, &certificate.maximin_actions);
@@ -869,9 +913,12 @@ mod tests {
         manifest.feasibility[0].status = FeasibilityStatus::Unknown {
             reason_id: id("constraint-unmeasured"),
         };
+        let certificate = manifest.evaluate().unwrap();
+        assert_eq!(certificate.status, CriterionAnalysisStatus::Incomplete);
+        assert_eq!(certificate.unknown_feasibility.len(), 1);
         assert_eq!(
-            manifest.evaluate().unwrap().status,
-            CriterionAnalysisStatus::Incomplete
+            certificate.unknown_feasibility[0].reason_id,
+            id("constraint-unmeasured")
         );
     }
 
@@ -879,11 +926,12 @@ mod tests {
     fn duplicate_hypothesis_rows_do_not_change_decision_projection() {
         let h1 = hypothesis("h1", &[("action-a", 10), ("action-b", 2)], 1);
         let h2 = hypothesis("h2", &[("action-a", 8), ("action-b", 4)], 2);
+        let h1_duplicate = hypothesis("h1-common-mode-duplicate", &[("action-a", 10), ("action-b", 2)], 1);
         let original = manifest(vec![h1.clone(), h2], vec![ExactRational::new(1, 1).unwrap()]);
         let duplicated = manifest(
             vec![
-                h1.clone(),
-                h1.clone(),
+                h1,
+                h1_duplicate,
                 hypothesis("h2", &[("action-a", 8), ("action-b", 4)], 2),
             ],
             vec![ExactRational::new(1, 1).unwrap()],
