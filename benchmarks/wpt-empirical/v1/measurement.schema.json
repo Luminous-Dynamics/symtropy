@@ -79,7 +79,8 @@
         "cc_cv_regulation_error",
         "control_settling_time",
         "output_regulation_error",
-        "foreign_object_detection_accuracy"
+        "foreign_object_detection_accuracy",
+        "relative_coupling_operating_range_reduction"
       ]
     },
     "measurement_purpose": {
