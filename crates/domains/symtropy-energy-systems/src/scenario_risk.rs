@@ -82,11 +82,15 @@ impl ScenarioRiskContract {
         ] {
             require_id(name, value)?;
         }
-        require_probability(
-            "CVaR confidence level",
-            contract.cvar_confidence_level,
-            false,
-        )?;
+        if !contract.cvar_confidence_level.is_finite()
+            || contract.cvar_confidence_level <= 0.0
+            || contract.cvar_confidence_level >= 1.0
+        {
+            return Err(ScenarioRiskError::InvalidProbability {
+                name: "CVaR confidence level",
+                value: contract.cvar_confidence_level,
+            });
+        }
         for (name, value) in [
             ("maximum power-shortfall probability", contract.maximum_power_shortfall_probability),
             ("maximum energy-shortfall probability", contract.maximum_energy_shortfall_probability),
@@ -645,7 +649,7 @@ mod tests {
             "service-contract-digest",
             "evaluation-config-digest",
             alpha,
-            0.10, 0.10, 0.05, 0.05, 0.05,
+            0.10, 0.10, 0.05, 0.01, 0.01,
             10.0, 10.0, 0.95, 0.90, 1e-9,
         ).unwrap()
     }
@@ -697,7 +701,7 @@ mod tests {
         let report = evaluate_scenario_risk(&valid_evaluation(0.95)).unwrap();
         assert!(report.passed);
         assert!(report.probability_mass_normalized);
-        assert!((report.expected_work_completion_fraction - 0.997).abs() < 1e-12);
+        assert!((report.expected_work_completion_fraction - 0.9945).abs() < 1e-12);
         assert_eq!(report.scenario_count, 4);
         assert_eq!(report.receipts.len(), 4);
     }
