@@ -1,0 +1,36 @@
+name: lock-traffic-scheduler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "benchmarks/lock-traffic-scheduler/**"
+      - ".github/workflows/lock-traffic-scheduler.yml"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/lock-traffic-scheduler/**"
+      - ".github/workflows/lock-traffic-scheduler.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lock-traffic-scheduler-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/lock-traffic-scheduler/Cargo.toml -- --check
+      - name: Test deterministic scheduling baselines
+        run: cargo test --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path benchmarks/lock-traffic-scheduler/Cargo.toml --all-targets -- -D warnings
