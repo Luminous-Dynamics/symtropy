@@ -150,6 +150,16 @@ mod tests {
     }
 
     #[test]
+    fn rejected_or_deferred_recommendations_cannot_hold_resource_reservations() {
+        let mut record = positive_record();
+        record.human_disposition = HumanDisposition::Deferred;
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::ResourceReservationAfterNonAuthorization)
+        );
+    }
+
+    #[test]
     fn authorized_but_infeasible_action_cannot_be_planned() {
         let mut record = positive_record();
         record.resource_feasibility = ResourceFeasibility::RejectedMissingPart;
