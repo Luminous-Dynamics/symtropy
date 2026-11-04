@@ -112,6 +112,10 @@ pub struct DecisionHypothesis {
 pub struct DecisionManifest {
     pub decision_id: StableId,
     pub version: StableId,
+    /// One common cardinal scale across every action and hypothesis.
+    pub utility_scale_id: StableId,
+    /// Defines what utility measures and confirms that larger values are preferred.
+    pub utility_semantics_id: StableId,
     pub actions: Vec<StableId>,
     pub hypotheses: Vec<DecisionHypothesis>,
 }
@@ -238,6 +242,8 @@ impl DecisionManifest {
         out.extend_from_slice(DOMAIN);
         push_id(&mut out, &self.decision_id);
         push_id(&mut out, &self.version);
+        push_id(&mut out, &self.utility_scale_id);
+        push_id(&mut out, &self.utility_semantics_id);
 
         let mut actions = self.actions.iter().collect::<Vec<_>>();
         actions.sort();
@@ -620,6 +626,8 @@ mod tests {
         DecisionManifest {
             decision_id: id("pedestrian-crossing-decision-01"),
             version: id("v0.1"),
+            utility_scale_id: id("common-utility-scale-v1"),
+            utility_semantics_id: id("expected-net-utility-higher-is-better-v1"),
             actions: vec![id("action-a"), id("action-b")],
             hypotheses,
         }
@@ -796,6 +804,18 @@ mod tests {
             evidence_digest: *blake3::hash(b"action-a").as_bytes(),
         };
         assert_eq!(first.digest().unwrap(), second.digest().unwrap());
+    }
+
+    #[test]
+    fn utility_scale_and_semantics_are_bound_to_decision_identity() {
+        let first = manifest(vec![hypothesis("reference-1", 10, 2)]);
+        let mut changed_scale = first.clone();
+        changed_scale.utility_scale_id = id("incompatible-scale");
+        assert_ne!(first.digest().unwrap(), changed_scale.digest().unwrap());
+
+        let mut changed_semantics = first.clone();
+        changed_semantics.utility_semantics_id = id("collision-risk-lower-is-better");
+        assert_ne!(first.digest().unwrap(), changed_semantics.digest().unwrap());
     }
 
     #[test]
