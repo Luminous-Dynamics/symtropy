@@ -13,6 +13,8 @@
 //! bound. Criterion reports completed rollouts/second for the fixed campaign.
 
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use rayon::prelude::*;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use nalgebra::SVector;
 use std::thread;
 use symtropy_math::Point;
@@ -112,6 +114,18 @@ fn run_parallel(workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
         .expect("parallel corpus must contain every rollout ID exactly once")
 }
 
+fn run_with_persistent_pool(pool: &ThreadPool) -> Vec<BatchRolloutSnapshot<3>> {
+    let completed: Vec<_> = pool.install(|| {
+        (0..ROLLOUTS)
+            .into_par_iter()
+            .map(|rollout_id| run_rollout(rollout_id as u64))
+            .collect()
+    });
+
+    order_batch_results(ROLLOUTS, completed)
+        .expect("persistent pool corpus must contain every rollout ID exactly once")
+}
+
 fn bench_independent_rollout_batch(c: &mut Criterion) {
     let mut group = c.benchmark_group("independent_rollout_batch");
     group.throughput(Throughput::Elements(ROLLOUTS as u64));
@@ -122,8 +136,20 @@ fn bench_independent_rollout_batch(c: &mut Criterion) {
 
     for workers in [1, 2, 4, 8] {
         group.bench_function(
-            BenchmarkId::new(format!("std_threads_{workers}"), ROLLOUTS),
+            BenchmarkId::new(format!("std_threads_spawned_{workers}"), ROLLOUTS),
             |bench| bench.iter(|| black_box(run_parallel(workers))),
+        );
+
+        // Construct the worker pool outside the timed iteration. This isolates
+        // repeated batch scheduling/collection from pool creation and contrasts
+        // with the end-to-end std::thread spawn/join baseline above.
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(workers)
+            .build()
+            .expect("Rayon worker pool construction must succeed");
+        group.bench_function(
+            BenchmarkId::new(format!("rayon_persistent_{workers}"), ROLLOUTS),
+            |bench| bench.iter(|| black_box(run_with_persistent_pool(&pool))),
         );
     }
 
