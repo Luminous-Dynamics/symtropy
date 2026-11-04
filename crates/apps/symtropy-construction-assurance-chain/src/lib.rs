@@ -104,7 +104,10 @@ fn validate_stage_dispositions(stages: &[Value]) -> Result<(), String> {
         let allowed = match kind {
             "layout_input_admission" => matches!(
                 disposition,
-                "admissible_for_named_layout_input" | "inadmissible" | "indeterminate" | "not_evaluated"
+                "admissible_for_named_layout_input"
+                    | "inadmissible"
+                    | "indeterminate"
+                    | "not_evaluated"
             ),
             "observation_evaluation" => matches!(
                 disposition,
@@ -112,20 +115,31 @@ fn validate_stage_dispositions(stages: &[Value]) -> Result<(), String> {
             ),
             "worksite_epoch_transition" => matches!(
                 disposition,
-                "active" | "requalification_required" | "safe_hold" | "context_stale" | "conflicting" | "aborted"
+                "active"
+                    | "requalification_required"
+                    | "safe_hold"
+                    | "context_stale"
+                    | "conflicting"
+                    | "aborted"
             ),
             "qualification_lease" => matches!(
                 disposition,
-                "active" | "requalification_required" | "safe_hold" | "context_stale" | "aborted"
+                "active"
+                    | "requalification_required"
+                    | "safe_hold"
+                    | "context_stale"
+                    | "aborted"
             ),
             "command_authorization" => matches!(disposition, "authorized" | "rejected"),
-            "physical_outcome_receipt" => matches!(
-                disposition,
-                "measured" | "indeterminate" | "not_evaluated"
-            ),
+            "physical_outcome_receipt" => {
+                matches!(disposition, "measured" | "indeterminate" | "not_evaluated")
+            }
             "claim_admissibility" => matches!(
                 disposition,
-                "admissible_for_named_claim" | "inadmissible_for_named_claim" | "indeterminate" | "not_evaluated"
+                "admissible_for_named_claim"
+                    | "inadmissible_for_named_claim"
+                    | "indeterminate"
+                    | "not_evaluated"
             ),
             other => return Err(format!("stage[{id}] has unsupported stage kind {other}")),
         };
