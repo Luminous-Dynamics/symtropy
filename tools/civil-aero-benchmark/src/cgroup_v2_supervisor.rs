@@ -519,7 +519,8 @@ fn validate_result_directory(
 ) -> Result<PathBuf, String> {
     let parent = path
         .parent()
-        .ok_or_else(|| "result directory must have a parent".to_owned())?;
+        .filter(|value| !value.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent)
         .map_err(|error| format!("cannot create result parent {}: {error}", parent.display()))?;
     let canonical_parent = fs::canonicalize(parent)
@@ -542,19 +543,6 @@ fn validate_result_directory(
     Ok(candidate)
 }
 
-fn parse_mountpoint(raw: &str) -> Result<PathBuf, String> {
-    let fields = raw.split_whitespace().collect::<Vec<_>>();
-    if fields.len() < 6 {
-        return Err("mountinfo line is malformed".to_owned());
-    }
-    Ok(PathBuf::from(
-        fields[4]
-            .replace("\\040", " ")
-            .replace("\\011", "\t")
-            .replace("\\012", "\n")
-            .replace("\\134", "\\"),
-    ))
-}
 
 fn cgroup_identity(path: &Path) -> Result<String, String> {
     let metadata = fs::metadata(path)
@@ -614,22 +602,43 @@ fn create_operation_cgroup(root: &Path, run_id: &str) -> Result<PathBuf, String>
     }
     fs::create_dir(&path)
         .map_err(|error| format!("cannot create operation cgroup in delegated subtree: {error}"))?;
-    for required in ["cgroup.procs", "cgroup.events", "cpu.stat", "memory.peak", "memory.events", "cgroup.kill"] {
-        if !path.join(required).exists() {
-            return Err(format!("new cgroup is missing required interface {required}"));
+    let validation = (|| {
+        for required in [
+            "cgroup.procs",
+            "cgroup.events",
+            "cpu.stat",
+            "memory.peak",
+            "memory.events",
+            "cgroup.kill",
+        ] {
+            if !path.join(required).exists() {
+                return Err(format!("new cgroup is missing required interface {required}"));
+            }
         }
-    }
-    if fs::read_to_string(path.join("cgroup.type"))
-        .map_err(|error| format!("cannot read operation cgroup type: {error}"))?
-        .trim() != "domain"
-    {
-        return Err("operation cgroup must be a domain cgroup".to_owned());
-    }
-    let available = tokens_from_file(&path.join("cgroup.controllers"), "operation cgroup.controllers")?;
-    for controller in ["cpu", "memory"] {
-        if !available.contains(controller) {
-            return Err(format!("operation cgroup did not inherit {controller} controller"));
+        if fs::read_to_string(path.join("cgroup.type"))
+            .map_err(|error| format!("cannot read operation cgroup type: {error}"))?
+            .trim()
+            != "domain"
+        {
+            return Err("operation cgroup must be a domain cgroup".to_owned());
         }
+        let available =
+            tokens_from_file(&path.join("cgroup.controllers"), "operation cgroup.controllers")?;
+        for controller in ["cpu", "memory"] {
+            if !available.contains(controller) {
+                return Err(format!(
+                    "operation cgroup did not inherit {controller} controller"
+                ));
+            }
+        }
+        if read_populated(&path)? {
+            return Err("new operation cgroup is unexpectedly populated".to_owned());
+        }
+        Ok(())
+    })();
+    if let Err(error) = validation {
+        let _ = fs::remove_dir(&path);
+        return Err(error);
     }
     Ok(path)
 }
