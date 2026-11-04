@@ -209,6 +209,8 @@ pub enum BenchError {
     TooFewIndividualClusters,
     DuplicateInterventionId(String),
     NoFeasibleIntervention,
+    NoDiscriminatingIntervention,
+    InvalidInformationGainThreshold,
     InvalidInterventionCost {
         intervention_id: String,
     },
@@ -294,6 +296,12 @@ impl fmt::Display for BenchError {
             }
             Self::NoFeasibleIntervention => {
                 write!(f, "no feasible intervention candidates were supplied")
+            }
+            Self::NoDiscriminatingIntervention => {
+                write!(f, "no feasible intervention has a Monte Carlo lower information-gain bound above the declared threshold")
+            }
+            Self::InvalidInformationGainThreshold => {
+                write!(f, "minimum information-gain threshold must be finite and non-negative")
             }
             Self::InvalidInterventionCost { intervention_id } => write!(
                 f,
@@ -862,10 +870,37 @@ pub struct InterventionRanking {
     pub intervention_id: String,
     /// Monte Carlo estimate of I(Model; outcome | intervention), in nats.
     pub expected_information_gain_nats: f64,
+    /// Stratified Monte Carlo standard error, in nats.
+    pub information_gain_standard_error_nats: f64,
+    /// Approximate 95% Monte Carlo lower bound, clamped to the valid EIG range.
+    pub information_gain_lower_95_nats: f64,
+    /// Approximate 95% Monte Carlo upper bound, clamped to the valid EIG range.
+    pub information_gain_upper_95_nats: f64,
     pub cost_units: f64,
+    /// Point-estimate EIG divided by cost.
     pub information_gain_per_cost: f64,
+    /// 95% lower-bound EIG divided by cost; used for conservative ranking.
+    pub lower_95_information_gain_per_cost: f64,
     pub model_family_count: usize,
     pub samples_per_model: usize,
+}
+
+/// Monte Carlo uncertainty for the mutual-information estimate.
+///
+/// The interval describes numerical Monte Carlo sampling error conditional on
+/// the supplied Gaussian model predictions and equal model priors. It does not
+/// include uncertainty in those predictions, model misspecification, biological
+/// sampling, or intervention feasibility.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InformationGainEstimate {
+    /// Clamped Monte Carlo estimate of I(Model; outcome | intervention), in nats.
+    pub mean_nats: f64,
+    /// Stratified standard error across equally sized model-origin strata.
+    pub standard_error_nats: f64,
+    /// Approximate normal 95% Monte Carlo lower bound, clipped to [0, ln(K)].
+    pub lower_95_nats: f64,
+    /// Approximate normal 95% Monte Carlo upper bound, clipped to [0, ln(K)].
+    pub upper_95_nats: f64,
 }
 
 fn log_sum_exp(values: &[f64]) -> f64 {
@@ -883,14 +918,16 @@ fn gaussian_log_density_scalar(value: f64, distribution: &ModelOutcomeDistributi
 }
 
 /// Estimate mutual information between model identity and a scalar experimental
-/// outcome under equal model priors. This is Monte Carlo Bayesian design, not a
-/// pairwise-KL shortcut: each model generates outcomes and all model likelihoods
-/// contribute to the posterior over model identity.
-pub fn estimate_expected_information_gain(
+/// outcome under equal model priors, with stratified Monte Carlo uncertainty.
+///
+/// Each model is an equally weighted sampling stratum. The standard error is
+/// computed from within-model contribution variances; it is not computed by
+/// treating repeated samples from the same model as biological replicates.
+pub fn estimate_expected_information_gain_with_uncertainty(
     predictions: &[ModelOutcomeDistribution],
     samples_per_model: usize,
     seed: u64,
-) -> Result<f64, BenchError> {
+) -> Result<InformationGainEstimate, BenchError> {
     if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
         return Err(BenchError::InvalidMonteCarloSamples);
     }
@@ -926,9 +963,14 @@ pub fn estimate_expected_information_gain(
     let model_count = ordered_predictions.len();
     let log_prior = -(model_count as f64).ln();
     let mut rng = SplitMix64(seed);
-    let mut information = 0.0;
+    let mut sum_of_stratum_means = 0.0_f64;
+    let mut sum_of_stratum_mean_variances = 0.0_f64;
 
     for (origin_index, origin) in ordered_predictions.iter().enumerate() {
+        let mut count = 0_usize;
+        let mut mean = 0.0_f64;
+        let mut m2 = 0.0_f64;
+
         for _ in 0..samples_per_model {
             let outcome = origin.mean + origin.standard_deviation * rng.standard_normal();
             if !outcome.is_finite() {
@@ -953,24 +995,105 @@ pub fn estimate_expected_information_gain(
                     model_id: origin.model_family_id.clone(),
                 });
             }
-            information += contribution;
+
+            count += 1;
+            let delta = contribution - mean;
+            mean += delta / count as f64;
+            let delta_after_update = contribution - mean;
+            m2 += delta * delta_after_update;
         }
+
+        let sample_variance = if count > 1 {
+            m2 / (count - 1) as f64
+        } else {
+            0.0
+        };
+        if !mean.is_finite() || !sample_variance.is_finite() || sample_variance < 0.0 {
+            return Err(BenchError::InvalidModelDistribution {
+                intervention_id: "<direct-estimate>".to_string(),
+                model_id: origin.model_family_id.clone(),
+            });
+        }
+        sum_of_stratum_means += mean;
+        sum_of_stratum_mean_variances += sample_variance / count as f64;
     }
 
-    let estimate = information / (model_count * samples_per_model) as f64;
-    Ok(estimate.max(0.0).min((model_count as f64).ln()))
+    let raw_mean = sum_of_stratum_means / model_count as f64;
+    let variance_of_mean =
+        sum_of_stratum_mean_variances / (model_count as f64 * model_count as f64);
+    let standard_error = variance_of_mean.sqrt();
+    let maximum_information = (model_count as f64).ln();
+    if !raw_mean.is_finite()
+        || !variance_of_mean.is_finite()
+        || !standard_error.is_finite()
+        || !maximum_information.is_finite()
+    {
+        return Err(BenchError::InvalidModelDistribution {
+            intervention_id: "<direct-estimate>".to_string(),
+            model_id: "<aggregate>".to_string(),
+        });
+    }
+
+    // The normal interval quantifies Monte Carlo integration error only.
+    // It is intentionally clipped to the mathematical EIG range [0, ln(K)].
+    const Z_975: f64 = 1.959_963_984_540_054;
+    let mean_nats = raw_mean.clamp(0.0, maximum_information);
+    let lower_95_nats = (raw_mean - Z_975 * standard_error).clamp(0.0, maximum_information);
+    let upper_95_nats = (raw_mean + Z_975 * standard_error).clamp(0.0, maximum_information);
+
+    Ok(InformationGainEstimate {
+        mean_nats,
+        standard_error_nats: standard_error,
+        lower_95_nats,
+        upper_95_nats,
+    })
 }
 
-/// Rank feasible interventions by Monte Carlo expected information gain per
-/// comparable cost unit. All candidates must predict the same model families,
-/// metric and physical unit. Infeasible candidates remain unranked.
+/// Backwards-compatible point estimate. Use the uncertainty-bearing function
+/// when selecting or claiming an intervention.
+pub fn estimate_expected_information_gain(
+    predictions: &[ModelOutcomeDistribution],
+    samples_per_model: usize,
+    seed: u64,
+) -> Result<f64, BenchError> {
+    Ok(estimate_expected_information_gain_with_uncertainty(
+        predictions,
+        samples_per_model,
+        seed,
+    )?
+    .mean_nats)
+}
+
+/// Rank interventions conservatively by the 95% Monte Carlo lower information
+/// gain bound per comparable cost unit. Candidates whose lower bound does not
+/// exceed the preregistered threshold are excluded; if every feasible candidate
+/// is excluded, the result is an explicit abstention.
+///
+/// A zero threshold is only a Monte Carlo-noise gate. It is not a biological
+/// equivalence margin or a declaration that two models are globally equivalent.
 pub fn rank_interventions(
     candidates: &[InterventionCandidate],
     samples_per_model: usize,
     seed: u64,
 ) -> Result<Vec<InterventionRanking>, BenchError> {
+    rank_interventions_with_minimum_information_gain(candidates, samples_per_model, seed, 0.0)
+}
+
+/// Rank with a preregistered minimum 95% lower EIG bound in nats.
+///
+/// Use a nonzero threshold only when its practical meaning has been defined
+/// before outcomes or intervention results are examined.
+pub fn rank_interventions_with_minimum_information_gain(
+    candidates: &[InterventionCandidate],
+    samples_per_model: usize,
+    seed: u64,
+    minimum_lower_bound_nats: f64,
+) -> Result<Vec<InterventionRanking>, BenchError> {
     if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
         return Err(BenchError::InvalidMonteCarloSamples);
+    }
+    if !minimum_lower_bound_nats.is_finite() || minimum_lower_bound_nats < 0.0 {
+        return Err(BenchError::InvalidInformationGainThreshold);
     }
     if candidates.is_empty() {
         return Ok(Vec::new());
@@ -980,6 +1103,7 @@ pub fn rank_interventions(
     let mut expected_models: Option<BTreeSet<String>> = None;
     let mut expected_schema: Option<(String, String)> = None;
     let mut rankings = Vec::new();
+    let mut feasible_count = 0_usize;
 
     for candidate in candidates {
         non_empty(&candidate.intervention_id, "intervention_id")?;
@@ -1049,29 +1173,42 @@ pub fn rank_interventions(
         if !candidate.feasible {
             continue;
         }
+        feasible_count += 1;
 
         let candidate_seed = seed ^ stable_hash(&candidate.intervention_id);
-        let eig = estimate_expected_information_gain(
+        let estimate = estimate_expected_information_gain_with_uncertainty(
             &candidate.predictions,
             samples_per_model,
             candidate_seed,
         )?;
+        if estimate.lower_95_nats <= minimum_lower_bound_nats {
+            continue;
+        }
+
         rankings.push(InterventionRanking {
             intervention_id: candidate.intervention_id.clone(),
-            expected_information_gain_nats: eig,
+            expected_information_gain_nats: estimate.mean_nats,
+            information_gain_standard_error_nats: estimate.standard_error_nats,
+            information_gain_lower_95_nats: estimate.lower_95_nats,
+            information_gain_upper_95_nats: estimate.upper_95_nats,
             cost_units: candidate.cost_units,
-            information_gain_per_cost: eig / candidate.cost_units,
+            information_gain_per_cost: estimate.mean_nats / candidate.cost_units,
+            lower_95_information_gain_per_cost: estimate.lower_95_nats
+                / candidate.cost_units,
             model_family_count: candidate.predictions.len(),
             samples_per_model,
         });
     }
 
-    if rankings.is_empty() {
+    if feasible_count == 0 {
         return Err(BenchError::NoFeasibleIntervention);
     }
+    if rankings.is_empty() {
+        return Err(BenchError::NoDiscriminatingIntervention);
+    }
     rankings.sort_by(|a, b| {
-        b.information_gain_per_cost
-            .total_cmp(&a.information_gain_per_cost)
+        b.lower_95_information_gain_per_cost
+            .total_cmp(&a.lower_95_information_gain_per_cost)
             .then_with(|| a.intervention_id.cmp(&b.intervention_id))
     });
     Ok(rankings)
@@ -1465,6 +1602,112 @@ mod tests {
         let left = estimate_expected_information_gain(&ordered, 1000, 123).unwrap();
         let right = estimate_expected_information_gain(&reversed, 1000, 123).unwrap();
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn information_gain_reports_stratified_monte_carlo_uncertainty() {
+        let predictions = vec![
+            distribution("model-a", 0.0, 0.5),
+            distribution("model-b", 3.0, 0.5),
+            distribution("model-c", 6.0, 0.5),
+        ];
+        let estimate =
+            estimate_expected_information_gain_with_uncertainty(&predictions, 2000, 41).unwrap();
+        assert!(estimate.mean_nats > 0.0);
+        assert!(estimate.standard_error_nats >= 0.0);
+        assert!(estimate.lower_95_nats <= estimate.mean_nats);
+        assert!(estimate.upper_95_nats >= estimate.mean_nats);
+        assert!(estimate.upper_95_nats <= 3.0_f64.ln());
+    }
+
+    #[test]
+    fn identical_model_distributions_have_zero_information_gain_and_zero_width_interval() {
+        let predictions = vec![
+            distribution("model-a", 2.5, 0.75),
+            distribution("model-b", 2.5, 0.75),
+            distribution("model-c", 2.5, 0.75),
+        ];
+        let estimate =
+            estimate_expected_information_gain_with_uncertainty(&predictions, 1000, 17).unwrap();
+        assert_eq!(estimate.mean_nats, 0.0);
+        assert_eq!(estimate.standard_error_nats, 0.0);
+        assert_eq!(estimate.lower_95_nats, 0.0);
+        assert_eq!(estimate.upper_95_nats, 0.0);
+    }
+
+    #[test]
+    fn intervention_selector_abstains_when_no_candidate_separates_models() {
+        let predictions = vec![
+            distribution("model-a", 2.5, 0.75),
+            distribution("model-b", 2.5, 0.75),
+            distribution("model-c", 2.5, 0.75),
+        ];
+        let candidates = [
+            InterventionCandidate {
+                intervention_id: "sensory-mask".to_string(),
+                cost_units: 1.0,
+                feasible: true,
+                predictions: predictions.clone(),
+            },
+            InterventionCandidate {
+                intervention_id: "load-step".to_string(),
+                cost_units: 2.0,
+                feasible: true,
+                predictions,
+            },
+        ];
+        assert_eq!(
+            rank_interventions(&candidates, 1000, 29),
+            Err(BenchError::NoDiscriminatingIntervention)
+        );
+    }
+
+    #[test]
+    fn intervention_selector_excludes_indistinguishable_candidates() {
+        let informative = InterventionCandidate {
+            intervention_id: "targeted-reflex-block".to_string(),
+            cost_units: 1.0,
+            feasible: true,
+            predictions: vec![
+                distribution("model-a", 0.0, 0.2),
+                distribution("model-b", 4.0, 0.2),
+            ],
+        };
+        let uninformative = InterventionCandidate {
+            intervention_id: "nonselective-sham".to_string(),
+            cost_units: 0.5,
+            feasible: true,
+            predictions: vec![
+                distribution("model-a", 2.0, 0.8),
+                distribution("model-b", 2.0, 0.8),
+            ],
+        };
+        let ranked = rank_interventions(&[uninformative, informative], 1000, 71).unwrap();
+        assert_eq!(ranked.len(), 1);
+        assert_eq!(ranked[0].intervention_id, "targeted-reflex-block");
+        assert!(ranked[0].information_gain_lower_95_nats > 0.0);
+    }
+
+    #[test]
+    fn intervention_selector_rejects_invalid_preregistered_eig_threshold() {
+        let candidate = InterventionCandidate {
+            intervention_id: "candidate".to_string(),
+            cost_units: 1.0,
+            feasible: true,
+            predictions: vec![
+                distribution("model-a", 0.0, 0.2),
+                distribution("model-b", 1.0, 0.2),
+            ],
+        };
+        assert_eq!(
+            rank_interventions_with_minimum_information_gain(
+                &[candidate],
+                1000,
+                71,
+                f64::NAN
+            ),
+            Err(BenchError::InvalidInformationGainThreshold)
+        );
     }
 
     #[test]
