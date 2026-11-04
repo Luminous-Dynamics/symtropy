@@ -791,11 +791,7 @@ mod tests {
                 let child_schema = properties
                     .get(key)
                     .unwrap_or_else(|| panic!("{path}: field {key} is absent from schema"));
-                assert_schema_covers_instance(
-                    child_schema,
-                    value,
-                    &format!("{path}/{key}"),
-                );
+                assert_schema_covers_instance(child_schema, value, &format!("{path}/{key}"));
             }
         } else if schema["type"] == "array" {
             let items = &schema["items"];
