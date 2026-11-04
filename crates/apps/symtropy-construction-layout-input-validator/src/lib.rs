@@ -939,6 +939,23 @@ mod tests {
     }
 
     #[test]
+    fn coordinate_epoch_mismatch_is_inadmissible_even_when_frame_axes_match() {
+        let mut value: Value = serde_json::from_str(VALID).expect("manifest JSON");
+        value["coordinate_frame"]["coordinate_epoch"] = serde_json::json!("2025.25");
+        let result = evaluate_manifest(
+            &serde_json::to_string(&value).expect("manifest serializes"),
+            &policy(),
+        )
+        .expect("well-formed manifest");
+        assert_eq!(result.decision, Decision::Inadmissible);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"coordinate_epoch_mismatch".to_owned())
+        );
+    }
+
+    #[test]
     fn wrong_vertical_datum_is_inadmissible() {
         let result = evaluate_manifest(WRONG_VERTICAL_DATUM, &policy()).expect("fixture");
         assert_eq!(result.decision, Decision::Inadmissible);
