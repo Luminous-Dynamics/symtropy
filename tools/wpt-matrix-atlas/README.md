@@ -92,10 +92,10 @@ The fixture's source/receipt digests are synthetic placeholders. The result is a
 
 ```sh
 cargo run --locked -p wpt-matrix-atlas -- \
-  benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0
+  benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0 PASSIVE_CERTIFIED
 ```
 
-The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
+The optional third argument asserts an expected disposition; CI supplies `PASSIVE_CERTIFIED` so an `UNRESOLVED` result cannot silently pass the smoke test. The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
 
 ## Research baseline and proposed targets
 
