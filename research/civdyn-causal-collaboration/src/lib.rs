@@ -401,9 +401,14 @@ impl CollaborationTrace {
             }
             if action.kind.is_communication() {
                 message_action_count += 1;
-                verified_contributing_messages += usize::from(verified.contains(&action.action_id));
+                verified_contributing_messages +=
+                    if verified.contains(&action.action_id) { 1 } else { 0 };
                 candidate_inclusive_contributing_messages +=
-                    usize::from(candidate_inclusive.contains(&action.action_id));
+                    if candidate_inclusive.contains(&action.action_id) {
+                        1
+                    } else {
+                        0
+                    };
             }
             if action.kind.is_resource_transfer() {
                 resource_transfer_action_count += 1;
