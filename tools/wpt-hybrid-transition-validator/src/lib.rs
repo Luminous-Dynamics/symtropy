@@ -161,6 +161,11 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     if !valid_sha256(&mapping_sha256) {
         return Err("switch_event.mapping_sha256 must be 64 lowercase hex characters".into());
     }
+    let tolerance_policy_sha256 =
+        text_field(transition, "tolerance_policy_sha256", "switch_event")?;
+    if !valid_sha256(&tolerance_policy_sha256) {
+        return Err("switch_event.tolerance_policy_sha256 must be 64 lowercase hex characters".into());
+    }
 
     let source_dimension = dimension_field(
         transition,
@@ -210,8 +215,8 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
     let absolute_tolerance_j =
         nonnegative_field(transition, "absolute_tolerance_j", "switch_event")?;
     let relative_tolerance = nonnegative_field(transition, "relative_tolerance", "switch_event")?;
-    if relative_tolerance > 1.0 {
-        return Err("switch_event.relative_tolerance must not exceed 1.0".into());
+    if relative_tolerance > 0.005 {
+        return Err("switch_event.relative_tolerance must not exceed 0.5%".into());
     }
 
     let energy_tank = tank(record.get("energy_tank"))?;
@@ -251,6 +256,13 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         .max(expected_delta_j.abs())
         .max(1.0e-12);
     let tolerance_j = absolute_tolerance_j + relative_tolerance * scale_j;
+    if tolerance_j > 0.005 * scale_j {
+        return Err("combined decision tolerance must not exceed 0.5% of the energy scale".into());
+    }
+    // Measurement/model uncertainty is already accounted for separately.
+    // This guard covers only floating-point arithmetic and must not be widened
+    // by a caller's measurement tolerance.
+    let numeric_guard_j = 64.0 * f64::EPSILON * scale_j;
     let residual_lower_j = residual_j - residual_uncertainty_j;
     let residual_upper_j = residual_j + residual_uncertainty_j;
 
@@ -275,6 +287,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         ("residual_j", residual_j),
         ("residual_uncertainty_j", residual_uncertainty_j),
         ("tolerance_j", tolerance_j),
+        ("numeric_guard_j", numeric_guard_j),
         ("generation_lower_j", generation_lower_j),
         ("generation_upper_j", generation_upper_j),
     ] {
@@ -287,7 +300,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         item.pre_j < item.pre_uncertainty_j || item.post_j < item.post_uncertainty_j
     });
 
-    let dispositions = if generation_lower_j > tolerance_j {
+    let dispositions = if generation_lower_j > numeric_guard_j {
         (
             "ENERGY_GENERATING_REJECTED",
             "conservative lower bound proves stored-energy growth beyond declared port and switch work",
@@ -326,6 +339,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         "post_topology_sha256": post.topology_sha256,
         "mapping_kind": mapping_kind,
         "mapping_sha256": mapping_sha256,
+        "tolerance_policy_sha256": tolerance_policy_sha256,
         "pre_total_stored_energy_j": pre_total_j,
         "post_total_stored_energy_j": post_total_j,
         "delta_total_stored_energy_j": delta_storage_j,
@@ -339,6 +353,7 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         "non_generation_margin_j": generation_margin_j,
         "non_generation_interval_j": [generation_lower_j, generation_upper_j],
         "decision_tolerance_j": tolerance_j,
+        "floating_point_guard_j": numeric_guard_j,
         "energy_tank_pre_reserve_lower_bound_j": energy_tank.as_ref().map(|item| item.pre_j - item.pre_uncertainty_j),
         "energy_tank_post_reserve_lower_bound_j": energy_tank.as_ref().map(|item| item.post_j - item.post_uncertainty_j)
     }))
@@ -352,6 +367,7 @@ mod tests {
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const DIGEST_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+    const DIGEST_D: &str = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
 
     fn event(
         event_id: &str,
@@ -520,8 +536,15 @@ mod tests {
             "post_energy_uncertainty_j": 0.02
         });
         record["switch_event"]["absolute_tolerance_j"] = json!(0.05);
-        record["switch_event"]["relative_tolerance"] = json!(0.01);
+        record["switch_event"]["relative_tolerance"] = json!(0.001);
         assert_eq!(disposition(&record), "ENERGY_TANK_RESERVE_UNRESOLVED");
+    }
+
+    #[test]
+    fn rejects_decision_tolerance_above_half_percent_energy_scale() {
+        let mut record = event("wide-tolerance", 1.0, 1.0, 0.0, 0.0);
+        record["switch_event"]["relative_tolerance"] = json!(0.01);
+        assert_eq!(disposition(&record), "INVALID_INPUT");
     }
 
     #[test]
