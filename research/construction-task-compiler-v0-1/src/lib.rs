@@ -323,7 +323,7 @@ fn validate_dependencies(
                 continue;
             }
 
-            if dependency == node_id {
+            if dependency.as_str() == *node_id {
                 diagnostics.push(diagnostic(
                     "self_dependency",
                     Some(node_id),
