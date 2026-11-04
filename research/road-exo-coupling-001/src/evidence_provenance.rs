@@ -177,6 +177,7 @@ pub enum QualificationReason {
     MissingLineage,
     MissingFormalDomain,
     UnsupportedEvidenceClass,
+    IllustrativeOnlyCannotBeReference,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -271,7 +272,7 @@ impl EvidencePacket {
 
     pub fn metadata_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
-        out.extend_from_slice(b"symtropy.road-reality-gap.evidence-packet.v0.1\\0");
+        out.extend_from_slice(b"symtropy.road-reality-gap.evidence-packet.v0.1\0");
         push_id(&mut out, &self.evidence_id);
         out.extend_from_slice(&self.content_digest);
         out.push(self.origin as u8);
@@ -393,18 +394,29 @@ impl EvidencePacket {
                 QualificationReason::SharedGeneratorAncestry,
             );
         }
-        if !self
+        let evidence_sources = self
             .lineage
             .upstream_source_digests
-            .is_disjoint(&subject.upstream_source_digests)
-            || !self
-                .lineage
-                .parent_content_digests
-                .is_disjoint(&subject.parent_content_digests)
-        {
+            .union(&self.lineage.parent_content_digests)
+            .copied()
+            .chain(std::iter::once(self.content_digest))
+            .collect::<BTreeSet<_>>();
+        let subject_sources = subject
+            .upstream_source_digests
+            .union(&subject.parent_content_digests)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if !evidence_sources.is_disjoint(&subject_sources) {
             return (
                 GroundTruthEligibility::ModelDependentReference,
                 QualificationReason::SharedUpstreamSource,
+            );
+        }
+
+        if self.use_role == EvidenceUse::IllustrativeOnly {
+            return (
+                GroundTruthEligibility::NotIdentified,
+                QualificationReason::IllustrativeOnlyCannotBeReference,
             );
         }
 
@@ -820,6 +832,61 @@ mod tests {
             GroundTruthEligibility::NotIdentified
         );
         assert!(receipt.integrity_check());
+    }
+
+    #[test]
+    fn evidence_content_digest_intersection_is_not_independent() {
+        let mut packet = factual_packet();
+        packet.content_digest = [6; 32];
+        let mut model = subject();
+        model.parent_content_digests = BTreeSet::from([[6; 32]]);
+        let receipt = packet.qualify_against(
+            &model,
+            QualificationTarget::FactualOutcome {
+                action_id: id("continue"),
+            },
+        );
+        assert_eq!(
+            receipt.eligibility,
+            GroundTruthEligibility::ModelDependentReference
+        );
+    }
+
+    #[test]
+    fn illustrative_record_cannot_be_used_as_ground_truth() {
+        let mut packet = factual_packet();
+        packet.use_role = EvidenceUse::IllustrativeOnly;
+        let receipt = packet.qualify_against(
+            &subject(),
+            QualificationTarget::FactualOutcome {
+                action_id: id("continue"),
+            },
+        );
+        assert_eq!(receipt.eligibility, GroundTruthEligibility::NotIdentified);
+        assert_eq!(
+            receipt.reason,
+            QualificationReason::IllustrativeOnlyCannotBeReference
+        );
+    }
+
+    #[test]
+    fn qualification_receipt_binds_evidence_metadata() {
+        let packet = factual_packet();
+        let model = subject();
+        let receipt = packet.qualify_against(
+            &model,
+            QualificationTarget::FactualOutcome {
+                action_id: id("continue"),
+            },
+        );
+        assert_eq!(receipt.verify_against(&packet, &model), Ok(()));
+
+        let mut mutated = packet;
+        mutated.dataset_version = id("v2");
+        assert_eq!(
+            receipt.verify_against(&mutated, &model),
+            Err(EvidenceError::ReceiptMismatch)
+        );
     }
 
     #[test]
