@@ -118,12 +118,27 @@ pub struct MatchRecord {
     pub event_id: String,
     /// Candidate alarm episode identifier.
     pub episode_id: String,
+    /// Ground-truth event class.
+    pub truth_class: EventClass,
+    /// Episode diagnosis after constituent-alarm aggregation.
+    pub reported_class: AlarmClass,
     /// Timely or late association.
     pub kind: MatchKind,
     /// Episode onset minus event onset; negative values are early warnings.
     pub onset_offset_ms: i64,
     /// None for unclassified/conflicting alarm episodes.
     pub class_correct: Option<bool>,
+}
+
+/// One cell in the event-level diagnosis confusion matrix.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClassConfusionCell {
+    /// Ground-truth event class.
+    pub truth_class: EventClass,
+    /// Reported class (including unclassified/conflicting).
+    pub reported_class: AlarmClass,
+    /// Number of timely matched events in this cell.
+    pub count: usize,
 }
 
 /// Computed event-level metrics and the full deterministic association record.
@@ -133,6 +148,12 @@ pub struct EvaluationReport {
     pub confirmed_event_count: usize,
     /// Number of confirmed events detected within the timely onset window.
     pub timely_event_count: usize,
+    /// Timely detections divided by all scorable alarm episodes.
+    pub event_precision: f64,
+    /// Timely detections divided by confirmed events.
+    pub event_onset_recall: f64,
+    /// Event-level diagnosis confusion for timely matched events.
+    pub class_confusion: Vec<ClassConfusionCell>,
     /// Number of unmatched-timely events with a late associated episode.
     pub late_associated_event_count: usize,
     /// Confirmed events without a timely detection, including late events.
@@ -169,6 +190,17 @@ impl EvaluationReport {
         let _ = writeln!(&mut out, "CIVBENCH_EVENT_EVALUATION_V0.1");
         let _ = writeln!(&mut out, "confirmed_events={}", self.confirmed_event_count);
         let _ = writeln!(&mut out, "timely_events={}", self.timely_event_count);
+        let _ = writeln!(&mut out, "event_precision={:.9}", self.event_precision);
+        let _ = writeln!(&mut out, "event_onset_recall={:.9}", self.event_onset_recall);
+        for cell in &self.class_confusion {
+            let _ = writeln!(
+                &mut out,
+                "class_confusion={},{},{}",
+                event_class_name(cell.truth_class),
+                alarm_class_name(cell.reported_class),
+                cell.count
+            );
+        }
         let _ = writeln!(
             &mut out,
             "late_associated_events={}",
@@ -236,8 +268,14 @@ impl EvaluationReport {
             };
             let _ = writeln!(
                 &mut out,
-                "match={},{},{},{},{}",
-                record.event_id, record.episode_id, kind, record.onset_offset_ms, class
+                "match={},{},{},{},{},{},{}",
+                record.event_id,
+                record.episode_id,
+                kind,
+                record.onset_offset_ms,
+                event_class_name(record.truth_class),
+                alarm_class_name(record.reported_class),
+                class
             );
         }
         out
@@ -246,6 +284,24 @@ impl EvaluationReport {
 
 fn option_i64(value: Option<i64>) -> String {
     value.map_or_else(|| "none".to_owned(), |v| v.to_string())
+}
+
+fn event_class_name(class: EventClass) -> &'static str {
+    match class {
+        EventClass::Leak => "leak",
+        EventClass::SensorFault => "sensor_fault",
+        EventClass::CommunicationFault => "communication_fault",
+        EventClass::ProcessDrift => "process_drift",
+        EventClass::CyberCompromise => "cyber_compromise",
+    }
+}
+
+fn alarm_class_name(class: AlarmClass) -> &'static str {
+    match class {
+        AlarmClass::Classified(value) => event_class_name(value),
+        AlarmClass::Unclassified => "unclassified",
+        AlarmClass::Conflicting => "conflicting",
+    }
 }
 
 /// Input validation or matching failure.
@@ -636,6 +692,8 @@ pub fn evaluate(
             matches.push(MatchRecord {
                 event_id: event.event_id.clone(),
                 episode_id: episode.episode_id.clone(),
+                truth_class: event.class,
+                reported_class: episode.class,
                 kind: MatchKind::Timely,
                 onset_offset_ms: offset,
                 class_correct: correct,
@@ -690,6 +748,8 @@ pub fn evaluate(
                 matches.push(MatchRecord {
                     event_id: event.event_id.clone(),
                     episode_id: episode.episode_id.clone(),
+                    truth_class: event.class,
+                    reported_class: episode.class,
                     kind: MatchKind::Late,
                     onset_offset_ms: onset_offset(episode.start_ms, event.onset_ms),
                     class_correct: correct,
@@ -789,6 +849,31 @@ pub fn evaluate(
     } else {
         false_alarm_count as f64 / monitored_system_days
     };
+    let scorable_episode_count = episodes.len().saturating_sub(unscorable.len());
+    let event_precision = if scorable_episode_count == 0 {
+        0.0
+    } else {
+        timely_event_count as f64 / scorable_episode_count as f64
+    };
+    let event_onset_recall = if events.is_empty() {
+        0.0
+    } else {
+        timely_event_count as f64 / events.len() as f64
+    };
+    let mut confusion_counts: BTreeMap<(EventClass, AlarmClass), usize> = BTreeMap::new();
+    for record in matches.iter().filter(|record| record.kind == MatchKind::Timely) {
+        *confusion_counts
+            .entry((record.truth_class, record.reported_class))
+            .or_default() += 1;
+    }
+    let class_confusion = confusion_counts
+        .into_iter()
+        .map(|((truth_class, reported_class), count)| ClassConfusionCell {
+            truth_class,
+            reported_class,
+            count,
+        })
+        .collect();
 
     matches.sort_by(|a, b| {
         a.event_id
@@ -822,6 +907,9 @@ pub fn evaluate(
     Ok(EvaluationReport {
         confirmed_event_count: events.len(),
         timely_event_count,
+        event_precision,
+        event_onset_recall,
+        class_confusion,
         late_associated_event_count: late_event_count,
         missed_event_ids,
         matches,
