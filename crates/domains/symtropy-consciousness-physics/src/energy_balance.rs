@@ -205,7 +205,10 @@ impl EnergyBalanceInput {
             self.final_stored_energy_j.get(),
             EnergyBalanceField::FinalStoredEnergy,
         )?;
-        validate_tolerance(tolerances.absolute_j.get(), EnergyBalanceField::AbsoluteTolerance)?;
+        validate_tolerance(
+            tolerances.absolute_j.get(),
+            EnergyBalanceField::AbsoluteTolerance,
+        )?;
         validate_tolerance(tolerances.relative, EnergyBalanceField::RelativeTolerance)?;
 
         let flows = self.boundary_flows;
@@ -249,18 +252,14 @@ impl EnergyBalanceInput {
             EnergyBalanceField::BoundaryEnergyOut,
         )?;
 
-        let net_boundary_energy_j = checked_sub(
-            energy_in,
-            energy_out,
-            EnergyBalanceField::NetBoundaryEnergy,
-        )?;
+        let net_boundary_energy_j =
+            checked_sub(energy_in, energy_out, EnergyBalanceField::NetBoundaryEnergy)?;
         let total_boundary_flow = checked_add(
             energy_in,
             energy_out,
             EnergyBalanceField::BoundaryEnergyScale,
         )?;
-        let boundary_energy_scale_j =
-            delta_stored_energy_j.abs().max(total_boundary_flow);
+        let boundary_energy_scale_j = delta_stored_energy_j.abs().max(total_boundary_flow);
 
         let residual_j = checked_sub(
             delta_stored_energy_j,
@@ -290,8 +289,7 @@ impl EnergyBalanceInput {
 
         let status = match self.boundary_coverage {
             BoundaryCoverage::Incomplete => EnergyBalanceStatus::Inconclusive,
-            BoundaryCoverage::Complete
-                if residual_j.abs() <= allowed_residual_j => {
+            BoundaryCoverage::Complete if residual_j.abs() <= allowed_residual_j => {
                 EnergyBalanceStatus::Balanced
             }
             BoundaryCoverage::Complete => EnergyBalanceStatus::Imbalanced,
@@ -309,10 +307,7 @@ impl EnergyBalanceInput {
     }
 }
 
-fn validate_finite(
-    value: f64,
-    field: EnergyBalanceField,
-) -> Result<(), EnergyBalanceError> {
+fn validate_finite(value: f64, field: EnergyBalanceField) -> Result<(), EnergyBalanceError> {
     if value.is_finite() {
         Ok(())
     } else {
@@ -320,10 +315,7 @@ fn validate_finite(
     }
 }
 
-fn validate_flow(
-    value: f64,
-    field: EnergyBalanceField,
-) -> Result<(), EnergyBalanceError> {
+fn validate_flow(value: f64, field: EnergyBalanceField) -> Result<(), EnergyBalanceError> {
     validate_finite(value, field)?;
     if value < 0.0 {
         return Err(EnergyBalanceError::NegativeMagnitude { field });
@@ -331,10 +323,7 @@ fn validate_flow(
     Ok(())
 }
 
-fn validate_tolerance(
-    value: f64,
-    field: EnergyBalanceField,
-) -> Result<(), EnergyBalanceError> {
+fn validate_tolerance(value: f64, field: EnergyBalanceField) -> Result<(), EnergyBalanceError> {
     validate_finite(value, field)?;
     if value < 0.0 {
         return Err(EnergyBalanceError::NegativeMagnitude { field });
@@ -547,7 +536,10 @@ mod tests {
             })
         );
         assert_eq!(
-            input.evaluate(EnergyBalanceTolerances::new(Joules::new(0.0), f64::INFINITY)),
+            input.evaluate(EnergyBalanceTolerances::new(
+                Joules::new(0.0),
+                f64::INFINITY
+            )),
             Err(EnergyBalanceError::NonFiniteInput {
                 field: EnergyBalanceField::RelativeTolerance,
             })
