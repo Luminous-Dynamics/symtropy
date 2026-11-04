@@ -59,6 +59,8 @@ def main(path: Path, source_commit: str, package_version: str,
     supported_classes = {
         "so_unconstrained", "so_constrained", "mo_unconstrained",
         "mo_constrained", "so_mixed_variable",
+        "so_discrete_extension", "so_discrete_constrained_extension",
+        "mo_discrete_extension", "mo_discrete_constrained_extension",
         "so_mixed_variable_constrained_extension", "mo_mixed_variable_extension",
         "mo_mixed_variable_constrained_extension",
     }
@@ -82,7 +84,7 @@ def main(path: Path, source_commit: str, package_version: str,
         variable_class = row["variable_type_class"]
         require(domain in supported_domains, f"line {line_number}: unknown application domain")
         require(problem_class in supported_classes, f"line {line_number}: unknown problem class")
-        require(variable_class in ("continuous", "mixed"),
+        require(variable_class in ("continuous", "discrete", "mixed"),
                 f"line {line_number}: unknown variable type class")
         try:
             dimension = int(row["dimension"])
@@ -113,6 +115,10 @@ def main(path: Path, source_commit: str, package_version: str,
                 f"line {line_number}: required_extra must be explicit (use none)")
 
         expected = {
+            "so_discrete_extension": objectives == 1 and constraints == 0 and variable_class == "discrete",
+            "so_discrete_constrained_extension": objectives == 1 and constraints > 0 and variable_class == "discrete",
+            "mo_discrete_extension": objectives > 1 and constraints == 0 and variable_class == "discrete",
+            "mo_discrete_constrained_extension": objectives > 1 and constraints > 0 and variable_class == "discrete",
             "so_unconstrained": objectives == 1 and constraints == 0 and variable_class == "continuous",
             "so_constrained": objectives == 1 and constraints > 0 and variable_class == "continuous",
             "mo_unconstrained": objectives > 1 and constraints == 0 and variable_class == "continuous",
