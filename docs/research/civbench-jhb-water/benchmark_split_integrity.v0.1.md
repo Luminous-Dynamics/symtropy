@@ -101,6 +101,17 @@ On 29 October 2026 Johannesburg Water described constrained reservoirs/towers, l
 
 The 3 November 2026 systems update is published as image-based daily updates. This is useful operational context, but it is not a public structured telemetry feed and should not be treated as one. Any Johannesburg pilot requires formal data access, privacy and OT-security controls, independent ground truth, and a pre-registered prospective protocol.
 
+## Industry outcome comparators
+
+Industry metrics should be used as operational reference points, not mixed into a machine-learning leaderboard:
+
+- **England, FY 2025/26 (official regulator):** leakage ranged from roughly 11% to 22% of distribution input (DI), 24–55 litres per person per day, and 60–137 litres per property per day. The reported national average was 18.6% of DI; Affinity Water was 15.5%. The regulator explicitly notes that the DI percentage is affected by consumption as well as leakage, so a falling ratio does not necessarily mean absolute leakage fell.
+- **Affinity Water / SUEZ / ASTERRA (provider case study):** satellite SAR screened 9,045 km; 763 locations were prioritised; field teams identified 902 leaks; less than 4% of the network was walked; and the case study reports 7.2 leaks per crew-day versus a stated 1.3 industry benchmark. This is a strong operational comparator for *prioritised field productivity*, but it is provider-published and not an independently audited randomized comparison. Satellite anomalies were followed by acoustic confirmation; do not treat all 763 alerts as confirmed leaks.
+- **Affinity's regulator outcome is a useful counterweight:** the 2025/26 regulator report lists leakage at 93.4 litres/property/day, better than the 104.5 industry average, while total leakage increased 0.7% year-on-year and average minutes lost per property to supply interruptions increased 37%. A promising detection programme does not guarantee all system-level outcomes improve simultaneously.
+- **Johannesburg Water's own programme baseline:** the public programme description reports 15 daily technical teams, over 10,500 km inspected annually (approximately 85% of the network), and annual averages of 1,456 burst pipes, 5,227 leaking meters, 341 leaking valves and 217 leaking hydrants, alongside approximately 8,100 ML/year of estimated water savings. Those programme figures are not directly comparable to ASTERRA's case-study crew-day rate or to model-level event recall; their time windows, definitions and audit basis differ.
+
+A real field evaluation should therefore report **confirmed leaks per crew-day, kilometres inspected per independently verified leak, fraction of prioritised alerts confirmed, false investigations, time-to-confirmation, repair closure, verified water recovered, and service interruption impact**. Match crews, survey area, leak severity, detection modality and time window. Do not assume that 7.2 leaks/crew-day is a transferable target without matching the vendor case's selection and confirmation process.
+
 ## Sources
 
 - Farah, E. & Shahrour, I. (2026), "Standardization and Benchmarking of Datasets and Evaluation Protocols for Machine Learning-Based Water Leak Detection: A Systematic Review", *Water* 18(18), 2267. DOI: https://doi.org/10.3390/w18182267
@@ -112,3 +123,8 @@ The 3 November 2026 systems update is published as image-based daily updates. Th
 - Johannesburg Water, "Smart technology rollout to reduce water losses" (23 July 2026): https://www.johannesburgwater.co.za/blog/2026/07/23/johannesburg-water-accelerates-smart-technology-rollout-to-reduce-water-losses/
 - Johannesburg Water, "Urgent interventions to stabilise severely constrained systems" (29 October 2026): https://www.johannesburgwater.co.za/blog/2026/10/29/johannesburg-water-implements-urgent-interventions-to-stabilise-severely-constrained-systems/
 - Johannesburg Water, "System Updates 3 November 2026": https://www.johannesburgwater.co.za/blog/2026/11/03/system-updates-3-november-2026/
+
+- UK Environment Agency / Ofwat / DWI / NRW, "Water resources 2025 to 2026: analysis of the water industry's annual water resources performance" (updated 29 October 2026): https://www.gov.uk/government/publications/water-resources-2025-2026-analysis-of-the-water-industrys-annual-water-resources-performance/water-resources-2025-to-2026-analysis-of-the-water-industrys-annual-water-resources-performance
+- UK joint regulator report, "Water industry performance insights" (29 October 2026): https://www.gov.uk/government/publications/water-industry-performance-insights-joint-regulator-report/water-industry-performance-insights-joint-regulator-report
+- SUEZ / ASTERRA / Affinity Water, "Affinity Water Uses Satellite Intelligence to Accelerate Leak Detection": https://www.suez.com/en/uk/case-studies/satellite-leak-detection-delivers-results-affinity-water
+- Johannesburg Water, "Active Leak Detection Programme": https://www.johannesburgwater.co.za/about-us/campaigns/active-leak-detection-programme/
