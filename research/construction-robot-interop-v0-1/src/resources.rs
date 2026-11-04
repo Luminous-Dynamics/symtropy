@@ -14,6 +14,8 @@ pub struct ReservationRequest {
     pub owner_id: String,
     pub site_epoch: String,
     pub clock_domain_id: String,
+    /// Maximum absolute timestamp error for the request, in the declared clock domain.
+    pub clock_uncertainty_ms: u64,
     pub interval_start_ms: u64,
     pub interval_end_ms: u64,
     pub expires_at_ms: u64,
@@ -56,6 +58,7 @@ pub enum ReservationError {
     WrongOwner,
     StaleSiteEpoch,
     ClockDomainMismatch,
+    ClockUncertaintyExceeded { allowed_ms: u64, actual_ms: u64 },
     CapacityExceeded { capacity: u32, requested_total: u32 },
     CapacityOverflow,
     ReservationNotActive,
@@ -79,6 +82,7 @@ struct ReservationRecord {
 pub struct ReservationBook {
     current_site_epoch: String,
     clock_domain_id: String,
+    max_clock_uncertainty_ms: u64,
     resources: BTreeMap<String, u32>,
     reservations: BTreeMap<String, ReservationRecord>,
 }
@@ -87,6 +91,7 @@ impl ReservationBook {
     pub fn new(
         current_site_epoch: impl Into<String>,
         clock_domain_id: impl Into<String>,
+        max_clock_uncertainty_ms: u64,
     ) -> Result<Self, ReservationError> {
         let current_site_epoch = current_site_epoch.into();
         let clock_domain_id = clock_domain_id.into();
@@ -96,6 +101,7 @@ impl ReservationBook {
         Ok(Self {
             current_site_epoch,
             clock_domain_id,
+            max_clock_uncertainty_ms,
             resources: BTreeMap::new(),
             reservations: BTreeMap::new(),
         })
@@ -140,6 +146,12 @@ impl ReservationBook {
         if request.clock_domain_id != self.clock_domain_id {
             return Err(ReservationError::ClockDomainMismatch);
         }
+        if request.clock_uncertainty_ms > self.max_clock_uncertainty_ms {
+            return Err(ReservationError::ClockUncertaintyExceeded {
+                allowed_ms: self.max_clock_uncertainty_ms,
+                actual_ms: request.clock_uncertainty_ms,
+            });
+        }
 
         let capacity = self
             .resources
@@ -158,11 +170,18 @@ impl ReservationBook {
             };
         }
 
-        if request.interval_start_ms < now_ms {
+        let uncertainty = request.clock_uncertainty_ms;
+        let earliest_start = request.interval_start_ms.saturating_sub(uncertainty);
+        let latest_end = request.interval_end_ms.saturating_add(uncertainty);
+        let earliest_expiry = request.expires_at_ms.saturating_sub(uncertainty);
+        if earliest_start < now_ms {
             return Err(ReservationError::InvalidInterval);
         }
-        if request.expires_at_ms <= now_ms {
+        if earliest_expiry <= now_ms {
             return Err(ReservationError::RequestAlreadyExpired);
+        }
+        if earliest_expiry < latest_end {
+            return Err(ReservationError::ExpiryBeforeEnd);
         }
 
         let mut used_capacity = 0_u32;
@@ -170,10 +189,16 @@ impl ReservationBook {
             if existing.state == ReservationState::Active
                 && existing.request.resource_id == request.resource_id
                 && overlaps(
-                    request.interval_start_ms,
-                    request.interval_end_ms,
-                    existing.request.interval_start_ms,
-                    existing.request.interval_end_ms,
+                    earliest_start,
+                    latest_end,
+                    existing
+                        .request
+                        .interval_start_ms
+                        .saturating_sub(existing.request.clock_uncertainty_ms),
+                    existing
+                        .request
+                        .interval_end_ms
+                        .saturating_add(existing.request.clock_uncertainty_ms),
                 )
             {
                 used_capacity = used_capacity
@@ -257,7 +282,11 @@ impl ReservationBook {
         let mut expired = 0;
         for record in self.reservations.values_mut() {
             if record.state == ReservationState::Active
-                && record.request.expires_at_ms <= now_ms
+                && record
+                    .request
+                    .expires_at_ms
+                    .saturating_sub(record.request.clock_uncertainty_ms)
+                    <= now_ms
             {
                 record.state = ReservationState::Expired;
                 expired += 1;
@@ -313,7 +342,7 @@ mod tests {
     use super::*;
 
     fn book(capacity: u32) -> ReservationBook {
-        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms")
+        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
             .expect("valid reservation book");
         book.register_resource("work-zone-A", capacity)
             .expect("valid resource");
@@ -335,6 +364,7 @@ mod tests {
             owner_id: owner.to_owned(),
             site_epoch: "site-epoch-1".to_owned(),
             clock_domain_id: "site-monotonic-ms".to_owned(),
+            clock_uncertainty_ms: 0,
             interval_start_ms: start,
             interval_end_ms: end,
             expires_at_ms: expiry,
@@ -488,7 +518,7 @@ mod tests {
 
     #[test]
     fn resource_capacity_must_be_positive() {
-        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms")
+        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
             .expect("valid book");
         assert_eq!(
             book.register_resource("work-zone-A", 0),
