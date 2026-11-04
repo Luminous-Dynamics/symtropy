@@ -238,6 +238,39 @@ mod tests {
     }
 
     #[test]
+    fn address_kdf_length_prefixes_seed_and_address_separately() {
+        let seed = [0x5a; 32];
+        let address = [0xa5, 0x5a, 0x11];
+        let mut material = Vec::new();
+        push_len(&mut material, seed.len());
+        material.extend_from_slice(&seed);
+        push_len(&mut material, address.len());
+        material.extend_from_slice(&address);
+
+        assert_eq!(&material[..8], &[32, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(&material[40..48], &[3, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(&material[48..], &address);
+        assert_eq!(
+            derive_address_digest(&seed, &address),
+            blake3::derive_key(DERIVATION_CONTEXT, &material)
+        );
+    }
+
+    #[test]
+    fn kdf_context_is_domain_separated() {
+        let seed = [0x31; 32];
+        let address = [0x42, 0x43, 0x44];
+        let digest = derive_address_digest(&seed, &address);
+        let mut material = Vec::new();
+        push_len(&mut material, seed.len());
+        material.extend_from_slice(&seed);
+        push_len(&mut material, address.len());
+        material.extend_from_slice(&address);
+        let other_context = blake3::derive_key("different application context", &material);
+        assert_ne!(digest, other_context);
+    }
+
+    #[test]
     fn one_semantic_address_repeats_identically() {
         let seed = [42; 32];
         let address = actor_address("continue", true);
