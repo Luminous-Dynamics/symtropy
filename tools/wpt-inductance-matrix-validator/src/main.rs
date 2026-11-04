@@ -442,10 +442,26 @@ fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, String> {
         .map(|index| values[index][index])
         .fold(f64::INFINITY, f64::min);
     let result = minimum * scale;
-    if result.is_finite() {
-        Ok(result)
+    // The remaining off-diagonal matrix is a residual perturbation in the
+    // Jacobi-transformed basis. Its Frobenius norm bounds its spectral norm,
+    // and Weyl's inequality therefore bounds the eigenvalue error from the
+    // diagonal approximation. The declared numerical tolerance remains the
+    // separate guard for floating-point rotation/accumulation error.
+    let normalized_residual = values
+        .iter()
+        .enumerate()
+        .flat_map(|(row_index, row)| {
+            row.iter()
+                .enumerate()
+                .filter(move |(column_index, _)| *column_index != row_index)
+                .map(|(_, value)| *value)
+        })
+        .fold(0.0_f64, |norm, value| norm.hypot(value));
+    let residual_bound = normalized_residual * scale;
+    if result.is_finite() && residual_bound.is_finite() {
+        Ok((result, residual_bound))
     } else {
-        Err("eigensolver: non-finite eigenvalue result".into())
+        Err("eigensolver: non-finite eigenvalue or residual bound".into())
     }
 }
 
@@ -532,9 +548,15 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
         return Err("uncertainty Frobenius norm overflow".into());
     }
 
-    let minimum_eigenvalue_h = smallest_symmetric_eigenvalue(&reciprocal)?;
-    let lower_bound_h = minimum_eigenvalue_h - uncertainty_bound_h;
-    let upper_bound_h = minimum_eigenvalue_h + uncertainty_bound_h;
+    let (minimum_eigenvalue_h, eigensolver_residual_bound_h) =
+        smallest_symmetric_eigenvalue(&reciprocal)?;
+    let total_eigenvalue_uncertainty_bound_h =
+        uncertainty_bound_h + eigensolver_residual_bound_h;
+    if !total_eigenvalue_uncertainty_bound_h.is_finite() {
+        return Err("combined eigenvalue uncertainty bound overflow".into());
+    }
+    let lower_bound_h = minimum_eigenvalue_h - total_eigenvalue_uncertainty_bound_h;
+    let upper_bound_h = minimum_eigenvalue_h + total_eigenvalue_uncertainty_bound_h;
     if !lower_bound_h.is_finite() || !upper_bound_h.is_finite() {
         return Err("eigenvalue uncertainty interval overflow".into());
     }
@@ -559,7 +581,9 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
         "max_reciprocity_limit_h": max_reciprocity_limit_h,
         "max_pairwise_abs_coupling": max_pairwise_abs_coupling,
         "midpoint_minimum_eigenvalue_h": minimum_eigenvalue_h,
-        "eigenvalue_uncertainty_bound_h": uncertainty_bound_h,
+        "input_uncertainty_frobenius_bound_h": uncertainty_bound_h,
+        "eigensolver_off_diagonal_residual_bound_h": eigensolver_residual_bound_h,
+        "eigenvalue_uncertainty_bound_h": total_eigenvalue_uncertainty_bound_h,
         "minimum_eigenvalue_lower_bound_h": lower_bound_h,
         "minimum_eigenvalue_upper_bound_h": upper_bound_h,
         "numerical_tolerance_h": tolerance_h,
@@ -985,6 +1009,14 @@ mod tests {
                 result["disposition"], "PASSIVE_CERTIFIED",
                 "seeded Gram matrix with {n} coils: {result}"
             );
+            let residual = result["eigensolver_off_diagonal_residual_bound_h"]
+                .as_f64()
+                .expect("eigensolver residual must be present");
+            let total = result["eigenvalue_uncertainty_bound_h"]
+                .as_f64()
+                .expect("total eigenvalue uncertainty must be present");
+            assert!(residual.is_finite() && residual >= 0.0);
+            assert!(total >= residual, "total uncertainty must include eigensolver residual");
         }
     }
 
