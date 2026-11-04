@@ -94,6 +94,23 @@ impl OnlineAdaptiveCalibrationContract {
     }
 }
 
+/// One adaptive interval and its source evidence references.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct OnlineAdaptiveCellReceipt {
+    pub channel_id: String,
+    pub horizon_index: usize,
+    pub point_forecast: f64,
+    pub realized_value: f64,
+    pub normalization_scale: f64,
+    pub lower_bound: f64,
+    pub upper_bound: f64,
+    pub normalized_absolute_error: f64,
+    pub covered: bool,
+    pub normalization_scale_evidence_id: String,
+    pub forecast_evidence_id: String,
+    pub realization_evidence_id: String,
+}
+
 /// One prequential forecast-block decision and subsequent feedback update.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OnlineAdaptiveBlockReceipt {
@@ -114,6 +131,7 @@ pub struct OnlineAdaptiveBlockReceipt {
     pub miscoverage_after_ppm: u32,
     pub clamped_to_minimum: bool,
     pub clamped_to_maximum: bool,
+    pub cells: Vec<OnlineAdaptiveCellReceipt>,
 }
 
 /// Prequential replay report for a single bounded ACI expert.
@@ -311,6 +329,7 @@ pub fn evaluate_online_adaptive_calibration(
         let mut covered_cell_count = 0_usize;
         let mut block_width_sum = 0.0_f64;
         let mut block_error_sum = 0.0_f64;
+        let mut cell_receipts = Vec::with_capacity(block.cells().len());
 
         for cell in block.cells() {
             let absolute_error = (cell.realized_value() - cell.point_forecast()).abs();
@@ -331,9 +350,24 @@ pub fn evaluate_online_adaptive_calibration(
                 ));
             }
             maximum_score = maximum_score.max(normalized_error);
-            if cell.realized_value() >= lower && cell.realized_value() <= upper {
+            let covered = cell.realized_value() >= lower && cell.realized_value() <= upper;
+            if covered {
                 covered_cell_count += 1;
             }
+            cell_receipts.push(OnlineAdaptiveCellReceipt {
+                channel_id: cell.channel_id().to_string(),
+                horizon_index: cell.horizon_index(),
+                point_forecast: cell.point_forecast(),
+                realized_value: cell.realized_value(),
+                normalization_scale: cell.normalization_scale(),
+                lower_bound: lower,
+                upper_bound: upper,
+                normalized_absolute_error: normalized_error,
+                covered,
+                normalization_scale_evidence_id: cell.normalization_scale_evidence_id().to_string(),
+                forecast_evidence_id: cell.forecast_evidence_id().to_string(),
+                realization_evidence_id: cell.realization_evidence_id().to_string(),
+            });
             block_width_sum += interval_width;
             block_error_sum += normalized_error;
             if !block_width_sum.is_finite() || !block_error_sum.is_finite() {
@@ -414,6 +448,7 @@ pub fn evaluate_online_adaptive_calibration(
             miscoverage_after_ppm: next_miscoverage_ppm,
             clamped_to_minimum,
             clamped_to_maximum,
+            cells: cell_receipts,
         });
 
         current_miscoverage_ppm = next_miscoverage_ppm;
