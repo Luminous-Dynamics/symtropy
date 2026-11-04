@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/construction-robot-roundrobin-v0-1/schema/construction-roundrobin-study-plan-v0.1.schema.json",
+  "title": "Construction Robot Round-Robin Study Plan V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_id",
+    "version",
+    "status",
+    "task_family",
+    "tracks",
+    "design",
+    "reference_measurement",
+    "preregistration",
+    "endpoints",
+    "safety_separation"
+  ],
+  "properties": {
+    "profile_id": {
+      "const": "construction-layout-roundrobin-v0.1"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "pilot",
+        "confirmatory",
+        "completed"
+      ]
+    },
+    "task_family": {
+      "const": "construction_layout_printing"
+    },
+    "tracks": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "vendor_configuration_reproduction",
+          "common_independent_referee"
+        ]
+      }
+    },
+    "platform_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform",
+          "vendor",
+          "reference_uri",
+          "evidence_status"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vendor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reference_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "evidence_status": {
+            "const": "vendor_reported"
+          }
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "structure",
+        "planned_laboratories",
+        "independent_unit",
+        "factors",
+        "randomization_required",
+        "pilot_separate_from_confirmatory",
+        "confounding_disclosure_required",
+        "sample_size_basis"
+      ],
+      "properties": {
+        "structure": {
+          "enum": [
+            "not_yet_selected",
+            "balanced_crossed",
+            "unbalanced_crossed",
+            "nested",
+            "mixed"
+          ]
+        },
+        "planned_laboratories": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 2
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "independent_unit": {
+          "enum": [
+            "trial_run",
+            "site_context_change",
+            "endpoint_specific"
+          ]
+        },
+        "factors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "laboratory",
+              "physical_site",
+              "platform_model",
+              "serial_unit",
+              "operator",
+              "session",
+              "reference_instrument",
+              "task_stratum",
+              "environmental_condition",
+              "software_configuration",
+              "payload_tool"
+            ]
+          }
+        },
+        "randomization_required": {
+          "const": true
+        },
+        "pilot_separate_from_confirmatory": {
+          "const": true
+        },
+        "confounding_disclosure_required": {
+          "const": true
+        },
+        "sample_size_basis": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "reference_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "artifact_status",
+        "before_after_session_checks",
+        "robot_control_independent",
+        "instrument_calibration_recorded",
+        "uncertainty_recorded",
+        "common_mode_dependencies_recorded"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_status": {
+          "enum": [
+            "to_be_defined",
+            "specified",
+            "calibrated"
+          ]
+        },
+        "before_after_session_checks": {
+          "const": true
+        },
+        "robot_control_independent": {
+          "const": true
+        },
+        "instrument_calibration_recorded": {
+          "const": true
+        },
+        "uncertainty_recorded": {
+          "const": true
+        },
+        "common_mode_dependencies_recorded": {
+          "const": true
+        }
+      }
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_before_confirmatory",
+        "primary_endpoints_frozen",
+        "analysis_plan_frozen",
+        "exclusions_and_stopping_rules_frozen",
+        "blind_run_identifiers",
+        "sample_size_rationale"
+      ],
+      "properties": {
+        "required_before_confirmatory": {
+          "const": true
+        },
+        "primary_endpoints_frozen": {
+          "const": true
+        },
+        "analysis_plan_frozen": {
+          "const": true
+        },
+        "exclusions_and_stopping_rules_frozen": {
+          "const": true
+        },
+        "blind_run_identifiers": {
+          "const": true
+        },
+        "sample_size_rationale": {
+          "type": "string",
+          "minLength": 20
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "family",
+          "unit",
+          "analysis_family",
+          "reported_by_stratum"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "enum": [
+              "metrology",
+              "task_quality",
+              "productivity",
+              "reliability"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "analysis_family": {
+            "enum": [
+              "continuous",
+              "binary",
+              "count",
+              "rate",
+              "duration",
+              "ratio"
+            ]
+          },
+          "reported_by_stratum": {
+            "const": true
+          }
+        }
+      }
+    },
+    "safety_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qualification_is_external",
+        "hard_gate_non_compensable",
+        "composite_safety_productivity_score_prohibited"
+      ],
+      "properties": {
+        "qualification_is_external": {
+          "const": true
+        },
+        "hard_gate_non_compensable": {
+          "const": true
+        },
+        "composite_safety_productivity_score_prohibited": {
+          "const": true
+        }
+      }
+    },
+    "execution_status": {
+      "const": "not_executed"
+    }
+  }
+}
