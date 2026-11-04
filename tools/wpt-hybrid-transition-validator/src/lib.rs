@@ -521,7 +521,7 @@ mod tests {
             "post_energy_j": 0.01,
             "post_energy_uncertainty_j": 0.02
         });
-        record["switch_event"]["absolute_tolerance_j"] = json!(0.005);
+        record["switch_event"]["absolute_tolerance_j"] = json!(0.004);
         record["switch_event"]["relative_tolerance"] = json!(0.001);
         assert_eq!(disposition(&record), "ENERGY_TANK_RESERVE_UNRESOLVED");
     }
