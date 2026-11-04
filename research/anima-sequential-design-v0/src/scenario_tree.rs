@@ -57,7 +57,6 @@ pub enum ScenarioTreeError {
     InvalidHorizon,
     InvalidNodeBudget,
     InvalidDiscountFactor,
-    InvalidDeliveryFidelity,
     InvalidCostBudget,
     CostUnitMismatch,
     DuplicateCandidate(String),
