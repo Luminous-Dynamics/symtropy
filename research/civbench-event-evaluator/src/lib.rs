@@ -765,24 +765,24 @@ pub fn evaluate(
         episodes.len(),
     );
     for event_index in unmatched_event_indexes {
-        if let Some(episode_index) = late_assignment[event_index] {
-            if used_episodes.insert(episode_index) {
-                let event = &events[event_index];
-                let episode = &episodes[episode_index];
-                let correct = match episode.class {
-                    AlarmClass::Classified(class) => Some(class == event.class),
-                    AlarmClass::Unclassified | AlarmClass::Conflicting => None,
-                };
-                matches.push(MatchRecord {
-                    event_id: event.event_id.clone(),
-                    episode_id: episode.episode_id.clone(),
-                    truth_class: event.class,
-                    reported_class: episode.class,
-                    kind: MatchKind::Late,
-                    onset_offset_ms: onset_offset(episode.start_ms, event.onset_ms),
-                    class_correct: correct,
-                });
-            }
+        if let Some(episode_index) = late_assignment[event_index]
+            && used_episodes.insert(episode_index)
+        {
+            let event = &events[event_index];
+            let episode = &episodes[episode_index];
+            let correct = match episode.class {
+                AlarmClass::Classified(class) => Some(class == event.class),
+                AlarmClass::Unclassified | AlarmClass::Conflicting => None,
+            };
+            matches.push(MatchRecord {
+                event_id: event.event_id.clone(),
+                episode_id: episode.episode_id.clone(),
+                truth_class: event.class,
+                reported_class: episode.class,
+                kind: MatchKind::Late,
+                onset_offset_ms: onset_offset(episode.start_ms, event.onset_ms),
+                class_correct: correct,
+            });
         }
     }
 
@@ -871,11 +871,10 @@ pub fn evaluate(
         .map(|intervals| u128::from(union_duration(intervals)))
         .sum();
     let exposure_ms = u128::from(config.monitored_duration_ms) * scenarios.len() as u128;
-    let duty_ppm = if exposure_ms == 0 {
-        0
-    } else {
-        (all_active_ms * 1_000_000 / exposure_ms).min(u128::from(u64::MAX)) as u64
-    };
+    let duty_ppm = (all_active_ms * 1_000_000)
+        .checked_div(exposure_ms)
+        .unwrap_or(0)
+        .min(u128::from(u64::MAX)) as u64;
     let monitored_system_days = exposure_ms as f64 / 86_400_000.0_f64;
     let false_alarm_count = false_alarm_indexes.len();
     let false_rate = if monitored_system_days == 0.0 {
