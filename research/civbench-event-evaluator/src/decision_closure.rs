@@ -375,6 +375,82 @@ fn validate_optional_reference(
     Ok(())
 }
 
+fn valid_sha256(digest: &str) -> bool {
+    digest.len() == 64
+        && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+        && digest.bytes().any(|byte| byte != b'0')
+}
+
+fn expected_receipt_bindings(
+    record: &DecisionClosureRecord,
+) -> Vec<(ReceiptOwner, &str)> {
+    let mut expected = vec![
+        (ReceiptOwner::EventEvaluator, record.event_receipt_id.as_str()),
+    ];
+    if let Some(id) = record.acquisition_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::AcquisitionPlanner, id));
+    }
+    if let Some(id) = record.human_authority_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::HumanAuthority, id));
+    }
+    if let Some(id) = record.resource_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::ResourceLedger, id));
+    }
+    if let Some(id) = record.workflow_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::RepairWorkflow, id));
+    }
+    if let Some(id) = record.verification_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::IndependentVerifier, id));
+    }
+    if let Some(id) = record.service_outcome_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::ServiceOutcome, id));
+    }
+    if let Some(id) = record.paired_outcome_receipt_id.as_deref() {
+        expected.push((ReceiptOwner::PairedOutcome, id));
+    }
+    expected
+}
+
+fn validate_receipt_bindings(
+    record: &DecisionClosureRecord,
+) -> Result<(), DecisionClosureError> {
+    let expected = expected_receipt_bindings(record);
+    if record.receipt_bindings.len() != expected.len() {
+        return Err(DecisionClosureError::MissingReceiptBinding);
+    }
+
+    let mut seen_ids = std::collections::BTreeSet::new();
+    let mut seen_owners = std::collections::BTreeSet::new();
+    for binding in &record.receipt_bindings {
+        if !valid_reference(&binding.receipt_id)
+            || !valid_reference(&binding.decision_episode_id)
+            || !valid_reference(&binding.paired_block_id)
+        {
+            return Err(DecisionClosureError::InvalidReference("receipt_binding"));
+        }
+        if !valid_sha256(&binding.payload_digest) {
+            return Err(DecisionClosureError::InvalidReceiptDigest);
+        }
+        if binding.decision_episode_id != record.decision_episode_id
+            || binding.paired_block_id != record.paired_block_id
+        {
+            return Err(DecisionClosureError::ReceiptBindingMismatch);
+        }
+        if !seen_ids.insert(binding.receipt_id.as_str())
+            || !seen_owners.insert(binding.owner)
+        {
+            return Err(DecisionClosureError::DuplicateReceiptId);
+        }
+        if !expected
+            .iter()
+            .any(|(owner, id)| *owner == binding.owner && *id == binding.receipt_id)
+        {
+            return Err(DecisionClosureError::ReceiptBindingMismatch);
+        }
+    }
+    Ok(())
+}
+
 fn effect_class(effect: ServiceEffect) -> Option<ServiceEvidenceClass> {
     match effect {
         ServiceEffect::ModelledImprovement
