@@ -248,6 +248,8 @@ pub struct LocomotionKernelSpec {
     pub initial_belief: Vec<InitialJointMass>,
     pub transition_rows: Vec<JointTransitionRow>,
     pub cost_unit_id: String,
+    /// Pre-registered minimum delivered-protocol fidelity, as an exact probability.
+    pub minimum_delivery_fidelity: Rational,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -260,6 +262,7 @@ pub struct CompiledLocomotionKernel {
     pub actions: Vec<InterventionAction>,
     pub observations: Vec<Observation>,
     pub cost_unit_id: String,
+    pub minimum_delivery_fidelity: Rational,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -324,6 +327,9 @@ pub enum AdapterError {
     },
     InvalidKernel(String),
     InvalidTrialReceipt(&'static str),
+    InvalidDeliveryFidelityThreshold,
+    InvalidConditioningStateDigest,
+    DuplicateSampleId(String),
     AssignmentDeliveryMismatch {
         assigned_action_id: String,
         expected_protocol_id: String,
@@ -651,6 +657,11 @@ impl LocomotionKernelSpec {
 
     fn compile_ordered(&self) -> Result<CompiledLocomotionKernel, AdapterError> {
         nonempty(&self.cost_unit_id, "cost_unit_id")?;
+        if self.minimum_delivery_fidelity.is_zero()
+            || !self.minimum_delivery_fidelity.is_probability()
+        {
+            return Err(AdapterError::InvalidDeliveryFidelityThreshold);
+        }
         if self.hypotheses.is_empty()
             || self.physical_states.is_empty()
             || self.sensor_states.is_empty()
@@ -904,6 +915,7 @@ impl LocomotionKernelSpec {
             actions: self.actions.clone(),
             observations: self.observations.clone(),
             cost_unit_id: self.cost_unit_id.clone(),
+            minimum_delivery_fidelity: self.minimum_delivery_fidelity,
         })
     }
 }
@@ -914,6 +926,9 @@ pub struct LocomotionTrialReceipt {
     pub assigned_action_id: String,
     pub delivered_protocol_id: String,
     pub delivery_verified: bool,
+    pub delivery_fidelity: Rational,
+    /// SHA-256 of the complete pre-outcome history used for this trial's forecast.
+    pub conditioning_state_digest: String,
     pub animal_or_preparation_id: Option<String>,
     pub session_id: String,
     pub source_manifest_id: String,
@@ -931,6 +946,16 @@ impl CompiledLocomotionKernel {
         nonempty(&receipt.assigned_action_id, "assigned_action_id")?;
         nonempty(&receipt.delivered_protocol_id, "delivered_protocol_id")?;
         nonempty(&receipt.session_id, "session_id")?;
+        if !receipt.delivery_fidelity.is_probability()
+            || receipt.delivery_fidelity < self.minimum_delivery_fidelity
+        {
+            return Err(AdapterError::InvalidTrialReceipt(
+                "delivered protocol fidelity is below the pre-registered minimum",
+            ));
+        }
+        if !valid_sha256(&receipt.conditioning_state_digest) {
+            return Err(AdapterError::InvalidConditioningStateDigest);
+        }
         let action = self
             .actions
             .iter()
@@ -978,6 +1003,23 @@ impl CompiledLocomotionKernel {
                 )?;
                 nonempty(individual, "animal_or_preparation_id")?;
             }
+        }
+        Ok(())
+    }
+
+    /// Validate a batch of trial receipts while rejecting duplicate sample IDs.
+    /// Repeated measurements within an animal/session remain allowed; callers
+    /// must provide a new complete-history digest for each sequential look.
+    pub fn validate_trial_receipts(
+        &self,
+        receipts: &[LocomotionTrialReceipt],
+    ) -> Result<(), AdapterError> {
+        let mut sample_ids = BTreeSet::new();
+        for receipt in receipts {
+            if !sample_ids.insert(receipt.sample_id.clone()) {
+                return Err(AdapterError::DuplicateSampleId(receipt.sample_id.clone()));
+            }
+            self.validate_trial_receipt(receipt)?;
         }
         Ok(())
     }
@@ -1370,6 +1412,7 @@ mod tests {
             initial_belief,
             transition_rows,
             cost_unit_id: "synthetic-experiment-credit".to_owned(),
+            minimum_delivery_fidelity: Rational::new(9, 10).unwrap(),
         }
     }
 
@@ -1746,6 +1789,8 @@ mod tests {
             assigned_action_id: "movement-afferent-gate".to_owned(),
             delivered_protocol_id: "protocol-movement-gate".to_owned(),
             delivery_verified: true,
+            delivery_fidelity: Rational::one(),
+            conditioning_state_digest: sha('a'),
             animal_or_preparation_id: Some("animal-1".to_owned()),
             session_id: "session-1".to_owned(),
             source_manifest_id: "synthetic-protocols".to_owned(),
@@ -1781,6 +1826,8 @@ mod tests {
             assigned_action_id: "movement-afferent-gate".to_owned(),
             delivered_protocol_id: "protocol-movement-gate".to_owned(),
             delivery_verified: true,
+            delivery_fidelity: Rational::one(),
+            conditioning_state_digest: sha('a'),
             animal_or_preparation_id: None,
             session_id: "session-1".to_owned(),
             source_manifest_id: "connectome-v888".to_owned(),
@@ -1856,6 +1903,8 @@ mod tests {
             assigned_action_id: "movement-afferent-gate".to_owned(),
             delivered_protocol_id: "protocol-position-perturbation".to_owned(),
             delivery_verified: true,
+            delivery_fidelity: Rational::one(),
+            conditioning_state_digest: sha('a'),
             animal_or_preparation_id: None,
             session_id: "synthetic-session-1".to_owned(),
             source_manifest_id: "synthetic-protocols".to_owned(),
@@ -1891,6 +1940,8 @@ mod tests {
             assigned_action_id: "movement-afferent-gate".to_owned(),
             delivered_protocol_id: "protocol-movement-gate".to_owned(),
             delivery_verified: true,
+            delivery_fidelity: Rational::one(),
+            conditioning_state_digest: sha('a'),
             animal_or_preparation_id: None,
             session_id: "session-1".to_owned(),
             source_manifest_id: "peer-reviewed-neural-source".to_owned(),
