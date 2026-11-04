@@ -170,6 +170,7 @@ def export(args: argparse.Namespace) -> None:
         extra = metadata.get("extra")
         required_extra = str(extra).strip() if extra else "none"
 
+        metadata_digest = sha256(raw)
         output_rows.append([
             name,
             application_name(metadata.get("application")),
@@ -185,11 +186,11 @@ def export(args: argparse.Namespace) -> None:
             sha256(canonical_json(variable_types)),
             source_state,
             source_ref,
-            sha256(raw),
+            metadata_digest,
             required_extra,
         ])
         append_bytes(catalog_bytes, name.encode("utf-8"))
-        append_bytes(catalog_bytes, raw)
+        append_bytes(catalog_bytes, metadata_digest.encode("ascii"))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8", newline="") as stream:
