@@ -530,16 +530,27 @@ mod tests {
 
     #[test]
     fn stale_context_and_clock_uncertainty_block_commands() {
-        let mut m = model();
-        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        qualify(&mut m, B, A).expect("qualify");
+        let mut stale_model = model();
+        stale_model
+            .accept_epoch(epoch(1, B, None), true)
+            .expect("genesis");
+        qualify(&mut stale_model, B, A).expect("qualify stale-context model");
         let mut stale = command(B, A);
         stale.context_age_ns = 101;
-        assert!(m.authorize(&stale).is_err());
+        assert!(stale_model.authorize(&stale).is_err());
+        assert_eq!(*stale_model.state(), State::ContextStale);
+        assert!(stale_model.authorize(&command(B, A)).is_err());
+
+        let mut clock_model = model();
+        clock_model
+            .accept_epoch(epoch(1, B, None), true)
+            .expect("genesis");
+        qualify(&mut clock_model, B, A).expect("qualify clock model");
         let mut uncertain_clock = command(B, A);
         uncertain_clock.clock_uncertainty_ns = 11;
-        assert!(m.authorize(&uncertain_clock).is_err());
-        assert_eq!(m.authorize(&command(B, A)), Ok(()));
+        assert!(clock_model.authorize(&uncertain_clock).is_err());
+        assert_eq!(*clock_model.state(), State::ContextStale);
+        assert!(clock_model.authorize(&command(B, A)).is_err());
     }
 
     #[test]
