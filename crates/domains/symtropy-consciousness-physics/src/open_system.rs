@@ -202,22 +202,14 @@ impl OpenSystemEnergyBalance {
         }
         validate_tolerance(tolerance)?;
 
-        let required = [
-            (EnergyBalanceTerm::InitialStoredEnergy, self.initial_stored_energy_j),
-            (EnergyBalanceTerm::FinalStoredEnergy, self.final_stored_energy_j),
-            (
-                EnergyBalanceTerm::BoundaryFlows,
-                self.boundary_flows.as_ref().map(|_| 0.0),
-            ),
-        ];
-
         // Validate all supplied values even when another required term is
         // missing. Incomplete records must not hide malformed evidence.
-        for (term, value) in required {
+        for (term, value) in [
+            (EnergyBalanceTerm::InitialStoredEnergy, self.initial_stored_energy_j),
+            (EnergyBalanceTerm::FinalStoredEnergy, self.final_stored_energy_j),
+        ] {
             if let Some(value) = value {
-                if !value.is_finite()
-                    && term != EnergyBalanceTerm::BoundaryFlows
-                {
+                if !value.is_finite() {
                     return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
                 }
             }
@@ -247,10 +239,16 @@ impl OpenSystemEnergyBalance {
             }
         }
 
-        let missing_terms: Vec<_> = required
-            .iter()
-            .filter_map(|(term, value)| value.is_none().then_some(*term))
-            .collect();
+        let mut missing_terms = Vec::new();
+        if self.initial_stored_energy_j.is_none() {
+            missing_terms.push(EnergyBalanceTerm::InitialStoredEnergy);
+        }
+        if self.final_stored_energy_j.is_none() {
+            missing_terms.push(EnergyBalanceTerm::FinalStoredEnergy);
+        }
+        if self.boundary_flows.is_none() {
+            missing_terms.push(EnergyBalanceTerm::BoundaryFlows);
+        }
 
         if !missing_terms.is_empty() {
             return Ok(incomplete_report(&self.boundary_id, missing_terms));
