@@ -174,7 +174,11 @@ jobs:
               )
               assert len(set(names)) == 3 and set(names) <= strategy_names
               assert row["cycle_orientation"] in {"forward", "reverse"}
-          assert observed_cycles == cycle_counts, "invasion graph cycle counts must match emitted cycle records"
+          assert set(observed_cycles).issubset(cycle_counts), "cycle row references a missing graph summary"
+          assert all(
+              observed_cycles.get(key, 0) == expected
+              for key, expected in cycle_counts.items()
+          ), "invasion graph cycle counts must match emitted cycle records"
 
           assert all(int(row["composition_count"]) == 1 for row in fitness if row["population_size"] == "6")
           assert all(int(row["composition_count"]) > 1 for row in fitness if row["population_size"] == "30")
