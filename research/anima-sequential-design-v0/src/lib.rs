@@ -7,6 +7,7 @@
 
 pub mod anytime;
 pub mod benchmark;
+pub mod scenario_tree;
 
 use std::collections::{BTreeMap, BTreeSet};
 
