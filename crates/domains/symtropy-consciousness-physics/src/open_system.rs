@@ -315,13 +315,13 @@ impl OpenSystemEnergyBalance {
         if self.boundary_flows.is_none() {
             missing_terms.push(EnergyBalanceTerm::BoundaryFlows);
         }
-        let flow_uncertainties_complete = self
+        let flow_uncertainty_missing = self
             .boundary_flows
             .as_ref()
-            .is_some_and(|flows| flows.iter().all(|flow| flow.uncertainty_bound_j.is_some()));
+            .is_some_and(|flows| flows.iter().any(|flow| flow.uncertainty_bound_j.is_none()));
         if self.initial_stored_energy_uncertainty_bound_j.is_none()
             || self.final_stored_energy_uncertainty_bound_j.is_none()
-            || !flow_uncertainties_complete
+            || flow_uncertainty_missing
         {
             missing_terms.push(EnergyBalanceTerm::UncertaintyBounds);
         }
