@@ -571,7 +571,9 @@
       "required": [
         "owner",
         "receipt_id",
-        "payload_digest"
+        "payload_digest",
+        "decision_episode_id",
+        "paired_block_id"
       ],
       "properties": {
         "owner": {
@@ -593,6 +595,14 @@
         "payload_digest": {
           "type": "string",
           "pattern": "^sha256:[a-fA-F0-9]{64}$"
+        },
+        "decision_episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paired_block_id": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "allOf": [
