@@ -77,6 +77,12 @@ Extrapolation outside the sampled position domain is always rejected.
 
 A production adaptive sampler should refine further using held-out matrix residuals, geometry curvature, downstream energy uncertainty, coil proximity/overlap, operating-state transitions, FEM cost and uncertainty in the ferrite B–H model. The current ranking uses only the interpolation-error threshold and endpoint passivity margin; it is a deterministic starting policy, not a globally optimal sampling algorithm.
 
+
+### Service-aware refinement
+
+`service_refinement_plan` consumes external circuit-derived route-energy uncertainty signals in Wh, the allowable Wh budget, estimated uncertainty reduction per added solve, estimated FEM/measurement solve cost, circuit-model digest and sensitivity-receipt digest. It ranks triggered segments by normalized model/service risk times expected reduction divided by estimated solve seconds.
+
+This lets the atlas spend field solves where matrix error most affects useful battery energy, not merely where a raw matrix norm is largest. The atlas does not derive Wh uncertainty from inductance error; this requires a validated circuit sensitivity receipt. Digests are references, not signatures. The ranking is a transparent heuristic rather than an optimal value-of-information algorithm.
 ## Synthetic known truth
 
 `synthetic-known-truth.json` has two 2-coil endpoint matrices at 0 m and 10 m. At 5 m:
