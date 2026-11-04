@@ -1548,7 +1548,7 @@ mod tests {
             delivery_verified: true,
             animal_or_preparation_id: Some("animal-1".to_owned()),
             session_id: "session-1".to_owned(),
-            source_manifest_id: "peer-reviewed-neural-source".to_owned(),
+            source_manifest_id: "synthetic-protocols".to_owned(),
             evidence_class: EvidenceClass::PeerReviewedMeasured,
         };
         assert!(matches!(
