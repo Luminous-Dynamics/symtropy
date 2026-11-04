@@ -685,8 +685,33 @@ impl DecisionClosureRecord {
         );
         let _ = writeln!(
             &mut out,
+            "human_authority_receipt_id={}",
+            option_ref(&self.human_authority_receipt_id)
+        );
+        let _ = writeln!(
+            &mut out,
+            "human_actor_ref={}",
+            option_ref(&self.human_actor_ref)
+        );
+        let _ = writeln!(
+            &mut out,
             "resource_feasibility={}",
             feasibility_name(self.resource_feasibility)
+        );
+        let _ = writeln!(
+            &mut out,
+            "resource_settlement={}",
+            settlement_name(self.resource_settlement)
+        );
+        let _ = writeln!(
+            &mut out,
+            "executor_identity_ref={}",
+            option_ref(&self.executor_identity_ref)
+        );
+        let _ = writeln!(
+            &mut out,
+            "verifier_identity_ref={}",
+            option_ref(&self.verifier_identity_ref)
         );
         let _ = writeln!(
             &mut out,
@@ -729,6 +754,23 @@ impl DecisionClosureRecord {
             "service_effect={}",
             service_effect_name(self.service_effect)
         );
+        let mut bindings = self.receipt_bindings.clone();
+        bindings.sort_by(|left, right| {
+            left.owner
+                .cmp(&right.owner)
+                .then_with(|| left.receipt_id.cmp(&right.receipt_id))
+        });
+        for binding in &bindings {
+            let _ = writeln!(
+                &mut out,
+                "receipt_binding={:?},{},{},{},{}",
+                binding.owner,
+                binding.receipt_id,
+                binding.decision_episode_id,
+                binding.paired_block_id,
+                binding.payload_digest
+            );
+        }
         out
     }
 }
@@ -753,6 +795,16 @@ fn feasibility_name(value: ResourceFeasibility) -> &'static str {
         ResourceFeasibility::RejectedBudget => "rejected_budget",
         ResourceFeasibility::RejectedEnergyOrAccess => "rejected_energy_or_access",
         ResourceFeasibility::NotAttempted => "not_attempted",
+    }
+}
+
+fn settlement_name(value: ResourceSettlement) -> &'static str {
+    match value {
+        ResourceSettlement::NotAttempted => "not_attempted",
+        ResourceSettlement::Rejected => "rejected",
+        ResourceSettlement::Reserved => "reserved",
+        ResourceSettlement::Settled => "settled",
+        ResourceSettlement::Released => "released",
     }
 }
 
@@ -1158,6 +1210,112 @@ mod tests {
             record.validate(),
             Err(DecisionClosureError::InvalidReference("paired_block_id"))
         );
+    }
+
+    #[test]
+    fn verifier_must_be_a_different_principal_from_the_executor() {
+        let mut record = positive_record();
+        record.verifier_identity_ref = record.executor_identity_ref.clone();
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::VerifierNotIndependent)
+        );
+    }
+
+    #[test]
+    fn receipt_ids_cannot_be_reused_for_workflow_and_verification() {
+        let mut record = positive_record();
+        record.verification_receipt_id = record.workflow_receipt_id.clone();
+        for binding in &mut record.receipt_bindings {
+            if binding.owner == ReceiptOwner::IndependentVerifier {
+                binding.receipt_id = "workflow-1".into();
+            }
+        }
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::DuplicateReceiptId)
+        );
+    }
+
+    #[test]
+    fn every_owner_receipt_must_bind_the_same_decision_and_paired_block() {
+        let mut record = positive_record();
+        let paired = record
+            .receipt_bindings
+            .iter_mut()
+            .find(|binding| binding.owner == ReceiptOwner::PairedOutcome)
+            .expect("paired outcome binding");
+        paired.paired_block_id = "other-block".into();
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::ReceiptBindingMismatch)
+        );
+    }
+
+    #[test]
+    fn receipt_bindings_require_a_nonzero_sha256_digest() {
+        let mut record = positive_record();
+        let event = record
+            .receipt_bindings
+            .iter_mut()
+            .find(|binding| binding.owner == ReceiptOwner::EventEvaluator)
+            .expect("event binding");
+        event.payload_digest = "0".repeat(64);
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::InvalidReceiptDigest)
+        );
+    }
+
+    #[test]
+    fn authorized_disposition_requires_an_owner_receipt() {
+        let mut record = positive_record();
+        record.human_authority_receipt_id = None;
+        record
+            .receipt_bindings
+            .retain(|binding| binding.owner != ReceiptOwner::HumanAuthority);
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::MissingAuthorityReceipt)
+        );
+    }
+
+    #[test]
+    fn cancelled_work_must_release_its_resource_reservation() {
+        let mut record = positive_record();
+        record.action_progress = ActionProgress::Cancelled;
+        record.verification_receipt_id = None;
+        record.verifier_identity_ref = None;
+        record.receipt_bindings
+            .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
+        record.resource_settlement = ResourceSettlement::Settled;
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::ResourceSettlementMismatch)
+        );
+    }
+
+    #[test]
+    fn in_progress_work_cannot_claim_a_settled_reservation() {
+        let mut record = positive_record();
+        record.action_progress = ActionProgress::InProgress;
+        record.verification_receipt_id = None;
+        record.verifier_identity_ref = None;
+        record.receipt_bindings
+            .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
+        record.resource_settlement = ResourceSettlement::Settled;
+        assert_eq!(
+            record.validate(),
+            Err(DecisionClosureError::ResourceSettlementMismatch)
+        );
+    }
+
+    #[test]
+    fn receipt_binding_input_order_does_not_change_canonical_output() {
+        let first = positive_record();
+        let mut second = positive_record();
+        second.receipt_bindings.reverse();
+        assert_eq!(first.canonical_text(), second.canonical_text());
     }
 
     #[test]
