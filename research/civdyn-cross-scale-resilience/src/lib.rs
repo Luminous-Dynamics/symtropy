@@ -213,6 +213,10 @@ pub struct TickOutcome {
     pub minimum_energy_coverage: f64,
     pub unmet_water_m3: f64,
     pub unmet_energy_kwh: f64,
+    /// Gross edge throughput; the same stock may be counted once per network edge.
+    pub gross_edge_transfer_water_m3: f64,
+    pub gross_edge_transfer_energy_kwh: f64,
+    pub transfer_receipt_count: usize,
     pub basin_closing_water_m3: f64,
     pub basin_closing_energy_kwh: f64,
     pub maximum_water_conservation_residual_m3: f64,
@@ -227,6 +231,10 @@ pub struct RunOutcome {
     pub ticks: Vec<TickOutcome>,
     pub total_unmet_water_m3: f64,
     pub total_unmet_energy_kwh: f64,
+    /// Gross edge throughput, not unique physical volume: transfers along two edges
+    /// are counted twice because both edge movements are operationally relevant.
+    pub gross_edge_transfer_water_m3: f64,
+    pub gross_edge_transfer_energy_kwh: f64,
     /// Sum of (1 - household water coverage) across household-ticks.
     /// Dimensionless household-step coverage shortfall; not added to energy.
     pub water_deficit_area_household_steps: f64,
@@ -389,6 +397,8 @@ pub fn run_scenario(
     let mut ticks = Vec::with_capacity(scenario.production_by_tick.len());
     let mut total_unmet_water_m3 = 0.0;
     let mut total_unmet_energy_kwh = 0.0;
+    let mut gross_edge_transfer_water_m3 = 0.0;
+    let mut gross_edge_transfer_energy_kwh = 0.0;
     let mut water_deficit_area_household_steps = 0.0;
     let mut energy_deficit_area_household_steps = 0.0;
     let mut minimum_water_coverage = 1.0_f64;
@@ -459,6 +469,15 @@ pub fn run_scenario(
 
         total_unmet_water_m3 += unmet_water_m3;
         total_unmet_energy_kwh += unmet_energy_kwh;
+        let tick_gross_water = report.transfers.iter()
+            .map(|receipt| receipt.delivered.water_m3)
+            .sum::<f64>();
+        let tick_gross_energy = report.transfers.iter()
+            .map(|receipt| receipt.delivered.energy_kwh)
+            .sum::<f64>();
+        gross_edge_transfer_water_m3 += tick_gross_water;
+        gross_edge_transfer_energy_kwh += tick_gross_energy;
+        let transfer_receipt_count = report.transfers.len();
         let minimum_tick_water = household_water_coverage
             .iter()
             .copied()
@@ -504,6 +523,9 @@ pub fn run_scenario(
             minimum_energy_coverage: minimum_tick_energy,
             unmet_water_m3,
             unmet_energy_kwh,
+            gross_edge_transfer_water_m3: tick_gross_water,
+            gross_edge_transfer_energy_kwh: tick_gross_energy,
+            transfer_receipt_count,
             basin_closing_water_m3: report.regions[BASIN].closing_stock.water_m3,
             basin_closing_energy_kwh: report.regions[BASIN].closing_stock.energy_kwh,
             maximum_water_conservation_residual_m3: max_water_residual,
@@ -528,6 +550,8 @@ pub fn run_scenario(
         ticks,
         total_unmet_water_m3,
         total_unmet_energy_kwh,
+        gross_edge_transfer_water_m3,
+        gross_edge_transfer_energy_kwh,
         water_deficit_area_household_steps,
         energy_deficit_area_household_steps,
         minimum_water_coverage,
