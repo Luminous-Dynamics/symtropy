@@ -51,5 +51,8 @@
   "minimum_spread_area_m2": 10,
   "decision_margin_mm": 1,
   "maximum_u95_to_margin_ratio": 0.3333333333,
-  "source_model_id": "bim-level-02"
+  "source_model_id": "bim-level-02",
+  "approved_source_model_reference": "bim-level-02-approval-ref-r17",
+  "expected_exporter_version": "4.2.0",
+  "expected_exporter_config_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 }
