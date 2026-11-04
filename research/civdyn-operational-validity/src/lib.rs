@@ -286,15 +286,17 @@ fn kolmogorov_smirnov_distance(left: &[f64], right: &[f64]) -> f64 {
 
     while i < left.len() || j < right.len() {
         let next = match (left.get(i), right.get(j)) {
-            (Some(a), Some(b)) => a.min(b),
-            (Some(a), None) => a,
-            (None, Some(b)) => b,
+            (Some(a), Some(b)) => {
+                if a.total_cmp(b).is_le() { *a } else { *b }
+            }
+            (Some(a), None) => *a,
+            (None, Some(b)) => *b,
             (None, None) => break,
         };
-        while i < left.len() && left[i] <= *next {
+        while i < left.len() && left[i] <= next {
             i += 1;
         }
-        while j < right.len() && right[j] <= *next {
+        while j < right.len() && right[j] <= next {
             j += 1;
         }
         let cdf_left = i as f64 / left.len() as f64;
@@ -314,24 +316,26 @@ fn wasserstein_one(left: &[f64], right: &[f64]) -> f64 {
 
     while i < left.len() || j < right.len() {
         let next = match (left.get(i), right.get(j)) {
-            (Some(a), Some(b)) => a.min(b),
-            (Some(a), None) => a,
-            (None, Some(b)) => b,
+            (Some(a), Some(b)) => {
+                if a.total_cmp(b).is_le() { *a } else { *b }
+            }
+            (Some(a), None) => *a,
+            (None, Some(b)) => *b,
             (None, None) => break,
         };
 
         if let Some(previous_value) = previous {
-            distance += cdf_delta.abs() * (*next - previous_value);
+            distance += cdf_delta.abs() * (next - previous_value);
         }
 
-        while i < left.len() && left[i] == *next {
+        while i < left.len() && left[i] == next {
             i += 1;
         }
-        while j < right.len() && right[j] == *next {
+        while j < right.len() && right[j] == next {
             j += 1;
         }
         cdf_delta = i as f64 / left.len() as f64 - j as f64 / right.len() as f64;
-        previous = Some(*next);
+        previous = Some(next);
     }
     distance
 }
