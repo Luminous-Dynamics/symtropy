@@ -164,7 +164,9 @@ def export(args: argparse.Namespace) -> None:
             raise ValueError(f"{name}: bounds must be null or have dim entries")
 
         source = metadata.get("source")
-        source_ref = source.strip() if isinstance(source, str) else ""
+        # CSV is deliberately line-oriented; preserve exact source bytes in metadata_sha256
+        # while normalizing only the readable citation field to one deterministic line.
+        source_ref = " ".join(source.split()) if isinstance(source, str) else ""
         source_state = "present" if source_ref else "missing"
         missing_sources += source_state == "missing"
         extra = metadata.get("extra")
