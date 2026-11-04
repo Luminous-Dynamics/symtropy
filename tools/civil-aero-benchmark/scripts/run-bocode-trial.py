@@ -27,7 +27,7 @@ from typing import Any
 SCHEMA = "bocode-trial-receipt/0.1.0"
 HEADER = (
     "schema", "trial_id", "problem_id", "algorithm", "seed",
-    "source_commit", "bocode_version", "python_version",
+    "source_commit", "bocode_version", "python_version", "wrapper_script_sha256",
     "metadata_sha256", "dimension", "num_objectives", "num_constraints",
     "input_type", "requested_n_init", "requested_iters", "state",
     "objective_evaluation_count", "initial_design_count",
@@ -487,6 +487,7 @@ def main() -> int:
         "source_commit": source_commit,
         "bocode_version": package_version,
         "python_version": sys.version.split()[0],
+        "wrapper_script_sha256": sha256(Path(__file__).read_bytes()),
         "metadata_sha256": args.metadata_sha256.lower(),
         "dimension": str(dimension),
         "num_objectives": str(num_objectives),
