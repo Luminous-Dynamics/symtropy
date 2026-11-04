@@ -215,7 +215,7 @@ mod tests {
 
     #[test]
     fn rejects_mixed_nominal_levels() {
-        let mut a = record("a", "aligned", 5.0, 4.0, 6.0);
+        let a = record("a", "aligned", 5.0, 4.0, 6.0);
         let mut b = record("b", "aligned", 5.0, 4.0, 6.0);
         b.nominal_coverage = 0.90;
         assert!(evaluate(&[a.clone(), b]).unwrap_err().contains("one nominal"));
