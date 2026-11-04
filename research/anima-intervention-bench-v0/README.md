@@ -47,13 +47,30 @@ Do not pool different metrics or units into one score. Do not reinterpret one pa
 
 This prevents repeated steps from one animal from being counted as independent biological replicates.
 
-### 5. Expected information gain for intervention selection
+### 5. Scalar expected information gain and abstaining intervention selection
 
-`estimate_expected_information_gain_with_uncertainty` estimates mutual information between model-family identity and a scalar outcome under equal model priors. It uses Monte Carlo posterior model probabilities across all competing Gaussian predictive distributions and reports a stratified Monte Carlo standard error plus a clipped approximate 95% Monte Carlo interval. This interval quantifies integration error conditional on the supplied predictions; it is not biological, parameter, calibration or model-misspecification uncertainty.
+`estimate_expected_information_gain_with_uncertainty` estimates mutual information between model-family identity and a scalar outcome under equal model priors. It uses Monte Carlo posterior model probabilities across all competing Gaussian predictive distributions and reports a stratified Monte Carlo standard error plus an approximate clipped 95% Monte Carlo interval. This interval quantifies integration error conditional on the supplied predictions; it is not biological, parameter, calibration or model-misspecification uncertainty.
 
-`rank_interventions` ranks feasible interventions by the 95% lower Monte Carlo EIG bound per declared comparable cost unit. Candidates whose lower bound is zero are excluded. When no feasible candidate has a positive lower bound, it returns `NoDiscriminatingIntervention` rather than manufacturing a winner. `rank_interventions_with_minimum_information_gain` accepts a nonnegative preregistered practical threshold in nats. A zero threshold is only a Monte Carlo-noise gate; it is not a biological equivalence margin and does not establish global model equivalence.
+`rank_interventions` ranks feasible candidates by the 95% lower Monte Carlo EIG bound per declared comparable cost unit. Candidates whose bound does not exceed the default numerical floor are excluded. If no candidate qualifies, it returns `NoDiscriminatingIntervention`. The configurable API accepts a preregistered minimum lower-bound threshold in nats. A numerical floor is not a biological equivalence margin.
 
-This is Bayesian model-discrimination design, not a pairwise-KL proxy. The v0 independence assumption is one scalar endpoint per experiment; correlated multivariate outcomes, non-equal model priors, posterior parameter uncertainty and alternative likelihood families are future extensions. Monte Carlo and bootstrap sample budgets are explicitly capped at 1,000,000 per estimate.
+### 6. Full-covariance multivariate EIG
+
+`MultivariateOutcomeDistribution` binds an ordered vector of metric IDs, units, means and a full covariance matrix. `estimate_multivariate_expected_information_gain` uses the full covariance in Cholesky sampling and multivariate Gaussian log-likelihood evaluation; it accepts an explicit, normalized prior for each model family. The equal-prior wrapper remains available as a named baseline.
+
+Validation is fail-closed:
+- all models must use the same ordered metric/unit schema;
+- covariance matrices must be finite, symmetric and strictly positive definite;
+- singular covariance, including an exactly redundant endpoint, is rejected rather than counted as a new independent measurement;
+- prior IDs must exactly match model IDs, probabilities must be finite/non-negative and sum to one;
+- model and prior input order do not affect the seeded result.
+
+The Monte Carlo interval describes integration error conditional on the declared Gaussian predictive distributions and priors. It does not include model-parameter, animal/session, measurement, numerical or model-misspecification uncertainty.
+
+### 7. Multivariate intervention ranking with frozen priors
+
+`MultivariateInterventionCandidate` binds one intervention, a full joint prediction per model family, comparable cost and a prior manifest. `rank_multivariate_interventions` requires identical model-family sets, ordered outcome schemas and exact prior probabilities across candidates. It ranks by the 95% lower EIG bound per cost, excludes candidates below the preregistered threshold and abstains with `NoDiscriminatingIntervention` if none qualifies. Prior-manifest drift is a hard failure, including drift introduced only on an infeasible candidate.
+
+These Gaussian APIs implement covariance-aware design, not a final posterior-predictive engine. Parameter-posterior mixtures, non-Gaussian/hybrid outcomes, correlated time-series likelihoods, content-addressed prior receipts and decomposition of biological versus numerical uncertainty remain follow-on work. Monte Carlo and bootstrap sample budgets are capped at 1,000,000 per estimate.
 
 ## Required next integration
 
