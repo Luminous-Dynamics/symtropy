@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod flexibility_evaluation;
+mod joint_scenario;
 mod forecast_calibration;
 mod fuel;
 mod matched_service;
@@ -37,6 +38,18 @@ pub use duty_cycle::{
 pub use flexibility_evaluation::{
     FlexibilityEventContract, FlexibilityEventIdentity, FlexibilityEventSample,
     FlexibilityEvaluationError, FlexibilityEvaluationReport, evaluate_flexibility_event,
+};
+
+pub use joint_scenario::{
+    JointScenarioForecastCase, JointScenarioForecastCaseReceipt,
+    JointScenarioForecastContract, JointScenarioForecastError,
+    JointScenarioForecastEvaluation, JointScenarioForecastReport,
+    RealizedScenarioPath, ScenarioConditionOperator, ScenarioDimensionScale,
+    ScenarioEventAggregateReport, ScenarioEventCaseReceipt, ScenarioEventCondition,
+    ScenarioDimensionScoreAggregate, ScenarioEventDefinition, ScenarioMarginalScoreReceipt,
+    ScenarioPathProbabilityReceipt, ScenarioVariogramPair,
+    ScenarioVariogramPairReceipt, WeightedScenarioPath,
+    evaluate_joint_scenario_forecasts,
 };
 
 pub use forecast_calibration::{

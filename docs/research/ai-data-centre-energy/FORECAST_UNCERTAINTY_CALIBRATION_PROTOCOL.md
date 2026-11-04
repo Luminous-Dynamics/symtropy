@@ -204,7 +204,46 @@ Primary references: PACE (Shahbazi and Baheri, 2026), https://doi.org/10.3390/fo
 7. **Decision benchmark:** run deterministic risk-neutral MILP, sample-average CVaR, moment-based DRO-CVaR, robust-box, MPC and scenario MPC on identical forecast vintages and realized traces.
 8. **Field qualification:** replay traceable forecasts and measurements, then use an approved shadow-mode trial before any actuation. M&V compares realized service and energy against a frozen counterfactual baseline.
 
-## 9. Interpretation
+## 9. Joint scenario fidelity and dependence
+
+A calibrated interval for each channel is not a calibrated joint path distribution. The next evaluator, `joint_scenario.rs`, scores complete weighted paths against realized multi-channel paths. It reports:
+
+- **Marginal CRPS** per dimension, to test univariate marginal skill.
+- **Energy Score** over the full normalized vector, including the ensemble-dispersion correction.
+- **Variogram Score (p = 0.5)** over caller-pinned dimension/horizon pairs, to expose dependence and path-structure errors.
+- **Brier score** and reliability summaries for preregistered conjunction events, e.g. low renewable generation AND high workload, scarcity price AND hot ambient conditions, or reserve stress AND grid shortfall.
+- Per-case raw/normalized scenario probability weights, per-scenario evidence IDs, realized measurement evidence IDs, and scale provenance.
+
+The deterministic negative control uses two scenario ensembles with identical marginal distributions but different joint dependence. On the same realized path, the synthetic dependent ensemble has Energy Score 2.5, Variogram Score 0, marginal CRPS 2.5 per dimension, scarcity-event probability 0.5 and Brier score 0.25. The broken-dependence ensemble has Energy Score about 4.5711, Variogram Score 10, the **same** marginal CRPS values, scarcity-event probability 0 and Brier score 1.0. These are arithmetic fixture values, not empirical model performance.
+
+### Competitive benchmark matrix
+
+Compare on identical forecast vintages, issue/valid times, dimensions, normalization scales, scenario count, realized paths and held-out periods:
+
+| Ensemble method | Benchmark role | Key failure to expose |
+|---|---|---|
+| Independent marginal sampling | Deliberately weak dependence baseline | Destroys co-movement and tail co-occurrence |
+| Historical analog / Schaake shuffle | Preserves sampled historical trajectory dependence | Historical analog may miss unseen regimes |
+| Gaussian copula | Parametric dependence baseline | Linear/rank dependence and thin-tail assumptions |
+| t-copula | Heavy-tail dependence comparator | Tail symmetry and parametric fit assumptions |
+| Multivariate probabilistic forecaster | Joint model comparator | Calibration, sharpness and computational cost |
+| Learned scenario generator | Candidate model | Mode collapse, unrealistic diversity, drift and rare-event omission |
+
+A multivariate 2026 Nature Communications study forecasts CAISO system demand, solar and wind jointly, evaluates Energy Score, Variogram Score (p=0.5) and Interval Score, and reports a 25% forecast-skill improvement versus its chosen benchmarks. This is a strong research comparator, not a universal industry baseline or an apples-to-apples data-centre result. [Terrén-Serrano et al., 28 February 2026](https://doi.org/10.1038/s41467-026-69015-w). Waghmare and Ziegel's 2026 review provides a broader foundation for proper scoring-rule selection ([Annual Review of Statistics, DOI 10.1146/annurev-statistics-042424-050626](https://doi.org/10.1146/annurev-statistics-042424-050626)). The 2025 ASCMO study shows that different dependence-focused scores can rank post-processing methods differently, and that variogram and power-variation scores expose different dependence scales ([DOI 10.5194/ascmo-11-23-2025](https://doi.org/10.5194/ascmo-11-23-2025)).
+
+### Proposed scenario-quality targets
+
+These are research targets, not achieved performance or certification thresholds:
+
+- The independent-marginal negative control must be detected by the variogram and joint-event metrics even when marginal CRPS is equal.
+- Joint scarcity-event probability calibration error within 5 percentage points across each preregistered high-risk event class when sample size supports it.
+- At least 10% lower Variogram Score than independent-marginal resampling at matched marginal CRPS and ensemble size, without worsening mean Energy Score or event Brier score.
+- No event class or operating regime may be silently omitted; emit insufficient-sample status where evidence is inadequate.
+- Report scenario diversity, mode collapse/duplicate paths, ensemble-size sensitivity and runtime; do not reward an ensemble simply for having many near-duplicate scenarios.
+
+Scenario fidelity must be validated before the ensemble feeds #3581's weighted CVaR evaluator or any optimizer comparison. Good proper scores on finite held-out traces do not establish distributional robustness or arbitrary future validity.
+
+## 10. Interpretation
 
 A successful static or adaptive report means only that the supplied inputs passed the declared structural and temporal checks and that the reported empirical coverage and interval widths were computed according to the pinned metric convention. It does not establish arbitrary future coverage under drift, full joint probability calibration, a DRO guarantee, optimizer superiority, energy savings, or operational qualification.
 

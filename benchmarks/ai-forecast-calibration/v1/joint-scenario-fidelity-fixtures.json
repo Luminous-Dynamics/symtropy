@@ -1,0 +1,155 @@
+{
+  "schema_version": "symtropy.joint-scenario-fidelity-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "note": "Synthetic complete-path ensembles only. These fixtures do not represent measured data-centre, utility, renewable, workload, price or thermal observations.",
+  "contract": {
+    "benchmark_id": "joint-scenario-known-truth-v1",
+    "forecast_model_digest": "synthetic-model-digest",
+    "evaluation_configuration_digest": "synthetic-evaluation-config",
+    "dimensions": [
+      {
+        "dimension_id": "renewable",
+        "normalization_scale": 1,
+        "scale_evidence_id": "synthetic-scale-renewable"
+      },
+      {
+        "dimension_id": "workload",
+        "normalization_scale": 1,
+        "scale_evidence_id": "synthetic-scale-workload"
+      }
+    ],
+    "variogram_pairs": [
+      {
+        "left_dimension_id": "renewable",
+        "right_dimension_id": "workload",
+        "weight": 1
+      }
+    ],
+    "events": [
+      {
+        "event_id": "joint-scarcity",
+        "conditions": [
+          {
+            "dimension_id": "renewable",
+            "operator": "LessThan",
+            "threshold": 1
+          },
+          {
+            "dimension_id": "workload",
+            "operator": "GreaterThan",
+            "threshold": 9
+          }
+        ]
+      }
+    ],
+    "probability_sum_tolerance": 1e-9
+  },
+  "known_truth": {
+    "same_marginals_different_dependence": [
+      {
+        "case_id": "dependent-scarcity",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "weight": 0.5,
+            "values": [
+              0,
+              10
+            ]
+          },
+          {
+            "scenario_id": "s2",
+            "weight": 0.5,
+            "values": [
+              10,
+              0
+            ]
+          }
+        ],
+        "realized_values": [
+          0,
+          10
+        ],
+        "expected": {
+          "energy_score": 2.5,
+          "variogram_score": 0,
+          "marginal_crps_by_dimension": [
+            2.5,
+            2.5
+          ],
+          "joint_scarcity_probability": 0.5,
+          "joint_scarcity_observed": true,
+          "joint_scarcity_brier": 0.25
+        }
+      },
+      {
+        "case_id": "broken-dependence",
+        "scenarios": [
+          {
+            "scenario_id": "s1",
+            "weight": 0.5,
+            "values": [
+              0,
+              0
+            ]
+          },
+          {
+            "scenario_id": "s2",
+            "weight": 0.5,
+            "values": [
+              10,
+              10
+            ]
+          }
+        ],
+        "realized_values": [
+          0,
+          10
+        ],
+        "expected": {
+          "energy_score": 4.5710678118654755,
+          "variogram_score": 10,
+          "marginal_crps_by_dimension": [
+            2.5,
+            2.5
+          ],
+          "joint_scarcity_probability": 0,
+          "joint_scarcity_observed": true,
+          "joint_scarcity_brier": 1
+        }
+      }
+    ],
+    "tolerated_probability_mass_drift": {
+      "raw_weights": [
+        0.5,
+        0.4999999995
+      ],
+      "raw_sum": 0.9999999995,
+      "tolerance": 1e-9,
+      "expected_normalized_weights": [
+        0.50000000025,
+        0.49999999975
+      ]
+    },
+    "probability_mass_negative_control": {
+      "raw_weights": [
+        0.8,
+        0.1
+      ],
+      "raw_sum": 0.9,
+      "tolerance": 1e-9,
+      "expected_result": "REJECT_PROBABILITY_MASS_MISMATCH"
+    },
+    "event_calibration_across_cases": {
+      "case_count": 2,
+      "forecast_event_probability_each_case": 0.25,
+      "observed_event_outcomes": [
+        true,
+        false
+      ],
+      "expected_mean_forecast_probability": 0.25,
+      "expected_observed_frequency": 0.5,
+      "expected_mean_brier_score": 0.3125
+    }
+  }
+}
