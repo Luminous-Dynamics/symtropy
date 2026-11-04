@@ -452,6 +452,48 @@ impl fmt::Display for EnergyMvError {
 
 impl std::error::Error for EnergyMvError {}
 
+/// Retained evidence and exact measurement window for a held-out validation point.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct EnergyMvValidationReceipt {
+    pub sample_id: String,
+    pub site_id: String,
+    pub boundary_id: String,
+    pub start_unix_seconds: i64,
+    pub end_unix_seconds: i64,
+    pub observed_energy_kwh: f64,
+    pub predicted_baseline_energy_kwh: f64,
+    pub residual_kwh: f64,
+    pub baseline_digest: String,
+    pub model_digest: String,
+    pub conditions_digest: String,
+    pub measurement_evidence_id: String,
+    pub prediction_evidence_id: String,
+}
+
+/// Retained evidence, adjustments and interval arithmetic for a reporting point.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct EnergyMvReportingReceipt {
+    pub sample_id: String,
+    pub site_id: String,
+    pub boundary_id: String,
+    pub start_unix_seconds: i64,
+    pub end_unix_seconds: i64,
+    pub observed_energy_kwh: f64,
+    pub predicted_baseline_energy_kwh: f64,
+    pub routine_adjustment_kwh: f64,
+    pub routine_adjustment_evidence_id: Option<String>,
+    pub non_routine_adjustment_kwh: f64,
+    pub non_routine_adjustment_evidence_id: Option<String>,
+    pub adjusted_baseline_energy_kwh: f64,
+    pub adjusted_energy_difference_kwh: f64,
+    pub uncertainty_bound_kwh: f64,
+    pub baseline_digest: String,
+    pub model_digest: String,
+    pub conditions_digest: String,
+    pub measurement_evidence_id: String,
+    pub prediction_evidence_id: String,
+}
+
 /// Independent M&V verification report.
 ///
 /// The uncertainty interval is a conservative sum of declared absolute kWh
@@ -469,6 +511,8 @@ pub struct EnergyMvVerificationReport {
     model_digest: String,
     validation_sample_ids: Vec<String>,
     reporting_sample_ids: Vec<String>,
+    validation_receipts: Vec<EnergyMvValidationReceipt>,
+    reporting_receipts: Vec<EnergyMvReportingReceipt>,
     validation_point_count: usize,
     reporting_point_count: usize,
     normalized_mean_bias_error_percent: f64,
@@ -500,6 +544,42 @@ impl EnergyMvVerificationReport {
 
     pub fn reporting_sample_ids(&self) -> &[String] {
         &self.reporting_sample_ids
+    }
+
+    pub fn validation_receipts(&self) -> &[EnergyMvValidationReceipt] {
+        &self.validation_receipts
+    }
+
+    pub fn reporting_receipts(&self) -> &[EnergyMvReportingReceipt] {
+        &self.reporting_receipts
+    }
+
+    pub const fn validation_point_count(&self) -> usize {
+        self.validation_point_count
+    }
+
+    pub const fn reporting_point_count(&self) -> usize {
+        self.reporting_point_count
+    }
+
+    pub const fn adjusted_baseline_energy_kwh(&self) -> f64 {
+        self.adjusted_baseline_energy_kwh
+    }
+
+    pub const fn measured_reporting_energy_kwh(&self) -> f64 {
+        self.measured_reporting_energy_kwh
+    }
+
+    pub const fn routine_adjustment_energy_kwh(&self) -> f64 {
+        self.routine_adjustment_energy_kwh
+    }
+
+    pub const fn non_routine_adjustment_energy_kwh(&self) -> f64 {
+        self.non_routine_adjustment_energy_kwh
+    }
+
+    pub const fn savings_percent_of_adjusted_baseline(&self) -> Option<f64> {
+        self.savings_percent_of_adjusted_baseline
     }
 
     pub const fn normalized_mean_bias_error_percent(&self) -> f64 {
@@ -693,6 +773,53 @@ pub fn verify_energy_mv(
         return Err(EnergyMvError::NumericalOverflow("savings result"));
     }
 
+    let validation_receipts = dataset.validation_points.iter().map(|point| {
+        EnergyMvValidationReceipt {
+            sample_id: point.sample_id.clone(),
+            site_id: point.site_id.clone(),
+            boundary_id: point.boundary_id.clone(),
+            start_unix_seconds: point.start_unix_seconds,
+            end_unix_seconds: point.end_unix_seconds,
+            observed_energy_kwh: point.observed_energy_kwh,
+            predicted_baseline_energy_kwh: point.predicted_baseline_energy_kwh,
+            residual_kwh: point.predicted_baseline_energy_kwh - point.observed_energy_kwh,
+            baseline_digest: point.baseline_digest.clone(),
+            model_digest: point.model_digest.clone(),
+            conditions_digest: point.conditions_digest.clone(),
+            measurement_evidence_id: point.measurement_evidence_id.clone(),
+            prediction_evidence_id: point.prediction_evidence_id.clone(),
+        }
+    }).collect();
+    let reporting_receipts = dataset.reporting_points.iter().map(|point| {
+        let adjusted_baseline = point.predicted_baseline_energy_kwh
+            + point.routine_adjustment_kwh + point.non_routine_adjustment_kwh;
+        let uncertainty = point.baseline_uncertainty_bound_kwh
+            + point.measurement_uncertainty_bound_kwh
+            + point.routine_adjustment_uncertainty_bound_kwh
+            + point.non_routine_adjustment_uncertainty_bound_kwh;
+        EnergyMvReportingReceipt {
+            sample_id: point.sample_id.clone(),
+            site_id: point.site_id.clone(),
+            boundary_id: point.boundary_id.clone(),
+            start_unix_seconds: point.start_unix_seconds,
+            end_unix_seconds: point.end_unix_seconds,
+            observed_energy_kwh: point.observed_energy_kwh,
+            predicted_baseline_energy_kwh: point.predicted_baseline_energy_kwh,
+            routine_adjustment_kwh: point.routine_adjustment_kwh,
+            routine_adjustment_evidence_id: point.routine_adjustment_evidence_id.clone(),
+            non_routine_adjustment_kwh: point.non_routine_adjustment_kwh,
+            non_routine_adjustment_evidence_id: point.non_routine_adjustment_evidence_id.clone(),
+            adjusted_baseline_energy_kwh: adjusted_baseline,
+            adjusted_energy_difference_kwh: adjusted_baseline - point.observed_energy_kwh,
+            uncertainty_bound_kwh: uncertainty,
+            baseline_digest: point.baseline_digest.clone(),
+            model_digest: point.model_digest.clone(),
+            conditions_digest: point.conditions_digest.clone(),
+            measurement_evidence_id: point.measurement_evidence_id.clone(),
+            prediction_evidence_id: point.prediction_evidence_id.clone(),
+        }
+    }).collect();
+
     Ok(EnergyMvVerificationReport {
         plan_id: plan.plan_id.clone(),
         project_id: plan.project_id.clone(),
@@ -703,6 +830,8 @@ pub fn verify_energy_mv(
         model_digest: plan.model_digest.clone(),
         validation_sample_ids: dataset.validation_points.iter().map(|point| point.sample_id.clone()).collect(),
         reporting_sample_ids: dataset.reporting_points.iter().map(|point| point.sample_id.clone()).collect(),
+        validation_receipts,
+        reporting_receipts,
         validation_point_count: dataset.validation_points.len(),
         reporting_point_count: dataset.reporting_points.len(),
         normalized_mean_bias_error_percent: nmbe,
