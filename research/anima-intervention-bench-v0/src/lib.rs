@@ -1040,8 +1040,11 @@ fn prepare_multivariate_distribution(
     for row in 0..dimension {
         for column in 0..=row {
             let mut residual = distribution.covariance[row][column];
-            for inner in 0..column {
-                residual -= lower[row][inner] * lower[column][inner];
+            for (left, right) in lower[row][..column]
+                .iter()
+                .zip(lower[column][..column].iter())
+            {
+                residual -= left * right;
             }
             if row == column {
                 if !residual.is_finite() || residual <= 0.0 {
@@ -1082,8 +1085,8 @@ fn multivariate_gaussian_log_density(
     let mut whitened = vec![0.0_f64; dimension];
     for row in 0..dimension {
         let mut residual = outcome[row] - prepared.distribution.mean[row];
-        for column in 0..row {
-            residual -= prepared.cholesky[row][column] * whitened[column];
+        for (column, value) in whitened.iter().enumerate().take(row) {
+            residual -= prepared.cholesky[row][column] * value;
         }
         whitened[row] = residual / prepared.cholesky[row][row];
     }
@@ -1102,15 +1105,15 @@ fn sample_multivariate_gaussian(
         .map(|_| rng.standard_normal())
         .collect::<Vec<_>>();
     let mut sample = vec![0.0_f64; dimension];
-    for row in 0..dimension {
+    for (row, sample_value) in sample.iter_mut().enumerate().take(dimension) {
         let mut value = prepared.distribution.mean[row];
-        for column in 0..=row {
-            value += prepared.cholesky[row][column] * standard_normal[column];
+        for (column, normal_value) in standard_normal.iter().enumerate().take(row + 1) {
+            value += prepared.cholesky[row][column] * normal_value;
         }
         if !value.is_finite() {
             return None;
         }
-        sample[row] = value;
+        *sample_value = value;
     }
     Some(sample)
 }
