@@ -49,7 +49,7 @@ There is deliberately no bare `pass`, `safe`, `certified` or `compliant` result.
 ## Semantic rules
 
 - A measured result requires a physical evidence class, raw evidence references, an independent reference declaration, a positive independent-encounter denominator and uncertainty-bearing measurements.
-- Every subject-sensor and reference-instrument calibration interval must cover the complete trial interval.
+- Every subject-sensor and reference-instrument calibration interval must cover the complete trial interval. These time bounds are required for physical evidence classes; synthetic/NotEvaluated receipts must not fabricate physical calibration.
 - Shared relevant sensing, power, clock, network or processing fault domains invalidate the claim of independent reference measurement.
 - The validator also cross-checks declared reference-instrument fault-domain identifiers against the evaluated robot's sensor fault domains, and requires a distinct reference clock-domain identifier. These are checks of declared metadata, not proof that the real hardware is independent.
 - The initial protocol gate requires U95 <= one-third of each decision margin. This is a proposed benchmark rule, not a requirement quoted from ISO.
