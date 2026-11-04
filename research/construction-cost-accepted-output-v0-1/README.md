@@ -40,7 +40,7 @@ Every entry binds to:
 
 ### Currency and precision
 
-A ledger uses one reporting currency. Amounts are stored as integer minor units with the ISO 4217 currency code and declared minor-unit exponent, avoiding binary floating-point arithmetic for money. Cross-currency comparison requires a separate dated FX conversion record or harmonisation process with source and rate evidence; never silently convert or use a current spot rate for historical costs.
+A ledger uses one reporting currency. Amounts are stored as integer minor units with the ISO 4217 currency code and declared minor-unit exponent, avoiding binary floating-point arithmetic for money. Cross-currency comparison requires a separate dated FX conversion record or harmonisation process with source and rate evidence; never silently convert or use a current spot rate for historical costs. Entries also declare `cost` versus `credit`; residual/salvage value is a credit, never a positive cost. The v0.1 schema restricts credit-direction entries to the explicit residual-value credit category.
 
 ### Allocation and double counting
 
