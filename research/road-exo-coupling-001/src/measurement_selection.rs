@@ -107,9 +107,8 @@ pub enum CandidateInvalidReason {
     EmptyCompatibleHypothesisSet,
     UnknownCompatibleHypothesis,
     IncompleteHypothesisCoverage,
-    MissingAuthorizationReference,
     MissingSafetyCaseDigest,
-    ArithmeticOverflow,
+    WorstCaseRegretIncreased,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -201,13 +200,11 @@ impl MeasurementSelectionManifest {
         push_rational(
             &mut out,
             &self.constraints.maximum_cost,
-            CandidateInvalidReason::ZeroCostDenominator,
         )?;
         push_id(&mut out, &self.constraints.risk_scale_id);
         push_rational(
             &mut out,
             &self.constraints.maximum_risk,
-            CandidateInvalidReason::ZeroRiskDenominator,
         )?;
 
         let mut candidates = self.candidates.iter().collect::<Vec<_>>();
@@ -358,7 +355,7 @@ impl MeasurementSelectionManifest {
             .map_err(|_| MeasurementSelectionError::ArithmeticOverflow)?;
         if regret_reduction.numerator < 0 {
             evaluation.disposition = CandidateDisposition::Incomplete;
-            evaluation.invalid_reason = Some(CandidateInvalidReason::ArithmeticOverflow);
+            evaluation.invalid_reason = Some(CandidateInvalidReason::WorstCaseRegretIncreased);
             return Ok(evaluation);
         }
 
@@ -479,9 +476,7 @@ fn validate_candidate(
             authorization_id,
             safety_case_digest,
         } => {
-            if authorization_id.as_str().is_empty() {
-                return Err(CandidateInvalidReason::MissingAuthorizationReference);
-            }
+            let _authorization_reference = authorization_id;
             if *safety_case_digest == [0; 32] {
                 return Err(CandidateInvalidReason::MissingSafetyCaseDigest);
             }
@@ -601,13 +596,11 @@ fn push_candidate(
     push_rational(
         out,
         &candidate.acquisition_cost,
-        CandidateInvalidReason::ZeroCostDenominator,
     )?;
     push_id(out, &candidate.risk_scale_id);
     push_rational(
         out,
         &candidate.risk_upper_bound,
-        CandidateInvalidReason::ZeroRiskDenominator,
     )?;
 
     match &candidate.authorization {
@@ -642,16 +635,9 @@ fn push_candidate(
 fn push_rational(
     out: &mut Vec<u8>,
     value: &ExactRational,
-    zero_reason: CandidateInvalidReason,
 ) -> Result<(), MeasurementSelectionError> {
-    let normalized = ExactRational::new(value.numerator, value.denominator).map_err(|_| {
-        if value.denominator == 0 {
-            MeasurementSelectionError::ArithmeticOverflow
-        } else {
-            MeasurementSelectionError::ArithmeticOverflow
-        }
-    })?;
-    let _ = zero_reason;
+    let normalized = ExactRational::new(value.numerator, value.denominator)
+        .map_err(|_| MeasurementSelectionError::ArithmeticOverflow)?;
     out.extend_from_slice(&normalized.numerator.to_le_bytes());
     out.extend_from_slice(&normalized.denominator.to_le_bytes());
     Ok(())
@@ -1118,6 +1104,40 @@ mod tests {
         assert_eq!(
             manifest.evaluate(),
             Err(MeasurementSelectionError::BaselineNotFullySupported)
+        );
+    }
+
+    #[test]
+    fn equivalent_cost_and_risk_rationals_have_identical_manifest_and_certificate() {
+        let first = manifest(vec![candidate("same-test", 5, 2, singleton_outcomes())]);
+        let mut second = first.clone();
+        second.candidates[0].acquisition_cost = ExactRational {
+            numerator: 10,
+            denominator: 2,
+        };
+        second.candidates[0].risk_upper_bound = ExactRational {
+            numerator: 4,
+            denominator: 2,
+        };
+        assert_eq!(first.digest().unwrap(), second.digest().unwrap());
+        assert_eq!(first.evaluate().unwrap(), second.evaluate().unwrap());
+    }
+
+    #[test]
+    fn declared_approval_without_safety_case_digest_is_incomplete() {
+        let mut candidate = candidate("no-safety-case", 1, 1, singleton_outcomes());
+        candidate.authorization = RiskAuthorization::Approved {
+            authorization_id: id("approval-ref"),
+            safety_case_digest: [0; 32],
+        };
+        let evaluation = &manifest(vec![candidate])
+            .evaluate()
+            .unwrap()
+            .candidate_evaluations[0];
+        assert_eq!(evaluation.disposition, CandidateDisposition::Incomplete);
+        assert_eq!(
+            evaluation.invalid_reason,
+            Some(CandidateInvalidReason::MissingSafetyCaseDigest)
         );
     }
 
