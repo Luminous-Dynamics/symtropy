@@ -20,6 +20,7 @@ mod flexibility_evaluation;
 mod forecast_calibration;
 mod fuel;
 mod matched_service;
+mod online_adaptive;
 mod service_contract;
 mod trace_validation;
 mod workload_schedule;
@@ -52,6 +53,12 @@ pub use fuel::{
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
+};
+
+pub use online_adaptive::{
+    OnlineAdaptiveBlockReceipt, OnlineAdaptiveCalibrationContract, OnlineAdaptiveCellReceipt,
+    OnlineAdaptiveCalibrationError, OnlineAdaptiveCalibrationReport,
+    evaluate_online_adaptive_calibration,
 };
 pub use service_contract::{
     DeliveredServiceSegment, DeliveredServiceTrace, InputEnergyBasis, InputEnergyComparison,
