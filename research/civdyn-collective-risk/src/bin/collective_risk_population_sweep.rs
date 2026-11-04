@@ -49,34 +49,70 @@ fn empty_fields(record_type: &str, population_size: usize, risk: f64, beta: f64)
         String::new(),
         String::new(),
         String::new(),
+        String::new(),
     ]
+}
+
+fn population_profiles(
+    population_size: usize,
+) -> Vec<(&'static str, PopulationState)> {
+    match population_size {
+        6 => vec![(
+            "one_of_each",
+            PopulationState::new([1, 1, 1, 1, 1, 1]).unwrap(),
+        )],
+        30 => vec![
+            (
+                "balanced",
+                PopulationState::new([5, 5, 5, 5, 5, 5]).unwrap(),
+            ),
+            (
+                "zero_heavy",
+                PopulationState::new([12, 3, 3, 3, 3, 6]).unwrap(),
+            ),
+            (
+                "fair_share_heavy",
+                PopulationState::new([2, 12, 2, 6, 2, 6]).unwrap(),
+            ),
+            (
+                "maximum_heavy",
+                PopulationState::new([2, 2, 12, 2, 8, 4]).unwrap(),
+            ),
+            (
+                "copy_heavy",
+                PopulationState::new([2, 2, 2, 2, 4, 18]).unwrap(),
+            ),
+        ],
+        _ => panic!("unsupported finite-population reference size {population_size}"),
+    }
 }
 
 fn main() {
     println!(
-        "record_type,population_size,risk,beta,strategy,other_strategy,population_count,expected_fitness,expected_group_welfare,target_reach_probability,expected_group_contribution,composition_count,fixation_probability,log_fixation,stationary_weight,stationary_iterations,stationary_residual_l1,invasion_edge_count,three_cycle_count,cycle_strategy_a,cycle_strategy_b,cycle_strategy_c,cycle_orientation"
+        "record_type,population_size,risk,beta,strategy,other_strategy,population_count,expected_fitness,expected_group_welfare,target_reach_probability,expected_group_contribution,composition_count,fixation_probability,log_fixation,stationary_weight,stationary_iterations,stationary_residual_l1,invasion_edge_count,three_cycle_count,cycle_strategy_a,cycle_strategy_b,cycle_strategy_c,cycle_orientation,roster_id"
     );
 
     for population_size in POPULATION_SIZES {
-        let population = PopulationState::balanced(population_size)
-            .expect("both reference populations are exactly balanced");
         for risk in RISK_GRID {
             let config = GameConfig {
                 catastrophe_probability: risk,
             };
             for beta in BETA_GRID {
-                for strategy in Strategy::ALL {
-                    let fitness = expected_type_fitness(config, population, strategy)
-                        .expect("balanced population fitness must be defined");
-                    let mut row = empty_fields("mixture_fitness", population_size, risk, beta);
-                    row[4] = strategy.name().into();
-                    row[6] = fitness.population_count.to_string();
-                    row[7] = fmt(fitness.expected_payoff);
-                    row[8] = fmt(fitness.expected_group_welfare);
-                    row[9] = fmt(fitness.target_reach_probability);
-                    row[10] = fmt(fitness.expected_group_contribution);
-                    row[11] = fitness.compositions_evaluated.to_string();
-                    emit(row);
+                for (roster_id, population) in population_profiles(population_size) {
+                    for strategy in Strategy::ALL {
+                        let fitness = expected_type_fitness(config, population, strategy)
+                            .expect("reference population fitness must be defined");
+                        let mut row = empty_fields("mixture_fitness", population_size, risk, beta);
+                        row[4] = strategy.name().into();
+                        row[6] = fitness.population_count.to_string();
+                        row[7] = fmt(fitness.expected_payoff);
+                        row[8] = fmt(fitness.expected_group_welfare);
+                        row[9] = fmt(fitness.target_reach_probability);
+                        row[10] = fmt(fitness.expected_group_contribution);
+                        row[11] = fitness.compositions_evaluated.to_string();
+                        row[23] = roster_id.into();
+                        emit(row);
+                    }
                 }
 
                 let chain = rare_mutation_chain(config, population_size, beta)
@@ -148,6 +184,8 @@ mod tests {
         assert_eq!(POPULATION_SIZES, [6, 30]);
         assert_eq!(RISK_GRID, [0.1, 0.5, 0.9]);
         assert_eq!(BETA_GRID, [0.0, 0.1, 1.0, 5.0]);
+        assert_eq!(population_profiles(6).len(), 1);
+        assert_eq!(population_profiles(30).len(), 5);
     }
 
     #[test]
