@@ -900,7 +900,23 @@ mod tests {
     #[test]
     fn rejects_non_watt_energy_channels_and_missing_state_order_for_rom_families() {
         let mut suite = benchmark_suite();
-        suite.cases[0].reference.channels[1].unit = "kW".into();
+        let energy_channel_id = suite.cases[0].energy_channel_ids[0].clone();
+        for candidate in &mut suite.cases[0].candidates {
+            let channel = candidate
+                .trace
+                .channels
+                .iter_mut()
+                .find(|channel| channel.channel_id == energy_channel_id)
+                .expect("energy channel exists in every candidate");
+            channel.unit = "kW".into();
+        }
+        let reference_channel = suite.cases[0]
+            .reference
+            .channels
+            .iter_mut()
+            .find(|channel| channel.channel_id == energy_channel_id)
+            .expect("energy channel exists in reference");
+        reference_channel.unit = "kW".into();
         assert!(suite.validate().unwrap_err().contains("must use watts"));
 
         let mut suite = benchmark_suite();
