@@ -693,9 +693,18 @@ mod tests {
 
         fn assert_invariants(model: &mut Model) {
             if model.state == State::Active {
-                let current = model.current_epoch.as_ref().expect("active requires an epoch");
-                let proof = model.qualification.as_ref().expect("active requires qualification");
-                assert!(model.communications_available, "active requires communications");
+                let current = model
+                    .current_epoch
+                    .as_ref()
+                    .expect("active requires an epoch");
+                let proof = model
+                    .qualification
+                    .as_ref()
+                    .expect("active requires qualification");
+                assert!(
+                    model.communications_available,
+                    "active requires communications"
+                );
                 assert_eq!(proof.epoch_digest, current.digest);
                 assert_eq!(proof.configuration_digest, model.configuration_digest);
                 assert_eq!(proof.task_scope, model.task_scope);
@@ -751,10 +760,8 @@ mod tests {
                             None => (1, None),
                         };
                         let digest = format!("{:064x}", revision.saturating_add(0x1000));
-                        let _ = next.accept_epoch(
-                            epoch(revision, &digest, predecessor.as_deref()),
-                            true,
-                        );
+                        let _ = next
+                            .accept_epoch(epoch(revision, &digest, predecessor.as_deref()), true);
                     }
                     1 => next.mark_context_stale(),
                     2 => next.communications_lost(),
@@ -795,10 +802,8 @@ mod tests {
                             None => (1, None),
                         };
                         let digest = format!("{:064x}", revision.saturating_add(0x2000));
-                        let _ = next.accept_epoch(
-                            epoch(revision, &digest, predecessor.as_deref()),
-                            false,
-                        );
+                        let _ = next
+                            .accept_epoch(epoch(revision, &digest, predecessor.as_deref()), false);
                     }
                     10 => {
                         if let Some(current) = next.current_epoch.as_ref() {
