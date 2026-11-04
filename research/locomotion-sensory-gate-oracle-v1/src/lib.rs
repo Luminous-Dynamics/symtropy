@@ -406,30 +406,26 @@ pub fn classify_sensory_gate_signature(
     )?;
 
     let position_channel_context_invariant =
-        (position_active_intact - position_passive_intact).abs()
-            <= thresholds.maximum_non_effect
+        (position_active_intact - position_passive_intact).abs() <= thresholds.maximum_non_effect
             && (position_active_blocked - position_passive_blocked).abs()
                 <= thresholds.maximum_non_effect;
 
-    let position_channel_gate_invariant =
-        (position_active_intact - position_active_blocked).abs()
-            <= thresholds.maximum_non_effect
-            && (position_passive_intact - position_passive_blocked).abs()
-                <= thresholds.maximum_non_effect;
+    let position_channel_gate_invariant = (position_active_intact - position_active_blocked).abs()
+        <= thresholds.maximum_non_effect
+        && (position_passive_intact - position_passive_blocked).abs()
+            <= thresholds.maximum_non_effect;
 
     let movement_suppression = movement_passive_intact - movement_active_intact;
     let movement_channel_suppressed_when_active_and_gated =
         movement_suppression >= thresholds.minimum_movement_suppression;
 
     let blocked_suppression = movement_passive_blocked - movement_active_blocked;
-    let movement_suppression_requires_gate =
-        blocked_suppression.abs() <= thresholds.maximum_non_effect
-            && movement_suppression - blocked_suppression
-                >= thresholds.minimum_movement_suppression;
+    let movement_suppression_requires_gate = blocked_suppression.abs()
+        <= thresholds.maximum_non_effect
+        && movement_suppression - blocked_suppression >= thresholds.minimum_movement_suppression;
 
     let passive_movement_negative_control_passes =
-        (movement_passive_intact - movement_passive_blocked).abs()
-            <= thresholds.maximum_non_effect;
+        (movement_passive_intact - movement_passive_blocked).abs() <= thresholds.maximum_non_effect;
 
     Ok(SensoryGateSignature {
         position_channel_context_invariant,
@@ -449,7 +445,9 @@ fn numerical_rank(mut matrix: Vec<[f64; FACTORIAL_TERMS]>) -> usize {
             break;
         }
         let pivot = (rank..row_count).max_by(|left, right| {
-            matrix[*left][column].abs().total_cmp(&matrix[*right][column].abs())
+            matrix[*left][column]
+                .abs()
+                .total_cmp(&matrix[*right][column].abs())
         });
         let Some(pivot_row) = pivot else {
             continue;
@@ -490,11 +488,7 @@ mod tests {
         SensoryGateCondition::full_factorial()
             .into_iter()
             .map(|condition| {
-                let activity = match (
-                    condition.modality,
-                    condition.context,
-                    condition.gate,
-                ) {
+                let activity = match (condition.modality, condition.context, condition.gate) {
                     (
                         SensorModality::Movement,
                         MovementContext::SelfGenerated,
@@ -528,9 +522,8 @@ mod tests {
 
     #[test]
     fn selective_movement_channel_gate_passes_all_negative_controls() {
-        let signature =
-            classify_sensory_gate_signature(&selective_pattern(), thresholds())
-                .expect("complete selective-gating design");
+        let signature = classify_sensory_gate_signature(&selective_pattern(), thresholds())
+            .expect("complete selective-gating design");
         assert!(signature.position_channel_context_invariant);
         assert!(signature.position_channel_gate_invariant);
         assert!(signature.movement_channel_suppressed_when_active_and_gated);
