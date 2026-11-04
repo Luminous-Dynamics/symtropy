@@ -29,8 +29,8 @@ jobs:
         uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Resolve package lockfile for review
-        run: cargo generate-lockfile --manifest-path research/construction-accepted-output-v0-1/Cargo.toml
+      - name: Verify committed package lockfile
+        run: cargo metadata --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --format-version 1
       - name: Check formatting
         run: cargo fmt --manifest-path research/construction-accepted-output-v0-1/Cargo.toml -- --check
       - name: Run unit and contract tests
