@@ -53,10 +53,12 @@ pub use survey_adjustment::{
 pub use survey_contract::{
     MAX_SURVEY_ARTIFACT_REFS, MAX_SURVEY_EVIDENCE_BYTES, MAX_SURVEY_FRAMES,
     MAX_SURVEY_OBSERVATIONS, MAX_SURVEY_RECEIPTS, MAX_SURVEY_SESSIONS, MAX_SURVEY_TRANSFORMS,
-    SURVEY_EVIDENCE_SCHEMA_VERSION, SurveyAccuracyMetricsV1, SurveyAdmissionPolicyV1,
-    SurveyAxisDirectionV1, SurveyChangeCandidateV1, SurveyContractErrorV1, SurveyCoordinateFrameV1,
-    SurveyCoordinateUnitV1, SurveyEvidenceEnvelopeV1, SurveyHandednessV1, SurveyHeightTypeV1,
-    SurveyModalityV1, SurveyObservationRoleV1, SurveyObservationV1, SurveyProcessingDispositionV1,
-    SurveyProcessingReceiptV1, SurveyProcessingStageV1, SurveyQualityFlagV1, SurveySessionV1,
-    SurveyTransformV1, SurveyUncertaintyV1, VerifiedSurveyEvidenceEnvelopeV1,
+    SURVEY_COVERAGE_ASSESSMENT_SCHEMA_VERSION, SURVEY_EVIDENCE_SCHEMA_VERSION,
+    SurveyAccuracyMetricsV1, SurveyAdmissionPolicyV1, SurveyAxisDirectionV1,
+    SurveyChangeCandidateV1, SurveyContractErrorV1, SurveyCoordinateFrameV1,
+    SurveyCoordinateUnitV1, SurveyCoverageAssessmentV1, SurveyEvidenceEnvelopeV1,
+    SurveyHandednessV1, SurveyHeightTypeV1, SurveyModalityV1, SurveyObservationRoleV1,
+    SurveyObservationV1, SurveyProcessingDispositionV1, SurveyProcessingReceiptV1,
+    SurveyProcessingStageV1, SurveyQualityFlagV1, SurveySessionV1, SurveyTransformV1,
+    SurveyUncertaintyV1, VerifiedSurveyCoverageAssessmentV1, VerifiedSurveyEvidenceEnvelopeV1,
 };
