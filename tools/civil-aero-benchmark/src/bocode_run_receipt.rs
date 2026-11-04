@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use crate::shapebench::parse_csv_record;
 
 pub const BOCODE_RUN_ROW_SCHEMA: &str = "bocode-single-trial-receipt/0.1.0";
-pub const BOCODE_RUN_ROW_HEADER: &str = "schema,attempt_id,run_id,request_sha256,state,reason,source_commit,package_version,task_id,metadata_sha256,algorithm,seed,n_init_requested,iterations_requested,objective_evaluation_count,initial_design_count,feasible_evaluation_count,infeasible_evaluation_count,feasible_evaluation_fraction,process_exit_code,wall_seconds,cpu_user_seconds,cpu_system_seconds,peak_memory_state,gpu_state,energy_state,stdout_sha256,stderr_sha256,npz_sha256,summary_sha256,environment_freeze_sha256,receipt_sha256";
+pub const BOCODE_RUN_ROW_HEADER: &str = "schema,attempt_id,run_id,request_sha256,state,reason,source_commit,package_version,task_id,metadata_sha256,algorithm,seed,n_init_requested,iterations_requested,timed_out,objective_evaluation_count,constraint_history_state,initial_design_count,feasible_evaluation_count,infeasible_evaluation_count,feasible_evaluation_fraction,process_exit_code,wall_seconds,cpu_user_seconds,cpu_system_seconds,peak_memory_state,gpu_state,energy_state,stdout_sha256,stderr_sha256,npz_sha256,summary_sha256,environment_freeze_sha256,receipt_sha256";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoCoDeTrialState {
@@ -36,6 +36,24 @@ impl BoCoDeTrialState {
             Self::Failed => "failed",
             Self::InvalidTrace => "invalid_trace",
             Self::WrapperError => "wrapper_error",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoCoDeConstraintHistoryState {
+    NotApplicable,
+    Available,
+    Unavailable,
+}
+
+impl BoCoDeConstraintHistoryState {
+    fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "not_applicable" => Ok(Self::NotApplicable),
+            "available" => Ok(Self::Available),
+            "unavailable" => Ok(Self::Unavailable),
+            _ => Err(format!("unknown constraint_history_state {value}")),
         }
     }
 }
@@ -71,7 +89,9 @@ pub struct BoCoDeRunLedgerRow {
     pub seed: u64,
     pub n_init_requested: u64,
     pub iterations_requested: u64,
+    pub timed_out: bool,
     pub objective_evaluation_count: Option<u64>,
+    pub constraint_history_state: Option<BoCoDeConstraintHistoryState>,
     pub initial_design_count: Option<u64>,
     pub feasible_evaluation_count: Option<u64>,
     pub infeasible_evaluation_count: Option<u64>,
@@ -89,6 +109,14 @@ pub struct BoCoDeRunLedgerRow {
     pub summary_sha256: Option<String>,
     pub environment_freeze_sha256: Option<String>,
     pub receipt_sha256: String,
+}
+
+fn parse_bool(value: &str, field: &str) -> Result<bool, String> {
+    match value {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => Err(format!("{field} must be true or false")),
+    }
 }
 
 fn required<'a>(fields: &'a [String], index: usize, field: &str) -> Result<&'a str, String> {
@@ -155,9 +183,9 @@ fn parse_optional_sha(value: &str, field: &str) -> Result<Option<String>, String
 
 impl BoCoDeRunLedgerRow {
     fn parse(fields: &[String], line_number: usize) -> Result<Self, String> {
-        if fields.len() != 32 {
+        if fields.len() != 34 {
             return Err(format!(
-                "line {line_number}: expected 32 run ledger columns, got {}",
+                "line {line_number}: expected 34 run ledger columns, got {}",
                 fields.len()
             ));
         }
@@ -184,39 +212,45 @@ impl BoCoDeRunLedgerRow {
                 required(fields, 13, "iterations_requested")?,
                 "iterations_requested",
             )?,
+            timed_out: parse_bool(required(fields, 14, "timed_out")?, "timed_out")?,
             objective_evaluation_count: parse_optional_u64(
-                &fields[14],
+                &fields[15],
                 "objective_evaluation_count",
             )?,
-            initial_design_count: parse_optional_u64(&fields[15], "initial_design_count")?,
+            constraint_history_state: if fields[16].is_empty() {
+                None
+            } else {
+                Some(BoCoDeConstraintHistoryState::parse(&fields[16])?)
+            },
+            initial_design_count: parse_optional_u64(&fields[17], "initial_design_count")?,
             feasible_evaluation_count: parse_optional_u64(
-                &fields[16],
+                &fields[18],
                 "feasible_evaluation_count",
             )?,
             infeasible_evaluation_count: parse_optional_u64(
-                &fields[17],
+                &fields[19],
                 "infeasible_evaluation_count",
             )?,
             feasible_evaluation_fraction: parse_optional_f64(
-                &fields[18],
+                &fields[20],
                 "feasible_evaluation_fraction",
             )?,
-            process_exit_code: parse_optional_i32(&fields[19], "process_exit_code")?,
-            wall_seconds: parse_optional_f64(&fields[20], "wall_seconds")?,
-            cpu_user_seconds: parse_optional_f64(&fields[21], "cpu_user_seconds")?,
-            cpu_system_seconds: parse_optional_f64(&fields[22], "cpu_system_seconds")?,
-            peak_memory_state: BoCoDeResourceState::parse(&fields[23], "peak_memory_state")?,
-            gpu_state: BoCoDeResourceState::parse(&fields[24], "gpu_state")?,
-            energy_state: BoCoDeResourceState::parse(&fields[25], "energy_state")?,
-            stdout_sha256: parse_optional_sha(&fields[26], "stdout_sha256")?,
-            stderr_sha256: parse_optional_sha(&fields[27], "stderr_sha256")?,
-            npz_sha256: parse_optional_sha(&fields[28], "npz_sha256")?,
-            summary_sha256: parse_optional_sha(&fields[29], "summary_sha256")?,
+            process_exit_code: parse_optional_i32(&fields[21], "process_exit_code")?,
+            wall_seconds: parse_optional_f64(&fields[22], "wall_seconds")?,
+            cpu_user_seconds: parse_optional_f64(&fields[23], "cpu_user_seconds")?,
+            cpu_system_seconds: parse_optional_f64(&fields[24], "cpu_system_seconds")?,
+            peak_memory_state: BoCoDeResourceState::parse(&fields[25], "peak_memory_state")?,
+            gpu_state: BoCoDeResourceState::parse(&fields[26], "gpu_state")?,
+            energy_state: BoCoDeResourceState::parse(&fields[27], "energy_state")?,
+            stdout_sha256: parse_optional_sha(&fields[28], "stdout_sha256")?,
+            stderr_sha256: parse_optional_sha(&fields[29], "stderr_sha256")?,
+            npz_sha256: parse_optional_sha(&fields[30], "npz_sha256")?,
+            summary_sha256: parse_optional_sha(&fields[31], "summary_sha256")?,
             environment_freeze_sha256: parse_optional_sha(
-                &fields[30],
+                &fields[32],
                 "environment_freeze_sha256",
             )?,
-            receipt_sha256: required(fields, 31, "receipt_sha256")?.to_ascii_lowercase(),
+            receipt_sha256: required(fields, 33, "receipt_sha256")?.to_ascii_lowercase(),
         };
         if !valid_hex(&row.source_commit, 40)
             || !valid_hex(&row.request_sha256, 64)
@@ -239,19 +273,41 @@ impl BoCoDeRunLedgerRow {
                 ));
             }
         }
-        match (
+        let has_feasibility_counts = row.feasible_evaluation_count.is_some()
+            || row.infeasible_evaluation_count.is_some()
+            || row.feasible_evaluation_fraction.is_some();
+        if has_feasibility_counts
+            && (row.feasible_evaluation_count.is_none()
+                || row.infeasible_evaluation_count.is_none()
+                || row.feasible_evaluation_fraction.is_none()
+                || row.objective_evaluation_count.is_none())
+        {
+            return Err(format!(
+                "line {line_number}: feasible/infeasible counts, fraction and total must be present together"
+            ));
+        }
+        if let (
+            Some(feasible),
+            Some(infeasible),
+            Some(total),
+            Some(fraction),
+        ) = (
             row.feasible_evaluation_count,
             row.infeasible_evaluation_count,
             row.objective_evaluation_count,
+            row.feasible_evaluation_fraction,
         ) {
-            (Some(feasible), Some(infeasible), Some(total))
-                if feasible.checked_add(infeasible) != Some(total) =>
-            {
+            if feasible.checked_add(infeasible) != Some(total) {
                 return Err(format!(
                     "line {line_number}: feasible + infeasible evaluation counts differ from total"
                 ));
             }
-            _ => {}
+            let expected_fraction = if total == 0 { 0.0 } else { feasible as f64 / total as f64 };
+            if (fraction - expected_fraction).abs() > 1.0e-12 {
+                return Err(format!(
+                    "line {line_number}: feasible fraction differs from counts"
+                ));
+            }
         }
         if let Some(count) = row.objective_evaluation_count {
             if row
@@ -263,9 +319,34 @@ impl BoCoDeRunLedgerRow {
                 ));
             }
         }
+        if row.timed_out && (row.state != BoCoDeTrialState::Failed || row.process_exit_code != Some(124)) {
+            return Err(format!(
+                "line {line_number}: timed_out rows must be failed with process_exit_code 124"
+            ));
+        }
+        if matches!(row.state, BoCoDeTrialState::Failed | BoCoDeTrialState::WrapperError)
+            && row.reason.trim().is_empty()
+        {
+            return Err(format!("line {line_number}: failed/wrapper_error rows require a reason"));
+        }
+        if let Some(history_state) = row.constraint_history_state {
+            match history_state {
+                BoCoDeConstraintHistoryState::Available if !has_feasibility_counts => {
+                    return Err(format!("line {line_number}: available constraint history requires feasibility counts"));
+                }
+                BoCoDeConstraintHistoryState::Unavailable | BoCoDeConstraintHistoryState::NotApplicable
+                    if has_feasibility_counts =>
+                {
+                    return Err(format!("line {line_number}: unavailable/not-applicable constraint history must not claim feasibility"));
+                }
+                _ => {}
+            }
+        }
         match row.state {
             BoCoDeTrialState::Succeeded => {
-                if row.process_exit_code != Some(0)
+                if row.timed_out
+                    || row.constraint_history_state.is_none()
+                    || row.process_exit_code != Some(0)
                     || row
                         .objective_evaluation_count
                         .is_none_or(|count| count == 0)
@@ -349,7 +430,9 @@ mod tests {
             "7",
             "1",
             "10",
+            "false",
             "11",
+            "available",
             "1",
             "11",
             "0",
@@ -384,7 +467,7 @@ mod tests {
     #[test]
     fn rejects_false_success_and_inconsistent_evaluation_accounting() {
         let mut fields = parse_csv_record(&success_row()).unwrap();
-        fields[19] = "1".to_owned();
+        fields[21] = "1".to_owned();
         let false_success = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
         assert!(
             parse_bocode_run_ledger_csv(&false_success)
@@ -393,12 +476,43 @@ mod tests {
         );
 
         let mut fields = parse_csv_record(&success_row()).unwrap();
-        fields[16] = "10".to_owned();
+        fields[18] = "10".to_owned();
         let wrong_counts = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
         assert!(
             parse_bocode_run_ledger_csv(&wrong_counts)
                 .unwrap_err()
                 .contains("evaluation counts differ")
+        );
+    }
+
+    #[test]
+    fn rejects_timeout_state_and_feasibility_fraction_inconsistency() {
+        let mut fields = parse_csv_record(&success_row()).unwrap();
+        fields[14] = "true".to_owned();
+        fields[21] = "124".to_owned();
+        let timed_out_success = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
+        assert!(
+            parse_bocode_run_ledger_csv(&timed_out_success)
+                .unwrap_err()
+                .contains("timed_out rows")
+        );
+
+        let mut fields = parse_csv_record(&success_row()).unwrap();
+        fields[20] = "0.5".to_owned();
+        let wrong_fraction = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
+        assert!(
+            parse_bocode_run_ledger_csv(&wrong_fraction)
+                .unwrap_err()
+                .contains("feasible fraction differs")
+        );
+
+        let mut fields = parse_csv_record(&success_row()).unwrap();
+        fields[16] = "unavailable".to_owned();
+        let invented_feasibility = format!("{BOCODE_RUN_ROW_HEADER}\n{}\n", fields.join(","));
+        assert!(
+            parse_bocode_run_ledger_csv(&invented_feasibility)
+                .unwrap_err()
+                .contains("must not claim feasibility")
         );
     }
 
