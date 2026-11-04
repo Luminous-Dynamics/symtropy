@@ -1,0 +1,128 @@
+{
+  "schema_version": "construction-survey-coverage-assessment/0.1",
+  "assessment_id": "synthetic-coverage-outside-001",
+  "task_binding": {
+    "project_id": "project-demo",
+    "site_id": "site-demo",
+    "work_package_revision": "WP-R7",
+    "task_scope": "level-2-layout",
+    "work_zone_id": "zone-east",
+    "worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "task_footprint_geometry_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "frame_binding": {
+    "frame_id": "site-grid-v4",
+    "horizontal_crs": "EPSG:xxxx",
+    "vertical_datum": "site-benchmark-2026",
+    "coordinate_epoch": "2026.0",
+    "units": "millimetre",
+    "axis_order": [
+      "east",
+      "north",
+      "up"
+    ],
+    "handedness": "right_handed",
+    "transform_bundle_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "source_artifacts": {
+    "task_footprint": {
+      "artifact_id": "task-footprint-001",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "role": "requested-work-zone-polygon"
+    },
+    "coverage_domain": {
+      "artifact_id": "coverage-domain-001",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "role": "qualified-survey-support-domain"
+    },
+    "survey_adjustment": {
+      "artifact_id": "survey-adjustment-001",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "role": "adjusted-control-solution"
+    },
+    "control_network": {
+      "artifact_id": "control-network-001",
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "role": "control-network-observations"
+    },
+    "checkpoint_set": {
+      "artifact_id": "independent-checkpoints-001",
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "role": "held-out-independent-checks"
+    },
+    "transform_bundle": {
+      "artifact_id": "transform-bundle-001",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "role": "frame-transform-and-resource-bundle"
+    },
+    "local_uncertainty_surface": {
+      "artifact_id": "local-u95-surface-001",
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "role": "spatial-uncertainty-surface"
+    }
+  },
+  "independence": {
+    "fit_point_ids": [
+      "fit-01",
+      "fit-02",
+      "fit-03"
+    ],
+    "independent_check_point_ids": [
+      "check-01",
+      "check-02",
+      "check-03",
+      "check-04",
+      "check-05",
+      "check-06",
+      "check-07",
+      "check-08"
+    ],
+    "fit_check_sets_disjoint": true,
+    "assessment_reference": "independence-assessment-ref",
+    "profile_reference": "symthaea-claim-relative-independence-profile"
+  },
+  "coverage_domain": {
+    "method": "independent_control_hull_with_local_support",
+    "local_support_method": "combined_local_support_model",
+    "task_footprint_relation": "partially_outside",
+    "task_area_m2": 120,
+    "supported_area_m2": 100,
+    "unsupported_area_m2": 20,
+    "maximum_unsupported_distance_mm": 2400,
+    "maximum_control_gap_mm": 18000,
+    "maximum_delaunay_circumradius_mm": 22000,
+    "minimum_support_hull_margin_mm": -120,
+    "unsupported_critical_segments": 2
+  },
+  "uncertainty": {
+    "status": "qualified",
+    "maximum_local_u95_mm": 0.65,
+    "uncertainty_method_reference": "local-u95-method-01",
+    "uncertainty_surface_reference": "local-u95-surface-001"
+  },
+  "policy_binding": {
+    "policy_id": "site-layout-policy-r3",
+    "policy_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "maximum_u95_mm": 1,
+    "maximum_unsupported_distance_mm": 0,
+    "maximum_unsupported_area_m2": 0,
+    "minimum_hull_margin_mm": 100,
+    "require_zero_critical_extrapolation": true
+  },
+  "assessment": {
+    "disposition": "outside_domain",
+    "reason_codes": [
+      "critical_task_footprint_outside_support_domain",
+      "unapproved_extrapolation_required"
+    ],
+    "limitations": [
+      "Part of the critical task polygon extends beyond supported independent control."
+    ],
+    "producer_tool_id": "symtropy-survey-reference-validator",
+    "producer_version": "0.1.0",
+    "producer_config_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "independent_review_status": "independent_survey_reviewed",
+    "record_reference": "synthetic-coverage-record-001"
+  }
+}
