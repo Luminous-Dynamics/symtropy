@@ -60,7 +60,7 @@ where `c_move = 0.005 J/unit` and `κ_sprint ∈ {1.0, 2.5}`.
 ```
 dE_maint/dt = -c_maint × (1 + 0.5 × Φ_i)
 ```
-where `c_maint = 0.08 J/tick`. Higher consciousness costs more (thermodynamic necessity: maintaining integration requires entropy reduction).
+where `c_maint = 0.08 J/tick`. The increase with Φ is an experimental simulation policy, not a result derived from a closed first-law or second-law model. These constants are scenario parameters until their units, calibration data, and mapping to measured physical quantities are independently established.
 
 **Collision drain:**
 ```
@@ -137,7 +137,7 @@ dE_reson/dt = c_reson × max(R_ij - 0.5, 0) × 2     if R_ij > 0.5
 ```
 where `c_reson = 0.15 J/tick`.
 
-**Key property:** `c_reson > c_maint` when resonance is high, so cooperation is thermodynamically sustainable.
+**Configured-model implication:** when the resonance-dependent regeneration term exceeds the maintenance term, the selected parameterization can make cooperative states sustainable in the simulation. This is a consequence of the chosen policy and parameters, not a general thermodynamic theorem.
 
 ## 4. Collapse and Recovery
 
@@ -186,15 +186,17 @@ Q_min = k_B × T × ln(2)
 
 Using the exact SI Boltzmann constant, at `T = 310 K` this is approximately `2.966678 × 10⁻²¹ J` per bit erased. The bound concerns logically irreversible erasure under its thermodynamic assumptions; it is not a universal minimum energy for every information-processing operation. This model does not currently count logically irreversible bit erasures, so it must not claim that all model energy consumption is above the Landauer bound.
 
-## 6. Testable Predictions
+## 6. Model-Specific Predictions to Falsify
 
-1. **Cooperation emergence**: Under strict energy conservation, agents must cluster and harmonize to survive. Isolated agents collapse within ~4 minutes.
+The following are hypotheses about the configured simulation, not claims about nature. They should be evaluated over preregistered seeds, parameter sweeps, and negative controls, with the energy ledger's current incomplete-closure status reported.
 
-2. **Governance emergence**: As population grows, collective decision-making (governance) becomes thermodynamically necessary to coordinate energy well access.
+1. **Cooperation emergence**: Under the configured resource and regeneration rules, isolated agents may deplete their budgets sooner than cooperating agents. Quantify survival-time distributions over seeds and compare against matched null policies.
 
-3. **Spatial integration**: The living dungeon topology (wall opening/closing based on collective Φ) should correlate with agent clustering — high integration = connected spaces.
+2. **Coordination under scarcity**: As population grows, coordination policies may improve allocation of finite energy-well resources. Compare against random allocation, local greedy allocation, and no-governance baselines; do not call governance thermodynamically necessary without a closed physical model and independent evidence.
 
-4. **Joules-per-Phi stability**: The J/Φ metric should converge to a stable value characteristic of the substrate, analogous to metabolic rate in biological systems.
+3. **Spatial integration**: The configured environment topology may correlate with agent clustering and collective Φ. Test the correlation against shuffled Φ, shuffled positions, and topology-only controls.
+
+4. **Joules-per-Φ stability**: The descriptive J/Φ statistic may converge under fixed substrate, timestep, and parameterization. Test sensitivity to timestep, sampling interval, estimator, initial conditions, and parameter changes; convergence alone does not make it a physical metabolic constant.
 
 ## References
 
