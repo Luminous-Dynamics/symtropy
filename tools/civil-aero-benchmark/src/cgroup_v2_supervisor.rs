@@ -333,9 +333,12 @@ fn spawn_gated(
         let _ = child.wait();
         return Err(error);
     }
-    parent_gate
-        .write_all(&[1])
-        .map_err(|error| format!("cannot release child after cgroup placement: {error}"))?;
+    if let Err(error) = parent_gate.write_all(&[1]) {
+        drop(parent_gate);
+        let mut child = child;
+        let _ = child.wait();
+        return Err(format!("cannot release child after cgroup placement: {error}"));
+    }
     drop(parent_gate);
     Ok(child)
 }
