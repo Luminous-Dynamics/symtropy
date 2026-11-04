@@ -49,6 +49,7 @@ pub mod sanctuary;
 pub mod simple_field;
 pub mod spatial_hash;
 pub mod thermodynamics;
+pub mod open_system;
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings;
 
@@ -71,3 +72,7 @@ pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
+pub use open_system::{
+    EnergyBalanceError, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTerm,
+    EnergyBalanceTolerance, OpenSystemEnergyBalance,
+};
