@@ -1,0 +1,312 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Luminous-Dynamics/symtropy/main/research/construction-robot-endurance-v0-1/schema/construction-robot-endurance-study-v0.1.schema.json",
+  "title": "Construction Robot Endurance Study Plan V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "source_issue",
+    "version",
+    "status",
+    "subject",
+    "duty_cycle",
+    "state_model",
+    "event_policy",
+    "exposure",
+    "analysis",
+    "safety_separation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-robot-endurance-study-v0.1"
+    },
+    "profile_id": {
+      "const": "construction-robot-endurance-v0.1"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "pilot",
+        "confirmatory",
+        "completed"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manufacturer",
+        "model",
+        "serial_unit_ids",
+        "software_identity_required",
+        "configuration_identity_required",
+        "payload_tool_identity_required"
+      ],
+      "properties": {
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_unit_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "software_identity_required": {
+          "const": true
+        },
+        "configuration_identity_required": {
+          "const": true
+        },
+        "payload_tool_identity_required": {
+          "const": true
+        }
+      }
+    },
+    "duty_cycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schedule_profile_id",
+        "planned_shift_hours",
+        "planned_campaign_exposure",
+        "break_in_separate",
+        "planned_maintenance_predeclared",
+        "stopping_rules_predeclared"
+      ],
+      "properties": {
+        "schedule_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planned_shift_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "planned_campaign_exposure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exposure_unit",
+            "target_value"
+          ],
+          "properties": {
+            "exposure_unit": {
+              "enum": [
+                "powered_hours",
+                "task_eligible_hours",
+                "robot_operating_hours",
+                "cycles",
+                "accepted_functional_units"
+              ]
+            },
+            "target_value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "break_in_separate": {
+          "const": true
+        },
+        "planned_maintenance_predeclared": {
+          "const": true
+        },
+        "stopping_rules_predeclared": {
+          "const": true
+        }
+      }
+    },
+    "state_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutually_exclusive_intervals",
+        "scheduled_time_reconciled",
+        "unknown_state_required",
+        "states"
+      ],
+      "properties": {
+        "mutually_exclusive_intervals": {
+          "const": true
+        },
+        "scheduled_time_reconciled": {
+          "const": true
+        },
+        "unknown_state_required": {
+          "const": true
+        },
+        "states": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 10,
+          "items": {
+            "enum": [
+              "not_scheduled",
+              "scheduled_no_eligible_work",
+              "ready_available",
+              "working_executing",
+              "idle_waiting",
+              "charging_refuelling_changeover",
+              "blocked_site_material_external",
+              "planned_maintenance",
+              "unplanned_maintenance",
+              "fault",
+              "recovery",
+              "safety_hold",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "event_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_identity_and_clock_required",
+        "cumulative_exposure_at_onset_required",
+        "attribution_states",
+        "censoring_policy_required",
+        "missing_log_policy_required",
+        "post_service_verification_required"
+      ],
+      "properties": {
+        "event_identity_and_clock_required": {
+          "const": true
+        },
+        "cumulative_exposure_at_onset_required": {
+          "const": true
+        },
+        "attribution_states": {
+          "const": [
+            "confirmed",
+            "suspected",
+            "contested",
+            "unknown"
+          ]
+        },
+        "censoring_policy_required": {
+          "const": true
+        },
+        "missing_log_policy_required": {
+          "const": true
+        },
+        "post_service_verification_required": {
+          "const": true
+        }
+      }
+    },
+    "exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "denominators_reported_separately",
+        "failure_mode_specific_denominator",
+        "cluster_factors"
+      ],
+      "properties": {
+        "denominators_reported_separately": {
+          "const": true
+        },
+        "failure_mode_specific_denominator": {
+          "const": true
+        },
+        "cluster_factors": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "serial_unit",
+              "crew",
+              "shift",
+              "site",
+              "environment",
+              "task_stratum"
+            ]
+          }
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted_output_source_profile",
+        "reliability_models_predeclared",
+        "censoring_reported",
+        "uncertainty_reported",
+        "zero_failure_is_not_mtbF_claim",
+        "per_shift_and_stratum_reporting"
+      ],
+      "properties": {
+        "accepted_output_source_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reliability_models_predeclared": {
+          "const": true
+        },
+        "censoring_reported": {
+          "const": true
+        },
+        "uncertainty_reported": {
+          "const": true
+        },
+        "zero_failure_is_not_mtbF_claim": {
+          "const": true
+        },
+        "per_shift_and_stratum_reporting": {
+          "const": true
+        }
+      }
+    },
+    "safety_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_safety_qualification",
+        "holds_not_assumed_waste",
+        "return_to_service_external",
+        "composite_safety_productivity_score_prohibited"
+      ],
+      "properties": {
+        "external_safety_qualification": {
+          "const": true
+        },
+        "holds_not_assumed_waste": {
+          "const": true
+        },
+        "return_to_service_external": {
+          "const": true
+        },
+        "composite_safety_productivity_score_prohibited": {
+          "const": true
+        }
+      }
+    },
+    "execution_status": {
+      "const": "not_executed"
+    },
+    "source_issue": {
+      "type": "string",
+      "format": "uri"
+    }
+  }
+}
