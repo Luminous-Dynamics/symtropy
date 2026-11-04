@@ -78,10 +78,13 @@ jobs:
               for row in rows
               if row["record_type"] == "best_response"
           }
-          assert best[("0.900000", "always_zero")]["best_response_total"] == "0"
-          assert best[("0.900000", "fixed_fair_share")]["best_response_total"] == "20"
-          assert best[("0.900000", "fixed_maximum")]["best_response_total"] == "0"
-          assert best[("0.900000", "last_round_defection")]["best_response_total"] == "30"
+          assert best[("0.900000", "always_zero")]["total_contribution"] == "0"
+          assert best[("0.900000", "fixed_fair_share")]["total_contribution"] == "120"
+          assert best[("0.900000", "fixed_fair_share")]["focal_contribution"] == "20"
+          assert best[("0.900000", "fixed_maximum")]["total_contribution"] == "200"
+          assert best[("0.900000", "fixed_maximum")]["focal_contribution"] == "0"
+          assert best[("0.900000", "last_round_defection")]["total_contribution"] == "120"
+          assert best[("0.900000", "last_round_defection")]["focal_contribution"] == "30"
 
           print("CIVDYN-CRG-001 output schema, risk pivot, over-contribution and exact best-response controls verified.")
           PY
