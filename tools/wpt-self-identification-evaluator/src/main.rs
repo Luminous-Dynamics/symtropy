@@ -42,6 +42,9 @@ struct RunMetrics {
     split: String,
     operating_point_id: String,
     batch_id: String,
+    profile_id: String,
+    system_id: String,
+    identification_method: String,
     errors: BTreeMap<String, f64>,
     zvs_coverage_pct: f64,
     excitation_overhead_pct: f64,
@@ -560,21 +563,39 @@ fn validate_qualified(run: &Value) -> Result<RunMetrics, Vec<String>> {
     }
 
     let mut artifact_types = BTreeSet::new();
+    let mut artifact_digests: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let artifacts = run.get("artifacts").and_then(Value::as_array);
     if let Some(artifacts) = artifacts {
         for (index, artifact) in artifacts.iter().enumerate() {
             let kind = string_at(artifact, &["artifact_type"]).unwrap_or("");
-            if !["RAW_WAVEFORM", "REFERENCE_MEASUREMENT", "ESTIMATOR_OUTPUT", "CONTROLLER_CONFIG", "REPORT", "OTHER"].contains(&kind) {
-                errors.push(format!("artifacts[{index}].artifact_type: unknown artifact type"));
+            if ![
+                "RAW_WAVEFORM",
+                "REFERENCE_MEASUREMENT",
+                "ESTIMATOR_OUTPUT",
+                "CONTROLLER_CONFIG",
+                "REPORT",
+                "OTHER",
+            ]
+            .contains(&kind)
+            {
+                errors.push(format!(
+                    "artifacts[{index}].artifact_type: unknown artifact type"
+                ));
             }
-            if !artifact_types.insert(kind.to_owned()) {
-                errors.push(format!("artifacts[{index}].artifact_type: duplicate artifact type"));
-            }
+            artifact_types.insert(kind.to_owned());
             if !nonempty(string_at(artifact, &["uri"])) {
                 errors.push(format!("artifacts[{index}].uri: required"));
             }
-            if !string_at(artifact, &["sha256"]).is_some_and(valid_sha256) {
-                errors.push(format!("artifacts[{index}].sha256: valid SHA-256 required"));
+            match string_at(artifact, &["sha256"]) {
+                Some(digest) if valid_sha256(digest) => {
+                    artifact_digests
+                        .entry(kind.to_owned())
+                        .or_default()
+                        .insert(digest.to_owned());
+                }
+                _ => errors.push(format!(
+                    "artifacts[{index}].sha256: valid SHA-256 required"
+                )),
             }
             if !nonempty(string_at(artifact, &["description"])) {
                 errors.push(format!("artifacts[{index}].description: required"));
@@ -586,14 +607,36 @@ fn validate_qualified(run: &Value) -> Result<RunMetrics, Vec<String>> {
             errors.push(format!("artifacts: missing required {kind} artifact"));
         }
     }
-    let reference_bound = artifacts.is_some_and(|items| {
-        items.iter().any(|item| {
-            string_at(item, &["artifact_type"]) == Some("REFERENCE_MEASUREMENT")
-                && string_at(item, &["sha256"]) == reference_digest
-        })
-    });
-    if !reference_bound {
-        errors.push("reference.reference_artifact_sha256: digest must bind a REFERENCE_MEASUREMENT artifact".into());
+    if !artifact_digests
+        .get("REFERENCE_MEASUREMENT")
+        .is_some_and(|digests| reference_digest.is_some_and(|digest| digests.contains(digest)))
+    {
+        errors.push(
+            "reference.reference_artifact_sha256: digest must bind a REFERENCE_MEASUREMENT artifact"
+                .into(),
+        );
+    }
+    if let Some(digests) = artifact_digests.get("ESTIMATOR_OUTPUT") {
+        for (index, estimate) in estimates.unwrap_or(&Vec::new()).iter().enumerate() {
+            if !string_at(estimate, &["estimate_artifact_sha256"])
+                .is_some_and(|digest| digests.contains(digest))
+            {
+                errors.push(format!(
+                    "estimates[{index}].estimate_artifact_sha256: digest must bind an ESTIMATOR_OUTPUT artifact"
+                ));
+            }
+        }
+    } else {
+        errors.push("artifacts: ESTIMATOR_OUTPUT digest bundle is required".into());
+    }
+    let controller_digest = string_at(run, &["system", "configuration_sha256"]);
+    if !artifact_digests
+        .get("CONTROLLER_CONFIG")
+        .is_some_and(|digests| controller_digest.is_some_and(|digest| digests.contains(digest)))
+    {
+        errors.push(
+            "system.configuration_sha256: digest must bind a CONTROLLER_CONFIG artifact".into(),
+        );
     }
 
     if errors.is_empty() {
@@ -604,6 +647,9 @@ fn validate_qualified(run: &Value) -> Result<RunMetrics, Vec<String>> {
                 .unwrap_or_default()
                 .to_owned(),
             batch_id: batch_id.to_owned(),
+            profile_id: string_at(run, &["profile_id"]).unwrap_or_default().to_owned(),
+            system_id: string_at(run, &["system", "system_id"]).unwrap_or_default().to_owned(),
+            identification_method: string_at(run, &["identification", "method"]).unwrap_or_default().to_owned(),
             errors: errors_by_parameter,
             zvs_coverage_pct: zvs_coverage,
             excitation_overhead_pct: perturbation_energy.unwrap_or(0.0)
@@ -642,23 +688,43 @@ fn percentile_nearest_rank(values: &[f64], percentile: f64) -> Option<f64> {
 
 fn evaluate_batch(metrics: &[RunMetrics]) -> Vec<String> {
     let mut notices = Vec::new();
-    let holdout = metrics.iter().filter(|run| run.split == "HOLDOUT").collect::<Vec<_>>();
+    let holdout = metrics
+        .iter()
+        .filter(|run| run.split == "HOLDOUT")
+        .collect::<Vec<_>>();
     if holdout.len() < 30 {
         notices.push(format!(
             "AGGREGATE INCOMPLETE: {} HOLDOUT operating points; at least 30 are required before publishing batch-level P95 claims",
             holdout.len()
         ));
     }
-    let batch_ids = holdout.iter().map(|run| run.batch_id.as_str()).collect::<BTreeSet<_>>();
-    if batch_ids.len() > 1 {
-        notices.push("HOLDOUT records span multiple batch IDs; aggregate each batch separately".into());
+    let group_count = |values: Vec<&str>| values.into_iter().collect::<BTreeSet<_>>().len();
+    if group_count(holdout.iter().map(|run| run.batch_id.as_str()).collect()) > 1
+        || group_count(holdout.iter().map(|run| run.profile_id.as_str()).collect()) > 1
+        || group_count(holdout.iter().map(|run| run.system_id.as_str()).collect()) > 1
+        || group_count(
+            holdout
+                .iter()
+                .map(|run| run.identification_method.as_str())
+                .collect(),
+        ) > 1
+    {
+        notices.push(
+            "AGGREGATE NOT COMPUTED: HOLDOUT records mix batch, profile, system or estimator method; partition these cohorts before calculating percentiles"
+                .into(),
+        );
+        return notices;
     }
     let operating_points = holdout
         .iter()
         .map(|run| run.operating_point_id.as_str())
         .collect::<BTreeSet<_>>();
     if operating_points.len() != holdout.len() {
-        notices.push("HOLDOUT set contains repeated operating-point IDs; repeats must not be counted as independent grid coverage".into());
+        notices.push(
+            "HOLDOUT set contains repeated operating-point IDs; repeats must not be counted as independent grid coverage"
+                .into(),
+        );
+        return notices;
     }
     for parameter in PARAMETERS {
         let values = holdout
@@ -686,10 +752,15 @@ fn evaluate_batch(metrics: &[RunMetrics]) -> Vec<String> {
             .iter()
             .map(|run| run.excitation_overhead_pct)
             .collect::<Vec<_>>();
-        let latency = holdout.iter().map(|run| run.p99_latency_ms).collect::<Vec<_>>();
-        if let (Some(zvs), Some(overhead), Some(latency)) =
-            (median(&zvs), percentile_nearest_rank(&overhead, 95.0), percentile_nearest_rank(&latency, 95.0))
-        {
+        let latency = holdout
+            .iter()
+            .map(|run| run.p99_latency_ms)
+            .collect::<Vec<_>>();
+        if let (Some(zvs), Some(overhead), Some(latency)) = (
+            median(&zvs),
+            percentile_nearest_rank(&overhead, 95.0),
+            percentile_nearest_rank(&latency, 95.0),
+        ) {
             notices.push(format!(
                 "HOLDOUT control: median_zvs_coverage={zvs:.4}% p95_excitation_overhead={overhead:.4}% p95_p99_latency={latency:.4}ms"
             ));
@@ -858,8 +929,11 @@ mod tests {
         run["artifacts"] = json!([
             {"artifact_type":"RAW_WAVEFORM","uri":"artifact://synthetic/raw","sha256":"a".repeat(64),"description":"Synthetic waveform fixture only."},
             {"artifact_type":"REFERENCE_MEASUREMENT","uri":"artifact://synthetic/reference","sha256":"b".repeat(64),"description":"Synthetic reference fixture only."},
-            {"artifact_type":"ESTIMATOR_OUTPUT","uri":"artifact://synthetic/estimate","sha256":"c".repeat(64),"description":"Synthetic estimator fixture only."},
-            {"artifact_type":"CONTROLLER_CONFIG","uri":"artifact://synthetic/config","sha256":"d".repeat(64),"description":"Synthetic controller fixture only."}
+            {"artifact_type":"ESTIMATOR_OUTPUT","uri":"artifact://synthetic/estimate-lp","sha256":"c".repeat(64),"description":"Synthetic Lp estimate bundle only."},
+            {"artifact_type":"ESTIMATOR_OUTPUT","uri":"artifact://synthetic/estimate-ls","sha256":"d".repeat(64),"description":"Synthetic Ls estimate bundle only."},
+            {"artifact_type":"ESTIMATOR_OUTPUT","uri":"artifact://synthetic/estimate-m","sha256":"e".repeat(64),"description":"Synthetic M estimate bundle only."},
+            {"artifact_type":"ESTIMATOR_OUTPUT","uri":"artifact://synthetic/estimate-req","sha256":"f".repeat(64),"description":"Synthetic Req estimate bundle only."},
+            {"artifact_type":"CONTROLLER_CONFIG","uri":"artifact://synthetic/config","sha256":"a".repeat(64),"description":"Synthetic controller fixture only."}
         ]);
         run["qualification"] = json!("QUALIFIED");
         run
