@@ -58,7 +58,9 @@ pub enum GuardError {
 
 fn valid_digest(value: &str) -> bool {
     value.len() == 64
-        && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 pub struct Model {
@@ -71,7 +73,10 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(task_scope: impl Into<String>, configuration_digest: String) -> Result<Self, GuardError> {
+    pub fn new(
+        task_scope: impl Into<String>,
+        configuration_digest: String,
+    ) -> Result<Self, GuardError> {
         let task_scope = task_scope.into();
         if task_scope.trim().is_empty() {
             return Err(GuardError::InvalidTaskScope);
@@ -106,7 +111,11 @@ impl Model {
     /// Accept an epoch only after its signature/issuer/context is authenticated
     /// by the owning evidence service. The bool is an upstream assertion, not
     /// cryptographic verification performed by this reference model.
-    pub fn accept_epoch(&mut self, epoch: Epoch, authenticated_by_upstream: bool) -> Result<(), GuardError> {
+    pub fn accept_epoch(
+        &mut self,
+        epoch: Epoch,
+        authenticated_by_upstream: bool,
+    ) -> Result<(), GuardError> {
         if matches!(self.state, State::Aborted(_) | State::ContextConflict) {
             return Err(GuardError::TerminalState);
         }
@@ -116,7 +125,10 @@ impl Model {
             return Err(GuardError::UnauthenticatedEpoch);
         }
         if !valid_digest(&epoch.digest)
-            || epoch.predecessor_digest.as_deref().is_some_and(|digest| !valid_digest(digest))
+            || epoch
+                .predecessor_digest
+                .as_deref()
+                .is_some_and(|digest| !valid_digest(digest))
         {
             self.qualification = None;
             self.state = State::SafeHold("epoch_digest_invalid");
@@ -135,7 +147,9 @@ impl Model {
                 self.state = State::RequalificationRequired;
                 Ok(())
             }
-            Some(current) if epoch.revision == current.revision && epoch.digest == current.digest => {
+            Some(current)
+                if epoch.revision == current.revision && epoch.digest == current.digest =>
+            {
                 if epoch.predecessor_digest == current.predecessor_digest {
                     Ok(()) // exact duplicate is idempotent
                 } else {
@@ -208,14 +222,21 @@ impl Model {
 
     /// Evidence acceptance is supplied by the upstream claim/evidence service.
     /// This method checks exact binding but does not verify signatures or actors.
-    pub fn requalify(&mut self, proof: Qualification, accepted_by_upstream: bool) -> Result<(), GuardError> {
+    pub fn requalify(
+        &mut self,
+        proof: Qualification,
+        accepted_by_upstream: bool,
+    ) -> Result<(), GuardError> {
         if matches!(self.state, State::Aborted(_) | State::ContextConflict) {
             return Err(GuardError::RequalificationNotPermitted);
         }
         if !self.communications_available {
             return Err(GuardError::CommunicationsUnavailable);
         }
-        let current = self.current_epoch.as_ref().ok_or(GuardError::NoCurrentEpoch)?;
+        let current = self
+            .current_epoch
+            .as_ref()
+            .ok_or(GuardError::NoCurrentEpoch)?;
         if !matches!(
             self.state,
             State::RequalificationRequired | State::SafeHold(_) | State::ContextStale
@@ -244,24 +265,36 @@ impl Model {
             return Err(GuardError::CommandNotAuthorized("state_not_active"));
         }
         if !self.communications_available {
-            return Err(GuardError::CommandNotAuthorized("communications_unavailable"));
+            return Err(GuardError::CommandNotAuthorized(
+                "communications_unavailable",
+            ));
         }
         if !command.context_fresh || !command.clock_within_bound {
-            return Err(GuardError::CommandNotAuthorized("context_stale_or_clock_uncertain"));
+            return Err(GuardError::CommandNotAuthorized(
+                "context_stale_or_clock_uncertain",
+            ));
         }
-        let current = self.current_epoch.as_ref().ok_or(GuardError::NoCurrentEpoch)?;
+        let current = self
+            .current_epoch
+            .as_ref()
+            .ok_or(GuardError::NoCurrentEpoch)?;
         if command.epoch_digest != current.digest
             || command.configuration_digest != self.configuration_digest
             || command.task_scope != self.task_scope
         {
             return Err(GuardError::CommandNotAuthorized("command_binding_mismatch"));
         }
-        let qualification = self.qualification.as_ref().ok_or(GuardError::CommandNotAuthorized("qualification_missing"))?;
+        let qualification = self
+            .qualification
+            .as_ref()
+            .ok_or(GuardError::CommandNotAuthorized("qualification_missing"))?;
         if qualification.epoch_digest != current.digest
             || qualification.configuration_digest != self.configuration_digest
             || qualification.task_scope != self.task_scope
         {
-            return Err(GuardError::CommandNotAuthorized("qualification_binding_mismatch"));
+            return Err(GuardError::CommandNotAuthorized(
+                "qualification_binding_mismatch",
+            ));
         }
         Ok(())
     }
@@ -316,7 +349,8 @@ mod tests {
     #[test]
     fn genesis_epoch_requires_explicit_requalification() {
         let mut m = model();
-        m.accept_epoch(epoch(1, B, None), true).expect("accept genesis");
+        m.accept_epoch(epoch(1, B, None), true)
+            .expect("accept genesis");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
         m.requalify(proof(B, A), true).expect("requalify");
@@ -328,7 +362,8 @@ mod tests {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
         m.requalify(proof(B, A), true).expect("qualify");
-        m.accept_epoch(epoch(2, C, Some(B)), true).expect("revision 2");
+        m.accept_epoch(epoch(2, C, Some(B)), true)
+            .expect("revision 2");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
         assert!(m.authorize(&command(C, A)).is_err());
@@ -372,7 +407,8 @@ mod tests {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
         m.requalify(proof(B, A), true).expect("qualify");
-        m.configuration_changed(C.to_owned()).expect("config change");
+        m.configuration_changed(C.to_owned())
+            .expect("config change");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
         assert!(m.requalify(proof(B, A), true).is_err());
@@ -411,6 +447,9 @@ mod tests {
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
         m.abort("fixture_abort");
         assert_eq!(*m.state(), State::Aborted("fixture_abort"));
-        assert_eq!(m.requalify(proof(B, A), true), Err(GuardError::RequalificationNotPermitted));
+        assert_eq!(
+            m.requalify(proof(B, A), true),
+            Err(GuardError::RequalificationNotPermitted)
+        );
     }
 }
