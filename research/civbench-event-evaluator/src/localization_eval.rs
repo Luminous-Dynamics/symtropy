@@ -221,12 +221,12 @@ impl LocalizationEvaluationReport {
             "not_measured_cases={}",
             self.not_measured_cases
         );
+        let _ = writeln!(&mut output, "unsupported_cases={}", self.unsupported_cases);
         let _ = writeln!(
             &mut output,
-            "unsupported_cases={}",
-            self.unsupported_cases
+            "predictions_issued={}",
+            self.predictions_issued
         );
-        let _ = writeln!(&mut output, "predictions_issued={}", self.predictions_issued);
         let _ = writeln!(
             &mut output,
             "scorable_predictions_issued={}",
@@ -389,10 +389,7 @@ fn validate_case(case: &LocalizationCase) -> Result<(), LocalizationEvaluationEr
     }
 
     let _digest = normalized_sha256(&case.observability.evidence_digest).ok_or_else(|| {
-        LocalizationEvaluationError::new(
-            "invalid_observability_digest",
-            case.case_id.as_str(),
-        )
+        LocalizationEvaluationError::new("invalid_observability_digest", case.case_id.as_str())
     })?;
 
     let mut oracle_pipes = BTreeSet::new();
@@ -433,9 +430,7 @@ fn validate_case(case: &LocalizationCase) -> Result<(), LocalizationEvaluationEr
             }
         }
         OracleResolution::AmbiguousPipeSet => {
-            if oracle_pipes.len() < 2
-                || !oracle_pipes.contains(&case.truth_pipe_id)
-                || zone_present
+            if oracle_pipes.len() < 2 || !oracle_pipes.contains(&case.truth_pipe_id) || zone_present
             {
                 return Err(LocalizationEvaluationError::new(
                     "ambiguous_pipe_oracle_inconsistent",
@@ -454,7 +449,9 @@ fn validate_case(case: &LocalizationCase) -> Result<(), LocalizationEvaluationEr
                 ));
             }
         }
-        OracleResolution::EventOnly | OracleResolution::NotMeasured | OracleResolution::Unsupported => {
+        OracleResolution::EventOnly
+        | OracleResolution::NotMeasured
+        | OracleResolution::Unsupported => {
             if !oracle_pipes.is_empty() || zone_present {
                 return Err(LocalizationEvaluationError::new(
                     "unlocalized_oracle_has_candidates",
@@ -638,7 +635,10 @@ pub fn evaluate_localization(
             if !case.observability.resolution.has_trusted_pipe_set() || case.abstained {
                 continue;
             }
-            if case.top_k_confidence_ppm.is_some_and(|value| value >= *threshold) {
+            if case
+                .top_k_confidence_ppm
+                .is_some_and(|value| value >= *threshold)
+            {
                 selected_count += 1;
                 if case
                     .ranked_pipe_ids
@@ -666,10 +666,7 @@ pub fn evaluate_localization(
         total_cases: cases.len(),
         trusted_oracle_cases,
         oracle_top_k_feasible_cases,
-        oracle_top_k_feasibility_ppm: ratio_ppm(
-            oracle_top_k_feasible_cases,
-            trusted_oracle_cases,
-        ),
+        oracle_top_k_feasibility_ppm: ratio_ppm(oracle_top_k_feasible_cases, trusted_oracle_cases),
         unique_pipe_cases,
         ambiguous_pipe_set_cases,
         zone_only_cases,
@@ -714,10 +711,7 @@ mod tests {
         }
     }
 
-    fn prediction(
-        ranked: &[&str],
-        confidence: u32,
-    ) -> (Vec<String>, bool, Option<u32>) {
+    fn prediction(ranked: &[&str], confidence: u32) -> (Vec<String>, bool, Option<u32>) {
         (
             ranked.iter().map(|value| (*value).to_owned()).collect(),
             false,
