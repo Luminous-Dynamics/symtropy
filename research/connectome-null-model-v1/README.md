@@ -43,8 +43,8 @@ Weights stay attached to their source-edge slots. Consequently, source-side weig
 ## Randomization and reproducibility
 
 - A local SplitMix64 generator makes a sample reproducible from the graph, configuration and seed.
-- Candidate edge pairs are sampled uniformly over all pairs within eligible cell-type/edge-class blocks.
-- The proposal is reversible for the labelled edge slots and declared block constraints; illegal proposals are holds.
+- Candidate edge pairs are sampled by a fully specified, seed-reproducible rule over eligible cell-type/edge-class blocks; illegal proposals are holds.
+- V1 makes no stationary-distribution, irreducibility, finite-run mixing or uniform-unlabeled-graph claim. A fixed proposal rule is not by itself evidence that a finite ensemble is an unbiased null distribution.
 - The receipt reports proposal count, accepted swaps, rejection reasons and the number of changed connections.
 
 The crate does not certify that a finite chain has mixed, that distinct seeds yield independent samples, or that an unlabeled graph topology is uniformly sampled. It does not establish irreducibility for every degree/block sequence. A publishable null ensemble still requires multiple chains, burn-in/thinning decisions, autocorrelation or topology-statistic convergence checks, and a preregistered ensemble size. Do not use a single sample or raw acceptance rate as a significance test.
