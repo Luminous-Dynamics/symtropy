@@ -86,6 +86,83 @@ impl LeakageDimension {
     }
 }
 
+/// A registered generalization protocol. Its identity is tied to exact
+/// exclusive/shared provenance dimensions so a caller cannot label a weak
+/// split as cross-network or cross-topology.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SplitProtocolPreset {
+    /// New events and sessions on the same network.
+    WithinNetworkUnseenEvent,
+    /// New events, sessions, demand regimes and temporal blocks on same networks.
+    NewOperatingRegime,
+    /// New hydraulic network instances.
+    CrossNetwork,
+    /// New networks, topology families and scenario templates.
+    CrossTopology,
+    /// New sensor layouts on the same network/topology family.
+    SensorLayoutTransfer,
+    /// New physical pipe/asset identities within the same network.
+    AssetTransfer,
+}
+
+impl SplitProtocolPreset {
+    /// Canonical identifier for this registered protocol.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::WithinNetworkUnseenEvent => "within_network_unseen_event_v1",
+            Self::NewOperatingRegime => "new_operating_regime_v1",
+            Self::CrossNetwork => "cross_network_v1",
+            Self::CrossTopology => "cross_topology_v1",
+            Self::SensorLayoutTransfer => "sensor_layout_transfer_v1",
+            Self::AssetTransfer => "asset_transfer_v1",
+        }
+    }
+
+    /// Exact dimensions that must never cross train/validation/test.
+    pub fn exclusive_dimensions(self) -> BTreeSet<LeakageDimension> {
+        use LeakageDimension::{
+            CaptureSession, DemandProfile, Network, PhysicalEvent, PipeAsset, ScenarioTemplate,
+            SensorLayout, TimeBlock, TopologyFamily,
+        };
+        match self {
+            Self::WithinNetworkUnseenEvent => {
+                BTreeSet::from([PhysicalEvent, CaptureSession])
+            }
+            Self::NewOperatingRegime => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, DemandProfile, TimeBlock])
+            }
+            Self::CrossNetwork => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, Network])
+            }
+            Self::CrossTopology => BTreeSet::from([
+                PhysicalEvent,
+                CaptureSession,
+                Network,
+                TopologyFamily,
+                ScenarioTemplate,
+            ]),
+            Self::SensorLayoutTransfer => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, SensorLayout])
+            }
+            Self::AssetTransfer => BTreeSet::from([PhysicalEvent, CaptureSession, PipeAsset]),
+        }
+    }
+
+    /// Exact dimensions that must be represented in every partition.
+    pub fn shared_dimensions(self) -> BTreeSet<LeakageDimension> {
+        use LeakageDimension::{Network, TopologyFamily};
+        match self {
+            Self::WithinNetworkUnseenEvent | Self::AssetTransfer => {
+                BTreeSet::from([Network])
+            }
+            Self::NewOperatingRegime | Self::SensorLayoutTransfer => {
+                BTreeSet::from([Network, TopologyFamily])
+            }
+            Self::CrossNetwork | Self::CrossTopology => BTreeSet::new(),
+        }
+    }
+}
+
 /// One declared provenance group attached to a sample.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeakageGroup {
@@ -114,7 +191,9 @@ pub struct BenchmarkSample {
 /// A frozen split protocol and its required cross-partition firewalls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitPolicy {
-    /// Stable protocol identifier, such as `cross_network_v1`.
+    /// Registered split semantics.
+    pub protocol: SplitProtocolPreset,
+    /// Canonical identifier; must equal `protocol.as_str()`.
     pub protocol_id: String,
     /// Caller-computed SHA-256 digest of the frozen canonical manifest bytes.
     /// This validator checks syntax but cannot recompute it without raw data.
@@ -263,10 +342,24 @@ pub fn audit_benchmark_split(
     let manifest_digest = normalized_sha256(&policy.manifest_digest).ok_or_else(|| {
         SplitAuditError::new("invalid_manifest_digest", policy.protocol_id.as_str())
     })?;
+    if policy.protocol_id != policy.protocol.as_str() {
+        return Err(SplitAuditError::new(
+            "protocol_id_preset_mismatch",
+            policy.protocol_id.as_str(),
+        ));
+    }
     if policy.exclusive_dimensions.is_empty() {
         return Err(SplitAuditError::new(
             "empty_exclusive_dimensions",
             policy.protocol_id.as_str(),
+        ));
+    }
+    if policy.exclusive_dimensions != policy.protocol.exclusive_dimensions()
+        || policy.shared_dimensions != policy.protocol.shared_dimensions()
+    {
+        return Err(SplitAuditError::new(
+            "protocol_dimensions_mismatch",
+            policy.protocol.as_str(),
         ));
     }
     if !policy
