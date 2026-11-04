@@ -31,6 +31,7 @@ fn dimension_for_quantity(q: &str) -> Option<&'static str> {
         | "relative_temperature_reduction"
         | "relative_leakage_flux_reduction"
         | "relative_efficiency_improvement"
+        | "relative_coupling_operating_range_reduction"
         | "thermal_spatial_uniformity_improvement"
         | "magnetic_flux_spatial_uniformity_improvement"
         | "magnetothermal_equilibrium_improvement"
@@ -109,6 +110,7 @@ fn validate_measurement(m: &Value) -> Vec<String> {
         | "cc_cv_regulation_error"
         | "output_regulation_error"
         | "control_settling_time" => Some("control_performance"),
+        "relative_coupling_operating_range_reduction" => Some("subsystem_characterization"),
         "uptime_fraction" | "fault_rate" | "false_trigger_rate" | "control_latency"
         | "foreign_object_detection_accuracy" => {
             Some("operational_reliability")
@@ -1108,6 +1110,40 @@ mod tests {
         assert!(reasons.contains(&"REFERENCE_BASELINE_MISMATCH".to_string()));
     }
 
+
+
+    #[test]
+    fn coupling_operating_range_reduction_is_dimensionless_subsystem_evidence() {
+        let mut metric = sample("COUPLING-RANGE-REDUCTION", 34.0);
+        metric["quantity_kind"] = json!("relative_coupling_operating_range_reduction");
+        metric["measurement_purpose"] = json!("subsystem_characterization");
+        metric["normalized_measurement"]["value"] = json!(0.34);
+        let errors = validate_measurement(&metric);
+        assert!(
+            !errors.iter().any(|error| error.contains("unregistered quantity_kind")),
+            "{errors:#?}"
+        );
+        assert!(
+            !errors.iter().any(|error| error.contains("purpose/quantity mismatch")),
+            "{errors:#?}"
+        );
+        assert!(
+            !errors.iter().any(|error| error.contains("unit/dimension mismatch")),
+            "{errors:#?}"
+        );
+    }
+
+    #[test]
+    fn coupling_range_reduction_cannot_be_ranked_as_efficiency() {
+        let mut left = sample("COUPLING-RANGE", 34.0);
+        left["quantity_kind"] = json!("relative_coupling_operating_range_reduction");
+        left["measurement_purpose"] = json!("subsystem_characterization");
+        left["normalized_measurement"]["value"] = json!(0.34);
+        let right = sample("EFFICIENCY", 95.0);
+        let (disposition, reasons) = compare_measurements(&left, &right, "rank_efficiency");
+        assert_eq!(disposition, "NOT_COMPARABLE");
+        assert!(reasons.contains(&"QUANTITY_KIND_MISMATCH".to_string()));
+    }
 
     #[test]
     fn output_regulation_error_is_a_dimensionless_control_metric() {
