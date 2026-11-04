@@ -2158,6 +2158,244 @@ mod tests {
         );
     }
 
+    fn multivariate_distribution(
+        model: &str,
+        mean: Vec<f64>,
+        covariance: Vec<Vec<f64>>,
+    ) -> MultivariateOutcomeDistribution {
+        MultivariateOutcomeDistribution {
+            model_family_id: model.to_string(),
+            metric_ids: vec![
+                "inter-leg-phase-v1".to_string(),
+                "contact-force-v1".to_string(),
+            ],
+            unit_ids: vec!["radians".to_string(), "newtons".to_string()],
+            mean,
+            covariance,
+        }
+    }
+
+    fn equal_multivariate_priors(
+        distributions: &[MultivariateOutcomeDistribution],
+    ) -> Vec<ModelFamilyPrior> {
+        let probability = 1.0 / distributions.len() as f64;
+        distributions
+            .iter()
+            .map(|distribution| ModelFamilyPrior {
+                model_family_id: distribution.model_family_id.clone(),
+                probability,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn full_covariance_detects_models_that_marginal_independence_cannot_separate() {
+        let distributions = vec![
+            multivariate_distribution(
+                "positive-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.9], vec![0.9, 1.0]],
+            ),
+            multivariate_distribution(
+                "negative-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, -0.9], vec![-0.9, 1.0]],
+            ),
+        ];
+        let estimate =
+            estimate_multivariate_expected_information_gain_equal_priors(
+                &distributions,
+                3000,
+                113,
+            )
+            .unwrap();
+        assert!(estimate.mean_nats > 0.2);
+        assert!(estimate.lower_95_nats > 0.0);
+        assert!(estimate.upper_95_nats <= 2.0_f64.ln());
+    }
+
+    #[test]
+    fn identical_multivariate_distributions_have_exactly_zero_information() {
+        let distributions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.5, -1.0],
+                vec![vec![2.0, 0.4], vec![0.4, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![0.5, -1.0],
+                vec![vec![2.0, 0.4], vec![0.4, 1.0]],
+            ),
+        ];
+        let estimate =
+            estimate_multivariate_expected_information_gain_equal_priors(
+                &distributions,
+                1000,
+                7,
+            )
+            .unwrap();
+        assert_eq!(estimate.mean_nats, 0.0);
+        assert_eq!(estimate.standard_error_nats, 0.0);
+        assert_eq!(estimate.lower_95_nats, 0.0);
+        assert_eq!(estimate.upper_95_nats, 0.0);
+    }
+
+    #[test]
+    fn multivariate_eig_is_invariant_to_consistent_unit_rescaling() {
+        let base = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.4], vec![0.4, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![1.0, -1.0],
+                vec![vec![1.2, -0.3], vec![-0.3, 0.8]],
+            ),
+        ];
+        let scaled = vec![
+            MultivariateOutcomeDistribution {
+                model_family_id: "model-a".to_string(),
+                metric_ids: base[0].metric_ids.clone(),
+                unit_ids: vec!["radians".to_string(), "millinewtons".to_string()],
+                mean: vec![0.0, 0.0],
+                covariance: vec![vec![1.0, 400.0], vec![400.0, 1_000_000.0]],
+            },
+            MultivariateOutcomeDistribution {
+                model_family_id: "model-b".to_string(),
+                metric_ids: base[1].metric_ids.clone(),
+                unit_ids: vec!["radians".to_string(), "millinewtons".to_string()],
+                mean: vec![1.0, -1000.0],
+                covariance: vec![vec![1.2, -300.0], vec![-300.0, 800_000.0]],
+            },
+        ];
+        let original =
+            estimate_multivariate_expected_information_gain_equal_priors(&base, 2000, 31)
+                .unwrap();
+        let transformed =
+            estimate_multivariate_expected_information_gain_equal_priors(&scaled, 2000, 31)
+                .unwrap();
+        assert!((original.mean_nats - transformed.mean_nats).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn singular_covariance_from_redundant_endpoint_is_rejected() {
+        let distributions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 1.0], vec![1.0, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![1.0, 1.0],
+                vec![vec![1.0, 1.0], vec![1.0, 1.0]],
+            ),
+        ];
+        assert!(matches!(
+            estimate_multivariate_expected_information_gain_equal_priors(
+                &distributions,
+                1000,
+                4
+            ),
+            Err(BenchError::InvalidMultivariateDistribution { .. })
+        ));
+    }
+
+    #[test]
+    fn unequal_model_priors_change_multivariate_eig_and_input_order_does_not() {
+        let distributions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![2.0, 2.0],
+                vec![vec![1.0, -0.2], vec![-0.2, 1.0]],
+            ),
+        ];
+        let equal = equal_multivariate_priors(&distributions);
+        let skewed = vec![
+            ModelFamilyPrior {
+                model_family_id: "model-a".to_string(),
+                probability: 0.9,
+            },
+            ModelFamilyPrior {
+                model_family_id: "model-b".to_string(),
+                probability: 0.1,
+            },
+        ];
+        let first =
+            estimate_multivariate_expected_information_gain(&distributions, &skewed, 2000, 19)
+                .unwrap();
+        let reversed_distributions = distributions.iter().cloned().rev().collect::<Vec<_>>();
+        let reversed_priors = skewed.iter().cloned().rev().collect::<Vec<_>>();
+        let reversed = estimate_multivariate_expected_information_gain(
+            &reversed_distributions,
+            &reversed_priors,
+            2000,
+            19,
+        )
+        .unwrap();
+        let equal_prior_result =
+            estimate_multivariate_expected_information_gain(&distributions, &equal, 2000, 19)
+                .unwrap();
+        assert!((first.mean_nats - reversed.mean_nats).abs() < 1.0e-12);
+        assert!((first.mean_nats - equal_prior_result.mean_nats).abs() > 1.0e-4);
+    }
+
+    #[test]
+    fn multivariate_eig_rejects_prior_set_drift_and_non_normalized_priors() {
+        let distributions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.1], vec![0.1, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![1.0, 1.0],
+                vec![vec![1.0, 0.1], vec![0.1, 1.0]],
+            ),
+        ];
+        let missing_prior = vec![ModelFamilyPrior {
+            model_family_id: "model-a".to_string(),
+            probability: 1.0,
+        }];
+        assert_eq!(
+            estimate_multivariate_expected_information_gain(
+                &distributions,
+                &missing_prior,
+                1000,
+                5
+            ),
+            Err(BenchError::ModelPriorSetMismatch)
+        );
+        let invalid_sum = vec![
+            ModelFamilyPrior {
+                model_family_id: "model-a".to_string(),
+                probability: 0.7,
+            },
+            ModelFamilyPrior {
+                model_family_id: "model-b".to_string(),
+                probability: 0.7,
+            },
+        ];
+        assert_eq!(
+            estimate_multivariate_expected_information_gain(
+                &distributions,
+                &invalid_sum,
+                1000,
+                5
+            ),
+            Err(BenchError::InvalidModelPriors)
+        );
+    }
+
     #[test]
     fn intervention_ranking_uses_information_gain_per_cost_and_excludes_infeasible() {
         let high = InterventionCandidate {
