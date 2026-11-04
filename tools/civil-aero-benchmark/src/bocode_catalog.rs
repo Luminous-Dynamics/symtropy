@@ -541,7 +541,7 @@ mod tests {
         variable_types: &str,
     ) -> String {
         format!(
-            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,present,{},{},present,{},{},none",
+            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,present,{},present,{},present,https://example.org/source,{},none",
             "b".repeat(64),
             "c".repeat(64),
             "https://example.org/source",
