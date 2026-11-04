@@ -98,6 +98,46 @@ The logistics-sorting study designs parallel multi-receiver power delivery and d
 
 **Competitive implication:** a relevant kW-scale multi-receiver logistics baseline. To claim improvement, compare at matched delivered power, coil/air-gap geometry, receiver count, converter inclusion and measurement boundary. We should target higher useful delivered energy and lower loss under multi-load variation, not claim superiority from comparing unlike efficiency figures.
 
+### Integrated electromagnetic–circuit digital twin for heterogeneous 1T–3R
+
+Lee and Lee, **Integrated electromagnetic–circuit digital twin modelling for constraint-consistent optimal operation in heterogeneous multi-receiver wireless power transfer systems**, Scientific Reports 16, 19957 (published 29 April 2026). DOI: https://doi.org/10.1038/s41598-026-50781-y.
+
+The work couples 3D electromagnetic field extraction with equivalent-circuit analysis for a single-transmitter, three-receiver system with mixed compensation: two series-compensated and one parallel-compensated receiver. Its example uses receiver ratings of 12.5 W, 5 W and 5 W, enforcing each within a 3% tolerance before maximizing aggregate efficiency. It demonstrates a constrained feasible operating point and local one-dimensional sensitivity sweep.
+
+**Critical comparison:** this paper already establishes integrated EM-to-circuit digital-twin modelling with heterogeneous receiver power constraints. We must not claim that integration itself is our novelty. Its stated limitations are fixed geometry/receiver set, steady-state receiver behavior, no time-varying load, and simulation-only validation without a physical prototype. Our differentiator must therefore be demonstrated on dynamic geometry and loads, uncertainty-qualified complete matrices, measured-vs-model residuals, endpoint energy over time and independently verified constraints—not merely reproducing an EM/circuit optimization loop.
+
+### Robust uncertainty-set control is a current experimental baseline
+
+**Robust LMI-LQR Control with Kalman Observer for Uncertain Wireless Power Transfer Systems**, IEEE Journal of Emerging and Selected Topics in Power Electronics, early access 12 October 2026. DOI: https://doi.org/10.1109/JESTPE.2026.3742437.
+
+The paper uses a generalized state-space averaged model, represents parameter uncertainty with linear fractional transformations, and synthesizes an LMI-LQR controller with quadratic stability over the declared uncertainty set. A Kalman observer estimates nine states from output-voltage measurement. The abstract reports recovery in under 2 ms after abrupt mutual-inductance or load changes, settling under 1.5 ms and overshoot below 6%, outperforming a discretized PI baseline.
+
+**Competitive implication:** robust MPC must be compared against a stability-certified robust LMI-LQR + Kalman-observer policy, not only nominal PI or greedy dispatch. For multi-receiver expansion, measure whether the robust certificate remains valid under cross-channel coupling, receiver switching and state-dependent limits. A single-receiver controller's reported performance is a baseline, not proof of multi-receiver scalability.
+
+### Communication-independent online identification for multiple-transmitter WPT
+
+Yang et al., **Noncommunicative Output Regulation and Efficiency Maximization for Multiple-to-One WPT System With Unknown Receiver**, IEEE Transactions on Industrial Electronics 73(7), 9874–9886 (published July 2026; online 18 February 2026). DOI: https://doi.org/10.1109/TIE.2026.3658701.
+
+The method inserts a sensor inductor into the primary resonant tank and uses voltage transients at square-wave input edges to identify mutual inductance and output voltage without a live transmitter–receiver data link. Its experiment reports identification accuracy above 97%, combined identification/closed-loop response around 2.2 ms, and efficiency fluctuation within 1% over tested misalignments versus over 15% without control.
+
+**Scope distinction:** this is multiple-transmitter-to-one-receiver identification; it does not establish complete N×N matrix reconstruction, per-coil uncertainty coverage, receiver authorization or secure session establishment. It is a strong fast estimator/control baseline for #3512, not a replacement for the authenticated safety/session plane or full-matrix metrology.
+
+### Dynamic receiver-coil count has a non-monotonic optimum
+
+Garrofy, Nikulshin and Wolfus, **Impact of Vertical Receiver Coil Count on Energy Transfer Efficiency in Dynamic Wireless Electric Vehicle Charging**, Energies 19(16), 3832 (15 August 2026). DOI: https://doi.org/10.3390/en19163832.
+
+The paper compares 3–7 vertically arranged receiver coils using coupled FEM/circuit co-simulation at 85 kHz, 30 cm air gap and a 3 m pass. For its fixed geometry, total harvested energy is non-monotonic: five coils maximize the integrated per-pass result; increasing to six or seven increases adjacent mutual coupling and resonant detuning. The five-coil array raises peak efficiency from approximately 85% at three coils to above 90%, while the paper also reports secondary spatial peaks across the pass.
+
+**Scope distinction:** this is simulation evidence for one specified geometry, not a measured universal optimum. It strongly motivates a geometry-conditioned Pareto sweep: coil count, spacing, coupling matrix, detuning, integrated Wh/pass, field limits, thickness, ferrite mass and cost must be varied jointly. More coils are not automatically more coverage or energy.
+
+### EV interoperability review: battery voltage and coupling are first-class interface variables
+
+Liu et al., **Review on interoperability of wireless charging systems for electric vehicles**, Renewable and Sustainable Energy Reviews 239, 117141 (October 2026). DOI: https://doi.org/10.1016/j.rser.2026.117141.
+
+The review organizes interoperability around coupling structures, load impedance, and battery-voltage/output-power classes. It identifies cross-testing and boundary-definition problems in load impedance evaluation, and the move from 400 V to 800 V battery classes as a driver for reconfigurable topologies, with complexity and cost trade-offs. Its stated trends include hybrid coupling, intelligent control, wide-voltage topology and multi-frequency interoperability.
+
+**Competitive implication:** a WPT platform should be qualified on an interoperability envelope, not a single coil pair or voltage. We need controlled cross-tests with reference receiver impedances, declared battery emulators and voltage classes, and a reproducible coupling/alignment fixture.
+
 ## Standards and interoperability boundaries
 
 ### SAE J2954_202408
