@@ -37,6 +37,9 @@ pub struct EProcessObservation<'a> {
     pub delivered_protocol_id: &'a str,
     pub step_id: &'a str,
     pub outcome_id: &'a str,
+    pub sample_id: &'a str,
+    pub replication_unit_id: &'a str,
+    pub session_id: &'a str,
     pub evidence_tier: EvidenceTier,
 }
 
@@ -52,6 +55,7 @@ pub enum EProcessError {
     DeliveryMismatch,
     CandidateNotPermitted,
     DuplicateStep(String),
+    DuplicateSample(String),
     DuplicateOutcome(String),
     EmptyOutcomeSet,
     ModelSetMismatch,
@@ -78,6 +82,9 @@ pub struct EProcessFingerprint {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AnytimeEvidenceReceipt {
     pub step_id: String,
+    pub sample_id: String,
+    pub replication_unit_id: String,
+    pub session_id: String,
     pub steps_observed: u64,
     pub evidence_tier: EvidenceTier,
     pub log_e_value: f64,
@@ -100,6 +107,7 @@ pub struct LikelihoodRatioEProcess {
     alpha: f64,
     frozen_prediction_manifest_digest: String,
     seen_step_ids: BTreeSet<String>,
+    seen_sample_ids: BTreeSet<String>,
     steps_observed: u64,
     log_e_value: f64,
 }
@@ -145,6 +153,7 @@ impl LikelihoodRatioEProcess {
             alpha,
             frozen_prediction_manifest_digest,
             seen_step_ids: BTreeSet::new(),
+            seen_sample_ids: BTreeSet::new(),
             steps_observed: 0,
             log_e_value: 0.0,
         })
@@ -171,6 +180,15 @@ impl LikelihoodRatioEProcess {
         if observation.step_id.trim().is_empty() {
             return Err(EProcessError::EmptyIdentifier("step_id"));
         }
+        if observation.sample_id.trim().is_empty() {
+            return Err(EProcessError::EmptyIdentifier("sample_id"));
+        }
+        if observation.replication_unit_id.trim().is_empty() {
+            return Err(EProcessError::EmptyIdentifier("replication_unit_id"));
+        }
+        if observation.session_id.trim().is_empty() {
+            return Err(EProcessError::EmptyIdentifier("session_id"));
+        }
         if forecast.prediction_manifest_digest != self.frozen_prediction_manifest_digest {
             return Err(EProcessError::PredictionManifestDrift);
         }
@@ -189,6 +207,9 @@ impl LikelihoodRatioEProcess {
         }
         if self.seen_step_ids.contains(observation.step_id) {
             return Err(EProcessError::DuplicateStep(observation.step_id.to_owned()));
+        }
+        if self.seen_sample_ids.contains(observation.sample_id) {
+            return Err(EProcessError::DuplicateSample(observation.sample_id.to_owned()));
         }
         validate_candidate_for_eprocess(candidate)?;
         validate_conditional_forecast(forecast, &self.null_model_id, &self.alternative_weights)?;
@@ -233,6 +254,7 @@ impl LikelihoodRatioEProcess {
         self.log_e_value = log_e_value;
         self.steps_observed = next_steps_observed;
         self.seen_step_ids.insert(observation.step_id.to_owned());
+        self.seen_sample_ids.insert(observation.sample_id.to_owned());
 
         let fingerprint = receipt_fingerprint(ReceiptFingerprintInput {
             step_id: observation.step_id,
@@ -242,6 +264,9 @@ impl LikelihoodRatioEProcess {
             candidate_id: &candidate.candidate_id,
             protocol_id: &candidate.protocol_id,
             outcome_id: observation.outcome_id,
+            sample_id: observation.sample_id,
+            replication_unit_id: observation.replication_unit_id,
+            session_id: observation.session_id,
             evidence_tier: observation.evidence_tier,
             log_e_value: self.log_e_value,
             log_threshold: log_rejection_threshold,
@@ -249,6 +274,9 @@ impl LikelihoodRatioEProcess {
         });
         Ok(AnytimeEvidenceReceipt {
             step_id: observation.step_id.to_owned(),
+            sample_id: observation.sample_id.to_owned(),
+            replication_unit_id: observation.replication_unit_id.to_owned(),
+            session_id: observation.session_id.to_owned(),
             steps_observed: self.steps_observed,
             evidence_tier: observation.evidence_tier,
             log_e_value: self.log_e_value,
@@ -356,6 +384,9 @@ struct ReceiptFingerprintInput<'a> {
     candidate_id: &'a str,
     protocol_id: &'a str,
     outcome_id: &'a str,
+    sample_id: &'a str,
+    replication_unit_id: &'a str,
+    session_id: &'a str,
     evidence_tier: EvidenceTier,
     log_e_value: f64,
     log_threshold: f64,
@@ -371,6 +402,9 @@ fn receipt_fingerprint(input: ReceiptFingerprintInput<'_>) -> EProcessFingerprin
         input.candidate_id,
         input.protocol_id,
         input.outcome_id,
+        input.sample_id,
+        input.replication_unit_id,
+        input.session_id,
     ] {
         bytes.extend_from_slice(&(value.len() as u64).to_be_bytes());
         bytes.extend_from_slice(value.as_bytes());
@@ -470,6 +504,9 @@ mod tests {
                     delivered_protocol_id: "protocol-a",
                     step_id: step,
                     outcome_id: outcome,
+                    sample_id: step,
+                    replication_unit_id: "animal-synthetic-1",
+                    session_id: "session-synthetic-1",
                     evidence_tier: EvidenceTier::SyntheticFixture,
                 },
             )
@@ -513,6 +550,9 @@ mod tests {
                 delivered_protocol_id: "protocol-a",
                 step_id: "step-1",
                 outcome_id: "yes",
+                sample_id: "sample-1",
+                replication_unit_id: "animal-1",
+                session_id: "session-1",
                 evidence_tier: EvidenceTier::SyntheticFixture,
             },
         );
@@ -534,6 +574,9 @@ mod tests {
                     delivered_protocol_id: "protocol-a",
                     step_id: "step-1",
                     outcome_id: "yes",
+                    sample_id: "sample-1",
+                    replication_unit_id: "animal-1",
+                    session_id: "session-1",
                     evidence_tier: EvidenceTier::SyntheticFixture,
                 }
             ),
@@ -557,6 +600,9 @@ mod tests {
                     delivered_protocol_id: "protocol-a",
                     step_id: "step-1",
                     outcome_id: "yes",
+                    sample_id: "sample-1",
+                    replication_unit_id: "animal-1",
+                    session_id: "session-1",
                     evidence_tier: EvidenceTier::SyntheticFixture,
                 }
             ),
@@ -582,6 +628,9 @@ mod tests {
                     delivered_protocol_id: "protocol-a",
                     step_id: "step-1",
                     outcome_id: "yes",
+                    sample_id: "sample-1",
+                    replication_unit_id: "animal-1",
+                    session_id: "session-1",
                     evidence_tier: EvidenceTier::SyntheticFixture,
                 }
             ),
