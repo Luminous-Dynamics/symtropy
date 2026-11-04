@@ -6,7 +6,7 @@
 //! and Pareto dimensions; they are not silently converted into utility.
 
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::StableId;
 use crate::decision_closure::{
@@ -150,6 +150,7 @@ pub struct MeasurementSelectionCertificate {
 pub enum MeasurementSelectionError {
     BaselineInvalid(DecisionError),
     BaselineNotFullySupported,
+    InvalidConstraints(CandidateInvalidReason),
     DuplicateCandidateId,
     ArithmeticOverflow,
     ReceiptMismatch,
@@ -172,12 +173,14 @@ impl MeasurementSelectionManifest {
             &self.constraints.maximum_cost,
             CandidateInvalidReason::ZeroCostDenominator,
             CandidateInvalidReason::NegativeAcquisitionCost,
-        )?;
+        )
+        .map_err(MeasurementSelectionError::InvalidConstraints)?;
         validate_nonnegative(
             &self.constraints.maximum_risk,
             CandidateInvalidReason::ZeroRiskDenominator,
             CandidateInvalidReason::NegativeRiskBound,
-        )?;
+        )
+        .map_err(MeasurementSelectionError::InvalidConstraints)?;
         Ok(())
     }
 
@@ -242,11 +245,7 @@ impl MeasurementSelectionManifest {
             .candidates
             .iter()
             .map(|candidate| {
-                self.evaluate_candidate(
-                    candidate,
-                    &baseline_decision_certificate,
-                    &baseline_minimax_regret,
-                )
+                self.evaluate_candidate(candidate, &baseline_minimax_regret)
             })
             .collect::<Result<Vec<_>, _>>()?;
         candidate_evaluations.sort_by(|a, b| a.experiment_id.cmp(&b.experiment_id));
@@ -278,7 +277,6 @@ impl MeasurementSelectionManifest {
     fn evaluate_candidate(
         &self,
         candidate: &CandidateExperiment,
-        baseline_certificate: &DecisionCertificate,
         baseline_minimax_regret: &ExactRational,
     ) -> Result<CandidateEvaluation, MeasurementSelectionError> {
         let mut evaluation = empty_evaluation(candidate);
@@ -373,7 +371,6 @@ impl MeasurementSelectionManifest {
         } else {
             CandidateDisposition::ParetoEligible
         };
-        let _ = baseline_certificate;
         Ok(evaluation)
     }
 }
@@ -403,13 +400,18 @@ fn empty_evaluation(candidate: &CandidateExperiment) -> CandidateEvaluation {
         modality: candidate.modality,
         disposition: CandidateDisposition::Incomplete,
         invalid_reason: None,
-        acquisition_cost: candidate.acquisition_cost.clone(),
-        risk_upper_bound: candidate.risk_upper_bound.clone(),
+        acquisition_cost: normalize_or_original(&candidate.acquisition_cost),
+        risk_upper_bound: normalize_or_original(&candidate.risk_upper_bound),
         baseline_minimax_regret: None,
         worst_case_residual_regret: None,
         regret_reduction: None,
         outcome_evaluations: Vec::new(),
     }
+}
+
+fn normalize_or_original(value: &ExactRational) -> ExactRational {
+    ExactRational::new(value.numerator, value.denominator)
+        .unwrap_or_else(|_| value.clone())
 }
 
 fn validate_candidate(
@@ -493,13 +495,12 @@ fn validate_nonnegative(
     value: &ExactRational,
     zero_denominator: CandidateInvalidReason,
     negative_value: CandidateInvalidReason,
-) -> Result<(), MeasurementSelectionError> {
+) -> Result<(), CandidateInvalidReason> {
     if value.denominator == 0 {
-        return Err(MeasurementSelectionError::ArithmeticOverflow);
+        return Err(zero_denominator);
     }
     if value.numerator < 0 {
-        let _ = (zero_denominator, negative_value);
-        return Err(MeasurementSelectionError::ArithmeticOverflow);
+        return Err(negative_value);
     }
     Ok(())
 }
@@ -558,18 +559,10 @@ fn dominates(
     left: &CandidateEvaluation,
     right: &CandidateEvaluation,
 ) -> Result<bool, MeasurementSelectionError> {
-    let (Some(left_cost), Some(right_cost)) = (
-        Some(&left.acquisition_cost),
-        Some(&right.acquisition_cost),
-    ) else {
-        return Ok(false);
-    };
-    let (Some(left_risk), Some(right_risk)) = (
-        Some(&left.risk_upper_bound),
-        Some(&right.risk_upper_bound),
-    ) else {
-        return Ok(false);
-    };
+    let left_cost = &left.acquisition_cost;
+    let right_cost = &right.acquisition_cost;
+    let left_risk = &left.risk_upper_bound;
+    let right_risk = &right.risk_upper_bound;
     let (Some(left_residual), Some(right_residual)) = (
         left.worst_case_residual_regret.as_ref(),
         right.worst_case_residual_regret.as_ref(),
@@ -725,15 +718,6 @@ fn push_rational_bytes(out: &mut Vec<u8>, value: &ExactRational) {
     out.extend_from_slice(&value.denominator.to_le_bytes());
 }
 
-fn push_option_id(out: &mut Vec<u8>, value: Option<&StableId>) {
-    match value {
-        Some(value) => {
-            out.push(1);
-            push_id(out, value);
-        }
-        None => out.push(0),
-    }
-}
 
 fn push_id(out: &mut Vec<u8>, id: &StableId) {
     let bytes = id.as_str().as_bytes();
