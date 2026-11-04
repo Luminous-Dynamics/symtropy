@@ -527,7 +527,7 @@ fn vectors_close(left: &[f64], right: &[f64]) -> bool {
 }
 
 fn csv_escape(value: &str) -> String {
-    if value.contains([',', '"', '\n', '\r']) {
+    if value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r') {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_owned()
@@ -545,7 +545,7 @@ fn number_list(values: &[f64]) -> String {
 /// One row per output, with repeated identities and one correlation row for independent replay.
 pub fn joint_validation_report_to_csv(report: &JointValidationReport) -> Result<String, String> {
     verify_joint_validation_report(report)?;
-    let header = "record_type,schema,study_id,model_id,observation_id,geometry_family,flow_regime,dataset_split,domain_status,uncertainty_source_reference,uncertainty_source_sha256,uncertainty_model_rationale,output_index,quantity,unit,predicted_value,observed_value,standard_uncertainty,correlation_row,standardized_residual,whitened_residual,mahalanobis_squared,mahalanobis_distance,in_domain_observation_count,out_of_domain_observation_count,mean_mahalanobis_squared,maximum_mahalanobis_squared,study_sha256,report_sha256";
+    let header = "record_type,schema,study_id,model_id,observation_id,geometry_family,flow_regime,dataset_split,domain_status,uncertainty_source_reference,uncertainty_source_sha256,uncertainty_model_rationale,output_index,quantity,unit,predicted_value,observed_value,standard_uncertainty,correlation_row,standardized_residual,whitened_residual,mahalanobis_squared,mahalanobis_distance,in_domain_observation_count,out_of_domain_observation_count,mean_mahalanobis_squared,maximum_mahalanobis_squared,observation_sha256,study_sha256,report_sha256";
     let mut output = format!("{header}\n");
     let metadata = vec![
         "study".to_owned(),
@@ -583,7 +583,7 @@ pub fn joint_validation_report_to_csv(report: &JointValidationReport) -> Result<
 
     for row in &report.observations {
         for (index, value) in row.observation.outputs.iter().enumerate() {
-            let mut fields = vec![String::new(); 29];
+            let mut fields = vec![String::new(); 30];
             fields[0] = "output".to_owned();
             fields[1] = MULTIVARIATE_VALIDATION_SCHEMA.to_owned();
             fields[2] = report.study_id.clone();
@@ -611,8 +611,9 @@ pub fn joint_validation_report_to_csv(report: &JointValidationReport) -> Result<
             fields[24] = report.out_of_domain_observation_count.to_string();
             fields[25] = report.mean_mahalanobis_squared.to_string();
             fields[26] = report.maximum_mahalanobis_squared.to_string();
-            fields[27] = report.study_sha256.clone();
-            fields[28] = report.report_sha256.clone();
+            fields[27] = row.observation_sha256.clone();
+            fields[28] = report.study_sha256.clone();
+            fields[29] = report.report_sha256.clone();
             output.push_str(&csv_row(&fields));
             output.push('\n');
         }
