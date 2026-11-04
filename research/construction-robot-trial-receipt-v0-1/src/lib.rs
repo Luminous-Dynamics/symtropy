@@ -123,9 +123,7 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                 if let Some(domain) = instrument.get("fault_domain").and_then(Value::as_str)
                     && subject_fault_domains.contains(domain)
                 {
-                    errors.push(format!(
-                        "reference_fault_domain_overlaps_subject:{domain}"
-                    ));
+                    errors.push(format!("reference_fault_domain_overlaps_subject:{domain}"));
                 }
             }
         }
@@ -134,8 +132,14 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
         // robot/event clock. Synchronization evidence binds the two clocks;
         // it must not silently make them the same failure source.
         let subject_clock = string_at(receipt, &["trial", "clock_domain"]);
-        let reference_clock =
-            string_at(receipt, &["reference", "time_synchronization", "reference_clock_domain"]);
+        let reference_clock = string_at(
+            receipt,
+            &[
+                "reference",
+                "time_synchronization",
+                "reference_clock_domain",
+            ],
+        );
         if subject_clock.is_some() && subject_clock == reference_clock {
             errors.push("reference_clock_domain_overlaps_subject_clock_domain".to_owned());
         }
@@ -477,18 +481,23 @@ mod tests {
 
     #[test]
     fn matching_instrument_and_robot_fault_domain_is_rejected_even_if_declared_independent() {
-        let receipt = fixture("fixtures/invalid/declared_independent_but_shared_instrument_domain.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "reference_fault_domain_overlaps_subject:robot-range-power"));
+        let receipt =
+            fixture("fixtures/invalid/declared_independent_but_shared_instrument_domain.json");
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error == "reference_fault_domain_overlaps_subject:robot-range-power")
+        );
     }
 
     #[test]
     fn shared_reference_clock_domain_is_rejected() {
         let receipt = fixture("fixtures/invalid/shared_reference_clock_domain.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "reference_clock_domain_overlaps_subject_clock_domain"));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error == "reference_clock_domain_overlaps_subject_clock_domain")
+        );
     }
 
     #[test]
