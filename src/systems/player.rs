@@ -14,15 +14,25 @@ const SPRINT_NOISE: f32 = 0.6;
 /// Standing noise decay factor.
 const NOISE_DECAY: f32 = 0.85;
 
-/// Capture player input and write to the PlayerInput resource.
+/// Capture human player input and write to the shared `PlayerInput` resource.
 ///
 /// Runs in Update (where `pressed()` works reliably). The physics system
 /// in FixedUpdate reads PlayerInput to set velocity on the physics body.
+///
+/// When the optional FEP AI player is enabled, this system relinquishes
+/// control entirely. That makes `PlayerInput` single-writer by mode instead of
+/// relying on unspecified ordering between the human and AI controller systems.
 pub fn player_movement_system(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut input: ResMut<PlayerInput>,
     mut noise_query: Query<&mut NoiseEmitter, With<Player>>,
+    #[cfg(feature = "fep-ai")] ai_player: Option<Res<super::ai_player::AiPlayer>>,
 ) {
+    #[cfg(feature = "fep-ai")]
+    if ai_player.as_ref().is_some_and(|ai| ai.enabled) {
+        return;
+    }
+
     let mut direction = Vec2::ZERO;
     if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
         direction.y += 1.0;
@@ -42,13 +52,26 @@ pub fn player_movement_system(
     input.direction = direction;
     input.sprinting = sprinting;
 
-    // Update noise based on movement
     if let Ok(mut noise) = noise_query.single_mut() {
-        if direction != Vec2::ZERO {
-            noise.level = if sprinting { SPRINT_NOISE } else { WALK_NOISE };
-        } else {
-            noise.level *= NOISE_DECAY;
-        }
+        update_player_noise(&mut noise, direction, sprinting);
+    }
+}
+
+/// Apply the shared locomotion-noise contract for both human and AI control.
+///
+/// Keeping this in one place prevents AI movement from accidentally becoming
+/// silent (and therefore bypassing the Leviathan mechanic) while also keeping
+/// the human and AI controllers free to own `PlayerInput` exclusively by mode.
+pub(crate) fn update_player_noise(noise: &mut NoiseEmitter, direction: Vec2, sprinting: bool) {
+    noise.level = movement_noise_level(noise.level, direction, sprinting);
+}
+
+#[inline]
+fn movement_noise_level(current: f32, direction: Vec2, sprinting: bool) -> f32 {
+    if direction.length_squared() > f32::EPSILON {
+        if sprinting { SPRINT_NOISE } else { WALK_NOISE }
+    } else {
+        current * NOISE_DECAY
     }
 }
 
@@ -162,5 +185,21 @@ pub fn extraction_system(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locomotion_noise_contract_is_shared_and_monotonic() {
+        assert!((movement_noise_level(0.0, Vec2::X, false) - WALK_NOISE).abs() < f32::EPSILON);
+        assert!((movement_noise_level(0.0, Vec2::X, true) - SPRINT_NOISE).abs() < f32::EPSILON);
+        assert!(SPRINT_NOISE > WALK_NOISE);
+
+        let decayed = movement_noise_level(0.8, Vec2::ZERO, false);
+        assert!((decayed - 0.8 * NOISE_DECAY).abs() < f32::EPSILON);
+        assert!(decayed < 0.8);
     }
 }
