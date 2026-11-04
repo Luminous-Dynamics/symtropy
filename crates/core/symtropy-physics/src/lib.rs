@@ -52,7 +52,9 @@ pub use delassus::{
 };
 pub use diagnostics::{InvariantDrift, InvariantSnapshot, InvariantStepReceipt};
 pub use epa::EpaResult;
-pub use friction_cone::{FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone};
+pub use friction_cone::{
+    FrictionConeError, PlanarFrictionConeSolution, solve_planar_friction_cone,
+};
 pub use inertia::{BivectorInertia, RotationalInertiaError};
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
