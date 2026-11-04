@@ -577,6 +577,25 @@ mod tests {
     }
 
     #[test]
+    fn no_op_pair_with_identical_content_digests_emits_zero_trajectory() {
+        let baseline = schedule("baseline-noop", 10.0, 0);
+        let flexible = schedule("flexible-noop", 10.0, 0);
+        let same_content_identity = WorkloadFlexibilityTrajectoryIdentity::new(
+            "noop-trajectory", "site-1", "pcc-1", "same-content-digest", "same-content-digest"
+        ).expect("identical content digests are valid for a no-op pair");
+        let report = compare_workload_flexibility_schedules(
+            same_content_identity, &baseline, &flexible, tolerance()
+        ).expect("no-op pair");
+        assert!(report.service_equivalent);
+        assert_eq!(report.gross_reduction_energy_kwh, 0.0);
+        assert_eq!(report.rebound_energy_kwh, 0.0);
+        assert_eq!(report.net_grid_import_reduction_energy_kwh, 0.0);
+        assert!(report.slot_receipts.iter().all(|slot| {
+            slot.net_grid_import_reduction_kw == 0.0
+        }));
+    }
+
+    #[test]
     fn service_contract_mismatch_is_rejected() {
         let baseline = schedule("baseline", 10.0, 0);
         let flexible = WorkloadSchedule::new(
