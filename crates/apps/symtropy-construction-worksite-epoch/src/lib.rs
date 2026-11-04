@@ -290,7 +290,7 @@ impl Model {
         Ok(())
     }
 
-    pub fn authorize(&self, command: &CommandBinding) -> Result<(), GuardError> {
+    pub fn authorize(&mut self, command: &CommandBinding) -> Result<(), GuardError> {
         if self.state != State::Active {
             return Err(GuardError::CommandNotAuthorized("state_not_active"));
         }
@@ -300,9 +300,11 @@ impl Model {
             ));
         }
         if command.context_age_ns > self.freshness_policy.max_context_age_ns {
+            self.mark_context_stale();
             return Err(GuardError::CommandNotAuthorized("context_age_exceeds_policy"));
         }
         if command.clock_uncertainty_ns > self.freshness_policy.max_clock_uncertainty_ns {
+            self.mark_context_stale();
             return Err(GuardError::CommandNotAuthorized("clock_uncertainty_exceeds_policy"));
         }
         let current = self
@@ -492,6 +494,30 @@ mod tests {
         uncertain_clock.clock_uncertainty_ns = 11;
         assert!(m.authorize(&uncertain_clock).is_err());
         assert_eq!(m.authorize(&command(B, A)), Ok(()));
+    }
+
+    #[test]
+    fn observed_context_expiry_latches_safe_stale_state() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        qualify(&mut m, B, A).expect("qualify");
+        let mut expired = command(B, A);
+        expired.context_age_ns = 101;
+        assert!(m.authorize(&expired).is_err());
+        assert_eq!(*m.state(), State::ContextStale);
+        assert!(m.authorize(&command(B, A)).is_err());
+    }
+
+    #[test]
+    fn observed_clock_uncertainty_latches_safe_stale_state() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        qualify(&mut m, B, A).expect("qualify");
+        let mut uncertain = command(B, A);
+        uncertain.clock_uncertainty_ns = 11;
+        assert!(m.authorize(&uncertain).is_err());
+        assert_eq!(*m.state(), State::ContextStale);
+        assert!(m.authorize(&command(B, A)).is_err());
     }
 
     #[test]
