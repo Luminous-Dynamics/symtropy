@@ -775,6 +775,63 @@ mod tests {
         );
     }
 
+    fn assert_schema_covers_instance(schema: &Value, instance: &Value, path: &str) {
+        if schema["type"] == "object" {
+            let properties = schema["properties"]
+                .as_object()
+                .unwrap_or_else(|| panic!("{path}: schema object has no properties"));
+            let object = instance
+                .as_object()
+                .unwrap_or_else(|| panic!("{path}: instance is not an object"));
+            for required in schema["required"].as_array().into_iter().flatten() {
+                let key = required.as_str().expect("required field name");
+                assert!(object.contains_key(key), "{path}: missing required field {key}");
+            }
+            for (key, value) in object {
+                let child_schema = properties
+                    .get(key)
+                    .unwrap_or_else(|| panic!("{path}: field {key} is absent from schema"));
+                assert_schema_covers_instance(child_schema, value, &format!("{path}/{key}"));
+            }
+        } else if schema["type"] == "array" {
+            let items = schema["items"]
+                .as_object()
+                .map(|_| &schema["items"])
+                .unwrap_or_else(|| panic!("{path}: array schema has no item schema"));
+            for (index, value) in instance
+                .as_array()
+                .unwrap_or_else(|| panic!("{path}: instance is not an array"))
+                .iter()
+                .enumerate()
+            {
+                assert_schema_covers_instance(items, value, &format!("{path}/{index}"));
+            }
+        }
+    }
+
+    #[test]
+    fn published_schemas_cover_every_rust_deserialized_field() {
+        let manifest_schema: Value =
+            serde_json::from_str(MANIFEST_SCHEMA).expect("manifest schema JSON");
+        let policy_schema: Value =
+            serde_json::from_str(POLICY_SCHEMA).expect("trusted policy schema JSON");
+        let manifest: Value = serde_json::from_str(VALID).expect("valid manifest JSON");
+        let policy_value: Value = serde_json::from_str(POLICY).expect("trusted policy JSON");
+
+        assert_schema_covers_instance(&manifest_schema, &manifest, "manifest");
+        assert_schema_covers_instance(&policy_schema, &policy_value, "trusted_policy");
+
+        let export_required = manifest_schema["properties"]["export"]["required"]
+            .as_array()
+            .expect("export required array");
+        for field in ["source_model_id", "source_model_revision", "source_model_sha256"] {
+            assert!(
+                export_required.iter().any(|value| value == field),
+                "export schema must require Rust field {field}"
+            );
+        }
+    }
+
     #[test]
     fn matched_manifest_is_admissible_for_named_input_only() {
         let result = evaluate_manifest(VALID, &policy()).expect("valid fixture");
