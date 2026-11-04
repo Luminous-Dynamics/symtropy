@@ -45,6 +45,7 @@ fn policy() -> SplitPolicy {
             LeakageDimension::PhysicalEvent,
             LeakageDimension::CaptureSession,
         ]),
+        shared_dimensions: BTreeSet::from([LeakageDimension::Network]),
     }
 }
 
@@ -73,10 +74,41 @@ fn cross_network_protocol_rejects_a_shared_network() {
     cross_network
         .exclusive_dimensions
         .insert(LeakageDimension::Network);
+    cross_network
+        .shared_dimensions
+        .remove(&LeakageDimension::Network);
     let error =
         audit_benchmark_split(&valid_samples(), &cross_network).expect_err("network overlap");
     assert_eq!(error.code, "cross_partition_group_overlap");
     assert_eq!(error.subject, "network=net-1");
+}
+
+
+#[test]
+fn within_network_protocol_requires_one_common_network_in_all_partitions() {
+    let mut samples = valid_samples();
+    if let Some(network) = samples[3]
+        .leakage_groups
+        .iter_mut()
+        .find(|group| group.dimension == LeakageDimension::Network)
+    {
+        network.value = "net-2".to_owned();
+    }
+    let error = audit_benchmark_split(&samples, &policy())
+        .expect_err("within-network split requires a common network");
+    assert_eq!(error.code, "no_common_group_across_partitions");
+    assert_eq!(error.subject, "network");
+}
+
+#[test]
+fn a_dimension_cannot_be_both_shared_and_exclusive() {
+    let mut invalid_policy = policy();
+    invalid_policy
+        .exclusive_dimensions
+        .insert(LeakageDimension::Network);
+    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
+        .expect_err("policy dimension conflict");
+    assert_eq!(error.code, "overlapping_policy_dimensions");
 }
 
 #[test]
@@ -163,6 +195,7 @@ fn empty_policy_cannot_claim_an_audited_protocol() {
     let empty_policy = SplitPolicy {
         protocol_id: "unconstrained".to_owned(),
         exclusive_dimensions: BTreeSet::new(),
+        shared_dimensions: BTreeSet::new(),
     };
     let error =
         audit_benchmark_split(&valid_samples(), &empty_policy).expect_err("empty policy");
@@ -183,7 +216,7 @@ fn canonical_report_is_invariant_to_sample_order() {
 #[test]
 fn digest_comparison_is_case_insensitive() {
     let mut samples = valid_samples();
-    let source_hex = &samples[0].content_digest["sha256:".len()..];
+    let source_hex = samples[0].content_digest["sha256:".len()..].to_owned();
     samples[3].content_digest = format!("sha256:{}", source_hex.to_ascii_uppercase());
     let error = audit_benchmark_split(&samples, &policy()).expect_err("same digest");
     assert_eq!(error.code, "duplicate_content_digest");
