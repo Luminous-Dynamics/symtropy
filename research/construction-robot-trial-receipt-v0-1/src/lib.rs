@@ -54,9 +54,7 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
     let evidence_rank_value = evidence_class.and_then(evidence_rank);
     let ceiling_rank_value = claim_ceiling.and_then(evidence_rank);
 
-    if let (Some(class_rank), Some(ceiling_rank)) =
-        (evidence_rank_value, ceiling_rank_value)
-    {
+    if let (Some(class_rank), Some(ceiling_rank)) = (evidence_rank_value, ceiling_rank_value) {
         if ceiling_rank > class_rank {
             errors.push("claim_ceiling_exceeds_evidence_class".to_owned());
         }
@@ -89,9 +87,7 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
             .and_then(|value| value.get("instruments"))
             .and_then(Value::as_array);
 
-        if let (Some(start_ns), Some(end_ns), Some(instruments)) =
-            (start_ns, end_ns, instruments)
-        {
+        if let (Some(start_ns), Some(end_ns), Some(instruments)) = (start_ns, end_ns, instruments) {
             for instrument in instruments {
                 let instrument_id = instrument
                     .get("instrument_id")
@@ -113,9 +109,15 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
         }
 
         let sample = receipt.get("sample_plan");
-        let total = sample.and_then(|v| v.get("total_encounters")).and_then(Value::as_u64);
-        let valid = sample.and_then(|v| v.get("valid_encounters")).and_then(Value::as_u64);
-        let excluded = sample.and_then(|v| v.get("excluded_encounters")).and_then(Value::as_u64);
+        let total = sample
+            .and_then(|v| v.get("total_encounters"))
+            .and_then(Value::as_u64);
+        let valid = sample
+            .and_then(|v| v.get("valid_encounters"))
+            .and_then(Value::as_u64);
+        let excluded = sample
+            .and_then(|v| v.get("excluded_encounters"))
+            .and_then(Value::as_u64);
         let independent = sample
             .and_then(|v| v.get("independent_encounters"))
             .and_then(Value::as_u64);
@@ -230,9 +232,7 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
         }
     }
 
-    if string_at(receipt, &["claim", "evidence_class"])
-        == Some("independently_adjudicated")
-    {
+    if string_at(receipt, &["claim", "evidence_class"]) == Some("independently_adjudicated") {
         let adjudication = receipt.get("adjudication");
         let review_is_independent = adjudication
             .and_then(|v| v.get("independent_review"))
@@ -247,9 +247,7 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
             .and_then(|v| v.get("decision"))
             .and_then(Value::as_str);
         let aligned = match result {
-            "measured_within_declared_criterion" => {
-                decision == Some("accepted_within_scope")
-            }
+            "measured_within_declared_criterion" => decision == Some("accepted_within_scope"),
             "measured_outside_declared_criterion" => decision == Some("rejected"),
             _ => true,
         };
@@ -363,7 +361,10 @@ mod tests {
             .collect::<Vec<_>>();
         paths.sort();
 
-        assert!(!paths.is_empty(), "adversarial fixture corpus must not be empty");
+        assert!(
+            !paths.is_empty(),
+            "adversarial fixture corpus must not be empty"
+        );
         for path in paths {
             let receipt = read_json(&path).expect("invalid fixture must still be valid JSON");
             let errors = validate_receipt(&schema, &receipt);
@@ -387,32 +388,40 @@ mod tests {
     #[test]
     fn claim_ceiling_cannot_be_promoted_above_evidence_class() {
         let receipt = fixture("fixtures/invalid/claim-ceiling-exceeds-evidence.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "claim_ceiling_exceeds_evidence_class"));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error == "claim_ceiling_exceeds_evidence_class")
+        );
     }
 
     #[test]
     fn reference_calibration_must_cover_entire_trial() {
         let receipt = fixture("fixtures/invalid/expired-reference-calibration.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error.starts_with("reference_calibration_does_not_cover_trial:")));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error.starts_with("reference_calibration_does_not_cover_trial:"))
+        );
     }
 
     #[test]
     fn shared_fault_domain_prevents_independent_reference_claim() {
         let receipt = fixture("fixtures/invalid/shared-reference-fault-domain.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "measured_result_reference_not_independent"));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error == "measured_result_reference_not_independent")
+        );
     }
 
     #[test]
     fn blind_challenge_requires_custody_and_output_commitment() {
         let receipt = fixture("fixtures/invalid/blind-challenge-without-custodian.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "blind_challenge_custody_or_output_commitment_missing"));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error == "blind_challenge_custody_or_output_commitment_missing")
+        );
     }
 }
