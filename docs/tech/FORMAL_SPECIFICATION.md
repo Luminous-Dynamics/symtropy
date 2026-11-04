@@ -156,7 +156,7 @@ Recovery requires another conscious agent `j` with:
 
 On recovery: `E_i = 0.1 × E_max` (enough to regain consciousness, not full charge).
 
-## 5. Thermodynamic Closure
+## 5. Energy Accounting and Thermodynamic References
 
 ### 5.1 Current Ledger Scope and System Boundary
 
