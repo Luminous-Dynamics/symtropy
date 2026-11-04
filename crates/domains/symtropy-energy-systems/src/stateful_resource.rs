@@ -901,6 +901,17 @@ mod tests {
     }
 
     #[test]
+    fn rejects_storage_discharge_power_limit_violations() {
+        let trajectory = StatefulResourceTrajectory::new(
+            contract(90.0, 25.0, 32.0, 1.0),
+            vec![slot("s1", 10_000, 900, 10.0, 20.0, 5.0, 0.0, 0.0, 60.0, 20.0, 25.0, 25.0)],
+        ).unwrap();
+        let report = verify_stateful_resource_trajectory(&trajectory).unwrap();
+        assert!(!report.passed);
+        assert!(!report.slot_receipts[0].storage_power_limits_passed);
+    }
+
+    #[test]
     fn rejects_storage_capacity_overflow() {
         let trajectory = StatefulResourceTrajectory::new(
             contract(99.0, 25.0, 32.0, 1.0),
@@ -927,6 +938,17 @@ mod tests {
         let trajectory = StatefulResourceTrajectory::new(
             contract(90.0, 25.0, 32.0, 1.0),
             vec![slot("s1", 10_000, 900, 10.0, 20.0, 1.0, 0.0, 0.0, 0.0, 20.0, 25.0, 25.0)],
+        ).unwrap();
+        let report = verify_stateful_resource_trajectory(&trajectory).unwrap();
+        assert!(!report.passed);
+        assert!(!report.slot_receipts[0].cooling_cop_passed);
+    }
+
+    #[test]
+    fn rejects_thermal_extraction_without_electrical_input() {
+        let trajectory = StatefulResourceTrajectory::new(
+            contract(90.0, 25.0, 32.0, 1.0),
+            vec![slot("s1", 10_000, 900, 10.0, 20.0, 0.0, 0.0, 0.0, 0.0, 20.0, 25.0, 25.0)],
         ).unwrap();
         let report = verify_stateful_resource_trajectory(&trajectory).unwrap();
         assert!(!report.passed);
