@@ -28,7 +28,7 @@ fn emit(fields: Vec<String>) {
 
 fn main() {
     println!(
-        "record_type,risk,policy,mean_contribution,total_contribution,target_reached,overshoot,shortfall,per_seat_expected_welfare,group_expected_welfare,payoff_gini,optimality_gap,partner_policy,best_response_total,best_response_payoff,candidates_examined"
+        "record_type,risk,policy,mean_contribution,total_contribution,target_reached,overshoot,shortfall,per_seat_expected_welfare,group_expected_welfare,payoff_gini,optimality_gap,partner_policy,focal_contribution,best_response_payoff,candidates_examined"
     );
 
     for risk in RISK_GRID {
@@ -100,7 +100,7 @@ fn main() {
                 fmt(risk),
                 "exact_enumeration".into(),
                 String::new(),
-                response.total_contribution.to_string(),
+                response.outcome.total_contribution.to_string(),
                 response.outcome.target_reached.to_string(),
                 response.outcome.overshoot.to_string(),
                 response.outcome.shortfall.to_string(),
