@@ -33,7 +33,29 @@ jobs:
           git diff --exit-code -- research/civbench-event-evaluator/Cargo.lock
 
       - name: Check formatting
+        id: fmt
+        continue-on-error: true
         run: cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all -- --check
+
+      - name: Export rustfmt diagnostic source
+        if: steps.fmt.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/civbench-event-evaluator/Cargo.toml --all
+          mkdir -p /tmp/civbench-event-evaluator-rustfmt
+          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs
+          cp research/civbench-event-evaluator/src/lib.rs /tmp/civbench-event-evaluator-rustfmt/lib.rs.formatted
+          git diff --no-ext-diff --unified=3 -- research/civbench-event-evaluator/src/lib.rs > /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+          test -s /tmp/civbench-event-evaluator-rustfmt/rustfmt.diff
+
+      - name: Upload rustfmt diagnostic source
+        if: steps.fmt.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: civbench-event-evaluator-rustfmt
+          path: /tmp/civbench-event-evaluator-rustfmt/
+          if-no-files-found: error
 
       - name: Check all targets
         run: cargo check --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --all-targets
@@ -46,3 +68,9 @@ jobs:
 
       - name: Build documentation
         run: cargo doc --locked --manifest-path research/civbench-event-evaluator/Cargo.toml --no-deps
+
+      - name: Require formatting to be committed
+        if: steps.fmt.outcome == 'failure'
+        run: |
+          echo "The rustfmt diagnostic artifact is review-only; commit the formatted source and rerun."
+          exit 1
