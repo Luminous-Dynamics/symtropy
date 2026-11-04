@@ -11,8 +11,7 @@ use crate::integrity::sha256_hex;
 use crate::interval_calibration::DomainStatus;
 
 pub const MULTIVARIATE_VALIDATION_SCHEMA: &str = "aero-multivariate-validation/0.1.0";
-pub const MULTIVARIATE_VALIDATION_EVIDENCE_LEVEL: &str =
-    "covariance_aware_joint_discrepancy_diagnostic_only_no_distributional_coverage_or_acceptance_claim";
+pub const MULTIVARIATE_VALIDATION_EVIDENCE_LEVEL: &str = "covariance_aware_joint_discrepancy_diagnostic_only_no_distributional_coverage_or_acceptance_claim";
 const SYMMETRY_TOLERANCE: f64 = 1.0e-10;
 const DIAGONAL_TOLERANCE: f64 = 1.0e-10;
 const CHOLESKY_PIVOT_TOLERANCE: f64 = 1.0e-12;
@@ -367,14 +366,20 @@ pub fn evaluate_joint_validation(
                 (output.predicted_value - output.observed_value) / output.standard_uncertainty
             })
             .collect();
-        if standardized_residuals.iter().any(|value| !value.is_finite()) {
+        if standardized_residuals
+            .iter()
+            .any(|value| !value.is_finite())
+        {
             return Err(format!(
                 "observation {} standardized residual is non-finite",
                 observation.observation_id
             ));
         }
         let whitened_residuals = solve_lower(&lower, &standardized_residuals)?;
-        let mahalanobis_squared = whitened_residuals.iter().map(|value| value * value).sum::<f64>();
+        let mahalanobis_squared = whitened_residuals
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>();
         let mahalanobis_distance = mahalanobis_squared.sqrt();
         if !mahalanobis_squared.is_finite() || !mahalanobis_distance.is_finite() {
             return Err(format!(
@@ -441,7 +446,9 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
         return Err("joint validation evidence level is not diagnostic-only".to_owned());
     }
     if report.output_schema.is_empty() || report.observations.is_empty() {
-        return Err("joint validation report must contain an output schema and observations".to_owned());
+        return Err(
+            "joint validation report must contain an output schema and observations".to_owned(),
+        );
     }
     let mut unique = BTreeSet::new();
     for row in &report.observations {
@@ -480,7 +487,10 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
             })
             .collect();
         let expected_whitened = solve_lower(&lower, &expected_standardized)?;
-        let expected_squared = expected_whitened.iter().map(|value| value * value).sum::<f64>();
+        let expected_squared = expected_whitened
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>();
         if !vectors_close(&row.standardized_residuals, &expected_standardized)
             || !vectors_close(&row.whitened_residuals, &expected_whitened)
             || !close(row.mahalanobis_squared, expected_squared)
@@ -498,9 +508,17 @@ pub fn verify_joint_validation_report(report: &JointValidationReport) -> Result<
         .filter(|row| row.observation.domain_status == DomainStatus::InDomain)
         .count();
     let out_domain = report.observations.len() - in_domain;
-    let mean = report.observations.iter().map(|row| row.mahalanobis_squared).sum::<f64>()
+    let mean = report
+        .observations
+        .iter()
+        .map(|row| row.mahalanobis_squared)
+        .sum::<f64>()
         / report.observations.len() as f64;
-    let maximum = report.observations.iter().map(|row| row.mahalanobis_squared).fold(0.0_f64, f64::max);
+    let maximum = report
+        .observations
+        .iter()
+        .map(|row| row.mahalanobis_squared)
+        .fold(0.0_f64, f64::max);
     if in_domain != report.in_domain_observation_count
         || out_domain != report.out_of_domain_observation_count
         || !close(mean, report.mean_mahalanobis_squared)
@@ -535,11 +553,19 @@ fn csv_escape(value: &str) -> String {
 }
 
 fn csv_row(values: &[String]) -> String {
-    values.iter().map(|value| csv_escape(value)).collect::<Vec<_>>().join(",")
+    values
+        .iter()
+        .map(|value| csv_escape(value))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn number_list(values: &[f64]) -> String {
-    values.iter().map(ToString::to_string).collect::<Vec<_>>().join(";")
+    values
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(";")
 }
 
 /// One row per output, with repeated identities and one correlation row for independent replay.
@@ -626,7 +652,11 @@ pub fn joint_validation_report_to_csv(report: &JointValidationReport) -> Result<
 mod tests {
     use super::*;
 
-    fn observation(id: &str, domain_status: DomainStatus, correlation: f64) -> JointValidationObservation {
+    fn observation(
+        id: &str,
+        domain_status: DomainStatus,
+        correlation: f64,
+    ) -> JointValidationObservation {
         JointValidationObservation {
             observation_id: id.to_owned(),
             geometry_family: "OAT15A".to_owned(),
@@ -695,22 +725,29 @@ mod tests {
         );
         assert!((independent_row.mahalanobis_squared - 2.0).abs() < 1.0e-12);
         assert!((correlated_row.mahalanobis_squared - 4.0 / 3.0).abs() < 1.0e-12);
-        assert_ne!(independent_row.observation_sha256, correlated_row.observation_sha256);
+        assert_ne!(
+            independent_row.observation_sha256,
+            correlated_row.observation_sha256
+        );
     }
 
     #[test]
     fn blind_split_and_exact_output_order_are_required() {
         let mut not_blind = study(0.0);
         not_blind.observations[0].dataset_split = "calibration".to_owned();
-        assert!(evaluate_joint_validation(&not_blind)
-            .unwrap_err()
-            .contains("blind_confirmation"));
+        assert!(
+            evaluate_joint_validation(&not_blind)
+                .unwrap_err()
+                .contains("blind_confirmation")
+        );
 
         let mut reordered = study(0.0);
         reordered.observations[1].outputs.reverse();
-        assert!(evaluate_joint_validation(&reordered)
-            .unwrap_err()
-            .contains("frozen quantity/unit order"));
+        assert!(
+            evaluate_joint_validation(&reordered)
+                .unwrap_err()
+                .contains("frozen quantity/unit order")
+        );
     }
 
     #[test]
@@ -731,10 +768,14 @@ mod tests {
         let report = evaluate_joint_validation(&study(0.25)).unwrap();
         verify_joint_validation_report(&report).unwrap();
         let mut tampered = report.clone();
-        tampered.observations[0].observation.uncertainty_source_sha256 = "b".repeat(64);
-        assert!(verify_joint_validation_report(&tampered)
-            .unwrap_err()
-            .contains("observation"));
+        tampered.observations[0]
+            .observation
+            .uncertainty_source_sha256 = "b".repeat(64);
+        assert!(
+            verify_joint_validation_report(&tampered)
+                .unwrap_err()
+                .contains("observation")
+        );
     }
 
     #[cfg(unix)]
@@ -774,7 +815,10 @@ mod tests {
             .arg(&csv_path)
             .output()
             .expect("execute oracle against tampered row");
-        assert!(!tampered.status.success(), "tampered prediction must be rejected");
+        assert!(
+            !tampered.status.success(),
+            "tampered prediction must be rejected"
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }
