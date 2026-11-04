@@ -36,7 +36,9 @@ pub struct AllocationProblem {
 impl AllocationProblem {
     pub fn validate(&self) -> Result<(), AllocationError> {
         if self.recipients.len() < 2 || self.recipients.len() > MAX_RECIPIENTS {
-            return Err(AllocationError::InvalidRecipientCount(self.recipients.len()));
+            return Err(AllocationError::InvalidRecipientCount(
+                self.recipients.len(),
+            ));
         }
         let mut ids = BTreeSet::new();
         let mut minimum_total = 0_u32;
@@ -61,8 +63,14 @@ impl AllocationProblem {
                 });
             }
             for (field, value) in [
-                ("verified_return_per_unit", recipient.verified_return_per_unit),
-                ("asserted_return_per_unit", recipient.asserted_return_per_unit),
+                (
+                    "verified_return_per_unit",
+                    recipient.verified_return_per_unit,
+                ),
+                (
+                    "asserted_return_per_unit",
+                    recipient.asserted_return_per_unit,
+                ),
             ] {
                 if !value.is_finite() || value < 0.0 {
                     return Err(AllocationError::InvalidReturn {
@@ -160,21 +168,41 @@ pub enum AllocationError {
     InvalidRecipientCount(usize),
     EmptyRecipientId,
     DuplicateRecipientId(String),
-    FloorExceedsCapacity { recipient: String },
-    ZeroUsefulCapacity { recipient: String },
+    FloorExceedsCapacity {
+        recipient: String,
+    },
+    ZeroUsefulCapacity {
+        recipient: String,
+    },
     InvalidReturn {
         recipient: String,
         field: &'static str,
         value: f64,
     },
-    InfeasibleEssentialFloors { minimum_total: u32, budget: u32 },
-    BudgetExceedsUsefulCapacity { budget: u32, capacity_total: u32 },
+    InfeasibleEssentialFloors {
+        minimum_total: u32,
+        budget: u32,
+    },
+    BudgetExceedsUsefulCapacity {
+        budget: u32,
+        capacity_total: u32,
+    },
     ArithmeticOverflow,
-    SearchBudgetExceeded { limit: usize },
+    SearchBudgetExceeded {
+        limit: usize,
+    },
     AggregateReturnOverflow,
-    InvalidAllocationLength { expected: usize, actual: usize },
-    AllocationExceedsCapacity { recipient: String },
-    AllocationDoesNotExhaustBudget { budget: u32, allocated: u32 },
+    InvalidAllocationLength {
+        expected: usize,
+        actual: usize,
+    },
+    AllocationExceedsCapacity {
+        recipient: String,
+    },
+    AllocationDoesNotExhaustBudget {
+        budget: u32,
+        allocated: u32,
+    },
 }
 
 impl fmt::Display for AllocationError {
@@ -192,23 +220,42 @@ impl fmt::Display for AllocationError {
             Self::ZeroUsefulCapacity { recipient } => {
                 write!(f, "useful capacity must be positive for {recipient}")
             }
-            Self::InvalidReturn { recipient, field, value } => {
-                write!(f, "{recipient}.{field} must be finite and non-negative, got {value}")
+            Self::InvalidReturn {
+                recipient,
+                field,
+                value,
+            } => {
+                write!(
+                    f,
+                    "{recipient}.{field} must be finite and non-negative, got {value}"
+                )
             }
-            Self::InfeasibleEssentialFloors { minimum_total, budget } => write!(
+            Self::InfeasibleEssentialFloors {
+                minimum_total,
+                budget,
+            } => write!(
                 f,
                 "essential floors require {minimum_total} units, exceeding budget {budget}"
             ),
-            Self::BudgetExceedsUsefulCapacity { budget, capacity_total } => write!(
+            Self::BudgetExceedsUsefulCapacity {
+                budget,
+                capacity_total,
+            } => write!(
                 f,
                 "budget {budget} exceeds total useful capacity {capacity_total}"
             ),
             Self::ArithmeticOverflow => write!(f, "allocation arithmetic overflow"),
             Self::SearchBudgetExceeded { limit } => {
-                write!(f, "exact allocation enumeration exceeded {limit} candidates")
+                write!(
+                    f,
+                    "exact allocation enumeration exceeded {limit} candidates"
+                )
             }
             Self::AggregateReturnOverflow => {
-                write!(f, "aggregate verified or asserted return exceeds finite f64 range")
+                write!(
+                    f,
+                    "aggregate verified or asserted return exceeds finite f64 range"
+                )
             }
             Self::InvalidAllocationLength { expected, actual } => {
                 write!(f, "expected {expected} allocations, got {actual}")
@@ -299,8 +346,9 @@ pub fn allocate(
     for candidate in candidates {
         let replace = match &best {
             None => true,
-            Some(current) => compare_candidates(problem, policy, &candidate, current)
-                == Ordering::Greater,
+            Some(current) => {
+                compare_candidates(problem, policy, &candidate, current) == Ordering::Greater
+            },
         };
         if replace {
             best = Some(candidate);
@@ -319,7 +367,10 @@ pub fn pareto_frontier(
             .total_verified_return
             .total_cmp(&left.total_verified_return)
             .then_with(|| right.minimum_coverage.total_cmp(&left.minimum_coverage))
-            .then_with(|| canonical_key(problem, &left.allocations).cmp(&canonical_key(problem, &right.allocations)))
+            .then_with(|| {
+                canonical_key(problem, &left.allocations)
+                    .cmp(&canonical_key(problem, &right.allocations))
+            })
     });
 
     let mut frontier = Vec::new();
@@ -365,7 +416,11 @@ fn enumerate_recursive(
     }
     if index + 1 == problem.recipients.len() {
         let recipient = &problem.recipients[index];
-        let floor = if respect_floors { recipient.essential_floor } else { 0 };
+        let floor = if respect_floors {
+            recipient.essential_floor
+        } else {
+            0
+        };
         if remaining < floor || remaining > recipient.useful_capacity {
             return Ok(());
         }
@@ -375,17 +430,29 @@ fn enumerate_recursive(
     }
 
     let recipient = &problem.recipients[index];
-    let floor = if respect_floors { recipient.essential_floor } else { 0 };
+    let floor = if respect_floors {
+        recipient.essential_floor
+    } else {
+        0
+    };
     let remaining_capacity_after = problem.recipients[index + 1..]
         .iter()
         .map(|next| next.useful_capacity)
         .sum::<u32>();
-    let max_for_current = recipient.useful_capacity.min(remaining.saturating_sub(
-        problem.recipients[index + 1..]
-            .iter()
-            .map(|next| if respect_floors { next.essential_floor } else { 0 })
-            .sum::<u32>(),
-    ));
+    let max_for_current = recipient.useful_capacity.min(
+        remaining.saturating_sub(
+            problem.recipients[index + 1..]
+                .iter()
+                .map(|next| {
+                    if respect_floors {
+                        next.essential_floor
+                    } else {
+                        0
+                    }
+                })
+                .sum::<u32>(),
+        ),
+    );
 
     if remaining_capacity_after == 0 && remaining > max_for_current {
         return Ok(());
@@ -415,27 +482,27 @@ fn compare_candidates(
     right: &AllocationResult,
 ) -> Ordering {
     let primary = match policy {
-        AllocationPolicy::VerifiedUtilitarian | AllocationPolicy::FloorBlindUtilitarian => {
-            left.total_verified_return.total_cmp(&right.total_verified_return)
-        }
+        AllocationPolicy::VerifiedUtilitarian | AllocationPolicy::FloorBlindUtilitarian => left
+            .total_verified_return
+            .total_cmp(&right.total_verified_return),
         AllocationPolicy::MaxMinCoverage => {
             left.minimum_coverage.total_cmp(&right.minimum_coverage)
         }
-        AllocationPolicy::LeximinCoverage => {
-            compare_leximin(&left.coverage, &right.coverage)
-        }
+        AllocationPolicy::LeximinCoverage => compare_leximin(&left.coverage, &right.coverage),
         AllocationPolicy::EqualCoverage => {
             right.coverage_variance.total_cmp(&left.coverage_variance)
         }
-        AllocationPolicy::PersuasionSusceptibleUtilitarian => {
-            left.total_asserted_return.total_cmp(&right.total_asserted_return)
-        }
+        AllocationPolicy::PersuasionSusceptibleUtilitarian => left
+            .total_asserted_return
+            .total_cmp(&right.total_asserted_return),
     };
     if primary != Ordering::Equal {
         return primary;
     }
 
-    let verified = left.total_verified_return.total_cmp(&right.total_verified_return);
+    let verified = left
+        .total_verified_return
+        .total_cmp(&right.total_verified_return);
     if verified != Ordering::Equal {
         return verified;
     }
@@ -534,7 +601,10 @@ mod tests {
         }
     }
 
-    fn allocations_by_id(problem: &AllocationProblem, result: &AllocationResult) -> Vec<(String, u32)> {
+    fn allocations_by_id(
+        problem: &AllocationProblem,
+        result: &AllocationResult,
+    ) -> Vec<(String, u32)> {
         canonical_key(problem, &result.allocations)
     }
 
@@ -599,7 +669,11 @@ mod tests {
         let frontier = pareto_frontier(&problem()).unwrap();
         assert!(frontier.len() >= 2);
         assert!(frontier.iter().any(|point| point.gini_coverage < 1e-12));
-        assert!(frontier.iter().any(|point| point.total_verified_return > 0.0));
+        assert!(
+            frontier
+                .iter()
+                .any(|point| point.total_verified_return > 0.0)
+        );
     }
 
     #[test]
