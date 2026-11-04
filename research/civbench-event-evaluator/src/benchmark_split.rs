@@ -603,16 +603,23 @@ mod tests {
     #[test]
     fn scenario_template_reuse_across_partitions_fails_closed() {
         let mut samples = valid_samples();
+        let train_template = samples[0]
+            .leakage_groups
+            .iter()
+            .find(|group| group.dimension == LeakageDimension::ScenarioTemplate)
+            .expect("train scenario template")
+            .value
+            .clone();
         samples[3]
             .leakage_groups
             .iter_mut()
             .find(|group| group.dimension == LeakageDimension::ScenarioTemplate)
-            .expect("scenario template")
-            .value = "template-train".to_owned();
+            .expect("test scenario template")
+            .value = train_template.clone();
         let error =
             audit_benchmark_split(&samples, &event_session_policy()).expect_err("template reuse");
         assert_eq!(error.code, "cross_partition_group_overlap");
-        assert_eq!(error.subject, "scenario_template=template-train");
+        assert_eq!(error.subject, format!("scenario_template={train_template}"));
     }
 
     #[test]
