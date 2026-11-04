@@ -956,8 +956,7 @@ mod tests {
         assert_eq!(outcome.recovery_after_ticks, Some(2));
         assert!(outcome.ticks[SHOCK_END_TICK].minimum_water_coverage >= DEFAULT_RECOVERY_THRESHOLD);
         assert!(
-            outcome.ticks[SHOCK_END_TICK + 1].minimum_energy_coverage
-                >= DEFAULT_RECOVERY_THRESHOLD
+            outcome.ticks[SHOCK_END_TICK + 1].minimum_energy_coverage >= DEFAULT_RECOVERY_THRESHOLD
         );
     }
 
