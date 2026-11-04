@@ -90,6 +90,14 @@ A 2026 Macao campus study provides another useful system-composition reference: 
 
 A reference is not a copy of an owner's source record. It binds the owner's stable record ID, version, evidence class and content digest. A digest demonstrates byte identity, not truth or physical validity.
 
+### 3.1 Receipt binding and actor-independence requirements
+
+Every referenced receipt must have an explicit owner role (event_evaluator, acquisition_planner, human_authority, resource_ledger, repair_workflow, independent_verifier, service_outcome, or paired_outcome) and bind the same decision_episode_id and paired_block_id. Receipt IDs are unique across roles within one decision episode; a workflow receipt cannot be reused as an independent-verification receipt. Each binding carries a declared SHA-256 digest of the receipt payload. This adapter checks digest syntax, non-zero value, owner role, reference identity and context equality; it does **not** fetch or authenticate payload bytes, verify issuer signatures, or prove the issuer's authority.
+
+Every human disposition carries an owner-issued authority receipt and opaque actor reference. Work progress carries an executor principal reference. Independently verified work carries a separate verifier principal reference that must differ from the executor. Identity references are opaque synthetic/provider IDs at this layer; Mycelix and the originating authority/verification systems remain responsible for identity proof, role validity, conflict-of-interest policy and source-dependency checks.
+
+Resource feasibility and resource settlement are separate facts. The composition validator requires reserved while work is planned/in progress, settled after a repair claim or verification, released after cancellation, rejected after a denied reservation, and not_attempted when no feasibility check was made. These are cross-record consistency checks only: the source ledger's authoritative state remains authoritative.
+
 ## 4. Composition record
 
 One `decision_episode_id` is bound to exactly one paired scenario block and the exact time-bounded evidence snapshot visible at the decision point.
