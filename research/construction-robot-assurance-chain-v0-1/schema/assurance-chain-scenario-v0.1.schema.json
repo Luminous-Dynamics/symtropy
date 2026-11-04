@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:construction-robot-assurance-chain:0.1",
+  "title": "Construction Robot End-to-End Assurance Chain Scenario",
+  "description": "Frozen scenario definition for handoff-conformance tests. This schema declares expected stage outcomes; it does not execute robots or validate physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "scenario_sha256",
+    "task_binding",
+    "stages",
+    "command_attempts",
+    "claim_expectations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-robot-assurance-chain/0.1"
+    },
+    "scenario_id": {
+      "$ref": "#/$defs/id"
+    },
+    "scenario_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "task_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "site_id",
+        "work_package_revision",
+        "task_scope",
+        "work_zone_id",
+        "robot_configuration_sha256",
+        "initial_worksite_epoch_sha256",
+        "timebase_id"
+      ],
+      "properties": {
+        "project_id": {
+          "$ref": "#/$defs/id"
+        },
+        "site_id": {
+          "$ref": "#/$defs/id"
+        },
+        "work_package_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "task_scope": {
+          "$ref": "#/$defs/id"
+        },
+        "work_zone_id": {
+          "$ref": "#/$defs/id"
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "initial_worksite_epoch_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "timebase_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stage_id",
+          "stage_kind",
+          "sequence",
+          "predecessor_stage_ids",
+          "consumed_artifacts",
+          "produced_artifacts",
+          "expected_disposition",
+          "expected_reason_codes"
+        ],
+        "properties": {
+          "stage_id": {
+            "$ref": "#/$defs/id"
+          },
+          "stage_kind": {
+            "enum": [
+              "layout_input_admission",
+              "observation_evaluation",
+              "worksite_epoch_transition",
+              "qualification_lease",
+              "command_authorization",
+              "physical_outcome_receipt",
+              "claim_admissibility"
+            ]
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "predecessor_stage_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "consumed_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "role"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "$ref": "#/$defs/id"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "role": {
+                  "$ref": "#/$defs/id"
+                }
+              }
+            }
+          },
+          "produced_artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "scope"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "$ref": "#/$defs/id"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/sha256"
+                },
+                "scope": {
+                  "enum": [
+                    "synthetic_contract",
+                    "bench",
+                    "hardware_in_loop",
+                    "field",
+                    "not_evaluated"
+                  ]
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "admissible_for_named_layout_input",
+              "inadmissible",
+              "indeterminate",
+              "not_evaluated",
+              "verified_clear",
+              "occupied_or_changed",
+              "unknown_or_unobserved",
+              "conflicting",
+              "requalification_required",
+              "active",
+              "safe_hold",
+              "aborted",
+              "authorized",
+              "rejected"
+            ]
+          },
+          "expected_reason_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      }
+    },
+    "command_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command_id",
+          "sequence",
+          "epoch_sha256",
+          "configuration_sha256",
+          "task_scope",
+          "timebase_id",
+          "qualification_generation",
+          "lease_valid_at_command",
+          "expected_authorized",
+          "expected_reason_codes"
+        ],
+        "properties": {
+          "command_id": {
+            "$ref": "#/$defs/id"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "configuration_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "task_scope": {
+            "$ref": "#/$defs/id"
+          },
+          "timebase_id": {
+            "$ref": "#/$defs/id"
+          },
+          "qualification_generation": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lease_valid_at_command": {
+            "type": "boolean"
+          },
+          "expected_authorized": {
+            "type": "boolean"
+          },
+          "expected_reason_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      }
+    },
+    "claim_expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id",
+          "claim_kind",
+          "evidence_origin",
+          "intended_scope",
+          "expected_decision",
+          "supporting_stage_ids"
+        ],
+        "properties": {
+          "claim_id": {
+            "$ref": "#/$defs/id"
+          },
+          "claim_kind": {
+            "enum": [
+              "synthetic_contract_behavior",
+              "bench_stopping_distance",
+              "hil_protective_stop_behavior",
+              "field_human_detection",
+              "field_task_quality",
+              "field_productivity",
+              "cross_site_generalization"
+            ]
+          },
+          "evidence_origin": {
+            "enum": [
+              "synthetic",
+              "simulated",
+              "bench_measured",
+              "hardware_in_loop",
+              "field_observed"
+            ]
+          },
+          "intended_scope": {
+            "enum": [
+              "synthetic_contract",
+              "bench",
+              "hardware_in_loop",
+              "field",
+              "cross_site"
+            ]
+          },
+          "expected_decision": {
+            "enum": [
+              "admissible_for_named_claim",
+              "inadmissible_for_named_claim",
+              "indeterminate",
+              "not_evaluated"
+            ]
+          },
+          "supporting_stage_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      }
+    },
+    "statistical_units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "unit_kind",
+          "site_cluster_id",
+          "shift_cluster_id",
+          "robot_cluster_id",
+          "independent_event"
+        ],
+        "properties": {
+          "unit_id": {
+            "$ref": "#/$defs/id"
+          },
+          "unit_kind": {
+            "enum": [
+              "staged_context_change",
+              "independent_encounter",
+              "robot_hour",
+              "task_cycle",
+              "accepted_output",
+              "other_declared_unit"
+            ]
+          },
+          "site_cluster_id": {
+            "$ref": "#/$defs/id"
+          },
+          "shift_cluster_id": {
+            "$ref": "#/$defs/id"
+          },
+          "robot_cluster_id": {
+            "$ref": "#/$defs/id"
+          },
+          "independent_event": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
