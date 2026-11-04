@@ -111,6 +111,18 @@
     {
       "id": "philox-truncation-collision-detection",
       "expected": "same 192-bit key-counter with different 256-bit digest rejected by run registry"
+    },
+    {
+      "id": "address-kdf-length-prefix",
+      "seed_length": 32,
+      "length_encoding": "u64-little-endian",
+      "address_length": "canonical_address_byte_length",
+      "expected": "distinct-length-delimited-fields"
+    },
+    {
+      "id": "address-kdf-domain-separation",
+      "context": "Symtropy ROAD-EXO-COUPLING-001 Philox4x32-10 draw-address v0.1",
+      "expected": "different-context-changes-derived-key"
     }
   ],
   "prng": {
