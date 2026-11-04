@@ -3,8 +3,6 @@
 
 #![forbid(unsafe_code)]
 
-pub mod population;
-
 //! Exact reference task for a six-seat collective-risk dilemma.
 //!
 //! The task contract is source-aligned with Huynh et al. (2026),
@@ -13,6 +11,8 @@ pub mod population;
 //! does not reproduce the paper's prompts, model outputs or population study.
 
 use core::fmt;
+
+pub mod population;
 
 pub const SEATS: usize = 6;
 pub const ROUNDS: usize = 10;
