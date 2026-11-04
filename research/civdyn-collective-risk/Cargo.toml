@@ -16,3 +16,7 @@ name = "collective-risk-sweep"
 path = "src/bin/collective_risk_sweep.rs"
 
 [dependencies]
+
+[[bin]]
+name = "collective-risk-population-sweep"
+path = "src/bin/collective_risk_population_sweep.rs"
