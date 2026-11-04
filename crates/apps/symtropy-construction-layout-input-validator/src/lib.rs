@@ -305,8 +305,26 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
         out,
     );
 
-    if !unique_nonempty(&source.discipline_revisions.iter().map(|v| v.discipline_id.clone()).collect::<Vec<_>>())
-        || !unique_nonempty(&export.discipline_revisions.iter().map(|v| v.discipline_id.clone()).collect::<Vec<_>>())
+    if !unique_nonempty(
+        &source
+            .discipline_revisions
+            .iter()
+            .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+            .collect::<Vec<_>>(),
+    ) || !unique_nonempty(
+        &export
+            .discipline_revisions
+            .iter()
+            .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+            .collect::<Vec<_>>(),
+    ) || source
+        .discipline_revisions
+        .iter()
+        .any(|v| !nonempty(&v.discipline_id) || !nonempty(&v.revision))
+        || export
+            .discipline_revisions
+            .iter()
+            .any(|v| !nonempty(&v.discipline_id) || !nonempty(&v.revision))
     {
         out.hard("discipline_revision_identifiers_missing_or_duplicated");
     }
@@ -403,12 +421,9 @@ fn check_inventory(manifest: &InputManifest, policy: &TrustedPolicy, out: &mut F
 
 fn maximum_triangle_area(points: &[CheckPoint]) -> f64 {
     let mut maximum = 0.0_f64;
-    for i in 0..points.len() {
-        for j in (i + 1)..points.len() {
-            for k in (j + 1)..points.len() {
-                let a = &points[i];
-                let b = &points[j];
-                let c = &points[k];
+    for (i, a) in points.iter().enumerate() {
+        for (j, b) in points.iter().enumerate().skip(i + 1) {
+            for c in points.iter().skip(j + 1) {
                 let twice_area = (b.x_m - a.x_m) * (c.y_m - a.y_m)
                     - (b.y_m - a.y_m) * (c.x_m - a.x_m);
                 maximum = maximum.max(twice_area.abs() * 0.5);
@@ -547,8 +562,18 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         || !nonempty(&policy.handedness)
         || policy.axis_order.is_empty()
         || !unique_nonempty(&policy.axis_order)
-        || !unique_nonempty(&policy.discipline_revisions.iter().map(|v| v.discipline_id.clone()).collect::<Vec<_>>())
         || policy.discipline_revisions.is_empty()
+        || !unique_nonempty(
+            &policy
+                .discipline_revisions
+                .iter()
+                .map(|v| format!("{}:{}", v.discipline_id, v.revision))
+                .collect::<Vec<_>>(),
+        )
+        || policy
+            .discipline_revisions
+            .iter()
+            .any(|v| !nonempty(&v.discipline_id) || !nonempty(&v.revision))
         || policy.critical_feature_ids.is_empty()
         || !unique_nonempty(&policy.critical_feature_ids)
         || !unique_nonempty(&policy.transform_resource_sha256s)
@@ -613,6 +638,12 @@ mod tests {
 
     const POLICY: &str =
         include_str!("../../../../research/construction-layout-input-v0-1/policy.synthetic.json");
+    const MANIFEST_SCHEMA: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/schema/layout-input-manifest-v0.1.schema.json"
+    );
+    const POLICY_SCHEMA: &str = include_str!(
+        "../../../../research/construction-layout-input-v0-1/schema/trusted-policy-v0.1.schema.json"
+    );
     const VALID: &str = include_str!(
         "../../../../research/construction-layout-input-v0-1/fixtures/valid/matched-input.json"
     );
@@ -640,6 +671,23 @@ mod tests {
 
     fn policy() -> TrustedPolicy {
         serde_json::from_str(POLICY).expect("valid synthetic policy")
+    }
+
+    #[test]
+    fn published_schemas_and_policy_fixture_are_valid_json() {
+        let manifest_schema: Value =
+            serde_json::from_str(MANIFEST_SCHEMA).expect("manifest schema JSON");
+        let policy_schema: Value =
+            serde_json::from_str(POLICY_SCHEMA).expect("trusted policy schema JSON");
+        let _: TrustedPolicy = serde_json::from_str(POLICY).expect("trusted policy JSON");
+        assert_eq!(
+            manifest_schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(
+            policy_schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
     }
 
     #[test]
