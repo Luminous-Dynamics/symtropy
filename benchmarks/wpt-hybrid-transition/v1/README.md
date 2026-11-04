@@ -13,6 +13,10 @@ A resonant mode can be passive during continuous operation while an invalid rese
 - Frasca et al., *Linear Passive Networks With Ideal Switches: Consistent Initial Conditions and State Discontinuities*, IEEE Transactions on Circuits and Systems I (2010), DOI 10.1109/TCSI.2010.2052511. The work studies admissible switched-network states and energy-minimizing state reinitialization.
 - Restrepo et al., *Passivity preserving energy-aware design for multi-dimensional switched systems*, Automatica (November 2025), DOI 10.1016/j.automatica.2025.112496. The work develops hybrid energy tanks to handle energy jumps when switched-system state dimension changes.
 - Li et al., *Dual-Mode Switching with Coupling Reversal for High-Misalignment Tolerance and CV Output in AGV WPT Systems*, IEEE Transactions on Transportation Electrification (early access 12 June 2026), DOI 10.1109/TTE.2026.3703005. A 500 W experimental WPT prototype switches between LCC-S and LCC-S-S modes; the paper reports 90.28% maximum DC-DC efficiency. This is a low-power transition-design reference, not an EV-scale efficiency comparator.
+- Lee & Lee, *Integrated electromagnetic–circuit digital twin modelling for constraint-consistent optimal operation in heterogeneous multi-receiver WPT systems*, Scientific Reports 16, 19957 (29 April 2026), DOI 10.1038/s41598-026-50781-y. Their design-stage 1T–3R digital twin couples 3-D EM extraction to equivalent circuits and handles mixed compensation and receiver power constraints. The paper explicitly limits its case to a fixed layout and fixed receiver set, with constant extracted coupling and simulation-only validation; dynamic position, time-varying loads and receiver entry/exit remain open extensions.
+- *A Novel Integrated Wireless Charging System With Reconfigurable Topology for WPT and LVDC*, IEEE Transactions on Power Electronics (November 2026), DOI 10.1109/TPEL.2026.3704859. Its prototype reports 6.8 kW WPT at 96.5% efficiency and a distinct 1 kW LVDC mode at 89.1%, reusing receiver-side components without additional relays. This is a relevant reconfiguration baseline, but the published headline efficiency is not a matched transition-event energy residual.
+- *Robust LMI-LQR Control with Kalman Observer for Uncertain WPT Systems*, IEEE JESTPE early access (12 October 2026), DOI 10.1109/JESTPE.2026.3742437. The reported experiment recovers from abrupt coupling/load changes in under 2 ms, with under 1.5 ms settling and under 6% overshoot. Use this as a transient-control baseline, not as evidence of topology-switch passivity.
+- The 2026 review *Wireless energy conversion in wireless energy internet*, Nature Reviews Electrical Engineering 3, 274–287, DOI 10.1038/s44287-026-00279-6, frames WPT as a networked energy-conversion substrate and identifies standardised energy/information interfaces, security and system-level conversion as outstanding needs.
 
 The contribution here is not a new theory of hybrid passivity. It is a WPT-specific, source-bound, machine-checkable event contract that can be connected to the existing physical model and route ledger.
 
@@ -65,11 +69,13 @@ The JSONL corpus includes energy-conserving, dissipative, externally powered, en
     cargo test --locked -p wpt-hybrid-transition-validator
     cargo run --locked -p wpt-hybrid-transition-validator -- benchmarks/wpt-hybrid-transition/v1/known-truth.jsonl
 
-The CLI compares every expected disposition in the frozen JSONL corpus and rejects duplicate event identifiers.
+The CLI compares every expected disposition in the frozen JSONL corpus, rejects duplicate event identifiers, and enforces contiguous sequence numbers plus non-overlapping half-open event windows for each transition stream. The current Rust source contains 21 library-test declarations and four CLI-ordering test declarations; they remain authored tests until exact-head CI executes them.
 
 ## Next research increments
 
 1. Add charge/flux-constraint residuals and state-vector reset receipts for explicit switched RLC models.
+2. Compute pre/post stored energy from measured inductor currents, capacitor voltages and qualified L/C storage matrices rather than accepting scalar energy values only.
+3. Add stream-level raw meter integration and independent reconstruction of port-work receipts to prove each event window is integrated once.
 2. Compare naive copy/truncation, energy-minimizing reinitialization, common-storage maps and hybrid energy-tank policies.
 3. Ingest a source-backed WPT mode-switching waveform when the complete waveform, component values, switch timing and measurement boundaries are available.
 4. Couple the event receipt to the transient ROM trace and segment-level route energy ledger.
