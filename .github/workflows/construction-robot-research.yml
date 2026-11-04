@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/construction-robot-research.yml"
+      - ".gitattributes"
       - "crates/apps/symtropy-construction-evidence-validator/**"
       - "crates/apps/symtropy-construction-worksite-epoch/**"
       - "research/construction-evidence-claim-admissibility-v0-2/**"
