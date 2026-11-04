@@ -6,4 +6,8 @@ publish = false
 license = "AGPL-3.0-or-later"
 description = "Standalone conformance fixtures for cross-world stochastic event identity"
 
+[dependencies]
+blake3 = { version = "=1.8.7", default-features = false }
+rand_philox = { version = "=0.2.1", default-features = false }
+
 [workspace]
