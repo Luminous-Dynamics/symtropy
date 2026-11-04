@@ -151,6 +151,7 @@ impl MatrixAtlas {
                 &sample.matrix_h,
                 &sample.entrywise_absolute_bound_h,
                 n,
+                sample.minimum_eigenvalue_lower_bound_h,
             )?;
         }
 
@@ -303,6 +304,7 @@ fn validate_matrix(
     matrix: &[Vec<f64>],
     bounds: &[Vec<f64>],
     n: usize,
+    declared_minimum_eigenvalue_lower_bound_h: f64,
 ) -> Result<(), String> {
     if matrix.len() != n || bounds.len() != n {
         return Err("matrix and bound row counts must match coil count".into());
@@ -338,7 +340,128 @@ fn validate_matrix(
             }
         }
     }
+    let input_uncertainty_bound = bounds
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value));
+    let (minimum_eigenvalue, eigensolver_residual_bound) =
+        smallest_symmetric_eigenvalue(matrix)?;
+    let independently_computed_lower_bound =
+        minimum_eigenvalue - input_uncertainty_bound - eigensolver_residual_bound;
+    let numerical_guard = 128.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
+    if !independently_computed_lower_bound.is_finite() {
+        return Err("matrix eigenvalue lower bound is non-finite".into());
+    }
+    if independently_computed_lower_bound < -numerical_guard {
+        return Err("matrix plus entrywise uncertainty is not proven positive semidefinite".into());
+    }
+    if declared_minimum_eigenvalue_lower_bound_h
+        > independently_computed_lower_bound + numerical_guard
+    {
+        return Err(
+            "declared eigenvalue lower bound is more optimistic than the independently computed bound"
+                .into(),
+        );
+    }
     Ok(())
+}
+
+fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<(f64, f64), String> {
+    let n = matrix.len();
+    let scale = matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+    if !scale.is_finite() {
+        return Err("eigensolver: non-finite matrix scale".into());
+    }
+    if scale == 0.0 {
+        return Ok((0.0, 0.0));
+    }
+
+    let mut values: Vec<Vec<f64>> = matrix
+        .iter()
+        .map(|row| row.iter().map(|value| value / scale).collect())
+        .collect();
+    let threshold = 16.0 * f64::EPSILON;
+    let mut converged = false;
+    for _sweep in 0..100 {
+        let mut largest_off_diagonal = 0.0_f64;
+        for p in 0..n {
+            for q in (p + 1)..n {
+                largest_off_diagonal = largest_off_diagonal.max(values[p][q].abs());
+            }
+        }
+        if largest_off_diagonal <= threshold {
+            converged = true;
+            break;
+        }
+        for p in 0..n {
+            for q in (p + 1)..n {
+                let apq = values[p][q];
+                if apq.abs() <= threshold {
+                    continue;
+                }
+                let app = values[p][p];
+                let aqq = values[q][q];
+                let tau = (aqq - app) / (2.0 * apq);
+                let sign = if tau >= 0.0 { 1.0 } else { -1.0 };
+                let t = sign / (tau.abs() + tau.hypot(1.0));
+                let cosine = 1.0 / (1.0 + t * t).sqrt();
+                let sine = t * cosine;
+                values[p][p] = app - t * apq;
+                values[q][q] = aqq + t * apq;
+                values[p][q] = 0.0;
+                values[q][p] = 0.0;
+                for k in 0..n {
+                    if k == p || k == q {
+                        continue;
+                    }
+                    let akp = values[k][p];
+                    let akq = values[k][q];
+                    let new_kp = cosine * akp - sine * akq;
+                    let new_kq = sine * akp + cosine * akq;
+                    values[k][p] = new_kp;
+                    values[p][k] = new_kp;
+                    values[k][q] = new_kq;
+                    values[q][k] = new_kq;
+                }
+            }
+        }
+    }
+    if !converged {
+        let mut largest_off_diagonal = 0.0_f64;
+        for p in 0..n {
+            for q in (p + 1)..n {
+                largest_off_diagonal = largest_off_diagonal.max(values[p][q].abs());
+            }
+        }
+        if largest_off_diagonal > 1.0e-12 {
+            return Err(format!(
+                "eigensolver: Jacobi method did not converge (off-diagonal residual {largest_off_diagonal:e})"
+            ));
+        }
+    }
+    let minimum = (0..n)
+        .map(|index| values[index][index])
+        .fold(f64::INFINITY, f64::min);
+    let residual_norm = values
+        .iter()
+        .enumerate()
+        .flat_map(|(row_index, row)| {
+            row.iter()
+                .enumerate()
+                .filter(move |(column_index, _)| *column_index != row_index)
+                .map(|(_, value)| *value)
+        })
+        .fold(0.0_f64, |norm, value| norm.hypot(value));
+    let eigenvalue = minimum * scale;
+    let residual_bound = residual_norm * scale;
+    if eigenvalue.is_finite() && residual_bound.is_finite() {
+        Ok((eigenvalue, residual_bound))
+    } else {
+        Err("eigensolver: non-finite eigenvalue or residual".into())
+    }
 }
 
 fn interpolate_matrix(
@@ -515,5 +638,50 @@ mod tests {
         let mut atlas = fixture();
         atlas.samples[0].entrywise_absolute_bound_h[0][1] = -1.0;
         assert!(atlas.validate().unwrap_err().contains("non-negative"));
+    }
+
+    #[test]
+    fn rejects_globally_indefinite_endpoint_even_with_optimistic_receipt_margin() {
+        let mut atlas = fixture();
+        atlas.samples[0].matrix_h = vec![
+            vec![1e-6, 0.9e-6, 0.9e-6],
+            vec![0.9e-6, 1e-6, -0.9e-6],
+            vec![0.9e-6, -0.9e-6, 1e-6],
+        ];
+        atlas.samples[0].entrywise_absolute_bound_h = vec![vec![0.0; 3]; 3];
+        atlas.samples[0].minimum_eigenvalue_lower_bound_h = 0.1e-6;
+        atlas.coil_ids = vec!["TX".into(), "RX-1".into(), "RX-2".into()];
+        atlas.operating_point.dc_bias_currents_a = vec![0.0; 3];
+        atlas.samples[1].matrix_h = vec![
+            vec![1e-6, 0.0, 0.0],
+            vec![0.0, 1e-6, 0.0],
+            vec![0.0, 0.0, 1e-6],
+        ];
+        atlas.samples[1].entrywise_absolute_bound_h = vec![vec![0.0; 3]; 3];
+        assert!(atlas
+            .validate()
+            .unwrap_err()
+            .contains("not proven positive semidefinite"));
+    }
+
+    #[test]
+    fn rejects_overstated_endpoint_eigenvalue_lower_bound() {
+        let mut atlas = fixture();
+        atlas.samples[0].minimum_eigenvalue_lower_bound_h = 9e-6;
+        assert!(atlas
+            .validate()
+            .unwrap_err()
+            .contains("more optimistic"));
+    }
+
+    #[test]
+    fn rejects_endpoint_whose_declared_error_bounds_cross_psd_boundary() {
+        let mut atlas = fixture();
+        atlas.samples[0].entrywise_absolute_bound_h =
+            vec![vec![0.0, 4e-6], vec![4e-6, 0.0]];
+        assert!(atlas
+            .validate()
+            .unwrap_err()
+            .contains("not proven positive semidefinite"));
     }
 }
