@@ -211,6 +211,14 @@ impl ForecastCalibrationCell {
     pub fn normalization_scale_evidence_id(&self) -> &str {
         &self.normalization_scale_evidence_id
     }
+
+    pub fn forecast_evidence_id(&self) -> &str {
+        &self.forecast_evidence_id
+    }
+
+    pub fn realization_evidence_id(&self) -> &str {
+        &self.realization_evidence_id
+    }
 }
 
 /// One forecast issued before a contiguous target window.
