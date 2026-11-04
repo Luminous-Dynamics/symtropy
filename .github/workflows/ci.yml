@@ -123,3 +123,11 @@ jobs:
     - name: Validate NOT_RUN round-robin manifest template
       if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo run --locked -p wpt-round-robin-validator -- benchmarks/wpt-empirical/v1/test-run.example.json
+
+    - name: Test WPT online self-identification evaluator
+      if: hashFiles('tools/wpt-self-identification-evaluator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-self-identification-evaluator
+
+    - name: Validate NOT_RUN self-identification template
+      if: hashFiles('tools/wpt-self-identification-evaluator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-self-identification-evaluator -- benchmarks/wpt-empirical/v1/self-identification-run.example.json
