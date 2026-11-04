@@ -384,7 +384,10 @@ fn validate_inputs(
     for event in events {
         insert_unique(&mut event_ids, &event.event_id, "event_id")?;
         if !valid_id(&event.scenario_id) || !valid_id(&event.source_id) {
-            return Err(EvaluationError::new("empty_event_source_or_scenario", event.event_id.as_str()));
+            return Err(EvaluationError::new(
+                "empty_event_source_or_scenario",
+                event.event_id.as_str(),
+            ));
         }
         if event.onset_ms > event.end_ms
             || event.end_ms > config.monitored_duration_ms
@@ -413,7 +416,10 @@ fn validate_inputs(
     for alarm in alarms {
         insert_unique(&mut alarm_ids, &alarm.alarm_id, "alarm_id")?;
         if !valid_id(&alarm.scenario_id) || !valid_id(&alarm.source_id) {
-            return Err(EvaluationError::new("empty_alarm_source_or_scenario", alarm.alarm_id.as_str()));
+            return Err(EvaluationError::new(
+                "empty_alarm_source_or_scenario",
+                alarm.alarm_id.as_str(),
+            ));
         }
         if alarm.start_ms > config.monitored_duration_ms
             || alarm.clear_ms.is_some_and(|end| {
@@ -971,8 +977,20 @@ mod tests {
     fn merges_repeated_alarms_into_one_episode() {
         let events = vec![event("event-1", EventClass::Leak, 1_000_000, 1_300_000)];
         let alarms = vec![
-            alarm("alarm-a", "sensor-a", AlarmClass::Classified(EventClass::Leak), 900_000, 1_050_000),
-            alarm("alarm-b", "sensor-a", AlarmClass::Classified(EventClass::Leak), 1_100_000, 1_200_000),
+            alarm(
+                "alarm-a",
+                "sensor-a",
+                AlarmClass::Classified(EventClass::Leak),
+                900_000,
+                1_050_000,
+            ),
+            alarm(
+                "alarm-b",
+                "sensor-a",
+                AlarmClass::Classified(EventClass::Leak),
+                1_100_000,
+                1_200_000,
+            ),
         ];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
