@@ -1,0 +1,43 @@
+name: LBE kernel
+
+on:
+  push:
+    paths:
+      - "crates/lbe-kernel/**"
+      - ".github/workflows/lbe-kernel.yml"
+  pull_request:
+    paths:
+      - "crates/lbe-kernel/**"
+      - ".github/workflows/lbe-kernel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-kernel:
+    name: Isolated Rust kernel checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Record toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/lbe-kernel/Cargo.toml --all -- --check
+
+      - name: Run locked tests
+        run: cargo test --manifest-path crates/lbe-kernel/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path crates/lbe-kernel/Cargo.toml --all-targets --locked -- -D warnings
