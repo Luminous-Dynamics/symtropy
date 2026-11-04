@@ -11,7 +11,6 @@
     "timebase_id": "synthetic-boot-001"
   },
   "scenario_id": "bench-evidence-cannot-support-field-human-detection",
-  "scenario_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "stages": [
     {
       "stage_id": "input",
