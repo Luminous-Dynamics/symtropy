@@ -124,6 +124,8 @@ Each rate carries its numerator, denominator, unit, task/feature stratum, exclus
 
 The report must not collapse these into one score. A robot may have high print throughput and poor first-pass acceptance; excellent geometry and excessive upstream coordination; low rework and poor availability. Those trade-offs should remain visible.
 
+The v0.1 report is a **single-work-package descriptive report**. It deliberately publishes raw numerators and denominators but does not manufacture a confidence interval from one run. Cross-run, cross-robot or cross-site inference belongs to the round-robin/independent replication design: resample or model at the true independent unit (run, site, laboratory or robot serial unit as applicable), not at the level of correlated feature vertices or sensor frames. For first-pass acceptance, use exact binomial intervals only when the independent-unit assumptions are justified; for crew-hour rates and tail residuals, preregister appropriate clustered or hierarchical analysis and report variance components, strata and missing/aborted runs. Never present a per-feature sample count as the number of independent robot trials.
+
 ## 4. Baselines and causal attribution
 
 Use a matched manual/current-practice baseline with the same functional unit, design revision, scope, acceptance criteria, site conditions, work sequence and coordination assumptions wherever possible. Prefer randomized/crossover or within-site matched designs. Otherwise state the counterfactual method and identify confounders.
