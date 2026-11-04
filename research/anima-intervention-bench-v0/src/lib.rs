@@ -1275,7 +1275,7 @@ pub fn estimate_multivariate_expected_information_gain(
                     )
                 })?;
             let log_marginal = log_sum_exp(&log_joint);
-            let contribution = log_joint[origin_index] - log_marginal;
+            let contribution = log_joint[origin_index] - log_priors[origin_index] - log_marginal;
             if !contribution.is_finite() {
                 return Err(multivariate_error(
                     &origin.distribution.model_family_id,
