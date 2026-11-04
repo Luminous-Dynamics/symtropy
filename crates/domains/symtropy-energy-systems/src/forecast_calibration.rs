@@ -991,6 +991,50 @@ mod tests {
     }
 
     #[test]
+    fn finite_rank_requires_nineteen_blocks_at_95_percent_and_ninety_nine_at_99() {
+        let calibration_95 = (0..19)
+            .map(|index| {
+                block(
+                    &format!("cal95-{index}"),
+                    100 + u64::from(index) * 20,
+                    0.2,
+                )
+            })
+            .collect();
+        let input_95 = ForecastCalibrationEvaluation::new(
+            contract(950_000, 1),
+            calibration_95,
+            vec![block("eval95", 10_000, 0.2)],
+        )
+        .unwrap();
+        let report_95 = evaluate_forecast_calibration(&input_95).unwrap();
+        assert_eq!(report_95.selected_order_statistic_rank, 19);
+
+        let calibration_99 = (0..98)
+            .map(|index| {
+                block(
+                    &format!("cal99-{index}"),
+                    100 + u64::from(index) * 20,
+                    0.2,
+                )
+            })
+            .collect();
+        let input_99 = ForecastCalibrationEvaluation::new(
+            contract(990_000, 1),
+            calibration_99,
+            vec![block("eval99", 10_000, 0.2)],
+        )
+        .unwrap();
+        assert!(matches!(
+            evaluate_forecast_calibration(&input_99),
+            Err(ForecastCalibrationError::InsufficientCalibrationBlocks {
+                available: 98,
+                required: 99
+            })
+        ));
+    }
+
+    #[test]
     fn tied_calibration_scores_have_deterministic_order_statistic_identity() {
         let calibration = (0..9)
             .map(|index| {
