@@ -753,10 +753,13 @@ fn deficit_first_transfers(
         let deficit = household_deficit(&regions[household_region]);
         let available = district_remaining[district_offset];
         let import = resource_vector(
-            deficit.water_m3 - available.water_m3,
-            deficit.energy_kwh - available.energy_kwh,
-        )
-        .minimum(root_remaining);
+            (deficit.water_m3 - available.water_m3)
+                .max(0.0)
+                .min(root_remaining.water_m3),
+            (deficit.energy_kwh - available.energy_kwh)
+                .max(0.0)
+                .min(root_remaining.energy_kwh),
+        );
 
         if import.water_m3 > 0.0 || import.energy_kwh > 0.0 {
             requests.push(TransferRequest {
