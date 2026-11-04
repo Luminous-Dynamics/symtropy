@@ -42,6 +42,7 @@ HEADER = (
     "command_path", "command_bytes", "command_sha256",
     "diagnostic_path", "diagnostic_bytes", "diagnostic_sha256",
     "elapsed_monotonic_ns", "child_user_cpu_ns", "child_system_cpu_ns",
+    "peak_rss_bytes", "gpu_compute_ns", "energy_microjoules",
     "process_exit_code", "skip_detected", "summary_row_present", "trace_valid",
     "diagnostic_code", "receipt_sha256",
 )
@@ -298,7 +299,6 @@ def main() -> int:
     elapsed_ns: int | None = None
     child_user_ns: int | None = None
     child_system_ns: int | None = None
-    env_projection: dict[str, str] = {key: os.environ[key] for key in ENV_ALLOWLIST if key in os.environ}
 
     try:
         if not repo_root.is_dir():
@@ -527,6 +527,9 @@ def main() -> int:
         "elapsed_monotonic_ns": str(elapsed_ns) if elapsed_ns is not None else "-",
         "child_user_cpu_ns": str(child_user_ns) if child_user_ns is not None else "-",
         "child_system_cpu_ns": str(child_system_ns) if child_system_ns is not None else "-",
+        "peak_rss_bytes": "-",
+        "gpu_compute_ns": "-",
+        "energy_microjoules": "-",
         "process_exit_code": str(process_exit_code) if process_exit_code is not None else "-",
         "skip_detected": str(skip_detected).lower(),
         "summary_row_present": str(summary_row_present).lower(),
