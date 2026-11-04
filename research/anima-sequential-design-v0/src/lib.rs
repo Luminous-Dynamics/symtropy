@@ -893,7 +893,7 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.delivered_protocol_id = "wrong".to_owned();
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r), Err(EngineError::DeliveryMismatch));
+        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::DeliveryMismatch));
     }
 
     #[test]
@@ -901,7 +901,7 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.washout_cleared = false;
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r), Err(EngineError::WashoutNotCleared));
+        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::WashoutNotCleared));
     }
 
     #[test]
