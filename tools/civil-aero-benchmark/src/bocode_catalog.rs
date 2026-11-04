@@ -606,6 +606,12 @@ mod tests {
         assert_eq!(report.engineering_task_count(), 7);
         assert_eq!(report.objective_direction, "maximize");
         assert_eq!(report.constraint_convention, "g(x)<=0_is_feasible");
+        let car = report.tasks.iter().find(|task| task.problem_id == "car").unwrap();
+        assert_eq!(car.problem_class, BoCoDeProblemClass::SingleObjectiveMixedVariable);
+        assert_eq!(car.num_constraints, 10);
+        let hoip = report.tasks.iter().find(|task| task.problem_id == "hoip").unwrap();
+        assert_eq!(hoip.problem_class, BoCoDeProblemClass::SingleObjectiveUnconstrained);
+        assert_eq!(hoip.variable_type_class, BoCoDeVariableTypeClass::Discrete);
         assert_eq!(report.to_csv().lines().count(), 8);
         let repeated = import_bocode_catalog_csv(&fixture(), context()).unwrap();
         assert_eq!(report.import_sha256, repeated.import_sha256);
