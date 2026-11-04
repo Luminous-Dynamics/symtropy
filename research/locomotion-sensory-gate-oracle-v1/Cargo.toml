@@ -1,0 +1,12 @@
+[package]
+name = "locomotion-sensory-gate-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Known-answer falsification oracle for modality- and state-dependent Drosophila proprioceptive gating."
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
