@@ -68,6 +68,20 @@ Both schedules complete 10 work units within the same contract. Gross reduction 
 
 Avoid double-counting: the paired workload trajectory must represent the change at one declared boundary. Do not add IT, cooling, facility and PCC meter deltas together if they are nested measurements.
 
+## 5A. Industry field comparator: inter-data-centre workload migration
+
+A 22 June 2026 ACM Sustainability Week field demonstration deployed workload infrastructure in three commercially operated data centres and measured inter-site migration of an Llama 2 13B chat-inference service. It found that pre-launched read-only configurations achieved the fastest response and least downtime, while on-demand data copy depended strongly on bandwidth (the paper reports 401 seconds at 1 Gbps best-effort versus 23 seconds at 10 Gbps guaranteed). The study maps measurements to Japan balancing products, but explicitly states that its evaluation is not full market qualification: telemetry, settlement, minimum bid size and product-specific operating conventions remain outside scope. [ACM field demonstration](https://doi.org/10.1145/3765611.3815063).
+
+This is a useful empirical comparator for Symtropy's workload scheduling and inter-DC migration layer. Our benchmark should compare:
+- command-to-stabilized-PCC response time, including data transfer, container/application startup, power settling and destination queue;
+- user-visible downtime, latency/error rates, completed useful work and consistency semantics;
+- both downward and upward response, because upward restoration can create rebound;
+- destination compute headroom, network bandwidth and background-load noise;
+- pre-launched read-only, replicated state, remote access and on-demand copy patterns;
+- complete event-plus-recovery trajectory, not only dispatch-window response.
+
+The paired workload adapter (#3673) currently verifies schedule contracts and a deterministic two-slot synthetic trajectory; it is not yet comparable with that operational field study. Real-trace replay and independently measured PCC telemetry are required before any field-performance claim.
+
 ## 6. Paradigm shifts
 
 1. **Work is the conserved commodity.** Flexibility is not the right to disappear jobs from the denominator. Preserve job identity, release, deadline, useful work and preemption policy.
