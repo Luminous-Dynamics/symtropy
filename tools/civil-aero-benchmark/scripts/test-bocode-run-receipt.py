@@ -60,7 +60,14 @@ def artifact(root: Path, name: str, data: bytes) -> dict:
 
 
 def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
+    metadata_bytes = (
+        b'{"name":"Fixture","dim":3,"num_objectives":1,"num_constraints":1,'
+        b'"input_type":"continuous","application":"Engineering"}\n'
+    )
+    environment_projection = {"PATH": "/usr/bin", "PYTHONNOUSERSITE": "1"}
+    command = ["python", "examples/run_experiments.py", "--problems", "Fixture"]
     artifacts = {
+        "task_metadata_json": artifact(root, "task-metadata.json", metadata_bytes),
         "stdout": artifact(root, "stdout.bin", b"OK fixture\n"),
         "stderr": artifact(root, "stderr.bin", b""),
         "environment_freeze": artifact(root, "pip-freeze.txt", b"bocode==1.0.2.dev2\n"),
@@ -77,11 +84,12 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "source_commit": "1" * 40,
         "package_version_expected": "1.0.2.dev2",
         "task_id": "Fixture",
-        "metadata_sha256_expected": "2" * 64,
+        "metadata_sha256_expected": sha(metadata_bytes),
         "algorithm": "random_search",
         "seed": 7,
         "n_init_requested": 1,
         "iterations_requested": 1,
+        "timeout_seconds": 60.0,
         "environment_overrides": [],
     }
     request_sha = sha(canonical(request))
@@ -100,11 +108,15 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
             "num_objectives": 1,
             "num_constraints": 1,
             "input_type": "continuous",
-            "application": "engineering",
+            "application": "Engineering",
         },
-        "environment_projection": {},
+        "environment_projection": environment_projection,
+        "environment_projection_sha256": sha(canonical(environment_projection)),
         "environment_freeze_sha256": sha(b"bocode==1.0.2.dev2\n"),
-        "command": ["python", "examples/run_experiments.py"],
+        "command": command,
+        "command_sha256": sha(canonical(command)),
+        "timeout_seconds": 60.0,
+        "timed_out": False,
         "process_exit_code": 0,
         "wall_seconds": 1.0,
         "cpu_user_seconds_measured": 0.5,
@@ -115,6 +127,8 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "metrics": {
             "objective_evaluation_count": 2,
             "initial_design_count": 1,
+            "best_encoded_maximization_value": 1.25,
+            "constraint_history_state": "available",
             "feasible_evaluation_count": 2,
             "infeasible_evaluation_count": 0,
             "feasible_evaluation_fraction": 1.0,
@@ -134,12 +148,14 @@ def build_fixture(root: Path, wrong_x_shape: bool = False) -> Path:
         "source_commit": "1" * 40,
         "package_version": "1.0.2.dev2",
         "task_id": "Fixture",
-        "metadata_sha256": "2" * 64,
+        "metadata_sha256": sha(metadata_bytes),
         "algorithm": "random_search",
         "seed": "7",
         "n_init_requested": "1",
         "iterations_requested": "1",
+        "timed_out": "false",
         "objective_evaluation_count": "2",
+        "constraint_history_state": "available",
         "initial_design_count": "1",
         "feasible_evaluation_count": "2",
         "infeasible_evaluation_count": "0",
