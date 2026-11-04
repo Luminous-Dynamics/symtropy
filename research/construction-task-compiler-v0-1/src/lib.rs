@@ -497,10 +497,12 @@ mod tests {
         let report = graph(Vec::new()).validate();
 
         assert!(!report.is_valid());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "empty_task_graph"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "empty_task_graph")
+        );
     }
 
     #[test]
@@ -511,20 +513,24 @@ mod tests {
 
         let report = input.validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "missing_graph_header_field"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "missing_graph_header_field")
+        );
     }
 
     #[test]
     fn duplicate_task_ids_are_rejected() {
         let report = graph(vec![node("task-a", &[]), node("task-a", &[])]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_task_id"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_task_id")
+        );
         assert!(report.topological_order.is_empty());
     }
 
@@ -535,10 +541,12 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "empty_required_task_list"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "empty_required_task_list")
+        );
     }
 
     #[test]
@@ -549,30 +557,36 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "missing_task_derivation_field"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "missing_task_derivation_field")
+        );
     }
 
     #[test]
     fn unknown_dependency_is_rejected() {
         let report = graph(vec![node("task-a", &["task-missing"])]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "unknown_dependency"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "unknown_dependency")
+        );
     }
 
     #[test]
     fn self_dependency_is_rejected() {
         let report = graph(vec![node("task-a", &["task-a"])]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "self_dependency"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "self_dependency")
+        );
     }
 
     #[test]
@@ -584,21 +598,28 @@ mod tests {
         ])
         .validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "dependency_cycle"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "dependency_cycle")
+        );
     }
 
     #[test]
     fn duplicate_dependency_edges_are_rejected() {
-        let report = graph(vec![node("task-a", &[]), node("task-b", &["task-a", "task-a"])])
-            .validate();
+        let report = graph(vec![
+            node("task-a", &[]),
+            node("task-b", &["task-a", "task-a"]),
+        ])
+        .validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_list_item"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_list_item")
+        );
     }
 
     #[test]
@@ -608,10 +629,12 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "empty_required_task_list"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "empty_required_task_list")
+        );
     }
 
     #[test]
@@ -639,10 +662,12 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_parameter_name"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_parameter_name")
+        );
     }
 
     #[test]
@@ -653,10 +678,12 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "unit_conversion_without_evidence"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "unit_conversion_without_evidence")
+        );
     }
 
     #[test]
@@ -676,23 +703,28 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "conversion_evidence_without_source_unit"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "conversion_evidence_without_source_unit")
+        );
     }
 
     #[test]
     fn source_element_identity_is_unique_within_a_task() {
         let mut task = node("task-a", &[]);
-        task.source_element_ids.push(task.source_element_ids[0].clone());
+        task.source_element_ids
+            .push(task.source_element_ids[0].clone());
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_list_item"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_list_item")
+        );
     }
 
     #[test]
@@ -715,10 +747,12 @@ mod tests {
 
         let report = graph(vec![task]).validate();
 
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "empty_required_task_list"));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "empty_required_task_list")
+        );
     }
 
     #[test]
