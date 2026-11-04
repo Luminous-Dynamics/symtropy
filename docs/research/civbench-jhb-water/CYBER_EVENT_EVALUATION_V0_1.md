@@ -50,7 +50,7 @@ The evaluator must declare one time basis per dataset lane. Normalize timestamps
 
 An incident truth record contains:
 
-- immutable `event_id`, `scenario_id` and source/dataset identity;
+- immutable `event_id`, `scenario_id`, `source_id` and dataset identity;
 - class and truth status (`confirmed`, `unknown`, or `not_applicable`);
 - onset and end when actually supported;
 - evidence reference/digest and source time basis;
@@ -59,7 +59,7 @@ An incident truth record contains:
 An alarm record contains:
 
 - immutable `alarm_id`, `scenario_id`, source identity and emitting detector/version;
-- alarm start and clear time (or explicit still-open state);
+- alarm start and `clear_state` (`closed` or `still_open`) plus a clear time when closed;
 - asserted class or `unclassified`;
 - evidence/provenance reference and observation time basis.
 
@@ -79,12 +79,12 @@ The merge gap is selected using a calibration partition and frozen before evalua
 
 Keep these separate:
 
-- **Association window:** an episode can be associated with a confirmed event when it has the same scenario, satisfies the declared class-compatibility policy, and starts in `[event_onset - allowed_lead_ms, event_end + late_association_grace_ms]`. Association is not proof of correct classification or timely detection.
+- **Association window:** an episode can be associated with a confirmed event when it has the same scenario and starts in `[event_onset - allowed_lead_ms, event_end + late_association_grace_ms]`. Association is class-agnostic; class correctness is evaluated separately. Association is not proof of correct classification or timely detection.
 - **Timely detection window:** the first alarm-episode onset falls in `[event_onset - allowed_lead_ms, event_onset + maximum_detection_delay_ms]`.
 
-First perform deterministic **maximum-cardinality one-to-one timely matching**, then apply the frozen tie-break rule (minimum absolute onset difference, then event ID, then episode ID). On the remaining episodes/events, perform one-to-one late association with the same deterministic tie-break. One event can receive at most one timely match and one late association; one episode can be assigned to at most one event in either stage. Any alternate matching rule requires a protocol version change.
+First perform deterministic **maximum-cardinality one-to-one timely matching**, then apply the frozen tie-break rule (minimum absolute onset difference, then event ID, then episode ID). On the remaining unmatched events and episodes, perform one-to-one late association with the same deterministic tie-break. An event receives either a timely match or a late association, never both; an episode can be assigned to at most one event. Any alternate matching rule requires a protocol version change.
 
-Class scoring has two outputs: event detection (timely detection regardless of correct asserted class, when the alarm is unclassified or otherwise compatible under the declared rule) and event classification (whether the asserted class is correct). Publish the class-compatibility matrix before testing. Unclassified alarms can contribute to detection but never to correct class attribution.
+Event-onset matching is **class-agnostic**: a timely alarm can detect an event even when its asserted class is wrong. Score classification afterward from the matched episode's asserted class using the published confusion matrix. An `unclassified` alarm can contribute to detection but not to correct class attribution. This prevents an event detector from hiding a detection merely because its diagnosis was wrong.
 
 Additional episodes associated with an already timely matched event are **fragmentation/re-alert burden**, not extra true positives. An episode associated with a confirmed event but outside the timely window is a **late associated alarm**. A wholly unmatched episode outside unresolved-truth intervals is a false alarm episode. An episode overlapping unknown truth is unscorable unless an independent truth source resolves the interval.
 
@@ -145,16 +145,17 @@ The evaluator implementation must reject or correctly classify all of these:
 2. Repeated alarms within the frozen merge gap form one episode and preserve constituent IDs.
 3. One episode cannot score two nearby incidents; one incident cannot score two timely detections.
 4. An alarm immediately outside the onset window is late/unmatched according to the declared temporal association rule, never silently timely.
-5. Persistent false alarms expose duty-cycle and false-duration costs even when sample-level precision is high.
-6. Missing/unknown onset does not become a false negative or verified true negative.
-7. Leak, sensor fault, communication fault, process drift and cyber compromise remain separate event classes.
-8. Duplicate IDs, replayed IDs, invalid intervals, source-boundary crossings and malformed chronology fail closed.
-9. A generic anomaly without independent cyber evidence receives no confirmed-attack attribution.
-10. A cyber event without a process deviation is not reported as physical impact.
-11. A physical consequence with no timely alarm remains a missed event.
-12. An alarm without successful containment or restoration is not a recovered-service outcome.
-13. Input-order permutations produce the same normalized output where order is not semantically meaningful.
-14. Repeated runs with identical frozen inputs, code and runtime produce byte-identical receipts.
+5. A timely alarm with the wrong asserted class still counts as event detection and appears as a class-confusion error.
+6. Persistent false alarms expose duty-cycle and false-duration costs even when sample-level precision is high.
+7. Missing/unknown onset does not become a false negative or verified true negative.
+8. Leak, sensor fault, communication fault, process drift and cyber compromise remain separate event classes.
+9. Duplicate IDs, replayed IDs, invalid intervals, source-boundary crossings and malformed chronology fail closed.
+10. A generic anomaly without independent cyber evidence receives no confirmed-attack attribution.
+11. A cyber event without a process deviation is not reported as physical impact.
+12. A physical consequence with no timely alarm remains a missed event.
+13. An alarm without successful containment or restoration is not a recovered-service outcome.
+14. Input-order permutations produce the same normalized output where order is not semantically meaningful.
+15. Repeated runs with identical frozen inputs, code and runtime produce byte-identical receipts.
 
 ## 10. Aspirational competitive targets
 
