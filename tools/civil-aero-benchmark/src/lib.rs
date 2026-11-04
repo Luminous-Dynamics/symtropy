@@ -9,6 +9,7 @@ pub mod budget;
 pub mod cfd_admission;
 pub mod claim_admission;
 pub mod cmo_step_pilot;
+pub mod cgroup_v2_supervisor;
 pub mod comparison;
 pub mod coupon;
 pub mod dpw8_submission;
