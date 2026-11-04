@@ -33,4 +33,4 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets -- -D warnings
       - name: Validate machine-readable fixtures
-        run: python3 -c 'import json; paths = ["research/road-exo-coupling-001/fixtures/event_identity_cases.json", "research/road-exo-coupling-001/fixtures/dependence_cases.json"]; [json.load(open(path, encoding="utf-8")) for path in paths]'
+        run: python3 -c 'import json; paths = ["research/road-exo-coupling-001/fixtures/event_identity_cases.json", "research/road-exo-coupling-001/fixtures/dependence_cases.json", "research/road-exo-coupling-001/fixtures/temporal_dependence_cases.json"]; [json.load(open(path, encoding="utf-8")) for path in paths]'
