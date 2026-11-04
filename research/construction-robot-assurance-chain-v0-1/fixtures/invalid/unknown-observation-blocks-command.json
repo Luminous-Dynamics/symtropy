@@ -11,7 +11,6 @@
     "timebase_id": "synthetic-boot-001"
   },
   "scenario_id": "unknown-observation-blocks-command",
-  "scenario_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "stages": [
     {
       "stage_id": "input",
