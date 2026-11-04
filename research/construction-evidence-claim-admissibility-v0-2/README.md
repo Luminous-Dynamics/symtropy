@@ -41,3 +41,8 @@ This work reuses rather than duplicates:
 ## Status and limits
 
 The fixture identifiers, hashes, assessor references and measurements are invented. Schema and validator tests qualify only the software contract. This does not authenticate external actors or data, establish physical truth, certify a robot, or authorize a task. Field and cross-site claims remain unevaluated until the independent physical evidence exists.
+
+
+## Exact-byte cross-platform policy
+
+The pinned schema/profile files are checked out as LF via the repository `.gitattributes` rule for this research directory. The focused workflow also runs when `.gitattributes` changes, so Windows verifies the same bytes as Unix. The earlier Windows run exposed CRLF conversion and failed the embedded digest check; the fix is to preserve the committed bytes, not normalize or bypass digest verification in the validator. The re-run after this policy change is the required acceptance evidence.
