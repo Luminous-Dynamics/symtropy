@@ -287,14 +287,15 @@ impl BenchmarkSuite {
                 }
             }
             for (name, value) in [
+                (
                     "maximum_channel_nrmse",
                     case.acceptance.maximum_channel_nrmse,
                 ),
                 (
-                (
                     "maximum_peak_magnitude_relative_error",
                     case.acceptance.maximum_peak_magnitude_relative_error,
                 ),
+                (
                     "maximum_energy_relative_error",
                     case.acceptance.maximum_energy_relative_error,
                 ),
