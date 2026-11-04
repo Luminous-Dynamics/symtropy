@@ -996,6 +996,43 @@ mod tests {
     }
 
     #[test]
+    fn region_bounds_are_inclusive_at_each_support_boundary() {
+        let m = manifest();
+        for mach in [0.70, 0.74] {
+            let result = assess_applicability_domain(&m, &query(mach)).unwrap();
+            assert_eq!(
+                result.status,
+                ApplicabilityStatus::SupportedWithinDeclaredDomain,
+                "dense endpoint {mach} must remain inside its declared closed interval"
+            );
+        }
+        for mach in [0.75, 0.79] {
+            let result = assess_applicability_domain(&m, &query(mach)).unwrap();
+            assert_eq!(
+                result.status,
+                ApplicabilityStatus::BoundaryOrRegimeTransition,
+                "boundary endpoint {mach} must retain the boundary class"
+            );
+        }
+        for mach in [0.80, 0.84] {
+            let result = assess_applicability_domain(&m, &query(mach)).unwrap();
+            assert_eq!(
+                result.status,
+                ApplicabilityStatus::SupportedButSparse,
+                "sparse endpoint {mach} must remain inside its declared closed interval"
+            );
+        }
+        for mach in [0.699_999, 0.840_001] {
+            let result = assess_applicability_domain(&m, &query(mach)).unwrap();
+            assert_eq!(
+                result.status,
+                ApplicabilityStatus::OutOfDomain,
+                "point just outside every interval ({mach}) must abstain"
+            );
+        }
+    }
+
+    #[test]
     fn support_class_is_preserved_instead_of_collapsing_dense_sparse_and_boundary() {
         let m = manifest();
         let dense = assess_applicability_domain(&m, &query(0.72)).unwrap();
