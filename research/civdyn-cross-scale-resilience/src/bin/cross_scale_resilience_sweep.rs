@@ -4,9 +4,7 @@
 //! Synthetic deterministic CSS resilience portfolio.
 //! This executable imports no real geographic, utility or household data.
 
-use civdyn_cross_scale_resilience::{
-    InterventionPolicy, RunOutcome, ShockKind, ShockPhase, TickOutcome, run_reference_portfolio,
-};
+use civdyn_cross_scale_resilience::{RunOutcome, ShockPhase, TickOutcome, run_reference_portfolio};
 
 const CSV_COLUMNS: usize = 25;
 
@@ -104,6 +102,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use civdyn_cross_scale_resilience::{InterventionPolicy, ShockKind};
 
     #[test]
     fn benchmark_portfolio_covers_all_shock_and_policy_combinations() {
