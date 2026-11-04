@@ -464,9 +464,11 @@ mod tests {
     #[test]
     fn subject_sensor_calibration_must_cover_entire_trial() {
         let receipt = fixture("fixtures/invalid/expired-sensor-calibration.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error.starts_with("subject_sensor_calibration_does_not_cover_trial:")));
+        assert!(
+            semantic_errors(&receipt)
+                .iter()
+                .any(|error| error.starts_with("subject_sensor_calibration_does_not_cover_trial:"))
+        );
     }
 
     #[test]
