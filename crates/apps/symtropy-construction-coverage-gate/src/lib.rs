@@ -305,12 +305,32 @@ pub fn evaluate_coverage(
     let mut findings = Findings::default();
     for (actual, expected, reason) in [
         (assessment_data.site_id.as_str(), binding.site_id.as_str(), "site_binding_mismatch"),
-        (assessment_data.design_revision.as_str(), binding.design_revision.as_str(), "design_revision_mismatch"),
-        (assessment_data.work_package_revision.as_str(), binding.work_package_revision.as_str(), "work_package_revision_mismatch"),
+        (
+            assessment_data.design_revision.as_str(),
+            binding.design_revision.as_str(),
+            "design_revision_mismatch",
+        ),
+        (
+            assessment_data.work_package_revision.as_str(),
+            binding.work_package_revision.as_str(),
+            "work_package_revision_mismatch",
+        ),
         (assessment_data.task_scope.as_str(), binding.task_scope.as_str(), "task_scope_mismatch"),
-        (assessment_data.work_zone_id.as_str(), binding.work_zone_id.as_str(), "work_zone_mismatch"),
-        (assessment_data.worksite_epoch_sha256.as_str(), binding.worksite_epoch_sha256.as_str(), "worksite_epoch_mismatch"),
-        (assessment_data.target_frame_id.as_str(), binding.target_frame_id.as_str(), "target_frame_mismatch"),
+        (
+            assessment_data.work_zone_id.as_str(),
+            binding.work_zone_id.as_str(),
+            "work_zone_mismatch",
+        ),
+        (
+            assessment_data.worksite_epoch_sha256.as_str(),
+            binding.worksite_epoch_sha256.as_str(),
+            "worksite_epoch_mismatch",
+        ),
+        (
+            assessment_data.target_frame_id.as_str(),
+            binding.target_frame_id.as_str(),
+            "target_frame_mismatch",
+        ),
     ] {
         if actual != expected {
             findings.hard(reason);
@@ -634,14 +654,19 @@ mod tests {
         }
     }
 
-    fn run(assessment: &SurveyCoverageAssessmentV1, policy: &CoverageAdmissionPolicyV1) -> CoverageEvaluationV1 {
+    fn run(
+        assessment: &SurveyCoverageAssessmentV1,
+        policy: &CoverageAdmissionPolicyV1,
+    ) -> CoverageEvaluationV1 {
         let bytes = serde_json::to_vec(assessment).unwrap();
         let assessment_artifact = ArtifactRef {
             artifact_id: "coverage-assessment".to_owned(),
             uri: "coverage-test://assessment".to_owned(),
             sha256: format!("{:x}", Sha256::digest(&bytes)),
         };
-        let verified_assessment = VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, assessment_artifact).unwrap();
+        let verified_assessment =
+            VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, assessment_artifact)
+                .unwrap();
         evaluate_coverage(
             &verified_assessment,
             &survey_envelope(assessment),
@@ -682,7 +707,11 @@ mod tests {
         assessment.critical_unsupported_cell_count = 1;
         let result = run(&assessment, &policy(&assessment));
         assert_eq!(result.decision, CoverageDecisionV1::InadmissibleForNamedTask);
-        assert!(result.reason_codes.contains(&"critical_unsupported_area_exceeds_policy".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"critical_unsupported_area_exceeds_policy".to_owned())
+        );
     }
 
     #[test]
@@ -699,7 +728,11 @@ mod tests {
         assessment.critical_unmeasured_cell_count = 1;
         let result = run(&assessment, &policy(&assessment));
         assert_eq!(result.decision, CoverageDecisionV1::Indeterminate);
-        assert!(result.reason_codes.contains(&"critical_unmeasured_area_exceeds_policy".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"critical_unmeasured_area_exceeds_policy".to_owned())
+        );
     }
 
     #[test]
@@ -722,7 +755,11 @@ mod tests {
         assessment.minimum_local_control_density_per_m2 = 0.001;
         let result = run(&assessment, &policy(&assessment));
         assert_eq!(result.decision, CoverageDecisionV1::InadmissibleForNamedTask);
-        assert!(result.reason_codes.contains(&"minimum_local_control_density_below_policy".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"minimum_local_control_density_below_policy".to_owned())
+        );
     }
 
     #[test]
@@ -745,7 +782,9 @@ mod tests {
             uri: "coverage-test://assessment".to_owned(),
             sha256: format!("{:x}", Sha256::digest(&bytes)),
         };
-        assert!(VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, artifact).is_err());
+        assert!(
+            VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, artifact).is_err()
+        );
     }
 
     #[test]
@@ -764,7 +803,9 @@ mod tests {
             uri: "coverage-test://assessment".to_owned(),
             sha256: format!("{:x}", Sha256::digest(&bytes)),
         };
-        let verified_assessment = VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, assessment_ref).unwrap();
+        let verified_assessment =
+            VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, assessment_ref)
+                .unwrap();
         assert_eq!(
             evaluate_coverage(
                 &verified_assessment,
