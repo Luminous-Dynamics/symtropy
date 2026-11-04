@@ -575,6 +575,7 @@ pub fn joint_validation_report_to_csv(report: &JointValidationReport) -> Result<
         report.out_of_domain_observation_count.to_string(),
         report.mean_mahalanobis_squared.to_string(),
         report.maximum_mahalanobis_squared.to_string(),
+        String::new(),
         report.study_sha256.clone(),
         report.report_sha256.clone(),
     ];
