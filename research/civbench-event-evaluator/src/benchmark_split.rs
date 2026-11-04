@@ -185,20 +185,12 @@ pub struct BenchmarkSample {
 /// A frozen split protocol and its required cross-partition firewalls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SplitPolicy {
-    /// Registered split semantics.
+    /// Registered split semantics. The preset, not the caller, fixes the exact
+    /// exclusive/shared provenance dimensions.
     pub protocol: SplitProtocolPreset,
-    /// Canonical identifier; must equal `protocol.as_str()`.
-    pub protocol_id: String,
     /// Caller-computed SHA-256 digest of the frozen canonical manifest bytes.
     /// This validator checks syntax but cannot recompute it without raw data.
     pub manifest_digest: String,
-    /// Every listed dimension must be present on every sample and disjoint
-    /// between train, validation, and test.
-    pub exclusive_dimensions: BTreeSet<LeakageDimension>,
-    /// Every group value in each listed dimension must occur in train,
-    /// validation, and test. This prevents a within-group protocol from
-    /// silently including test-only or validation-only groups.
-    pub shared_dimensions: BTreeSet<LeakageDimension>,
 }
 
 /// Deterministic counts from an accepted split manifest.
@@ -327,47 +319,14 @@ pub fn audit_benchmark_split(
     samples: &[BenchmarkSample],
     policy: &SplitPolicy,
 ) -> Result<SplitAuditReport, SplitAuditError> {
-    if !valid_identifier(&policy.protocol_id) {
-        return Err(SplitAuditError::new(
-            "invalid_protocol_id",
-            policy.protocol_id.as_str(),
-        ));
-    }
+    let protocol_id = policy.protocol.as_str();
     let manifest_digest = normalized_sha256(&policy.manifest_digest).ok_or_else(|| {
-        SplitAuditError::new("invalid_manifest_digest", policy.protocol_id.as_str())
+        SplitAuditError::new("invalid_manifest_digest", protocol_id)
     })?;
-    if policy.protocol_id != policy.protocol.as_str() {
-        return Err(SplitAuditError::new(
-            "protocol_id_preset_mismatch",
-            policy.protocol_id.as_str(),
-        ));
-    }
-    if policy.exclusive_dimensions.is_empty() {
-        return Err(SplitAuditError::new(
-            "empty_exclusive_dimensions",
-            policy.protocol_id.as_str(),
-        ));
-    }
-    if !policy
-        .exclusive_dimensions
-        .is_disjoint(&policy.shared_dimensions)
-    {
-        return Err(SplitAuditError::new(
-            "overlapping_policy_dimensions",
-            policy.protocol_id.as_str(),
-        ));
-    }
-    if policy.exclusive_dimensions != policy.protocol.exclusive_dimensions()
-        || policy.shared_dimensions != policy.protocol.shared_dimensions()
-    {
-        return Err(SplitAuditError::new(
-            "protocol_dimensions_mismatch",
-            policy.protocol.as_str(),
-        ));
-    }
-    let required_dimensions: BTreeSet<_> = policy
-        .exclusive_dimensions
-        .union(&policy.shared_dimensions)
+    let exclusive_dimensions = policy.protocol.exclusive_dimensions();
+    let shared_dimensions = policy.protocol.shared_dimensions();
+    let required_dimensions: BTreeSet<_> = exclusive_dimensions
+        .union(&shared_dimensions)
         .copied()
         .collect();
     if samples.is_empty() {
@@ -439,7 +398,7 @@ pub fn audit_benchmark_split(
                 .insert(group.value.clone());
 
             let key = (group.dimension, group.value.clone());
-            if policy.exclusive_dimensions.contains(&group.dimension)
+            if exclusive_dimensions.contains(&group.dimension)
                 && group_partitions
                     .insert(key.clone(), sample.partition)
                     .is_some_and(|previous_partition| previous_partition != sample.partition)
@@ -449,7 +408,7 @@ pub fn audit_benchmark_split(
                     format!("{}={}", key.0.as_str(), key.1),
                 ));
             }
-            if policy.shared_dimensions.contains(&group.dimension) {
+            if shared_dimensions.contains(&group.dimension) {
                 shared_group_partitions
                     .entry(key)
                     .or_default()
@@ -487,7 +446,7 @@ pub fn audit_benchmark_split(
         DataPartition::Validation,
         DataPartition::Test,
     ]);
-    for dimension in &policy.shared_dimensions {
+    for dimension in &shared_dimensions {
         let mut has_groups = false;
         for ((group_dimension, _), partitions) in &shared_group_partitions {
             if group_dimension == dimension {
@@ -514,10 +473,10 @@ pub fn audit_benchmark_split(
         .collect();
 
     Ok(SplitAuditReport {
-        protocol_id: policy.protocol_id.clone(),
+        protocol_id: protocol_id.to_owned(),
         manifest_digest,
-        exclusive_dimensions: policy.exclusive_dimensions.clone(),
-        shared_dimensions: policy.shared_dimensions.clone(),
+        exclusive_dimensions,
+        shared_dimensions,
         sample_count: samples.len(),
         partition_counts,
         group_counts,
