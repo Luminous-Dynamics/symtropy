@@ -360,9 +360,7 @@ pub fn condition_on_outcome(
     validate_posterior(posterior)?;
     let model_ids: BTreeSet<String> = posterior.keys().cloned().collect();
     validate_candidate(candidate, &model_ids)?;
-    if !minimum_delivery_fidelity.is_finite()
-        || !(0.0..=1.0).contains(&minimum_delivery_fidelity)
-    {
+    if !minimum_delivery_fidelity.is_finite() || !(0.0..=1.0).contains(&minimum_delivery_fidelity) {
         return Err(EngineError::InvalidUpdateValidityThreshold);
     }
     let validity = &candidate.causal_validity;
@@ -978,7 +976,8 @@ mod tests {
         .unwrap();
         assert!(matches!(first, Decision::Select(ref s) if s.candidate_id == "alpha"));
         let update =
-            condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[], 0.9).unwrap();
+            condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[], 0.9)
+                .unwrap();
         let new_posterior = match update {
             PosteriorUpdate::Updated { posterior, .. } => posterior,
             other => panic!("unexpected update: {other:?}"),
@@ -1026,7 +1025,9 @@ mod tests {
     #[test]
     fn invalid_or_unsafe_candidate_cannot_update_posterior() {
         let mut c = candidate("unsafe", 0.9, 0.1, 1.0);
-        c.feasibility = Feasibility::SafetyRejected { reason: "dose ceiling".into() };
+        c.feasibility = Feasibility::SafetyRejected {
+            reason: "dose ceiling".into(),
+        };
         assert_eq!(
             condition_on_outcome(&posterior(0.5), &c, &record(&c, "yes"), &[], 0.9),
             Err(EngineError::CandidateNotPermittedForUpdate)
@@ -1058,7 +1059,8 @@ mod tests {
     #[test]
     fn zero_probability_observation_requests_model_revision() {
         let c = candidate("stim", 1.0, 1.0, 1.0);
-        let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[], 0.9).unwrap();
+        let result =
+            condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[], 0.9).unwrap();
         assert_eq!(
             result,
             PosteriorUpdate::ModelInadequate {
