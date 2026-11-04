@@ -428,9 +428,11 @@ mod tests {
         SurveyProcessingDispositionV1, SurveyEvidenceEnvelopeV1, SurveyCoordinateFrameV1,
         SurveyCoordinateUnitV1, SurveyAxisDirectionV1, SurveyHandednessV1, SurveyHeightTypeV1,
         SurveySessionV1, SurveyObservationV1, SurveyModalityV1, SurveyObservationRoleV1,
-        SurveyUncertaintyV1, SurveyCoverageAssessmentV1,
+        SurveyUncertaintyV1, SurveyCoverageAssessmentV1, SurveyCoverageCellDispositionV1,
+        SurveyCoverageCellV1, SurveyControlCoverageMapV1, SurveyControlCoverageMapV1,
         SURVEY_COVERAGE_ASSESSMENT_SCHEMA_VERSION, VerifiedSurveyCoverageAssessmentV1,
-        VerifiedSurveyEvidenceEnvelopeV1, SURVEY_EVIDENCE_SCHEMA_VERSION,
+        VerifiedSurveyControlCoverageMapV1, VerifiedSurveyEvidenceEnvelopeV1,
+        SURVEY_EVIDENCE_SCHEMA_VERSION, SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION,
     };
 
     fn artifact(id: &str, bytes: &[u8]) -> ArtifactRef {
@@ -538,7 +540,6 @@ mod tests {
     fn assessment() -> SurveyCoverageAssessmentV1 {
         let footprint = artifact("task-footprint", b"task polygon bytes");
         let domain = artifact("control-domain", b"qualified support domain bytes");
-        let support = artifact("support-map", b"coverage support grid bytes");
         let receipt = adjustment_receipt(&footprint, &domain);
         let receipt_artifact = serialized_artifact("control-adjustment", &receipt);
         let envelope_value = survey_envelope_value(&footprint, &domain);
@@ -546,7 +547,7 @@ mod tests {
             .encode_with_digest("survey-envelope", "coverage-test://survey-envelope")
             .unwrap();
 
-        SurveyCoverageAssessmentV1 {
+        let mut assessment = SurveyCoverageAssessmentV1 {
             schema_version: 1,
             assessment_id: "coverage-assessment-001".to_owned(),
             site_id: "site-001".to_owned(),
@@ -586,6 +587,10 @@ mod tests {
             critical_unsupported_cell_count: 0,
             critical_unmeasured_cell_count: 0,
         }
+        ;
+        let map = support_map_value(&assessment);
+        assessment.support_map_artifact = serialized_artifact("support-map", &map);
+        assessment
     }
 
     fn frame() -> SurveyCoordinateFrameV1 {
@@ -667,7 +672,22 @@ mod tests {
         assessment: &SurveyCoverageAssessmentV1,
         policy: &CoverageAdmissionPolicyV1,
     ) -> CoverageEvaluationV1 {
-        let bytes = serde_json::to_vec(assessment).unwrap();
+        let mut assessment = assessment.clone();
+        let support_map = support_map_value(&assessment);
+        assessment.support_map_artifact = serialized_artifact("support-map", &support_map);
+        let support_map_bytes = serde_json::to_vec(&support_map).unwrap();
+        let support_map_artifact = ArtifactRef {
+            artifact_id: "support-map".to_owned(),
+            uri: "coverage-test://support-map".to_owned(),
+            sha256: format!("{:x}", Sha256::digest(&support_map_bytes)),
+        };
+        let verified_support_map =
+            VerifiedSurveyControlCoverageMapV1::decode_verified_json(
+                &support_map_bytes,
+                support_map_artifact,
+            )
+            .unwrap();
+        let bytes = serde_json::to_vec(&assessment).unwrap();
         let assessment_artifact = ArtifactRef {
             artifact_id: "coverage-assessment".to_owned(),
             uri: "coverage-test://assessment".to_owned(),
@@ -678,7 +698,8 @@ mod tests {
                 .unwrap();
         evaluate_coverage(
             &verified_assessment,
-            &survey_envelope(assessment),
+            &verified_support_map,
+            &survey_envelope(&assessment),
             policy,
             &policy_artifact(policy),
         ).unwrap()
@@ -815,9 +836,11 @@ mod tests {
         let verified_assessment =
             VerifiedSurveyCoverageAssessmentV1::decode_verified_json(&bytes, assessment_ref)
                 .unwrap();
+        let verified_support_map = verified_support_map(&assessment);
         assert_eq!(
             evaluate_coverage(
                 &verified_assessment,
+                &verified_support_map,
                 &survey_envelope(&assessment),
                 &policy,
                 &policy_artifact,
