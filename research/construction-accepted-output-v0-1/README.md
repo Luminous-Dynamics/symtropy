@@ -171,7 +171,28 @@ These are reporting/contract targets, not universal performance thresholds:
 
 Do not impose a universal mm tolerance, first-pass-yield threshold or crew-hour improvement target. Set those only against the task risk, downstream requirements, matched baseline, uncertainty and pre-registered decision margin.
 
-## 8. Ownership
+## 8. Executable Rust reference implementation
+
+The package at this path is a standalone Rust crate. It:
+- validates the closed Draft 2020-12 atomic ledger schema;
+- checks contiguous attempt ordering, latest-inspection/terminal-disposition consistency, inspection authority/method/evidence presence, critical open defects, duplicate identities and non-overlapping resource-time intervals;
+- binds the ledger's profile ID and functional-unit class to the declared layout adapter;
+- derives counts and endpoint-specific rates from unit/attempt/time records rather than accepting producer-authored aggregate metrics;
+- emits a SHA-256 digest of the deterministic serialized ledger in the derived report;
+- marks zero-denominator measures as `not_estimable`, never as zero productivity or perfect yield;
+- exercises a valid synthetic example and a negative control in which an uninspected unit is labelled accepted.
+
+The CLI command is:
+
+```sh
+cargo run --manifest-path research/construction-accepted-output-v0-1/Cargo.toml
+```
+
+The crate's validator checks structural consistency and profile binding only. It does not fetch or authenticate referenced artifacts, verify signatures/actors, validate instrument calibration or independence, adjudicate physical quality, or qualify safety. The fixture values are invented and must not be cited as observed performance.
+
+The direct crew-hour category mapping in v0.1 is an initial explicit convention. A future version must freeze it as a signed study policy before confirmatory studies and allow project-specific role classifications without changing historical reports.
+
+## 9. Ownership
 
 - #3605 owns this accepted-output accounting contract.
 - #3523/#3524 own the layout robot common-reference performance profile and will consume its layout adapter.
