@@ -237,3 +237,15 @@ The WPT4 concept is not represented as SAE J2954_202408 compliant; the published
 The scorecard in target-envelope.md keeps static high-power IPT, dynamic roadway transfer, full-system G2V/V2G, cross-generation geometry, FOD, magnetothermal performance and metrology on separate matched-boundary lanes. The reference anchors include Riekerk's 50 kW DC–DC result, Purdue/INDOT's ~85% roadway inverter DC-bus to vehicle DC-bus result at 50–190 kW and up to 65 mph, Zhang's direction-separated bidirectional system ranges, the Koch WPT4 coupling-envelope degradation claim and the MIT/DeMag safety results.
 
 Research targets include >=98% static DC–DC nominal, >=90% dynamic roadway DC-bus transfer at up to 190 kW, >=95% full-system efficiency each direction, <=5% cross-generation qualified-region reduction, zero FOD false negatives in a pre-registered >=10,000-case held-out positive set, <=80% Bsat(T) utilization, and three-lab metrology replication. These are proposed goals, not achieved results or standards requirements. The scorecard explicitly prohibits pooling link-stage and system efficiency, or treating route energy service as a conversion percentage.
+
+## Dynamic receiver interoperability and spatial-stability evidence (2026)
+
+Three additional 2026 experiments are now source-grounded in v0 and typed v1.
+
+- **Zhang dual-channel composite receiver** (1 kW, 85 kHz, dynamic): a receiver with mutually decoupled rectangular and solenoidal coils is tested with unipolar rectangular and bipolar DD transmitters. The abstract reports average system efficiency 90.44% and along-track output-power fluctuation 3.70% for rectangular Tx; 86.78% and 2.73% respectively for DD Tx. These are distinct transmitter configurations, and the system efficiency values are not DC–DC peak values.
+- **Cheng composite-coupling bipolar DWPT** (2 kW): H-type transmitter track with a DD-plus-two-solenoid receiver; the abstract reports ~3% output-voltage fluctuation over a central 1.2 m sampled-position range and 89.8% peak DC–DC efficiency within the tested lateral-misalignment range.
+- **Yi two-transmitter LCC-S anti-misalignment system** (1 kW, 200 V): indexed abstract reports 95.17% peak efficiency over a lateral-misalignment range. The numerical displacement envelope and efficiency boundary are not available in that abstract; keep it as a source claim in v0 until full-text extraction.
+
+These results are **not a single leaderboard**. Average system efficiency, peak DC–DC efficiency, output-power fluctuation and output-voltage fluctuation are different quantities/statistics and remain separate in typed v1. The new comparison cases explicitly reject cross-boundary and cross-quantity ranking. No missing speed, gap, coil geometry, uncertainty, route profile or meter plane is inferred.
+
+Typed v1 now contains **65 measurements and 22 frozen comparison cases**. The comparator's Rust corpus assertion has been updated to these counts; execution remains pending CI.
