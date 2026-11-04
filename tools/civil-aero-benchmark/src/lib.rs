@@ -21,6 +21,7 @@ pub mod optimizer_qualification;
 pub mod policy_aggregate;
 pub mod policy_benchmark;
 pub mod reference_data;
+pub mod risk_aware_claim_gate;
 pub mod risk_credibility;
 pub mod robust_voi;
 pub mod robustness;

@@ -98,6 +98,14 @@ Supplemental evidence not required by the claim is still bound into the manifest
 
 Admission is limited to the declared scope. It is not a guarantee of correctness outside that scope, a universal validation claim or an authorization to manufacture, operate or fly.
 
+## 7. Risk-aware composition
+
+The separate [risk-aware claim gate v0.1](./AERO_RISK_AWARE_CLAIM_GATE_V0_1.md) composes this claim policy with the model-credibility requirements from model creation type, logic transparency, artifact access, model influence and decision consequence.
+
+It does not replace the claim policy. It binds both policy digests, every control assertion and the claim scope into one replayable decision. A control that is missing or unknown causes abstention; a failed or wrong-scope control causes rejection. Critical credibility tiers, flight-release claims and safety-critical claims remain subject to external human authority.
+
+Verifier references remain unauthenticated structural references. The gate does not validate signing keys, verifier trust, revocation, expiry, or rerun evidence verification. See the risk-aware gate document for the exact trust boundary and next security work.
+
 ## 7. Required next extensions
 
 Before using the module for production engineering decisions:

@@ -214,14 +214,6 @@ pub fn assess_model_credibility(
             "Check whether plausible input changes reverse the decision.",
         ),
         (
-            "no_release_authorization_from_assessment",
-            "This requirements assessment never authorizes flight, manufacturing or operational release.",
-        ),
-        (
-            "screening_only_label",
-            "Keep outputs explicitly labelled as screening or requirements-only; never as released designs.",
-        ),
-        (
             "independent_control_review",
             "A reviewer independent of model development must inspect the evidence record.",
         ),
@@ -342,7 +334,10 @@ pub fn assess_model_credibility(
         }
     }
 
-    let mut restrictions = Vec::new();
+    let mut restrictions = vec![
+        "This requirements assessment never authorizes flight, manufacturing or operational release.",
+        "Outputs remain screening/requirements-only and are never released designs.",
+    ];
     match context.artifact_access {
         ArtifactAccess::IndependentReplayAvailable => {
             required.insert((
@@ -669,6 +664,35 @@ mod tests {
         assert_eq!(
             assessment.status,
             "requirements_assessment_only_no_evidence_completion_or_release_claim"
+        );
+    }
+
+    #[test]
+    fn release_prohibition_and_screening_label_are_policy_restrictions_not_evidence_controls() {
+        let assessment = assess_model_credibility(&context(
+            ModelCreation::Mechanistic,
+            ModelInfluence::Advisory,
+            DecisionConsequence::Limited,
+        ))
+        .expect("valid screening profile");
+        let control_ids = assessment
+            .requirements
+            .iter()
+            .map(|requirement| requirement.control_id)
+            .collect::<BTreeSet<_>>();
+        assert!(!control_ids.contains("no_release_authorization_from_assessment"));
+        assert!(!control_ids.contains("screening_only_label"));
+        assert!(
+            assessment
+                .restrictions
+                .iter()
+                .any(|restriction| restriction.contains("never authorizes flight"))
+        );
+        assert!(
+            assessment
+                .restrictions
+                .iter()
+                .any(|restriction| restriction.contains("requirements-only"))
         );
     }
 
