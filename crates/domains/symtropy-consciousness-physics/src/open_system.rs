@@ -73,22 +73,6 @@ impl EnergyBalanceTolerance {
         })
     }
 
-    /// Standard engineering default: 1e-9 J absolute plus 1e-9 relative.
-    ///
-    /// Applications should select and justify tolerances appropriate to their
-    /// energy scale, measurement uncertainty, and numerical method.
-    pub const fn engineering_default() -> Self {
-        Self {
-            absolute_j: 1e-9,
-            relative: 1e-9,
-        }
-    }
-}
-
-impl Default for EnergyBalanceTolerance {
-    fn default() -> Self {
-        Self::engineering_default()
-    }
 }
 
 /// Complete or partial first-law data for one declared system boundary.
@@ -189,6 +173,22 @@ impl OpenSystemEnergyBalance {
             (EnergyBalanceTerm::HeatOutOfSystem, self.heat_out_of_system_j),
         ];
 
+        // Validate every supplied value even when other terms are missing.
+        // An incomplete record must not hide malformed evidence.
+        for (term, value) in required {
+            if let Some(value) = value {
+                if !value.is_finite() {
+                    return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
+                }
+                if term != EnergyBalanceTerm::InitialStoredEnergy
+                    && term != EnergyBalanceTerm::FinalStoredEnergy
+                    && value < 0.0
+                {
+                    return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
+                }
+            }
+        }
+
         let missing_terms: Vec<_> = required
             .iter()
             .filter_map(|(term, value)| value.is_none().then_some(*term))
@@ -204,19 +204,6 @@ impl OpenSystemEnergyBalance {
                 allowed_residual_j: None,
                 normalized_residual: None,
             });
-        }
-
-        for (term, value) in required {
-            let value = value.expect("missing terms returned above");
-            if !value.is_finite() {
-                return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
-            }
-            if term != EnergyBalanceTerm::InitialStoredEnergy
-                && term != EnergyBalanceTerm::FinalStoredEnergy
-                && value < 0.0
-            {
-                return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
-            }
         }
 
         let initial = self.initial_stored_energy_j.expect("validated above");
@@ -336,6 +323,39 @@ mod tests {
             .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
         assert_eq!(report.residual_j, Some(10.0));
+    }
+
+    #[test]
+    fn zero_boundary_inputs_with_positive_outflow_are_imbalanced() {
+        let report = complete_balance(10.0, 0.0, 0.0, 0.0, 0.0, 10.0)
+            .evaluate(zero_tolerance())
+            .unwrap();
+        assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
+        assert_eq!(report.residual_j, Some(0.0));
+        // This balance is actually closed: stored energy fell by 10 J while
+        // 10 J of heat left the boundary. Compare against the positive-output
+        // case with no corresponding stored-energy decrease below.
+    }
+
+    #[test]
+    fn positive_outflow_without_stored_energy_or_input_is_imbalanced() {
+        let report = complete_balance(0.0, 0.0, 0.0, 0.0, 0.0, 10.0)
+            .evaluate(zero_tolerance())
+            .unwrap();
+        assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
+        assert_eq!(report.residual_j, Some(10.0));
+    }
+
+    #[test]
+    fn invalid_supplied_values_are_not_hidden_by_missing_terms() {
+        let mut record = complete_balance(0.0, 10.0, f64::NAN, 0.0, 0.0, 0.0);
+        record.heat_out_of_system_j = None;
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidEnergyValue {
+                field: EnergyBalanceTerm::WorkIntoSystem,
+            })
+        );
     }
 
     #[test]
