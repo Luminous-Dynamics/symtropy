@@ -480,7 +480,7 @@ pub fn compare_stateful_resource_trajectories(
             baseline_thermal_evidence_id: base.thermal_evidence_id.clone(),
             flexible_thermal_evidence_id: flex.thermal_evidence_id.clone(),
         });
-        let _ = base_slot;
+        debug_assert_eq!(base_slot.start_unix_seconds(), base.start_unix_seconds);
     }
 
     let service_receipts_pinned = identity.baseline_service_receipt_id.is_some()
@@ -607,7 +607,7 @@ mod tests {
 
     fn trajectory(
         config: &str,
-        actions: &[(f64, f64, f64, f64, f64)],
+        actions: &[(f64, f64, f64, f64)],
     ) -> StatefulResourceTrajectory {
         StatefulResourceTrajectory::new(
             contract(config),
@@ -631,8 +631,8 @@ mod tests {
 
     #[test]
     fn paired_battery_shift_reconciles_soc_and_counts_round_trip_losses() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0), (5.0, 0.0, 0.0, 25.0, 0.0)]);
-        let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0, 0.0), (5.0, 5.54016620498615, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0), (5.0, 0.0, 0.0, 25.0, 0.0)]);
+        let flexible = trajectory("flexible", &[(5.0, 0.0, 5.0, 25.0), (5.0, 5.54016620498615, 0.0, 25.0)]);
         let report = compare_stateful_resource_trajectories(
             identity(), &baseline, &flexible, tolerance()
         ).expect("paired resource path");
@@ -660,8 +660,8 @@ mod tests {
 
     #[test]
     fn terminal_thermal_debt_is_rejected() {
-        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 25.0)]);
-        let flexible = trajectory("flexible", &[(0.0, 0.0, 0.0, 25.0, 0.0)]);
+        let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0)]);
+        let flexible = trajectory("flexible", &[(0.0, 0.0, 0.0, 0.0)]);
         assert!(matches!(
             compare_stateful_resource_trajectories(identity(), &baseline, &flexible, tolerance()),
             Err(StatefulResourcePairError::TerminalThermalStateMismatch { .. })
@@ -718,7 +718,7 @@ mod tests {
     #[test]
     fn failed_physical_gate_emits_no_paired_trajectory() {
         let baseline = trajectory("baseline", &[(5.0, 0.0, 0.0, 25.0, 0.0)]);
-        let flexible = trajectory("flexible", &[(5.0, 0.0, 60.0, 25.0, 0.0)]);
+        let flexible = trajectory("flexible", &[(5.0, 0.0, 60.0, 25.0)]);
         assert!(matches!(
             compare_stateful_resource_trajectories(identity(), &baseline, &flexible, tolerance()),
             Err(StatefulResourcePairError::TrajectoryDidNotPass { .. })
