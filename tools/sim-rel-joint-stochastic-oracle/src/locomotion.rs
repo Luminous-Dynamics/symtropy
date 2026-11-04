@@ -269,6 +269,7 @@ pub enum AdapterError {
     UnknownIdentifier { kind: &'static str, id: String },
     InvalidSha256 { source_id: String },
     SourcePinMismatch { source_id: String },
+    UnpinnedNonSyntheticSource { source_id: String },
     MissingConnectomeSnapshot { source_id: String },
     IncompleteUnknownEndpointInventory { source_id: String },
     InvalidUnknownEndpoint { source_id: String, raw_endpoint_id: String },
@@ -296,6 +297,12 @@ pub enum AdapterError {
         expected_protocol_id: String,
         delivered_protocol_id: String,
     },
+    EvidenceSourceMismatch {
+        source_id: String,
+        declared: EvidenceClass,
+        source: EvidenceClass,
+    },
+    AnatomicalEvidenceCannotScoreTrial,
     UnknownAssignedAction(String),
 }
 
@@ -517,6 +524,15 @@ impl LocomotionKernelSpec {
             {
                 return Err(AdapterError::SourcePinMismatch {
                     source_id: pin.source_manifest_id.clone(),
+                });
+            }
+        }
+        for source in &self.source_manifests {
+            if source.evidence_class != EvidenceClass::SyntheticFixture
+                && !pins_seen.contains(&source.id)
+            {
+                return Err(AdapterError::UnpinnedNonSyntheticSource {
+                    source_id: source.id.clone(),
                 });
             }
         }
@@ -745,18 +761,26 @@ impl CompiledLocomotionKernel {
                 delivered_protocol_id: receipt.delivered_protocol_id.clone(),
             });
         }
-        let source_exists = self
+        let source = self
             .source_manifests
             .iter()
-            .any(|source| source.id == receipt.source_manifest_id);
-        if !source_exists {
-            return Err(AdapterError::UnknownIdentifier {
+            .find(|source| source.id == receipt.source_manifest_id)
+            .ok_or_else(|| AdapterError::UnknownIdentifier {
                 kind: "trial_source_manifest_id",
                 id: receipt.source_manifest_id.clone(),
+            })?;
+        if source.evidence_class != receipt.evidence_class {
+            return Err(AdapterError::EvidenceSourceMismatch {
+                source_id: source.id.clone(),
+                declared: receipt.evidence_class,
+                source: source.evidence_class,
             });
         }
+        if receipt.evidence_class == EvidenceClass::ConnectomeDerived {
+            return Err(AdapterError::AnatomicalEvidenceCannotScoreTrial);
+        }
         match receipt.evidence_class {
-            EvidenceClass::SyntheticFixture => {}
+            EvidenceClass::SyntheticFixture | EvidenceClass::InSilicoGenerated => {}
             _ => {
                 let individual = receipt
                     .animal_or_preparation_id
