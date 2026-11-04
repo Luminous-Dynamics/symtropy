@@ -827,6 +827,14 @@ mod tests {
     }
 
     #[test]
+    fn command_reason_codes_must_match_computed_causal_blockers_and_stage_receipt() {
+        let mut scenario: Value = serde_json::from_str(VALID).expect("valid scenario JSON");
+        scenario["command_attempts"][0]["expected_reason_codes"] =
+            serde_json::json!(["qualification_missing"]);
+        assert!(validate_scenario(&scenario.to_string()).is_err());
+    }
+
+    #[test]
     fn consumed_artifact_cannot_change_digest() {
         let mut scenario: Value = serde_json::from_str(VALID).expect("valid scenario JSON");
         scenario["stages"][1]["consumed_artifacts"][0]["sha256"] =
