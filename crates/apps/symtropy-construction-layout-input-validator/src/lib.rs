@@ -46,7 +46,9 @@ pub struct DisciplineRevision {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModelExport {
+    pub source_model_id: String,
     pub source_model_revision: String,
+    pub source_model_sha256: String,
     pub export_id: String,
     pub sha256: String,
     pub exporter_id: String,
@@ -129,7 +131,10 @@ pub struct TrustedPolicy {
     pub approved_change_sequence: u64,
     pub source_model_revision: String,
     pub source_model_sha256: String,
+    pub approved_source_model_reference: String,
     pub expected_exporter_id: String,
+    pub expected_exporter_version: String,
+    pub expected_exporter_config_sha256: String,
     pub source_frame_id: String,
     pub target_frame_id: String,
     pub horizontal_reference: String,
@@ -298,11 +303,25 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
     {
         out.hard("source_model_revision_or_digest_not_approved");
     }
+    if export.source_model_id != source.model_id
+        || export.source_model_sha256 != source.sha256
+    {
+        out.hard("export_source_model_identity_or_digest_mismatch");
+    }
     if export.source_model_revision != source.revision {
         out.hard("export_not_derived_from_manifest_source_revision");
     }
     if export.exporter_id != policy.expected_exporter_id {
         out.hard("exporter_identity_not_approved");
+    }
+    if export.exporter_version != policy.expected_exporter_version {
+        out.hard("exporter_version_not_approved");
+    }
+    if export.exporter_config_sha256 != policy.expected_exporter_config_sha256 {
+        out.hard("exporter_configuration_not_approved");
+    }
+    if source.approval_reference != policy.approved_source_model_reference {
+        out.hard("source_model_approval_reference_not_approved");
     }
     if !nonempty(&export.exporter_version) || !nonempty(&export.export_id) {
         out.unknown("exporter_version_or_export_id_missing");
@@ -312,6 +331,7 @@ fn check_source_and_export(manifest: &InputManifest, policy: &TrustedPolicy, out
     }
 
     check_digest(&source.sha256, "source_model_digest_malformed", out);
+    check_digest(&export.source_model_sha256, "export_source_model_digest_malformed", out);
     check_digest(&export.sha256, "export_digest_malformed", out);
     check_digest(
         &export.exporter_config_sha256,
@@ -586,6 +606,7 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         .map_err(|e| format!("invalid or non-conforming manifest: {e}"))?;
 
     if !valid_sha256(&policy.source_model_sha256)
+        || !valid_sha256(&policy.expected_exporter_config_sha256)
         || !valid_sha256(&policy.worksite_epoch_sha256)
         || !valid_sha256(&policy.transform_bundle_sha256)
         || policy
@@ -603,7 +624,9 @@ pub fn evaluate_manifest(raw: &str, policy: &TrustedPolicy) -> Result<Evaluation
         || !nonempty(&policy.work_package_revision)
         || !nonempty(&policy.work_zone_id)
         || !nonempty(&policy.source_model_revision)
+        || !nonempty(&policy.approved_source_model_reference)
         || !nonempty(&policy.expected_exporter_id)
+        || !nonempty(&policy.expected_exporter_version)
         || !nonempty(&policy.source_frame_id)
         || !nonempty(&policy.target_frame_id)
         || !nonempty(&policy.horizontal_reference)
