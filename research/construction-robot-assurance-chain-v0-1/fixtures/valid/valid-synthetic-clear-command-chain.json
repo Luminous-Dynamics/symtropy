@@ -104,7 +104,8 @@
         }
       ],
       "expected_disposition": "active",
-      "expected_reason_codes": []
+      "expected_reason_codes": [],
+      "qualification_generation": 1
     },
     {
       "stage_id": "command",
@@ -118,6 +119,16 @@
           "artifact_id": "lease-rev1",
           "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           "role": "stage-output"
+        },
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "role": "command-evidence"
+        },
+        {
+          "artifact_id": "epoch-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "command-evidence"
         }
       ],
       "produced_artifacts": [
@@ -172,7 +183,11 @@
       "qualification_generation": 1,
       "lease_valid_at_command": true,
       "expected_authorized": true,
-      "expected_reason_codes": []
+      "expected_reason_codes": [],
+      "command_stage_id": "command",
+      "observation_stage_id": "observation",
+      "epoch_stage_id": "epoch",
+      "qualification_stage_id": "qualification"
     }
   ],
   "claim_expectations": [
