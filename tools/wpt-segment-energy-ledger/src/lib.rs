@@ -137,8 +137,19 @@ pub struct EfficiencyInterval {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PhaseReport {
+    pub phase: Phase,
+    pub start_ns: u64,
+    pub end_ns: u64,
+    pub spc_input_wh: f64,
+    pub evpc_output_wh: f64,
+    pub efficiency: EfficiencyInterval,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SegmentReport {
     pub segment_id: String,
+    pub phases: Vec<PhaseReport>,
     pub spc_input_wh: f64,
     pub evpc_output_wh: f64,
     pub phase_reconciliation_input_error_wh: f64,
@@ -159,6 +170,7 @@ pub struct RouteReport {
     pub total_idle_grid_input_wh: f64,
     pub total_idle_roadway_inverter_dc_input_wh: f64,
     pub total_bess_dc_output_wh: Option<f64>,
+    pub total_bess_dc_output_bound_wh: Option<f64>,
     pub standard_route_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: EfficiencyInterval,
     pub grid_to_battery_efficiency: EfficiencyInterval,
@@ -281,7 +293,7 @@ impl RouteLedger {
             intervals.push((idle.start_ns, idle.end_ns, idle.interval_id.clone()));
         }
 
-        intervals.sort_by(|left, right| left.0.total_cmp(&right.0).then_with(|| left.1.total_cmp(&right.1)));
+        intervals.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
         if intervals.first().map(|interval| interval.0) != Some(self.route_start_ns)
             || intervals.last().map(|interval| interval.1) != Some(self.route_end_ns)
         {
@@ -307,6 +319,7 @@ impl RouteLedger {
         let mut total_evpc_bound = 0.0;
         let mut total_idle_grid = 0.0;
         let mut total_bess = 0.0;
+        let mut total_bess_bound = 0.0;
         let mut total_bess_present = false;
 
         let mut total_inverter = 0.0;
@@ -324,6 +337,23 @@ impl RouteLedger {
             let spc = sum_quantity(segment.phases.iter().map(|phase| &phase.spc_input))?;
             let evpc = sum_quantity(segment.phases.iter().map(|phase| &phase.evpc_output))?;
             let standard = efficiency_interval(spc.0, evpc.0, spc.1, evpc.1);
+            let phase_metrics = segment
+                .phases
+                .iter()
+                .map(|phase| PhaseReport {
+                    phase: phase.phase.clone(),
+                    start_ns: phase.start_ns,
+                    end_ns: phase.end_ns,
+                    spc_input_wh: phase.spc_input.energy_wh,
+                    evpc_output_wh: phase.evpc_output.energy_wh,
+                    efficiency: efficiency_interval(
+                        phase.spc_input.energy_wh,
+                        phase.evpc_output.energy_wh,
+                        phase.spc_input.deterministic_absolute_bound_wh,
+                        phase.evpc_output.deterministic_absolute_bound_wh,
+                    ),
+                })
+                .collect();
 
             total_spc = checked_add(total_spc, spc.0)?;
             total_evpc = checked_add(total_evpc, evpc.0)?;
@@ -340,6 +370,10 @@ impl RouteLedger {
                     }
                     EnergyBoundary::BessDcOutput => {
                         total_bess = checked_add(total_bess, quantity.energy_wh)?;
+                        total_bess_bound = checked_add(
+                            total_bess_bound,
+                            quantity.deterministic_absolute_bound_wh,
+                        )?;
                         total_bess_present = true;
                     }
                     EnergyBoundary::VehicleDcBusOutput => {
@@ -374,6 +408,7 @@ impl RouteLedger {
 
             segment_reports.push(SegmentReport {
                 segment_id: segment.segment_id.clone(),
+                phases: phase_metrics,
                 spc_input_wh: spc.0,
                 evpc_output_wh: evpc.0,
                 phase_reconciliation_input_error_wh: (spc.0 - segment.segment_spc_input.energy_wh).abs(),
@@ -397,6 +432,8 @@ impl RouteLedger {
             }
             if let Some(bess) = map.get(&EnergyBoundary::BessDcOutput) {
                 total_bess = checked_add(total_bess, bess.energy_wh)?;
+                total_bess_bound =
+                    checked_add(total_bess_bound, bess.deterministic_absolute_bound_wh)?;
                 total_bess_present = true;
             }
         }
@@ -429,6 +466,7 @@ impl RouteLedger {
             total_idle_grid_input_wh: total_idle_grid,
             total_idle_roadway_inverter_dc_input_wh: total_idle_inverter,
             total_bess_dc_output_wh: total_bess_present.then_some(total_bess),
+            total_bess_dc_output_bound_wh: total_bess_present.then_some(total_bess_bound),
             standard_route_segment_efficiency: standard_route,
             inverter_dc_to_vehicle_dc_efficiency: inverter_route,
             grid_to_battery_efficiency: grid_route,
@@ -576,7 +614,7 @@ fn efficiency_interval(input_wh: f64, output_wh: f64, input_bound_wh: f64, outpu
     }
 
     EfficiencyInterval {
-        disposition: "QUALIFIED_INTERVAL".into(),
+        disposition: "COMPUTED_INTERVAL".into(),
         point_estimate: Some(point),
         lower_bound: Some(lower),
         upper_bound: Some(upper),
