@@ -717,6 +717,41 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_global_sequences_and_decreasing_rounds_fail_closed() {
+        let mut duplicate_sequence = fixture();
+        duplicate_sequence.actions[1].sequence = duplicate_sequence.actions[0].sequence;
+        assert!(matches!(
+            duplicate_sequence.validate(),
+            Err(CollaborationError::DuplicateSequence(_))
+        ));
+
+        let mut decreasing_round = fixture();
+        decreasing_round.actions[2].round = 0;
+        assert!(matches!(
+            decreasing_round.validate(),
+            Err(CollaborationError::NonMonotonicRound { .. })
+        ));
+    }
+
+    #[test]
+    fn agent_useful_effort_shares_sum_to_one_when_success_has_contributors() {
+        let metrics = fixture().score().unwrap();
+        let lower_sum = metrics
+            .per_agent
+            .iter()
+            .filter_map(|agent| agent.useful_effort_share_lower)
+            .sum::<f64>();
+        let upper_sum = metrics
+            .per_agent
+            .iter()
+            .filter_map(|agent| agent.useful_effort_share_upper)
+            .sum::<f64>();
+        assert!((lower_sum - 1.0).abs() < 1e-12);
+        assert!((upper_sum - 1.0).abs() < 1e-12);
+        assert!(metrics.cce_verified_lower <= metrics.cce_candidate_upper);
+    }
+
+    #[test]
     fn success_failure_and_partial_success_contract_is_explicit() {
         let mut inconsistent = fixture();
         inconsistent.success_action_ids.clear();
