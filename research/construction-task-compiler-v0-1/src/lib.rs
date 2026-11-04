@@ -152,11 +152,7 @@ impl TaskGraph {
             ("rule_set_digest", self.rule_set_digest.as_str()),
         ] {
             if value.trim().is_empty() {
-                diagnostics.push(diagnostic(
-                    "missing_graph_header_field",
-                    None,
-                    name,
-                ));
+                diagnostics.push(diagnostic("missing_graph_header_field", None, name));
             }
         }
     }
@@ -178,11 +174,7 @@ fn validate_node(node: &TaskNode, diagnostics: &mut Vec<GraphDiagnostic>) {
         ("functional_unit_class", node.functional_unit_class.as_str()),
     ] {
         if value.trim().is_empty() {
-            diagnostics.push(diagnostic(
-                "missing_task_derivation_field",
-                node_id,
-                name,
-            ));
+            diagnostics.push(diagnostic("missing_task_derivation_field", node_id, name));
         }
     }
 
@@ -221,7 +213,13 @@ fn validate_node(node: &TaskNode, diagnostics: &mut Vec<GraphDiagnostic>) {
         node_id,
         diagnostics,
     );
-    validate_string_list("dependencies", &node.dependencies, false, node_id, diagnostics);
+    validate_string_list(
+        "dependencies",
+        &node.dependencies,
+        false,
+        node_id,
+        diagnostics,
+    );
 
     let mut parameter_names = BTreeSet::new();
     for parameter in &node.parameters {
@@ -282,27 +280,15 @@ fn validate_string_list(
     diagnostics: &mut Vec<GraphDiagnostic>,
 ) {
     if required && values.is_empty() {
-        diagnostics.push(diagnostic(
-            "empty_required_task_list",
-            node_id,
-            field,
-        ));
+        diagnostics.push(diagnostic("empty_required_task_list", node_id, field));
     }
 
     let mut seen = BTreeSet::new();
     for value in values {
         if value.trim().is_empty() {
-            diagnostics.push(diagnostic(
-                "empty_list_item",
-                node_id,
-                field,
-            ));
+            diagnostics.push(diagnostic("empty_list_item", node_id, field));
         } else if !seen.insert(value.as_str()) {
-            diagnostics.push(diagnostic(
-                "duplicate_list_item",
-                node_id,
-                field,
-            ));
+            diagnostics.push(diagnostic("duplicate_list_item", node_id, field));
         }
     }
 }
@@ -313,8 +299,10 @@ fn validate_dependencies(
 ) -> Vec<String> {
     let mut indegree: BTreeMap<&str, usize> =
         nodes_by_id.keys().map(|node_id| (*node_id, 0)).collect();
-    let mut outgoing: BTreeMap<&str, BTreeSet<&str>> =
-        nodes_by_id.keys().map(|node_id| (*node_id, BTreeSet::new())).collect();
+    let mut outgoing: BTreeMap<&str, BTreeSet<&str>> = nodes_by_id
+        .keys()
+        .map(|node_id| (*node_id, BTreeSet::new()))
+        .collect();
 
     for (node_id, node) in nodes_by_id {
         let mut seen_dependencies = BTreeSet::new();
@@ -324,20 +312,12 @@ fn validate_dependencies(
             }
 
             if dependency.as_str() == *node_id {
-                diagnostics.push(diagnostic(
-                    "self_dependency",
-                    Some(node_id),
-                    dependency,
-                ));
+                diagnostics.push(diagnostic("self_dependency", Some(node_id), dependency));
                 continue;
             }
 
             if !nodes_by_id.contains_key(dependency.as_str()) {
-                diagnostics.push(diagnostic(
-                    "unknown_dependency",
-                    Some(node_id),
-                    dependency,
-                ));
+                diagnostics.push(diagnostic("unknown_dependency", Some(node_id), dependency));
                 continue;
             }
 
@@ -428,7 +408,10 @@ mod tests {
             transformation_rule_id: "rule-element-install".to_owned(),
             transformation_rule_digest: "sha256:rule-1".to_owned(),
             functional_unit_class: "installed-component".to_owned(),
-            dependencies: dependencies.iter().map(|value| (*value).to_owned()).collect(),
+            dependencies: dependencies
+                .iter()
+                .map(|value| (*value).to_owned())
+                .collect(),
             parameters: vec![ParameterBinding {
                 name: "embedment_depth".to_owned(),
                 value: "1200".to_owned(),
