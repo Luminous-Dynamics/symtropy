@@ -111,6 +111,14 @@
         "source_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "source_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversion_evidence_ref": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
