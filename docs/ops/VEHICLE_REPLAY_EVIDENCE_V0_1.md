@@ -122,3 +122,6 @@ The replay vocabulary contains two distinct commands:
 Both commands require a kinematic body and are preflighted before the first tape mutation. The full-pose variant rejects non-finite matrices and matrices that are not proper rotations (orthogonality and determinant tolerance 1e-9). Every pose field is included in the replay-tape digest (domain tag v3), and body pose/velocity are included in every world snapshot.
 
 A straight-crossing V0.1 actor may use the narrower state command only when fixed heading is an explicit scenario invariant. Curved routes must use the full-pose command. Neither command infers heading from linear velocity.
+
+
+**V0.2 review note (2026-11-04):** Full-pose replay is an additive command-vocabulary revision. Replay-tape domain v3 is required for the added pose variant; receipts and reports must preserve the exact source head and schema identity. The fixed-heading state command remains explicitly narrower.
