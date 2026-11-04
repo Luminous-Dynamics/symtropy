@@ -46,9 +46,18 @@ pub struct InterventionCandidate {
     pub outcomes: Vec<OutcomeLikelihood>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceTier {
+    SyntheticFixture,
+    InSilicoGenerated,
+    PreprintMeasured,
+    PeerReviewedMeasured,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExperimentRecord {
     pub sample_id: String,
+    pub evidence_tier: EvidenceTier,
     pub assigned_candidate_id: String,
     pub delivered_protocol_id: String,
     pub outcome_id: String,
@@ -128,6 +137,8 @@ pub enum EngineError {
     DeliveryMismatch,
     WashoutNotCleared,
     InvalidReplicationIdentity,
+    RepeatedReplicationUnit(String),
+    RepeatedSession(String),
     InvalidDeliveryFidelity,
 }
 
@@ -314,10 +325,15 @@ pub fn expected_information_gain(
 
 /// Condition on a delivered outcome only when assignment, delivery identity,
 /// replication-unit identity and washout are verified.
+/// The V0 updater assumes one observation per independent replication unit.
+/// Repeated observations from the same animal/preparation or session require a
+/// joint cluster/trajectory likelihood and are rejected until that adapter is
+/// supplied. This avoids treating correlated time points as independent trials.
 pub fn condition_on_outcome(
     posterior: &Posterior,
     candidate: &InterventionCandidate,
     record: &ExperimentRecord,
+    prior_history: &[ExperimentRecord],
 ) -> Result<PosteriorUpdate, EngineError> {
     validate_posterior(posterior)?;
     let model_ids: BTreeSet<String> = posterior.keys().cloned().collect();
@@ -336,6 +352,17 @@ pub fn condition_on_outcome(
         || record.session_id.trim().is_empty()
     {
         return Err(EngineError::InvalidReplicationIdentity);
+    }
+    for previous in prior_history {
+        if previous.sample_id == record.sample_id {
+            return Err(EngineError::DuplicateSample(record.sample_id.clone()));
+        }
+        if previous.replication_unit_id == record.replication_unit_id {
+            return Err(EngineError::RepeatedReplicationUnit(record.replication_unit_id.clone()));
+        }
+        if previous.session_id == record.session_id {
+            return Err(EngineError::RepeatedSession(record.session_id.clone()));
+        }
     }
     let outcome = candidate
         .outcomes
@@ -561,6 +588,12 @@ fn state_fingerprint(
         push_str(&mut bytes, &record.outcome_id);
         push_str(&mut bytes, &record.replication_unit_id);
         push_str(&mut bytes, &record.session_id);
+        bytes.push(match record.evidence_tier {
+            EvidenceTier::SyntheticFixture => 0,
+            EvidenceTier::InSilicoGenerated => 1,
+            EvidenceTier::PreprintMeasured => 2,
+            EvidenceTier::PeerReviewedMeasured => 3,
+        });
         bytes.push(record.washout_cleared as u8);
     }
     fingerprint(&bytes)
@@ -784,6 +817,7 @@ mod tests {
     fn record(candidate: &InterventionCandidate, outcome: &str) -> ExperimentRecord {
         ExperimentRecord {
             sample_id: "sample-1".to_owned(),
+            evidence_tier: EvidenceTier::SyntheticFixture,
             assigned_candidate_id: candidate.candidate_id.clone(),
             delivered_protocol_id: candidate.protocol_id.clone(),
             outcome_id: outcome.to_owned(),
@@ -834,7 +868,7 @@ mod tests {
         let beta = candidate("beta", 0.1, 0.8, 1.0);
         let first = choose_next(&state(0.5), &[alpha.clone(), beta.clone()], &DecisionConfig::default()).unwrap();
         assert!(matches!(first, Decision::Select(ref s) if s.candidate_id == "alpha"));
-        let update = condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes")).unwrap();
+        let update = condition_on_outcome(&posterior(0.5), &alpha, &record(&alpha, "yes"), &[]).unwrap();
         let new_posterior = match update {
             PosteriorUpdate::Updated { posterior, .. } => posterior,
             other => panic!("unexpected update: {other:?}"),
@@ -851,7 +885,7 @@ mod tests {
         let c = candidate("stim", 0.9, 0.1, 1.0);
         let mut r = record(&c, "yes");
         r.assigned_candidate_id = "wrong".to_owned();
-        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r), Err(EngineError::AssignmentMismatch));
+        assert_eq!(condition_on_outcome(&posterior(0.5), &c, &r, &[]), Err(EngineError::AssignmentMismatch));
     }
 
     #[test]
@@ -871,9 +905,21 @@ mod tests {
     }
 
     #[test]
+    fn repeated_replication_unit_requires_joint_likelihood() {
+        let c = candidate("stim", 0.9, 0.1, 1.0);
+        let previous = record(&c, "yes");
+        let mut next = record(&c, "no");
+        next.sample_id = "sample-2".to_owned();
+        assert_eq!(
+            condition_on_outcome(&posterior(0.5), &c, &next, &[previous]),
+            Err(EngineError::RepeatedReplicationUnit("animal-1".to_owned()))
+        );
+    }
+
+    #[test]
     fn zero_probability_observation_requests_model_revision() {
         let c = candidate("stim", 1.0, 1.0, 1.0);
-        let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no")).unwrap();
+        let result = condition_on_outcome(&posterior(0.5), &c, &record(&c, "no"), &[]).unwrap();
         assert_eq!(result, PosteriorUpdate::ModelInadequate { marginal_likelihood: 0.0 });
     }
 
