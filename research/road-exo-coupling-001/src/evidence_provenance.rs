@@ -847,7 +847,11 @@ mod tests {
 
     #[test]
     fn fit_and_calibration_data_cannot_qualify_as_sealed_reference() {
-        for use_role in [EvidenceUse::Fit, EvidenceUse::Calibration, EvidenceUse::DevelopmentValidation] {
+        for use_role in [
+            EvidenceUse::Fit,
+            EvidenceUse::Calibration,
+            EvidenceUse::DevelopmentValidation,
+        ] {
             let mut packet = factual_packet();
             packet.use_role = use_role;
             let receipt = packet.qualify_against(
