@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 pub mod decision_closure;
+pub mod decision_evidence;
+pub mod evidence_provenance;
 pub mod dependence;
 pub mod philox_adapter;
 
