@@ -1012,14 +1012,14 @@ mod tests {
     }
 
     #[test]
-    fn a_late_alert_does_not_hide_a_missed_incident() {
+    fn alarm_after_association_grace_is_false_and_event_missed() {
         let events = vec![event("event-1", EventClass::Leak, 1_000, 1_200)];
         let alarms = vec![alarm(
-            "alarm-after-deadline",
+            "alarm-after-association",
             "source-a",
             AlarmClass::Unclassified,
-            1_801,
-            1_900,
+            301_201,
+            301_300,
         )];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 0);
