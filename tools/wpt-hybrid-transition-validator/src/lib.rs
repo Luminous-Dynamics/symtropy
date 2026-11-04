@@ -63,8 +63,8 @@ fn dimension_field(value: &Value, key: &str, path: &str) -> Result<usize, String
     let raw = field(value, key, path)?
         .as_u64()
         .ok_or_else(|| format!("{path}.{key} must be a positive integer"))?;
-    let dimension = usize::try_from(raw)
-        .map_err(|_| format!("{path}.{key} does not fit this platform"))?;
+    let dimension =
+        usize::try_from(raw).map_err(|_| format!("{path}.{key} does not fit this platform"))?;
     if dimension == 0 || dimension > 256 {
         return Err(format!("{path}.{key} must be in 1..=256"));
     }
@@ -195,10 +195,15 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         ("port_energy_receipt_sha256", &port_energy_receipt_sha256),
         ("switch_work_receipt_sha256", &switch_work_receipt_sha256),
         ("dissipation_receipt_sha256", &dissipation_receipt_sha256),
-        ("state_mapping_receipt_sha256", &state_mapping_receipt_sha256),
+        (
+            "state_mapping_receipt_sha256",
+            &state_mapping_receipt_sha256,
+        ),
     ] {
         if !valid_sha256(digest) {
-            return Err(format!("switch_event.{name} must be 64 lowercase hex characters"));
+            return Err(format!(
+                "switch_event.{name} must be 64 lowercase hex characters"
+            ));
         }
     }
 
@@ -575,7 +580,10 @@ mod tests {
     #[test]
     fn rejects_missing_or_invalid_mode_certificate_digest() {
         let mut missing = event("missing-mode-certificate", 1.0, 1.0, 0.0, 0.0);
-        missing["pre_mode"].as_object_mut().unwrap().remove("certificate_sha256");
+        missing["pre_mode"]
+            .as_object_mut()
+            .unwrap()
+            .remove("certificate_sha256");
         assert_eq!(disposition(&missing), "INVALID_INPUT");
 
         let mut invalid = event("invalid-mode-certificate", 1.0, 1.0, 0.0, 0.0);
@@ -586,7 +594,10 @@ mod tests {
     #[test]
     fn rejects_missing_or_invalid_event_receipt_digest() {
         let mut missing = event("missing-port-receipt", 1.0, 1.0, 0.0, 0.0);
-        missing["switch_event"].as_object_mut().unwrap().remove("port_energy_receipt_sha256");
+        missing["switch_event"]
+            .as_object_mut()
+            .unwrap()
+            .remove("port_energy_receipt_sha256");
         assert_eq!(disposition(&missing), "INVALID_INPUT");
 
         let mut invalid = event("invalid-switch-receipt", 1.0, 1.0, 0.0, 0.0);
