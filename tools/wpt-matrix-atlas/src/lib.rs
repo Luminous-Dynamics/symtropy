@@ -83,6 +83,14 @@ pub struct RefinementPolicy {
     pub minimum_required_eigenvalue_margin_h: f64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct RefinementCandidate {
+    pub segment_index: usize,
+    pub position_m: f64,
+    pub priority_score: f64,
+    pub triggers: Vec<String>,
+}
+
 impl MatrixAtlas {
     /// Validate shape, identity, domain, matrix symmetry and evidence references.
     ///
@@ -303,6 +311,22 @@ impl MatrixAtlas {
     /// Return segment midpoints requiring new FEM/measurement samples under
     /// the caller's error and passivity-margin policy.
     pub fn refinement_candidates(&self, policy: RefinementPolicy) -> Result<Vec<f64>, String> {
+        Ok(self
+            .refinement_plan(policy)?
+            .into_iter()
+            .map(|candidate| candidate.position_m)
+            .collect())
+    }
+
+    /// Rank candidate field-solve locations by normalized model-risk signals.
+    ///
+    /// V1 uses only the segment interpolation envelope and passivity margin;
+    /// service sensitivity / value-of-information signals are intentionally
+    /// left for a later benchmark with a validated circuit model.
+    pub fn refinement_plan(
+        &self,
+        policy: RefinementPolicy,
+    ) -> Result<Vec<RefinementCandidate>, String> {
         self.validate()?;
         if !policy
             .maximum_interpolation_error_frobenius_bound_h
@@ -322,13 +346,53 @@ impl MatrixAtlas {
                 .minimum_eigenvalue_lower_bound_h
                 .min(right.minimum_eigenvalue_lower_bound_h)
                 - segment.interpolation_error_frobenius_bound_h;
+
+            let error_ratio = if policy.maximum_interpolation_error_frobenius_bound_h == 0.0 {
+                if segment.interpolation_error_frobenius_bound_h > 0.0 {
+                    f64::MAX
+                } else {
+                    0.0
+                }
+            } else {
+                segment.interpolation_error_frobenius_bound_h
+                    / policy.maximum_interpolation_error_frobenius_bound_h
+            };
+            let margin_deficit = (policy.minimum_required_eigenvalue_margin_h
+                - conservative_margin)
+                .max(0.0);
+            let margin_scale = policy
+                .minimum_required_eigenvalue_margin_h
+                .max(f64::MIN_POSITIVE);
+            let margin_ratio = margin_deficit / margin_scale;
+
+            let mut triggers = Vec::new();
             if segment.interpolation_error_frobenius_bound_h
                 > policy.maximum_interpolation_error_frobenius_bound_h
-                || conservative_margin < policy.minimum_required_eigenvalue_margin_h
             {
-                candidates.push(0.5 * left.position_m + 0.5 * right.position_m);
+                triggers.push("INTERPOLATION_ERROR_EXCEEDED".into());
+            }
+            if conservative_margin < policy.minimum_required_eigenvalue_margin_h {
+                triggers.push("PASSIVITY_MARGIN_BELOW_POLICY".into());
+            }
+            if !triggers.is_empty() {
+                let priority_score = error_ratio.max(margin_ratio);
+                if !priority_score.is_finite() {
+                    return Err("refinement priority score overflow".into());
+                }
+                candidates.push(RefinementCandidate {
+                    segment_index: index,
+                    position_m: left.position_m + 0.5 * (right.position_m - left.position_m),
+                    priority_score,
+                    triggers,
+                });
             }
         }
+        candidates.sort_by(|left, right| {
+            right
+                .priority_score
+                .total_cmp(&left.priority_score)
+                .then_with(|| left.segment_index.cmp(&right.segment_index))
+        });
         Ok(candidates)
     }
 }
@@ -646,6 +710,41 @@ mod tests {
             })
             .unwrap();
         assert_eq!(candidates, vec![5.0]);
+    }
+
+    #[test]
+    fn refinement_plan_prioritizes_segments_with_larger_normalized_error() {
+        let mut atlas = fixture();
+        let mut third = atlas.samples[1].clone();
+        third.position_m = 20.0;
+        third.matrix_digest = format!("sha256:{}", "3".repeat(64));
+        third.source_artifact_digest = format!("sha256:{}", "4".repeat(64));
+        third.validator_receipt_digest = format!("sha256:{}", "5".repeat(64));
+        atlas.samples.push(third);
+        atlas.segments[0].interpolation_error_frobenius_bound_h = 0.3e-6;
+        atlas.segments.push(AtlasSegment {
+            from_sample_index: 1,
+            to_sample_index: 2,
+            interpolation_error_frobenius_bound_h: 0.6e-6,
+            error_bound_method: "HELD_OUT_DENSE_REFERENCE".into(),
+            validation_receipt_digest: format!("sha256:{}", "6".repeat(64)),
+        });
+
+        let plan = atlas
+            .refinement_plan(RefinementPolicy {
+                maximum_interpolation_error_frobenius_bound_h: 0.2e-6,
+                minimum_required_eigenvalue_margin_h: 0.0,
+            })
+            .unwrap();
+        assert_eq!(plan.len(), 2);
+        assert_eq!(plan[0].segment_index, 1);
+        assert_eq!(plan[1].segment_index, 0);
+        assert!(plan[0].priority_score > plan[1].priority_score);
+        assert_eq!(plan[0].position_m, 15.0);
+        assert_eq!(plan[1].position_m, 5.0);
+        assert!(plan
+            .iter()
+            .all(|candidate| candidate.triggers.contains(&"INTERPOLATION_ERROR_EXCEEDED".into())));
     }
 
     #[test]
