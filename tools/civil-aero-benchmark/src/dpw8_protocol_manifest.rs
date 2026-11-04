@@ -601,7 +601,7 @@ fn validate_spec(spec: &Dpw8Oat15aProtocolSpec) -> Result<(), String> {
                 return Err("V1c base flow values are not separately stated in the admitted scatter-reprise subsection; do not invent them here".to_owned());
             }
             if spec.angle_schedule != Dpw8AngleSchedule::NotSpecifiedByThisSource
-                || spec.angle_of_attack_degrees.len() != 0
+                || !spec.angle_of_attack_degrees.is_empty()
                 || spec.grid_policy != Dpw8GridFamilyPolicy::UpdatedFamilyDefinitionMustBeAdmitted
                 || spec.common_farfield_chords != Some(1000.0)
                 || spec.turbulence_model.as_deref()
@@ -1007,7 +1007,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn independent_python_oracle_replays_each_dpW8_protocol_lane() {
+    fn independent_python_oracle_replays_each_dp_w8_protocol_lane() {
         let lanes = [
             Dpw8Oat15aLane::V1aSteadyGridConvergencePolar,
             Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet,
