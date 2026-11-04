@@ -11446,6 +11446,13 @@ dependencies = [
 
 [[package]]
 name = "wpt-round-robin-validator"
+[[package]]
+name = "wpt-self-identification-evaluator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
 version = "0.1.0"
 dependencies = [
  "serde_json",
