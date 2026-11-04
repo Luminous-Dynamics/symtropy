@@ -179,6 +179,7 @@ members = [
     "tools/wpt-geometry-envelope-validator",
     "tools/wpt-material-catalog-validator",
     "tools/wpt-round-robin-validator",
+    "tools/wpt-self-identification-evaluator",
 ]
 
 [lints.clippy]
