@@ -123,21 +123,11 @@ pub struct SubjectLineage {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QualificationTarget {
-    FactualOutcome {
-        action_id: StableId,
-    },
-    ExecutedInterventionOutcome {
-        action_id: StableId,
-    },
-    UnexecutedActionOutcome {
-        action_id: StableId,
-    },
-    FormalConformance {
-        domain_id: StableId,
-    },
-    HumanLabel {
-        rubric_id: StableId,
-    },
+    FactualOutcome { action_id: StableId },
+    ExecutedInterventionOutcome { action_id: StableId },
+    UnexecutedActionOutcome { action_id: StableId },
+    FormalConformance { domain_id: StableId },
+    HumanLabel { rubric_id: StableId },
 }
 
 #[repr(u8)]
@@ -322,21 +312,22 @@ impl EvidencePacket {
     pub fn validate_shape(&self) -> Result<(), QualificationReason> {
         let valid_pair = matches!(
             (self.origin, self.claim),
-            (EvidenceOrigin::ObservedFactual, EvidenceClaim::FactualObservation)
-                | (
-                    EvidenceOrigin::ControlledIntervention,
-                    EvidenceClaim::ControlledOutcome
-                )
-                | (
-                    EvidenceOrigin::NaturalExperiment,
-                    EvidenceClaim::NaturalExperimentEstimate
-                )
-                | (
-                    EvidenceOrigin::SimulatorGenerated,
-                    EvidenceClaim::SimulatorOutput
-                )
-                | (EvidenceOrigin::ModelGenerated, EvidenceClaim::ModelCounterfactual)
-                | (EvidenceOrigin::FormalReference, EvidenceClaim::FormalResult)
+            (
+                EvidenceOrigin::ObservedFactual,
+                EvidenceClaim::FactualObservation
+            ) | (
+                EvidenceOrigin::ControlledIntervention,
+                EvidenceClaim::ControlledOutcome
+            ) | (
+                EvidenceOrigin::NaturalExperiment,
+                EvidenceClaim::NaturalExperimentEstimate
+            ) | (
+                EvidenceOrigin::SimulatorGenerated,
+                EvidenceClaim::SimulatorOutput
+            ) | (
+                EvidenceOrigin::ModelGenerated,
+                EvidenceClaim::ModelCounterfactual
+            ) | (EvidenceOrigin::FormalReference, EvidenceClaim::FormalResult)
                 | (
                     EvidenceOrigin::HumanAdjudication,
                     EvidenceClaim::HumanJudgement
@@ -430,7 +421,10 @@ impl EvidencePacket {
         }
 
         match (target, self.origin) {
-            (QualificationTarget::FactualOutcome { action_id }, EvidenceOrigin::ObservedFactual) => {
+            (
+                QualificationTarget::FactualOutcome { action_id },
+                EvidenceOrigin::ObservedFactual,
+            ) => {
                 if self.action_realization != ActionRealization::Observed
                     || self.action_id.as_ref() != Some(action_id)
                 {
@@ -512,7 +506,10 @@ impl EvidencePacket {
                     QualificationReason::IdentificationPackagePresent,
                 )
             }
-            (QualificationTarget::FormalConformance { domain_id }, EvidenceOrigin::FormalReference) => {
+            (
+                QualificationTarget::FormalConformance { domain_id },
+                EvidenceOrigin::FormalReference,
+            ) => {
                 if self.formal_domain_id.as_ref() != Some(domain_id) {
                     return (
                         GroundTruthEligibility::NotIdentified,
@@ -553,7 +550,10 @@ impl EvidencePacket {
                 GroundTruthEligibility::ModelDependentReference,
                 QualificationReason::ModelGeneratedReference,
             ),
-            (QualificationTarget::UnexecutedActionOutcome { .. }, EvidenceOrigin::ObservedFactual) => (
+            (
+                QualificationTarget::UnexecutedActionOutcome { .. },
+                EvidenceOrigin::ObservedFactual,
+            ) => (
                 GroundTruthEligibility::NotIdentified,
                 QualificationReason::FactualRecordCannotIdentifyUnexecutedAction,
             ),
@@ -822,13 +822,14 @@ mod tests {
             GroundTruthEligibility::IndependentObservedAnchor
         );
         assert_eq!(
-            packet.qualify_against(
-                &subject(),
-                QualificationTarget::UnexecutedActionOutcome {
-                    action_id: id("yield"),
-                }
-            )
-            .eligibility,
+            packet
+                .qualify_against(
+                    &subject(),
+                    QualificationTarget::UnexecutedActionOutcome {
+                        action_id: id("yield"),
+                    }
+                )
+                .eligibility,
             GroundTruthEligibility::NotIdentified
         );
         assert!(receipt.integrity_check());
@@ -892,8 +893,7 @@ mod tests {
     #[test]
     fn same_model_ancestry_rejects_self_validation() {
         let mut packet = factual_packet();
-        packet.lineage.generator_ancestry =
-            BTreeSet::from([id("model-under-test-v3")]);
+        packet.lineage.generator_ancestry = BTreeSet::from([id("model-under-test-v3")]);
         let receipt = packet.qualify_against(
             &subject(),
             QualificationTarget::FactualOutcome {
@@ -1224,10 +1224,7 @@ mod tests {
             dataset_version: id("v1"),
             entries: vec![entry.clone(), entry],
         };
-        assert_eq!(
-            duplicate.validate(),
-            Err(EvidenceError::DuplicateRecord)
-        );
+        assert_eq!(duplicate.validate(), Err(EvidenceError::DuplicateRecord));
 
         let mut incomplete_entry = split_entry(
             "record-b",
