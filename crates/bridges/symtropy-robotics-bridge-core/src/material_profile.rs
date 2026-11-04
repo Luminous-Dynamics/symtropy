@@ -66,9 +66,9 @@ impl MaterialQuantityV1 {
     pub const fn canonical_unit(self) -> &'static str {
         match self {
             Self::BulkDensity => "kg/m^3",
-            Self::UnconfinedCompressiveStrength
-            | Self::TensileStrength
-            | Self::YoungsModulus => "Pa",
+            Self::UnconfinedCompressiveStrength | Self::TensileStrength | Self::YoungsModulus => {
+                "Pa"
+            }
             Self::PoissonRatio | Self::Porosity => "1",
             Self::ModeIFractureToughness => "Pa*sqrt(m)",
             Self::IntrinsicPermeability => "m^2",

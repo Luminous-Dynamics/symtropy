@@ -264,7 +264,10 @@ impl CellRemovalMaskV1 {
         }
         let payload: CellRemovalMaskPayloadV1 = serde_json::from_slice(bytes)
             .map_err(|_| ExcavationContractErrorV1::InvalidCellMaskPayload)?;
-        Ok(Self { payload, source_artifact })
+        Ok(Self {
+            payload,
+            source_artifact,
+        })
     }
 
     /// Validate a decoded mask against the exact request, world and result delta.
@@ -300,8 +303,14 @@ impl CellRemovalMaskV1 {
             return Err(ExcavationContractErrorV1::CellMaskMaterialMismatch);
         }
         if payload.grid_dimensions.contains(&0)
-            || !payload.grid_origin_m.iter().all(|coordinate| coordinate.is_finite())
-            || !payload.cell_size_m.iter().all(|size| size.is_finite() && *size > 0.0)
+            || !payload
+                .grid_origin_m
+                .iter()
+                .all(|coordinate| coordinate.is_finite())
+            || !payload
+                .cell_size_m
+                .iter()
+                .all(|size| size.is_finite() && *size > 0.0)
         {
             return Err(ExcavationContractErrorV1::InvalidCellGrid);
         }
@@ -316,7 +325,11 @@ impl CellRemovalMaskV1 {
                 return Err(ExcavationContractErrorV1::InvalidCellGrid);
             }
         }
-        if !world.frames.iter().any(|frame| frame.frame_id == payload.coordinate_frame_id) {
+        if !world
+            .frames
+            .iter()
+            .any(|frame| frame.frame_id == payload.coordinate_frame_id)
+        {
             return Err(ExcavationContractErrorV1::UnknownTargetFrame(
                 payload.coordinate_frame_id.clone(),
             ));
@@ -333,7 +346,11 @@ impl CellRemovalMaskV1 {
                 return Err(ExcavationContractErrorV1::CellIndexOutOfBounds(*cell));
             }
         }
-        if !payload.removed_cells.windows(2).all(|pair| pair[0] < pair[1]) {
+        if !payload
+            .removed_cells
+            .windows(2)
+            .all(|pair| pair[0] < pair[1])
+        {
             return Err(ExcavationContractErrorV1::CellIndicesNotCanonical);
         }
         Ok(())
@@ -388,13 +405,21 @@ impl MaterialAwareExcavationRequestV1 {
         if self.tool.profile_artifact.artifact_id != self.tool.tool_id {
             return Err(ExcavationContractErrorV1::ToolProfileIdentityMismatch);
         }
-        if !world.world_assets.iter().any(|asset| asset == &self.tool.profile_artifact) {
+        if !world
+            .world_assets
+            .iter()
+            .any(|asset| asset == &self.tool.profile_artifact)
+        {
             return Err(ExcavationContractErrorV1::UndeclaredToolProfileArtifact);
         }
         if !valid_artifact(&self.tool.geometry_artifact) {
             return Err(ExcavationContractErrorV1::InvalidToolGeometryArtifact);
         }
-        if !world.world_assets.iter().any(|asset| asset == &self.tool.geometry_artifact) {
+        if !world
+            .world_assets
+            .iter()
+            .any(|asset| asset == &self.tool.geometry_artifact)
+        {
             return Err(ExcavationContractErrorV1::UndeclaredToolGeometryArtifact);
         }
         if !world
@@ -417,7 +442,10 @@ impl MaterialAwareExcavationRequestV1 {
             return Err(ExcavationContractErrorV1::UndeclaredTargetGeometryArtifact);
         }
         if self.target_frame_id.trim().is_empty()
-            || !world.frames.iter().any(|frame| frame.frame_id == self.target_frame_id)
+            || !world
+                .frames
+                .iter()
+                .any(|frame| frame.frame_id == self.target_frame_id)
         {
             return Err(ExcavationContractErrorV1::UnknownTargetFrame(
                 self.target_frame_id.clone(),
@@ -436,9 +464,7 @@ impl MaterialAwareExcavationRequestV1 {
         }
 
         if !self.feed_speed_m_s.is_finite() || self.feed_speed_m_s < 0.0 {
-            return Err(ExcavationContractErrorV1::InvalidCommand(
-                "feed_speed_m_s",
-            ));
+            return Err(ExcavationContractErrorV1::InvalidCommand("feed_speed_m_s"));
         }
         if !self.angular_speed_rad_s.is_finite() || self.angular_speed_rad_s < 0.0 {
             return Err(ExcavationContractErrorV1::InvalidCommand(
@@ -452,7 +478,10 @@ impl MaterialAwareExcavationRequestV1 {
         }
         for (field, value) in [
             ("feed_speed_limit_m_s", self.tool.feed_speed_limit_m_s),
-            ("angular_speed_limit_rad_s", self.tool.angular_speed_limit_rad_s),
+            (
+                "angular_speed_limit_rad_s",
+                self.tool.angular_speed_limit_rad_s,
+            ),
             ("power_limit_w", self.tool.power_limit_w),
             ("thrust_limit_n", self.tool.thrust_limit_n),
             ("torque_limit_nm", self.tool.torque_limit_nm),
@@ -512,16 +541,17 @@ impl MaterialAwareExcavationResultV1 {
                     .spatial_delta
                     .as_ref()
                     .ok_or(ExcavationContractErrorV1::InvalidSpatialDelta)?;
-                validate_spatial_delta(
-                    spatial_delta,
-                    expected_request,
-                )?;
+                validate_spatial_delta(spatial_delta, expected_request)?;
                 if self.disposition == ExcavationDispositionV1::CompletedWithinEnvelope {
                     validate_operating_envelope(expected_request, response)?;
                     if !self.warnings.is_empty() {
                         return Err(ExcavationContractErrorV1::InconsistentDisposition);
                     }
-                } else if self.warnings.iter().all(|warning| warning.trim().is_empty()) {
+                } else if self
+                    .warnings
+                    .iter()
+                    .all(|warning| warning.trim().is_empty())
+                {
                     return Err(ExcavationContractErrorV1::WarningStatusWithoutWarning);
                 }
             }
@@ -576,11 +606,12 @@ fn supports_material_excavation(solver: &SolverDeclarationV1) -> bool {
     )
 }
 
-fn validate_response(
-    response: &ExcavationResponseV1,
-) -> Result<(), ExcavationContractErrorV1> {
+fn validate_response(response: &ExcavationResponseV1) -> Result<(), ExcavationContractErrorV1> {
     for (field, value) in [
-        ("removed_solid_rock_volume_m3", response.removed_solid_rock_volume_m3),
+        (
+            "removed_solid_rock_volume_m3",
+            response.removed_solid_rock_volume_m3,
+        ),
         ("mechanical_energy_j", response.mechanical_energy_j),
         ("peak_thrust_n", response.peak_thrust_n),
         ("peak_torque_nm", response.peak_torque_nm),
@@ -797,9 +828,11 @@ mod tests {
 
     #[test]
     fn request_requires_declared_material_tool_geometry_and_solver() {
-        assert!(request()
-            .validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH))
-            .is_ok());
+        assert!(
+            request()
+                .validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH))
+                .is_ok()
+        );
         let mut unknown_material = request();
         unknown_material.material_profile_id = "unlisted-basalt-profile".to_owned();
         assert_eq!(
@@ -851,14 +884,18 @@ mod tests {
         excessive_feed.feed_speed_m_s = 0.01;
         assert_eq!(
             excessive_feed.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
-            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded("feed_speed_m_s"))
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "feed_speed_m_s"
+            ))
         );
 
         let mut excessive_rotation = request();
         excessive_rotation.angular_speed_rad_s = 200.0;
         assert_eq!(
             excessive_rotation.validate_against_world(&world(), &"d".repeat(SHA256_HEX_LENGTH)),
-            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded("angular_speed_rad_s"))
+            Err(ExcavationContractErrorV1::OperatingEnvelopeExceeded(
+                "angular_speed_rad_s"
+            ))
         );
     }
 
@@ -904,14 +941,11 @@ mod tests {
             .spatial_delta
             .unwrap();
         delta.state_delta_artifact = artifact;
-        assert!(decoded
-            .validate_against(
-                &world(),
-                &"d".repeat(SHA256_HEX_LENGTH),
-                &request(),
-                &delta
-            )
-            .is_ok());
+        assert!(
+            decoded
+                .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request(), &delta)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -933,14 +967,11 @@ mod tests {
         let decoded =
             CellRemovalMaskV1::decode_verified_json(&bytes, source_artifact.clone()).unwrap();
         assert_eq!(decoded.payload, payload);
-        assert!(decoded
-            .validate_against(
-                &world(),
-                &"d".repeat(SHA256_HEX_LENGTH),
-                &request(),
-                &delta
-            )
-            .is_ok());
+        assert!(
+            decoded
+                .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request(), &delta)
+                .is_ok()
+        );
 
         let mut tampered = bytes.clone();
         tampered.push(b' ');
@@ -1010,14 +1041,11 @@ mod tests {
         let delta = result(ExcavationDispositionV1::CompletedWithinEnvelope)
             .spatial_delta
             .unwrap();
-        assert!(valid_cell_removal_mask()
-            .validate_against(
-                &world,
-                &"d".repeat(SHA256_HEX_LENGTH),
-                &request,
-                &delta
-            )
-            .is_ok());
+        assert!(
+            valid_cell_removal_mask()
+                .validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &request, &delta)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1094,37 +1122,47 @@ mod tests {
         );
 
         let mut stale_geometry = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        stale_geometry.spatial_delta.as_mut().unwrap().base_geometry_artifact =
-            artifact("different-rock-face", '8');
+        stale_geometry
+            .spatial_delta
+            .as_mut()
+            .unwrap()
+            .base_geometry_artifact = artifact("different-rock-face", '8');
         assert_eq!(
             stale_geometry.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
         let mut skipped_generation = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        skipped_generation.spatial_delta.as_mut().unwrap().result_world_generation = 9;
+        skipped_generation
+            .spatial_delta
+            .as_mut()
+            .unwrap()
+            .result_world_generation = 9;
         assert_eq!(
             skipped_generation.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
         let mut bad_delta_digest = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        bad_delta_digest.spatial_delta.as_mut().unwrap().state_delta_artifact.sha256 =
-            "not-a-sha256".to_owned();
+        bad_delta_digest
+            .spatial_delta
+            .as_mut()
+            .unwrap()
+            .state_delta_artifact
+            .sha256 = "not-a-sha256".to_owned();
         assert_eq!(
             bad_delta_digest.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
         let mut wrong_frame = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        wrong_frame.spatial_delta.as_mut().unwrap().coordinate_frame_id =
-            "unregistered-frame".to_owned();
+        wrong_frame
+            .spatial_delta
+            .as_mut()
+            .unwrap()
+            .coordinate_frame_id = "unregistered-frame".to_owned();
         assert_eq!(
-            wrong_frame.validate_against(
-                &world,
-                &"d".repeat(SHA256_HEX_LENGTH),
-                &expected
-            ),
+            wrong_frame.validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected),
             Err(ExcavationContractErrorV1::InvalidSpatialDelta)
         );
 
@@ -1170,9 +1208,11 @@ mod tests {
     fn completed_result_is_bound_to_exact_request_and_generation() {
         let world = world();
         let expected = request();
-        assert!(result(ExcavationDispositionV1::CompletedWithinEnvelope)
-            .validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected)
-            .is_ok());
+        assert!(
+            result(ExcavationDispositionV1::CompletedWithinEnvelope)
+                .validate_against(&world, &"d".repeat(SHA256_HEX_LENGTH), &expected)
+                .is_ok()
+        );
         let mut stale = result(ExcavationDispositionV1::CompletedWithinEnvelope);
         stale.request.world_generation -= 1;
         assert_eq!(
@@ -1185,9 +1225,11 @@ mod tests {
     fn noncompleted_result_cannot_claim_removed_volume() {
         let mut failed = result(ExcavationDispositionV1::OutOfDomain);
         failed.result_artifact = Some(artifact("solver-diagnostics-001", '8'));
-        assert!(failed
-            .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
-            .is_ok());
+        assert!(
+            failed
+                .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
+                .is_ok()
+        );
 
         failed.response = Some(response());
         assert_eq!(
@@ -1199,7 +1241,11 @@ mod tests {
     #[test]
     fn completed_result_rejects_nonfinite_or_negative_outputs() {
         let mut invalid = result(ExcavationDispositionV1::CompletedWithinEnvelope);
-        invalid.response.as_mut().unwrap().removed_solid_rock_volume_m3 = f64::NAN;
+        invalid
+            .response
+            .as_mut()
+            .unwrap()
+            .removed_solid_rock_volume_m3 = f64::NAN;
         assert_eq!(
             invalid.validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request()),
             Err(ExcavationContractErrorV1::InvalidOutput(
@@ -1239,9 +1285,11 @@ mod tests {
 
         overlimit.disposition = ExcavationDispositionV1::CompletedWithWarnings;
         overlimit.warnings = vec!["Peak thrust exceeded declared tool limit.".to_owned()];
-        assert!(overlimit
-            .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
-            .is_ok());
+        assert!(
+            overlimit
+                .validate_against(&world(), &"d".repeat(SHA256_HEX_LENGTH), &request())
+                .is_ok()
+        );
     }
 
     #[test]
