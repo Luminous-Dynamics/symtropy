@@ -52,8 +52,9 @@ For differential matrices, temperature and DC bias are part of the operating poi
 2. Check each reciprocal pair. Reject if the intervals cannot overlap within the declared numerical tolerance.
 3. Form the symmetric midpoint matrix while preserving the maximum observed raw asymmetry in the output. A reciprocal pair receives a conservative symmetric absolute error bound.
 4. Compute the smallest eigenvalue of the midpoint matrix with a deterministic cyclic Jacobi method.
-5. Compute a conservative matrix spectral-norm error bound using the Frobenius norm of the symmetric entrywise error-bound matrix. By Weyl's eigenvalue perturbation bound, the true smallest eigenvalue lies within this distance of the midpoint estimate.
-6. Classify:
+5. Compute a conservative matrix spectral-norm error bound using the Frobenius norm of the symmetric entrywise error-bound matrix.
+6. Compute the residual Frobenius norm of the remaining off-diagonal Jacobi-transformed matrix. Its spectral norm is bounded by its Frobenius norm, so it is added to the input-data uncertainty before applying Weyl's eigenvalue perturbation bound. The output reports the input uncertainty, Jacobi residual bound and combined eigenvalue uncertainty separately.
+7. Classify:
    - `PASSIVE_CERTIFIED`: the lower eigenvalue bound is no less than negative numerical tolerance;
    - `NONPASSIVE_REJECTED`: the upper eigenvalue bound is below negative numerical tolerance;
    - `UNRESOLVED`: the interval overlaps the decision boundary;
@@ -94,6 +95,8 @@ The authored Rust test suite includes deterministic property-style cases in addi
 
 The independent NumPy oracle for the scale regressions gives eigenvalues [5e-309, 1.5e-308] H and coupling 0.5 for the sub-nanohenry case; the extreme-range fixture has coupling 1.0. These are numerical regression values, not hardware measurements.
 
+**Numerical caveat:** the Jacobi off-diagonal residual is included in the reported eigenvalue uncertainty. The declared numerical tolerance remains a separate floating-point guard for finite-precision rotation/accumulation; this is not a formal interval-arithmetic proof of the entire eigensolver.
+ 
 **Execution status:** 20 Rust tests are authored, but authored is not executed. Only the exact-head CI run can establish Rust compile/test status. The six JSONL dispositions and added extreme-scale cases have separate external numerical checks; those checks do not substitute for the Rust suite or an independent high-precision library comparison at the full 32-coil limit.
 
 ## Scope and claim ceiling
