@@ -17,6 +17,7 @@ mod batch_duty_cycle;
 mod batch_evaluation;
 mod duty_cycle;
 mod flexibility_evaluation;
+mod grid_response;
 mod joint_scenario;
 mod forecast_calibration;
 mod fuel;
@@ -39,6 +40,11 @@ pub use duty_cycle::{
 pub use flexibility_evaluation::{
     FlexibilityEventContract, FlexibilityEventIdentity, FlexibilityEventSample,
     FlexibilityEvaluationError, FlexibilityEvaluationReport, evaluate_flexibility_event,
+};
+
+pub use grid_response::{
+    GridResponseContract, GridResponseError, GridResponseIdentity, GridResponseReport,
+    GridResponseSample, GridResponseSampleReceipt, evaluate_grid_response,
 };
 
 pub use joint_scenario::{
