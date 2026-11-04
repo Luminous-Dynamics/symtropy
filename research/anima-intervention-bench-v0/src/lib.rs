@@ -1294,8 +1294,7 @@ pub fn estimate_multivariate_expected_information_gain(
         } else {
             0.0
         };
-        if !stratum_mean.is_finite() || !sample_variance.is_finite() || sample_variance < 0.0
-        {
+        if !stratum_mean.is_finite() || !sample_variance.is_finite() || sample_variance < 0.0 {
             return Err(multivariate_error(
                 &origin.distribution.model_family_id,
                 "Monte Carlo stratum statistics are invalid",
@@ -1307,8 +1306,7 @@ pub fn estimate_multivariate_expected_information_gain(
     }
 
     let standard_error = variance_of_mean.sqrt();
-    if !weighted_mean.is_finite() || !variance_of_mean.is_finite() || !standard_error.is_finite()
-    {
+    if !weighted_mean.is_finite() || !variance_of_mean.is_finite() || !standard_error.is_finite() {
         return Err(BenchError::InvalidModelPriors);
     }
     const Z_975: f64 = 1.959_963_984_540_054;
@@ -2201,12 +2199,8 @@ mod tests {
             ),
         ];
         let estimate =
-            estimate_multivariate_expected_information_gain_equal_priors(
-                &distributions,
-                3000,
-                113,
-            )
-            .unwrap();
+            estimate_multivariate_expected_information_gain_equal_priors(&distributions, 3000, 113)
+                .unwrap();
         assert!(estimate.mean_nats > 0.2);
         assert!(estimate.lower_95_nats > 0.0);
         assert!(estimate.upper_95_nats <= 2.0_f64.ln());
@@ -2227,12 +2221,8 @@ mod tests {
             ),
         ];
         let estimate =
-            estimate_multivariate_expected_information_gain_equal_priors(
-                &distributions,
-                1000,
-                7,
-            )
-            .unwrap();
+            estimate_multivariate_expected_information_gain_equal_priors(&distributions, 1000, 7)
+                .unwrap();
         assert_eq!(estimate.mean_nats, 0.0);
         assert_eq!(estimate.standard_error_nats, 0.0);
         assert_eq!(estimate.lower_95_nats, 0.0);
@@ -2270,8 +2260,7 @@ mod tests {
             },
         ];
         let original =
-            estimate_multivariate_expected_information_gain_equal_priors(&base, 2000, 31)
-                .unwrap();
+            estimate_multivariate_expected_information_gain_equal_priors(&base, 2000, 31).unwrap();
         let transformed =
             estimate_multivariate_expected_information_gain_equal_priors(&scaled, 2000, 31)
                 .unwrap();
@@ -2293,11 +2282,7 @@ mod tests {
             ),
         ];
         assert!(matches!(
-            estimate_multivariate_expected_information_gain_equal_priors(
-                &distributions,
-                1000,
-                4
-            ),
+            estimate_multivariate_expected_information_gain_equal_priors(&distributions, 1000, 4),
             Err(BenchError::InvalidMultivariateDistribution { .. })
         ));
     }
@@ -2384,12 +2369,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            estimate_multivariate_expected_information_gain(
-                &distributions,
-                &invalid_sum,
-                1000,
-                5
-            ),
+            estimate_multivariate_expected_information_gain(&distributions, &invalid_sum, 1000, 5),
             Err(BenchError::InvalidModelPriors)
         );
     }
