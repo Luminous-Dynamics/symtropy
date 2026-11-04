@@ -713,6 +713,29 @@ mod tests {
     }
 
     #[test]
+    fn incomplete_work_package_metrics_are_provisional() {
+        let report = derive_report(&load("fixtures/layout-run.synthetic.json"));
+        let metrics = report["metrics"].as_array().unwrap();
+        assert!(metrics.iter().all(|metric| metric["status"] == "provisional"));
+    }
+
+    #[test]
+    fn attempt_intervals_must_not_overlap_or_reverse() {
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        ledger["work_units"][1]["attempts"][1]["started_at_unix_ms"] = Value::from(1190000_u64);
+        let errors = validate_ledger(&ledger_schema(), &ledger);
+        assert!(errors.iter().any(|error| error.starts_with("attempt_intervals_not_sequential:")));
+    }
+
+    #[test]
+    fn time_entries_must_use_work_package_clock_domain() {
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        ledger["time_entries"][0]["clock_domain_id"] = Value::String("other-clock".to_owned());
+        let errors = validate_ledger(&ledger_schema(), &ledger);
+        assert!(errors.iter().any(|error| error.starts_with("time_entry_clock_domain_mismatch:")));
+    }
+
+    #[test]
     fn zero_denominators_are_not_estimable_not_zero() {
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         ledger["time_entries"] = json!([]);
