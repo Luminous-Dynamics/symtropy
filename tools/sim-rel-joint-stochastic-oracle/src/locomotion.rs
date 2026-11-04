@@ -1442,7 +1442,23 @@ mod tests {
 
     #[test]
     fn trial_evidence_tier_must_match_its_source_manifest() {
-        let compiled = spec().compile().unwrap();
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "peer-reviewed-neural-source".to_owned(),
+            kind: SourceKind::NeuralMeasurement,
+            evidence_class: EvidenceClass::PeerReviewedMeasured,
+            citation_or_source_uri: "https://example.org/synthetic-measurement-fixture".to_owned(),
+            dataset_id: Some("synthetic-recording-set".to_owned()),
+            release_or_materialization: Some("fixture-v1".to_owned()),
+            sha256: Some(sha('7')),
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        });
+        input.source_pins.push(SourceDigestPin {
+            source_manifest_id: "peer-reviewed-neural-source".to_owned(),
+            expected_sha256: sha('7'),
+        });
+        let compiled = input.compile().unwrap();
         let receipt = LocomotionTrialReceipt {
             sample_id: "measured-sample-2".to_owned(),
             assigned_action_id: "movement-afferent-gate".to_owned(),
@@ -1595,7 +1611,7 @@ mod tests {
             delivery_verified: true,
             animal_or_preparation_id: None,
             session_id: "session-1".to_owned(),
-            source_manifest_id: "synthetic-protocols".to_owned(),
+            source_manifest_id: "peer-reviewed-neural-source".to_owned(),
             evidence_class: EvidenceClass::PeerReviewedMeasured,
         };
         assert_eq!(
