@@ -571,6 +571,8 @@ pub struct StrategyResourceSummary {
     pub worst_case_on_time_useful_work_fraction: f64,
     pub expected_facility_energy_kwh: f64,
     pub expected_it_energy_kwh: f64,
+    /// Ratio of weighted facility and IT energy totals; not automatically ISO PUE.
+    pub facility_to_it_energy_ratio: Option<f64>,
     pub expected_cooling_energy_kwh: f64,
     pub expected_grid_import_energy_kwh: f64,
     pub expected_water_litres: f64,
@@ -581,6 +583,7 @@ pub struct StrategyResourceSummary {
     pub maximum_peak_temperature_c: f64,
     pub facility_kwh_per_accepted_useful_work_unit: Option<f64>,
     pub facility_kwh_per_on_time_useful_work_unit: Option<f64>,
+    pub grid_kwh_per_on_time_useful_work_unit: Option<f64>,
     pub operating_cost_per_on_time_useful_work_unit: Option<f64>,
     pub water_litres_per_on_time_useful_work_unit: Option<f64>,
     pub carbon_kg_per_on_time_useful_work_unit: Option<f64>,
@@ -1107,6 +1110,16 @@ impl StrategyAccumulator {
         } else {
             None
         };
+        let grid_energy_intensity = if self.on_time_work > 0.0 {
+            Some(self.grid_energy / self.on_time_work)
+        } else {
+            None
+        };
+        let facility_to_it_energy_ratio = if self.it_energy > 0.0 {
+            Some(self.facility_energy / self.it_energy)
+        } else {
+            None
+        };
         let operating_cost_intensity = if self.on_time_work > 0.0 {
             Some(self.cost / self.on_time_work)
         } else {
@@ -1155,6 +1168,7 @@ impl StrategyAccumulator {
             worst_case_on_time_useful_work_fraction: worst_case_on_time_fraction,
             expected_facility_energy_kwh: self.facility_energy,
             expected_it_energy_kwh: self.it_energy,
+            facility_to_it_energy_ratio,
             expected_cooling_energy_kwh: self.cooling_energy,
             expected_grid_import_energy_kwh: self.grid_energy,
             expected_water_litres: self.water,
@@ -1165,6 +1179,7 @@ impl StrategyAccumulator {
             maximum_peak_temperature_c,
             facility_kwh_per_accepted_useful_work_unit: accepted_energy_intensity,
             facility_kwh_per_on_time_useful_work_unit: on_time_energy_intensity,
+            grid_kwh_per_on_time_useful_work_unit: grid_energy_intensity,
             operating_cost_per_on_time_useful_work_unit: operating_cost_intensity,
             water_litres_per_on_time_useful_work_unit: water_intensity,
             carbon_kg_per_on_time_useful_work_unit: carbon_intensity,
@@ -1316,6 +1331,7 @@ fn apply_qualified_pareto_frontier(summaries: &mut [StrategyResourceSummary]) {
     for summary in summaries.iter_mut() {
         if !summary.passed
             || summary.facility_kwh_per_on_time_useful_work_unit.is_none()
+            || summary.grid_kwh_per_on_time_useful_work_unit.is_none()
             || summary.operating_cost_per_on_time_useful_work_unit.is_none()
             || summary.water_litres_per_on_time_useful_work_unit.is_none()
             || summary.carbon_kg_per_on_time_useful_work_unit.is_none()
@@ -1329,6 +1345,7 @@ fn apply_qualified_pareto_frontier(summaries: &mut [StrategyResourceSummary]) {
         for other in &qualified {
             if other.strategy_id == candidate.strategy_id
                 || other.facility_kwh_per_on_time_useful_work_unit.is_none()
+                || other.grid_kwh_per_on_time_useful_work_unit.is_none()
                 || other.operating_cost_per_on_time_useful_work_unit.is_none()
                 || other.water_litres_per_on_time_useful_work_unit.is_none()
                 || other.carbon_kg_per_on_time_useful_work_unit.is_none()
@@ -1348,6 +1365,7 @@ fn apply_qualified_pareto_frontier(summaries: &mut [StrategyResourceSummary]) {
 fn dominates(left: &StrategyResourceSummary, right: &StrategyResourceSummary) -> bool {
     let left_values = [
         left.facility_kwh_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
+        left.grid_kwh_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         left.operating_cost_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         left.water_litres_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         left.carbon_kg_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
@@ -1355,6 +1373,7 @@ fn dominates(left: &StrategyResourceSummary, right: &StrategyResourceSummary) ->
     ];
     let right_values = [
         right.facility_kwh_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
+        right.grid_kwh_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         right.operating_cost_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         right.water_litres_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
         right.carbon_kg_per_on_time_useful_work_unit.unwrap_or(f64::INFINITY),
@@ -1487,6 +1506,8 @@ mod tests {
         assert!(candidate.service_equivalent_energy_savings_vs_baseline_fraction.unwrap() > 0.09);
         assert_eq!(candidate.expected_on_time_useful_work_units, baseline.expected_on_time_useful_work_units);
         assert!((candidate.facility_kwh_per_on_time_useful_work_unit.unwrap() - 1.089_473_684_210_526_3).abs() < 1e-12);
+        assert!(candidate.facility_to_it_energy_ratio.unwrap() > 1.0);
+        assert!(candidate.grid_kwh_per_on_time_useful_work_unit.unwrap() > 0.0);
     }
 
     #[test]
