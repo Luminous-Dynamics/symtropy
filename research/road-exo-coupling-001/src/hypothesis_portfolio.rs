@@ -450,6 +450,7 @@ impl HypothesisPortfolioManifest {
             ResidualEnvelope::Bounded {
                 origin,
                 evidence_digest,
+                qualification_receipt_digest,
                 calibration_digest,
                 independent_unit_count,
                 bounds,
@@ -963,6 +964,7 @@ fn push_residual_envelope(out: &mut Vec<u8>, residual: &ResidualEnvelope) {
         ResidualEnvelope::Bounded {
             origin,
             evidence_digest,
+            qualification_receipt_digest,
             calibration_digest,
             independent_unit_count,
             bounds,
