@@ -54,3 +54,7 @@ HP publishes ±2 mm under its specified high-accuracy layout setup; Dusty FieldP
 - https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
 
 Targets are hypotheses, not achieved results or certification limits: zero false-safe/epoch leakage in frozen corpus, 100% traceability and requalification, no missed task-specific stopping deadlines, independent site/configuration replication before generalization.
+
+## Statistical validation
+
+See [evaluation-plan.md](evaluation-plan.md) for preregistered independent-unit definitions, ODD stratification, confidence bounds, challenge-versus-operational sampling, latency/metrology rules, matched baselines and stop conditions.
