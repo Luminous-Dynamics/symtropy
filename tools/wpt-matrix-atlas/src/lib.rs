@@ -678,7 +678,7 @@ mod tests {
     fn rejects_endpoint_whose_declared_error_bounds_cross_psd_boundary() {
         let mut atlas = fixture();
         atlas.samples[0].entrywise_absolute_bound_h =
-            vec![vec![0.0, 4e-6], vec![4e-6, 0.0]];
+            vec![vec![0.0, 6e-6], vec![6e-6, 0.0]];
         assert!(atlas
             .validate()
             .unwrap_err()
