@@ -122,8 +122,12 @@ pub struct EnergyMetric {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CandidateScore {
     pub case_id: String,
+    pub evidence_class: EvidenceClass,
+    pub power_flow_direction: PowerFlowDirection,
     pub candidate_id: String,
     pub family: ModelFamily,
+    pub model_digest: String,
+    pub training_data_digest: String,
     pub state_order: Option<u32>,
     pub channel_metrics: Vec<ChannelMetric>,
     pub energy_metrics: Vec<EnergyMetric>,
@@ -178,6 +182,12 @@ impl BenchmarkSuite {
                 if candidate.state_order == Some(0) {
                     return Err("state_order must be positive when supplied".into());
                 }
+                if candidate.family != ModelFamily::LearnedSurrogate
+                    && candidate.family != ModelFamily::Other
+                    && candidate.state_order.is_none()
+                {
+                    return Err("state_order is required for explicit state-space model families".into());
+                }
                 if !valid_sha256(&candidate.model_digest)
                     || !valid_sha256(&candidate.training_data_digest)
                 {
@@ -212,8 +222,11 @@ impl BenchmarkSuite {
                 if !energy_ids.insert(channel_id) {
                     return Err("energy channel IDs must be unique".into());
                 }
-                if !reference_channels.contains_key(channel_id) {
-                    return Err(format!("unknown energy channel {channel_id}"));
+                let channel = reference_channels
+                    .get(channel_id)
+                    .ok_or_else(|| format!("unknown energy channel {channel_id}"))?;
+                if channel.unit != "W" {
+                    return Err(format!("energy channel {channel_id} must use watts (W)"));
                 }
             }
 
@@ -379,6 +392,21 @@ fn score_candidate(
     );
 
     for limit in &case.acceptance.peak_limits {
+        let reference_peak = peak_absolute(
+            &reference
+                .get(&limit.channel_id)
+                .expect("validated peak-limit channel")
+                .values,
+        );
+        if reference_peak > limit.maximum_absolute_value {
+            let ratio = reference_peak / limit.maximum_absolute_value;
+            max_violation = max_violation.max(ratio - 1.0);
+            violations.push(format!(
+                "REFERENCE_EXCEEDS_LIMIT:{}:{reference_peak}:{}",
+                limit.channel_id, limit.maximum_absolute_value
+            ));
+        }
+
         let peak = channel_metrics
             .iter()
             .find(|metric| metric.channel_id == limit.channel_id)
@@ -396,8 +424,12 @@ fn score_candidate(
 
     Ok(CandidateScore {
         case_id: case.case_id.clone(),
+        evidence_class: case.evidence_class.clone(),
+        power_flow_direction: case.power_flow_direction.clone(),
         candidate_id: candidate.candidate_id.clone(),
         family: candidate.family.clone(),
+        model_digest: candidate.model_digest.clone(),
+        training_data_digest: candidate.training_data_digest.clone(),
         state_order: candidate.state_order,
         channel_metrics,
         energy_metrics,
@@ -701,6 +733,48 @@ mod tests {
         let mut suite = suite();
         suite.cases[0].candidates[0].state_order = Some(0);
         assert!(suite.validate().unwrap_err().contains("state_order"));
+    }
+
+    #[test]
+    fn rejects_non_watt_energy_channels_and_missing_state_order_for_rom_families() {
+        let mut suite = suite();
+        suite.cases[0].reference.channels[1].unit = "kW".into();
+        assert!(suite.validate().unwrap_err().contains("must use watts"));
+
+        let mut suite = suite();
+        suite.cases[0].candidates[1].state_order = None;
+        assert!(suite.validate().unwrap_err().contains("state_order is required"));
+    }
+
+    #[test]
+    fn reference_peak_limit_violation_marks_every_candidate_infeasible() {
+        let mut suite = suite();
+        suite.cases[0].acceptance.peak_limits[0].maximum_absolute_value = 7.5;
+        let report = suite.evaluate().unwrap();
+        assert!(report.scores.iter().all(|score| !score.feasible));
+        assert!(report.scores.iter().all(|score| {
+            score.violations.iter().any(|violation| violation.starts_with("REFERENCE_EXCEEDS_LIMIT"))
+        }));
+    }
+
+    #[test]
+    fn synthetic_suite_fixture_matches_schema_version_and_evaluates() {
+        const FIXTURE: &str = include_str!(
+            "../../../benchmarks/wpt-multifidelity/v1/synthetic-transient-comparison.json"
+        );
+        const SCHEMA: &str =
+            include_str!("../../../benchmarks/wpt-multifidelity/v1/schema.json");
+        let suite: BenchmarkSuite =
+            serde_json::from_str(FIXTURE).expect("synthetic benchmark fixture");
+        let schema: serde_json::Value =
+            serde_json::from_str(SCHEMA).expect("benchmark JSON schema");
+        assert_eq!(schema["properties"]["schema_version"]["const"], SUITE_SCHEMA_VERSION);
+        assert_eq!(schema["additionalProperties"], false);
+        let report = suite.evaluate().unwrap();
+        assert_eq!(
+            report.ranking[0],
+            vec!["full-order", "balanced-truncation", "port-hamiltonian", "learned-surrogate"]
+        );
     }
 
     #[test]
