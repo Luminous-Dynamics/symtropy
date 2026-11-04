@@ -3,8 +3,8 @@
   "profile_id": "construction-task-compiler-v0.1",
   "owner_issue": 3664,
   "input_contract": {
-    "design_manifest": "approved-normalized-model-manifest",
-    "method_template": "approved-versioned-method-template",
+    "design_manifest": "construction-design-manifest-v0.1",
+    "method_template": "construction-method-template-v0.1",
     "capability_match": "external-receipt-from-1834",
     "site_admission": "external-evidence-from-3561-and-3569"
   },
@@ -39,5 +39,32 @@
     "implicit_unit_or_frame_inference": 0,
     "cyclic_graphs_admitted": 0
   },
-  "claim_ceiling": "The v0.1 validator checks structure and lineage in a normalized synthetic work graph. It does not authenticate authorities, parse arbitrary IFC, approve methods, establish capability, prove physical feasibility, grant motion/safety authority or accept physical construction output."
+  "claim_ceiling": "The v0.1 validator checks structure and lineage in a normalized synthetic work graph. It does not authenticate authorities, parse arbitrary IFC, approve methods, establish capability, prove physical feasibility, grant motion/safety authority or accept physical construction output.",
+  "implementation_stages": [
+    {
+      "stage": "normalized_graph_validation",
+      "status": "implemented",
+      "claim": "Structural lineage and DAG invariants are checked over a normalized synthetic graph."
+    },
+    {
+      "stage": "method_template_instantiation",
+      "status": "implemented_pending_hosted_validation",
+      "claim": "Approved method steps are instantiated against normalized design properties into a review-only graph."
+    },
+    {
+      "stage": "ifc_aas_adapters",
+      "status": "not_implemented",
+      "claim": "No general IFC/AAS parser or production adapter is included."
+    },
+    {
+      "stage": "behavior_tree_lowering",
+      "status": "not_implemented",
+      "claim": "No target robot behavior tree or controller program is generated."
+    },
+    {
+      "stage": "virtual_commissioning",
+      "status": "not_implemented",
+      "claim": "No simulator or physical evidence is claimed."
+    }
+  ]
 }
