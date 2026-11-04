@@ -717,3 +717,184 @@ fn score_label(
     }
     Ok(())
 }
+
+
+fn build_risk_coverage_curve(
+    predictions: &[(u32, bool)],
+    eligible_events: usize,
+) -> Vec<RiskCoveragePoint> {
+    let mut ordered = predictions.to_vec();
+    ordered.sort_by(|left, right| right.0.cmp(&left.0));
+    let mut points = Vec::new();
+    let mut index = 0;
+    let mut covered_events = 0;
+    let mut top1_errors = 0;
+    while index < ordered.len() {
+        let threshold = ordered[index].0;
+        while index < ordered.len() && ordered[index].0 == threshold {
+            covered_events += 1;
+            top1_errors += usize::from(!ordered[index].1);
+            index += 1;
+        }
+        points.push(RiskCoveragePoint {
+            minimum_confidence_ppm: threshold,
+            covered_events,
+            coverage_ppm: ratio_ppm(covered_events, eligible_events),
+            top1_errors,
+            risk_ppm: ratio_ppm(top1_errors, covered_events),
+        });
+    }
+    points
+}
+
+fn finalize_evidence_metrics(
+    metrics: &mut LocalizationEvidenceMetrics,
+    predictions: &[(u32, bool)],
+) {
+    metrics.coverage_ppm = ratio_ppm(metrics.localized_events, metrics.eligible_events);
+    metrics.conditional_top1_accuracy_ppm =
+        ratio_ppm(metrics.top1_hits, metrics.localized_events);
+    metrics.conditional_top5_accuracy_ppm =
+        ratio_ppm(metrics.top5_hits, metrics.localized_events);
+    metrics.system_top1_accuracy_ppm = ratio_ppm(metrics.top1_hits, metrics.eligible_events);
+    metrics.system_top5_accuracy_ppm = ratio_ppm(metrics.top5_hits, metrics.eligible_events);
+    metrics.risk_coverage = build_risk_coverage_curve(predictions, metrics.eligible_events);
+}
+
+fn finalize_level_report(
+    report: &mut LocalizationLevelReport,
+    risk_seeds: &BTreeMap<TruthEvidenceClass, Vec<(u32, bool)>>,
+) {
+    let empty = Vec::new();
+    for (class, metrics) in [
+        (TruthEvidenceClass::Observed, &mut report.observed),
+        (TruthEvidenceClass::Derived, &mut report.derived),
+        (TruthEvidenceClass::Modelled, &mut report.modelled),
+    ] {
+        finalize_evidence_metrics(
+            metrics,
+            risk_seeds.get(&class).unwrap_or(&empty),
+        );
+    }
+}
+
+/// Evaluate hierarchical localizations against owner-supplied physical
+/// observability assessments.
+///
+/// Exactly one truth, observability assessment and decision are required for
+/// every event. The function scores zone and pipe claims independently and
+/// reports any prediction that exceeds the event's observability ceiling.
+pub fn evaluate_localization(
+    truth_events: &[LocalizationTruth],
+    assessments: &[ObservabilityAssessment],
+    predictions: &[LocalizationPrediction],
+) -> Result<LocalizationEvaluationReport, LocalizationEvaluationError> {
+    if truth_events.is_empty() {
+        return Err(LocalizationEvaluationError::new(
+            "empty_localization_evaluation",
+            "no truth events",
+        ));
+    }
+    if truth_events.len() != assessments.len() || truth_events.len() != predictions.len() {
+        return Err(LocalizationEvaluationError::new(
+            "localization_input_count_mismatch",
+            format!(
+                "truth={},observability={},predictions={}",
+                truth_events.len(),
+                assessments.len(),
+                predictions.len()
+            ),
+        ));
+    }
+
+    let mut truth_by_event = BTreeMap::new();
+    for truth in truth_events {
+        validate_truth(truth)?;
+        if truth_by_event.insert(truth.event_id.as_str(), truth).is_some() {
+            return Err(LocalizationEvaluationError::new(
+                "duplicate_truth_event",
+                truth.event_id.as_str(),
+            ));
+        }
+    }
+    let mut assessment_by_event = BTreeMap::new();
+    for assessment in assessments {
+        validate_assessment(assessment)?;
+        if assessment_by_event
+            .insert(assessment.event_id.as_str(), assessment)
+            .is_some()
+        {
+            return Err(LocalizationEvaluationError::new(
+                "duplicate_observability_event",
+                assessment.event_id.as_str(),
+            ));
+        }
+    }
+    let mut prediction_by_event = BTreeMap::new();
+    for prediction in predictions {
+        validate_prediction(prediction)?;
+        if prediction_by_event
+            .insert(prediction.event_id.as_str(), prediction)
+            .is_some()
+        {
+            return Err(LocalizationEvaluationError::new(
+                "duplicate_prediction_event",
+                prediction.event_id.as_str(),
+            ));
+        }
+    }
+
+    let mut report = LocalizationEvaluationReport {
+        event_count: truth_events.len(),
+        observability: ObservabilityCounts::default(),
+        zone: LocalizationLevelReport::default(),
+        pipe: LocalizationLevelReport::default(),
+        unsupported_granularity_predictions: 0,
+    };
+    let mut zone_risk_seeds = BTreeMap::<TruthEvidenceClass, Vec<(u32, bool)>>::new();
+    let mut pipe_risk_seeds = BTreeMap::<TruthEvidenceClass, Vec<(u32, bool)>>::new();
+
+    for (event_id, truth) in &truth_by_event {
+        let assessment = assessment_by_event.get(event_id).ok_or_else(|| {
+            LocalizationEvaluationError::new("missing_observability_event", *event_id)
+        })?;
+        let prediction = prediction_by_event.get(event_id).ok_or_else(|| {
+            LocalizationEvaluationError::new("missing_prediction_event", *event_id)
+        })?;
+        validate_truth_in_candidate_universe(truth, assessment)?;
+        validate_prediction_in_candidate_universe(prediction, assessment)?;
+
+        match assessment.maximum_level {
+            LocalizationLevel::DetectionOnly => report.observability.detection_only += 1,
+            LocalizationLevel::Zone => report.observability.zone += 1,
+            LocalizationLevel::Pipe => report.observability.pipe += 1,
+        }
+        if matches!(
+            &prediction.decision,
+            LocalizationDecision::Ranked { level, .. } if *level > assessment.maximum_level
+        ) {
+            report.unsupported_granularity_predictions += 1;
+        }
+
+        score_label(
+            &mut report.zone,
+            LocalizationLevel::Zone,
+            &truth.zone,
+            &prediction.decision,
+            assessment.maximum_level,
+            &mut zone_risk_seeds,
+        )?;
+        score_label(
+            &mut report.pipe,
+            LocalizationLevel::Pipe,
+            &truth.pipe,
+            &prediction.decision,
+            assessment.maximum_level,
+            &mut pipe_risk_seeds,
+        )?;
+    }
+
+    finalize_level_report(&mut report.zone, &zone_risk_seeds);
+    finalize_level_report(&mut report.pipe, &pipe_risk_seeds);
+    Ok(report)
+}
