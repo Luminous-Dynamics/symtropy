@@ -1,0 +1,245 @@
+{
+  "schema_version": "wpt-multifidelity-literature-case-v1",
+  "case_id": "LEE-LEE-2026-SCI-REP-1T3R-400KHZ",
+  "evidence_class": "LITERATURE_MODEL_REFERENCE_ONLY",
+  "source": {
+    "title": "Integrated electromagnetic–circuit digital twin modelling for constraint-consistent optimal operation in heterogeneous multi-receiver wireless power transfer systems",
+    "authors": [
+      "Joungha Lee",
+      "Seung Beop Lee"
+    ],
+    "journal": "Scientific Reports",
+    "volume": 16,
+    "article_number": 19957,
+    "published": "2026-04-29",
+    "doi": "10.1038/s41598-026-50781-y",
+    "url": "https://doi.org/10.1038/s41598-026-50781-y",
+    "accessed_pdf": "accepted manuscript (article in press)",
+    "licence": "CC BY 4.0"
+  },
+  "qualification_scope": {
+    "purpose": "Reproducible literature baseline for a heterogeneous 1T–3R design-stage electromagnetic–circuit digital twin",
+    "not_a_hardware_measurement": true,
+    "not_an_operational_safety_qualification": true,
+    "not_a_route_energy_efficiency_comparator": true,
+    "source_data_status": "Selected tables transcribed from the accepted manuscript. The complete FEM project, solver settings and raw waveform data are not supplied in the article; the authors state datasets are available from the corresponding author on reasonable request."
+  },
+  "operating_point": {
+    "frequency_hz": 400000,
+    "receiver_to_transmitter_air_gap_mm": 10,
+    "geometry": "fixed transmitter/receiver layout",
+    "temperature_c": null,
+    "dc_bias_currents_a": null,
+    "missing_metadata": [
+      "temperature_c",
+      "dc_bias_currents_a",
+      "complete dot-terminal polarity map",
+      "FEM mesh and solver convergence receipts",
+      "raw time-domain waveforms"
+    ]
+  },
+  "coils": {
+    "order": [
+      "TX",
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "transmitter": {
+      "dimensions_mm": {
+        "length": 100,
+        "width": 180,
+        "height": 7.5,
+        "thickness": 10
+      },
+      "turns": 30,
+      "self_inductance_uH": 248.45,
+      "resistance_ohm": 1
+    },
+    "receivers": [
+      {
+        "id": "R1",
+        "compensation": "SERIES",
+        "rated_power_w": 12.5,
+        "dimensions_mm": {
+          "length": 70,
+          "width": 40,
+          "height": 2,
+          "thickness": 6
+        },
+        "turns": 24,
+        "self_inductance_uH": 55.95,
+        "resistance_ohm": 10
+      },
+      {
+        "id": "R2",
+        "compensation": "PARALLEL",
+        "rated_power_w": 5,
+        "dimensions_mm": {
+          "length": 35,
+          "width": 35,
+          "height": 2,
+          "thickness": 6
+        },
+        "turns": 24,
+        "self_inductance_uH": 27.55,
+        "resistance_ohm": 5
+      },
+      {
+        "id": "R3",
+        "compensation": "SERIES",
+        "rated_power_w": 5,
+        "dimensions_mm": {
+          "length": 35,
+          "width": 35,
+          "height": 2,
+          "thickness": 6
+        },
+        "turns": 24,
+        "self_inductance_uH": 27.55,
+        "resistance_ohm": 5
+      }
+    ]
+  },
+  "inductance_matrix": {
+    "unit": "uH",
+    "coil_order": [
+      "TX",
+      "R1",
+      "R2",
+      "R3"
+    ],
+    "values": [
+      [
+        248.45,
+        17.44,
+        5.66,
+        6.72
+      ],
+      [
+        17.44,
+        55.95,
+        -0.57,
+        -0.08
+      ],
+      [
+        5.66,
+        -0.57,
+        27.55,
+        -0.32
+      ],
+      [
+        6.72,
+        -0.08,
+        -0.32,
+        27.55
+      ]
+    ],
+    "source_note": "Negative mutual inductance values are stated by the paper to indicate opposing magnetic-flux orientations. The paper's table does not provide a full dot-terminal polarity map.",
+    "derived_numerical_audit": {
+      "symmetric": true,
+      "eigenvalues_uH": [
+        26.83635321,
+        27.86465619,
+        54.44151618,
+        250.35747442
+      ],
+      "minimum_eigenvalue_uH": 26.83635321,
+      "matrix_is_positive_definite_from_rounded_table": true,
+      "calculation": "Independent symmetric eigensolve of the 4x4 matrix transcribed from published Table 1 and Table 2 values; values inherit source table rounding and are not an independent FEM validation."
+    }
+  },
+  "operating_point_search": {
+    "method": "Modified Method of Feasible Directions (MMFD), deterministic gradient-based",
+    "variables": {
+      "transmitter_excitation_voltage_v": 33.75,
+      "transmitter_resistance_ohm": 1,
+      "transmitter_compensation_capacitance_nf": 0.44,
+      "receiver_compensation_capacitance_nf": {
+        "R1": 1.94,
+        "R2": 3.67,
+        "R3": 4.67
+      }
+    },
+    "receiver_output_power_w": {
+      "R1": 12.05,
+      "R2": 4.98,
+      "R3": 5.05
+    },
+    "reported_total_transmission_efficiency_percent": 73.01,
+    "efficiency_definition": "sum of receiver output powers divided by transmitter input power in the paper's steady-state equivalent-circuit model; do not compare as grid-to-battery or complete DC-to-DC efficiency",
+    "convergence_iterations": 33,
+    "circuit_evaluations": 543,
+    "average_circuit_evaluation_minutes": 0.5,
+    "total_runtime_hours": 4.52,
+    "electromagnetic_parameter_extraction_count": 1,
+    "workstation": "Intel Core i5-10400 class CPU, 2.90 GHz, 32 GB RAM, Windows 10; ANSYS Maxwell and ANSYS Simplorer"
+  },
+  "source_constraint_audit": {
+    "stated_receiver_power_tolerance_percent": 3,
+    "constraints": [
+      {
+        "receiver": "R1",
+        "rated_power_w": 12.5,
+        "reported_power_w": 12.05,
+        "relative_deviation_percent": -3.6,
+        "lower_bound_w": 12.125,
+        "upper_bound_w": 12.875,
+        "within_stated_tolerance": false,
+        "shortfall_below_lower_bound_w": 0.075
+      },
+      {
+        "receiver": "R2",
+        "rated_power_w": 5,
+        "reported_power_w": 4.98,
+        "relative_deviation_percent": -0.4,
+        "lower_bound_w": 4.85,
+        "upper_bound_w": 5.15,
+        "within_stated_tolerance": true
+      },
+      {
+        "receiver": "R3",
+        "rated_power_w": 5,
+        "reported_power_w": 5.05,
+        "relative_deviation_percent": 1,
+        "lower_bound_w": 4.85,
+        "upper_bound_w": 5.15,
+        "within_stated_tolerance": true
+      }
+    ],
+    "discrepancy": "The paper states that all receiver constraints are satisfied within ±3%, but its Table 3 reports R1 output as 12.05 W against a 12.5 W rating. That is 3.6% low and 0.075 W below the nominal 3% lower bound. This benchmark records the discrepancy and does not silently resolve it.",
+    "status": "REPRODUCTION_BLOCKED_PENDING_SOURCE_CLARIFICATION",
+    "possible_causes_not_verified": [
+      "table transcription or typographical error",
+      "constraint/rated-power mismatch between manuscript versions",
+      "unstated tolerance convention or model setting"
+    ]
+  },
+  "limitations_reported_or_visible": {
+    "fixed_geometry_and_position": true,
+    "fixed_extracted_mutual_inductance_matrix": true,
+    "receiver_count_fixed_at_three": true,
+    "steady_state_only": true,
+    "battery_cc_cv_load_dynamics_not_modelled": true,
+    "position_variation_and_misalignment_not_modelled": true,
+    "only_one_dimensional_local_sensitivity_sweeps": true,
+    "no_source_to_battery_energy_ledger": true,
+    "no_dynamic_route_wh_per_pass": true,
+    "no_reported_hardware_demonstration": true
+  },
+  "reproduction_use": {
+    "baseline_lane": "HETEROGENEOUS_MULTI_RECEIVER_DESIGN_STAGE",
+    "compare_against": [
+      "published MMFD design point",
+      "our deterministic feasibility-first optimizer",
+      "robust constrained/Pareto optimizer",
+      "multi-fidelity circuit ROM variants"
+    ],
+    "do_not_compare_directly_against": [
+      "SAE 11 kVA stationary EV systems",
+      "Japan public-road ~10 kW DWPT service",
+      "whole-system grid-to-battery efficiency records"
+    ],
+    "first_follow_up": "Resolve the R1 3.6%-versus-3% feasibility discrepancy before using the paper's final operating point as a passing known-truth fixture."
+  }
+}
