@@ -703,6 +703,46 @@ mod tests {
     }
 
     #[test]
+    fn critical_inspection_coverage_counts_later_reinspection_separately() {
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        let mut retry = ledger["work_units"][2]["attempts"][0].clone();
+        retry["attempt_id"] = Value::String("p3-a2".to_owned());
+        retry["attempt_number"] = Value::from(2);
+        retry["started_at_unix_ms"] = Value::from(1_600_000_u64);
+        retry["ended_at_unix_ms"] = Value::from(1_650_000_u64);
+        retry["output_artifact_digest"] = Value::String(
+            "5555555555555555555555555555555555555555555555555555555555555555".to_owned()
+        );
+        retry["inspection"]["outcome"] = Value::String("accepted".to_owned());
+        retry["inspection"]["acceptance_authority_ref"] =
+            Value::String("synthetic-authority".to_owned());
+        retry["inspection"]["method_ref"] =
+            Value::String("synthetic-survey-method".to_owned());
+        retry["inspection"]["evidence_refs"] = json!(["synthetic-inspection-p3-retry"]);
+        ledger["work_units"][2]["attempts"]
+            .as_array_mut()
+            .unwrap()
+            .push(retry);
+        ledger["work_units"][2]["terminal_disposition"] = Value::String("accepted".to_owned());
+
+        let report = derive_report(&ledger);
+        assert_eq!(report["derived_counts"]["critical_inspected_units"], 3);
+        assert_eq!(report["derived_counts"]["critical_first_pass_inspected_units"], 2);
+
+        let metrics = report["metrics"].as_array().unwrap();
+        let all_inspection = metrics.iter()
+            .find(|metric| metric["metric_id"] == "critical_feature_inspection_coverage")
+            .unwrap();
+        let first_pass = metrics.iter()
+            .find(|metric| metric["metric_id"] == "critical_first_pass_inspection_coverage")
+            .unwrap();
+        assert_eq!(all_inspection["numerator"], 3);
+        assert_eq!(all_inspection["denominator"], 3);
+        assert_eq!(first_pass["numerator"], 2);
+        assert_eq!(first_pass["denominator"], 3);
+    }
+
+    #[test]
     fn derived_report_matches_report_schema() {
         let report = derive_report(&load("fixtures/layout-run.synthetic.json"));
         let errors = validate_report(&report_schema(), &report);
