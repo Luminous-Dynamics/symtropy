@@ -20,7 +20,7 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), 23, "every population record has 23 columns");
+    assert_eq!(fields.len(), 24, "every population record has 24 columns");
     println!("{}", fields.join(","));
 }
 
