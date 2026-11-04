@@ -87,6 +87,7 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
             f"NPZ X shape must be (n>0,{dimension}), got {x_shape}")
     n = x_shape[0]
     if len(y_shape) == 1:
+        require(y_shape[0] == n, f"NPZ y vector must contain {n} rows, got {y_shape}")
         y_outputs = 1
     else:
         require(len(y_shape) == 2 and y_shape[0] == n,
