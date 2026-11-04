@@ -79,6 +79,34 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
             .and_then(|value| value.get("instruments"))
             .and_then(Value::as_array);
 
+        if let (Some(start_ns), Some(end_ns), Some(sensors)) = (
+            start_ns,
+            end_ns,
+            receipt
+                .get("subject")
+                .and_then(|value| value.get("sensors"))
+                .and_then(Value::as_array),
+        ) {
+            for sensor in sensors {
+                let sensor_id = sensor
+                    .get("sensor_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
+                let from = sensor
+                    .get("calibration_valid_from_unix_ns")
+                    .and_then(Value::as_u64);
+                let until = sensor
+                    .get("calibration_valid_until_unix_ns")
+                    .and_then(Value::as_u64);
+                if !matches!((from, until), (Some(from), Some(until)) if from <= start_ns && until >= end_ns && from <= until)
+                {
+                    errors.push(format!(
+                        "subject_sensor_calibration_does_not_cover_trial:{sensor_id}"
+                    ));
+                }
+            }
+        }
+
         // Check the declared reference fault domains against the evaluated
         // robot's own sensor domains. A self-declared "independent" status is
         // insufficient when the named domains visibly overlap.
@@ -427,6 +455,14 @@ mod tests {
                 .iter()
                 .any(|error| error.starts_with("reference_calibration_does_not_cover_trial:"))
         );
+    }
+
+    #[test]
+    fn subject_sensor_calibration_must_cover_entire_trial() {
+        let receipt = fixture("fixtures/invalid/expired-sensor-calibration.json");
+        assert!(semantic_errors(&receipt)
+            .iter()
+            .any(|error| error.starts_with("subject_sensor_calibration_does_not_cover_trial:")));
     }
 
     #[test]
