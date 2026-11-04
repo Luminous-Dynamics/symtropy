@@ -55,7 +55,7 @@
         },
         "reference_loss_of_load_days": 1.0,
         "reference_unserved_energy_mwh": 0.01,
-        "elcc_like_added_load_kw": 27.5,
+        "elcc_like_added_load_kw": 17.5,
         "augmented_unserved_energy_mwh": 0.01,
         "upper_bound_censored": false,
         "search_converged": true
