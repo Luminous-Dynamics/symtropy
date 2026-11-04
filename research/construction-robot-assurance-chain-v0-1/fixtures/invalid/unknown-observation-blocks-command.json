@@ -98,12 +98,20 @@
           "artifact_id": "epoch-hold",
           "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           "role": "stage-output"
+        },
+        {
+          "artifact_id": "observation-unknown",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "command-evidence"
         }
       ],
       "produced_artifacts": [],
       "expected_disposition": "rejected",
       "expected_reason_codes": [
-        "state_not_active"
+        "command_epoch_digest_mismatch",
+        "observation_not_verified_clear",
+        "qualification_lease_invalid_at_command",
+        "qualification_missing"
       ]
     }
   ],
@@ -119,8 +127,15 @@
       "lease_valid_at_command": false,
       "expected_authorized": false,
       "expected_reason_codes": [
-        "state_not_active"
-      ]
+        "command_epoch_digest_mismatch",
+        "observation_not_verified_clear",
+        "qualification_lease_invalid_at_command",
+        "qualification_missing"
+      ],
+      "command_stage_id": "command",
+      "observation_stage_id": "observation",
+      "epoch_stage_id": "epoch",
+      "qualification_stage_id": null
     }
   ],
   "claim_expectations": [
