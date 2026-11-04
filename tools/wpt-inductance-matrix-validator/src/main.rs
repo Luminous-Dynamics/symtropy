@@ -550,8 +550,7 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
 
     let (minimum_eigenvalue_h, eigensolver_residual_bound_h) =
         smallest_symmetric_eigenvalue(&reciprocal)?;
-    let total_eigenvalue_uncertainty_bound_h =
-        uncertainty_bound_h + eigensolver_residual_bound_h;
+    let total_eigenvalue_uncertainty_bound_h = uncertainty_bound_h + eigensolver_residual_bound_h;
     if !total_eigenvalue_uncertainty_bound_h.is_finite() {
         return Err("combined eigenvalue uncertainty bound overflow".into());
     }
@@ -1016,7 +1015,10 @@ mod tests {
                 .as_f64()
                 .expect("total eigenvalue uncertainty must be present");
             assert!(residual.is_finite() && residual >= 0.0);
-            assert!(total >= residual, "total uncertainty must include eigensolver residual");
+            assert!(
+                total >= residual,
+                "total uncertainty must include eigensolver residual"
+            );
         }
     }
 
