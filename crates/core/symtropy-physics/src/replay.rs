@@ -282,6 +282,8 @@ mod batch_replay_tests {
     };
     use crate::world::PhysicsWorld;
     use nalgebra::SVector;
+    use rayon::prelude::*;
+    use rayon::ThreadPoolBuilder;
     use std::sync::Mutex;
     use symtropy_math::Point;
 
@@ -379,6 +381,32 @@ mod batch_replay_tests {
             order_batch_results::<3>(0, Vec::new()),
             Err(BatchResultError::EmptyCampaign)
         );
+    }
+
+    fn run_with_rayon(rollouts: usize, workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
+        let pool = ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
+        let completed: Vec<_> = pool.install(|| {
+            (0..rollouts)
+                .into_par_iter()
+                .map(|rollout_id| run_rollout(rollout_id as u64))
+                .collect()
+        });
+        order_batch_results(rollouts, completed).unwrap()
+    }
+
+    #[test]
+    fn independent_rollouts_are_bitwise_equal_across_persistent_rayon_pools() {
+        let sequential: Vec<_> = (0..ROLLOUTS)
+            .map(|rollout_id| run_rollout(rollout_id as u64))
+            .collect();
+
+        for workers in [1, 2, 4, 8] {
+            let parallel = run_with_rayon(ROLLOUTS, workers);
+            assert_eq!(
+                parallel, sequential,
+                "persistent Rayon outputs changed at worker count {workers}"
+            );
+        }
     }
 
     #[test]
