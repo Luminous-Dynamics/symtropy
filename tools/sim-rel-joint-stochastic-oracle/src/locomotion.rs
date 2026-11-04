@@ -1980,13 +1980,25 @@ mod tests {
                     })
             })
             .unwrap();
-        for (action_id, expected) in [
+        for (action_id, target_leg, expected) in [
             (
                 "descending-inhibition-engage",
+                LegId::FrontLeft,
                 PresynapticMovementInhibition::Engaged,
             ),
             (
                 "descending-inhibition-release",
+                LegId::FrontLeft,
+                PresynapticMovementInhibition::Disinhibited,
+            ),
+            (
+                "descending-inhibition-engage-front-right",
+                LegId::FrontRight,
+                PresynapticMovementInhibition::Engaged,
+            ),
+            (
+                "descending-inhibition-release-front-right",
+                LegId::FrontRight,
                 PresynapticMovementInhibition::Disinhibited,
             ),
         ] {
@@ -2000,11 +2012,8 @@ mod tests {
                 .unwrap();
             let next =
                 &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
-            assert_eq!(
-                next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
-                expected
-            );
-            for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+            assert_eq!(next.presynaptic_movement_inhibition[target_leg.index()], expected);
+            for leg in LegId::ALL.into_iter().filter(|leg| leg != target_leg) {
                 assert_eq!(
                     next.presynaptic_movement_inhibition[leg.index()],
                     PresynapticMovementInhibition::Disinhibited
@@ -2057,6 +2066,22 @@ mod tests {
             assert_eq!(next.movement_afferent, ChannelState::Gated);
             assert_eq!(next.presynaptic_movement_inhibition, sensor.presynaptic_movement_inhibition);
         }
+    }
+
+    #[test]
+    fn non_descending_actions_cannot_declare_presynaptic_control_targets() {
+        let mut input = spec();
+        let action = input
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "movement-afferent-gate")
+            .unwrap();
+        action.target_leg = Some(LegId::FrontLeft);
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::InvalidPresynapticInterventionTarget { action_id })
+                if action_id == "movement-afferent-gate"
+        ));
     }
 
     #[test]
