@@ -7,6 +7,8 @@ import ast
 import csv
 import hashlib
 import json
+import math
+import re
 import struct
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -167,8 +169,15 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     state = receipt["state"]
     metrics = receipt.get("metrics") or {}
     npz_result = None
+    stdout_bytes = None
+    if "stdout" in artifacts:
+        stdout_bytes = safe_artifact_path(root, artifacts["stdout"]["path"]).read_bytes()
+    has_skip = stdout_bytes is not None and re.search(
+        rb"^\s*SKIP\s+", stdout_bytes, flags=re.MULTILINE
+    ) is not None
     if state == "succeeded":
         require(receipt.get("process_exit_code") == 0, "succeeded trial must have exit code 0")
+        require(not has_skip, "succeeded trial stdout contains upstream SKIP")
         require("upstream_npz" in artifacts and "upstream_summary" in artifacts,
                 "succeeded trial must retain raw NPZ and upstream summary")
         npz_path = safe_artifact_path(root, artifacts["upstream_npz"]["path"])
@@ -176,9 +185,17 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         require(metrics.get("objective_evaluation_count") == npz_result["npz_evaluation_count_from_shape"],
                 "receipt objective count differs from raw NPZ X shape")
     elif state == "invalid_trace":
-        require("upstream_npz" in artifacts, "invalid_trace must retain the NPZ that failed validation")
+        require("upstream_npz" in artifacts and "upstream_summary" in artifacts,
+                "invalid_trace must retain both NPZ and summary artifacts")
     elif state == "failed":
         require(bool(receipt.get("reason")), "failed trial requires a failure reason")
+        require(
+            receipt.get("process_exit_code") not in (None, 0)
+            or has_skip
+            or "upstream_npz" not in artifacts
+            or "upstream_summary" not in artifacts,
+            "failed state has zero exit, no SKIP and complete raw outputs",
+        )
     elif state == "wrapper_error":
         require(bool(receipt.get("reason")), "wrapper_error requires a failure reason")
 
@@ -188,12 +205,47 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         rows = list(csv.DictReader(stream))
     require(len(rows) == 1, "run-row.csv must contain exactly one row")
     row = rows[0]
-    require(row.get("run_id") == run_id, "normalized run row identity mismatch")
-    require(row.get("state") == state, "normalized run row state mismatch")
-    require(row.get("receipt_sha256") == claimed_receipt_sha,
-            "normalized run row receipt digest mismatch")
-    require(row.get("request_sha256") == request_sha,
-            "normalized run row request digest mismatch")
+    metrics_expected = {
+        "objective_evaluation_count": metrics.get("objective_evaluation_count", ""),
+        "initial_design_count": metrics.get("initial_design_count", ""),
+        "feasible_evaluation_count": metrics.get("feasible_evaluation_count", ""),
+        "infeasible_evaluation_count": metrics.get("infeasible_evaluation_count", ""),
+        "feasible_evaluation_fraction": metrics.get("feasible_evaluation_fraction", ""),
+    }
+    text_expected = {
+        "schema": receipt["schema"],
+        "attempt_id": receipt["attempt_id"],
+        "run_id": run_id,
+        "request_sha256": request_sha,
+        "state": state,
+        "reason": receipt.get("reason", ""),
+        "source_commit": receipt.get("source_commit_verified") or receipt["source_commit"],
+        "package_version": receipt.get("package_version_observed") or receipt["package_version_expected"],
+        "task_id": receipt["task_id"],
+        "metadata_sha256": receipt["metadata_sha256_expected"],
+        "algorithm": receipt["algorithm"],
+        "seed": str(receipt["seed"]),
+        "n_init_requested": str(receipt["n_init_requested"]),
+        "iterations_requested": str(receipt["iterations_requested"]),
+        "process_exit_code": "" if receipt.get("process_exit_code") is None else str(receipt["process_exit_code"]),
+        "wall_seconds": "" if receipt.get("wall_seconds") is None else str(receipt["wall_seconds"]),
+        "cpu_user_seconds": "" if receipt.get("cpu_user_seconds_measured") is None else str(receipt["cpu_user_seconds_measured"]),
+        "cpu_system_seconds": "" if receipt.get("cpu_system_seconds_measured") is None else str(receipt["cpu_system_seconds_measured"]),
+        "peak_memory_state": "unknown" if receipt.get("peak_memory_bytes") is None else "measured",
+        "gpu_state": "unknown" if receipt.get("gpu_seconds") is None else "measured",
+        "energy_state": "unknown" if receipt.get("energy_joules") is None else "measured",
+        "stdout_sha256": artifacts.get("stdout", {}).get("sha256", ""),
+        "stderr_sha256": artifacts.get("stderr", {}).get("sha256", ""),
+        "npz_sha256": artifacts.get("upstream_npz", {}).get("sha256", ""),
+        "summary_sha256": artifacts.get("upstream_summary", {}).get("sha256", ""),
+        "environment_freeze_sha256": receipt.get("environment_freeze_sha256") or "",
+        "receipt_sha256": claimed_receipt_sha,
+    }
+    for name, expected in text_expected.items():
+        require(row.get(name) == str(expected), f"normalized run row {name} differs from receipt")
+    for name, expected in metrics_expected.items():
+        actual = row.get(name, "")
+        require(actual == str(expected), f"normalized run row {name} differs from receipt metrics")
     if state == "succeeded":
         require(
             int(row["objective_evaluation_count"]) == npz_result["npz_evaluation_count_from_shape"],
