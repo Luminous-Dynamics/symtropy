@@ -116,6 +116,10 @@ impl EnergyMvPlan {
         &self.plan_id
     }
 
+    pub const fn prediction_basis(&self) -> EnergyMvBaselinePredictionBasis {
+        self.prediction_basis
+    }
+
     pub fn project_id(&self) -> &str {
         &self.project_id
     }
