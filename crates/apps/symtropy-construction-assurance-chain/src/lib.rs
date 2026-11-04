@@ -769,6 +769,10 @@ mod tests {
         assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
+    const MULTI: &str = include_str!(
+        "../../../../research/construction-robot-assurance-chain-v0-1/fixtures/valid/multi-command-frontier-valid-before-later-change.json"
+    );
+
     #[test]
     fn valid_synthetic_chain_is_consistent() {
         let summary = validate_scenario(VALID).expect("valid chain");
@@ -776,6 +780,30 @@ mod tests {
         assert_eq!(summary.stage_count, 7);
         assert_eq!(summary.command_count, 1);
         assert_eq!(summary.external_input_count, 1);
+    }
+
+    #[test]
+    fn earlier_command_remains_valid_before_a_later_epoch_change() {
+        let summary = validate_scenario(MULTI).expect("multi-command causal frontier");
+        assert_eq!(summary.command_count, 2);
+    }
+
+    #[test]
+    fn command_cannot_reference_a_future_epoch() {
+        let mut scenario: Value = serde_json::from_str(MULTI).expect("multi-command scenario");
+        scenario["command_attempts"][0]["epoch_stage_id"] = serde_json::json!("epoch-2");
+        assert!(validate_scenario(&scenario.to_string()).is_err());
+    }
+
+    #[test]
+    fn command_cannot_authorize_with_qualification_from_before_latest_epoch() {
+        let mut scenario: Value = serde_json::from_str(MULTI).expect("multi-command scenario");
+        scenario["command_attempts"][1]["expected_authorized"] = serde_json::json!(true);
+        scenario["command_attempts"][1]["lease_valid_at_command"] = serde_json::json!(true);
+        scenario["command_attempts"][1]["expected_reason_codes"] = serde_json::json!([]);
+        scenario["stages"][7]["expected_disposition"] = serde_json::json!("authorized");
+        scenario["stages"][7]["expected_reason_codes"] = serde_json::json!([]);
+        assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
     #[test]
@@ -821,6 +849,7 @@ mod tests {
         scenario["command_attempts"][0]["lease_valid_at_command"] = serde_json::json!(true);
         scenario["command_attempts"][0]["expected_reason_codes"] = serde_json::json!([]);
         scenario["stages"][5]["expected_disposition"] = serde_json::json!("authorized");
+        scenario["stages"][5]["expected_reason_codes"] = serde_json::json!([]);
         assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
