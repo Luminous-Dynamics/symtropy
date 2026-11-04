@@ -92,9 +92,7 @@ impl InterventionPolicy {
 
     fn ledger_transfer_policy(self) -> TransferPolicy {
         match self {
-            Self::ReserveProtected => {
-                TransferPolicy::PreserveOpeningReserve { fraction: 0.5 }
-            }
+            Self::ReserveProtected => TransferPolicy::PreserveOpeningReserve { fraction: 0.5 },
             _ => TransferPolicy::Unrestricted,
         }
     }
@@ -157,9 +155,7 @@ impl Scenario {
                 ticks: self.production_by_tick.len(),
             });
         }
-        if !self.recovery_threshold.is_finite()
-            || !(0.0..=1.0).contains(&self.recovery_threshold)
-        {
+        if !self.recovery_threshold.is_finite() || !(0.0..=1.0).contains(&self.recovery_threshold) {
             return Err(ResilienceError::InvalidRecoveryThreshold(
                 self.recovery_threshold,
             ));
@@ -294,7 +290,10 @@ impl fmt::Display for ResilienceError {
                 "invalid shock window [{start}, {end}) for trajectory with {ticks} ticks"
             ),
             Self::InvalidRecoveryThreshold(value) => {
-                write!(f, "recovery threshold must be finite and in [0, 1], got {value}")
+                write!(
+                    f,
+                    "recovery threshold must be finite and in [0, 1], got {value}"
+                )
             }
             Self::ZeroSustainedRecoverySteps => {
                 write!(f, "sustained recovery steps must be greater than zero")
@@ -308,13 +307,19 @@ impl fmt::Display for ResilienceError {
                 "tick {tick} expected {expected} production entries, got {actual}"
             ),
             Self::ParentNodeHasPopulation => {
-                write!(f, "basin and district storage nodes must not duplicate population")
+                write!(
+                    f,
+                    "basin and district storage nodes must not duplicate population"
+                )
             }
             Self::HouseholdHasNoPopulation { region } => {
                 write!(f, "household node {region} must have positive population")
             }
             Self::HouseholdMissingWaterOrEnergyDemand { region } => {
-                write!(f, "household node {region} needs positive water and energy demand")
+                write!(
+                    f,
+                    "household node {region} needs positive water and energy demand"
+                )
             }
         }
     }
@@ -336,21 +341,48 @@ impl From<WorldError> for ResilienceError {
 }
 
 pub fn reference_scenarios() -> Vec<Scenario> {
-    ShockKind::ALL
-        .into_iter()
-        .map(reference_scenario)
-        .collect()
+    ShockKind::ALL.into_iter().map(reference_scenario).collect()
 }
 
 pub fn reference_scenario(kind: ShockKind) -> Scenario {
     let regions = vec![
         region("basin", 0.0, ResourceVector::new(80.0, 32.0, 0.0), zero()),
-        region("north_district", 0.0, ResourceVector::new(20.0, 8.0, 0.0), zero()),
-        region("south_district", 0.0, ResourceVector::new(20.0, 8.0, 0.0), zero()),
-        region("north_household_a", 1.0, ResourceVector::new(5.0, 2.0, 0.0), demand()),
-        region("north_household_b", 1.0, ResourceVector::new(5.0, 2.0, 0.0), demand()),
-        region("south_household_a", 1.0, ResourceVector::new(5.0, 2.0, 0.0), demand()),
-        region("south_household_b", 1.0, ResourceVector::new(5.0, 2.0, 0.0), demand()),
+        region(
+            "north_district",
+            0.0,
+            ResourceVector::new(20.0, 8.0, 0.0),
+            zero(),
+        ),
+        region(
+            "south_district",
+            0.0,
+            ResourceVector::new(20.0, 8.0, 0.0),
+            zero(),
+        ),
+        region(
+            "north_household_a",
+            1.0,
+            ResourceVector::new(5.0, 2.0, 0.0),
+            demand(),
+        ),
+        region(
+            "north_household_b",
+            1.0,
+            ResourceVector::new(5.0, 2.0, 0.0),
+            demand(),
+        ),
+        region(
+            "south_household_a",
+            1.0,
+            ResourceVector::new(5.0, 2.0, 0.0),
+            demand(),
+        ),
+        region(
+            "south_household_b",
+            1.0,
+            ResourceVector::new(5.0, 2.0, 0.0),
+            demand(),
+        ),
     ];
 
     let normal = ResourceVector::new(40.0, 16.0, 0.0);
@@ -469,10 +501,14 @@ pub fn run_scenario(
 
         total_unmet_water_m3 += unmet_water_m3;
         total_unmet_energy_kwh += unmet_energy_kwh;
-        let tick_gross_water = report.transfers.iter()
+        let tick_gross_water = report
+            .transfers
+            .iter()
             .map(|receipt| receipt.delivered.water_m3)
             .sum::<f64>();
-        let tick_gross_energy = report.transfers.iter()
+        let tick_gross_energy = report
+            .transfers
+            .iter()
             .map(|receipt| receipt.delivered.energy_kwh)
             .sum::<f64>();
         gross_edge_transfer_water_m3 += tick_gross_water;
@@ -623,8 +659,7 @@ fn proportional_transfers(
     let root_opening = regions[BASIN].opening_stock;
     let root_production = production[BASIN].resources;
     let root_available = resource_vector(
-        root_opening.water_m3 + root_production.water_m3
-            - reserve_fraction * root_opening.water_m3,
+        root_opening.water_m3 + root_production.water_m3 - reserve_fraction * root_opening.water_m3,
         root_opening.energy_kwh + root_production.energy_kwh
             - reserve_fraction * root_opening.energy_kwh,
     );
@@ -707,8 +742,7 @@ fn proportional_transfers(
         let water_fraction = if child_total.water_m3 <= 0.0 {
             0.0
         } else {
-            (district_available[district_offset].water_m3 / child_total.water_m3)
-                .clamp(0.0, 1.0)
+            (district_available[district_offset].water_m3 / child_total.water_m3).clamp(0.0, 1.0)
         };
         let energy_fraction = if child_total.energy_kwh <= 0.0 {
             0.0
@@ -764,16 +798,22 @@ fn deficit_first_transfers(
             + cumulative_energy_deficit[*left] / left_demand.energy_kwh;
         let right_score = cumulative_water_deficit[*right] / right_demand.water_m3
             + cumulative_energy_deficit[*right] / right_demand.energy_kwh;
-        right_score
-            .total_cmp(&left_score)
-            .then_with(|| regions[HOUSEHOLDS[*left]].id.cmp(&regions[HOUSEHOLDS[*right]].id))
+        right_score.total_cmp(&left_score).then_with(|| {
+            regions[HOUSEHOLDS[*left]]
+                .id
+                .cmp(&regions[HOUSEHOLDS[*right]].id)
+        })
     });
 
     let mut requests = Vec::new();
     for household_index in order {
         let household_region = HOUSEHOLDS[household_index];
         let district_index = HOUSEHOLD_DISTRICT[household_index];
-        let district_offset = if district_index == DISTRICT_NORTH { 0 } else { 1 };
+        let district_offset = if district_index == DISTRICT_NORTH {
+            0
+        } else {
+            1
+        };
         let deficit = household_deficit(&regions[household_region]);
         let available = district_remaining[district_offset];
         let import = resource_vector(
@@ -798,8 +838,12 @@ fn deficit_first_transfers(
         district_remaining[district_offset].energy_kwh += import.energy_kwh;
 
         let delivery = resource_vector(
-            deficit.water_m3.min(district_remaining[district_offset].water_m3),
-            deficit.energy_kwh.min(district_remaining[district_offset].energy_kwh),
+            deficit
+                .water_m3
+                .min(district_remaining[district_offset].water_m3),
+            deficit
+                .energy_kwh
+                .min(district_remaining[district_offset].energy_kwh),
         );
         if delivery.water_m3 > 0.0 || delivery.energy_kwh > 0.0 {
             requests.push(TransferRequest {
@@ -827,7 +871,11 @@ mod tests {
         assert_eq!(scenario.regions[BASIN].population, 0.0);
         assert_eq!(scenario.regions[DISTRICT_NORTH].population, 0.0);
         assert_eq!(scenario.regions[DISTRICT_SOUTH].population, 0.0);
-        assert!(HOUSEHOLDS.iter().all(|index| scenario.regions[*index].population > 0.0));
+        assert!(
+            HOUSEHOLDS
+                .iter()
+                .all(|index| scenario.regions[*index].population > 0.0)
+        );
     }
 
     #[test]
@@ -860,14 +908,8 @@ mod tests {
         assert_eq!(outcome.total_unmet_energy_kwh, 0.0);
         assert_eq!(outcome.minimum_water_coverage, 1.0);
         assert_eq!(outcome.minimum_energy_coverage, 1.0);
-        assert_eq!(
-            outcome.maximum_water_conservation_residual_m3,
-            0.0
-        );
-        assert_eq!(
-            outcome.maximum_energy_conservation_residual_kwh,
-            0.0
-        );
+        assert_eq!(outcome.maximum_water_conservation_residual_m3, 0.0);
+        assert_eq!(outcome.maximum_energy_conservation_residual_kwh, 0.0);
     }
 
     #[test]
@@ -913,7 +955,10 @@ mod tests {
 
         assert_eq!(outcome.recovery_after_ticks, Some(2));
         assert!(outcome.ticks[SHOCK_END_TICK].minimum_water_coverage >= DEFAULT_RECOVERY_THRESHOLD);
-        assert!(outcome.ticks[SHOCK_END_TICK + 1].minimum_energy_coverage >= DEFAULT_RECOVERY_THRESHOLD);
+        assert!(
+            outcome.ticks[SHOCK_END_TICK + 1].minimum_energy_coverage
+                >= DEFAULT_RECOVERY_THRESHOLD
+        );
     }
 
     #[test]
@@ -923,8 +968,18 @@ mod tests {
         let adaptive = run_scenario(&scenario, InterventionPolicy::DeficitFirst).unwrap();
         assert_eq!(reserve.policy, InterventionPolicy::ReserveProtected);
         assert_eq!(adaptive.policy, InterventionPolicy::DeficitFirst);
-        assert!(reserve.ticks.iter().all(|tick| tick.maximum_water_conservation_residual_m3 < 1e-9));
-        assert!(adaptive.ticks.iter().all(|tick| tick.maximum_energy_conservation_residual_kwh < 1e-9));
+        assert!(
+            reserve
+                .ticks
+                .iter()
+                .all(|tick| tick.maximum_water_conservation_residual_m3 < 1e-9)
+        );
+        assert!(
+            adaptive
+                .ticks
+                .iter()
+                .all(|tick| tick.maximum_energy_conservation_residual_kwh < 1e-9)
+        );
     }
 
     #[test]
@@ -938,7 +993,10 @@ mod tests {
     #[test]
     fn portfolio_covers_every_shock_and_policy_combination() {
         let outcomes = run_reference_portfolio().unwrap();
-        assert_eq!(outcomes.len(), ShockKind::ALL.len() * InterventionPolicy::ALL.len());
+        assert_eq!(
+            outcomes.len(),
+            ShockKind::ALL.len() * InterventionPolicy::ALL.len()
+        );
         for outcome in outcomes {
             assert_eq!(outcome.ticks.len(), TICKS);
         }
