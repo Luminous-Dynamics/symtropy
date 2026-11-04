@@ -165,8 +165,10 @@ mod tests {
         );
 
         // A reservation explicitly released after a deferred decision is safe:
-        // it must not be mistaken for resources still held or settled.
+        // it must not be mistaken for resources still held or settled. No
+        // service-improvement claim is allowed without an authorized action.
         record.resource_settlement = ResourceSettlement::Released;
+        record.service_effect = ServiceEffect::ModelledNoImprovement;
         assert_eq!(record.validate(), Ok(()));
     }
 
