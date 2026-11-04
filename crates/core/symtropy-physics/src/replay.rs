@@ -39,6 +39,15 @@ pub enum WorldCommand<const D: usize> {
         body: BodyHandle,
         velocity: Box<Bivector<D>>,
     },
+    /// Set the world-space translation and linear velocity of a kinematic body.
+    ///
+    /// Kinematic bodies are not advanced by the dynamic integrator. This command
+    /// makes their externally computed state transition part of the replay tape.
+    SetKinematicState {
+        body: BodyHandle,
+        translation: Box<SVector<f64, D>>,
+        linear_velocity: Box<SVector<f64, D>>,
+    },
     Wake {
         body: BodyHandle,
     },
@@ -66,6 +75,7 @@ impl<const D: usize> ReplayTape<D> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ApplyCommandError {
     MissingBody(BodyHandle),
+    ExpectedKinematicBody(BodyHandle),
 }
 
 /// Apply a list of commands to a world.
@@ -98,6 +108,24 @@ pub fn apply_commands<const D: usize>(
                     return Err(ApplyCommandError::MissingBody(*body));
                 };
                 b.angular_velocity = **velocity;
+            }
+            WorldCommand::SetKinematicState {
+                body,
+                translation,
+                linear_velocity,
+            } => {
+                let Some(existing) = world.body(*body) else {
+                    return Err(ApplyCommandError::MissingBody(*body));
+                };
+                if existing.body_type != BodyType::Kinematic {
+                    return Err(ApplyCommandError::ExpectedKinematicBody(*body));
+                }
+                let Some(actor) = world.body_mut(*body) else {
+                    return Err(ApplyCommandError::MissingBody(*body));
+                };
+                actor.transform.translation.0 = **translation;
+                actor.linear_velocity = **linear_velocity;
+                actor.wake();
             }
             WorldCommand::Wake { body } => {
                 let Some(b) = world.body_mut(*body) else {
@@ -283,6 +311,7 @@ pub enum ReplayEvidenceError {
     InvalidTimeStep,
     InvalidCommandValue,
     MissingBody(BodyHandle),
+    ExpectedKinematicBody(BodyHandle),
     NonFiniteWorldState,
     SerializationFailure,
 }
@@ -315,6 +344,9 @@ pub fn execute_with_evidence<const D: usize>(
     for frame in &tape.frames {
         apply_commands(world, &frame.commands).map_err(|error| match error {
             ApplyCommandError::MissingBody(handle) => ReplayEvidenceError::MissingBody(handle),
+            ApplyCommandError::ExpectedKinematicBody(handle) => {
+                ReplayEvidenceError::ExpectedKinematicBody(handle)
+            }
         })?;
         world.step(frame.dt);
         let snapshot = WorldSnapshot::capture(world);
@@ -395,13 +427,27 @@ fn validate_replay_tape<const D: usize>(
                     let matrix = velocity.to_matrix();
                     (*body, matrix.iter().all(|value| value.is_finite()))
                 }
+                WorldCommand::SetKinematicState {
+                    body,
+                    translation,
+                    linear_velocity,
+                } => (
+                    *body,
+                    translation.iter().all(|value| value.is_finite())
+                        && linear_velocity.iter().all(|value| value.is_finite()),
+                ),
                 WorldCommand::Wake { body } => (*body, true),
             };
             if !valid_values {
                 return Err(ReplayEvidenceError::InvalidCommandValue);
             }
-            if !world.bodies.iter().any(|existing| existing.handle == handle) {
+            let Some(existing) = world.body(handle) else {
                 return Err(ReplayEvidenceError::MissingBody(handle));
+            };
+            if matches!(command, WorldCommand::SetKinematicState { .. })
+                && existing.body_type != BodyType::Kinematic
+            {
+                return Err(ReplayEvidenceError::ExpectedKinematicBody(handle));
             }
         }
     }
@@ -461,6 +507,16 @@ fn digest_replay_tape<const D: usize>(tape: &ReplayTape<D>) -> String {
                             hasher.update(&matrix[(row, column)].to_bits().to_le_bytes());
                         }
                     }
+                }
+                WorldCommand::SetKinematicState {
+                    body,
+                    translation,
+                    linear_velocity,
+                } => {
+                    hasher.update(&[5]);
+                    hash_body_handle(&mut hasher, *body);
+                    hash_vector(&mut hasher, translation.as_ref());
+                    hash_vector(&mut hasher, linear_velocity.as_ref());
                 }
                 WorldCommand::Wake { body } => {
                     hasher.update(&[4]);
