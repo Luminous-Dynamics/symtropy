@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
 
 VERIFY = Path(__file__).with_name("verify-cgroup-v2-run-independent.py")
-RESOURCE_VERIFY = Path(__file__).with_name("verify-cgroup-v2-resource-independent.py")
 SNAPSHOT_SCHEMA = "linux-cgroup-v2-resource-evidence/0.1.0"
 SNAPSHOT_EVIDENCE = (
     "raw_cgroup_v2_counter_snapshots_bound_to_process_tree_measure_cpu_and_peak_memory_not_gpu_or_energy"
