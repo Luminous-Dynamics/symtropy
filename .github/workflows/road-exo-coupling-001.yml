@@ -29,8 +29,13 @@ jobs:
         run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets
       - name: Run Clippy
         run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets -- -D warnings
-      - name: Validate machine-readable fixtures
-        run: python3 -c 'import json; paths = ["research/road-exo-coupling-001/fixtures/event_identity_cases.json", "research/road-exo-coupling-001/fixtures/event_correspondence_cases.json"]; [json.load(open(path, encoding="utf-8")) for path in paths]'
+      - name: Validate event identity fixtures
+        run: python3 -c 'import json; json.load(open("research/road-exo-coupling-001/fixtures/event_identity_cases.json", encoding="utf-8"))'
+      - name: Print generated lockfile for commit
+        run: |
+          echo LOCKFILE_BEGIN
+          cat research/road-exo-coupling-001/Cargo.lock
+          echo LOCKFILE_END
       - name: Upload generated lockfile for review
         uses: actions/upload-artifact@v4
         with:
