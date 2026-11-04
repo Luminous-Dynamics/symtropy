@@ -84,7 +84,7 @@ A production adaptive sampler should refine further using held-out matrix residu
 - endpoint lower eigenvalue bounds average to 7.2 µH;
 - segment residual bound is 0.2 µH;
 - resulting conservative lower eigenvalue bound is 7.0 µH;
-- disposition is `PASSIVE_CERTIFIED`.
+- disposition is `PASSIVE_CERTIFIED_CONDITIONAL` because the fixture's segment-bound method must be externally verified before it can be treated as a continuous-segment certificate.
 
 The fixture's source/receipt digests are synthetic placeholders; its segment method is labelled `ANALYTIC_DERIVATIVE_BOUND` only to exercise the conditional-status path. The result is not an actual derivative proof or measured WPT evidence.
 
@@ -95,7 +95,7 @@ cargo run --locked -p wpt-matrix-atlas -- \
   benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0 PASSIVE_CERTIFIED_CONDITIONAL
 ```
 
-The optional third argument asserts an expected disposition; CI supplies `PASSIVE_CERTIFIED_CONDITIONAL` so an `UNRESOLVED` result cannot silently pass the smoke test. The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
+The optional third argument asserts an expected disposition; CI supplies `PASSIVE_CERTIFIED_CONDITIONAL` so an `UNRESOLVED` result cannot silently pass the smoke test. An `UNRESOLVED` result exits nonzero even when no expected disposition is provided. The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
 
 ## Research baseline and proposed targets
 
