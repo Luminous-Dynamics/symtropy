@@ -147,6 +147,16 @@ def main(path: Path, source_commit: str, package_version: str,
         engineering_count += domain == "engineering" and member == "true"
         benchmark_count += member == "true"
 
+    source_catalog = bytearray()
+    for task in tasks:
+        append_string(source_catalog, str(task["problem_id"]))
+        append_string(source_catalog, str(task["metadata_sha256"]))
+    source_catalog_digest = hashlib.sha256(source_catalog).hexdigest()
+    require(
+        source_catalog_digest == source_catalog_sha256,
+        "source catalog digest does not match task metadata digest inventory",
+    )
+
     buffer = bytearray()
     for value in (
         SCHEMA, source_commit, package_version, source_catalog_sha256,
