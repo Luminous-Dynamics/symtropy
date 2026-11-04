@@ -336,7 +336,14 @@
         "uninspected_units",
         "unresolved_units",
         "total_workflow_crew_minutes",
-        "robot_operating_minutes"
+        "robot_operating_minutes",
+        "domain_id",
+        "site_id",
+        "work_package_ids",
+        "evidence_class",
+        "accepted_output_evidence_manifest_ref",
+        "independent_adjudication_ref",
+        "measurement_protocol_digest"
       ],
       "properties": {
         "evaluation_id": {
@@ -413,6 +420,44 @@
         "robot_operating_minutes": {
           "type": "number",
           "minimum": 0
+        },
+        "domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_package_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "simulated",
+            "hardware_in_loop",
+            "controlled_site",
+            "field"
+          ]
+        },
+        "accepted_output_evidence_manifest_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_adjudication_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_protocol_digest": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
