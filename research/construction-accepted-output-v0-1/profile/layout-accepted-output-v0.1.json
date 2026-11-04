@@ -76,7 +76,26 @@
       "site_coordination_requalification",
       "evidence_closeout"
     ],
-    "unknown_time_must_remain_explicit": true
+    "unknown_time_must_remain_explicit": true,
+    "direct_crew_categories": [
+      "survey_control",
+      "robot_setup_calibration",
+      "operator_supervision",
+      "spotting",
+      "execution",
+      "charging_changeover",
+      "waiting",
+      "qa_inspection",
+      "rework_reprint",
+      "interruption_recovery",
+      "site_coordination_requalification"
+    ],
+    "total_workflow_only_categories": [
+      "model_vdc_preparation",
+      "design_trade_coordination",
+      "evidence_closeout"
+    ],
+    "privacy_rule": "human resource IDs must be pseudonymous and task-scoped; do not collect names, worker biometrics, inferred intent or affect"
   },
   "baseline": {
     "required_for_comparative_productivity_claim": true,
