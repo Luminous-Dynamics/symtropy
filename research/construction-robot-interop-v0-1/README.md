@@ -131,7 +131,7 @@ These are synthetic test adapters in one Rust crate, not two independently autho
 
 The dependency-free `resources` module adds a deterministic calendar for exclusive and capacity-limited resources. It uses half-open time intervals, a declared common clock domain, explicit expiry, owner-bound release and site-epoch invalidation. It rejects overlapping reservations that exceed capacity and preserves released/expired/invalidated IDs so an old reservation cannot be resurrected by reusing its identifier.
 
-The evaluator is scheduling-only: its `Granted` result is not a safety permit, work-zone clearance or motion authorization. Spatial conflict geometry, clock synchronization/uncertainty qualification, external identity authorization and live dispatch remain outside this module.
+The evaluator is scheduling-only: its `Granted` result is not a safety permit, work-zone clearance or motion authorization. The caller supplies a project-specific maximum clock uncertainty in the declared site clock domain; requests above that bound are rejected, interval overlap is conservatively expanded by each request's uncertainty, and reservation expiry uses the earliest possible expiry. This does not synchronize clocks or establish that the chosen uncertainty bound is physically justified. Spatial conflict geometry, external identity authorization and live dispatch remain outside this module.
 
 ## Frozen reference corpus
 
