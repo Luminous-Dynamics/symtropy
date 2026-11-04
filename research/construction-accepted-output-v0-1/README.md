@@ -194,7 +194,7 @@ Direct crew-hours in v0.1 include on-site survey/control, robot setup/calibratio
 
 Human resource IDs should be pseudonymous and task-scoped. Do not collect worker names, badge numbers, biometrics, inferred intent or affect. Retain only the role/time evidence needed for the declared productivity claim.
 
-The derived report keeps critical-feature inspection coverage and first-pass defect counts by severity as separate measures. It also rejects a work package labelled completed while any unit remains active or unresolved. The partially measured example is correctly marked unresolved. Metrics from an incomplete/unresolved work package are marked `provisional`; only a completed and fully reconciled package can produce `estimable` metrics. Attempt intervals must be chronological and non-overlapping per work unit, and all resource-time entries must use the package's declared clock domain. Zero denominators remain `not_estimable`.
+The derived report keeps critical-feature inspection coverage (any inspection) separate from critical first-pass inspection coverage, and reports first-pass defect counts by severity. It also rejects a work package labelled completed while any unit remains active or unresolved. The partially measured example is correctly marked unresolved. Metrics from an incomplete/unresolved work package are marked `provisional`; only a completed and fully reconciled package can produce `estimable` metrics. Attempt intervals must be chronological and non-overlapping per work unit, and all resource-time entries must use the package's declared clock domain. Zero denominators remain `not_estimable`.
 
 ## 9. Ownership
 
