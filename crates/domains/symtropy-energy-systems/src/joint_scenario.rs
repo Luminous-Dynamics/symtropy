@@ -1512,10 +1512,18 @@ mod tests {
             ).unwrap()).unwrap();
 
         assert!((dep_report.mean_energy_score - 2.5).abs() < 1e-12);
-        assert!(broken_report.mean_energy_score > dep_report.mean_energy_score);
+        assert!(
+            (broken_report.mean_energy_score - 4.571_067_811_865_475_5).abs() < 1e-12
+        );
         assert_eq!(
             dep_report.marginal_crps_by_dimension,
             broken_report.marginal_crps_by_dimension
+        );
+        assert!(
+            (dep_report.marginal_crps_by_dimension[0].mean_crps - 2.5).abs() < 1e-12
+        );
+        assert!(
+            (dep_report.marginal_crps_by_dimension[1].mean_crps - 2.5).abs() < 1e-12
         );
         assert!(dep_report.mean_variogram_score < 1e-12);
         assert!((broken_report.mean_variogram_score - 10.0).abs() < 1e-12);
