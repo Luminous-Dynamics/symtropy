@@ -95,6 +95,7 @@ pub enum DependenceError {
     DuplicateIntervention,
     DuplicateTerm,
     DuplicateStateVariable,
+    DuplicateJointState,
     MissingStateVariable,
     UnknownStateVariable,
     UnknownOutputInput,
@@ -109,6 +110,7 @@ pub enum DependenceError {
     UnknownOutput,
     MissingInterventionValue,
     ArithmeticOverflow,
+    ReceiptMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -281,6 +283,7 @@ impl FactorGraphManifest {
         }
 
         let mut total_weight = 0u64;
+        let mut unique_joint_states = BTreeSet::new();
         for state in &self.distribution.states {
             if state.weight == 0 {
                 return Err(DependenceError::ZeroStateWeight);
@@ -296,6 +299,11 @@ impl FactorGraphManifest {
             }
             if state_ids != variable_ids {
                 return Err(DependenceError::MissingStateVariable);
+            }
+            let mut canonical_state_values = state.values.clone();
+            canonical_state_values.sort_by(|a, b| a.0.cmp(&b.0));
+            if !unique_joint_states.insert(canonical_state_values) {
+                return Err(DependenceError::DuplicateJointState);
             }
             total_weight = total_weight
                 .checked_add(state.weight)
@@ -355,7 +363,13 @@ impl FactorGraphManifest {
         }
 
         let mut states = self.distribution.states.iter().collect::<Vec<_>>();
-        states.sort_by(|a, b| a.values.cmp(&b.values));
+        states.sort_by(|a, b| {
+            let mut left = a.values.clone();
+            let mut right = b.values.clone();
+            left.sort_by(|x, y| x.0.cmp(&y.0));
+            right.sort_by(|x, y| x.0.cmp(&y.0));
+            left.cmp(&right)
+        });
         push_len(&mut out, states.len());
         for state in states {
             let mut values = state.values.iter().collect::<Vec<_>>();
@@ -434,7 +448,15 @@ impl FactorGraphManifest {
 
         let manifest_digest = self.digest()?;
         let mut receipts = Vec::with_capacity(self.distribution.states.len());
-        for (state_index, state) in self.distribution.states.iter().enumerate() {
+        let mut states = self.distribution.states.iter().collect::<Vec<_>>();
+        states.sort_by(|a, b| {
+            let mut left = a.values.clone();
+            let mut right = b.values.clone();
+            left.sort_by(|x, y| x.0.cmp(&y.0));
+            right.sort_by(|x, y| x.0.cmp(&y.0));
+            left.cmp(&right)
+        });
+        for (state_index, state) in states.into_iter().enumerate() {
             let latent_values = state.values.iter().cloned().collect::<BTreeMap<_, _>>();
             let mut output_values = Vec::with_capacity(self.outputs.len());
 
@@ -486,8 +508,24 @@ impl FactorGraphManifest {
 }
 
 impl DependenceReceipt {
-    pub fn verify(&self) -> bool {
+    /// Checks the unkeyed receipt checksum only. This detects accidental
+    /// corruption; it is not authentication and does not re-evaluate the model.
+    pub fn integrity_check(&self) -> bool {
         *blake3::hash(&receipt_bytes(self)).as_bytes() == self.receipt_digest
+    }
+
+    /// Recompute the complete receipt from the exact manifest and intervention.
+    pub fn verify_against(
+        &self,
+        manifest: &FactorGraphManifest,
+        intervention: &BranchIntervention,
+    ) -> Result<(), DependenceError> {
+        let evaluated = manifest.evaluate(intervention)?;
+        if evaluated.receipts.iter().any(|candidate| candidate == self) {
+            Ok(())
+        } else {
+            Err(DependenceError::ReceiptMismatch)
+        }
     }
 }
 
@@ -561,8 +599,8 @@ mod tests {
             source_id: id(format!("source-{id_value}")),
             units: id("dimensionless"),
             scope,
-            equivalence_group: id("crossing-weather"),
-            invariance_justification: id("scm:shared-episode-cause"),
+            equivalence_group: id(format!("equivalence-{id_value}")),
+            invariance_justification: id(format!("scm:shared-{id_value}")),
         }
     }
 
@@ -787,8 +825,28 @@ mod tests {
                 continue_receipt.output_values,
                 yield_receipt.output_values
             );
-            assert!(continue_receipt.verify());
-            assert!(yield_receipt.verify());
+            assert!(continue_receipt.integrity_check());
+            assert!(yield_receipt.integrity_check());
+            assert_eq!(
+                continue_receipt.verify_against(
+                    &manifest,
+                    &BranchIntervention {
+                        branch_id: id("continue"),
+                        values: vec![(id("ego-yield-state"), 0)],
+                    }
+                ),
+                Ok(())
+            );
+            assert_eq!(
+                yield_receipt.verify_against(
+                    &manifest,
+                    &BranchIntervention {
+                        branch_id: id("yield"),
+                        values: vec![(id("ego-yield-state"), 1)],
+                    }
+                ),
+                Ok(())
+            );
         }
     }
 
@@ -868,7 +926,56 @@ mod tests {
             })
             .unwrap();
         evaluated.receipts[0].output_values[0].1 ^= 1;
-        assert!(!evaluated.receipts[0].verify());
+        assert!(!evaluated.receipts[0].integrity_check());
+        assert_eq!(
+            evaluated.receipts[0].verify_against(
+                &manifest,
+                &BranchIntervention {
+                    branch_id: id("branch-a"),
+                    values: vec![],
+                }
+            ),
+            Err(DependenceError::ReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn duplicate_joint_state_rows_are_rejected() {
+        let mut manifest = shared_factor_fixture();
+        manifest.distribution.states.push(manifest.distribution.states[0].clone());
+        assert_eq!(
+            manifest.validate(),
+            Err(DependenceError::DuplicateJointState)
+        );
+    }
+
+    #[test]
+    fn intervention_value_change_invalidates_receipt_replay() {
+        let mut manifest = shared_factor_fixture();
+        manifest.outputs.push(LinearOutput {
+            id: id("decision-descendant"),
+            units: id("dimensionless"),
+            intercept: 0,
+            terms: vec![LinearTerm {
+                input: StructuralInput::Intervention(id("action")),
+                coefficient: 1,
+            }],
+            mechanism_id: id("action-dependent-v1"),
+            evidence_ref: id("fixture:replay-binding"),
+        });
+        let original = BranchIntervention {
+            branch_id: id("branch-a"),
+            values: vec![(id("action"), 0)],
+        };
+        let changed = BranchIntervention {
+            branch_id: id("branch-a"),
+            values: vec![(id("action"), 1)],
+        };
+        let receipt = manifest.evaluate(&original).unwrap().receipts[0].clone();
+        assert_eq!(
+            receipt.verify_against(&manifest, &changed),
+            Err(DependenceError::ReceiptMismatch)
+        );
     }
 
     #[test]
