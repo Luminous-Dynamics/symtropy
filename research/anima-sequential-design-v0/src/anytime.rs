@@ -612,6 +612,46 @@ mod tests {
     }
 
     #[test]
+    fn repeated_cluster_observations_are_allowed_only_as_sequential_events() {
+        let mut e = process(0.05);
+        let first = forecast(0.2, 0.8, "frozen-manifest-sha", "history-before-step-1");
+        let first_receipt = observe(&mut e, "yes", "step-1", &first);
+        let second = forecast(0.2, 0.8, "frozen-manifest-sha", "history-including-step-1");
+        let second_receipt = observe(&mut e, "yes", "step-2", &second);
+        assert_eq!(first_receipt.replication_unit_id, "animal-synthetic-1");
+        assert_eq!(second_receipt.replication_unit_id, "animal-synthetic-1");
+        assert_eq!(first_receipt.session_id, second_receipt.session_id);
+        assert_eq!(e.steps_observed(), 2);
+    }
+
+    #[test]
+    fn duplicate_sample_identity_cannot_be_counted_twice() {
+        let mut e = process(0.05);
+        let c = candidate();
+        let f = forecast(0.2, 0.8, "frozen-manifest-sha", "history-0");
+        let event = EProcessObservation {
+            assigned_candidate_id: "stim-a",
+            delivered_protocol_id: "protocol-a",
+            step_id: "step-1",
+            outcome_id: "yes",
+            sample_id: "sample-duplicate",
+            replication_unit_id: "animal-1",
+            session_id: "session-1",
+            evidence_tier: EvidenceTier::SyntheticFixture,
+        };
+        e.observe(&c, &f, event).unwrap();
+        let repeated = EProcessObservation {
+            step_id: "step-2",
+            ..event
+        };
+        assert_eq!(
+            e.observe(&c, &f, repeated),
+            Err(EProcessError::DuplicateSample("sample-duplicate".to_owned()))
+        );
+        assert_eq!(e.steps_observed(), 1);
+    }
+
+    #[test]
     fn unsafe_candidate_cannot_contribute_evidence() {
         let mut e = process(0.05);
         let f = forecast(0.2, 0.8, "frozen-manifest-sha", "history-0");
