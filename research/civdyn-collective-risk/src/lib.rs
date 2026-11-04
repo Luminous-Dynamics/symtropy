@@ -590,6 +590,41 @@ mod tests {
     }
 
     #[test]
+    fn exact_best_response_to_last_round_defectors_is_risk_sensitive() {
+        let partners = [Strategy::LastRoundDefection; SEATS - 1];
+        let low = exact_best_response(config(0.1), &partners).unwrap();
+        let high = exact_best_response(config(0.9), &partners).unwrap();
+
+        assert_eq!(low.total_contribution, 0);
+        assert_eq!(high.total_contribution, 30);
+        assert_eq!(high.outcome.total_contribution, TARGET);
+    }
+
+    #[test]
+    fn best_response_reports_the_full_enumeration_budget() {
+        let response = exact_best_response(
+            config(0.9),
+            &[Strategy::FixedFairShare; SEATS - 1],
+        ).unwrap();
+        assert_eq!(response.candidates_examined, 59_049);
+    }
+
+    #[test]
+    fn internal_runner_rejects_noncanonical_focal_actions() {
+        let strategies = [Strategy::AlwaysZero; SEATS];
+        let invalid_plan = [6_u8; ROUNDS];
+        assert_eq!(
+            run_internal(config(0.5), &strategies, Some((0, &invalid_plan))),
+            Err(GameError::InvalidActionPlan {
+                seat: 0,
+                round: 0,
+                action: 6,
+                remaining_endowment: ENDOWMENT,
+            })
+        );
+    }
+
+    #[test]
     fn exact_best_response_rejects_wrong_number_of_partners() {
         assert_eq!(
             exact_best_response(config(0.5), &[Strategy::AlwaysZero; 4]),
