@@ -48,7 +48,7 @@ fn fmt(value: f64) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), 15, "every CSV record has 15 columns");
+    assert_eq!(fields.len(), 16, "every CSV record has 16 columns");
     println!("{}", fields.join(","));
 }
 
@@ -69,6 +69,7 @@ fn emit_summary(record_type: &str, label: &str, result: &civdyn_welfare_allocati
         fmt(result.coverage_variance),
         result.essential_floor_violations.to_string(),
         frontier_size.to_string(),
+        String::new(),
     ]);
 }
 
@@ -95,13 +96,14 @@ fn emit_allocations(label: &str, problem: &AllocationProblem, result: &civdyn_we
             String::new(),
             String::new(),
             String::new(),
+            String::new(),
         ]);
     }
 }
 
 fn main() {
     println!(
-        "record_type,policy,recipient_id,allocation,coverage,verified_return,asserted_return,total_allocated,total_verified_return,total_asserted_return,min_coverage,gini_coverage,coverage_variance,floor_violations,frontier_size"
+        "record_type,policy,recipient_id,allocation,coverage,verified_return,asserted_return,total_allocated,total_verified_return,total_asserted_return,min_coverage,gini_coverage,coverage_variance,floor_violations,frontier_size,decision_invariant"
     );
 
     let base = problem();
@@ -139,7 +141,7 @@ fn main() {
         "verified_invariance".into(),
         String::new(),
         String::new(),
-        invariant.to_string(),
+        String::new(),
         String::new(),
         String::new(),
         String::new(),
@@ -150,6 +152,7 @@ fn main() {
         fmt(verified_after_rhetoric.coverage_variance),
         verified_after_rhetoric.essential_floor_violations.to_string(),
         frontier_size.to_string(),
+        invariant.to_string(),
     ]);
     emit_summary(
         "rhetoric_control",
