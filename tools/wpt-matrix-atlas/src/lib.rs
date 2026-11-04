@@ -1213,7 +1213,6 @@ mod tests {
         }));
     }
 
-
     #[test]
     fn service_signal_schema_matches_versioned_rust_contract() {
         const SCHEMA: &str = include_str!(
