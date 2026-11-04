@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use std::{env, fs, process};
 
-use symtropy_construction_layout_input_validator::{evaluate_manifest, TrustedPolicy};
+use symtropy_construction_layout_input_validator::{TrustedPolicy, evaluate_manifest};
 
 const DEMO_POLICY: &str =
     include_str!("../../../../research/construction-layout-input-v0-1/policy.synthetic.json");
-
 
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
