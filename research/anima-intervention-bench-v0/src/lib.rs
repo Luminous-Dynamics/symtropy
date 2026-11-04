@@ -2382,6 +2382,17 @@ mod tests {
                 vec![vec![1.0, -0.9], vec![-0.9, 1.0]],
             ),
         ];
+        // A diagonal/scalar model sees identical marginals and therefore no
+        // information. The joint model must detect the opposite correlations.
+        let marginal_only = vec![
+            distribution("positive-coupling", 0.0, 1.0),
+            distribution("negative-coupling", 0.0, 1.0),
+        ];
+        let marginal_estimate =
+            estimate_expected_information_gain_with_uncertainty(&marginal_only, 3000, 113)
+                .unwrap();
+        assert_eq!(marginal_estimate.mean_nats, 0.0);
+
         let estimate =
             estimate_multivariate_expected_information_gain_equal_priors(&distributions, 3000, 113)
                 .unwrap();
