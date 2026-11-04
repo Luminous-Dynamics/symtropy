@@ -27,6 +27,7 @@ pub enum FactorScope {
 pub struct FactorVariable {
     pub id: StableId,
     pub source_id: StableId,
+    pub source_profile_digest: [u8; 32],
     pub units: StableId,
     pub scope: FactorScope,
     pub equivalence_group: StableId,
@@ -336,6 +337,7 @@ impl FactorGraphManifest {
         for variable in variables {
             push_id(&mut out, &variable.id);
             push_id(&mut out, &variable.source_id);
+            out.extend_from_slice(&variable.source_profile_digest);
             push_id(&mut out, &variable.units);
             push_id(&mut out, &variable.equivalence_group);
             push_id(&mut out, &variable.invariance_justification);
@@ -610,6 +612,7 @@ mod tests {
         FactorVariable {
             id: id(id_value),
             source_id: id(format!("source-{id_value}")),
+            source_profile_digest: *blake3::hash(id_value.as_bytes()).as_bytes(),
             units: id("dimensionless"),
             scope,
             equivalence_group: id(format!("equivalence-{id_value}")),
@@ -919,6 +922,14 @@ mod tests {
             manifest.validate(),
             Err(DependenceError::MissingStateVariable)
         );
+    }
+
+    #[test]
+    fn changing_source_profile_digest_changes_manifest_identity() {
+        let first = shared_factor_fixture();
+        let mut changed = first.clone();
+        changed.variables[0].source_profile_digest[0] ^= 1;
+        assert_ne!(first.digest().unwrap(), changed.digest().unwrap());
     }
 
     #[test]
