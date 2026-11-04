@@ -716,6 +716,7 @@ pub enum StrategyBenchmarkError {
         tolerance: f64,
     },
     ZeroBaselineOnTimeWork,
+    ZeroBaselineEnergyIntensity,
     NumericalOverflow(&'static str),
 }
 
@@ -814,6 +815,9 @@ impl fmt::Display for StrategyBenchmarkError {
             ),
             Self::ZeroBaselineOnTimeWork => {
                 write!(f, "baseline has no on-time useful work; energy comparison is undefined")
+            }
+            Self::ZeroBaselineEnergyIntensity => {
+                write!(f, "baseline facility energy intensity is zero; relative savings are undefined")
             }
             Self::NumericalOverflow(operation) => {
                 write!(f, "non-finite or overflowing arithmetic during {operation}")
@@ -924,6 +928,9 @@ pub fn evaluate_strategy_benchmark(
     let baseline_energy_intensity = baseline
         .facility_kwh_per_on_time_useful_work_unit
         .ok_or(StrategyBenchmarkError::ZeroBaselineOnTimeWork)?;
+    if baseline_energy_intensity <= 0.0 || !baseline_energy_intensity.is_finite() {
+        return Err(StrategyBenchmarkError::ZeroBaselineEnergyIntensity);
+    }
 
     for summary in &mut summaries {
         summary.service_equivalent_energy_savings_vs_baseline_fraction = summary
@@ -1620,6 +1627,47 @@ mod tests {
         assert!((receipts[1].normalized_probability_weight - 0.499_999_999_75).abs() < 1e-15);
         let normalized_sum: f64 = receipts.iter().map(|receipt| receipt.normalized_probability_weight).sum();
         assert!((normalized_sum - 1.0).abs() < 1e-15);
+    }
+
+    #[test]
+    fn rejects_aggregate_strategy_weight_drift_even_when_each_cell_is_within_tolerance() {
+        let outcomes = vec![
+            outcome("baseline", "s1", 0.5, 100.0, 100.0, 120.0, 30.0, 12.0, 6.0, false, false, false, false),
+            outcome("baseline", "s2", 0.5, 100.0, 100.0, 110.0, 28.0, 11.0, 5.0, false, false, false, false),
+            outcome("candidate", "s1", 0.500_000_000_8, 100.0, 100.0, 108.0, 24.0, 10.0, 4.0, false, false, false, false),
+            outcome("candidate", "s2", 0.500_000_000_3, 100.0, 100.0, 99.0, 22.0, 9.0, 4.0, false, false, false, false),
+        ];
+        assert!(matches!(
+            StrategyBenchmarkEvaluation::new(contract(), outcomes),
+            Err(StrategyBenchmarkError::StrategyProbabilityMassMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn latency_gate_uses_the_worst_scenario_p95_not_only_the_average() {
+        let mut candidate = valid_candidate();
+        candidate[0].p95_latency_ms = 600.0;
+        let report = evaluate_strategy_benchmark(&evaluation(candidate)).unwrap();
+        let result = report.strategy_summaries.iter().find(|s| s.strategy_id == "candidate").unwrap();
+        assert!(result.expected_scenario_p95_latency_ms < 500.0);
+        assert_eq!(result.maximum_scenario_p95_latency_ms, 600.0);
+        assert!(!result.latency_gate_passed);
+        assert!(!result.passed);
+    }
+
+    #[test]
+    fn zero_on_time_baseline_is_not_used_for_energy_savings_comparison() {
+        let mut outcomes = vec![
+            outcome("baseline", "s1", 0.5, 100.0, 0.0, 120.0, 30.0, 12.0, 6.0, true, false, false, false),
+            outcome("baseline", "s2", 0.5, 100.0, 0.0, 110.0, 28.0, 11.0, 5.0, true, false, false, false),
+            outcome("candidate", "s1", 0.5, 100.0, 100.0, 108.0, 24.0, 10.0, 4.0, false, false, false, false),
+            outcome("candidate", "s2", 0.5, 100.0, 100.0, 99.0, 22.0, 9.0, 4.0, false, false, false, false),
+        ];
+        let input = StrategyBenchmarkEvaluation::new(contract(), outcomes).unwrap();
+        assert!(matches!(
+            evaluate_strategy_benchmark(&input),
+            Err(StrategyBenchmarkError::ZeroBaselineOnTimeWork)
+        ));
     }
 
     #[test]
