@@ -722,7 +722,6 @@ mod tests {
         assert_eq!(machine.task.state, TaskState::Queued);
     }
 
-
     #[test]
     fn message_ids_are_scoped_to_actor_and_session() {
         let mut machine = machine();
