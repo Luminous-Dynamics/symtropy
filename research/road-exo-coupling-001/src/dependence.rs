@@ -226,6 +226,24 @@ impl BranchEvaluation {
         ExactRational::new(numerator, denominator)
     }
 
+    pub fn marginal_probabilities(
+        &self,
+        output_id: &StableId,
+    ) -> Result<BTreeMap<i64, ExactRational>, DependenceError> {
+        self.marginal_counts(output_id)?
+            .into_iter()
+            .map(|(value, weight)| {
+                Ok((
+                    value,
+                    ExactRational::new(
+                        i128::from(weight),
+                        u128::from(self.total_weight),
+                    )?,
+                ))
+            })
+            .collect()
+    }
+
     pub fn marginal_counts(
         &self,
         output_id: &StableId,
@@ -775,12 +793,12 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            shared.marginal_counts(&id("response-a")).unwrap(),
-            independent.marginal_counts(&id("response-a")).unwrap()
+            shared.marginal_probabilities(&id("response-a")).unwrap(),
+            independent.marginal_probabilities(&id("response-a")).unwrap()
         );
         assert_eq!(
-            shared.marginal_counts(&id("response-b")).unwrap(),
-            independent.marginal_counts(&id("response-b")).unwrap()
+            shared.marginal_probabilities(&id("response-b")).unwrap(),
+            independent.marginal_probabilities(&id("response-b")).unwrap()
         );
         assert_eq!(
             shared
