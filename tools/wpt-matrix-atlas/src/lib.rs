@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const SCHEMA_VERSION: &str = "wpt-matrix-atlas-v1";
+pub const SERVICE_SENSITIVITY_SCHEMA_VERSION: &str = "wpt-service-sensitivity-signal-v1";
 const MAX_COILS: usize = 32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,11 +98,13 @@ pub struct RefinementCandidate {
 /// route evaluator from the matrix uncertainty and the operating service profile.
 /// This crate validates the receipt reference syntax but does not calculate or
 /// authenticate the sensitivity bound itself.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServiceSensitivitySignal {
+    pub schema_version: String,
     pub segment_index: usize,
-    pub predicted_energy_uncertainty_wh: f64,
-    pub energy_uncertainty_budget_wh: f64,
+    pub route_energy_uncertainty_upper_bound_wh: f64,
+    pub route_route_energy_uncertainty_budget_wh: f64,
     /// Engineering estimate, in [0,1], of the fraction of the current uncertainty
     /// expected to be removed by one additional FEM/measurement sample.
     pub expected_uncertainty_reduction_fraction: f64,
@@ -117,7 +120,7 @@ pub struct ServiceRefinementCandidate {
     pub position_m: f64,
     /// Normalized expected uncertainty reduction per field-solve second.
     pub expected_uncertainty_reduction_per_second: f64,
-    pub predicted_energy_uncertainty_wh: f64,
+    pub route_energy_uncertainty_upper_bound_wh: f64,
     pub estimated_field_solve_cost_seconds: f64,
     pub triggers: Vec<String>,
     pub circuit_model_digest: String,
@@ -458,18 +461,22 @@ impl MatrixAtlas {
         let mut seen_segments = std::collections::HashSet::with_capacity(signals.len());
         let mut candidates = Vec::new();
         for signal in signals {
+            if signal.schema_version != SERVICE_SENSITIVITY_SCHEMA_VERSION {
+                return Err("unsupported service sensitivity schema version".into());
+            }
             if signal.segment_index >= self.segments.len() {
                 return Err("service sensitivity references an unknown atlas segment".into());
             }
             if !seen_segments.insert(signal.segment_index) {
                 return Err("duplicate service sensitivity signal for atlas segment".into());
             }
-            if !signal.predicted_energy_uncertainty_wh.is_finite()
-                || signal.predicted_energy_uncertainty_wh < 0.0
-                || !signal.energy_uncertainty_budget_wh.is_finite()
-                || signal.energy_uncertainty_budget_wh <= 0.0
+            if !signal.route_energy_uncertainty_upper_bound_wh.is_finite()
+                || signal.route_energy_uncertainty_upper_bound_wh < 0.0
+                || !signal.route_energy_uncertainty_budget_wh.is_finite()
+                || signal.route_energy_uncertainty_budget_wh <= 0.0
                 || !signal.expected_uncertainty_reduction_fraction.is_finite()
-                || !(0.0..=1.0).contains(&signal.expected_uncertainty_reduction_fraction)
+                || signal.expected_uncertainty_reduction_fraction <= 0.0
+                || signal.expected_uncertainty_reduction_fraction > 1.0
                 || !signal.estimated_field_solve_cost_seconds.is_finite()
                 || signal.estimated_field_solve_cost_seconds <= 0.0
             {
@@ -516,7 +523,7 @@ impl MatrixAtlas {
                 .max(1e-15);
             let margin_ratio = margin_deficit / margin_scale;
             let service_ratio =
-                signal.predicted_energy_uncertainty_wh / signal.energy_uncertainty_budget_wh;
+                signal.route_energy_uncertainty_upper_bound_wh / signal.route_energy_uncertainty_budget_wh;
 
             let mut triggers = Vec::new();
             if segment.interpolation_error_frobenius_bound_h
@@ -543,13 +550,17 @@ impl MatrixAtlas {
                     segment_index: index,
                     position_m: left.position_m + 0.5 * (right.position_m - left.position_m),
                     expected_uncertainty_reduction_per_second: benefit_per_second,
-                    predicted_energy_uncertainty_wh: signal.predicted_energy_uncertainty_wh,
+                    route_energy_uncertainty_upper_bound_wh: signal.route_energy_uncertainty_upper_bound_wh,
                     estimated_field_solve_cost_seconds: signal.estimated_field_solve_cost_seconds,
                     triggers,
                     circuit_model_digest: signal.circuit_model_digest.clone(),
                     sensitivity_receipt_digest: signal.sensitivity_receipt_digest.clone(),
                 });
             }
+        }
+
+        if seen_segments.len() != self.segments.len() {
+            return Err("service sensitivity must cover every atlas segment exactly once".into());
         }
 
         candidates.sort_by(|left, right| {
@@ -1163,18 +1174,20 @@ mod tests {
         };
         let signals = vec![
             ServiceSensitivitySignal {
+                schema_version: SERVICE_SENSITIVITY_SCHEMA_VERSION.into(),
                 segment_index: 0,
-                predicted_energy_uncertainty_wh: 0.2,
-                energy_uncertainty_budget_wh: 0.1,
+                route_energy_uncertainty_upper_bound_wh: 0.2,
+                route_energy_uncertainty_budget_wh: 0.1,
                 expected_uncertainty_reduction_fraction: 0.5,
                 estimated_field_solve_cost_seconds: 1.0,
                 circuit_model_digest: digest('7'),
                 sensitivity_receipt_digest: digest('8'),
             },
             ServiceSensitivitySignal {
+                schema_version: SERVICE_SENSITIVITY_SCHEMA_VERSION.into(),
                 segment_index: 1,
-                predicted_energy_uncertainty_wh: 0.5,
-                energy_uncertainty_budget_wh: 0.1,
+                route_energy_uncertainty_upper_bound_wh: 0.5,
+                route_energy_uncertainty_budget_wh: 0.1,
                 expected_uncertainty_reduction_fraction: 0.2,
                 estimated_field_solve_cost_seconds: 0.5,
                 circuit_model_digest: digest('9'),
@@ -1203,9 +1216,10 @@ mod tests {
     fn rejects_unverified_or_invalid_service_sensitivity_signals() {
         let mut atlas = fixture();
         let mut signal = ServiceSensitivitySignal {
+            schema_version: SERVICE_SENSITIVITY_SCHEMA_VERSION.into(),
             segment_index: 0,
-            predicted_energy_uncertainty_wh: 0.2,
-            energy_uncertainty_budget_wh: 0.1,
+            route_energy_uncertainty_upper_bound_wh: 0.2,
+            route_energy_uncertainty_budget_wh: 0.1,
             expected_uncertainty_reduction_fraction: 0.5,
             estimated_field_solve_cost_seconds: 1.0,
             circuit_model_digest: format!("sha256:{}", "7".repeat(64)),
@@ -1221,7 +1235,7 @@ mod tests {
                 .is_err()
         );
         signal.sensitivity_receipt_digest = format!("sha256:{}", "8".repeat(64));
-        signal.predicted_energy_uncertainty_wh = f64::NAN;
+        signal.route_energy_uncertainty_upper_bound_wh = f64::NAN;
         assert!(atlas.service_refinement_plan(policy, &[signal]).is_err());
     }
 }
