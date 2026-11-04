@@ -8,7 +8,7 @@ Ships with Phi (integrated information) as the default metric and 68 research ex
 
 ## The Symtropy Adoption Story
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
+Symtropy is part of a longer-term research programme exploring how reliable simulation could support resilient infrastructure and civic systems. Those broader applications remain development goals, not demonstrated capabilities.
 
 Why choose Symtropy over traditional solutions?
 
@@ -172,7 +172,7 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 68 experiments in `crates/domains/symtropy-consciousness-physics/examples/`:
 
 ```bash
-# Core cooperation emergence (the definitive experiment)
+# Core cooperation-emergence scenario
 cargo run --example cooperation_emergence
 
 # J/Phi convergence (descriptive simulation diagnostic)
@@ -198,7 +198,7 @@ cargo run --example hdc_cooperation --features consciousness-hdc
 
 - **81.3% tighter clustering** reported in an internal configured simulation; this is a model-specific result pending independent reproduction, not evidence of thermodynamic necessity
 - **J/Phi convergence** reported as a model-specific statistic (~10K J/Phi); not a measured or substrate-independent physical constant
-- **Prediction 1 confirmed**: Solo agents collapse within ~4 minutes; cooperative agents sustain indefinitely
+- **Current configured-run observation**: solo agents collapse within ~4 minutes while cooperative agents persist in the internal scenario; this is model-specific and pending independent reproduction
 
 ## Documentation
 
