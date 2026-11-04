@@ -28,20 +28,21 @@ The upstream API maximizes objectives; constraints are feasible when `g(x) <= 0`
 
 The current public docs inspected on 4 November 2026 identify BOCoDe 1.0.2.dev2. The repository's README says it is still under construction. Therefore pin the exact Git commit, installed package version, environment lock, optional extras and metadata catalog used by every run.
 
-The paper's five optimizer classes are:
+The paper and upstream README define five comparison strata:
 1. SO-Unconstrained
 2. SO-Constrained
 3. MO-Unconstrained
 4. MO-Constrained
 5. SO-Mixed-Variable
 
-The current registry metadata exposes a wider and sometimes inconsistent shape:
-- `PressureVessel`: 1 objective, 4 constraints, `input_type=mixed`.
-- `Car`: 1 objective, 10 constraints, `input_type=mixed`.
+These are **not** the Cartesian product of objective count, constraints and variable type. The exact `input_type` (continuous / discrete / mixed) is a separate metadata axis. Discrete-only tasks remain in the appropriate SO/MO unconstrained/constrained stratum while retaining `variable_type_class=discrete`. The single-objective mixed-variable stratum includes both constrained and unconstrained tasks: current `PressureVessel` has 1 objective, 4 constraints and `input_type=mixed`; `Car` has 1 objective, 10 constraints and `input_type=mixed`. Multi-objective mixed-variable records, if present, are retained as an explicit extension rather than forced into one of the five official strata.
+
+Additional metadata caveats:
 - `Truss10D`: source citation is empty in its current metadata.
 - `Mazda`: 222 dimensions and 5 objectives, but `bounds=null` and no `variable_types` array.
+- Discrete examples include `HOIP`, `GearTrain` and `MaxSAT`.
 
-These records must not be silently forced into the five published classes. The importer has explicit extension labels for mixed-constrained and mixed multi-objective records. It records missing source citations, unavailable bounds, and unavailable variable types as explicit states. Missing metadata is not replaced by inferred defaults. A task whose source is missing is not ready for a sourced benchmark claim until the source is separately admitted.
+The importer preserves the five official strata and records exact variable type independently. It also records missing source citations, unavailable bounds and unavailable variable-type arrays as explicit states. Missing metadata is not replaced by inferred defaults. A task whose source is missing is not ready for a sourced benchmark claim until the source is separately admitted.
 
 The upstream API's `list_metadata()` returns registered metadata resources. Synthetic functions from `list_synthetic()` are exposed separately and are not automatically included in this metadata catalog. Consequently, this importer does **not** claim to have imported all 307 paper tasks. The raw metadata catalog scope and task count are recorded in the export manifest. A future synthetic-function adapter needs its own explicit schema.
 
