@@ -329,7 +329,6 @@ fn choose_for_policy(
                     horizon: remaining_horizon,
                     maximum_tree_nodes: 100_000,
                     discount_factor: 0.95,
-                    minimum_delivery_fidelity: config.minimum_delivery_fidelity,
                     transitions: TransitionConstraints::default(),
                 },
             )?;
