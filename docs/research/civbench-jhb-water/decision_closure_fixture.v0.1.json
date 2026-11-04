@@ -79,32 +79,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-control-positive",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:positive-service-restoration:control:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-control-positive",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-control-positive",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000004"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:positive-service-restoration:control:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000005"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:positive-service-restoration:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000006"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -174,42 +186,58 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-candidate-positive",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000007"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "acquisition_planner",
             "receipt_id": "fixture:sol-atlas-voi-result-positive",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000008"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000008",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:positive-service-restoration:candidate:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000009"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000009",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-candidate-positive",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000a"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000a",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-candidate-positive",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000b"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000b",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "independent_verifier",
             "receipt_id": "fixture:independent-verification-positive",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000c"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000c",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:positive-service-restoration:candidate:service-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000d"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000d",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:positive-service-restoration:paired-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000e"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000e",
+            "decision_episode_id": "positive-service-restoration",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -287,32 +315,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-control-no-value",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000f"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000000f",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:no-value-sensor:control:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000010"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000010",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-control-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000011"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000011",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-control-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000012"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000012",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:no-value-sensor:control:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000013"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000013",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:no-value-sensor:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000014"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000014",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -382,37 +422,51 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-candidate-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000015"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000015",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "acquisition_planner",
             "receipt_id": "fixture:sol-atlas-voi-result-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000016"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000016",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:no-value-sensor:candidate:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000017"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000017",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-candidate-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000018"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000018",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-candidate-no-value",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000019"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000019",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:no-value-sensor:candidate:service-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001a"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001a",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:no-value-sensor:paired-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001b"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001b",
+            "decision_episode_id": "no-value-sensor",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -490,37 +544,51 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-control-overload",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001c"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001c",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:false-alarm-capacity-externality:control:authority",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001d"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001d",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-control-overload",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001e"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001e",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-control-overload",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001f"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000001f",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "independent_verifier",
             "receipt_id": "fixture:verification-control-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000020",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:false-alarm-capacity-externality:control:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000021"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000021",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:false-alarm-capacity-externality:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000022"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000022",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -590,42 +658,58 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-candidate-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000023"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000023",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "acquisition_planner",
             "receipt_id": "fixture:sol-atlas-voi-result-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000024"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000024",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:false-alarm-capacity-externality:candidate:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000025"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000025",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-candidate-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000026"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000026",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-candidate-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000027"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000027",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "independent_verifier",
             "receipt_id": "fixture:verification-candidate-overload",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000028"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000028",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:false-alarm-capacity-externality:candidate:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000029"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000029",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:false-alarm-capacity-externality:paired-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002a"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002a",
+            "decision_episode_id": "false-alarm-capacity-externality",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -704,32 +788,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-control-resource",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002b"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002b",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:resource-exhaustion:control:authority",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002c",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-control-resource",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002d"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002d",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-control-resource",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002e"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002e",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:resource-exhaustion:control:service-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002f"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000002f",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:resource-exhaustion:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000030"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000030",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -793,32 +889,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-candidate-resource",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000031"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000031",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:resource-exhaustion:candidate:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000032"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000032",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-candidate-resource",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000033"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000033",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-candidate-resource",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000034"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000034",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:resource-exhaustion:candidate:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000035"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000035",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:resource-exhaustion:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000036"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000036",
+            "decision_episode_id": "resource-exhaustion",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -896,32 +1004,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-control-unresolved",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000037"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000037",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:unverified-repair-unknown-truth:control:authority",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000038"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000038",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-control-unresolved",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000039"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000039",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-control-unresolved",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003a"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003a",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:unverified-repair-unknown-truth:control:service-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003b"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003b",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:unverified-repair-unknown-truth:paired-outcome",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003c"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003c",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
@@ -985,32 +1105,44 @@
           {
             "owner": "event_evaluator",
             "receipt_id": "fixture:event-receipt-candidate-unresolved",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003d"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003d",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "human_authority",
             "receipt_id": "fixture:unverified-repair-unknown-truth:candidate:authority",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003e"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003e",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "resource_ledger",
             "receipt_id": "fixture:ledger-candidate-unresolved",
-            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003f"
+            "payload_digest": "sha256:000000000000000000000000000000000000000000000000000000000000003f",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "repair_workflow",
             "receipt_id": "fixture:workflow-candidate-unresolved-repair-claim-only",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000040"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000040",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "service_outcome",
             "receipt_id": "fixture:unverified-repair-unknown-truth:candidate:service-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000041"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000041",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           },
           {
             "owner": "paired_outcome",
             "receipt_id": "fixture:unverified-repair-unknown-truth:paired-outcome",
-            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000042"
+            "payload_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000042",
+            "decision_episode_id": "unverified-repair-unknown-truth",
+            "paired_block_id": "block-closure-001"
           }
         ]
       },
