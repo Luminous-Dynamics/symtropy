@@ -14,7 +14,9 @@
     "reference_measurement",
     "preregistration",
     "endpoints",
-    "safety_separation"
+    "safety_separation",
+    "uncertainty_policy",
+    "decision_rule"
   ],
   "properties": {
     "profile_id": {
@@ -296,6 +298,124 @@
     },
     "schema_version": {
       "const": "construction-roundrobin-study-plan-v0.1"
+    },
+    "uncertainty_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_model_declared",
+        "type_a_type_b_components_separated",
+        "correlations_and_covariances_recorded",
+        "known_corrections_applied_or_justified",
+        "nonlinearity_assessed",
+        "propagation_method",
+        "coverage_factor",
+        "uncertainty_budget_artifact_required",
+        "measurement_capability_failure_is_indeterminate"
+      ],
+      "properties": {
+        "measurement_model_declared": {
+          "const": true
+        },
+        "type_a_type_b_components_separated": {
+          "const": true
+        },
+        "correlations_and_covariances_recorded": {
+          "const": true
+        },
+        "known_corrections_applied_or_justified": {
+          "const": true
+        },
+        "nonlinearity_assessed": {
+          "const": true
+        },
+        "propagation_method": {
+          "enum": [
+            "not_yet_selected",
+            "analytic_gum",
+            "monte_carlo",
+            "hybrid"
+          ]
+        },
+        "coverage_factor": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uncertainty_budget_artifact_required": {
+          "const": true
+        },
+        "measurement_capability_failure_is_indeterminate": {
+          "const": true
+        }
+      }
+    },
+    "decision_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "method",
+        "task_specific_limits",
+        "guard_band_policy",
+        "false_accept_risk_considered",
+        "false_reject_risk_considered",
+        "boundary_result_policy",
+        "decision_states"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "enum": [
+            "not_yet_selected",
+            "simple_acceptance",
+            "guard_band",
+            "shared_risk",
+            "other"
+          ]
+        },
+        "task_specific_limits": {
+          "const": true
+        },
+        "guard_band_policy": {
+          "enum": [
+            "not_yet_selected",
+            "zero_guard_band_with_declared_risk",
+            "uncertainty_based",
+            "application_risk_based",
+            "other"
+          ]
+        },
+        "false_accept_risk_considered": {
+          "const": true
+        },
+        "false_reject_risk_considered": {
+          "const": true
+        },
+        "boundary_result_policy": {
+          "enum": [
+            "indeterminate_when_capability_insufficient",
+            "predeclared_risk_based_rule"
+          ]
+        },
+        "decision_states": {
+          "const": [
+            "accepted_under_named_rule",
+            "rejected_under_named_rule",
+            "indeterminate_measurement_capability_or_boundary",
+            "not_evaluated"
+          ]
+        }
+      }
     }
   }
 }
