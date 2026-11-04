@@ -125,22 +125,35 @@ impl SplitProtocolPreset {
             SensorLayout, TimeBlock, TopologyFamily,
         };
         match self {
-            Self::WithinNetworkUnseenEvent => BTreeSet::from([PhysicalEvent, CaptureSession]),
+            Self::WithinNetworkUnseenEvent => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate])
+            },
             Self::NewOperatingRegime => {
-                BTreeSet::from([PhysicalEvent, CaptureSession, DemandProfile, TimeBlock])
+                BTreeSet::from([
+                    PhysicalEvent,
+                    CaptureSession,
+                    ScenarioTemplate,
+                    DemandProfile,
+                    TimeBlock,
+                ])
             }
-            Self::CrossNetwork => BTreeSet::from([PhysicalEvent, CaptureSession, Network]),
+            Self::CrossNetwork => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, Network])
+            },
             Self::CrossTopology => BTreeSet::from([
                 PhysicalEvent,
                 CaptureSession,
+                ScenarioTemplate,
                 Network,
                 TopologyFamily,
                 ScenarioTemplate,
             ]),
             Self::SensorLayoutTransfer => {
-                BTreeSet::from([PhysicalEvent, CaptureSession, SensorLayout])
+                BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, SensorLayout])
             }
-            Self::AssetTransfer => BTreeSet::from([PhysicalEvent, CaptureSession, PipeAsset]),
+            Self::AssetTransfer => {
+                BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, PipeAsset])
+            },
         }
     }
 
