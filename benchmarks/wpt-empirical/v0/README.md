@@ -380,3 +380,11 @@ The next frontier is detect, localize, predict heating, mitigate or inhibit, the
 A 2026 task-oriented ML-WPT review (Luo et al., arXiv:2610.30101) reinforces the need for uncertainty-aware physics-informed learning, safe simulation-to-real transfer, edge deployment and reproducible benchmarks.
 
 The typed corpus includes cross-session accuracy, detection latency, coin temperature-rise, relative mitigation and DeMag efficiency claims. See issue #3496.
+
+## 2026 WPT4 geometry interoperability source
+
+Koch et al., DOI 10.1109/JWPT.2026.3721477, is now a separate source/realization. Its publisher-indexed abstract reports four VAs and three GAs, 189 discrete positions, 3,402 evaluation points and 13,608 inductance samples, including open/short inductance characterization. It reports at least 34% degradation of the magnetic-coupling operating range when legacy WPT3 VAs are combined with a flush-mounted GA, with the proposed WPT4 concept mitigating much of the loss.
+
+The 34% is an author-derived relative coupling-operating-range reduction, not transfer-efficiency loss or percentage-point degradation. Full-text coordinates, raw point-level values, baseline threshold and uncertainty remain unavailable; the realization is development/source-claim evidence only.
+
+Latest empirical fetch-back: 57 sources, 27 prototype/realization records, 41 v0 measurement records and 146 auxiliary metrics. The 27 records represent publication/device families, not 27 independent standardized systems or a matched performance ranking.
