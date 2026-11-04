@@ -494,15 +494,21 @@ pub fn derive_report(ledger: &Value) -> Value {
         .count() as u64;
     let cancelled_units = units
         .iter()
-        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("cancelled"))
+        .filter(|unit| {
+            unit.get("terminal_disposition").and_then(Value::as_str) == Some("cancelled")
+        })
         .count() as u64;
     let superseded_units = units
         .iter()
-        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("superseded"))
+        .filter(|unit| {
+            unit.get("terminal_disposition").and_then(Value::as_str) == Some("superseded")
+        })
         .count() as u64;
     let unresolved_units = units
         .iter()
-        .filter(|unit| unit.get("terminal_disposition").and_then(Value::as_str) == Some("unresolved"))
+        .filter(|unit| {
+            unit.get("terminal_disposition").and_then(Value::as_str) == Some("unresolved")
+        })
         .count() as u64;
     let active_units = units
         .iter()
