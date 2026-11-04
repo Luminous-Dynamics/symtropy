@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -82,6 +82,7 @@ fn parse_arguments() -> Result<Options, String> {
     let mut current_directory = env::current_dir()
         .map_err(|error| format!("cannot resolve current directory: {error}"))?;
     let mut environment = BTreeMap::new();
+    let mut explicit_environment_keys = BTreeSet::new();
     for key in ENVIRONMENT_ALLOWLIST {
         if let Some(value) = env::var_os(key) {
             let value = value
@@ -117,9 +118,10 @@ fn parse_arguments() -> Result<Options, String> {
                 let (key, env_value) = value
                     .split_once('=')
                     .ok_or_else(|| "--env must be KEY=VALUE".to_owned())?;
-                if key.is_empty() || environment.insert(key.to_owned(), env_value.to_owned()).is_some() {
-                    return Err("--env key must be non-empty and must not be duplicated".to_owned());
+                if key.is_empty() || !explicit_environment_keys.insert(key.to_owned()) {
+                    return Err("--env key must be non-empty and must not be specified twice".to_owned());
                 }
+                environment.insert(key.to_owned(), env_value.to_owned());
             }
             _ => return Err(format!("unknown option {argument}")),
         }
