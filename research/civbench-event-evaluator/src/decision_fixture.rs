@@ -885,7 +885,7 @@ fn validate_expected(
         "positive_service_restoration" => {
             if record.action_progress != ActionProgress::IndependentlyVerified
                 || record.human_disposition != HumanDisposition::Authorized
-                || effect != ServiceEffect::ModelledImprovement
+                || record.service_effect != ServiceEffect::ModelledImprovement
             {
                 return Err(FixtureError::new("positive_case_not_closed", path, "positive outcome requires authorization and independent verification"));
             }
@@ -961,21 +961,21 @@ fn parse_optional_acquisition(
 }
 
 fn parse_outcome(value: &JsonValue, path: &str) -> Result<Vec<OutcomeMetric>, FixtureError> {
-    let object = as_object(value, &format!("{path}.service_outcome"))?;
+    let outcome_object = as_object(value, &format!("{path}.service_outcome"))?;
     let names = [
         "essential_shortfall_l", "interruption_service_seconds", "worst_group_service_ppm",
         "physical_loss_l", "verified_repairs", "whole_life_cost_minor", "recovery_seconds",
         "safe_fallback_delivery_l", "false_dispatches",
     ];
-    reject_unknown_keys(object, &names, &format!("{path}.service_outcome"))?;
-    if object.len() != names.len() {
+    reject_unknown_keys(outcome_object, &names, &format!("{path}.service_outcome"))?;
+    if outcome_object.len() != names.len() {
         return Err(FixtureError::new("incomplete_outcome_vector", path, "all nine v0.1 outcome metrics are required"));
     }
     let mut metrics = Vec::with_capacity(names.len());
     for name in names {
         let metric_path = format!("{path}.service_outcome.{name}");
         let metric = object(
-            field(object, name, &metric_path)?,
+            field(outcome_object, name, &metric_path)?,
             &metric_path,
             &["value", "status"],
         )?;
