@@ -1,0 +1,239 @@
+{
+  "schema_version": "symtropy.service-equivalent-strategy-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "note": "Synthetic paired outcomes only. They are not measured data-centre telemetry, MLPerf submissions, utility measurements or production scheduler results.",
+  "contract": {
+    "benchmark_id": "service-equivalent-known-truth-v1",
+    "benchmark_configuration_digest": "synthetic-config-digest",
+    "service_contract_digest": "synthetic-quality-sla-digest",
+    "scenario_set_digest": "synthetic-joint-scenario-set",
+    "operating_cost_currency": "USD",
+    "strategy_ids": [
+      "baseline",
+      "candidate"
+    ],
+    "baseline_strategy_id": "baseline",
+    "probability_sum_tolerance": 1e-9,
+    "minimum_expected_on_time_work_fraction": 0.95,
+    "minimum_worst_case_on_time_work_fraction": 0.9,
+    "maximum_deadline_violation_probability": 0.02,
+    "maximum_thermal_violation_probability": 0.01,
+    "maximum_reserve_breach_probability": 0.01,
+    "maximum_grid_shortfall_probability": 0.01,
+    "maximum_p95_latency_ms": 500
+  },
+  "outcomes": [
+    {
+      "strategy_id": "baseline",
+      "scenario_id": "s1",
+      "scenario_digest": "digest-s1",
+      "probability_weight": 0.5,
+      "offered_work_units": 100,
+      "accepted_useful_work_units": 100,
+      "on_time_useful_work_units": 100,
+      "facility_energy_kwh": 120,
+      "it_energy_kwh": 66,
+      "cooling_energy_kwh": 30,
+      "grid_import_energy_kwh": 96,
+      "water_litres": 12,
+      "carbon_kg_co2e": 6,
+      "operating_cost": 12,
+      "p95_latency_ms": 100,
+      "peak_temperature_c": 30,
+      "deadline_violated": false,
+      "thermal_limit_violated": false,
+      "protected_reserve_breached": false,
+      "grid_shortfall": false,
+      "service_evidence_id": "service-baseline-s1",
+      "facility_energy_evidence_id": "facility_energy-baseline-s1",
+      "it_energy_evidence_id": "it_energy-baseline-s1",
+      "cooling_energy_evidence_id": "cooling_energy-baseline-s1",
+      "grid_energy_evidence_id": "grid_energy-baseline-s1",
+      "water_evidence_id": "water-baseline-s1",
+      "carbon_evidence_id": "carbon-baseline-s1",
+      "cost_evidence_id": "cost-baseline-s1",
+      "thermal_evidence_id": "thermal-baseline-s1",
+      "storage_evidence_id": "storage-baseline-s1"
+    },
+    {
+      "strategy_id": "baseline",
+      "scenario_id": "s2",
+      "scenario_digest": "digest-s2",
+      "probability_weight": 0.5,
+      "offered_work_units": 100,
+      "accepted_useful_work_units": 90,
+      "on_time_useful_work_units": 90,
+      "facility_energy_kwh": 110,
+      "it_energy_kwh": 60.5,
+      "cooling_energy_kwh": 28,
+      "grid_import_energy_kwh": 88,
+      "water_litres": 11,
+      "carbon_kg_co2e": 5,
+      "operating_cost": 11,
+      "p95_latency_ms": 100,
+      "peak_temperature_c": 30,
+      "deadline_violated": false,
+      "thermal_limit_violated": false,
+      "protected_reserve_breached": false,
+      "grid_shortfall": false,
+      "service_evidence_id": "service-baseline-s2",
+      "facility_energy_evidence_id": "facility_energy-baseline-s2",
+      "it_energy_evidence_id": "it_energy-baseline-s2",
+      "cooling_energy_evidence_id": "cooling_energy-baseline-s2",
+      "grid_energy_evidence_id": "grid_energy-baseline-s2",
+      "water_evidence_id": "water-baseline-s2",
+      "carbon_evidence_id": "carbon-baseline-s2",
+      "cost_evidence_id": "cost-baseline-s2",
+      "thermal_evidence_id": "thermal-baseline-s2",
+      "storage_evidence_id": "storage-baseline-s2"
+    },
+    {
+      "strategy_id": "candidate",
+      "scenario_id": "s1",
+      "scenario_digest": "digest-s1",
+      "probability_weight": 0.5,
+      "offered_work_units": 100,
+      "accepted_useful_work_units": 100,
+      "on_time_useful_work_units": 100,
+      "facility_energy_kwh": 108,
+      "it_energy_kwh": 59.4,
+      "cooling_energy_kwh": 24,
+      "grid_import_energy_kwh": 86.4,
+      "water_litres": 10,
+      "carbon_kg_co2e": 4,
+      "operating_cost": 10.8,
+      "p95_latency_ms": 100,
+      "peak_temperature_c": 30,
+      "deadline_violated": false,
+      "thermal_limit_violated": false,
+      "protected_reserve_breached": false,
+      "grid_shortfall": false,
+      "service_evidence_id": "service-candidate-s1",
+      "facility_energy_evidence_id": "facility_energy-candidate-s1",
+      "it_energy_evidence_id": "it_energy-candidate-s1",
+      "cooling_energy_evidence_id": "cooling_energy-candidate-s1",
+      "grid_energy_evidence_id": "grid_energy-candidate-s1",
+      "water_evidence_id": "water-candidate-s1",
+      "carbon_evidence_id": "carbon-candidate-s1",
+      "cost_evidence_id": "cost-candidate-s1",
+      "thermal_evidence_id": "thermal-candidate-s1",
+      "storage_evidence_id": "storage-candidate-s1"
+    },
+    {
+      "strategy_id": "candidate",
+      "scenario_id": "s2",
+      "scenario_digest": "digest-s2",
+      "probability_weight": 0.5,
+      "offered_work_units": 100,
+      "accepted_useful_work_units": 90,
+      "on_time_useful_work_units": 90,
+      "facility_energy_kwh": 99,
+      "it_energy_kwh": 54.45,
+      "cooling_energy_kwh": 22,
+      "grid_import_energy_kwh": 79.2,
+      "water_litres": 9,
+      "carbon_kg_co2e": 4,
+      "operating_cost": 9.9,
+      "p95_latency_ms": 100,
+      "peak_temperature_c": 30,
+      "deadline_violated": false,
+      "thermal_limit_violated": false,
+      "protected_reserve_breached": false,
+      "grid_shortfall": false,
+      "service_evidence_id": "service-candidate-s2",
+      "facility_energy_evidence_id": "facility_energy-candidate-s2",
+      "it_energy_evidence_id": "it_energy-candidate-s2",
+      "cooling_energy_evidence_id": "cooling_energy-candidate-s2",
+      "grid_energy_evidence_id": "grid_energy-candidate-s2",
+      "water_evidence_id": "water-candidate-s2",
+      "carbon_evidence_id": "carbon-candidate-s2",
+      "cost_evidence_id": "cost-candidate-s2",
+      "thermal_evidence_id": "thermal-candidate-s2",
+      "storage_evidence_id": "storage-candidate-s2"
+    }
+  ],
+  "expected": {
+    "baseline": {
+      "expected_on_time_useful_work_units": 95,
+      "expected_facility_energy_kwh": 115,
+      "expected_it_energy_kwh": 63.25,
+      "expected_cooling_energy_kwh": 29,
+      "expected_grid_import_energy_kwh": 92,
+      "expected_water_litres": 11.5,
+      "expected_carbon_kg_co2e": 5.5,
+      "facility_kwh_per_on_time_useful_work_unit": 1.2105263157894737,
+      "facility_to_it_energy_ratio": 1.8181818181818181,
+      "expected_on_time_useful_work_fraction": 0.95,
+      "all_gates_pass": true
+    },
+    "candidate": {
+      "expected_on_time_useful_work_units": 95,
+      "expected_facility_energy_kwh": 103.5,
+      "expected_it_energy_kwh": 56.925,
+      "expected_cooling_energy_kwh": 23,
+      "expected_grid_import_energy_kwh": 82.8,
+      "expected_water_litres": 9.5,
+      "expected_carbon_kg_co2e": 4,
+      "facility_kwh_per_on_time_useful_work_unit": 1.0894736842105264,
+      "facility_to_it_energy_ratio": 1.8181818181818183,
+      "expected_on_time_useful_work_fraction": 0.95,
+      "all_gates_pass": true
+    },
+    "paired": {
+      "facility_energy_savings_fraction": 0.1,
+      "useful_work_delta": 0,
+      "on_time_useful_work_delta": 0,
+      "facility_to_it_ratio_unchanged": true
+    }
+  },
+  "hostile_controls": {
+    "lower_work_candidate": {
+      "offered_work_units": 100,
+      "accepted_useful_work_units": [
+        80,
+        70
+      ],
+      "on_time_useful_work_units": [
+        80,
+        70
+      ],
+      "facility_energy_kwh": [
+        80,
+        75
+      ],
+      "expected_on_time_fraction": 0.75,
+      "expected_service_gate": "FAIL"
+    },
+    "late_work_candidate": {
+      "accepted_useful_work_units": [
+        100,
+        90
+      ],
+      "on_time_useful_work_units": [
+        80,
+        90
+      ],
+      "deadline_violated": [
+        true,
+        false
+      ],
+      "deadline_gate": "FAIL"
+    },
+    "rare_constraint_failure": {
+      "thermal_limit_violated": [
+        false,
+        true
+      ],
+      "protected_reserve_breached": [
+        false,
+        true
+      ],
+      "grid_shortfall": [
+        false,
+        true
+      ],
+      "each_probability": 0.5,
+      "all_three_gates": "FAIL"
+    }
+  }
+}
