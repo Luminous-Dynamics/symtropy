@@ -1,0 +1,94 @@
+# WPT multi-coil inductance-matrix passivity validator v1
+
+**Status:** research software and synthetic known-truth fixtures. No physical WPT system has been qualified by this tool.
+
+## Why this gate exists
+
+For a declared real-valued linear inductive model, coil flux linkages are represented by
+
+\[
+\boldsymbol{\lambda}=\mathbf L\mathbf i
+\]
+
+and stored magnetic energy is
+
+\[
+W_m=\frac12\mathbf i^T\mathbf L\mathbf i.
+\]
+
+A reciprocal inductance matrix is symmetric under one consistent coil polarity convention. Passivity requires nonnegative stored energy for every current vector, so the matrix must be positive semidefinite (PSD). A pairwise coupling check
+
+\[
+|k_{ij}|=\frac{|L_{ij}|}{\sqrt{L_{ii}L_{jj}}}\le 1
+\]
+
+checks only each two-coil subproblem. It does **not** certify the complete matrix when three or more coils interact.
+
+Ansys documents inductance-matrix extraction by sequentially exciting conductors and calculating self/mutual coupling from the field solution. Its transient-solver documentation distinguishes apparent and incremental inductance in nonlinear magnetic systems. See:
+- [Ansys: Computing an Inductance Matrix](https://ansyshelp.ansys.com/public/Views/Secured/Electronics/v261/en/Subsystems/Maxwell/Content/Maxwell/ComputinganInductanceMatrix.htm)
+- [Ansys: Inductance Computation for 2D and 3D Transient Solutions](https://ansyshelp.ansys.com/public/Views/Secured/Electronics/v261/en/Subsystems/Maxwell/Content/Maxwell/InductanceComputationfor2Dand3DTransientSolutions.htm)
+
+The broader WPT context is multi-transmitter/multi-receiver operation with mutual-coupling and parasitic interactions. This validator is deliberately a small, auditable physics gate before circuit simulation, scheduling or control optimization.
+
+## Input contract
+
+One record represents one complete matrix at one declared operating point:
+- 2–32 stable, unique coil IDs in fixed order;
+- an explicit dot/polarity convention for every coil;
+- matrix kind: `SMALL_SIGNAL`, `DIFFERENTIAL` or `SECANT`;
+- frequency, temperature and one DC-bias current per coil;
+- square, finite, real matrix `matrix_h`, in henries;
+- same-shape, nonnegative `entrywise_absolute_bound_h` matrix;
+- declared absolute and relative numerical tolerances;
+- configuration/source references and artifact SHA-256 where evidence is measured or model-derived.
+
+The entrywise bounds are **deterministic absolute error bounds**, not standard deviations or confidence intervals. A probabilistic covariance model must not be relabelled as these bounds without a documented conservative conversion. The uncertainty bound used here is intentionally conservative.
+
+For differential matrices, temperature and DC bias are part of the operating point. A matrix from one bias/temperature point must not be reused as a global constant for a saturating magnetic system. A nonlinear or hysteretic trajectory requires a richer field/circuit model.
+
+## Evaluation
+
+1. Validate dimensions, finite values, positive self-inductances, identifiers and provenance fields.
+2. Check each reciprocal pair. Reject if the intervals cannot overlap within the declared numerical tolerance.
+3. Form the symmetric midpoint matrix while preserving the maximum observed raw asymmetry in the output. A reciprocal pair receives a conservative symmetric absolute error bound.
+4. Compute the smallest eigenvalue of the midpoint matrix with a deterministic cyclic Jacobi method.
+5. Compute a conservative matrix spectral-norm error bound using the Frobenius norm of the symmetric entrywise error-bound matrix. By Weyl's eigenvalue perturbation bound, the true smallest eigenvalue lies within this distance of the midpoint estimate.
+6. Classify:
+   - `PASSIVE_CERTIFIED`: the lower eigenvalue bound is no less than negative numerical tolerance;
+   - `NONPASSIVE_REJECTED`: the upper eigenvalue bound is below negative numerical tolerance;
+   - `UNRESOLVED`: the interval overlaps the decision boundary;
+   - `NONRECIPROCAL_REJECTED`: at least one reciprocal pair's error intervals do not overlap;
+   - `INVALID_INPUT`: structural or semantic input failure.
+
+`UNRESOLVED` is a valid outcome, not a validator crash and not a PASS. No diagonal jitter, eigenvalue clipping, automatic sign flip or silent matrix repair is performed.
+
+## CLI
+
+```sh
+cargo run --locked -p wpt-inductance-matrix-validator -- benchmarks/wpt-inductance-matrix/v1/known-truth.jsonl
+```
+
+The CLI emits one deterministic JSON result per non-empty JSONL record. If a record contains `expected_disposition`, the CLI checks it against the computed result and exits nonzero on a mismatch. A physical input without that fixture-only field is classified and reported; downstream qualification must require `PASSIVE_CERTIFIED` explicitly.
+
+## Known-truth corpus
+
+The frozen corpus includes:
+- positive-definite two-coil matrix;
+- singular positive-semidefinite three-coil matrix;
+- **pairwise-plausible but globally non-PSD** three-coil matrix (all pairwise |k| = 0.9 while one global eigenvalue is negative);
+- clear reciprocity violation;
+- reciprocity mismatch contained by the declared entrywise bounds;
+- a rank-deficient matrix whose uncertainty interval crosses the PSD boundary.
+
+The pairwise-plausible/global-invalid case is the key negative control. It prevents the weaker check from being mistaken for a physical realizability certificate.
+
+## Scope and claim ceiling
+
+V1 handles real-valued, reciprocal, passive inductance matrices at a single declared operating point. It does not qualify:
+- complex, frequency-dependent impedance matrices;
+- capacitance/conductance/resistance matrices;
+- radiation, eddy-current diffusion or dispersive memory effects as a full model;
+- nonlinear hysteresis or saturation over a trajectory;
+- source-data provenance, FEM mesh convergence, geometry correctness or hardware behaviour.
+
+A passing matrix is a necessary consistency condition for this model class, not proof that the underlying field solution or measurement is accurate. Independent reference metrology, field/circuit validation and cross-laboratory replication remain required.
