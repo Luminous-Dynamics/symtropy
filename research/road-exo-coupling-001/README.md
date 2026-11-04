@@ -143,3 +143,37 @@ The graph is currently bipartite: primitive finite exogenous variables feed one 
 - Zero duplicate/omitted variable values or zero-weight states admitted.
 - Zero receipt replay accepted against a different manifest or intervention.
 - Exact declaration-order-independent manifest digest and receipts.
+
+
+## Evidence provenance and ground-truth eligibility (ROAD-REALITY-GAP-001 #3635)
+
+The evidence_provenance module separates observed facts, controlled interventions, natural experiments, simulator/model outputs, formal references and human adjudications.
+
+### Typed evidence / claim pairs
+
+Every evidence packet binds:
+- origin class and claim class;
+- use role (fit, calibration, development validation, sealed test, safety challenge, illustrative only);
+- dataset/version, source system, actual action and action-realization status;
+- assignment protocol and measurement calibration;
+- identification package or human annotation protocol where applicable;
+- complete generator/source/parent lineage;
+- evidence content digest and separately computed metadata digest.
+
+Qualification receipts bind both the evidence content digest and a canonical digest of the complete metadata/lineage. A replay verifier recomputes the full eligibility decision from the packet and subject lineage.
+
+### Counterfactual boundary
+
+A factual observation only qualifies for the action that was actually observed. It cannot be used as outcome truth for an unexecuted alternate action. A controlled intervention can support an outcome under the assigned and executed action if the action, assignment protocol and measurement calibration match. A natural experiment only qualifies with an explicit estimand, assumptions digest, overlap evidence, sensitivity plan and preregistration reference.
+
+### Anti-self-validation and lineage
+
+A reference is model-dependent when it shares generator ancestry or upstream source/parent content with the evaluated system, even if its filename, vendor wrapper or random seed differs. Unknown lineage is Incomplete, not independent by default. Simulator-generated outcomes remain SimulationOnly as real-world anchors; model-generated outcomes remain ModelDependentReference.
+
+### Split leakage
+
+The SplitManifest groups by scenario family, drive, capture session and upstream parent digests. A group crossing fit/calibration/development/sealed/safety splits is rejected. Its canonical digest is declaration-order independent and can be pinned for sealed evaluation; mutation invalidates the frozen digest.
+
+### V0.1 limits
+
+This is an evidence-provenance and eligibility contract, not a causal-inference engine or an empirical validation study. The presence of a natural-experiment identification package does not prove its assumptions; it records what must be reviewed. It does not verify sensor calibration certificates, privacy permissions, dataset licences, or empirical ODD coverage. Those need independent validation and evidence-specific reviewers.
