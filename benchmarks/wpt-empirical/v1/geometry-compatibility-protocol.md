@@ -124,3 +124,13 @@ A qualified compatibility envelope must reference:
 ## 9. Safety / implementation boundary
 
 The current artifacts define source ingestion, schema, evaluator and protocol only. They do not authorize new coil construction, energized 22 kW testing, physical exposure testing, roadway installation or certification. Future physical work requires appropriately rated laboratory facilities, approved risk assessments and independent safety review.
+
+## 10. Pointwise qualified-region accounting
+
+A QUALIFIED geometry envelope must state the metric scope, evaluated point count, qualified point count, fraction of the sampled domain that passes, number of connected qualified components, confidence level, lower confidence bound, pointwise classification digest and exact analysis digest. The evaluated point count must equal the sampling manifest's count. The pass fraction must equal qualified/evaluated count within numeric tolerance.
+
+Each declared criterion is a hard gate with metric family, quantity, unit, threshold operator, lower/upper threshold, observed value, outcome and evidence digest. Every criterion must PASS for a QUALIFIED envelope. COUPLING_ONLY requires at least a coupling criterion; POWER_TRANSFER additionally requires output power and regulation; EFFICIENCY additionally requires efficiency; THERMAL and SAFETY require their corresponding hard gates; SYSTEM_INTEROPERABILITY requires coupling, output power, regulation, efficiency, thermal, safety, component stress and EMC criteria.
+
+The connected-region map is not reducible to the bounding box or convex hull. Preserve disconnected components and point labels. A 95% lower confidence bound must state the uncertainty procedure and be no greater than the observed qualified fraction. Instrument uncertainty and spatial-sampling uncertainty are separate contributors.
+
+A QUALIFIED physical record must include a numerical expanded uncertainty, coverage factor and coverage probability; a boolean assertion that uncertainty exists is insufficient. The indexed 2026 Koch abstract lacks these fields, so its record stays SOURCE_CLAIM_ONLY.
