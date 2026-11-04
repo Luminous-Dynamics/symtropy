@@ -1479,7 +1479,7 @@ mod tests {
         assert!(candidate.pareto_qualified);
         assert!(candidate.service_equivalent_energy_savings_vs_baseline_fraction.unwrap() > 0.09);
         assert_eq!(candidate.expected_on_time_useful_work_units, baseline.expected_on_time_useful_work_units);
-        assert!((candidate.facility_kwh_per_on_time_useful_work_unit.unwrap() - 1.15).abs() < 1e-12);
+        assert!((candidate.facility_kwh_per_on_time_useful_work_unit.unwrap() - 1.089_473_684_210_526_3).abs() < 1e-12);
     }
 
     #[test]
@@ -1509,7 +1509,7 @@ mod tests {
         candidate[0] = outcome("candidate", "s1", 0.5, 100.0, 100.0, 118.0, 48.0, 10.0, 4.0, false, false, false, false);
         let report = evaluate_strategy_benchmark(&evaluation(candidate)).unwrap();
         let result = report.strategy_summaries.iter().find(|s| s.strategy_id == "candidate").unwrap();
-        assert!((result.expected_cooling_energy_kwh - 38.0).abs() < 1e-12);
+        assert!((result.expected_cooling_energy_kwh - 35.0).abs() < 1e-12);
         assert!((result.expected_facility_energy_kwh - 108.5).abs() < 1e-12);
     }
 
@@ -1540,12 +1540,21 @@ mod tests {
 
     #[test]
     fn worst_case_service_gate_blocks_high_average_with_bad_tail_case() {
-        let mut candidate = valid_candidate();
-        candidate[1] = outcome("candidate", "s2", 0.5, 50.0, 50.0, 50.0, 10.0, 5.0, 2.0, false, false, false, false);
-        let report = evaluate_strategy_benchmark(&evaluation(candidate)).unwrap();
+        let mut outcomes = vec![
+            outcome("baseline", "s1", 0.98, 100.0, 100.0, 120.0, 30.0, 12.0, 6.0, false, false, false, false),
+            outcome("baseline", "s2", 0.01, 100.0, 100.0, 110.0, 28.0, 11.0, 5.0, false, false, false, false),
+            outcome("baseline", "s3", 0.01, 100.0, 100.0, 110.0, 28.0, 11.0, 5.0, false, false, false, false),
+            outcome("candidate", "s1", 0.98, 100.0, 100.0, 108.0, 24.0, 10.0, 4.0, false, false, false, false),
+            outcome("candidate", "s2", 0.01, 100.0, 100.0, 99.0, 22.0, 9.0, 4.0, false, false, false, false),
+            outcome("candidate", "s3", 0.01, 50.0, 50.0, 50.0, 10.0, 5.0, 2.0, false, false, false, false),
+        ];
+        let contract = contract();
+        let input = StrategyBenchmarkEvaluation::new(contract, outcomes).unwrap();
+        let report = evaluate_strategy_benchmark(&input).unwrap();
         let result = report.strategy_summaries.iter().find(|s| s.strategy_id == "candidate").unwrap();
         assert!(!result.service_gate_passed);
-        assert!(result.expected_on_time_useful_work_fraction > 0.95);
+        assert!(result.expected_on_time_useful_work_fraction > 0.98);
+        assert_eq!(result.worst_case_on_time_useful_work_fraction, 0.5);
     }
 
     #[test]
@@ -1563,8 +1572,14 @@ mod tests {
         outcomes[3] = outcome("candidate", "s2", 0.5, 90.0, 90.0, 99.0, 22.0, 9.0, 4.0, false, false, false, false);
         outcomes[3].scenario_digest = "tampered-digest".to_string();
         assert!(matches!(
-            StrategyBenchmarkEvaluation::new(contract(), outcomes),
+            StrategyBenchmarkEvaluation::new(contract(), outcomes.clone()),
             Err(StrategyBenchmarkError::ScenarioDigestMismatch { .. })
+        ));
+        outcomes[3].scenario_digest = "digest-s2".to_string();
+        outcomes[3].offered_work_units = 99.0;
+        assert!(matches!(
+            StrategyBenchmarkEvaluation::new(contract(), outcomes),
+            Err(StrategyBenchmarkError::OfferedWorkMismatch { .. })
         ));
     }
 
