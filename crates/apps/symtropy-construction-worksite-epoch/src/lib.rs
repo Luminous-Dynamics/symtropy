@@ -389,6 +389,15 @@ mod tests {
         }
     }
 
+    fn qualify(
+        model: &mut Model,
+        epoch_digest: &str,
+        config: &str,
+    ) -> Result<(), GuardError> {
+        let proof = proof(model, epoch_digest, config);
+        model.requalify(proof, true)
+    }
+
     #[test]
     fn genesis_epoch_requires_explicit_requalification() {
         let mut m = model();
@@ -396,7 +405,7 @@ mod tests {
             .expect("accept genesis");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
-        m.requalify(proof(&m, B, A), true).expect("requalify");
+        qualify(&mut m, B, A).expect("requalify");
         assert_eq!(m.authorize(&command(B, A)), Ok(()));
     }
 
@@ -404,13 +413,13 @@ mod tests {
     fn new_epoch_invalidates_old_authorization_before_next_command() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(&m, B, A), true).expect("qualify");
+        qualify(&mut m, B, A).expect("qualify");
         m.accept_epoch(epoch(2, C, Some(B)), true)
             .expect("revision 2");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
         assert!(m.authorize(&command(C, A)).is_err());
-        m.requalify(proof(&m, C, A), true).expect("requalify latest");
+        qualify(&mut m, C, A).expect("requalify latest");
         assert_eq!(m.authorize(&command(C, A)), Ok(()));
     }
 
@@ -435,13 +444,13 @@ mod tests {
     fn comms_recovery_and_operator_ack_do_not_restore_authority() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(&m, B, A), true).expect("qualify");
+        qualify(&mut m, B, A).expect("qualify");
         m.communications_lost();
         m.communications_restored();
         m.operator_acknowledged();
         assert_eq!(*m.state(), State::SafeHold("communications_lost"));
         assert!(m.authorize(&command(B, A)).is_err());
-        m.requalify(proof(&m, B, A), true).expect("explicit requalify");
+        qualify(&mut m, B, A).expect("explicit requalify");
         assert_eq!(*m.state(), State::Active);
     }
 
@@ -449,13 +458,13 @@ mod tests {
     fn configuration_change_requires_requalification() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(&m, B, A), true).expect("qualify");
+        qualify(&mut m, B, A).expect("qualify");
         m.configuration_changed(C.to_owned())
             .expect("config change");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
-        assert!(m.requalify(proof(&m, B, A), true).is_err());
-        m.requalify(proof(&m, B, C), true).expect("requalify config");
+        assert!(qualify(&mut m, B, A).is_err());
+        qualify(&mut m, B, C).expect("requalify config");
         assert_eq!(m.authorize(&command(B, C)), Ok(()));
     }
 
@@ -475,7 +484,7 @@ mod tests {
     fn stale_context_and_clock_uncertainty_block_commands() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(&m, B, A), true).expect("qualify");
+        qualify(&mut m, B, A).expect("qualify");
         let mut stale = command(B, A);
         stale.context_age_ns = 101;
         assert!(m.authorize(&stale).is_err());
@@ -495,7 +504,7 @@ mod tests {
             m.requalify(old_proof, true),
             Err(GuardError::StaleRevalidationProof)
         );
-        m.requalify(proof(&m, B, A), true).expect("fresh revalidation");
+        qualify(&mut m, B, A).expect("fresh revalidation");
         assert_eq!(*m.state(), State::Active);
     }
 
@@ -503,7 +512,7 @@ mod tests {
     fn unauthenticated_epoch_update_invalidates_old_requalification_proof() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(&m, B, A), true).expect("qualify");
+        qualify(&mut m, B, A).expect("qualify");
         let old_proof = proof(&m, B, A);
         assert_eq!(
             m.accept_epoch(epoch(2, C, Some(B)), false),
@@ -514,7 +523,7 @@ mod tests {
             Err(GuardError::StaleRevalidationProof)
         );
         m.accept_epoch(epoch(2, C, Some(B)), true).expect("authenticated current epoch");
-        m.requalify(proof(&m, C, A), true).expect("fresh current-context proof");
+        qualify(&mut m, C, A).expect("fresh current-context proof");
         assert_eq!(*m.state(), State::Active);
     }
 
@@ -543,7 +552,7 @@ mod tests {
         m.abort("fixture_abort");
         assert_eq!(*m.state(), State::Aborted("fixture_abort"));
         assert_eq!(
-            m.requalify(proof(&m, B, A), true),
+            qualify(&mut m, B, A),
             Err(GuardError::RequalificationNotPermitted)
         );
     }
