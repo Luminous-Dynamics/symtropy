@@ -949,6 +949,399 @@ pub struct InformationGainEstimate {
     pub upper_95_nats: f64,
 }
 
+const MAX_MULTIVARIATE_OUTCOMES: usize = 64;
+const COVARIANCE_SYMMETRY_TOLERANCE: f64 = 1.0e-10;
+
+#[derive(Debug, Clone)]
+struct PreparedMultivariateDistribution {
+    distribution: MultivariateOutcomeDistribution,
+    cholesky: Vec<Vec<f64>>,
+    log_determinant: f64,
+}
+
+fn multivariate_error(model_id: &str, reason: &'static str) -> BenchError {
+    BenchError::InvalidMultivariateDistribution {
+        model_id: model_id.to_string(),
+        reason,
+    }
+}
+
+fn prepare_multivariate_distribution(
+    distribution: &MultivariateOutcomeDistribution,
+) -> Result<PreparedMultivariateDistribution, BenchError> {
+    non_empty(&distribution.model_family_id, "model_family_id")?;
+    let dimension = distribution.mean.len();
+    if dimension == 0 || dimension > MAX_MULTIVARIATE_OUTCOMES {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "outcome dimension is empty or exceeds the configured limit",
+        ));
+    }
+    if distribution.metric_ids.len() != dimension || distribution.unit_ids.len() != dimension {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "metric, unit and mean dimensions differ",
+        ));
+    }
+    if distribution.metric_ids.iter().any(|value| value.trim().is_empty())
+        || distribution.unit_ids.iter().any(|value| value.trim().is_empty())
+    {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "metric and unit identifiers must be non-empty",
+        ));
+    }
+    if distribution.mean.iter().any(|value| !value.is_finite()) {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "mean vector contains a non-finite value",
+        ));
+    }
+    if distribution.covariance.len() != dimension
+        || distribution
+            .covariance
+            .iter()
+            .any(|row| row.len() != dimension || row.iter().any(|value| !value.is_finite()))
+    {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "covariance matrix is non-finite or not square with the mean dimension",
+        ));
+    }
+
+    for row in 0..dimension {
+        for column in 0..dimension {
+            let left = distribution.covariance[row][column];
+            let right = distribution.covariance[column][row];
+            let scale = 1.0_f64.max(left.abs()).max(right.abs());
+            if (left - right).abs() > COVARIANCE_SYMMETRY_TOLERANCE * scale {
+                return Err(multivariate_error(
+                    &distribution.model_family_id,
+                    "covariance matrix is not symmetric within tolerance",
+                ));
+            }
+        }
+    }
+
+    let mut lower = vec![vec![0.0_f64; dimension]; dimension];
+    let mut log_determinant = 0.0_f64;
+    for row in 0..dimension {
+        for column in 0..=row {
+            let mut residual = distribution.covariance[row][column];
+            for inner in 0..column {
+                residual -= lower[row][inner] * lower[column][inner];
+            }
+            if row == column {
+                if !residual.is_finite() || residual <= 0.0 {
+                    return Err(multivariate_error(
+                        &distribution.model_family_id,
+                        "covariance matrix is not strictly positive definite",
+                    ));
+                }
+                lower[row][column] = residual.sqrt();
+                log_determinant += 2.0 * lower[row][column].ln();
+            } else {
+                lower[row][column] = residual / lower[column][column];
+            }
+        }
+    }
+    if !log_determinant.is_finite() {
+        return Err(multivariate_error(
+            &distribution.model_family_id,
+            "covariance log determinant is non-finite",
+        ));
+    }
+
+    Ok(PreparedMultivariateDistribution {
+        distribution: distribution.clone(),
+        cholesky: lower,
+        log_determinant,
+    })
+}
+
+fn multivariate_gaussian_log_density(
+    outcome: &[f64],
+    prepared: &PreparedMultivariateDistribution,
+) -> Option<f64> {
+    let dimension = prepared.distribution.mean.len();
+    if outcome.len() != dimension {
+        return None;
+    }
+    let mut whitened = vec![0.0_f64; dimension];
+    for row in 0..dimension {
+        let mut residual = outcome[row] - prepared.distribution.mean[row];
+        for column in 0..row {
+            residual -= prepared.cholesky[row][column] * whitened[column];
+        }
+        whitened[row] = residual / prepared.cholesky[row][row];
+    }
+    let quadratic = whitened.iter().map(|value| value * value).sum::<f64>();
+    let result = -0.5
+        * (dimension as f64 * std::f64::consts::TAU.ln()
+            + prepared.log_determinant
+            + quadratic);
+    result.is_finite().then_some(result)
+}
+
+fn sample_multivariate_gaussian(
+    prepared: &PreparedMultivariateDistribution,
+    rng: &mut SplitMix64,
+) -> Option<Vec<f64>> {
+    let dimension = prepared.distribution.mean.len();
+    let standard_normal = (0..dimension)
+        .map(|_| rng.standard_normal())
+        .collect::<Vec<_>>();
+    let mut sample = vec![0.0_f64; dimension];
+    for row in 0..dimension {
+        let mut value = prepared.distribution.mean[row];
+        for column in 0..=row {
+            value += prepared.cholesky[row][column] * standard_normal[column];
+        }
+        if !value.is_finite() {
+            return None;
+        }
+        sample[row] = value;
+    }
+    Some(sample)
+}
+
+fn same_multivariate_distribution(
+    left: &PreparedMultivariateDistribution,
+    right: &PreparedMultivariateDistribution,
+) -> bool {
+    left.distribution.metric_ids == right.distribution.metric_ids
+        && left.distribution.unit_ids == right.distribution.unit_ids
+        && left.distribution.mean == right.distribution.mean
+        && left.distribution.covariance == right.distribution.covariance
+}
+
+/// Estimate I(Model; Y | intervention) for correlated vector outcomes and
+/// explicit model priors, with stratified Monte Carlo uncertainty.
+///
+/// The full covariance matrix is used in sampling and likelihood evaluation.
+/// The interval estimates Monte Carlo integration error conditional on the
+/// supplied Gaussian predictions and priors; it does not include parameter,
+/// individual/session, observation, numerical or model-misspecification error.
+pub fn estimate_multivariate_expected_information_gain(
+    predictions: &[MultivariateOutcomeDistribution],
+    priors: &[ModelFamilyPrior],
+    samples_per_model: usize,
+    seed: u64,
+) -> Result<InformationGainEstimate, BenchError> {
+    if !(100..=MAX_MONTE_CARLO_SAMPLES_PER_MODEL).contains(&samples_per_model) {
+        return Err(BenchError::InvalidMonteCarloSamples);
+    }
+    if predictions.len() < 2 {
+        return Err(BenchError::TooFewModelFamilies);
+    }
+    if priors.len() != predictions.len() {
+        return Err(BenchError::ModelPriorSetMismatch);
+    }
+
+    let mut ordered = predictions
+        .iter()
+        .map(prepare_multivariate_distribution)
+        .collect::<Result<Vec<_>, _>>()?;
+    ordered.sort_by(|left, right| {
+        left.distribution
+            .model_family_id
+            .cmp(&right.distribution.model_family_id)
+    });
+
+    let first = &ordered[0].distribution;
+    let mut model_ids = BTreeSet::new();
+    for prepared in &ordered {
+        if !model_ids.insert(prepared.distribution.model_family_id.as_str())
+            || prepared.distribution.metric_ids != first.metric_ids
+            || prepared.distribution.unit_ids != first.unit_ids
+        {
+            return Err(multivariate_error(
+                &prepared.distribution.model_family_id,
+                "model identities must be unique and outcome schema/order must match",
+            ));
+        }
+    }
+
+    let mut prior_map = BTreeMap::new();
+    for prior in priors {
+        non_empty(&prior.model_family_id, "model_family_id")?;
+        if !prior.probability.is_finite()
+            || prior.probability < 0.0
+            || prior_map
+                .insert(prior.model_family_id.as_str(), prior.probability)
+                .is_some()
+        {
+            return Err(BenchError::InvalidModelPriors);
+        }
+    }
+    if prior_map.len() != model_ids.len()
+        || model_ids
+            .iter()
+            .any(|model_id| !prior_map.contains_key(model_id))
+    {
+        return Err(BenchError::ModelPriorSetMismatch);
+    }
+    let prior_sum = prior_map.values().sum::<f64>();
+    if !prior_sum.is_finite() || (prior_sum - 1.0).abs() > 1.0e-10 {
+        return Err(BenchError::InvalidModelPriors);
+    }
+
+    let probabilities = ordered
+        .iter()
+        .map(|prepared| prior_map[prepared.distribution.model_family_id.as_str()])
+        .collect::<Vec<_>>();
+    let positive_prior_count = probabilities
+        .iter()
+        .filter(|probability| **probability > 0.0)
+        .count();
+    if positive_prior_count == 0 {
+        return Err(BenchError::InvalidModelPriors);
+    }
+
+    let maximum_information = probabilities
+        .iter()
+        .filter(|probability| **probability > 0.0)
+        .map(|probability| -probability * probability.ln())
+        .sum::<f64>();
+    if !maximum_information.is_finite() {
+        return Err(BenchError::InvalidModelPriors);
+    }
+    if positive_prior_count == 1
+        || ordered
+            .iter()
+            .skip(1)
+            .all(|candidate| same_multivariate_distribution(&ordered[0], candidate))
+    {
+        return Ok(InformationGainEstimate {
+            mean_nats: 0.0,
+            standard_error_nats: 0.0,
+            lower_95_nats: 0.0,
+            upper_95_nats: 0.0,
+        });
+    }
+
+    let log_priors = probabilities
+        .iter()
+        .map(|probability| {
+            if *probability > 0.0 {
+                probability.ln()
+            } else {
+                f64::NEG_INFINITY
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut rng = SplitMix64(seed);
+    let mut weighted_mean = 0.0_f64;
+    let mut variance_of_mean = 0.0_f64;
+
+    for (origin_index, origin) in ordered.iter().enumerate() {
+        let origin_probability = probabilities[origin_index];
+        if origin_probability == 0.0 {
+            continue;
+        }
+
+        let mut count = 0_usize;
+        let mut stratum_mean = 0.0_f64;
+        let mut m2 = 0.0_f64;
+        for _ in 0..samples_per_model {
+            let outcome = sample_multivariate_gaussian(origin, &mut rng).ok_or_else(|| {
+                multivariate_error(
+                    &origin.distribution.model_family_id,
+                    "multivariate sample is non-finite",
+                )
+            })?;
+            let log_joint = ordered
+                .iter()
+                .zip(log_priors.iter())
+                .map(|(model, log_prior)| {
+                    multivariate_gaussian_log_density(&outcome, model)
+                        .map(|log_density| log_density + log_prior)
+                })
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| {
+                    multivariate_error(
+                        &origin.distribution.model_family_id,
+                        "joint predictive log density is non-finite",
+                    )
+                })?;
+            let log_marginal = log_sum_exp(&log_joint);
+            let contribution = log_joint[origin_index] - log_marginal;
+            if !contribution.is_finite() {
+                return Err(multivariate_error(
+                    &origin.distribution.model_family_id,
+                    "model information contribution is non-finite",
+                ));
+            }
+
+            count += 1;
+            let delta = contribution - stratum_mean;
+            stratum_mean += delta / count as f64;
+            m2 += delta * (contribution - stratum_mean);
+        }
+
+        let sample_variance = if count > 1 {
+            m2 / (count - 1) as f64
+        } else {
+            0.0
+        };
+        if !stratum_mean.is_finite()
+            || !sample_variance.is_finite()
+            || sample_variance < 0.0
+        {
+            return Err(multivariate_error(
+                &origin.distribution.model_family_id,
+                "Monte Carlo stratum statistics are invalid",
+            ));
+        }
+        weighted_mean += origin_probability * stratum_mean;
+        variance_of_mean += origin_probability * origin_probability
+            * sample_variance
+            / count as f64;
+    }
+
+    let standard_error = variance_of_mean.sqrt();
+    if !weighted_mean.is_finite()
+        || !variance_of_mean.is_finite()
+        || !standard_error.is_finite()
+    {
+        return Err(BenchError::InvalidModelPriors);
+    }
+    const Z_975: f64 = 1.959_963_984_540_054;
+    Ok(InformationGainEstimate {
+        mean_nats: weighted_mean.clamp(0.0, maximum_information),
+        standard_error_nats: standard_error,
+        lower_95_nats: (weighted_mean - Z_975 * standard_error)
+            .clamp(0.0, maximum_information),
+        upper_95_nats: (weighted_mean + Z_975 * standard_error)
+            .clamp(0.0, maximum_information),
+    })
+}
+
+/// Equal-prior convenience wrapper for multivariate Gaussian predictions.
+pub fn estimate_multivariate_expected_information_gain_equal_priors(
+    predictions: &[MultivariateOutcomeDistribution],
+    samples_per_model: usize,
+    seed: u64,
+) -> Result<InformationGainEstimate, BenchError> {
+    if predictions.is_empty() {
+        return Err(BenchError::TooFewModelFamilies);
+    }
+    let probability = 1.0 / predictions.len() as f64;
+    let priors = predictions
+        .iter()
+        .map(|prediction| ModelFamilyPrior {
+            model_family_id: prediction.model_family_id.clone(),
+            probability,
+        })
+        .collect::<Vec<_>>();
+    estimate_multivariate_expected_information_gain(
+        predictions,
+        &priors,
+        samples_per_model,
+        seed,
+    )
+}
+
 fn log_sum_exp(values: &[f64]) -> f64 {
     let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     maximum
