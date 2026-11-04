@@ -1,0 +1,106 @@
+name: CivDyn collective-risk reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-collective-risk/**"
+      - ".github/workflows/civdyn-collective-risk.yml"
+  push:
+    paths:
+      - "research/civdyn-collective-risk/**"
+      - ".github/workflows/civdyn-collective-risk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute collective-risk benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-collective-risk/Cargo.toml --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check all targets with locked dependencies
+        run: cargo check --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --all-targets
+
+      - name: Run all tests with locked dependencies
+        run: cargo test --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --all-targets
+
+      - name: Execute the source-aligned risk and best-response sweep
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/civdyn-crg-evidence
+          cargo run --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --bin collective-risk-sweep \
+            | tee target/civdyn-crg-evidence/collective-risk-sweep.csv
+
+      - name: Verify sweep schema and analytical controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("target/civdyn-crg-evidence/collective-risk-sweep.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              rows = list(csv.DictReader(handle))
+
+          assert len(rows) == 92, f"expected 92 data rows, got {len(rows)}"
+          assert all(len(row) == 16 for row in rows), "all records must retain the 16-column contract"
+
+          self_play = {(row["risk"], row["policy"]): row for row in rows if row["record_type"] == "self_play"}
+          assert self_play[("0.000000", "risk_pivot")]["total_contribution"] == "0"
+          assert self_play[("0.000000", "fixed_fair_share")]["total_contribution"] == "120"
+          assert self_play[("0.900000", "risk_pivot")]["total_contribution"] == "120"
+          assert self_play[("0.900000", "fixed_maximum")]["total_contribution"] == "240"
+
+          analytical = {row["risk"]: row for row in rows if row["record_type"] == "analytical_optimum"}
+          assert analytical["0.100000"]["policy"] == "no_contribution"
+          assert analytical["0.500000"]["policy"] == "no_contribution|reach_target"
+          assert analytical["0.900000"]["policy"] == "reach_target"
+
+          best = {
+              (row["risk"], row["partner_policy"]): row
+              for row in rows
+              if row["record_type"] == "best_response"
+          }
+          assert best[("0.900000", "always_zero")]["total_contribution"] == "0"
+          assert best[("0.900000", "fixed_fair_share")]["total_contribution"] == "120"
+          assert best[("0.900000", "fixed_fair_share")]["focal_contribution"] == "20"
+          assert best[("0.900000", "fixed_maximum")]["total_contribution"] == "200"
+          assert best[("0.900000", "fixed_maximum")]["focal_contribution"] == "0"
+          assert best[("0.900000", "last_round_defection")]["total_contribution"] == "120"
+          assert best[("0.900000", "last_round_defection")]["focal_contribution"] == "30"
+
+          print("CIVDYN-CRG-001 output schema, risk pivot, over-contribution and exact best-response controls verified.")
+          PY
+
+          {
+            echo "## CIVDYN-CRG-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Output SHA-256: $(sha256sum target/civdyn-crg-evidence/collective-risk-sweep.csv | cut -d' ' -f1)"
+            echo "- Records: $(($(wc -l < target/civdyn-crg-evidence/collective-risk-sweep.csv) - 1))"
+            echo "- Analytical pivot and best-response negative controls: verified"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload collective-risk run evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-collective-risk-sweep
+          path: target/civdyn-crg-evidence/collective-risk-sweep.csv
+          if-no-files-found: error
+          retention-days: 30
