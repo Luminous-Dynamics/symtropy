@@ -788,6 +788,39 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn independent_python_oracle_replays_receipt_and_detects_tampering() {
+        let root = temp_root("oracle");
+        let fields = fixture_fields(&root, true);
+        let csv = make_csv(fields);
+        let receipt_path = root.join("receipt.csv");
+        fs::write(&receipt_path, &csv).expect("write fixture receipt");
+        let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("scripts/verify-bocode-trial-receipt-independent.py");
+        let output = std::process::Command::new("python3")
+            .arg(&script)
+            .arg(&receipt_path)
+            .arg(&root)
+            .output()
+            .expect("run independent trial receipt oracle");
+        assert!(
+            output.status.success(),
+            "independent receipt oracle failed: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        fs::write(root.join("stdout.bin"), b"tampered").unwrap();
+        let rejected = std::process::Command::new("python3")
+            .arg(&script)
+            .arg(&receipt_path)
+            .arg(&root)
+            .output()
+            .expect("run receipt tampering negative control");
+        assert!(!rejected.status.success());
+        fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn rejects_receipt_artifact_path_traversal() {
         let root = temp_root("path");
