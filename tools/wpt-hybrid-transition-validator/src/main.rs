@@ -2,7 +2,7 @@
 use std::collections::HashSet;
 use std::env;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{BufRead, BufReader};
 use std::process::ExitCode;
 
 use serde_json::Value;
@@ -42,15 +42,11 @@ fn run() -> Result<(), String> {
             .get("disposition")
             .and_then(Value::as_str)
             .unwrap_or("INVALID_REPORT");
-        let expected = record
-            .get("expected_disposition")
-            .and_then(Value::as_str);
+        let expected = record.get("expected_disposition").and_then(Value::as_str);
 
         if let Some(expected) = expected {
             if expected != actual {
-                eprintln!(
-                    "line {line_number} ({event_id}): expected {expected}, got {actual}"
-                );
+                eprintln!("line {line_number} ({event_id}): expected {expected}, got {actual}");
                 mismatches += 1;
             }
         }
@@ -63,7 +59,9 @@ fn run() -> Result<(), String> {
         return Err("input contains no JSONL records".to_owned());
     }
     if mismatches > 0 {
-        return Err(format!("{mismatches} known-truth or identity checks failed"));
+        return Err(format!(
+            "{mismatches} known-truth or identity checks failed"
+        ));
     }
 
     eprintln!("validated {records} hybrid transition records");
