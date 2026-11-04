@@ -818,12 +818,12 @@ pub fn evaluate(
         .iter()
         .filter(|value| value.is_some())
         .count();
-    let timely_event_ids: BTreeSet<&str> = matches
+    let timely_event_ids: BTreeSet<String> = matches
         .iter()
         .filter(|record| record.kind == MatchKind::Timely)
         .map(|record| record.event_id.clone())
         .collect();
-    let late_event_ids: BTreeSet<&str> = matches
+    let late_event_ids: BTreeSet<String> = matches
         .iter()
         .filter(|record| record.kind == MatchKind::Late)
         .map(|record| record.event_id.as_str())
