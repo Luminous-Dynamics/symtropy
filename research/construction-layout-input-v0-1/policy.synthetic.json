@@ -17,21 +17,39 @@
   "coordinate_epoch_required": true,
   "coordinate_epoch": "2026.75",
   "units": "millimetres",
-  "axis_order": ["x", "y", "z"],
+  "axis_order": [
+    "x",
+    "y",
+    "z"
+  ],
   "handedness": "right_handed",
   "transform_bundle_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "transform_resource_sha256s": [
     "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   ],
   "discipline_revisions": [
-    {"discipline_id": "architecture", "revision": "A-17"},
-    {"discipline_id": "electrical", "revision": "E-04"},
-    {"discipline_id": "mechanical", "revision": "M-08"}
+    {
+      "discipline_id": "architecture",
+      "revision": "A-17"
+    },
+    {
+      "discipline_id": "electrical",
+      "revision": "E-04"
+    },
+    {
+      "discipline_id": "mechanical",
+      "revision": "M-08"
+    }
   ],
-  "critical_feature_ids": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "critical_feature_ids": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003"
+  ],
   "minimum_check_points": 3,
   "maximum_check_points": 32,
-  "minimum_spread_area_m2": 10.0,
-  "decision_margin_mm": 1.0,
-  "maximum_u95_to_margin_ratio": 0.3333333333
+  "minimum_spread_area_m2": 10,
+  "decision_margin_mm": 1,
+  "maximum_u95_to_margin_ratio": 0.3333333333,
+  "source_model_id": "bim-level-02"
 }
