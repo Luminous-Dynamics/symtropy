@@ -754,6 +754,20 @@ mod tests {
             ])
         );
         assert_eq!(
+            required(&["properties", "evidence", "required"]),
+            as_set(&[
+                "kind",
+                "method",
+                "source_doi",
+                "source_locator",
+                "uncertainty_reported",
+                "uncertainty_method",
+                "expanded_uncertainty_percent",
+                "coverage_factor",
+                "coverage_probability_percent",
+            ])
+        );
+        assert_eq!(
             required(&["properties", "qualified_region", "required"]),
             as_set(&[
                 "metric_scope",
