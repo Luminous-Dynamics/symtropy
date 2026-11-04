@@ -866,13 +866,12 @@ mod tests {
         retry["started_at_unix_ms"] = Value::from(1_600_000_u64);
         retry["ended_at_unix_ms"] = Value::from(1_650_000_u64);
         retry["output_artifact_digest"] = Value::String(
-            "5555555555555555555555555555555555555555555555555555555555555555".to_owned()
+            "5555555555555555555555555555555555555555555555555555555555555555".to_owned(),
         );
         retry["inspection"]["outcome"] = Value::String("accepted".to_owned());
         retry["inspection"]["acceptance_authority_ref"] =
             Value::String("synthetic-authority".to_owned());
-        retry["inspection"]["method_ref"] =
-            Value::String("synthetic-survey-method".to_owned());
+        retry["inspection"]["method_ref"] = Value::String("synthetic-survey-method".to_owned());
         retry["inspection"]["evidence_refs"] = json!(["synthetic-inspection-p3-retry"]);
         ledger["work_units"][2]["attempts"]
             .as_array_mut()
@@ -882,13 +881,18 @@ mod tests {
 
         let report = derive_report(&ledger);
         assert_eq!(report["derived_counts"]["critical_inspected_units"], 3);
-        assert_eq!(report["derived_counts"]["critical_first_pass_inspected_units"], 2);
+        assert_eq!(
+            report["derived_counts"]["critical_first_pass_inspected_units"],
+            2
+        );
 
         let metrics = report["metrics"].as_array().unwrap();
-        let all_inspection = metrics.iter()
+        let all_inspection = metrics
+            .iter()
             .find(|metric| metric["metric_id"] == "critical_feature_inspection_coverage")
             .unwrap();
-        let first_pass = metrics.iter()
+        let first_pass = metrics
+            .iter()
             .find(|metric| metric["metric_id"] == "critical_first_pass_inspection_coverage")
             .unwrap();
         assert_eq!(all_inspection["numerator"], 3);
@@ -941,7 +945,11 @@ mod tests {
     fn incomplete_work_package_metrics_are_provisional() {
         let report = derive_report(&load("fixtures/layout-run.synthetic.json"));
         let metrics = report["metrics"].as_array().unwrap();
-        assert!(metrics.iter().all(|metric| metric["status"] == "provisional"));
+        assert!(
+            metrics
+                .iter()
+                .all(|metric| metric["status"] == "provisional")
+        );
     }
 
     #[test]
@@ -949,7 +957,11 @@ mod tests {
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         ledger["work_units"][1]["attempts"][1]["started_at_unix_ms"] = Value::from(1190000_u64);
         let errors = validate_ledger(&ledger_schema(), &ledger);
-        assert!(errors.iter().any(|error| error.starts_with("attempt_intervals_not_sequential:")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("attempt_intervals_not_sequential:"))
+        );
     }
 
     #[test]
@@ -957,7 +969,11 @@ mod tests {
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         ledger["time_entries"][0]["clock_domain_id"] = Value::String("other-clock".to_owned());
         let errors = validate_ledger(&ledger_schema(), &ledger);
-        assert!(errors.iter().any(|error| error.starts_with("time_entry_clock_domain_mismatch:")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("time_entry_clock_domain_mismatch:"))
+        );
     }
 
     #[test]
