@@ -156,10 +156,19 @@ pub enum ApplyError {
     ConflictingMessageId,
     ActorSessionReconciliationRequired,
     SessionReconciliationNotRequired,
-    InvalidSequence { expected: u64, received: u64 },
-    StaleSequence { last: u64, received: u64 },
+    InvalidSequence {
+        expected: u64,
+        received: u64,
+    },
+    StaleSequence {
+        last: u64,
+        received: u64,
+    },
     StaleContext,
-    InvalidTransition { from: TaskState, event: &'static str },
+    InvalidTransition {
+        from: TaskState,
+        event: &'static str,
+    },
     MissingOutputEvidence,
     InvalidAcceptanceReceipt(&'static str),
     TaskAlreadyTerminal,
@@ -303,14 +312,10 @@ impl TaskMachine {
                         received: event.task_sequence,
                     });
                 }
-                self.active_session_by_actor.insert(
-                    event.actor_id.clone(),
-                    event.actor_session_id.clone(),
-                );
-                self.last_sequence_by_actor_session.insert(
-                    (event.actor_id.clone(), event.actor_session_id.clone()),
-                    0,
-                );
+                self.active_session_by_actor
+                    .insert(event.actor_id.clone(), event.actor_session_id.clone());
+                self.last_sequence_by_actor_session
+                    .insert((event.actor_id.clone(), event.actor_session_id.clone()), 0);
             }
             Some(active_session) if active_session != &event.actor_session_id => {
                 return Err(ApplyError::ActorSessionReconciliationRequired);
@@ -351,14 +356,9 @@ impl TaskMachine {
         let next = match (&current, transition) {
             (TaskState::Submitted, TransitionKind::Accept) => TaskState::Accepted,
             (TaskState::Accepted, TransitionKind::Queue) => TaskState::Queued,
-            (TaskState::Accepted | TaskState::Queued, TransitionKind::Start) => {
-                TaskState::Started
-            }
+            (TaskState::Accepted | TaskState::Queued, TransitionKind::Start) => TaskState::Started,
             (TaskState::Started, TransitionKind::Pause) => TaskState::Paused,
-            (
-                TaskState::Started | TaskState::Paused,
-                TransitionKind::Block { reason },
-            ) => {
+            (TaskState::Started | TaskState::Paused, TransitionKind::Block { reason }) => {
                 require_non_empty("block_reason", reason)?;
                 self.task.block_reason = Some(reason.clone());
                 TaskState::Blocked
@@ -390,31 +390,25 @@ impl TaskMachine {
                 }
                 TaskState::MeasurementPending
             }
-            (
-                TaskState::MeasurementPending,
-                TransitionKind::InspectionAccepted { receipt },
-            ) => {
+            (TaskState::MeasurementPending, TransitionKind::InspectionAccepted { receipt }) => {
                 self.validate_acceptance_receipt(receipt)?;
                 self.task.acceptance_receipt_ref = Some(receipt.receipt_ref.clone());
                 TaskState::IndependentlyAccepted
             }
-            (
-                TaskState::MeasurementPending,
-                TransitionKind::InspectionRejected { receipt },
-            ) => {
+            (TaskState::MeasurementPending, TransitionKind::InspectionRejected { receipt }) => {
                 self.validate_acceptance_receipt(receipt)?;
                 self.task.acceptance_receipt_ref = Some(receipt.receipt_ref.clone());
                 TaskState::IndependentlyRejected
             }
             (
                 TaskState::Submitted
-                    | TaskState::Accepted
-                    | TaskState::Queued
-                    | TaskState::Started
-                    | TaskState::Paused
-                    | TaskState::Blocked
-                    | TaskState::ExecutorCompleted
-                    | TaskState::MeasurementPending,
+                | TaskState::Accepted
+                | TaskState::Queued
+                | TaskState::Started
+                | TaskState::Paused
+                | TaskState::Blocked
+                | TaskState::ExecutorCompleted
+                | TaskState::MeasurementPending,
                 TransitionKind::Fail { reason },
             ) => {
                 require_non_empty("failure_reason", reason)?;
@@ -422,22 +416,22 @@ impl TaskMachine {
             }
             (
                 TaskState::Submitted
-                    | TaskState::Accepted
-                    | TaskState::Queued
-                    | TaskState::Started
-                    | TaskState::Paused
-                    | TaskState::Blocked,
+                | TaskState::Accepted
+                | TaskState::Queued
+                | TaskState::Started
+                | TaskState::Paused
+                | TaskState::Blocked,
                 TransitionKind::Cancel,
             ) => TaskState::Cancelled,
             (
                 TaskState::Submitted
-                    | TaskState::Accepted
-                    | TaskState::Queued
-                    | TaskState::Started
-                    | TaskState::Paused
-                    | TaskState::Blocked
-                    | TaskState::ExecutorCompleted
-                    | TaskState::MeasurementPending,
+                | TaskState::Accepted
+                | TaskState::Queued
+                | TaskState::Started
+                | TaskState::Paused
+                | TaskState::Blocked
+                | TaskState::ExecutorCompleted
+                | TaskState::MeasurementPending,
                 TransitionKind::Revoke { reason },
             ) => {
                 require_non_empty("revocation_reason", reason)?;
@@ -445,13 +439,13 @@ impl TaskMachine {
             }
             (
                 TaskState::Submitted
-                    | TaskState::Accepted
-                    | TaskState::Queued
-                    | TaskState::Started
-                    | TaskState::Paused
-                    | TaskState::Blocked
-                    | TaskState::ExecutorCompleted
-                    | TaskState::MeasurementPending,
+                | TaskState::Accepted
+                | TaskState::Queued
+                | TaskState::Started
+                | TaskState::Paused
+                | TaskState::Blocked
+                | TaskState::ExecutorCompleted
+                | TaskState::MeasurementPending,
                 TransitionKind::MarkIndeterminate { reason },
             ) => {
                 require_non_empty("indeterminate_reason", reason)?;
@@ -469,27 +463,23 @@ impl TaskMachine {
         Ok(next)
     }
 
-    fn validate_acceptance_receipt(
-        &self,
-        receipt: &AcceptanceReceipt,
-    ) -> Result<(), ApplyError> {
+    fn validate_acceptance_receipt(&self, receipt: &AcceptanceReceipt) -> Result<(), ApplyError> {
         require_non_empty("acceptance_receipt_ref", &receipt.receipt_ref)?;
         require_non_empty("acceptance_task_id", &receipt.task_id)?;
-        require_non_empty("acceptance_output_evidence_ref", &receipt.output_evidence_ref)?;
+        require_non_empty(
+            "acceptance_output_evidence_ref",
+            &receipt.output_evidence_ref,
+        )?;
 
         if receipt.task_id != self.task.id {
-            return Err(ApplyError::InvalidAcceptanceReceipt(
-                "task_id_mismatch",
-            ));
+            return Err(ApplyError::InvalidAcceptanceReceipt("task_id_mismatch"));
         }
         if receipt.binding != self.task.binding {
             return Err(ApplyError::InvalidAcceptanceReceipt(
                 "context_binding_mismatch",
             ));
         }
-        if Some(receipt.output_evidence_ref.as_str())
-            != self.task.output_evidence_ref.as_deref()
-        {
+        if Some(receipt.output_evidence_ref.as_str()) != self.task.output_evidence_ref.as_deref() {
             return Err(ApplyError::InvalidAcceptanceReceipt(
                 "output_evidence_mismatch",
             ));
@@ -531,11 +521,7 @@ mod tests {
         TaskMachine::new("task-1", binding()).expect("valid task")
     }
 
-    fn event(
-        sequence: u64,
-        transition: TransitionKind,
-        context: ContextBinding,
-    ) -> EventEnvelope {
+    fn event(sequence: u64, transition: TransitionKind, context: ContextBinding) -> EventEnvelope {
         EventEnvelope {
             message_id: format!("message-{sequence}"),
             payload_digest: format!("payload-{sequence}"),
@@ -813,7 +799,9 @@ mod tests {
         machine
             .reconcile_actor_session("robot-1", "boot-2", 0, "checkpoint-digest-1")
             .expect("reconcile reboot");
-        machine.apply(rebooted).expect("new session after reconcile");
+        machine
+            .apply(rebooted)
+            .expect("new session after reconcile");
         assert_eq!(machine.task.state, TaskState::Queued);
         assert_eq!(machine.session_reconciliations().len(), 1);
     }
