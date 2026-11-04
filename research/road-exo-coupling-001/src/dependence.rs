@@ -124,6 +124,12 @@ impl ExactRational {
         if denominator == 0 {
             return Err(DependenceError::ArithmeticOverflow);
         }
+        if numerator == 0 {
+            return Ok(Self {
+                numerator: 0,
+                denominator: 1,
+            });
+        }
         let divisor = gcd(numerator.unsigned_abs(), denominator);
         let signed_divisor =
             i128::try_from(divisor).map_err(|_| DependenceError::ArithmeticOverflow)?;
@@ -550,6 +556,7 @@ fn canonical_pairs(pairs: &[(StableId, i64)]) -> Vec<(StableId, i64)> {
 fn receipt_bytes(receipt: &DependenceReceipt) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(b"symtropy.road-dependence.receipt.v0.1\0");
+    push_bytes(&mut out, receipt.schema_id.as_bytes());
     out.extend_from_slice(&receipt.manifest_digest);
     push_id(&mut out, &receipt.branch_id);
     push_len(&mut out, receipt.state_index);
@@ -567,6 +574,12 @@ fn receipt_bytes(receipt: &DependenceReceipt) -> Vec<u8> {
 fn push_id(out: &mut Vec<u8>, id: &StableId) {
     let bytes = id.as_str().as_bytes();
     let len = u32::try_from(bytes.len()).expect("StableId length is bounded");
+    out.extend_from_slice(&len.to_le_bytes());
+    out.extend_from_slice(bytes);
+}
+
+fn push_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
+    let len = u64::try_from(bytes.len()).expect("fixture byte string must fit u64");
     out.extend_from_slice(&len.to_le_bytes());
     out.extend_from_slice(bytes);
 }
@@ -861,6 +874,41 @@ mod tests {
         }
         second.distribution.states.reverse();
         assert_eq!(first.digest().unwrap(), second.digest().unwrap());
+    }
+
+    #[test]
+    fn canonical_evaluation_receipts_ignore_state_declaration_order() {
+        let first_manifest = shared_factor_fixture();
+        let first = first_manifest
+            .evaluate(&BranchIntervention {
+                branch_id: id("continue"),
+                values: vec![],
+            })
+            .unwrap();
+        let mut second_manifest = first_manifest.clone();
+        second_manifest.variables.reverse();
+        second_manifest.distribution.states.reverse();
+        for state in &mut second_manifest.distribution.states {
+            state.values.reverse();
+        }
+        let second = second_manifest
+            .evaluate(&BranchIntervention {
+                branch_id: id("continue"),
+                values: vec![],
+            })
+            .unwrap();
+        assert_eq!(first.receipts, second.receipts);
+    }
+
+    #[test]
+    fn rational_zero_normalizes_without_large_denominator_conversion() {
+        assert_eq!(
+            ExactRational::new(0, u128::MAX).unwrap(),
+            ExactRational {
+                numerator: 0,
+                denominator: 1
+            }
+        );
     }
 
     #[test]
