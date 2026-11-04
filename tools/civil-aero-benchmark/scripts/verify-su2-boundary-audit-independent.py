@@ -243,4 +243,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as error:
         print(f"independent SU2 boundary audit oracle failed: {error}", file=sys.stderr)
-        raise SystemExit(1)
+        raise
