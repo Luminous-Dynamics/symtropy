@@ -890,4 +890,88 @@ mod tests {
                 .contains("not proven positive semidefinite")
         );
     }
+
+    #[test]
+    fn convex_interpolation_preserves_psd_for_seeded_two_to_eight_coil_gram_paths() {
+        let digest = |digit: char| format!("sha256:{}", digit.to_string().repeat(64));
+        let mut seed = 0x9e37_79b9_7f4a_7c15_u64;
+
+        for n in 2..=8 {
+            let mut build_matrix = || {
+                let mut factor = vec![vec![0.0_f64; n]; n];
+                for row in &mut factor {
+                    for value in row {
+                        seed ^= seed << 13;
+                        seed ^= seed >> 7;
+                        seed ^= seed << 17;
+                        *value = ((seed >> 11) as f64 / ((1_u64 << 53) as f64)) - 0.5;
+                    }
+                }
+
+                let mut matrix = vec![vec![0.0_f64; n]; n];
+                for i in 0..n {
+                    for j in 0..n {
+                        let dot = (0..n)
+                            .map(|k| factor[k][i] * factor[k][j])
+                            .sum::<f64>();
+                        matrix[i][j] = dot * 1e-6 + if i == j { 1e-6 } else { 0.0 };
+                    }
+                }
+                matrix
+            };
+
+            let left_matrix = build_matrix();
+            let right_matrix = build_matrix();
+            let tolerance_h = 1e-12;
+            let lower_bound = |matrix: &[Vec<f64>]| {
+                let (minimum, residual) =
+                    smallest_symmetric_eigenvalue(matrix).expect("finite Gram matrix");
+                minimum - residual - tolerance_h
+            };
+            let left_lower = lower_bound(&left_matrix);
+            let right_lower = lower_bound(&right_matrix);
+            assert!(left_lower > 0.0 && right_lower > 0.0);
+
+            let mut atlas = fixture();
+            atlas.coil_ids = (0..n)
+                .map(|index| if index == 0 { "TX".into() } else { format!("RX-{index}") })
+                .collect();
+            atlas.operating_point.dc_bias_currents_a = vec![0.0; n];
+            atlas.samples[0].matrix_h = left_matrix;
+            atlas.samples[1].matrix_h = right_matrix;
+            atlas.samples[0].entrywise_absolute_bound_h = vec![vec![0.0; n]; n];
+            atlas.samples[1].entrywise_absolute_bound_h = vec![vec![0.0; n]; n];
+            atlas.samples[0].minimum_eigenvalue_lower_bound_h = left_lower;
+            atlas.samples[1].minimum_eigenvalue_lower_bound_h = right_lower;
+            atlas.samples[0].numerical_tolerance_h = tolerance_h;
+            atlas.samples[1].numerical_tolerance_h = tolerance_h;
+            atlas.samples[0].matrix_digest = digest('b');
+            atlas.samples[1].matrix_digest = digest('e');
+            atlas.samples[0].source_artifact_digest = digest('c');
+            atlas.samples[1].source_artifact_digest = digest('f');
+            atlas.samples[0].validator_receipt_digest = digest('d');
+            atlas.samples[1].validator_receipt_digest = digest('1');
+            atlas.segments[0].interpolation_error_frobenius_bound_h = 0.05e-6;
+            atlas.segments[0].error_bound_method = "ANALYTIC_DERIVATIVE_BOUND".into();
+            atlas.validate().unwrap();
+
+            for alpha in [0.1, 0.3, 0.5, 0.7, 0.9] {
+                let result = atlas.interpolate_at(10.0 * alpha).unwrap();
+                assert_eq!(
+                    result.disposition,
+                    "PASSIVE_CERTIFIED_CONDITIONAL",
+                    "n={n}, alpha={alpha}"
+                );
+                let (actual_minimum, actual_residual) =
+                    smallest_symmetric_eigenvalue(&result.matrix_h).unwrap();
+                assert!(
+                    actual_minimum - actual_residual
+                        >= result.minimum_eigenvalue_lower_bound_h - 1e-12,
+                    "n={n}, alpha={alpha}, minimum={actual_minimum}, lower={}",
+                    result.minimum_eigenvalue_lower_bound_h
+                );
+            }
+        }
+    }
+
 }
