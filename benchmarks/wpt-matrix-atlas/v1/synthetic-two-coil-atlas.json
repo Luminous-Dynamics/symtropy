@@ -78,7 +78,7 @@
       "from_sample_index": 0,
       "to_sample_index": 1,
       "interpolation_error_frobenius_bound_h": 2e-7,
-      "error_bound_method": "ANALYTIC_DERIVATIVE_BOUND",
+      "error_bound_method": "HELD_OUT_DENSE_REFERENCE",
       "validation_receipt_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
     }
   ]
