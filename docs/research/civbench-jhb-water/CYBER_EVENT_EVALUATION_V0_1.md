@@ -119,8 +119,12 @@ The following are distinct evidence lanes:
 1. **WDSEventDB:** real-time measurements from a sensor-instrumented research water testbed, with leak, cyberattack and sensor-failure events. Preserve its event definitions and source archive digest. Dataset record: https://zenodo.org/records/17547955.
 2. **ACG-Water-Testbed:** controlled IT/OT-to-physical propagation and defensive-control experiments, including remote access, segmentation, PLC/controller, sensors, pumps and storage dynamics. Research-only; no production systems: https://zenodo.org/records/21814947.
 3. **BATADAL/C-Town:** historical simulated SCADA with one-year normal training data, partially labelled attack data and a three-month unlabelled test period. Preserve the official challenge rules and label limitations: https://www.batadal.net/data.html.
-4. **SWaT/WaDi and other ICS corpora:** adjacent industrial-control transfer lanes, not water-distribution equivalents. Report them separately.
-5. **Utility-derived observations:** require independent data governance, a declared source/assurance class, and a claim ceiling. Public weak-label utility data are not automatically a blind holdout.
+4. **DiTEC-WDN:** 36,000 synthetic hydraulic scenarios spanning 36 benchmark networks (1,000 scenarios/network). Use as a topology-held-out simulation lane: keep at least one complete network unseen, and do not call generated parameter values field observations. Dataset/DOI: https://doi.org/10.1038/s41597-025-06026-0; https://doi.org/10.57967/hf/6341.
+5. **Slovak multisource utility-derived dataset:** 8,737 hourly records for one hydraulically isolated zone, combining derived flow/pressure, energy and environmental anomaly indicators. Its public `fault_d7` label uses a ±7-day proximity window around confirmed utility records; it is therefore a weak temporal label, not an exact incident onset or raw SCADA release. Preserve NULLs, test label-window sensitivity and do not report minute-level onset performance from it. The public source is CC BY-NC-ND 4.0; do not redistribute modified derivatives: https://doi.org/10.1038/s41597-026-07203-5.
+6. **SWaT/WaDi and other ICS corpora:** adjacent industrial-control transfer lanes, not water-distribution equivalents. SWaT is a water-treatment testbed and WADI a water-distribution testbed; preserve their distinct process semantics and report them separately.
+7. **Other utility-derived observations:** require independent data governance, a declared source/assurance class, and a claim ceiling. Public weak-label utility data are not automatically a blind holdout.
+
+### 7.1 Published transfer and field-transfer controls
 
 ### 7.1 Published transfer and field-transfer controls
 
@@ -135,6 +139,31 @@ For each defensible pair of datasets, report train-on-A/test-on-B and train-on-B
 For every transfer claim, include (where technically meaningful) a target-only baseline, source-trained/no-adaptation baseline, adapted model, and **same-architecture random-initialization control**. Publish the target label budget, whether target labels influence feature learning or only the episodic classifier, class-disjointness, chronology, and both transfer directions. A high cross-plant macro-F1 is not evidence of learned transferable representations when the random-initialized control performs equivalently.
 
 ## 8. Baseline ladder and matched information budgets
+
+### 8.1 Multi-leak localization is a distinct task
+
+Binary leak detection is already highly saturated on some synthetic benchmarks: the May 2026 Net3 study generated more than 47,000 EPANET/WNTR scenarios and reports over 95% binary detection accuracy across model families, while ensemble ML methods reached roughly 75–77% Top-1 localization on that study's task. Do not compete by quoting another binary-accuracy aggregate; reconstruct the exact scenario, split and localization contract first: https://doi.org/10.1016/j.jwpe.2026.110114.
+
+An October 26, 2026 arXiv preprint proposes variable-cardinality graph localization for simultaneous leaks on Hanoi and Net3, reporting up to 12% and 20% accuracy gains over its MLP/SVM/KNN/RF comparators respectively. This is a preprint, not yet a peer-reviewed consensus or a result directly comparable to other localization tasks: https://arxiv.org/abs/2610.35972.
+
+Use Sol-Atlas [#174](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/174) as the existing owner for topology generalization and physical localization. Extend the benchmark task—not the hydraulic engine—to include:
+- unknown/variable number of simultaneous leaks;
+- exact-set precision, recall and F1, not only a single Top-1 label;
+- cardinality error and set-size calibration/abstention;
+- Top-k coverage and distance-based localization error;
+- held-out topology, sensor sparsity, demand shifts, noise, leak magnitude and simultaneous-event count;
+- resource and decision value of the next sensor/field inspection.
+
+Do not let multiple leak hypotheses collapse into one event label. The event evaluator scores incident detection; the physical locator scores the set of affected links/nodes. Their outputs must remain separately qualified.
+
+### 8.2 Operational OT control references
+
+Use NIST SP 1800-45 (final, June 2026) as a defensible secure-remote-access configuration reference. It demonstrates three architectures for water/wastewater utilities of different sizes; it is a control-design baseline, not a detector accuracy benchmark: https://doi.org/10.6028/NIST.SP.1800-45.
+
+Use ACG-Water-Testbed's published ACGI and CPPR definitions as testbed-specific security-gap and cyber-to-physical-propagation metrics, while reporting the complete scenario/configuration and not treating either as a universal security or service score. CISA's July 30, 2026 alert describes water-sector PLC incidents involving password changes, operator lockout and IP-address changes, reinforcing the need to evaluate remote-access inventory, authentication, command integrity, control availability, safe-state and sustained manual operation in an isolated testbed: https://www.cisa.gov/news-events/alerts/2026/07/30/cisa-urges-water-and-wastewater-systems-sector-protect-ot-against-activity-targeting-plcs.
+
+Compare control configurations under identical scenario schedules: baseline exposure, segmented/least-privilege remote access, monitored access, hardened configuration, safe-state and recovery. No attack emulation or control experiment may touch a live utility or public OT endpoint.
+
 
 Compare at least:
 
