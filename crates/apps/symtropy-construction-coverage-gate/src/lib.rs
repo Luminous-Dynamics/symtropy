@@ -411,11 +411,111 @@ mod tests {
         }
     }
 
+    fn adjustment_receipt(
+        footprint: &ArtifactRef,
+        domain: &ArtifactRef,
+    ) -> SurveyProcessingReceiptV1 {
+        SurveyProcessingReceiptV1 {
+            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
+            receipt_id: "adjustment-1".to_owned(),
+            stage: SurveyProcessingStageV1::AdjustedControlSolution,
+            disposition: SurveyProcessingDispositionV1::Qualified,
+            input_artifacts: vec![footprint.clone()],
+            output_artifact: Some(domain.clone()),
+            algorithm_id: "control-adjustment".to_owned(),
+            algorithm_version: "1.0".to_owned(),
+            algorithm_build_sha256: "d".repeat(64),
+            configuration_sha256: "e".repeat(64),
+            source_frame_ids: vec!["site-grid-2026".to_owned()],
+            output_frame_id: Some("site-grid-2026".to_owned()),
+            fitting_observation_ids: vec!["fit-1".to_owned()],
+            independent_checkpoint_ids: vec!["checkpoint-1".to_owned()],
+            excluded_observation_ids: vec![],
+            accuracy_metrics: Some(symtropy_robotics_bridge_core::SurveyAccuracyMetricsV1 {
+                horizontal_rmse_m: 0.001,
+                vertical_rmse_m: 0.002,
+                detection_limit_m: None,
+                estimated_changed_volume_m3: None,
+                changed_volume_standard_uncertainty_m3: None,
+                uncertainty_method_id: "held-out-checkpoint-v1".to_owned(),
+            }),
+        }
+    }
+
+    fn serialized_artifact<T: Serialize>(id: &str, value: &T) -> ArtifactRef {
+        let bytes = serde_json::to_vec(value).unwrap();
+        ArtifactRef {
+            artifact_id: id.to_owned(),
+            uri: format!("coverage-test://{id}"),
+            sha256: format!("{:x}", Sha256::digest(&bytes)),
+        }
+    }
+
+    fn survey_envelope_value(
+        footprint: &ArtifactRef,
+        domain: &ArtifactRef,
+    ) -> SurveyEvidenceEnvelopeV1 {
+        let fit = SurveyObservationV1 {
+            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
+            observation_id: "fit-1".to_owned(),
+            session_id: "session-1".to_owned(),
+            source_id: "total-station-1".to_owned(),
+            sequence: 1,
+            captured_at_unix_ns: 150,
+            modality: SurveyModalityV1::TotalStation,
+            role: SurveyObservationRoleV1::FitOrCalibration,
+            frame_id: "site-grid-2026".to_owned(),
+            payload_artifact: artifact("fit-observation", b"fit bytes"),
+            calibration_artifact: artifact("calibration", b"calibration bytes"),
+            coordinate: Some([0.0, 0.0, 0.0]),
+            uncertainty: Some(SurveyUncertaintyV1::StandardDeviation {
+                standard_deviation: [0.001, 0.001, 0.002],
+            }),
+            uncertainty_artifact: None,
+            quality_flags: vec![],
+        };
+        let checkpoint = SurveyObservationV1 {
+            observation_id: "checkpoint-1".to_owned(),
+            role: SurveyObservationRoleV1::IndependentCheckpoint,
+            sequence: 2,
+            captured_at_unix_ns: 160,
+            payload_artifact: artifact("checkpoint", b"checkpoint bytes"),
+            ..fit.clone()
+        };
+        let source_receipt = adjustment_receipt(footprint, domain);
+        SurveyEvidenceEnvelopeV1 {
+            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
+            frames: vec![frame()],
+            sessions: vec![SurveySessionV1 {
+                schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
+                session_id: "session-1".to_owned(),
+                instrument_id: "total-station-1".to_owned(),
+                instrument_profile_artifact: artifact("instrument-profile", b"profile"),
+                calibration_artifact: artifact("calibration", b"calibration bytes"),
+                instrument_frame_id: "site-grid-2026".to_owned(),
+                started_at_unix_ns: 100,
+                ended_at_unix_ns: Some(200),
+                clock_uncertainty_ns: 1,
+                raw_observation_artifacts: vec![artifact("raw", b"raw")],
+            }],
+            observations: vec![fit, checkpoint],
+            transforms: vec![],
+            processing_receipts: vec![source_receipt],
+            change_candidates: vec![],
+        }
+    }
+
     fn assessment() -> SurveyCoverageAssessmentV1 {
         let footprint = artifact("task-footprint", b"task polygon bytes");
         let domain = artifact("control-domain", b"qualified support domain bytes");
         let support = artifact("support-map", b"coverage support grid bytes");
-        let control_receipt = artifact("control-adjustment", b"control receipt bytes");
+        let receipt = adjustment_receipt(&footprint, &domain);
+        let receipt_artifact = serialized_artifact("control-adjustment", &receipt);
+        let envelope_value = survey_envelope_value(&footprint, &domain);
+        let (_, envelope_artifact) = envelope_value
+            .encode_with_digest("survey-envelope", "coverage-test://survey-envelope")
+            .unwrap();
+
         SurveyCoverageAssessmentV1 {
             schema_version: 1,
             assessment_id: "coverage-assessment-001".to_owned(),
@@ -426,8 +526,8 @@ mod tests {
             work_zone_id: "zone-c".to_owned(),
             worksite_epoch_sha256: "a".repeat(64),
             target_frame_id: "site-grid-2026".to_owned(),
-            survey_envelope_artifact: artifact("survey-envelope", b"raw envelope bytes"),
-            control_adjustment_receipt_artifact: control_receipt,
+            survey_envelope_artifact: envelope_artifact,
+            control_adjustment_receipt_artifact: receipt_artifact,
             task_footprint_artifact: footprint,
             control_domain_artifact: domain,
             support_map_artifact: support,
@@ -465,87 +565,30 @@ mod tests {
             horizontal_datum_id: "LOCAL:survey-control".to_owned(),
             vertical_reference_id: "LOCAL:building-level".to_owned(),
             height_type: SurveyHeightTypeV1::LocalVertical,
-            axis_directions: [SurveyAxisDirectionV1::LocalX, SurveyAxisDirectionV1::LocalY, SurveyAxisDirectionV1::LocalZ],
-            axis_units: [SurveyCoordinateUnitV1::Metre, SurveyCoordinateUnitV1::Metre, SurveyCoordinateUnitV1::Metre],
+            axis_directions: [
+                SurveyAxisDirectionV1::LocalX,
+                SurveyAxisDirectionV1::LocalY,
+                SurveyAxisDirectionV1::LocalZ,
+            ],
+            axis_units: [
+                SurveyCoordinateUnitV1::Metre,
+                SurveyCoordinateUnitV1::Metre,
+                SurveyCoordinateUnitV1::Metre,
+            ],
             handedness: SurveyHandednessV1::RightHanded,
             coordinate_epoch_year: None,
         }
     }
 
     fn survey_envelope(assess: &SurveyCoverageAssessmentV1) -> VerifiedSurveyEvidenceEnvelopeV1 {
-        let fit = SurveyObservationV1 {
-            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
-            observation_id: "fit-1".to_owned(),
-            session_id: "session-1".to_owned(),
-            source_id: "total-station-1".to_owned(),
-            sequence: 1,
-            captured_at_unix_ns: 150,
-            modality: SurveyModalityV1::TotalStation,
-            role: SurveyObservationRoleV1::FitOrCalibration,
-            frame_id: "site-grid-2026".to_owned(),
-            payload_artifact: artifact("fit-observation", b"fit bytes"),
-            calibration_artifact: artifact("calibration", b"calibration bytes"),
-            coordinate: Some([0.0,0.0,0.0]),
-            uncertainty: Some(SurveyUncertaintyV1::StandardDeviation { standard_deviation: [0.001,0.001,0.002] }),
-            uncertainty_artifact: None,
-            quality_flags: vec![],
-        };
-        let checkpoint = SurveyObservationV1 { observation_id:"checkpoint-1".to_owned(), role:SurveyObservationRoleV1::IndependentCheckpoint, sequence:2, captured_at_unix_ns:160, payload_artifact:artifact("checkpoint",b"checkpoint bytes"), ..fit.clone() };
-        let source_receipt = SurveyProcessingReceiptV1 {
-            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
-            receipt_id: "adjustment-1".to_owned(),
-            stage: SurveyProcessingStageV1::AdjustedControlSolution,
-            disposition: SurveyProcessingDispositionV1::Qualified,
-            input_artifacts: vec![assess.task_footprint_artifact.clone()],
-            output_artifact: Some(assess.control_domain_artifact.clone()),
-            algorithm_id: "control-adjustment".to_owned(),
-            algorithm_version: "1.0".to_owned(),
-            algorithm_build_sha256: "d".repeat(64),
-            configuration_sha256: "e".repeat(64),
-            source_frame_ids: vec!["site-grid-2026".to_owned()],
-            output_frame_id: Some("site-grid-2026".to_owned()),
-            fitting_observation_ids: vec!["fit-1".to_owned()],
-            independent_checkpoint_ids: vec!["checkpoint-1".to_owned()],
-            excluded_observation_ids: vec![],
-            accuracy_metrics: Some(symtropy_robotics_bridge_core::SurveyAccuracyMetricsV1 {
-                horizontal_rmse_m: 0.001,
-                vertical_rmse_m: 0.002,
-                detection_limit_m: None,
-                estimated_changed_volume_m3: None,
-                changed_volume_standard_uncertainty_m3: None,
-                uncertainty_method_id: "held-out-checkpoint-v1".to_owned(),
-            }),
-        };
-        let receipt_bytes = serde_json::to_vec(&source_receipt).unwrap();
-        let receipt_artifact = ArtifactRef {
-            artifact_id: "control-adjustment".to_owned(),
-            uri: "coverage-test://control-adjustment".to_owned(),
-            sha256: format!("{:x}", Sha256::digest(&receipt_bytes)),
-        };
-        assert_eq!(receipt_artifact, assess.control_adjustment_receipt_artifact);
-        let envelope = SurveyEvidenceEnvelopeV1 {
-            schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
-            frames: vec![frame()],
-            sessions: vec![SurveySessionV1 {
-                schema_version: SURVEY_EVIDENCE_SCHEMA_VERSION,
-                session_id: "session-1".to_owned(),
-                instrument_id: "total-station-1".to_owned(),
-                instrument_profile_artifact: artifact("instrument-profile", b"profile"),
-                calibration_artifact: artifact("calibration", b"calibration bytes"),
-                instrument_frame_id: "site-grid-2026".to_owned(),
-                started_at_unix_ns: 100,
-                ended_at_unix_ns: Some(200),
-                clock_uncertainty_ns: 1,
-                raw_observation_artifacts: vec![artifact("raw", b"raw")],
-            }],
-            observations: vec![fit,checkpoint],
-            transforms: vec![],
-            processing_receipts: vec![source_receipt],
-            change_candidates: vec![],
-        };
-        let (bytes, reference) = envelope.encode_with_digest("survey-envelope", "coverage-test://survey-envelope").unwrap();
-        assert_eq!(reference.sha256, assess.survey_envelope_artifact.sha256);
-        assert_eq!(reference.artifact_id, assess.survey_envelope_artifact.artifact_id);
+        let envelope_value = survey_envelope_value(
+            &assess.task_footprint_artifact,
+            &assess.control_domain_artifact,
+        );
+        let (bytes, reference) = envelope_value
+            .encode_with_digest("survey-envelope", "coverage-test://survey-envelope")
+            .unwrap();
+        assert_eq!(reference, assess.survey_envelope_artifact);
         VerifiedSurveyEvidenceEnvelopeV1::decode_verified_json(&bytes, reference).unwrap()
     }
 
