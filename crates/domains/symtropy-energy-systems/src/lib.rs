@@ -18,6 +18,7 @@ mod batch_evaluation;
 mod duty_cycle;
 mod flexibility_evaluation;
 mod grid_response;
+mod grid_firm_capacity;
 mod joint_scenario;
 mod forecast_calibration;
 mod fuel;
@@ -45,6 +46,12 @@ pub use flexibility_evaluation::{
 pub use grid_response::{
     GridResponseContract, GridResponseError, GridResponseIdentity, GridResponseReport,
     GridResponseSample, GridResponseSampleReceipt, evaluate_grid_response,
+};
+
+pub use grid_firm_capacity::{
+    GridFirmCapacityContract, GridFirmCapacityError, GridFirmCapacityEvaluation,
+    GridFirmCapacityIdentity, GridFirmCapacityReport, GridFirmCapacityTrial,
+    GridFirmCapacityTrialOutcome, GridFirmCapacityTrialReceipt, evaluate_grid_firm_capacity,
 };
 
 pub use joint_scenario::{
