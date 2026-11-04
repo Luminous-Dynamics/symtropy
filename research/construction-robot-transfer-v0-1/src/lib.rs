@@ -198,6 +198,15 @@ impl TransferStudy {
                 });
             }
         }
+        let source_items: BTreeSet<&str> =
+            self.source.work_item_ids.iter().map(String::as_str).collect();
+        for item in &self.target.work_item_ids {
+            if source_items.contains(item.as_str()) {
+                errors.push(ValidationError::TrainingEvaluationWorkItemLeakage {
+                    id: item.clone(),
+                });
+            }
+        }
 
         if self.source_model_digest.trim().is_empty()
             || self.target_model_digest.trim().is_empty()
@@ -774,6 +783,15 @@ mod tests {
             Some(6.0)
         );
         assert_eq!(metrics.accepted_units_per_robot_hour, Some(12.0));
+    }
+
+    #[test]
+    fn adaptation_budget_hours_are_not_double_counted_as_effort() {
+        let input = study();
+        let burden = input.adaptation_burden().expect("valid adaptation burden");
+        assert_eq!(burden.total_recorded_person_hours, 2.9);
+        assert_eq!(burden.calibration_person_hours, 0.75);
+        assert_eq!(burden.engineering_person_hours, 1.0);
     }
 
     #[test]
