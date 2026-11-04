@@ -4,8 +4,7 @@
 //! Exact N=6/N=30 population-composition, Fermi and rare-mutation sweep.
 
 use civdyn_collective_risk::population::{
-    expected_type_fitness, rare_mutation_chain, stationary_distribution, PopulationState,
-    DEFAULT_SELECTION_INTENSITY,
+    DEFAULT_SELECTION_INTENSITY, PopulationState, expected_type_fitness, rare_mutation_chain, stationary_distribution,
 };
 use civdyn_collective_risk::{GameConfig, Strategy};
 
@@ -90,8 +89,7 @@ fn main() {
                         let mut row = empty_fields("fixation", population_size, risk, beta);
                         row[4] = Strategy::ALL[mutant_index].name().into();
                         row[5] = Strategy::ALL[resident_index].name().into();
-                        let log_fixation =
-                            chain.log_fixation_matrix[resident_index][mutant_index];
+                        let log_fixation = chain.log_fixation_matrix[resident_index][mutant_index];
                         row[12] = fmt(log_fixation.exp());
                         row[13] = fmt(log_fixation);
                         emit(row);
