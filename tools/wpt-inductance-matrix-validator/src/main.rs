@@ -305,10 +305,13 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
     }
     sha256_or_null(value, "artifact_sha256")?;
 
-    let expected_disposition = value
-        .get("expected_disposition")
-        .and_then(Value::as_str)
-        .map(str::to_string);
+    let expected_disposition = match value.get("expected_disposition") {
+        None => None,
+        Some(Value::String(expected)) => Some(expected.clone()),
+        Some(_) => {
+            return Err("expected_disposition: when present, must be a string".into());
+        }
+    };
     if expected_disposition.as_deref().is_some_and(|expected| {
         !matches!(
             expected,
@@ -684,6 +687,40 @@ mod tests {
             "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         });
         assert_eq!(disposition(value), "PASSIVE_CERTIFIED");
+    }
+
+    #[test]
+    fn rejects_non_uri_source_reference() {
+        let mut value = json!({
+            "schema_version": "wpt-inductance-matrix-v1",
+            "matrix_id": "BAD-SOURCE-URI",
+            "evidence_kind": "MEASURED",
+            "matrix_kind": "SMALL_SIGNAL",
+            "operating_point": {"frequency_hz": 85000.0, "temperature_c": 25.0, "dc_bias_currents_a": [0.0, 0.0]},
+            "coil_ids": ["TX", "RX"],
+            "polarity_reference": "positive current enters each dot",
+            "matrix_h": [[10e-6, 2e-6], [2e-6, 8e-6]],
+            "entrywise_absolute_bound_h": [[0.0, 0.0], [0.0, 0.0]],
+            "uncertainty_semantics": "DETERMINISTIC_ABSOLUTE_BOUND",
+            "numerical_tolerances": {"absolute_h": 1e-15, "relative": 1e-12},
+            "configuration_reference": "test-rig:revision-3",
+            "source_reference": "not-a-uri",
+            "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        });
+        assert_eq!(disposition(value.clone()), "INVALID_INPUT");
+        value["source_reference"] = json!("https://example.org/source");
+        assert_eq!(disposition(value), "PASSIVE_CERTIFIED");
+    }
+
+    #[test]
+    fn rejects_non_string_expected_disposition() {
+        let mut value = fixture(
+            json!([[1e-6, 0.0, 0.0], [0.0, 1e-6, 0.0], [0.0, 0.0, 1e-6]]),
+            zero_bounds(3),
+            "PASSIVE_CERTIFIED",
+        );
+        value["expected_disposition"] = json!(true);
+        assert_eq!(disposition(value), "INVALID_INPUT");
     }
 
     #[test]
