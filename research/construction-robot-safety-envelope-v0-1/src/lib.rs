@@ -2477,7 +2477,10 @@ mod tests {
         // coverage: two domains still cover the whole zone, but only two of
         // the three modalities do.
         policy.minimum_human_sensor_modalities = 3;
-        observation.human_detection.contributing_sensor_ids.push("localization-unit".to_owned());
+        observation
+            .human_detection
+            .contributing_sensor_ids
+            .push("localization-unit".to_owned());
         observation.sensors[1].covered_cells = policy.required_human_coverage_cells.clone();
         observation.sensors[2].covered_cells.pop();
         let decision = evaluate(&policy, &observation);
