@@ -3,6 +3,7 @@
 pub mod decision_closure;
 pub mod decision_criteria;
 pub mod dependence;
+pub mod hypothesis_portfolio;
 pub mod philox_adapter;
 
 use std::collections::{BTreeMap, BTreeSet};
