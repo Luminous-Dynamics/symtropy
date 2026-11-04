@@ -75,7 +75,7 @@ Out-of-domain requests fail with `EXTRAPOLATION_REJECTED`. No extrapolation or s
 
 ## Service-aware field-solve allocation
 
-The crate also accepts external `ServiceSensitivitySignal` records from a validated circuit/route-energy evaluator. Each signal binds a segment to a predicted route-energy uncertainty in Wh, an acceptable Wh budget, an estimated fractional uncertainty reduction from one additional field solve, an estimated solve cost in seconds, a circuit-model digest and a sensitivity-receipt digest.
+The crate also accepts external `ServiceSensitivitySignal` records from a validated circuit/route-energy evaluator. The input contract is frozen in `service-sensitivity-signal.schema.json`, with a two-segment known-truth fixture in `synthetic-service-sensitivity-signals.json`. Every atlas segment must have exactly one versioned signal binding a conservative route-energy uncertainty upper bound in Wh, an acceptable Wh budget, a strictly positive estimated fractional uncertainty reduction from one additional field solve, an estimated solve cost in seconds, a circuit-model digest and a sensitivity-receipt digest. Missing or duplicate signals fail closed.
 
 The service-aware score is a transparent heuristic:
 
