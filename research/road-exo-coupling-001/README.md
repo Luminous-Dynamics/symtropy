@@ -143,3 +143,33 @@ The graph is currently bipartite: primitive finite exogenous variables feed one 
 - Zero duplicate/omitted variable values or zero-weight states admitted.
 - Zero receipt replay accepted against a different manifest or intervention.
 - Exact declaration-order-independent manifest digest and receipts.
+
+
+## Exact counterfactual decision closure oracle (ROAD-DECISION-CLOSURE-001 #3637)
+
+The decision_closure module turns a finite set of action utilities across admitted reference/model hypotheses into an exact minimax-regret certificate.
+
+### Rules
+
+- The complete hypothesis set is explicit; no hypothesis probability weights are inferred.
+- Every action must have an outcome status under every hypothesis.
+- Supported utility values are exact rationals.
+- Unsupported, NotIdentified or Incomplete action/hypothesis pairs stop a global decision certificate.
+- Per-hypothesis best action sets and action regrets are retained.
+- Worst-case regret is computed for every action.
+- A stable decision requires the same unique best action in every hypothesis.
+- If rankings reverse but a unique minimax-regret action exists, the result is DecisionSensitive and records the minimax-regret action without calling it uniformly optimal.
+- If multiple actions tie for minimum worst-case regret, the result is NoRobustDecision.
+- Missing support cannot be silently dropped; missing probability weights cannot be invented.
+
+### Exact examples
+
+1. Stable: H1 utilities A=10,B=2; H2 A=8,B=4. A uniquely wins both; status DecisionStable.
+2. Sensitive: H1 A=10,B=8; H2 A=0,B=6. Rankings reverse; worst-case regret is A=6,B=2; minimax-regret action B, status DecisionSensitive.
+3. No robust unique action: H1 A=10,B=0; H2 A=0,B=10. Both actions have worst-case regret 10; status NoRobustDecision.
+
+### Receipt and limits
+
+The manifest binds action IDs, each hypothesis ID and reference-manifest digest, support status and exact utility. The certificate records the manifest digest, hypothesis-level regret tables, action worst-case regrets, support gaps and decision status. Receipt verification recomputes the complete certificate.
+
+V0.1 is a finite exact decision oracle. It is not an empirically calibrated decision model, causal identification engine or safety policy. Utility scales and reference hypotheses must be supplied and justified upstream; this module only verifies the regret calculation and the completeness of the declared finite hypothesis set.
