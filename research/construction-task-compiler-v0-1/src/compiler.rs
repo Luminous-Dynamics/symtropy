@@ -629,7 +629,10 @@ mod tests {
 
     #[test]
     fn one_element_one_step_compiles_with_exact_lineage() {
-        let result = compile(&manifest(vec![element("pile-1")]), &method(vec![step("install", &[])]));
+        let result = compile(
+            &manifest(vec![element("pile-1")]),
+            &method(vec![step("install", &[])]),
+        );
         assert_eq!(result.verdict, CompileVerdict::CompiledForReview);
         let graph = result.graph.expect("compiled graph");
         assert_eq!(graph.nodes.len(), 1);
@@ -645,18 +648,12 @@ mod tests {
     fn multistep_template_becomes_ordered_same_element_dag() {
         let result = compile(
             &manifest(vec![element("pile-1")]),
-            &method(vec![
-                step("install", &["prepare"]),
-                step("prepare", &[]),
-            ]),
+            &method(vec![step("install", &["prepare"]), step("prepare", &[])]),
         );
         assert_eq!(result.verdict, CompileVerdict::CompiledForReview);
         assert_eq!(
             result.topological_order,
-            vec![
-                task_id("pile-1", "prepare"),
-                task_id("pile-1", "install")
-            ]
+            vec![task_id("pile-1", "prepare"), task_id("pile-1", "install")]
         );
         let graph = result.graph.expect("compiled graph");
         let install = graph
@@ -676,14 +673,8 @@ mod tests {
         let graph = result.graph.expect("compiled graph");
         assert_eq!(graph.nodes.len(), 2);
         assert_ne!(graph.nodes[0].task_id, graph.nodes[1].task_id);
-        assert_eq!(
-            graph.nodes[0].task_id,
-            task_id("pile-1", "install")
-        );
-        assert_eq!(
-            graph.nodes[1].task_id,
-            task_id("pile-2", "install")
-        );
+        assert_eq!(graph.nodes[0].task_id, task_id("pile-1", "install"));
+        assert_eq!(graph.nodes[1].task_id, task_id("pile-2", "install"));
     }
 
     #[test]
@@ -697,10 +688,7 @@ mod tests {
         );
         let second = compile(
             &manifest(vec![element("pile-1"), element("pile-2")]),
-            &method(vec![
-                step("prepare", &[]),
-                step("install", &["prepare"]),
-            ]),
+            &method(vec![step("prepare", &[]), step("install", &["prepare"])]),
         );
         assert_eq!(first, second);
     }
@@ -712,10 +700,12 @@ mod tests {
         let result = compile(&manifest(vec![input]), &method(vec![step("install", &[])]));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
         assert!(result.graph.is_none());
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "missing_design_property"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "missing_design_property")
+        );
     }
 
     #[test]
@@ -724,10 +714,12 @@ mod tests {
         input.task_family = "masonry".to_owned();
         let result = compile(&manifest(vec![input]), &method(vec![step("install", &[])]));
         assert_eq!(result.verdict, CompileVerdict::RejectedUnsupported);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "unsupported_task_family"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "unsupported_task_family")
+        );
     }
 
     #[test]
@@ -736,10 +728,12 @@ mod tests {
         input.properties = vec![property("embedment_depth", "1200", "mm")];
         let result = compile(&manifest(vec![input]), &method(vec![step("install", &[])]));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "unit_conversion_receipt_required"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "unit_conversion_receipt_required")
+        );
     }
 
     #[test]
@@ -770,10 +764,12 @@ mod tests {
         template.approval_ref.clear();
         let result = compile(&manifest(vec![element("pile-1")]), &template);
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "missing_compile_header"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "missing_compile_header")
+        );
     }
 
     #[test]
@@ -783,10 +779,12 @@ mod tests {
             &method(vec![step("install", &[])]),
         );
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_design_element_id"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_design_element_id")
+        );
     }
 
     #[test]
@@ -796,10 +794,12 @@ mod tests {
             &method(vec![step("install", &[]), step("install", &[])]),
         );
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_method_step_id"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_method_step_id")
+        );
     }
 
     #[test]
@@ -809,10 +809,12 @@ mod tests {
             &method(vec![step("install", &["missing-step"])]),
         );
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "unknown_method_step_dependency"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "unknown_method_step_dependency")
+        );
     }
 
     #[test]
@@ -825,10 +827,12 @@ mod tests {
             ]),
         );
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "dependency_cycle"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "dependency_cycle")
+        );
     }
 
     #[test]
@@ -839,25 +843,26 @@ mod tests {
             .push(property("embedment_depth", "2.0", "m"));
         let result = compile(&manifest(vec![input]), &method(vec![step("install", &[])]));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "ambiguous_design_property"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "ambiguous_design_property")
+        );
     }
 
     #[test]
     fn duplicate_method_parameter_mapping_is_rejected() {
         let mut install = step("install", &[]);
         install.parameters.push(install.parameters[0].clone());
-        let result = compile(
-            &manifest(vec![element("pile-1")]),
-            &method(vec![install]),
-        );
+        let result = compile(&manifest(vec![element("pile-1")]), &method(vec![install]));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "duplicate_parameter_mapping"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "duplicate_parameter_mapping")
+        );
     }
 
     #[test]
@@ -866,10 +871,12 @@ mod tests {
         input.properties[0].source_ref.clear();
         let result = compile(&manifest(vec![input]), &method(vec![step("install", &[])]));
         assert_eq!(result.verdict, CompileVerdict::RejectedInconsistent);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|item| item.code == "incomplete_design_property"));
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|item| item.code == "incomplete_design_property")
+        );
     }
 
     #[test]
