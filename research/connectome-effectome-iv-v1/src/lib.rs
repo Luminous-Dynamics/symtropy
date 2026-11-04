@@ -213,31 +213,53 @@ impl std::fmt::Display for IvError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidInstrumentCount => {
-                write!(formatter, "instrument count is empty or exceeds the safety limit")
+                write!(
+                    formatter,
+                    "instrument count is empty or exceeds the safety limit"
+                )
             }
             Self::BlankInstrumentId => write!(formatter, "instrument ID is blank"),
             Self::DuplicateInstrumentId => write!(formatter, "instrument IDs must be unique"),
             Self::InvalidWeakInstrumentThreshold => {
-                write!(formatter, "weak-instrument threshold must be positive and finite")
+                write!(
+                    formatter,
+                    "weak-instrument threshold must be positive and finite"
+                )
             }
             Self::TooManyObservations => {
-                write!(formatter, "observation count exceeds the configured safety limit")
+                write!(
+                    formatter,
+                    "observation count exceeds the configured safety limit"
+                )
             }
             Self::TooFewObservations => {
                 write!(formatter, "too few observations for the instrument design")
             }
             Self::InconsistentInstrumentWidth => {
-                write!(formatter, "observation instrument width does not match the frozen schema")
+                write!(
+                    formatter,
+                    "observation instrument width does not match the frozen schema"
+                )
             }
-            Self::NonFiniteObservation => write!(formatter, "observation contains a non-finite value"),
+            Self::NonFiniteObservation => {
+                write!(formatter, "observation contains a non-finite value")
+            }
             Self::RankDeficientInstrumentMatrix => {
-                write!(formatter, "instrument matrix is rank deficient or numerically singular")
+                write!(
+                    formatter,
+                    "instrument matrix is rank deficient or numerically singular"
+                )
             }
             Self::NoSourceVariance => write!(formatter, "source activity has no sample variance"),
             Self::UnidentifiedSecondStage => {
-                write!(formatter, "instrumented source activity does not identify the second stage")
+                write!(
+                    formatter,
+                    "instrumented source activity does not identify the second stage"
+                )
             }
-            Self::NumericalFailure => write!(formatter, "estimator encountered a numerical failure"),
+            Self::NumericalFailure => {
+                write!(formatter, "estimator encountered a numerical failure")
+            }
         }
     }
 }
@@ -378,10 +400,7 @@ pub fn fit_two_stage_least_squares(
     }
 
     let first_stage_slopes = solve_positive_definite(&gram, &cross_x)?;
-    let x_hat: Vec<f64> = z
-        .iter()
-        .map(|row| dot(row, &first_stage_slopes))
-        .collect();
+    let x_hat: Vec<f64> = z.iter().map(|row| dot(row, &first_stage_slopes)).collect();
     let explained_sum_squares = dot(&x_hat, &x_hat);
     let first_stage_sse = x
         .iter()
@@ -392,14 +411,13 @@ pub fn fit_two_stage_least_squares(
         return Err(IvError::NumericalFailure);
     }
 
-    let first_stage_r_squared =
-        (explained_sum_squares / source_sum_squares).clamp(0.0, 1.0);
+    let first_stage_r_squared = (explained_sum_squares / source_sum_squares).clamp(0.0, 1.0);
     let first_stage_f_statistic = if first_stage_sse <= f64::EPSILON {
         FirstStageF::PerfectFit
     } else {
         let residual_degrees = n - q - 1;
-        let statistic = (explained_sum_squares / q as f64)
-            / (first_stage_sse / residual_degrees as f64);
+        let statistic =
+            (explained_sum_squares / q as f64) / (first_stage_sse / residual_degrees as f64);
         if !statistic.is_finite() || statistic < 0.0 {
             return Err(IvError::NumericalFailure);
         }
@@ -440,10 +458,7 @@ pub fn fit_two_stage_least_squares(
         return Err(IvError::NumericalFailure);
     }
 
-    let weak_first_stage = match (
-        design.minimum_first_stage_f(),
-        first_stage_f_statistic,
-    ) {
+    let weak_first_stage = match (design.minimum_first_stage_f(), first_stage_f_statistic) {
         (Some(threshold), FirstStageF::Finite(value)) => value < threshold,
         (Some(_), FirstStageF::PerfectFit) | (None, _) => false,
     };
@@ -628,11 +643,9 @@ mod tests {
     #[test]
     fn valid_instrument_recovers_effect_under_hidden_confounding() {
         let rows = confounded_fixture(11, 40_000, 0.8, 0.0);
-        let result = fit_two_stage_least_squares(
-            &rows,
-            &design(vec!["randomized_pulse"], Some(10.0)),
-        )
-        .expect("valid IV fit");
+        let result =
+            fit_two_stage_least_squares(&rows, &design(vec!["randomized_pulse"], Some(10.0)))
+                .expect("valid IV fit");
 
         assert!((result.iv_coefficient - 1.75).abs() < 0.04);
         assert!((result.ols_coefficient - 1.75).abs() > 0.5);
@@ -652,15 +665,11 @@ mod tests {
             AssumptionStatus::Violated,
             Some("negative-control/direct-light-path".to_owned()),
         );
-        let invalid_design = InstrumentDesign::new(
-            vec!["randomized_pulse".to_owned()],
-            audit,
-            Some(10.0),
-        )
-        .expect("valid design");
+        let invalid_design =
+            InstrumentDesign::new(vec!["randomized_pulse".to_owned()], audit, Some(10.0))
+                .expect("valid design");
 
-        let result = fit_two_stage_least_squares(&rows, &invalid_design)
-            .expect("numerical IV fit");
+        let result = fit_two_stage_least_squares(&rows, &invalid_design).expect("numerical IV fit");
         assert!((result.iv_coefficient - 1.75).abs() > 0.6);
         assert_eq!(
             result.causal_qualification,
@@ -685,18 +694,13 @@ mod tests {
             });
         }
 
-        let warning = fit_two_stage_least_squares(
-            &rows,
-            &design(vec!["weak_randomizer"], Some(10.0)),
-        )
-        .expect("weak-IV fit remains numerically estimable");
+        let warning =
+            fit_two_stage_least_squares(&rows, &design(vec!["weak_randomizer"], Some(10.0)))
+                .expect("weak-IV fit remains numerically estimable");
         assert!(warning.weak_first_stage);
 
-        let no_cutoff = fit_two_stage_least_squares(
-            &rows,
-            &design(vec!["weak_randomizer"], None),
-        )
-        .expect("fit without policy threshold");
+        let no_cutoff = fit_two_stage_least_squares(&rows, &design(vec!["weak_randomizer"], None))
+            .expect("fit without policy threshold");
         assert!(!no_cutoff.weak_first_stage);
         assert!(
             matches!(no_cutoff.first_stage_f_statistic, FirstStageF::Finite(value) if value < 10.0)
@@ -720,11 +724,9 @@ mod tests {
             });
         }
 
-        let result = fit_two_stage_least_squares(
-            &rows,
-            &design(vec!["pulse-a", "pulse-b"], Some(10.0)),
-        )
-        .expect("two-instrument IV fit");
+        let result =
+            fit_two_stage_least_squares(&rows, &design(vec!["pulse-a", "pulse-b"], Some(10.0)))
+                .expect("two-instrument IV fit");
         assert!((result.iv_coefficient - 2.2).abs() < 0.05);
         assert!(!result.weak_first_stage);
         assert_eq!(
@@ -765,8 +767,8 @@ mod tests {
                 }
             })
             .collect();
-        let result = fit_two_stage_least_squares(&rows, &design(vec!["z"], None))
-            .expect("exact linear fit");
+        let result =
+            fit_two_stage_least_squares(&rows, &design(vec!["z"], None)).expect("exact linear fit");
 
         assert!((result.iv_coefficient - 4.0).abs() < 1.0e-12);
         assert!((result.iv_intercept - 3.0).abs() < 1.0e-12);
@@ -777,8 +779,8 @@ mod tests {
     #[test]
     fn row_order_does_not_change_estimate() {
         let rows = confounded_fixture(14, 5_000, 1.0, 0.0);
-        let forward = fit_two_stage_least_squares(&rows, &design(vec!["z"], None))
-            .expect("forward order");
+        let forward =
+            fit_two_stage_least_squares(&rows, &design(vec!["z"], None)).expect("forward order");
         let mut reverse_rows = rows.clone();
         reverse_rows.reverse();
         let reverse = fit_two_stage_least_squares(&reverse_rows, &design(vec!["z"], None))
@@ -851,10 +853,8 @@ mod tests {
     #[test]
     fn supported_status_without_evidence_does_not_qualify() {
         let mut audit = valid_audit();
-        audit.exclusion_restriction = AssumptionEvidence::new(
-            AssumptionStatus::SupportedByDesign,
-            Some(" ".to_owned()),
-        );
+        audit.exclusion_restriction =
+            AssumptionEvidence::new(AssumptionStatus::SupportedByDesign, Some(" ".to_owned()));
         assert_eq!(
             audit.qualification(),
             CausalQualification::NotQualified {
