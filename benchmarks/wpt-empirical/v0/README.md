@@ -351,3 +351,65 @@ The standards matrix now has four complementary pairs:
 - Heavy-duty static MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with applicable stationary off-board IEC 61980 high-power or standard-power scope.
 - Heavy-duty dynamic MF-WPT: ISO/PAS 5474-6:2025 (vehicle side) with IEC PAS 61980-5:2024 (dynamic off-board) and IEC PAS 61980-6:2025 (dynamic communication/positioning).
 - Bidirectional and modular multi-secondary higher-power: explicit research/standards gaps remain. ISO 5474-4 excludes reverse WPT; IEC PAS 61980-6 says bidirectional is under consideration; ISO/PAS 5474-6 does not cover multiple secondary devices in this edition. A configuration may meet individual in-scope aspects, but must not be labelled fully conformant by implication.
+
+
+## Foreign-object detection and active field suppression: 2026 frontier
+
+Two new 2026 primary sources materially change the safety benchmark.
+
+### Planar magnetic-inductance tomography FOD
+
+Vahid et al., Sensors 26(11), 3486 (DOI 10.3390/s26113486), use a 120-channel planar MIT sensor array and 13 engineered statistical/temporal/frequency-domain features. The authors report 17,800 labelled pre-transfer frames across object types, locations, orientations and multi-object configurations.
+
+The key result is the gap between offline and live cross-session performance. On a 50-attempt live cross-session test, raw RF with median plus Savitzky-Golay filtering achieved 31/50 correct (62%); RF with feature engineering and the same filtering achieved 49/50 (98%). XGBoost improved from 30/50 (60%) to 49/50 (98%). The reported end-to-end prediction latency is approximately 75-80 ms.
+
+The active-transfer validation collected 300 frames per class in a controlled setup. Some reported percentage metrics in Tables 5-6 do not reconcile exactly with the displayed confusion counts. We preserve the printed claims and counts separately and do not invent corrected values. The active-transfer sample is too small to establish field safety.
+
+### Active demagnetization / foreign-object-tolerant WPT
+
+Zhang et al., IEEE Transactions on Transportation Electrification (DOI 10.1109/TTE.2026.3704739), integrate two symmetric DeMag coils into the transmitter pad, driven by an auxiliary inverter. A detection/localization event redirects local flux away from an object while preserving the main transfer path.
+
+The abstract reports a 25 mm coin temperature rise after 600 s of 56.6 °C without DeMag versus 13.7 °C with DeMag, a reported 76% reduction. It also reports overall efficiency 94.06% in a 1.5 kW thermal validation and 95.07% at a representative 3.3 kW point. It tests receiver offset and multiple object materials/dimensions including a 100 mm copper sheet.
+
+The exact efficiency meter boundaries and explicit inclusion of auxiliary-inverter energy are not clear in the abstract. These remain source claims, not matched system-efficiency leaderboard points.
+
+### Research implication
+
+The next frontier is detect, localize, predict heating, mitigate or inhibit, then independently verify. This is not the same as optimizing a classifier or stopping transfer whenever metal appears. MIT sensing and active DeMag are separate demonstrated systems; their integration is a proposed research architecture, not a demonstrated combined product.
+
+A 2026 task-oriented ML-WPT review (Luo et al., arXiv:2610.30101) reinforces the need for uncertainty-aware physics-informed learning, safe simulation-to-real transfer, edge deployment and reproducible benchmarks.
+
+The typed corpus includes cross-session accuracy, detection latency, coin temperature-rise, relative mitigation and DeMag efficiency claims. See issue #3496.
+
+## 2026 WPT4 geometry interoperability source
+
+Koch et al., DOI 10.1109/JWPT.2026.3721477, is now a separate source/realization. Its publisher-indexed abstract reports four VAs and three GAs, 189 discrete positions, 3,402 evaluation points and 13,608 inductance samples, including open/short inductance characterization. It reports at least 34% degradation of the magnetic-coupling operating range when legacy WPT3 VAs are combined with a flush-mounted GA, with the proposed WPT4 concept mitigating much of the loss.
+
+The 34% is an author-derived relative coupling-operating-range reduction, not transfer-efficiency loss or percentage-point degradation. Full-text coordinates, raw point-level values, baseline threshold and uncertainty remain unavailable; the realization is development/source-claim evidence only.
+
+Latest empirical fetch-back: 57 sources, 27 prototype/realization records, 41 v0 measurement records and 146 auxiliary metrics. The 27 records represent publication/device families, not 27 independent standardized systems or a matched performance ranking.
+
+## 2026 communication-independent online self-identification
+
+Zakerian et al., IEEE Transactions on Power Electronics, early access 1 October 2026, DOI 10.1109/TPEL.2026.3739481, demonstrate an experimental WPT control/system-identification method based on enhanced multi-sine phase perturbation. The controller perturbs the inverter output voltage, observes primary-side input impedance, and estimates primary self-inductance, secondary self-inductance, mutual inductance and equivalent load resistance. The authors experimentally study lateral/angular misalignment and air-gap changes and use frequency adaptation to restore an optimum operating point/ZVS without a primary-secondary data link.
+
+This is an important architecture result, but not a published high-power EV performance result. The indexed abstract does not state nominal power, operating frequency, exact gap/misalignment ranges, numerical estimator errors, estimator latency, perturbation energy, ripple or efficiency. The catalogue records the experiment as a control-identification realization with null power/efficiency fields, rather than fabricating a WPT leaderboard point.
+
+Related work already in the catalogue: a separate 50 W 2026 communication-free CC/CV reflected-impedance prototype reports <6.4% mutual-inductance estimation error, <=3.1% equivalent-load estimation error and <1% CC/CV regulation error under tested misalignment (DOI 10.1109/JESTPE.2026.3694075). The two approaches are complementary but not yet a matched benchmark comparison: one focuses on joint Lp/Ls/M/R_eq identification and frequency/ZVS adaptation; the other focuses on reflected-impedance decoupling and CC/CV regulation.
+
+The follow-on benchmark is [WPT-SELF-IDENTIFICATION-001 #3512](https://github.com/Luminous-Dynamics/symtropy/issues/3512). Its central idea is to separate a secure session/authorization plane from a fast local estimation/control plane. This does not mean removing authentication or safety communications; it means testing whether fast coupling-state regulation can remain stable without a live secondary telemetry dependency.
+
+
+### IEC PAS 61980-4 frequency-class and interoperability nuance (secondary preview)
+
+The official IEC webstore page confirms that PAS 61980-4:2025 is the stationary high-power MF-WPT off-board equipment document. A publicly indexed non-IEC text preview of its clauses gives additional detail not shown in the official summary:
+- Compatibility class A is intended for interoperable application; class B is not intended for interoperable application but still has safety requirements.
+- The preview states class A fundamental-frequency range 79–90 kHz; class B allows 79–90 kHz or 19–21 kHz.
+- The preview reproduces rated-input power bands MF-WPT4 11.1–22 kW, MF-WPT5 22–50 kW, MF-WPT6 50–100 kW, MF-WPT7 100–150 kW, MF-WPT8 150–250 kW and MF-WPT9 250–500 kW.
+
+**Evidence hierarchy:** the official IEC catalogue confirms title, publication date and stationary high-power scope. The frequency-class and power-band details above are secondary-preview extraction and must be checked clause-by-clause against a licensed official copy before a normative test plan or product assessment uses them. The catalogue records the distinction as preview evidence, not as a compliance decision.
+
+**Design consequence:** the Zhang 30 kW / 20 kHz VA configuration is a candidate for investigation against the PAS's class-B frequency range, while 85 kHz lies in the class-A range. But the paper's 30 kW value is a vehicle-side VA nominal rating, not the measured/rated off-board input power used for the IEC class table; therefore no MF-WPT power class is assigned. More importantly, class B is explicitly not intended for interoperable application in the preview. The paper's support for three VAs on one ground-side platform demonstrates within-platform power-class compatibility; it does not by itself demonstrate the standards' class-A cross-vendor interoperability claim.
+
+The highest-value next test is a **class-A/class-B compatibility separation**: independently verify each network's frequency, input rated power, receiver class, FOD/EMF/EMC and cross-vendor pairing, while testing the class-B 20 kHz mode for safety without calling it interoperable under the PAS's class-A definition.
+
