@@ -632,3 +632,67 @@ It checks:
 The verifier's source contract distinguishes base non-compute load, base cooling, job IT power, job cooling, checkpoint energy and committed non-grid supply. It does not allow an optimizer to hide checkpoint energy or cooling behind a lower PCC import value.
 
 The synthetic oracle pack is [AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json](data/AI_WORKLOAD_SCHEDULE_FIXTURES_2026-11-03.json) with [schema](data/AI_WORKLOAD_SCHEDULE_SCHEMA_2026-11-03.json). Five cases cover a feasible two-job schedule, grid-cap failure, cooling-cap failure, non-preemptible fragmentation and checkpointable pause/resume. Manual arithmetic reconstruction gives zero discrepancies. These fixtures validate feasibility accounting, not schedule optimality or physical data-centre performance.
+
+
+## 29. Stateful storage, UPS reserve and thermal assurance — 4 November 2026
+
+New workstream: [AI-RESOURCE-STATE-ASSURANCE-001 #3575](https://github.com/Luminous-Dynamics/symtropy/issues/3575).
+
+Dependent sibling draft implementation: [PR #3578](https://github.com/Luminous-Dynamics/symtropy/pull/3578).
+
+The new Rust verifier advances the compute-energy work from static slot limits to explicit state trajectories:
+- battery stored energy over consecutive intervals, with distinct charge/discharge efficiencies and power limits;
+- critical-load ride-through reserve and an operating floor;
+- thermal capacitance and ambient conductance in a one-zone RC model;
+- independent IT heat, cooling heat removal and cooling electrical input;
+- cooling COP and thermal/electrical capacity gates;
+- facility input and residual grid import at the same declared boundary.
+
+The machine-readable oracle pack is:
+- [AI_STATEFUL_RESOURCE_FIXTURES_2026-11-04.json](data/AI_STATEFUL_RESOURCE_FIXTURES_2026-11-04.json)
+- [AI_STATEFUL_RESOURCE_SCHEMA_2026-11-04.json](data/AI_STATEFUL_RESOURCE_SCHEMA_2026-11-04.json)
+
+Five synthetic fixtures exercise a passing trajectory, reserve depletion, long thermal overrun, free-cooling accounting abuse and grid-cap failure. The Rust implementation has 14 authored tests. No exact-head compile/test or physical result is claimed; PR #3578 remains draft.
+
+**Claim ceiling:** this v0.1 component has one thermal zone and constant forcing per interval. It is not CFD, a multi-loop liquid-cooling digital twin, battery degradation model, UPS runtime test or live controller. A passing calculation is conditional on its declared coefficients and evidence identifiers.
+
+### Competitive thermal baseline
+
+The June 2026 *Applied Energy* paper, “Exploring the Demand Response Potential of Liquid-Cooled Data Centers” (DOI 10.1016/j.apenergy.2026.127679), explicitly develops electro-thermal coupled liquid-cooled data-centre modelling and coordinated server/cooling demand response. This raises the bar beyond fixed cooling-parasitic estimates. Symtropy's first-order RC implementation is only an initial independently auditable feasibility kernel; the next step is calibrated multi-node coolant/thermal dynamics using measured held-out traces.
+
+Proposed internal targets after obtaining comparable data are <=0.5°C thermal-state MAE and <=10% cooling electrical-power MAPE on held-out operating regimes, with prediction-interval coverage and zero false-negative hard thermal violations in the frozen hostile suite. These are research targets, not standards thresholds.
+
+## 30. Risk-aware Bit-Watt scenario evaluation — 4 November 2026
+
+New workstream: [AI-BIT-WATT-RISK-ASSURANCE-001 #3579](https://github.com/Luminous-Dynamics/symtropy/issues/3579).
+
+Dependent sibling draft implementation: [PR #3581](https://github.com/Luminous-Dynamics/symtropy/pull/3581).
+
+The new Rust evaluator accepts candidate results over a frozen joint scenario ensemble and independently reconstructs:
+- expected operating cost, facility energy and completed work;
+- worst-scenario completed work;
+- power/energy shortfall probability;
+- deadline, thermal and protected-reserve violation probabilities;
+- weighted empirical VaR/CVaR for peak power deficit and energy shortfall;
+- independent risk/service gates and evidence-bearing per-scenario receipts.
+
+The six-fixture synthetic oracle pack is:
+- [AI_BIT_WATT_SCENARIO_RISK_FIXTURES_2026-11-04.json](data/AI_BIT_WATT_SCENARIO_RISK_FIXTURES_2026-11-04.json)
+- [AI_BIT_WATT_SCENARIO_RISK_SCHEMA_2026-11-04.json](data/AI_BIT_WATT_SCENARIO_RISK_SCHEMA_2026-11-04.json)
+
+The weighted CVaR calculation consumes fractional probability mass at the quantile boundary. It does not round the tail to an integer scenario count. This is empirical CVaR for a finite scenario set, not a moment-based worst-case DRO guarantee.
+
+### Competitive optimizer baseline
+
+The September 2026 *International Journal of Electrical Power & Energy Systems* study, “Tail-risk-aware Bit-Watt co-optimization for data center integrated energy systems under joint forecast uncertainty” (DOI 10.1016/j.ijepes.2026.112227), uses joint PV/workload forecast uncertainty and worst-case CVaR. In its modeled case, hourly shortfall falls from 50.05% to 1.84% at a 2.76% cost premium over risk-neutral scheduling; a robust-box comparator reaches 0.26% but is 12.69% costlier than the proposed policy. These numbers are case-specific, not universal SOTA guarantees.
+
+Benchmark at equal inputs, service contracts, scenario set and compute budgets:
+- deterministic risk-neutral MILP;
+- sample-average CVaR;
+- moment-based distributionally robust CVaR;
+- robust-box;
+- MPC;
+- scenario MPC.
+
+Target a matched-system replication of <=1.84% hourly shortfall at no more than 2.76% cost premium, then a <=1% / <=2% stretch, without service, thermal or reserve violations. Do not claim superiority until out-of-sample reliability-cost frontiers dominate the relevant baselines under an independently replayable test protocol.
+
