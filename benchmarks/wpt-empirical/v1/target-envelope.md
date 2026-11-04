@@ -339,3 +339,22 @@ Industry baseline: Purdue/INDOT describes 85 coils embedded in a quarter-mile ro
 ### Paradigm shift
 
 Co-design the MIT sensor geometry, resonant magnetic field, ferrite/shield thermal path and active DeMag coils as one constrained system. Optimize an uncertainty-aware safety envelope rather than raw classification accuracy or nominal transfer efficiency. A safe action may be INHIBIT, DERATE, ACTIVE_DEMAG or ABSTAIN; continued transfer is acceptable only when object material, localization, thermal horizon and mitigation health are inside a validated envelope.
+
+## 13. Cross-generation geometry compatibility
+
+### Research baseline
+
+Koch et al. (2026), DOI 10.1109/JWPT.2026.3721477, report four vehicle assemblies, three ground assemblies, 189 discrete positions, 3,402 evaluation points, 13,608 inductance samples and at least 34% magnetic-coupling operating-range degradation when legacy WPT3 VAs are paired with a flush-mounted GA. The proposed WPT4 coil concept mitigates the loss. The indexed abstract lacks raw point coordinates, the exact baseline/threshold and uncertainty. It is not an efficiency result and is preserved SOURCE_CLAIM_ONLY.
+
+### Proposed qualification targets (not achieved)
+
+- At least 189 unique geometry positions per GA/VA pairing as an initial comparison floor; adaptively refine boundary regions and preserve all added points.
+- Publish separate regions for coupling-only, output-power, regulation, efficiency, thermal, safety and full system-interoperability scopes.
+- Report evaluated points, qualified points, fraction of the sampled domain that passes, connected-component count, 90–99.99% confidence level, lower confidence bound and raw pass/fail classification digest.
+- Never fill a disconnected region by replacing it with a convex hull. If hulls are used for display, preserve the underlying component map and label the hull as an approximation.
+- For SYSTEM_INTEROPERABILITY, require hard-gate evidence for coupling, output power, output regulation, efficiency, thermal, safety, component stress and EMC.
+- Require numeric expanded uncertainty, coverage factor and coverage probability; no uncertainty checkbox without a numerical budget.
+- Cross-generation goal: no more than 5% relative reduction of the measured qualified operating-region fraction for a declared legacy VA under a new GA, unless product requirements explicitly accept the trade.
+- Repeat same-fixture qualified-region fraction at <=2% coefficient of variation; inter-laboratory coverage difference <=5 percentage points after frame/fixture harmonization.
+
+These are research targets, not SAE or IEC requirements.
