@@ -90,7 +90,6 @@ fn record_and_replay_are_bitwise_identical_each_tick() {
     }
 }
 
-
 fn evidence_context() -> ReplayEvidenceContext {
     ReplayEvidenceContext {
         scenario_id: "physics-replay-harness-v1".into(),
@@ -107,8 +106,7 @@ fn scenario_bound_receipt_replays_bitwise_in_a_separate_world() {
     let (mut record_world, record_handles) = build_world();
     let record_tape = build_tape(record_handles);
     let context = evidence_context();
-    let receipt =
-        execute_with_evidence(&mut record_world, &record_tape, &context).unwrap();
+    let receipt = execute_with_evidence(&mut record_world, &record_tape, &context).unwrap();
 
     assert!(receipt.identity_is_valid());
     assert_eq!(receipt.frame_count as usize, record_tape.frames.len());
@@ -121,13 +119,7 @@ fn scenario_bound_receipt_replays_bitwise_in_a_separate_world() {
     // initial-world profile; it is not the mutated record world.
     let (mut replay_world, replay_handles) = build_world();
     let replay_tape = build_tape(replay_handles);
-    assert!(verify_replay_evidence(
-        &mut replay_world,
-        &replay_tape,
-        &context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(verify_replay_evidence(&mut replay_world, &replay_tape, &context, &receipt,).unwrap());
 }
 
 #[test]
@@ -140,25 +132,24 @@ fn changed_tape_or_context_cannot_reuse_an_old_receipt() {
     let (mut changed_tape_world, changed_tape_handles) = build_world();
     let mut changed_tape = build_tape(changed_tape_handles);
     changed_tape.frames[0].commands.pop();
-    assert!(!verify_replay_evidence(
-        &mut changed_tape_world,
-        &changed_tape,
-        &context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(
+        !verify_replay_evidence(&mut changed_tape_world, &changed_tape, &context, &receipt,)
+            .unwrap()
+    );
 
     let (mut changed_context_world, changed_context_handles) = build_world();
     let changed_context_tape = build_tape(changed_context_handles);
     let mut changed_context = context;
     changed_context.environment_profile_digest = "f".repeat(64);
-    assert!(!verify_replay_evidence(
-        &mut changed_context_world,
-        &changed_context_tape,
-        &changed_context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(
+        !verify_replay_evidence(
+            &mut changed_context_world,
+            &changed_context_tape,
+            &changed_context,
+            &receipt,
+        )
+        .unwrap()
+    );
 }
 
 #[test]
@@ -218,11 +209,5 @@ fn malformed_receipt_digest_is_rejected_before_replay() {
 
     let (mut replay_world, replay_handles) = build_world();
     let replay_tape = build_tape(replay_handles);
-    assert!(!verify_replay_evidence(
-        &mut replay_world,
-        &replay_tape,
-        &context,
-        &receipt,
-    )
-    .unwrap());
+    assert!(!verify_replay_evidence(&mut replay_world, &replay_tape, &context, &receipt,).unwrap());
 }
