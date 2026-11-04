@@ -281,8 +281,11 @@ fn choose_for_policy(
                 ids.sort();
                 ids
             };
-            for offset in 0..order.len() {
-                let id = &order[((step as usize) + offset) % order.len()];
+            if order.is_empty() {
+                return Ok(Err(EpisodeTermination::NoPermittedCandidate));
+            }
+            let start_index = (step as usize) % order.len();
+            for id in order.iter().cycle().skip(start_index).take(order.len()) {
                 let candidate = candidate_by_id(candidates, id);
                 if reject_candidate(candidate, config, state).is_none() {
                     return Ok(Ok(id.clone()));
@@ -461,7 +464,7 @@ pub fn run_synthetic_episode(
         }
         state.history.push(record);
         state.completed_experiments += 1;
-        state.remaining_cost_budget -= candidate.cost;
+        state.remaining_cost_budget = (state.remaining_cost_budget - candidate.cost).max(0.0);
         cost_spent += candidate.cost;
         cumulative_expected_information_gain_nats += current_eig;
         selected_candidate_ids.push(candidate.candidate_id.clone());
