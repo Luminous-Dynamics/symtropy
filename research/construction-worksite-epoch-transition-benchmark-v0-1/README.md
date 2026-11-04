@@ -53,7 +53,19 @@ Reuse #3317 snapshot, #3499 temporal, #1595 scenario identity, #1172 replay, #35
 
 HP publishes ±2 mm layout tolerance only under its specified high-accuracy setup (SMR prism, high-accuracy print mode and 1-inch total station, tested at 5–30 m); its up-to-30% productivity claim compares with its previous software version and is based on internal tests. Dusty publishes ±1.6 mm with accurate surveyed control; its FieldPrinter 2 specifies three forward ToF obstacle sensors with about 0.9 m range, four cliff sensors, IP51-equivalent protection and no rain operation. These are vendor specifications, not matched independent dynamic-ODD safety tests. Compare only identical task, revision, network, surface, configuration, density and acceptance criteria.
 
-For earth-moving machinery within the scope of ISO 19014, Part 2 addresses safety-control systems that control machine motion or mitigate hazards, while excluding awareness-only systems that do not affect motion; Part 4 addresses software/data transmission but excludes cybersecurity. Keep these claim domains separate and make no generic claim of ISO compliance from this research:
+For earth-moving machinery within the scope of ISO 19014, Part 2 addresses safety-control systems that control machine motion or mitigate hazards, while excluding awareness-only systems that do not affect motion; Part 4 addresses software/data transmission but excludes cybersecurity.
+
+Additional adjacent standards references:
+- **AMRA-201:2026** is a general mobile-robot requirements and test-method reference for robots on solid travel surfaces (including wheels, legs and tracks); use it for baseline performance test design, not as proof of construction-site functional safety.
+- **ISO 3691-4:2023** applies to driverless industrial trucks and their systems, and its defined application assumes people in the area have specific training, instruction or awareness. A third edition, **ISO/DIS 3691-4**, is under development; the draft includes external movement-stop interfaces and loss-of-communication provisions, while listing protection against corruption and self-evolving AI behavior among exclusions. Treat this as adjacent input only after product classification; it is not automatically applicable to every layout robot or mixed-trade construction site.
+- **ISO 10218-1:2025** covers industrial robots as incomplete machines; ISO 10218-2 addresses integration and application safety. It is not a substitute for mobile-machine or worksite coordination analysis.
+- **ISO 19014** remains scoped to earth-moving machinery, not all construction robots.
+
+No generic standards-compliance claim is made. Applicability must be determined product-by-product and use-case-by-use-case:
+- AMRA-201:2026: https://www.amr-alliance.org/amra-201/
+- ISO 3691-4:2023: https://www.iso.org/standard/83545.html
+- ISO/DIS 3691-4 (third edition in development): https://www.iso.org/standard/88615.html
+- ISO 10218-1:2025: https://committee.iso.org/standard/73933.html
 - ISO 19014-2:2026: https://www.iso.org/standard/87718.html
 - ISO 19014-4:2026: https://www.iso.org/standard/87720.html
 - https://www.hp.com/us-en/printers/site-print/layout-robot.html
@@ -66,6 +78,9 @@ Targets are hypotheses, not achieved results or certification limits: zero false
 See [evaluation-plan.md](evaluation-plan.md) for preregistered independent-unit definitions, ODD stratification, confidence bounds, challenge-versus-operational sampling, latency/metrology rules, matched baselines and stop conditions.
 
 
+## Observation-coverage follow-on
+
+The epoch oracle reacts to context updates; it cannot prove that the upstream observation pipeline detected every material change. Complementary issue [#3558 — observation coverage and missed worksite-change challenge benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/3558) defines `verified_clear` versus `unknown_or_unobserved`, source freshness/coverage and missed-change testing. It owns observation coverage and event-to-epoch timeliness; this PR continues to own epoch transition and authorization invalidation.
 ## Executable transition validation
 
 The Rust reference oracle contains 23 unit and frozen-scenario tests. It validates the four scenario fixtures against a closed Draft 2020-12 schema and replays their event-by-event expected outcomes. It also runs a bounded exhaustive invariant sweep over 11 event classes at depth four: 14,641 complete event sequences and 16,105 total prefixes. This is bounded software-model regression testing, not a formal proof or physical safety evidence.
