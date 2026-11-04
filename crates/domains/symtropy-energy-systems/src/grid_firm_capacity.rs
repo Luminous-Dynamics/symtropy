@@ -251,6 +251,7 @@ pub struct GridFirmCapacityReport {
     pub metric_convention_id: String,
     pub confidence_method_id: String,
     pub confidence_assumption: String,
+    pub claim_ceiling: String,
     pub trial_count: usize,
     pub successful_trial_count: usize,
     pub failed_trial_count: usize,
@@ -261,8 +262,8 @@ pub struct GridFirmCapacityReport {
     pub lower_confidence_success_probability: f64,
     pub required_success_probability: f64,
     pub minimum_trial_count: usize,
-    pub firm_capacity_qualified: bool,
-    pub accredited_reduction_kw: Option<f64>,
+    pub event_response_reliability_qualified: bool,
+    pub qualified_committed_reduction_kw: Option<f64>,
     pub trial_receipts: Vec<GridFirmCapacityTrialReceipt>,
 }
 
@@ -501,17 +502,18 @@ pub fn evaluate_grid_firm_capacity(
         ));
     }
 
-    let firm_capacity_qualified = lower_confidence_success_probability
+    let event_response_reliability_qualified = lower_confidence_success_probability
         >= evaluation.contract.minimum_success_probability;
-    let accredited_reduction_kw = firm_capacity_qualified
+    let qualified_committed_reduction_kw = event_response_reliability_qualified
         .then_some(evaluation.contract.identity.committed_reduction_kw);
 
     Ok(GridFirmCapacityReport {
         identity: evaluation.contract.identity.clone(),
         scheduled_event_ids: evaluation.contract.scheduled_event_ids.clone(),
-        metric_convention_id: "SYMTROPY-GRID-FIRM-CAPACITY-HOEFFDING-IID-V0.1".to_string(),
+        metric_convention_id: "SYMTROPY-GRID-RESPONSE-RELIABILITY-HOEFFDING-INDEPENDENT-TRIALS-V0.1".to_string(),
         confidence_method_id: "ONE_SIDED_HOEFFDING_BERNOUlli_LOWER_BOUND".to_string(),
         confidence_assumption: "INDEPENDENT_BERNOULLI_EVENT_TRIALS_DECLARED_BY_CALLER_NOT_PROVEN".to_string(),
+        claim_ceiling: "EVENT_RESPONSE_RELIABILITY_LOWER_BOUND_WITHIN_ONE_FROZEN_CONDITION_STRATUM_NOT_SYSTEM_RESOURCE_ADEQUACY_OR_ISO_TSO_ACCREDITATION".to_string(),
         trial_count,
         successful_trial_count,
         failed_trial_count,
@@ -522,8 +524,8 @@ pub fn evaluate_grid_firm_capacity(
         lower_confidence_success_probability,
         required_success_probability: evaluation.contract.minimum_success_probability,
         minimum_trial_count: evaluation.contract.minimum_trial_count,
-        firm_capacity_qualified,
-        accredited_reduction_kw,
+        event_response_reliability_qualified,
+        qualified_committed_reduction_kw,
         trial_receipts,
     })
 }
@@ -697,8 +699,8 @@ mod tests {
         assert_eq!(report.successful_trial_count, 100);
         assert_eq!(report.failed_trial_count, 0);
         assert!(report.empirical_success_probability > 0.999);
-        assert!(report.firm_capacity_qualified);
-        assert_eq!(report.accredited_reduction_kw, Some(100.0));
+        assert!(report.event_response_reliability_qualified);
+        assert_eq!(report.qualified_committed_reduction_kw, Some(100.0));
         assert_eq!(report.scheduled_event_ids.len(), 100);
         assert_eq!(report.scheduled_event_ids[0], "event-0");
         assert!(report.lower_confidence_success_probability >= 0.60);
