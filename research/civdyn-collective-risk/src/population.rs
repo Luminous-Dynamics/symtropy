@@ -8,7 +8,7 @@
 //! Huynh et al. (2026), but uses this crate's scripted baseline strategies.
 //! It does not reproduce the paper's model-specific fitness measurements.
 
-use crate::{run_episode, GameConfig, Strategy, SEATS};
+use crate::{GameConfig, SEATS, Strategy, run_episode};
 use core::fmt;
 
 pub const STRATEGY_COUNT: usize = Strategy::ALL.len();
@@ -47,7 +47,10 @@ impl PopulationState {
         Ok(())
     }
 
-    pub fn monomorphic(strategy: Strategy, population_size: usize) -> Result<Self, PopulationError> {
+    pub fn monomorphic(
+        strategy: Strategy,
+        population_size: usize,
+    ) -> Result<Self, PopulationError> {
         let mut counts = [0; STRATEGY_COUNT];
         counts[strategy_index(strategy)] = population_size;
         Self::new(counts)
@@ -111,12 +114,18 @@ pub enum PopulationError {
     AbsentFocalStrategy(Strategy),
     InvalidGameRisk(f64),
     InvalidSelectionIntensity(f64),
-    InvalidMutantCount { population_size: usize, mutant_count: usize },
+    InvalidMutantCount {
+        population_size: usize,
+        mutant_count: usize,
+    },
     InvalidFitness(f64),
     InvalidTransitionMatrix,
     CombinatorialOverflow,
     ProbabilityMassError(f64),
-    NoStationaryConvergence { iterations: usize, residual: f64 },
+    NoStationaryConvergence {
+        iterations: usize,
+        residual: f64,
+    },
 }
 
 impl fmt::Display for PopulationError {
@@ -131,7 +140,11 @@ impl fmt::Display for PopulationError {
                 "balanced population size must be at least {GROUP_SIZE} and divisible by {STRATEGY_COUNT}, got {size}"
             ),
             Self::AbsentFocalStrategy(strategy) => {
-                write!(f, "focal strategy {} is absent from the population", strategy.name())
+                write!(
+                    f,
+                    "focal strategy {} is absent from the population",
+                    strategy.name()
+                )
             }
             Self::InvalidGameRisk(risk) => {
                 write!(f, "game risk must be finite and in [0, 1], got {risk}")
@@ -140,21 +153,35 @@ impl fmt::Display for PopulationError {
                 f,
                 "selection intensity beta must be finite and in [0, {MAX_SELECTION_INTENSITY}], got {beta}"
             ),
-            Self::InvalidMutantCount { population_size, mutant_count } => write!(
+            Self::InvalidMutantCount {
+                population_size,
+                mutant_count,
+            } => write!(
                 f,
                 "mutant count must be in 1..{population_size}, got {mutant_count}"
             ),
             Self::InvalidFitness(value) => {
-                write!(f, "expected fitness must be finite and non-negative, got {value}")
+                write!(
+                    f,
+                    "expected fitness must be finite and non-negative, got {value}"
+                )
             }
-            Self::InvalidTransitionMatrix => write!(f, "transition matrix must be finite, non-negative and row-stochastic"),
-            Self::CombinatorialOverflow => write!(f, "hypergeometric combination arithmetic overflow"),
+            Self::InvalidTransitionMatrix => write!(
+                f,
+                "transition matrix must be finite, non-negative and row-stochastic"
+            ),
+            Self::CombinatorialOverflow => {
+                write!(f, "hypergeometric combination arithmetic overflow")
+            }
             Self::ProbabilityMassError(sum) => write!(
                 f,
                 "hypergeometric probability mass differs from one by {}",
                 (sum - 1.0).abs()
             ),
-            Self::NoStationaryConvergence { iterations, residual } => write!(
+            Self::NoStationaryConvergence {
+                iterations,
+                residual,
+            } => write!(
                 f,
                 "stationary iteration did not converge after {iterations} iterations; L1 residual {residual}"
             ),
@@ -277,7 +304,9 @@ pub fn expected_type_fitness(
     if !config.catastrophe_probability.is_finite()
         || !(0.0..=1.0).contains(&config.catastrophe_probability)
     {
-        return Err(PopulationError::InvalidGameRisk(config.catastrophe_probability));
+        return Err(PopulationError::InvalidGameRisk(
+            config.catastrophe_probability,
+        ));
     }
     let population_count = population.count(focal_strategy);
     if population_count == 0 {
@@ -346,9 +375,9 @@ pub fn fermi_transition_rates(
     }
 
     let resident_count = population_size - mutant_count;
-    let ordered_cross_type_pair_probability =
-        resident_count as f64 / population_size as f64
-            * mutant_count as f64 / (population_size - 1) as f64;
+    let ordered_cross_type_pair_probability = resident_count as f64 / population_size as f64
+        * mutant_count as f64
+        / (population_size - 1) as f64;
     let payoff_difference = mutant_fitness - resident_fitness;
     let increase_probability =
         ordered_cross_type_pair_probability * logistic(beta * payoff_difference);
@@ -437,13 +466,8 @@ pub fn rare_mutation_chain(
                 continue;
             }
             let mutant = Strategy::ALL[mutant_index];
-            let log_fixation = log_fixation_probability(
-                config,
-                population_size,
-                mutant,
-                resident,
-                beta,
-            )?;
+            let log_fixation =
+                log_fixation_probability(config, population_size, mutant, resident, beta)?;
             log_fixation_matrix[resident_index][mutant_index] = log_fixation;
             row_log_weights.push(log_fixation);
             mutant_indices.push(mutant_index);
@@ -612,14 +636,21 @@ mod tests {
             let fitness = expected_type_fitness(config(0.9), population, strategy).unwrap();
             let outcome = run_episode(config(0.9), &[strategy; SEATS]).unwrap();
             assert!((fitness.expected_payoff - outcome.expected_per_seat_welfare).abs() < 1e-12);
-            assert!((fitness.expected_group_welfare - outcome.expected_group_welfare).abs() < 1e-12);
+            assert!(
+                (fitness.expected_group_welfare - outcome.expected_group_welfare).abs() < 1e-12
+            );
         }
     }
 
     #[test]
     fn fermi_probabilities_conserve_mass() {
         let rates = fermi_transition_rates(30, 10, 8.0, 4.0, 1.0).unwrap();
-        assert!((rates.increase_probability + rates.decrease_probability + rates.stay_probability - 1.0).abs() < 1e-12);
+        assert!(
+            (rates.increase_probability + rates.decrease_probability + rates.stay_probability
+                - 1.0)
+                .abs()
+                < 1e-12
+        );
         assert!(rates.increase_probability > rates.decrease_probability);
     }
 
@@ -656,7 +687,12 @@ mod tests {
             assert!((row.iter().sum::<f64>() - 1.0).abs() < 1e-10);
         }
         let stationary = stationary_distribution(&chain, 1e-12, 100_000).unwrap();
-        assert!(stationary.weights.iter().all(|weight| weight.is_finite() && *weight >= 0.0));
+        assert!(
+            stationary
+                .weights
+                .iter()
+                .all(|weight| weight.is_finite() && *weight >= 0.0)
+        );
         assert!((stationary.weights.iter().sum::<f64>() - 1.0).abs() < 1e-10);
         assert!(stationary.residual_l1 <= 1e-10);
     }
