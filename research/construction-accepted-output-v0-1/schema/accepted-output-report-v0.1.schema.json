@@ -46,7 +46,8 @@
         "first_pass_critical_defects",
         "first_pass_major_defects",
         "first_pass_minor_defects",
-        "first_pass_unknown_severity_defects"
+        "first_pass_unknown_severity_defects",
+        "critical_inspected_units"
       ],
       "properties": {
         "planned_units": {
@@ -104,6 +105,10 @@
         "first_pass_unknown_severity_defects": {
           "type": "integer",
           "minimum": 0
+        },
+        "critical_inspected_units": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -133,7 +138,8 @@
               "critical_feature_inspection_coverage",
               "first_pass_critical_defects_per_first_pass_inspected_unit",
               "first_pass_major_defects_per_first_pass_inspected_unit",
-              "first_pass_minor_defects_per_first_pass_inspected_unit"
+              "first_pass_minor_defects_per_first_pass_inspected_unit",
+              "critical_first_pass_inspection_coverage"
             ]
           },
           "numerator": {
