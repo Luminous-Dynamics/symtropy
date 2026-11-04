@@ -310,13 +310,14 @@ impl DecisionClosureRecord {
         }
 
         if self.action_progress != ActionProgress::NotStarted
-            && self.action_progress != ActionProgress::Cancelled
+            && self.human_disposition != HumanDisposition::Authorized
         {
-            if self.human_disposition != HumanDisposition::Authorized {
-                return Err(DecisionClosureError::ActionAfterNonAuthorization);
-            }
+            return Err(DecisionClosureError::ActionAfterNonAuthorization);
+        }
+
+        if self.action_progress != ActionProgress::NotStarted {
             if self.resource_feasibility != ResourceFeasibility::FeasibleAndReserved {
-                return Err(DecisionClosureError::ActionWithoutFeasibility);
+                return Err(DecisionClosureError::ActionAfterFeasibilityRejection);
             }
             if self.resource_receipt_id.is_none() {
                 return Err(DecisionClosureError::MissingResourceReceipt);
@@ -326,16 +327,16 @@ impl DecisionClosureRecord {
             }
         }
 
-        if self.resource_feasibility == ResourceFeasibility::FeasibleAndReserved
+        if self.resource_feasibility != ResourceFeasibility::NotAttempted
             && self.resource_receipt_id.is_none()
         {
             return Err(DecisionClosureError::MissingResourceReceipt);
         }
 
-        if self.action_progress == ActionProgress::Cancelled {
-            if self.resource_receipt_id.is_none() || self.workflow_receipt_id.is_none() {
-                return Err(DecisionClosureError::MissingWorkflowReceipt);
-            }
+        if self.action_progress == ActionProgress::Cancelled
+            && self.workflow_receipt_id.is_none()
+        {
+            return Err(DecisionClosureError::MissingWorkflowReceipt);
         }
 
         if self.action_progress == ActionProgress::IndependentlyVerified
@@ -383,6 +384,10 @@ impl DecisionClosureRecord {
                 || self.service_evidence_class.is_some())
         {
             return Err(DecisionClosureError::ReferencesWithoutServiceClaim);
+        } else if self.service_effect == ServiceEffect::Indeterminate
+            && self.service_evidence_class.is_some()
+        {
+            return Err(DecisionClosureError::ServiceEffectEvidenceMismatch);
         }
 
         if is_improvement(self.service_effect) {
