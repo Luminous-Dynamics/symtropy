@@ -428,10 +428,7 @@ mod tests {
             book.reserve(first.clone(), 50),
             Ok(ReservationOutcome::Granted)
         );
-        assert_eq!(
-            book.reserve(first, 50),
-            Ok(ReservationOutcome::Duplicate)
-        );
+        assert_eq!(book.reserve(first, 50), Ok(ReservationOutcome::Duplicate));
         assert_eq!(
             book.reserve(request("r1", "robot-2", 100, 200, 250, 1), 50),
             Err(ReservationError::ReservationIdConflict)
@@ -460,8 +457,7 @@ mod tests {
         let mut book = book(2);
         book.reserve(request("r1", "robot-1", 100, 200, 250, 1), 50)
             .expect("reservation");
-        book.advance_site_epoch("site-epoch-2")
-            .expect("new epoch");
+        book.advance_site_epoch("site-epoch-2").expect("new epoch");
         assert_eq!(book.state("r1"), Some(ReservationState::Invalidated));
         assert_eq!(book.current_site_epoch(), "site-epoch-2");
         assert_eq!(
@@ -490,10 +486,7 @@ mod tests {
             book.release("r1", "robot-2"),
             Err(ReservationError::WrongOwner)
         );
-        assert_eq!(
-            book.release("r1", "robot-1"),
-            Ok(ReleaseOutcome::Released)
-        );
+        assert_eq!(book.release("r1", "robot-1"), Ok(ReleaseOutcome::Released));
         assert_eq!(
             book.release("r1", "robot-1"),
             Ok(ReleaseOutcome::AlreadyReleased)
@@ -520,7 +513,6 @@ mod tests {
             Err(ReservationError::InvalidInterval)
         );
     }
-
 
     #[test]
     fn clock_uncertainty_over_the_declared_policy_is_rejected() {
@@ -578,8 +570,8 @@ mod tests {
 
     #[test]
     fn resource_capacity_must_be_positive() {
-        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
-            .expect("valid book");
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0).expect("valid book");
         assert_eq!(
             book.register_resource("work-zone-A", 0),
             Err(ReservationError::ZeroCapacity)
