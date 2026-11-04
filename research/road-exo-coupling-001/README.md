@@ -250,3 +250,50 @@ This does not make utilities unbiased or prove causal assumptions. It ensures th
 ### Positive and negative purpose tests
 
 The Rust fixtures now cover valid human-adjudication and formal-conformance references in their own purposes, in addition to rejection of those sources for empirical claims. An Unsupported action cell requires no evidence packet and remains Unsupported; it cannot be silently omitted or turned into an empirical result.
+
+
+## Robust decision-directed measurement selection (ROAD-DECISION-MEASUREMENT-001 #3639)
+
+The measurement_selection module chooses candidate measurements/interventions by worst-case decision-regret reduction over a finite admitted model-hypothesis set. It does not invent probability weights over hypotheses or possible test outcomes.
+
+### Decision criterion
+
+For a current complete decision matrix:
+- baseline minimax regret is the minimum, over actions, of the worst regret across all admitted hypotheses;
+- each possible measurement outcome names the set of hypotheses that remain compatible with that observation;
+- compatibility sets may overlap to represent noisy / ambiguous measurements;
+- conditional minimax regret is computed for each outcome's compatible subset;
+- worst-case residual regret is the maximum conditional regret over every possible outcome;
+- regret reduction is baseline regret minus this worst-case residual.
+
+A measurement that reduces prediction error but leaves the worst-case action regret unchanged receives zero decision-regret reduction. If the test is noisy, the worst ambiguous outcome governs the value; no posterior mean is fabricated.
+
+### Independent constraints and Pareto frontier
+
+The candidate binds:
+- modality (passive observation, controlled intervention, closed-course intervention, simulation challenge);
+- protocol, preregistration and risk-assessment digests;
+- exact acquisition cost and its scale ID;
+- nonnegative conservative risk upper bound and its scale ID;
+- declared authorization reference and safety-case digest;
+- complete named outcome-to-hypothesis compatibility relation.
+
+Cost and risk are hard constraints and are not subtracted from decision utility. Feasible informative tests are compared along acquisition cost, risk upper bound and worst-case residual regret. Non-dominated candidates form the Pareto frontier; the oracle does not choose an arbitrary scalar winner across the frontier.
+
+### Exact example
+
+Baseline:
+- H1: A=10, B=0
+- H2: A=0, B=10
+
+Current minimax regret is 10. A perfect test has outcome O1 compatible only with H1 and O2 compatible only with H2. After either outcome the residual regret is 0, so the worst-case decision-regret reduction is 10. A test with one ambiguous outcome compatible with both H1 and H2 gives zero reduction. A noisy test with one ambiguous outcome still has residual regret 10 even if another outcome is fully diagnostic.
+
+### Safety and evidence boundaries
+
+A nonzero authorization reference and safety-case digest are **declared metadata**, not cryptographic proof of approval. This reference oracle does not verify signing authorities, risk models or operational permits. Do not execute physical interventions on the strength of this receipt alone; independent authority verification and a safety case are still required.
+
+A SimulationChallenge remains simulation/model evidence. Even if it discriminates hypotheses, it cannot be upgraded to an independent observed real-world result. Actual measurements must pass the evidence provenance and decision-evidence-binding gates (#3635/#3638).
+
+### V0.1 claim ceiling
+
+Passing the finite fixtures proves exact worst-case residual-regret computation, outcome coverage, cost/risk hard-constraint enforcement, deterministic Pareto filtering and certificate replay for declared hypotheses and outcomes. It does not prove the possible-outcome mapping is physically exhaustive, experiment identification assumptions are true, test risk is correctly estimated, or that a selected road intervention is safe.
