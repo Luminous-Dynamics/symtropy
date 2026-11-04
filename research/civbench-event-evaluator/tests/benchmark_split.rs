@@ -5,7 +5,6 @@ use civbench_event_evaluator::benchmark_split::{
     BenchmarkSample, DataPartition, LeakageDimension, LeakageGroup, SplitPolicy,
     SplitProtocolPreset, audit_benchmark_split,
 };
-use std::collections::BTreeSet;
 
 fn digest(value: u64) -> String {
     format!("sha256:{value:064x}")
@@ -41,13 +40,7 @@ fn sample(
 fn policy() -> SplitPolicy {
     SplitPolicy {
         protocol: SplitProtocolPreset::WithinNetworkUnseenEvent,
-        protocol_id: "within_network_unseen_event_v1".to_owned(),
         manifest_digest: digest(900),
-        exclusive_dimensions: BTreeSet::from([
-            LeakageDimension::PhysicalEvent,
-            LeakageDimension::CaptureSession,
-        ]),
-        shared_dimensions: BTreeSet::from([LeakageDimension::Network]),
     }
 }
 
@@ -254,35 +247,23 @@ fn whitespace_padded_identifiers_are_rejected() {
 }
 
 #[test]
-fn empty_policy_cannot_claim_an_audited_protocol() {
-    let empty_policy = SplitPolicy {
-        protocol: SplitProtocolPreset::CrossNetwork,
-        protocol_id: "cross_network_v1".to_owned(),
-        manifest_digest: digest(900),
-        exclusive_dimensions: BTreeSet::new(),
-        shared_dimensions: BTreeSet::new(),
-    };
-    let error = audit_benchmark_split(&valid_samples(), &empty_policy).expect_err("empty policy");
-    assert_eq!(error.code, "empty_exclusive_dimensions");
-}
+fn each_registered_preset_has_immutable_protocol_identity_and_firewall() {
+    let cross_network = SplitProtocolPreset::CrossNetwork;
+    assert_eq!(cross_network.as_str(), "cross_network_v1");
+    assert!(
+        cross_network
+            .exclusive_dimensions()
+            .contains(&LeakageDimension::Network)
+    );
+    assert!(cross_network.shared_dimensions().is_empty());
 
-#[test]
-fn a_registered_protocol_cannot_be_claimed_with_incompatible_dimensions() {
-    let mut invalid_policy = policy();
-    invalid_policy.protocol = SplitProtocolPreset::CrossNetwork;
-    invalid_policy.protocol_id = invalid_policy.protocol.as_str().to_owned();
-    let error = audit_benchmark_split(&valid_samples(), &invalid_policy)
-        .expect_err("within-network dimensions cannot claim cross-network transfer");
-    assert_eq!(error.code, "protocol_dimensions_mismatch");
-}
-
-#[test]
-fn a_custom_protocol_id_cannot_impersonate_a_registered_protocol() {
-    let mut invalid_policy = policy();
-    invalid_policy.protocol_id = "cross_network_v1".to_owned();
-    let error =
-        audit_benchmark_split(&valid_samples(), &invalid_policy).expect_err("preset and ID differ");
-    assert_eq!(error.code, "protocol_id_preset_mismatch");
+    let within_network = SplitProtocolPreset::WithinNetworkUnseenEvent;
+    assert_eq!(
+        within_network.as_str(),
+        "within_network_unseen_event_v1"
+    );
+    assert!(!within_network.exclusive_dimensions().contains(&LeakageDimension::Network));
+    assert!(within_network.shared_dimensions().contains(&LeakageDimension::Network));
 }
 
 #[test]
@@ -315,14 +296,14 @@ fn malformed_manifest_digest_is_rejected() {
 }
 
 #[test]
-fn invalid_protocol_and_empty_manifest_fail_closed() {
+fn invalid_manifest_digest_and_empty_manifest_fail_closed() {
     let mut invalid_policy = policy();
-    invalid_policy.protocol_id = "bad protocol".to_owned();
+    invalid_policy.manifest_digest = "sha256:00".to_owned();
     assert_eq!(
         audit_benchmark_split(&valid_samples(), &invalid_policy)
-            .expect_err("invalid protocol")
+            .expect_err("invalid manifest digest")
             .code,
-        "invalid_protocol_id"
+        "invalid_manifest_digest"
     );
 
     assert_eq!(
