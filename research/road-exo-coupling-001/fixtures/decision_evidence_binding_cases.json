@@ -1,0 +1,107 @@
+{
+  "schema": "symtropy.road-decision-evidence-binding.fixtures.v0.1",
+  "purpose": "Require one replay-verified evidence qualification receipt per supported action/hypothesis outcome.",
+  "purposes": {
+    "EmpiricalDecision": [
+      "IndependentObservedAnchor",
+      "ControlledInterventionOutcome",
+      "QualifiedNaturalExperiment"
+    ],
+    "HumanAdjudication": [
+      "HumanAdjudicationReference"
+    ],
+    "FormalConformance": [
+      "AnalyticReference"
+    ]
+  },
+  "cases": [
+    {
+      "id": "empirical-observed-outcome",
+      "expected": "accept_same_action_sealed_receipt"
+    },
+    {
+      "id": "empirical-controlled-intervention",
+      "expected": "accept_only_if_assignment_calibration_and_action_match"
+    },
+    {
+      "id": "empirical-natural-experiment",
+      "expected": "accept_only_if_identification_package_complete"
+    },
+    {
+      "id": "simulator-generated-reference",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject_SimulationOnly"
+    },
+    {
+      "id": "model-generated-reference",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject_ModelDependentReference"
+    },
+    {
+      "id": "same-model-source-lineage",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject_ModelDependentReference"
+    },
+    {
+      "id": "factual-log-wrong-action",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject_NotIdentified_or_target_mismatch"
+    },
+    {
+      "id": "fit-or-calibration-data",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject_NotIdentified"
+    },
+    {
+      "id": "missing-supported-cell-binding",
+      "expected": "reject_MissingBinding"
+    },
+    {
+      "id": "duplicate-binding",
+      "expected": "reject_DuplicateBinding"
+    },
+    {
+      "id": "orphan-binding",
+      "expected": "reject_OrphanBinding"
+    },
+    {
+      "id": "wrong-outcome-receipt-digest",
+      "expected": "reject_OutcomeEvidenceDigestMismatch"
+    },
+    {
+      "id": "tampered-qualification-receipt",
+      "expected": "reject_integrity_or_replay"
+    },
+    {
+      "id": "packet-metadata-tampering",
+      "expected": "reject_QualificationReplayMismatch"
+    },
+    {
+      "id": "wrong-human-rubric-or-purpose",
+      "purpose": "HumanAdjudication",
+      "expected": "reject"
+    },
+    {
+      "id": "formal-oracle-used-empirically",
+      "purpose": "EmpiricalDecision",
+      "expected": "reject"
+    },
+    {
+      "id": "formal-oracle-matching-domain",
+      "purpose": "FormalConformance",
+      "expected": "accept_AnalyticReference"
+    },
+    {
+      "id": "binding-order-permutation",
+      "expected": "same_bundle_digest_and_certificate"
+    },
+    {
+      "id": "utility-change-only",
+      "expected": "decision_digest_changes_evidence_receipt_digest_unchanged"
+    },
+    {
+      "id": "unsupported-action-outcome",
+      "expected": "no_receipt_required_and_decision_remains_Unsupported"
+    }
+  ]
+}
