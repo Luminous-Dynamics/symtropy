@@ -129,9 +129,11 @@ These are synthetic test adapters in one Rust crate, not two independently autho
 
 ## Shared-resource reservation evaluator
 
-The dependency-free `resources` module adds a deterministic calendar for exclusive and capacity-limited resources. It uses half-open time intervals, a declared common clock domain, explicit expiry, owner-bound release and site-epoch invalidation. It rejects overlapping reservations that exceed capacity and preserves released/expired/invalidated IDs so an old reservation cannot be resurrected by reusing its identifier.
+The dependency-free `resources` module adds a deterministic calendar for exclusive and capacity-limited resources. It uses half-open time intervals, a declared common clock domain, explicit expiry, owner-bound release and site-epoch invalidation. It uses an event sweep over uncertainty-expanded half-open intervals and checks peak simultaneous occupancy, rather than summing every reservation that intersects a candidate window. This admits a valid long reservation spanning disjoint earlier/later reservations while rejecting a genuine peak overbooking. It preserves released/expired/invalidated IDs so an old reservation cannot be resurrected by reusing its identifier.
 
 The evaluator is scheduling-only: its `Granted` result is not a safety permit, work-zone clearance or motion authorization. The caller supplies a project-specific maximum clock uncertainty in the declared site clock domain; requests above that bound are rejected, interval overlap is conservatively expanded by each request's uncertainty, and reservation expiry uses the earliest possible expiry. This does not synchronize clocks or establish that the chosen uncertainty bound is physically justified. Spatial conflict geometry, external identity authorization and live dispatch remain outside this module.
+
+The Rust source currently contains 37 unit tests: 13 lifecycle, 17 resource-calendar and 7 synthetic-adapter cases.
 
 ## Frozen reference corpus
 
