@@ -160,6 +160,38 @@ pub enum PresynapticMovementInhibition {
     Engaged,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum LegId {
+    FrontLeft,
+    FrontRight,
+    MiddleLeft,
+    MiddleRight,
+    HindLeft,
+    HindRight,
+}
+
+impl LegId {
+    pub const ALL: [Self; 6] = [
+        Self::FrontLeft,
+        Self::FrontRight,
+        Self::MiddleLeft,
+        Self::MiddleRight,
+        Self::HindLeft,
+        Self::HindRight,
+    ];
+
+    pub const fn index(self) -> usize {
+        match self {
+            Self::FrontLeft => 0,
+            Self::FrontRight => 1,
+            Self::MiddleLeft => 2,
+            Self::MiddleRight => 3,
+            Self::HindLeft => 4,
+            Self::HindRight => 5,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SensorState {
     pub id: String,
@@ -172,9 +204,10 @@ pub struct SensorState {
     pub contact_feedback: ChannelState,
     /// Acquisition/instrument state is distinct from biological afferent gain.
     pub acquisition: AcquisitionState,
-    /// Neural presynaptic inhibition of the movement-encoding FeCO axons.
-    /// This is distinct from axon loss/gating and from acquisition faults.
-    pub presynaptic_movement_inhibition: PresynapticMovementInhibition,
+    /// Neural presynaptic inhibition of movement-encoding FeCO axons,
+    /// represented per leg because descending modulation is leg-specific.
+    /// This is distinct from axon loss/gating and acquisition faults.
+    pub presynaptic_movement_inhibition: [PresynapticMovementInhibition; 6],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -197,6 +230,8 @@ pub struct InterventionAction {
     pub protocol_id: String,
     pub protocol_source_manifest_id: String,
     pub cost_units: u64,
+    /// Required for active/passive movement probes and descending modulation.
+    pub target_leg: Option<LegId>,
     /// Required only for DescendingPathwayModulation; identifies the intended
     /// presynaptic inhibition state, not a generic sensory-channel gate.
     pub presynaptic_inhibition_target: Option<PresynapticMovementInhibition>,
@@ -571,6 +606,20 @@ fn sensor_state_semantic_id(sensor: &SensorState) -> String {
         sensor.acquisition,
         sensor.presynaptic_movement_inhibition
     )
+}
+
+fn presynaptic_legs_except_unchanged(
+    current: &SensorState,
+    next: &SensorState,
+    target_leg: LegId,
+) -> bool {
+    LegId::ALL
+        .into_iter()
+        .filter(|leg| *leg != target_leg)
+        .all(|leg| {
+            current.presynaptic_movement_inhibition[leg.index()]
+                == next.presynaptic_movement_inhibition[leg.index()]
+        })
 }
 
 fn sensor_channels_unchanged(current: &SensorState, next: &SensorState) -> bool {
