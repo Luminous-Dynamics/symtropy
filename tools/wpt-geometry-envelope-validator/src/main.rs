@@ -18,6 +18,8 @@ const TOP_KEYS: &[&str] = &[
     "coupling_range_metric",
     "evidence",
     "qualification",
+    "qualified_region",
+    "qualification_criteria",
     "notes",
 ];
 
@@ -162,6 +164,50 @@ fn validate_record(record: &Value) -> Vec<String> {
         "evidence",
         &mut errors,
     );
+    exact_keys(
+        record.get("qualified_region"),
+        &[
+            "metric_scope",
+            "evaluated_point_count",
+            "qualified_point_count",
+            "qualified_fraction",
+            "connected_component_count",
+            "confidence_level_percent",
+            "lower_confidence_bound_fraction",
+            "classification_sha256",
+            "analysis_sha256",
+            "convex_hull_used",
+            "disconnected_regions_preserved",
+            "notes",
+        ],
+        "qualified_region",
+        &mut errors,
+    );
+    if let Some(criteria) = record.get("qualification_criteria").and_then(Value::as_array) {
+        for (index, criterion) in criteria.iter().enumerate() {
+            exact_keys(
+                Some(criterion),
+                &[
+                    "criterion_id",
+                    "metric_family",
+                    "quantity_kind",
+                    "unit",
+                    "operator",
+                    "lower_threshold",
+                    "upper_threshold",
+                    "observed_value",
+                    "outcome",
+                    "hard_gate",
+                    "evidence_sha256",
+                    "notes",
+                ],
+                &format!("qualification_criteria[{index}]"),
+                &mut errors,
+            );
+        }
+    } else {
+        errors.push("qualification_criteria: expected array".into());
+    }
 
     let geometry = record.get("geometry_domain").unwrap_or(&Value::Null);
     for (minimum, maximum, label) in [
@@ -216,6 +262,138 @@ fn validate_record(record: &Value) -> Vec<String> {
     }
 
     if qualification == "QUALIFIED" {
+        // A qualified envelope is the pointwise pass region, not a convex-hull
+        // drawing or a single aligned test point.
+        let region = record.get("qualified_region").unwrap_or(&Value::Null);
+        let scope = string_at(region, &["metric_scope"]).unwrap_or("UNKNOWN");
+        let evaluated = at(region, &["evaluated_point_count"]).and_then(Value::as_u64);
+        let qualified = at(region, &["qualified_point_count"]).and_then(Value::as_u64);
+        let fraction = number_at(region, &["qualified_fraction"]);
+        let components = at(region, &["connected_component_count"]).and_then(Value::as_u64);
+        let confidence = number_at(region, &["confidence_level_percent"]);
+        let lower_bound = number_at(region, &["lower_confidence_bound_fraction"]);
+
+        match (evaluated, qualified, fraction) {
+            (Some(total), Some(passed), Some(fraction))
+                if total > 0 && passed > 0 && passed <= total => {
+                    let computed = passed as f64 / total as f64;
+                    if (fraction - computed).abs() > 1e-6 {
+                        errors.push(format!(
+                            "qualified_region.qualified_fraction: expected {computed:.9} from passed/evaluated points, got {fraction:.9}"
+                        ));
+                    }
+                }
+            _ => errors.push(
+                "qualified_region: positive evaluated/qualified point counts and fraction required"
+                    .into(),
+            ),
+        }
+        if !matches!(scope, "COUPLING_ONLY" | "POWER_TRANSFER" | "EFFICIENCY" | "THERMAL" | "SAFETY" | "SYSTEM_INTEROPERABILITY") {
+            errors.push("qualified_region.metric_scope: known qualification scope required".into());
+        }
+        if !components.is_some_and(|count| count > 0) {
+            errors.push("qualified_region.connected_component_count: at least one connected qualified component required".into());
+        }
+        match (confidence, lower_bound, fraction) {
+            (Some(level), Some(bound), Some(observed))
+                if (90.0..=99.99).contains(&level) && bound >= 0.0 && bound <= observed => {}
+            _ => errors.push(
+                "qualified_region: 90-99.99% confidence level and lower confidence bound <= measured fraction required"
+                    .into(),
+            ),
+        }
+        if !string_at(region, &["classification_sha256"]).is_some_and(valid_sha256) {
+            errors.push("qualified_region.classification_sha256: pointwise pass/fail label digest required".into());
+        }
+        if !string_at(region, &["analysis_sha256"]).is_some_and(valid_sha256) {
+            errors.push("qualified_region.analysis_sha256: reproducible analysis digest required".into());
+        }
+        if at(region, &["disconnected_regions_preserved"]).and_then(Value::as_bool) != Some(true) {
+            errors.push("qualified_region.disconnected_regions_preserved: preserve the actual connected components; do not merge them into one hull".into());
+        }
+        if at(region, &["convex_hull_used"]).and_then(Value::as_bool) == Some(true)
+            && at(region, &["disconnected_regions_preserved"]).and_then(Value::as_bool) != Some(true)
+        {
+            errors.push("qualified_region.convex_hull_used: convex hull cannot replace disconnected measured pass regions".into());
+        }
+
+        let mut families = BTreeSet::new();
+        match record.get("qualification_criteria").and_then(Value::as_array) {
+            Some(criteria) if !criteria.is_empty() => {
+                let mut criterion_ids = BTreeSet::new();
+                for (index, criterion) in criteria.iter().enumerate() {
+                    let id = string_at(criterion, &["criterion_id"]).unwrap_or("");
+                    let family = string_at(criterion, &["metric_family"]).unwrap_or("");
+                    let operator = string_at(criterion, &["operator"]).unwrap_or("");
+                    let outcome = string_at(criterion, &["outcome"]).unwrap_or("NOT_RUN");
+                    if !nonempty(Some(id)) || !criterion_ids.insert(id.to_owned()) {
+                        errors.push(format!("qualification_criteria[{index}].criterion_id: missing or duplicate"));
+                    }
+                    if !matches!(family, "COUPLING" | "OUTPUT_POWER" | "OUTPUT_REGULATION" | "EFFICIENCY" | "THERMAL" | "SAFETY" | "COMPONENT_STRESS" | "EMC" | "RELIABILITY" | "OTHER") {
+                        errors.push(format!("qualification_criteria[{index}].metric_family: invalid metric family"));
+                    } else {
+                        families.insert(family.to_owned());
+                    }
+                    if !nonempty(string_at(criterion, &["quantity_kind"]))
+                        || !nonempty(string_at(criterion, &["unit"]))
+                        || !nonempty(string_at(criterion, &["notes"]))
+                    {
+                        errors.push(format!("qualification_criteria[{index}]: quantity, unit and notes are required"));
+                    }
+                    if outcome != "PASS" {
+                        errors.push(format!("qualification_criteria[{index}].outcome: every criterion must PASS for QUALIFIED disposition"));
+                    }
+                    if at(criterion, &["hard_gate"]).and_then(Value::as_bool) != Some(true) {
+                        errors.push(format!("qualification_criteria[{index}].hard_gate: qualified envelopes require hard-gate criteria"));
+                    }
+                    if !string_at(criterion, &["evidence_sha256"]).is_some_and(valid_sha256) {
+                        errors.push(format!("qualification_criteria[{index}].evidence_sha256: evidence digest required"));
+                    }
+
+                    let observed = criterion.get("observed_value");
+                    let observed_number = observed.and_then(Value::as_f64);
+                    let lower = number_at(criterion, &["lower_threshold"]);
+                    let upper = number_at(criterion, &["upper_threshold"]);
+                    let passes = match operator {
+                        "GTE" => matches!((observed_number, lower), (Some(value), Some(limit)) if value >= limit),
+                        "LTE" => matches!((observed_number, upper), (Some(value), Some(limit)) if value <= limit),
+                        "BETWEEN" => matches!((observed_number, lower, upper), (Some(value), Some(minimum), Some(maximum)) if minimum <= value && value <= maximum),
+                        "BOOLEAN_PASS" => observed.and_then(Value::as_bool) == Some(true),
+                        _ => false,
+                    };
+                    if !passes {
+                        errors.push(format!("qualification_criteria[{index}]: observed value does not satisfy its declared threshold"));
+                    }
+                }
+            }
+            _ => errors.push("qualification_criteria: at least one declared, passing criterion required".into()),
+        }
+
+        let expected_families: &[&str] = match scope {
+            "COUPLING_ONLY" => &["COUPLING"],
+            "POWER_TRANSFER" => &["COUPLING", "OUTPUT_POWER", "OUTPUT_REGULATION"],
+            "EFFICIENCY" => &["COUPLING", "OUTPUT_POWER", "EFFICIENCY"],
+            "THERMAL" => &["COUPLING", "THERMAL", "COMPONENT_STRESS"],
+            "SAFETY" => &["COUPLING", "SAFETY", "COMPONENT_STRESS", "EMC"],
+            "SYSTEM_INTEROPERABILITY" => &[
+                "COUPLING",
+                "OUTPUT_POWER",
+                "OUTPUT_REGULATION",
+                "EFFICIENCY",
+                "THERMAL",
+                "SAFETY",
+                "COMPONENT_STRESS",
+            ],
+            _ => &[],
+        };
+        for family in expected_families {
+            if !families.contains(*family) {
+                errors.push(format!(
+                    "qualified_region.metric_scope: {scope} requires {family} acceptance evidence"
+                ));
+            }
+        }
+
         if !nonempty(string_at(geometry, &["coordinate_frame_id"])) {
             errors.push("geometry_domain.coordinate_frame_id: required for QUALIFIED envelope".into());
         }
@@ -246,6 +424,13 @@ fn validate_record(record: &Value) -> Vec<String> {
         }
         if !nonempty(string_at(record, &["sampling", "instrumentation_reference"])) {
             errors.push("sampling.instrumentation_reference: calibration/instrument reference required".into());
+        }
+        let open_samples = at(record, &["sampling", "open_circuit_sample_count"]).and_then(Value::as_u64);
+        let short_samples = at(record, &["sampling", "short_circuit_sample_count"]).and_then(Value::as_u64);
+        let total_samples = at(record, &["sampling", "inductance_sample_count"]).and_then(Value::as_u64);
+        match (open_samples, short_samples, total_samples) {
+            (Some(open), Some(short), Some(total)) if open > 0 && short > 0 && open + short <= total => {}
+            _ => errors.push("sampling: qualified inductance evidence requires positive open- and short-circuit sample counts included in total samples".into()),
         }
         if !matches!(
             string_at(record, &["evidence", "method"]),
@@ -371,6 +556,36 @@ mod tests {
         value["sampling"]["inductance_sample_count"] = json!(2_000);
         value["sampling"]["open_circuit_sample_count"] = json!(1_000);
         value["sampling"]["short_circuit_sample_count"] = json!(1_000);
+        value["qualified_region"] = json!({
+            "metric_scope": "COUPLING_ONLY",
+            "evaluated_point_count": 500,
+            "qualified_point_count": 450,
+            "qualified_fraction": 0.9,
+            "connected_component_count": 1,
+            "confidence_level_percent": 95.0,
+            "lower_confidence_bound_fraction": 0.88,
+            "classification_sha256": "b".repeat(64),
+            "analysis_sha256": "c".repeat(64),
+            "convex_hull_used": false,
+            "disconnected_regions_preserved": true,
+            "notes": "Synthetic known-truth region fixture only."
+        });
+        value["qualification_criteria"] = json!([
+            {
+                "criterion_id": "COUPLING-MIN",
+                "metric_family": "COUPLING",
+                "quantity_kind": "coupling_coefficient",
+                "unit": "1",
+                "operator": "GTE",
+                "lower_threshold": 0.05,
+                "upper_threshold": null,
+                "observed_value": 0.12,
+                "outcome": "PASS",
+                "hard_gate": true,
+                "evidence_sha256": "d".repeat(64),
+                "notes": "Synthetic coupling acceptance threshold."
+            }
+        ]);
         value["sampling"]["raw_geometry_data_sha256"] = json!("a".repeat(64));
         value["sampling"]["instrumentation_reference"] = json!("SYNTHETIC-CAL-CERT-01");
         value["coupling_range_metric"]["metric_definition_id"] = json!("SYNTHETIC-COUPLING-THRESHOLD-v1");
@@ -403,6 +618,51 @@ mod tests {
     fn synthetic_dense_measured_geometry_record_can_qualify() {
         let errors = validate_record(&qualified_fixture());
         assert!(errors.is_empty(), "{errors:#?}");
+    }
+
+
+    #[test]
+    fn rejects_qualified_fraction_inconsistent_with_point_counts() {
+        let mut value = qualified_fixture();
+        value["qualified_region"]["qualified_fraction"] = json!(0.5);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("expected 0.900000000")));
+    }
+
+    #[test]
+    fn rejects_collapsing_disconnected_regions_into_convex_hull() {
+        let mut value = qualified_fixture();
+        value["qualified_region"]["connected_component_count"] = json!(2);
+        value["qualified_region"]["convex_hull_used"] = json!(true);
+        value["qualified_region"]["disconnected_regions_preserved"] = json!(false);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("preserve the actual connected components")));
+    }
+
+    #[test]
+    fn system_interoperability_scope_requires_all_hard_gate_families() {
+        let mut value = qualified_fixture();
+        value["qualified_region"]["metric_scope"] = json!("SYSTEM_INTEROPERABILITY");
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("requires OUTPUT_POWER acceptance evidence")));
+        assert!(errors.iter().any(|e| e.contains("requires EFFICIENCY acceptance evidence")));
+        assert!(errors.iter().any(|e| e.contains("requires SAFETY acceptance evidence")));
+    }
+
+    #[test]
+    fn rejects_qualification_criterion_that_does_not_meet_threshold() {
+        let mut value = qualified_fixture();
+        value["qualification_criteria"][0]["observed_value"] = json!(0.01);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("does not satisfy its declared threshold")));
+    }
+
+    #[test]
+    fn rejects_open_short_inductance_sample_count_underreporting() {
+        let mut value = qualified_fixture();
+        value["sampling"]["open_circuit_sample_count"] = json!(1_500);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("sample counts included in total")));
     }
 
     #[test]
