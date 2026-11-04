@@ -1067,6 +1067,17 @@ mod tests {
     }
 
     #[test]
+    fn evidence_tier_is_bound_into_state_fingerprint() {
+        let c = candidate("evidence", 0.9, 0.1, 1.0);
+        let mut s = state(0.5);
+        s.history.push(record(&c, "yes"));
+        let before = state_fingerprint(&s, &DecisionConfig::default());
+        s.history[0].evidence_tier = EvidenceTier::PeerReviewedMeasured;
+        let after = state_fingerprint(&s, &DecisionConfig::default());
+        assert_ne!(before, after);
+    }
+
+    #[test]
     fn outcome_order_does_not_change_eig() {
         let mut c = candidate("x", 0.8, 0.2, 1.0);
         let before = expected_information_gain(&posterior(0.5), &c).unwrap();
