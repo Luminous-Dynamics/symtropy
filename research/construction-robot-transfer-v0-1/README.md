@@ -106,6 +106,10 @@ The dependency-free Rust core checks:
 
 It validates a supplied data contract, not field truth. It does not authenticate evidence, calculate metrology uncertainty, approve a robot, estimate causal effects, perform power analysis, or establish deployment readiness.
 
+## Implemented synthetic evaluator
+
+The dependency-free Rust core validates transfer-regime constraints, group-level split leakage, disjoint target adaptation/evaluation work items, accepted-output denominators and matched source/target comparability. It computes first-pass yield using inspected units, finally accepted units per total workflow crew-hour and robot-hour, matched transfer-retention ratios, and an adaptation-burden summary. Zero denominators return not-estimable values rather than fabricated zero/infinity. The evaluator binds acceptance-profile digests but cannot authenticate the referee or establish physical truth.
+
 ## Prospective targets (hypotheses, not standards or achieved results)
 
 - 100% of transfer claims bind source/target domains, task family, functional unit, acceptance profile, regime and model/configuration digests.
