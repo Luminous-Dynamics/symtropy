@@ -59,4 +59,6 @@ cargo run --locked --manifest-path research/civdyn-collective-risk/Cargo.toml --
 
 The sweep varies risk p in {0.1, 0.5, 0.9}, population size N in {6, 30}, and selection intensity beta in {0, 0.1, 1, 5}. It emits composition-weighted fitness, pairwise fixation probabilities and rare-mutation stationary weights separately.
 
+It also derives a directed invasion graph: an edge from resident i to mutant j is emitted when the mutant's single-invasion fixation probability exceeds the neutral baseline 1/N. Directed three-cycles are enumerated with orientation preserved. This prevents pairwise results from being compressed into a misleading total strategy order. The criterion is a finite-population selection reference, not a claim of universal dominance.
+
 Scientific limits: rare-mutation/Fermi dynamics is a declared selection model, not a validated description of actual institutions or social learning. A population-relative strategy ranking is conditional on N, risk, group size, strategy roster, payoff model, beta and mutation assumptions. The binary emits no universal winner.
