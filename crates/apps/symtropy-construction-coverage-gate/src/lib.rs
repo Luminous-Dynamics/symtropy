@@ -7,9 +7,10 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 use symtropy_robotics_bridge_core::{
-    SurveyProcessingDispositionV1, SurveyProcessingStageV1,
+    SurveyCoverageCellDispositionV1, SurveyCoverageCellV1, SurveyControlCoverageMapV1,
+    SurveyProcessingDispositionV1, SurveyProcessingStageV1, VerifiedSurveyControlCoverageMapV1,
     VerifiedSurveyCoverageAssessmentV1, VerifiedSurveyEvidenceEnvelopeV1,
-    world_contract::ArtifactRef,
+    verify_coverage_map_summary, world_contract::ArtifactRef,
 };
 
 pub const COVERAGE_GATE_POLICY_SCHEMA_VERSION: u16 = 1;
@@ -171,6 +172,8 @@ pub enum CoverageGateError {
     InvalidControlAdjustmentReceipt,
     MissingTargetFrame,
     InvalidCoverageAssessment,
+    CoverageMapArtifactMismatch,
+    CoverageMapInconsistent,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -248,6 +251,7 @@ impl Findings {
 /// responsibility of the caller's trusted project/site authority channel.
 pub fn evaluate_coverage(
     assessment: &VerifiedSurveyCoverageAssessmentV1,
+    support_map: &VerifiedSurveyControlCoverageMapV1,
     survey: &VerifiedSurveyEvidenceEnvelopeV1,
     policy: &CoverageAdmissionPolicyV1,
     policy_artifact: &ArtifactRef,
@@ -259,6 +263,11 @@ pub fn evaluate_coverage(
     assessment_data
         .validate()
         .map_err(|_| CoverageGateError::InvalidCoverageAssessment)?;
+    if support_map.source_artifact() != &assessment_data.support_map_artifact {
+        return Err(CoverageGateError::CoverageMapArtifactMismatch);
+    }
+    verify_coverage_map_summary(assessment_data, &support_map.coverage_map)
+        .map_err(|_| CoverageGateError::CoverageMapInconsistent)?;
     survey
         .envelope
         .validate()
