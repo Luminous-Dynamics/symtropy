@@ -33,12 +33,17 @@ pub struct Qualification {
     /// Upstream evidence references created after that invalidation event.
     pub context_observation_reference: String,
     pub clock_assessment_reference: String,
+    /// Monotonic clock domain/boot identity that issued this lease.
+    pub timebase_id: String,
+    pub issued_at_monotonic_ns: u64,
+    pub valid_until_monotonic_ns: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FreshnessPolicy {
     pub max_context_age_ns: u64,
     pub max_clock_uncertainty_ns: u64,
+    pub max_qualification_lease_ns: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -49,12 +54,15 @@ pub struct CommandBinding {
     /// Measured age and uncertainty; compared to Model's pinned policy.
     pub context_age_ns: u64,
     pub clock_uncertainty_ns: u64,
+    pub timebase_id: String,
+    pub now_monotonic_ns: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GuardError {
     InvalidDigest,
     InvalidTaskScope,
+    InvalidTimebaseId,
     UnauthenticatedEpoch,
     EpochRollbackOrConflict,
     EpochPredecessorMismatch,
@@ -62,6 +70,7 @@ pub enum GuardError {
     NoCurrentEpoch,
     RequalificationNotPermitted,
     CommunicationsUnavailable,
+    TimebaseMismatch,
     QualificationDoesNotMatchCurrentContext,
     QualificationEvidenceNotAccepted,
     StaleRevalidationProof,
@@ -84,6 +93,7 @@ pub struct Model {
     state: State,
     communications_available: bool,
     freshness_policy: FreshnessPolicy,
+    timebase_id: String,
     invalidation_generation: u64,
 }
 
@@ -91,6 +101,7 @@ impl Model {
     pub fn new(
         task_scope: impl Into<String>,
         configuration_digest: String,
+        timebase_id: String,
         freshness_policy: FreshnessPolicy,
     ) -> Result<Self, GuardError> {
         let task_scope = task_scope.into();
@@ -100,6 +111,12 @@ impl Model {
         if !valid_digest(&configuration_digest) {
             return Err(GuardError::InvalidDigest);
         }
+        if timebase_id.trim().is_empty() {
+            return Err(GuardError::InvalidTimebaseId);
+        }
+        if freshness_policy.max_qualification_lease_ns == 0 {
+            return Err(GuardError::QualificationEvidenceNotAccepted);
+        }
         Ok(Self {
             task_scope,
             configuration_digest,
@@ -108,6 +125,7 @@ impl Model {
             state: State::AwaitingEpoch,
             communications_available: true,
             freshness_policy,
+            timebase_id,
             invalidation_generation: 0,
         })
     }
@@ -279,6 +297,15 @@ impl Model {
         if proof.revalidation_generation != self.invalidation_generation {
             return Err(GuardError::StaleRevalidationProof);
         }
+        if proof.timebase_id != self.timebase_id {
+            return Err(GuardError::TimebaseMismatch);
+        }
+        if proof.valid_until_monotonic_ns <= proof.issued_at_monotonic_ns
+            || proof.valid_until_monotonic_ns - proof.issued_at_monotonic_ns
+                > self.freshness_policy.max_qualification_lease_ns
+        {
+            return Err(GuardError::QualificationEvidenceNotAccepted);
+        }
         if proof.epoch_digest != current.digest
             || proof.configuration_digest != self.configuration_digest
             || proof.task_scope != self.task_scope
@@ -317,17 +344,29 @@ impl Model {
         {
             return Err(GuardError::CommandNotAuthorized("command_binding_mismatch"));
         }
-        let qualification = self
-            .qualification
-            .as_ref()
-            .ok_or(GuardError::CommandNotAuthorized("qualification_missing"))?;
-        if qualification.epoch_digest != current.digest
-            || qualification.configuration_digest != self.configuration_digest
-            || qualification.task_scope != self.task_scope
-            || qualification.revalidation_generation != self.invalidation_generation
-        {
+        let lease_check = {
+            let qualification = self
+                .qualification
+                .as_ref()
+                .ok_or(GuardError::CommandNotAuthorized("qualification_missing"))?;
+            if qualification.epoch_digest != current.digest
+                || qualification.configuration_digest != self.configuration_digest
+                || qualification.task_scope != self.task_scope
+                || qualification.revalidation_generation != self.invalidation_generation
+            {
+                return Err(GuardError::CommandNotAuthorized(
+                    "qualification_binding_mismatch",
+                ));
+            }
+            qualification.timebase_id != self.timebase_id
+                || command.timebase_id != self.timebase_id
+                || command.now_monotonic_ns < qualification.issued_at_monotonic_ns
+                || command.now_monotonic_ns >= qualification.valid_until_monotonic_ns
+        };
+        if lease_check {
+            self.mark_context_stale();
             return Err(GuardError::CommandNotAuthorized(
-                "qualification_binding_mismatch",
+                "qualification_lease_expired_or_timebase_mismatch",
             ));
         }
         Ok(())
@@ -360,9 +399,11 @@ mod tests {
         Model::new(
             "floor-3-layout",
             A.to_owned(),
+            "boot-001".to_owned(),
             FreshnessPolicy {
                 max_context_age_ns: 100,
                 max_clock_uncertainty_ns: 10,
+                max_qualification_lease_ns: 1_000,
             },
         )
         .expect("valid model")
@@ -378,6 +419,9 @@ mod tests {
             revalidation_generation: model.invalidation_generation,
             context_observation_reference: "fixture-fresh-context-observation".to_owned(),
             clock_assessment_reference: "fixture-clock-assessment".to_owned(),
+            timebase_id: model.timebase_id.clone(),
+            issued_at_monotonic_ns: 1_000,
+            valid_until_monotonic_ns: 2_000,
         }
     }
 
@@ -388,6 +432,8 @@ mod tests {
             task_scope: "floor-3-layout".to_owned(),
             context_age_ns: 50,
             clock_uncertainty_ns: 5,
+            timebase_id: "boot-001".to_owned(),
+            now_monotonic_ns: 1_500,
         }
     }
 
@@ -518,6 +564,41 @@ mod tests {
         assert!(m.authorize(&uncertain).is_err());
         assert_eq!(*m.state(), State::ContextStale);
         assert!(m.authorize(&command(B, A)).is_err());
+    }
+
+    #[test]
+    fn qualification_lease_expiry_latches_safe_stale_state() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        qualify(&mut m, B, A).expect("qualify");
+        let mut expired = command(B, A);
+        expired.now_monotonic_ns = 2_000;
+        assert!(m.authorize(&expired).is_err());
+        assert_eq!(*m.state(), State::ContextStale);
+        assert!(m.authorize(&command(B, A)).is_err());
+    }
+
+    #[test]
+    fn changed_timebase_cannot_reuse_a_previous_qualification() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        qualify(&mut m, B, A).expect("qualify");
+        let mut changed_timebase = command(B, A);
+        changed_timebase.timebase_id = "boot-002".to_owned();
+        assert!(m.authorize(&changed_timebase).is_err());
+        assert_eq!(*m.state(), State::ContextStale);
+    }
+
+    #[test]
+    fn requalification_cannot_issue_a_lease_beyond_policy() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        let mut overlong = proof(&m, B, A);
+        overlong.valid_until_monotonic_ns = 2_001;
+        assert_eq!(
+            m.requalify(overlong, true),
+            Err(GuardError::QualificationEvidenceNotAccepted)
+        );
     }
 
     #[test]
