@@ -103,5 +103,31 @@
     "composite_safety_productivity_score_prohibited": true
   },
   "execution_status": "not_executed",
-  "schema_version": "construction-roundrobin-study-plan-v0.1"
+  "schema_version": "construction-roundrobin-study-plan-v0.1",
+  "uncertainty_policy": {
+    "measurement_model_declared": true,
+    "type_a_type_b_components_separated": true,
+    "correlations_and_covariances_recorded": true,
+    "known_corrections_applied_or_justified": true,
+    "nonlinearity_assessed": true,
+    "propagation_method": "not_yet_selected",
+    "coverage_factor": null,
+    "uncertainty_budget_artifact_required": true,
+    "measurement_capability_failure_is_indeterminate": true
+  },
+  "decision_rule": {
+    "rule_id": "to-be-defined-by-task-owner",
+    "method": "not_yet_selected",
+    "task_specific_limits": true,
+    "guard_band_policy": "not_yet_selected",
+    "false_accept_risk_considered": true,
+    "false_reject_risk_considered": true,
+    "boundary_result_policy": "indeterminate_when_capability_insufficient",
+    "decision_states": [
+      "accepted_under_named_rule",
+      "rejected_under_named_rule",
+      "indeterminate_measurement_capability_or_boundary",
+      "not_evaluated"
+    ]
+  }
 }
