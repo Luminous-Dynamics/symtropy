@@ -1005,7 +1005,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn undefined_event_rates_remain_none_instead_of_zero() {
         let unknown = vec![UnknownInterval {
