@@ -14,7 +14,7 @@ use crate::integrity::sha256_hex;
 use crate::shapebench::parse_csv_record;
 
 pub const BOCODE_CATALOG_SCHEMA: &str = "bocode-task-catalog/0.1.0";
-pub const BOCODE_CATALOG_CSV_HEADER: &str = "problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,source_reference,metadata_sha256,required_extra";
+pub const BOCODE_CATALOG_CSV_HEADER: &str = "problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,source_reference_state,source_reference,metadata_sha256,required_extra";
 pub const BOCODE_OBJECTIVE_DIRECTION: &str = "maximize";
 pub const BOCODE_CONSTRAINT_CONVENTION: &str = "g(x)<=0_is_feasible";
 pub const BOCODE_CATALOG_EVIDENCE_LEVEL: &str =
@@ -56,6 +56,13 @@ pub enum BoCoDeProblemClass {
     MultiObjectiveUnconstrained,
     MultiObjectiveConstrained,
     SingleObjectiveMixedVariable,
+    /// Mixed-variable constrained problems are catalogued but lie outside the paper's five
+    /// published algorithm-comparison classes.
+    SingleObjectiveMixedVariableConstrained,
+    /// Mixed-variable multi-objective extensions are retained but are not part of the five
+    /// published algorithm-comparison classes.
+    MultiObjectiveMixedVariable,
+    MultiObjectiveMixedVariableConstrained,
 }
 
 impl BoCoDeProblemClass {
@@ -66,6 +73,9 @@ impl BoCoDeProblemClass {
             "mo_unconstrained" => Ok(Self::MultiObjectiveUnconstrained),
             "mo_constrained" => Ok(Self::MultiObjectiveConstrained),
             "so_mixed_variable" => Ok(Self::SingleObjectiveMixedVariable),
+            "so_mixed_variable_constrained_extension" => Ok(Self::SingleObjectiveMixedVariableConstrained),
+            "mo_mixed_variable_extension" => Ok(Self::MultiObjectiveMixedVariable),
+            "mo_mixed_variable_constrained_extension" => Ok(Self::MultiObjectiveMixedVariableConstrained),
             _ => Err(format!("unsupported BOCoDe problem class {value}")),
         }
     }
@@ -77,6 +87,9 @@ impl BoCoDeProblemClass {
             Self::MultiObjectiveUnconstrained => "mo_unconstrained",
             Self::MultiObjectiveConstrained => "mo_constrained",
             Self::SingleObjectiveMixedVariable => "so_mixed_variable",
+            Self::SingleObjectiveMixedVariableConstrained => "so_mixed_variable_constrained_extension",
+            Self::MultiObjectiveMixedVariable => "mo_mixed_variable_extension",
+            Self::MultiObjectiveMixedVariableConstrained => "mo_mixed_variable_constrained_extension",
         }
     }
 
@@ -101,6 +114,15 @@ impl BoCoDeProblemClass {
             }
             Self::SingleObjectiveMixedVariable => {
                 objectives == 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+            }
+            Self::SingleObjectiveMixedVariableConstrained => {
+                objectives == 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+            }
+            Self::MultiObjectiveMixedVariable => {
+                objectives > 1 && constraints == 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
+            }
+            Self::MultiObjectiveMixedVariableConstrained => {
+                objectives > 1 && constraints > 0 && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
         };
         if !valid {
@@ -136,6 +158,29 @@ impl BoCoDeVariableTypeClass {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoCoDeSourceReferenceStatus {
+    Present,
+    Missing,
+}
+
+impl BoCoDeSourceReferenceStatus {
+    fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "present" => Ok(Self::Present),
+            "missing" => Ok(Self::Missing),
+            _ => Err(format!("unsupported source_reference_state {value}")),
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Present => "present",
+            Self::Missing => "missing",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoCoDeCatalogContext {
     /// Exact 40-character upstream BOCoDe Git commit.
@@ -156,6 +201,7 @@ pub struct BoCoDeTaskRecord {
     pub num_constraints: u32,
     pub variable_type_class: BoCoDeVariableTypeClass,
     pub benchmark_set_member: bool,
+    pub source_reference_state: BoCoDeSourceReferenceStatus,
     pub bounds_sha256: String,
     pub variable_types_sha256: String,
     pub source_reference: String,
@@ -249,6 +295,7 @@ fn canonical_import_bytes(
             task.application.as_str(),
             task.problem_class.as_str(),
             task.variable_type_class.as_str(),
+            task.source_reference_state.as_str(),
             task.bounds_sha256.as_str(),
             task.variable_types_sha256.as_str(),
             task.source_reference.as_str(),
@@ -267,7 +314,16 @@ fn canonical_import_bytes(
 
 fn validate_task(task: &BoCoDeTaskRecord, line_number: usize) -> Result<(), String> {
     validate_token(&task.problem_id, "problem_id")?;
-    validate_token(&task.source_reference, "source_reference")?;
+    match task.source_reference_state {
+        BoCoDeSourceReferenceStatus::Present => {
+            validate_token(&task.source_reference, "source_reference")?;
+        }
+        BoCoDeSourceReferenceStatus::Missing => {
+            if !task.source_reference.is_empty() {
+                return Err(format!("line {line_number}: missing source state requires an empty source_reference"));
+            }
+        }
+    }
     validate_token(&task.required_extra, "required_extra")?;
     if task.dimension == 0 || task.num_objectives == 0 {
         return Err(format!(
@@ -304,7 +360,7 @@ impl BoCoDeCatalogReport {
     }
 
     pub fn to_csv(&self) -> String {
-        let header = "schema,source_commit,package_version,source_catalog_sha256,objective_direction,constraint_convention,problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,source_reference,metadata_sha256,required_extra,import_sha256,evidence_level";
+        let header = "schema,source_commit,package_version,source_catalog_sha256,objective_direction,constraint_convention,problem_id,application,problem_class,dimension,num_objectives,num_constraints,variable_type_class,benchmark_set_member,source_reference_state,bounds_sha256,variable_types_sha256,source_reference,metadata_sha256,required_extra,import_sha256,evidence_level";
         let mut output = format!("{header}\n");
         for task in &self.tasks {
             let fields = [
@@ -322,6 +378,7 @@ impl BoCoDeCatalogReport {
                 task.num_constraints.to_string(),
                 task.variable_type_class.as_str().to_owned(),
                 task.benchmark_set_member.to_string(),
+                task.source_reference_state.as_str().to_owned(),
                 task.bounds_sha256.clone(),
                 task.variable_types_sha256.clone(),
                 task.source_reference.clone(),
@@ -371,9 +428,9 @@ pub fn import_bocode_catalog_csv(
         }
         let fields = parse_csv_record(raw_line.trim_end_matches('\r'))
             .map_err(|error| format!("line {line_number}: {error}"))?;
-        if fields.len() != 13 {
+        if fields.len() != 14 {
             return Err(format!(
-                "line {line_number}: expected 13 catalog columns, got {}",
+                "line {line_number}: expected 14 catalog columns, got {}",
                 fields.len()
             ));
         }
@@ -392,11 +449,13 @@ pub fn import_bocode_catalog_csv(
             variable_type_class: BoCoDeVariableTypeClass::parse(&fields[6])
                 .map_err(|error| format!("line {line_number}: {error}"))?,
             benchmark_set_member: parse_bool(&fields[7], "benchmark_set_member", line_number)?,
+            source_reference_state: BoCoDeSourceReferenceStatus::parse(&fields[10])
+                .map_err(|error| format!("line {line_number}: {error}"))?,
             bounds_sha256: fields[8].clone(),
             variable_types_sha256: fields[9].clone(),
-            source_reference: fields[10].clone(),
-            metadata_sha256: fields[11].clone(),
-            required_extra: fields[12].clone(),
+            source_reference: fields[11].clone(),
+            metadata_sha256: fields[12].clone(),
+            required_extra: fields[13].clone(),
         };
         validate_task(&task, line_number)?;
         if !seen.insert(task.problem_id.clone()) {
@@ -449,10 +508,9 @@ mod tests {
         variable_types: &str,
     ) -> String {
         format!(
-            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,{},{},{},{},none",
+            "{id},{domain},{class},4,{objectives},{constraints},{variable_types},true,{},{},present,https://example.org/source,{},none",
             "b".repeat(64),
             "c".repeat(64),
-            "https://example.org/source",
             "d".repeat(64)
         )
     }
@@ -464,16 +522,17 @@ mod tests {
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
             row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
             row("truss", "engineering", "so_unconstrained", 1, 0, "continuous"),
-            row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed")
+            row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed"),
+            row("vehicle_mixed_constrained", "engineering", "so_mixed_variable_constrained_extension", 1, 2, "mixed")
         )
     }
 
     #[test]
     fn imports_all_five_documented_problem_classes_and_fixed_semantics() {
         let report = import_bocode_catalog_csv(&fixture(), context()).unwrap();
-        assert_eq!(report.tasks.len(), 5);
-        assert_eq!(report.benchmark_set_task_count(), 5);
-        assert_eq!(report.engineering_task_count(), 5);
+        assert_eq!(report.tasks.len(), 6);
+        assert_eq!(report.benchmark_set_task_count(), 6);
+        assert_eq!(report.engineering_task_count(), 6);
         assert_eq!(report.objective_direction, "maximize");
         assert_eq!(report.constraint_convention, "g(x)<=0_is_feasible");
         assert_eq!(report.to_csv().lines().count(), 6);
@@ -530,7 +589,12 @@ mod tests {
             row("car", "engineering", "so_unconstrained", 1, 0, "continuous")
                 .replace("https://example.org/source", "")
         );
-        assert!(import_bocode_catalog_csv(&missing_source, context()).is_err());
+        let missing_source_report = import_bocode_catalog_csv(&missing_source, context())
+            .expect("missing upstream citations are retained explicitly");
+        assert_eq!(
+            missing_source_report.tasks[0].source_reference_state,
+            BoCoDeSourceReferenceStatus::Missing
+        );
     }
 
     #[test]
