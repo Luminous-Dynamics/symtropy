@@ -15,6 +15,7 @@ pub mod counterexample_search;
 pub mod experiment_ordering;
 pub mod finite_horizon;
 pub mod finite_physical_challenge;
+pub mod hierarchical_benchmark_inference;
 pub mod ledger_transition_oracle;
 pub mod matched_benchmark;
 pub mod repeated_run_reliability;
