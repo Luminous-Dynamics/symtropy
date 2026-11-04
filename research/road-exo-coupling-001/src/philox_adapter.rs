@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use rand_philox::Philox;
 
-use crate::{Coupling, DrawAddress, EventIdentity, StableId};
+use crate::DrawAddress;
 
 pub const ADDRESS_SCHEMA_ID: &str = "symtropy.road-exo-coupling.draw-address.v0.1";
 pub const DERIVATION_CONTEXT: &str =
@@ -159,6 +159,7 @@ impl AddressCollisionRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Coupling, EventIdentity, StableId};
 
     fn id(value: &str) -> StableId {
         StableId::new(value).expect("fixture ID must be canonical")
