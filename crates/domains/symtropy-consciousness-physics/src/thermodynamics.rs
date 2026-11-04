@@ -21,7 +21,7 @@
 //!   into the ledger; it is not a conservation proof unless the system boundary
 //!   and every energy store/flow are represented.
 
-///// Exact SI Boltzmann constant, in joules per kelvin.
+/// Exact SI Boltzmann constant, in joules per kelvin.
 pub const BOLTZMANN_CONSTANT_J_PER_K: f64 = 1.380_649e-23;
 
 /// Landauer erasure bound at 310 K: k_B * T * ln(2).
@@ -373,7 +373,7 @@ mod tests {
 
         // 1 billion bits
         let floor_1g = ThermodynamicLedger::landauer_floor(1e9);
-        assert!(floor_1g > 1e-12); // ~2.87e-12 J for 1 Gbit
+        assert!(floor_1g > 1e-12); // ~2.97e-12 J for 1 Gbit
     }
 
     #[test]
@@ -386,6 +386,7 @@ mod tests {
             ThermodynamicLedger::landauer_erasure_floor(1.0, 300.0).unwrap();
 
         assert!((one_bit_310k - LANDAUER_BOUND_310K).abs() < 1e-35);
+        assert!((one_bit_310k - 2.966_678_181_248_014_7e-21).abs() < 1e-35);
         assert!((two_bits_310k - 2.0 * one_bit_310k).abs() < 1e-35);
         assert!((one_bit_310k / one_bit_300k - 310.0 / 300.0).abs() < 1e-14);
     }
