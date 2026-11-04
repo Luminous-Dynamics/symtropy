@@ -119,6 +119,10 @@ pub struct SplitPolicy {
     /// Every listed dimension must be present on every sample and disjoint
     /// between train, validation, and test.
     pub exclusive_dimensions: BTreeSet<LeakageDimension>,
+    /// At least one identical group value in each listed dimension must occur
+    /// in train, validation, and test. This prevents a within-group protocol
+    /// from silently becoming a cross-group transfer experiment.
+    pub shared_dimensions: BTreeSet<LeakageDimension>,
 }
 
 /// Deterministic counts from an accepted split manifest.
@@ -242,6 +246,20 @@ pub fn audit_benchmark_split(
             policy.protocol_id.as_str(),
         ));
     }
+    if !policy
+        .exclusive_dimensions
+        .is_disjoint(&policy.shared_dimensions)
+    {
+        return Err(SplitAuditError::new(
+            "overlapping_policy_dimensions",
+            policy.protocol_id.as_str(),
+        ));
+    }
+    let required_dimensions: BTreeSet<_> = policy
+        .exclusive_dimensions
+        .union(&policy.shared_dimensions)
+        .copied()
+        .collect();
     if samples.is_empty() {
         return Err(SplitAuditError::new("empty_manifest", "no samples"));
     }
@@ -253,6 +271,8 @@ pub fn audit_benchmark_split(
     let mut content_digests = BTreeMap::<String, String>::new();
     let mut group_partitions =
         BTreeMap::<(LeakageDimension, String), DataPartition>::new();
+    let mut shared_group_partitions =
+        BTreeMap::<(LeakageDimension, String), BTreeSet<DataPartition>>::new();
     let mut group_values =
         BTreeMap::<LeakageDimension, BTreeSet<String>>::new();
     let mut partition_counts = BTreeMap::from([
@@ -310,8 +330,8 @@ pub fn audit_benchmark_split(
                 .or_default()
                 .insert(group.value.clone());
 
+            let key = (group.dimension, group.value.clone());
             if policy.exclusive_dimensions.contains(&group.dimension) {
-                let key = (group.dimension, group.value.clone());
                 if let Some(previous_partition) =
                     group_partitions.insert(key.clone(), sample.partition)
                 {
@@ -323,15 +343,40 @@ pub fn audit_benchmark_split(
                     }
                 }
             }
+            if policy.shared_dimensions.contains(&group.dimension) {
+                shared_group_partitions
+                    .entry(key)
+                    .or_default()
+                    .insert(sample.partition);
+            }
         }
 
-        for dimension in &policy.exclusive_dimensions {
+        for dimension in &required_dimensions {
             if !dimensions_in_sample.contains(dimension) {
                 return Err(SplitAuditError::new(
                     "missing_required_dimension",
                     format!("{}:{}", sample.sample_id, dimension.as_str()),
                 ));
             }
+        }
+    }
+
+    let all_partitions = BTreeSet::from([
+        DataPartition::Train,
+        DataPartition::Validation,
+        DataPartition::Test,
+    ]);
+    for dimension in &policy.shared_dimensions {
+        let common_group_exists = shared_group_partitions
+            .iter()
+            .any(|((group_dimension, _), partitions)| {
+                group_dimension == dimension && partitions == &all_partitions
+            });
+        if !common_group_exists {
+            return Err(SplitAuditError::new(
+                "no_common_group_across_partitions",
+                dimension.as_str(),
+            ));
         }
     }
 
