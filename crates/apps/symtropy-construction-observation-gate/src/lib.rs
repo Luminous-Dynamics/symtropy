@@ -269,46 +269,54 @@ impl ObservationGate {
                 ChannelState::Current(observation) => observation,
             };
 
-            let mut source_qualified = true;
-            let mut unknown = |reason: String| {
-                source_qualified = false;
-                reasons.insert(reason);
-            };
+            let mut source_trustworthy = true;
+            let mut source_clear_cells = BTreeSet::new();
+            let mut source_changed_cells = BTreeSet::new();
+            let mut source_conflicting_cells = BTreeSet::new();
 
             if observation.task_scope != self.policy.task_scope {
-                unknown(format!("task_scope_mismatch:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("task_scope_mismatch:{}", source_policy.source_id));
             }
             if !observation.authenticated_by_upstream {
-                unknown(format!("source_not_authenticated:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("source_not_authenticated:{}", source_policy.source_id));
             }
             if observation.timebase_id != self.policy.expected_timebase_id
                 || current_timebase_id != self.policy.expected_timebase_id
             {
-                unknown(format!("timebase_mismatch:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("timebase_mismatch:{}", source_policy.source_id));
             }
             if now_monotonic_ns < observation.observed_at_monotonic_ns {
-                unknown(format!("future_observation_timestamp:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("future_observation_timestamp:{}", source_policy.source_id));
             } else if now_monotonic_ns - observation.observed_at_monotonic_ns
                 > source_policy.max_age_ns
             {
-                unknown(format!("observation_stale:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("observation_stale:{}", source_policy.source_id));
             }
             if observation.clock_uncertainty_ns > source_policy.max_clock_uncertainty_ns {
-                unknown(format!("clock_uncertainty_exceeds_policy:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("clock_uncertainty_exceeds_policy:{}", source_policy.source_id));
             }
             if observation.measurement_uncertainty_um
                 > source_policy.max_measurement_uncertainty_um
             {
-                unknown(format!(
+                source_trustworthy = false;
+                reasons.insert(format!(
                     "measurement_uncertainty_exceeds_policy:{}",
                     source_policy.source_id
                 ));
             }
             if observation.health != SensorHealth::Qualified {
-                unknown(format!("sensor_not_qualified:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("sensor_not_qualified:{}", source_policy.source_id));
             }
             if source_policy.requires_calibration && !observation.calibration_valid {
-                unknown(format!("calibration_not_valid:{}", source_policy.source_id));
+                source_trustworthy = false;
+                reasons.insert(format!("calibration_not_valid:{}", source_policy.source_id));
             }
             if source_policy.requires_independent_reference
                 && (observation.reference_independence
@@ -318,7 +326,8 @@ impl ObservationGate {
                         .as_deref()
                         .is_none_or(str::is_empty))
             {
-                unknown(format!(
+                source_trustworthy = false;
+                reasons.insert(format!(
                     "independent_reference_not_established:{}",
                     source_policy.source_id
                 ));
@@ -339,38 +348,37 @@ impl ObservationGate {
                     + usize::from(is_changed)
                     + usize::from(is_occluded);
                 if classifications > 1 {
-                    conflicting_cells.insert(cell.clone());
+                    source_conflicting_cells.insert(cell.clone());
                     reasons.insert(format!(
                         "source_cell_classification_conflict:{}:{}",
                         source_policy.source_id, cell
                     ));
                 } else if !is_clear && !is_changed && !is_occluded {
-                    unknown(format!(
+                    // Incomplete coverage blocks VERIFIED_CLEAR, but must not erase a
+                    // separate positive change observed in another required cell.
+                    reasons.insert(format!(
                         "required_cell_unobserved:{}:{}",
                         source_policy.source_id, cell
                     ));
                 } else if is_occluded {
-                    unknown(format!(
+                    reasons.insert(format!(
                         "required_cell_occluded:{}:{}",
                         source_policy.source_id, cell
                     ));
-                }
-
-                if is_changed {
-                    changed_cells.insert(cell.clone());
-                }
-                if is_clear {
-                    clear_cells.insert(cell.clone());
+                } else if is_changed {
+                    source_changed_cells.insert(cell.clone());
+                } else if is_clear {
+                    source_clear_cells.insert(cell.clone());
                 }
             }
 
-            // A source that cannot establish its own integrity contributes no clear
-            // or change claim. It can only add an unknown reason.
-            if !source_qualified {
-                for cell in &source_policy.required_cells {
-                    clear_cells.remove(cell);
-                    changed_cells.remove(cell);
-                }
+            // Source-level integrity failures invalidate all of that source's claims.
+            // Coverage incompleteness only prevents "verified clear"; it does not hide
+            // a qualified positive change in a different cell.
+            if source_trustworthy {
+                clear_cells.extend(source_clear_cells);
+                changed_cells.extend(source_changed_cells);
+                conflicting_cells.extend(source_conflicting_cells);
             }
         }
 
@@ -592,6 +600,19 @@ mod tests {
             gate.evaluate("boot-001", 150).state,
             GateState::UnknownOrUnobserved
         );
+    }
+
+    #[test]
+    fn positive_change_is_not_erased_by_incomplete_coverage_elsewhere() {
+        let mut gate = ObservationGate::new(policy(vec![source("tracker", &["z1", "z2", "z3"])]))
+            .expect("valid policy");
+        gate.ingest(observation("tracker", 1, &["z1"], &["z2"], &[]))
+            .expect("observation");
+        let result = gate.evaluate("boot-001", 150);
+        assert_eq!(result.state, GateState::OccupiedOrChanged);
+        assert!(result.must_hold);
+        assert!(result.changed_cells.contains(&"z2".to_owned()));
+        assert!(result.reason_codes.iter().any(|v| v.starts_with("required_cell_unobserved")));
     }
 
     #[test]
