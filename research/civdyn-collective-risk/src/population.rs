@@ -60,7 +60,7 @@ impl PopulationState {
     }
 
     pub fn balanced(population_size: usize) -> Result<Self, PopulationError> {
-        if population_size < GROUP_SIZE || population_size % STRATEGY_COUNT != 0 {
+        if population_size < GROUP_SIZE || !population_size.is_multiple_of(STRATEGY_COUNT) {
             return Err(PopulationError::InvalidBalancedPopulation(population_size));
         }
         Self::new([population_size / STRATEGY_COUNT; STRATEGY_COUNT])
@@ -414,7 +414,7 @@ pub fn log_fixation_probability(
     beta: f64,
 ) -> Result<f64, PopulationError> {
     validate_selection_intensity(beta)?;
-    if population_size < GROUP_SIZE || population_size > MAX_POPULATION_SIZE || mutant == resident {
+    if !(GROUP_SIZE..=MAX_POPULATION_SIZE).contains(&population_size) || mutant == resident {
         return Err(PopulationError::InvalidPopulationSize(population_size));
     }
 
@@ -454,7 +454,7 @@ pub fn rare_mutation_chain(
     beta: f64,
 ) -> Result<RareMutationChain, PopulationError> {
     validate_selection_intensity(beta)?;
-    if population_size < GROUP_SIZE || population_size > MAX_POPULATION_SIZE {
+    if !(GROUP_SIZE..=MAX_POPULATION_SIZE).contains(&population_size) {
         return Err(PopulationError::InvalidPopulationSize(population_size));
     }
 
@@ -465,14 +465,16 @@ pub fn rare_mutation_chain(
         let resident = Strategy::ALL[resident_index];
         let mut row_log_weights = Vec::new();
         let mut mutant_indices = Vec::new();
-        for mutant_index in 0..STRATEGY_COUNT {
+        for (mutant_index, log_fixation_slot) in
+            log_fixation_matrix[resident_index].iter_mut().enumerate()
+        {
             if mutant_index == resident_index {
                 continue;
             }
             let mutant = Strategy::ALL[mutant_index];
             let log_fixation =
                 log_fixation_probability(config, population_size, mutant, resident, beta)?;
-            log_fixation_matrix[resident_index][mutant_index] = log_fixation;
+            *log_fixation_slot = log_fixation;
             row_log_weights.push(log_fixation);
             mutant_indices.push(mutant_index);
         }
@@ -510,8 +512,8 @@ pub fn stationary_distribution(
         let mut next = vec![0.0; size];
         for from in 0..size {
             next[from] += 0.5 * weights[from];
-            for to in 0..size {
-                next[to] += 0.5 * weights[from] * chain.transition_matrix[from][to];
+            for (to, next_weight) in next.iter_mut().enumerate() {
+                *next_weight += 0.5 * weights[from] * chain.transition_matrix[from][to];
             }
         }
         residual = next
