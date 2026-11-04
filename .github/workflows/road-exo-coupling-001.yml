@@ -19,11 +19,13 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+      - name: Check locked dependency graph
+        run: cargo metadata --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --format-version 1 --no-deps
       - name: Check formatting
         run: cargo fmt --manifest-path research/road-exo-coupling-001/Cargo.toml -- --check
       - name: Run conformance tests
-        run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets
+        run: cargo test --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets
       - name: Run Clippy
-        run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path research/road-exo-coupling-001/Cargo.toml --locked --all-targets -- -D warnings
       - name: Validate machine-readable fixtures
-        run: python3 -c 'import json; json.load(open("research/road-exo-coupling-001/fixtures/event_identity_cases.json", encoding="utf-8"))'
+        run: python3 -c 'import json; paths = ["research/road-exo-coupling-001/fixtures/event_identity_cases.json", "research/road-exo-coupling-001/fixtures/event_correspondence_cases.json"]; [json.load(open(path, encoding="utf-8")) for path in paths]'
