@@ -519,9 +519,13 @@ mod tests {
             memory_peak_reader_flags: 0,
             cgroup2_mount_options: "rw,nosuid,nodev,relatime",
             monotonic_time_ns: time_ns,
-            cpu_stat: &format!("usage_usec {cpu}\nuser_usec {user}\nsystem_usec {system}\nnr_periods 10\n"),
+            cpu_stat: &format!(
+                "usage_usec {cpu}\nuser_usec {user}\nsystem_usec {system}\nnr_periods 10\n"
+            ),
             memory_peak: &format!("{peak}\n"),
-            memory_events: &format!("low 0\nhigh 0\nmax 0\noom {oom}\noom_kill {kill}\noom_group_kill 0\n"),
+            memory_events: &format!(
+                "low 0\nhigh 0\nmax 0\noom {oom}\noom_kill {kill}\noom_group_kill 0\n"
+            ),
             cgroup_events: "populated 0\nfrozen 0\n",
         })
         .expect("parse cgroup snapshot fixture")
@@ -603,31 +607,31 @@ mod tests {
     fn rejects_malformed_and_duplicate_kernel_counter_fields() {
         assert!(
             parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
-            cgroup_id: "x",
-            memory_peak_reader_id: "reader-x",
-            memory_peak_reader_flags: 0,
-            cgroup2_mount_options: "rw,nosuid,nodev",
-            monotonic_time_ns: 1,
-            cpu_stat: "usage_usec 1\nuser_usec 1\n",
-            memory_peak: "10\n",
-            memory_events: "oom 0\noom_kill 0\n",
-            cgroup_events: "populated 0\nfrozen 0\n",
-        })
+                cgroup_id: "x",
+                memory_peak_reader_id: "reader-x",
+                memory_peak_reader_flags: 0,
+                cgroup2_mount_options: "rw,nosuid,nodev",
+                monotonic_time_ns: 1,
+                cpu_stat: "usage_usec 1\nuser_usec 1\n",
+                memory_peak: "10\n",
+                memory_events: "oom 0\noom_kill 0\n",
+                cgroup_events: "populated 0\nfrozen 0\n",
+            })
             .expect_err("missing system_usec")
             .contains("system_usec")
         );
         assert!(
             parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
-            cgroup_id: "x",
-            memory_peak_reader_id: "reader-x",
-            memory_peak_reader_flags: 0,
-            cgroup2_mount_options: "rw,nosuid,nodev",
-            monotonic_time_ns: 1,
-            cpu_stat: "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
-            memory_peak: "10\n",
-            memory_events: "oom 0\noom_kill 0\n",
-            cgroup_events: "populated 0\nfrozen 0\n",
-        })
+                cgroup_id: "x",
+                memory_peak_reader_id: "reader-x",
+                memory_peak_reader_flags: 0,
+                cgroup2_mount_options: "rw,nosuid,nodev",
+                monotonic_time_ns: 1,
+                cpu_stat: "usage_usec 1\nusage_usec 2\nuser_usec 1\nsystem_usec 0\n",
+                memory_peak: "10\n",
+                memory_events: "oom 0\noom_kill 0\n",
+                cgroup_events: "populated 0\nfrozen 0\n",
+            })
             .expect_err("duplicate CPU stat")
             .contains("duplicate")
         );
@@ -637,16 +641,16 @@ mod tests {
     fn rejects_local_only_memory_events_and_changed_memory_peak_reader() {
         assert!(
             parse_cgroup_v2_snapshot(CgroupV2SnapshotInput {
-            cgroup_id: "x",
-            memory_peak_reader_id: "reader-x",
-            memory_peak_reader_flags: 0,
-            cgroup2_mount_options: "rw,nosuid,nodev,memory_localevents",
-            monotonic_time_ns: 1,
-            cpu_stat: "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
-            memory_peak: "10\n",
-            memory_events: "oom 0\noom_kill 0\n",
-            cgroup_events: "populated 0\nfrozen 0\n",
-        })
+                cgroup_id: "x",
+                memory_peak_reader_id: "reader-x",
+                memory_peak_reader_flags: 0,
+                cgroup2_mount_options: "rw,nosuid,nodev,memory_localevents",
+                monotonic_time_ns: 1,
+                cpu_stat: "usage_usec 1\nuser_usec 1\nsystem_usec 0\n",
+                memory_peak: "10\n",
+                memory_events: "oom 0\noom_kill 0\n",
+                cgroup_events: "populated 0\nfrozen 0\n",
+            })
             .expect_err("local-only memory events are not process-tree evidence")
             .contains("hierarchical")
         );
