@@ -1188,7 +1188,7 @@ mod tests {
                 .abs()
                 < 1e-12
         );
-        let mean_of_ratios = (0.9 + 0.5) / 2.0;
+        let mean_of_ratios: f64 = (0.9_f64 + 0.5_f64) / 2.0_f64;
         assert!((mean_of_ratios - 0.86).abs() > 0.0);
     }
 
@@ -1252,9 +1252,10 @@ mod tests {
     #[test]
     fn rejects_duplicate_boundary_measurements_and_route_ids() {
         let mut ledger = fixture();
+        let duplicate_measurement = ledger.segments[0].boundary_measurements[0].clone();
         ledger.segments[0]
             .boundary_measurements
-            .push(ledger.segments[0].boundary_measurements[0].clone());
+            .push(duplicate_measurement);
         assert!(
             ledger
                 .validate()
