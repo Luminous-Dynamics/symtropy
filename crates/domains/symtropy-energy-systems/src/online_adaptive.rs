@@ -749,6 +749,26 @@ mod tests {
         assert!(report.joint_coverage_fraction <= report.cell_coverage_fraction);
         assert_eq!(report.receipts.len(), 2);
         assert_eq!(report.receipts[0].total_cell_count, 2);
+        let pv = &report.receipts[0].cells[0];
+        assert_eq!(pv.channel_id, "pv");
+        assert_eq!(pv.normalization_scale_evidence_id, "scale-pv");
+        assert_eq!(pv.forecast_evidence_id, "forecast-pv");
+        assert_eq!(pv.realization_evidence_id, "actual-pv");
+    }
+
+    #[test]
+    fn rejects_target_miscoverage_outside_the_adaptive_bounds() {
+        let too_narrow = OnlineAdaptiveCalibrationContract::new(
+            100_000, 10_000, 100_000, 300_000
+        )
+        .unwrap();
+        assert!(matches!(
+            evaluate_online_adaptive_calibration(&stream(&[0.1]), &too_narrow),
+            Err(OnlineAdaptiveCalibrationError::TargetMiscoverageOutsideBounds {
+                target: 50_000,
+                ..
+            })
+        ));
     }
 
     #[test]
