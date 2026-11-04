@@ -51,19 +51,17 @@ Mechanism hypotheses and every joint transition-likelihood row independently dec
 
 ### Presynaptic modulation is not sensory-channel loss
 
-The adapter now represents three different concepts separately:
+The adapter keeps three concepts independent:
 
 - **Afferent channel state:** whether position-, movement-, vibration-, or contact-feedback signals are intact, gated, attenuated, stale, or missing.
-- **Presynaptic movement inhibition:** whether movement-encoding FeCO axons are in a disinhibited or presynaptically inhibited state. This state has its own axis in the joint sensor-state tuple and cannot be inferred from channel loss.
+- **Presynaptic movement inhibition:** whether movement-encoding FeCO axons are disinhibited or presynaptically inhibited, represented independently for all six legs.
 - **Acquisition state:** whether the measurement instrument is calibrated, offset, drifting, or noisy.
 
-The action matrix distinguishes active self-generated movement, passive movement, explicit descending inhibition engagement, and descending inhibition release. Active and passive probes produce different presynaptic-state transitions while retaining intact position, movement and vibration channel metadata. Descending actions must declare an explicit target state; the compiler rejects missing targets or a transition that changes unrelated sensory/acquisition variables. Sensor semantic IDs are generated and verified from all typed fields, including presynaptic modulation, so an ID cannot silently omit the new biological dimension.
+This distinction is grounded in Dallmann et al. (Nature, 2025): position-encoding claw axons remain active across behaviours, while movement-encoding hook axons are suppressed during walking and grooming. The authors identify GABAergic interneurons that provide presynaptic inhibition to hook axons and receive descending input; interneuron and descending activity correlates with self-generated rather than passive leg movements. DOI: [10.1038/s41586-025-09554-2](https://doi.org/10.1038/s41586-025-09554-2).
 
-This distinction is grounded in Dallmann et al. (Nature, 2025), who report that position-encoding claw axons remain active across behaviours while movement-encoding hook axons are suppressed during walking and grooming. The authors identify GABAergic interneurons that provide presynaptic inhibition to hook axons and receive descending input; their activity is correlated with self-generated rather than passive leg movements. DOI: [10.1038/s41586-025-09554-2](https://doi.org/10.1038/s41586-025-09554-2).
+The synthetic state space has six independent presynaptic-inhibition entries. Its action matrix distinguishes active self-generated movement, passive movement, descending inhibition engagement, and descending inhibition release. The synthetic matrix includes front-left and front-right descending interventions. Active/passive probes alter only their target leg's presynaptic state while retaining intact position, movement and vibration channel metadata. Descending actions must declare both a target leg and target inhibition state. The compiler rejects transition rows that alter non-target legs or unrelated sensory/acquisition variables. A movement-afferent channel gate preserves the entire six-leg presynaptic state. Sensor semantic IDs are derived from and validated against every typed field, including all six modulation entries.
 
-The synthetic action vocabulary therefore distinguishes active movement probes, passive movement probes, and explicit descending modulation with an engaged/disinhibited target. Active/passive actions change the presynaptic state in the synthetic kernel without gating the movement channel or changing acquisition state. Descending actions must declare their target explicitly. The compiler rejects inconsistent transition rows, and a movement-afferent channel gate is required to preserve the presynaptic state.
-
-**Claim boundary:** these are typed, synthetic software fixtures informed by a published mechanism. They do not reproduce the measured neural response distributions, prove the exact descending circuit dynamics, or establish a causal effect in a real fly. A measured-data claim requires a source-locked measurement likelihood and independent held-out validation.
+**Claim boundary:** these are synthetic software fixtures informed by a published mechanism. They do not reproduce measured neural-response distributions, prove the complete descending-circuit dynamics, or establish a causal effect in a real fly. A measured-data claim still requires source-locked likelihoods and independent held-out biological validation.
 
 ## Synthetic locomotion confounding fixture
 
