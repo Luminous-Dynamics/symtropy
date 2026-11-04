@@ -20,6 +20,7 @@ import resource
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -215,6 +216,7 @@ def main() -> int:
 
     request = {
         "schema": SCHEMA,
+        "attempt_id": str(uuid.uuid4()),
         "source_commit": args.source_commit.lower(),
         "package_version_expected": args.package_version,
         "task_id": args.task_id,
@@ -225,9 +227,10 @@ def main() -> int:
         "iterations_requested": args.iters,
         "environment_overrides": sorted(args.environment),
     }
-    run_id = sha256(canonical_json(request))
+    request_sha256 = sha256(canonical_json(request))
+    run_id = sha256(canonical_json({"request": request_sha256, "attempt_id": request["attempt_id"]}))
     run_root = result_root / run_id
-    run_root.mkdir(parents=True, exist_ok=True)
+    run_root.mkdir(parents=True, exist_ok=False)
 
     try:
         if not re.fullmatch(r"[0-9a-fA-F]{40}", args.source_commit):
@@ -284,8 +287,10 @@ def main() -> int:
             if "=" not in item:
                 raise ValueError("--environment entries must be KEY=VALUE")
             key, value = item.split("=", 1)
-            if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", key):
-                raise ValueError(f"invalid environment key {key!r}")
+            if key not in ENV_ALLOWLIST:
+                raise ValueError(
+                    f"environment key {key!r} is not in the reviewed allow-list"
+                )
             env[key] = value
         environment_projection = {
             key: env[key] for key in ENV_ALLOWLIST if key in env
@@ -445,9 +450,53 @@ def main() -> int:
             "artifacts": artifacts,
         }
 
+    receipt["request_sha256"] = request_sha256
     receipt["receipt_sha256"] = sha256(canonical_json(receipt))
     receipt_path = run_root / "receipt.json"
     receipt_path.write_bytes(canonical_json(receipt) + b"\n")
+
+    import io
+
+    row = {
+        "schema": SCHEMA,
+        "attempt_id": request["attempt_id"],
+        "run_id": run_id,
+        "request_sha256": request_sha256,
+        "state": state,
+        "reason": reason,
+        "source_commit": receipt.get("source_commit_verified") or args.source_commit.lower(),
+        "package_version": receipt.get("package_version_observed") or args.package_version,
+        "task_id": args.task_id,
+        "metadata_sha256": args.metadata_sha256.lower(),
+        "algorithm": args.algorithm,
+        "seed": str(args.seed),
+        "n_init_requested": str(args.n_init),
+        "iterations_requested": str(args.iters),
+        "objective_evaluation_count": str(metrics.get("objective_evaluation_count", "")),
+        "initial_design_count": str(metrics.get("initial_design_count", "")),
+        "feasible_evaluation_count": str(metrics.get("feasible_evaluation_count", "")),
+        "infeasible_evaluation_count": str(metrics.get("infeasible_evaluation_count", "")),
+        "feasible_evaluation_fraction": str(metrics.get("feasible_evaluation_fraction", "")),
+        "process_exit_code": "" if exit_code is None else str(exit_code),
+        "wall_seconds": "" if wall_seconds is None else str(wall_seconds),
+        "cpu_user_seconds": "" if cpu_user_seconds is None else str(cpu_user_seconds),
+        "cpu_system_seconds": "" if cpu_system_seconds is None else str(cpu_system_seconds),
+        "peak_memory_state": "unknown",
+        "gpu_state": "unknown",
+        "energy_state": "unknown",
+        "stdout_sha256": artifacts.get("stdout", {}).get("sha256", ""),
+        "stderr_sha256": artifacts.get("stderr", {}).get("sha256", ""),
+        "npz_sha256": artifacts.get("upstream_npz", {}).get("sha256", ""),
+        "summary_sha256": artifacts.get("upstream_summary", {}).get("sha256", ""),
+        "environment_freeze_sha256": freeze_sha256 or "",
+        "receipt_sha256": receipt["receipt_sha256"],
+    }
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=list(row.keys()), lineterminator="\n")
+    writer.writeheader()
+    writer.writerow(row)
+    (run_root / "run-row.csv").write_text(buffer.getvalue(), encoding="utf-8", newline="")
+
     print(json.dumps({
         "run_id": run_id,
         "state": state,
