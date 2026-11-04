@@ -136,6 +136,7 @@ pub struct CandidateScore {
     pub family: ModelFamily,
     pub model_digest: String,
     pub training_data_digest: String,
+    pub execution_environment_digest: String,
     pub runtime_median_ms: f64,
     pub runtime_p95_ms: f64,
     pub peak_memory_bytes: u64,
@@ -224,6 +225,9 @@ impl BenchmarkSuite {
                     || candidate.peak_memory_bytes == 0
                 {
                     return Err("candidate runtime distribution or peak memory is invalid".into());
+                }
+                if !(case.reference_runtime_median_ms / candidate.runtime_median_ms).is_finite() {
+                    return Err("candidate speedup calculation overflowed".into());
                 }
                 validate_trace(&candidate.trace)?;
                 if candidate.trace.time_s != case.reference.time_s {
@@ -464,6 +468,7 @@ fn score_candidate(
         family: candidate.family.clone(),
         model_digest: candidate.model_digest.clone(),
         training_data_digest: candidate.training_data_digest.clone(),
+        execution_environment_digest: candidate.execution_environment_digest.clone(),
         runtime_median_ms: candidate.runtime_median_ms,
         runtime_p95_ms: candidate.runtime_p95_ms,
         peak_memory_bytes: candidate.peak_memory_bytes,
@@ -851,6 +856,27 @@ mod tests {
             serde_json::from_str(SCHEMA).expect("benchmark JSON schema");
         assert_eq!(schema["properties"]["schema_version"]["const"], SUITE_SCHEMA_VERSION);
         assert_eq!(schema["additionalProperties"], false);
+
+        let required_strings = |value: &serde_json::Value| {
+            let mut names = value["required"]
+                .as_array()
+                .expect("schema required fields")
+                .iter()
+                .map(|field| field.as_str().expect("field name"))
+                .collect::<Vec<_>>();
+            names.sort_unstable();
+            names
+        };
+        let candidate_required = required_strings(&schema["$defs"]["candidate"]);
+        assert!(candidate_required.contains(&"execution_environment_digest"));
+        assert!(candidate_required.contains(&"runtime_median_ms"));
+        assert!(candidate_required.contains(&"runtime_p95_ms"));
+        assert!(candidate_required.contains(&"peak_memory_bytes"));
+        let case_required = required_strings(&schema["$defs"]["case"]);
+        assert!(case_required.contains(&"execution_environment_digest"));
+        assert!(case_required.contains(&"reference_runtime_median_ms"));
+        assert!(case_required.contains(&"reference_runtime_p95_ms"));
+
         let report = suite.evaluate().unwrap();
         assert_eq!(
             report.ranking[0],
