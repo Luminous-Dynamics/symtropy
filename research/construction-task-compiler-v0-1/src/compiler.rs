@@ -651,7 +651,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn task_family_and_resource_obligations_are_preserved() {
         let result = compile(
