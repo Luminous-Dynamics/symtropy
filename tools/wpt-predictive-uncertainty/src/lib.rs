@@ -115,11 +115,11 @@ pub fn evaluate(records: &[EvaluationRecord]) -> Result<EvaluationReport, String
             return Err(format!("{}: interval width overflow", record.record_id));
         }
         count += 1;
-        covered += usize::from(hit);
+        covered += if hit { 1 } else { 0 };
         width_sum += width;
         let entry = regimes.entry(record.regime_id.clone()).or_insert((0, 0, 0.0, 0.0));
         entry.0 += 1;
-        entry.1 += usize::from(hit);
+        entry.1 += if hit { 1 } else { 0 };
         entry.2 += width;
         entry.3 = record.nominal_coverage;
     }
