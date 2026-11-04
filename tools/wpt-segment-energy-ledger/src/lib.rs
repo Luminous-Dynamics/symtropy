@@ -655,6 +655,10 @@ mod tests {
                     boundary: EnergyBoundary::BatteryTerminalInput,
                     quantity: quantity(&format!("{id}-BAT"), "BATTERY_TERMINAL_INPUT", 48.0),
                 },
+                BoundaryMeasurement {
+                    boundary: EnergyBoundary::BessDcOutput,
+                    quantity: quantity(&format!("{id}-BESS"), "BESS_DC_OUTPUT", 55.0),
+                },
             ],
         }
     }
@@ -676,6 +680,14 @@ mod tests {
                 boundary_measurements: vec![BoundaryMeasurement {
                     boundary: EnergyBoundary::GridAcInput,
                     quantity: quantity("WAIT-GRID", "GRID_AC_INPUT", 5.0),
+                },
+                BoundaryMeasurement {
+                    boundary: EnergyBoundary::RoadwayInverterDcInput,
+                    quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
+                },
+                BoundaryMeasurement {
+                    boundary: EnergyBoundary::BessDcOutput,
+                    quantity: quantity("WAIT-BESS", "BESS_DC_OUTPUT", 2.0),
                 }],
             }],
         }
@@ -796,6 +808,29 @@ mod tests {
         assert!((baseline.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
         assert_eq!(baseline.total_idle_roadway_inverter_dc_input_wh, 20.0);
     }
+    #[test]
+    fn reports_bess_output_separately_and_does_not_add_idle_inverter_to_transfer_denominator() {
+        let report = fixture().evaluate().unwrap();
+        assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
+        assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
+        assert!(
+            (report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap()
+                - 130.0 / 140.0)
+                .abs()
+                < 1e-12
+        );
+    }
+
+    #[test]
+    fn rejects_missing_segment_level_boundary_measurements_for_route_metric() {
+        let mut ledger = fixture();
+        ledger.segments[1]
+            .boundary_measurements
+            .retain(|measurement| measurement.boundary != EnergyBoundary::BatteryTerminalInput);
+        let error = ledger.evaluate().unwrap_err();
+        assert!(error.contains("every segment requires BatteryTerminalInput"));
+    }
+
     #[test]
     fn preserves_standby_energy_outside_the_standard_segment_metric() {
         let mut ledger = fixture();
