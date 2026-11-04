@@ -218,3 +218,16 @@ The run manifest now has a foreign_object_assessment object with dataset split, 
 The 14-case frozen corpus is foreign-object-scenarios.jsonl. It covers conductive/ferrous objects, multiple objects, unseen alloy, session drift, active-transfer EMI, sensor faults, localization uncertainty, DeMag actuation/fault, object movement, thermal-sensor failure and an empty-region negative control.
 
 A FOD assessment marked QUALIFIED must pass the object-and-session-held-out criteria and produce all required scenario results. safety.foreign_object_detection = PASS is rejected unless the FOD assessment itself is QUALIFIED. These are proposed engineering research gates, not a published standard or certification.
+
+## Geometry compatibility envelope and WPT4 cross-generation evidence
+
+The WPT4/WPT3 2026 Koch et al. experiment is represented as a separate geometry-compatibility record:
+- geometry-compatibility.jsonl preserves the author-reported >=34% magnetic-coupling operating-range degradation for legacy WPT3 VA + flush-mounted GA.
+- geometry-compatibility.schema.json separates vehicle underbody clearance from coil-to-coil air gap; records X/Y/Z/yaw, GA/VA generations, installation, sample counts, pointwise pass-region metrics, connected components, baseline, confidence bounds, evidence and claim status.
+- geometry-compatibility-protocol.md defines coordinate frames, adaptive boundary sampling, separate coupling/power/efficiency/thermal/safety envelopes and cross-generation matrix rules.
+- wpt-geometry-envelope-validator is a dependency-light Rust CLI with 20 authored unit tests. It rejects a QUALIFIED claim without complete geometry bounds, >=189 positions, open/short sample coverage, raw dataset/analysis digests, connected pass-region accounting, declared criterion thresholds, measured coil-parameter evidence and numerical uncertainty budget.
+- The 2026 source claim remains SOURCE_CLAIM_ONLY because the abstract lacks point-level coordinates, raw data, exact baseline and uncertainty. Its 34% metric cannot be ranked against efficiency.
+
+The comparator now has a negative control proving coupling-range reduction is a different quantity from DC-DC efficiency. Typed v1 fetch-back has 59 measurements and 20 comparison cases. Independent schema walks report zero structure errors; all case references resolve; all 20 frozen dispositions/reason requirements match a mirror of the current comparator logic. This is not a Rust execution result.
+
+The WPT4 concept is not represented as SAE J2954_202408 compliant; the published 2024 edition's scope is limited to stationary surface-mounted light-duty forward transfer up to 11 kVA. No 22 kW WPT4 normative standard claim is made.
