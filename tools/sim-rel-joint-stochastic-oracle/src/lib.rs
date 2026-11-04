@@ -16,7 +16,7 @@ pub mod locomotion;
 
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
-const MAX_SENSOR_STATES: usize = 64;
+const MAX_SENSOR_STATES: usize = 4_096;
 const MAX_ACTIONS: usize = 16;
 const MAX_OBSERVATIONS: usize = 32;
 const MAX_KERNEL_ROWS: usize = 1_000_000;
