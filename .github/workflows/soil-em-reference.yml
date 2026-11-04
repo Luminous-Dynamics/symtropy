@@ -1,0 +1,49 @@
+name: Soil EM Reference
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "tools/soil-em-reference/**"
+      - ".github/workflows/soil-em-reference.yml"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "tools/soil-em-reference/**"
+      - ".github/workflows/soil-em-reference.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: soil-em-reference-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Soil EM Reference (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/soil-em-reference/Cargo.toml --all -- --check
+
+      - name: Run unit and binary tests
+        run: cargo test --manifest-path tools/soil-em-reference/Cargo.toml --all-targets --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/soil-em-reference/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Run material sweep
+        run: cargo run --manifest-path tools/soil-em-reference/Cargo.toml --release --locked --bin material_sweep > soil-propagation.csv
+
+      - name: Run electrode sweep
+        run: cargo run --manifest-path tools/soil-em-reference/Cargo.toml --release --locked --bin electrode_sweep > electrode-impedance.csv

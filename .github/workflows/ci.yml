@@ -82,3 +82,23 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # Standalone research reference packages are intentionally excluded from
+    # the root workspace. Qualify them explicitly when their manifest exists.
+    - name: Format standalone Soil EM reference
+      if: ${{ hashFiles('tools/soil-em-reference/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/soil-em-reference/Cargo.toml --all -- --check
+
+    - name: Test standalone Soil EM reference
+      if: ${{ hashFiles('tools/soil-em-reference/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/soil-em-reference/Cargo.toml --all-targets --locked
+
+    - name: Clippy standalone Soil EM reference
+      if: ${{ hashFiles('tools/soil-em-reference/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/soil-em-reference/Cargo.toml --all-targets --locked -- -D warnings
+
+    - name: Execute Soil EM reference sweeps
+      if: ${{ hashFiles('tools/soil-em-reference/Cargo.toml') != '' }}
+      run: |
+        cargo run --manifest-path tools/soil-em-reference/Cargo.toml --release --locked --bin material_sweep > soil-propagation.csv
+        cargo run --manifest-path tools/soil-em-reference/Cargo.toml --release --locked --bin electrode_sweep > electrode-impedance.csv
