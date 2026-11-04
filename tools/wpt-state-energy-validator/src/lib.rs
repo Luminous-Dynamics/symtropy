@@ -80,6 +80,25 @@ fn parse_matrix(component: &Value, center_key: &str, uncertainty_key: &str, unit
     if actual_unit != unit {
         return Err(format!("{path}.matrix_unit must be {unit}"));
     }
+    let matrix_basis = string_field(component, "matrix_basis_sha256", path)?;
+    let state_basis = string_field(component, "state_basis_sha256", path)?;
+    let matrix_receipt = string_field(component, "matrix_receipt_sha256", path)?;
+    let state_receipt = string_field(component, "state_receipt_sha256", path)?;
+    let calibration_receipt = string_field(component, "calibration_receipt_sha256", path)?;
+    for (name, digest) in [
+        ("matrix_basis_sha256", matrix_basis.as_str()),
+        ("state_basis_sha256", state_basis.as_str()),
+        ("matrix_receipt_sha256", matrix_receipt.as_str()),
+        ("state_receipt_sha256", state_receipt.as_str()),
+        ("calibration_receipt_sha256", calibration_receipt.as_str())
+    ] {
+        if digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)) {
+            return Err(format!("{path}.{name} must be 64 lowercase hexadecimal characters"));
+        }
+    }
+    if matrix_basis != state_basis {
+        return Err(format!("{path} matrix and state coordinate-basis digests differ"));
+    }
     let center = square_matrix(field(component, center_key, path)?, &format!("{path}.{center_key}"), false)?;
     let uncertainty = square_matrix(field(component, uncertainty_key, path)?, &format!("{path}.{uncertainty_key}"), true)?;
     let n = center.len();
@@ -255,6 +274,14 @@ fn energy(component: &Value, matrix_key: &str, uncertainty_key: &str, state_key:
     }
     let values = vector(field(component, state_key, path)?, &format!("{path}.{state_key}"), n, false)?;
     let state_uncertainty = vector(field(component, state_uncertainty_key, path)?, &format!("{path}.{state_uncertainty_key}"), n, true)?;
+    let matrix_basis = string_field(component, "matrix_basis_sha256", path)?;
+    let state_basis = string_field(component, "state_basis_sha256", path)?;
+    let matrix_receipt = string_field(component, "matrix_receipt_sha256", path)?;
+    let state_receipt = string_field(component, "state_receipt_sha256", path)?;
+    let calibration_receipt = string_field(component, "calibration_receipt_sha256", path)?;
+    if matrix_basis != state_basis {
+        return Err(format!("{path} matrix and state coordinate-basis digests differ"));
+    }
     let (min_eig, max_min_eig, min_max_eig, max_eig, residual, uncertainty_norm, converged) = eigen_interval(&matrix)?;
     let status = if !converged {
         "STORAGE_MATRIX_UNRESOLVED"
@@ -287,6 +314,11 @@ fn energy(component: &Value, matrix_key: &str, uncertainty_key: &str, state_key:
         "status": status,
         "matrix_unit": matrix_unit,
         "state_unit": state_unit,
+        "matrix_basis_sha256": matrix_basis,
+        "state_basis_sha256": state_basis,
+        "matrix_receipt_sha256": matrix_receipt,
+        "state_receipt_sha256": state_receipt,
+        "calibration_receipt_sha256": calibration_receipt,
         "nominal_energy_j": nominal,
         "energy_interval_j": { "lower": lower, "upper": upper },
         "minimum_eigenvalue_interval": { "lower": min_eig, "upper": max_min_eig },
@@ -386,6 +418,17 @@ mod tests {
 
     fn disposition(value: &Value) -> String {
         evaluate(value)["disposition"].as_str().unwrap().to_owned()
+    }
+
+    #[test]
+    fn rejects_coordinate_basis_mismatch_and_missing_receipts() {
+        let mut mismatch = basic("basis-mismatch");
+        mismatch["inductance"]["state_basis_sha256"] = json!("9".repeat(64));
+        assert_eq!(disposition(&mismatch), "INVALID_INPUT");
+
+        let mut missing = basic("missing-receipt");
+        missing["capacitance"].as_object_mut().unwrap().remove("calibration_receipt_sha256");
+        assert_eq!(disposition(&missing), "INVALID_INPUT");
     }
 
     #[test]
