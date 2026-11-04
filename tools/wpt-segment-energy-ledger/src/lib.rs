@@ -161,6 +161,18 @@ pub struct BoundaryReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EnergyRatioInterval {
+    pub disposition: String,
+    pub point_estimate: Option<f64>,
+    pub lower_bound: Option<f64>,
+    pub upper_bound: Option<f64>,
+    pub numerator_energy_wh: f64,
+    pub denominator_energy_wh: f64,
+    pub numerator_uncertainty_wh: f64,
+    pub denominator_uncertainty_wh: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SegmentReport {
     pub segment_id: String,
     pub geometry_digest: String,
@@ -174,7 +186,7 @@ pub struct SegmentReport {
     pub phase_reconciliation_output_error_wh: f64,
     pub standard_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: Option<EfficiencyInterval>,
-    pub grid_ac_to_battery_terminal_efficiency: Option<EfficiencyInterval>,
+    pub grid_ac_to_battery_terminal_energy_ratio: Option<EnergyRatioInterval>,
     pub battery_terminal_input_wh: Option<f64>,
 }
 
@@ -204,7 +216,7 @@ pub struct RouteReport {
     pub total_bess_dc_output_bound_wh: Option<f64>,
     pub standard_route_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: EfficiencyInterval,
-    pub grid_ac_to_battery_terminal_efficiency: EfficiencyInterval,
+    pub grid_ac_to_battery_terminal_energy_ratio: EnergyRatioInterval,
     pub battery_terminal_input_wh: f64,
     pub segments: Vec<SegmentReport>,
     pub measurement_provenance: Vec<MeasurementProvenance>,
@@ -440,11 +452,8 @@ impl RouteLedger {
                 &EnergyBoundary::RoadwayInverterDcInput,
                 &EnergyBoundary::VehicleDcBusOutput,
             );
-            let grid_ac_to_battery_terminal = paired_segment_metric(
-                &map,
-                &EnergyBoundary::GridAcInput,
-                &EnergyBoundary::BatteryTerminalInput,
-            );
+            let grid_ac_to_battery_terminal_energy_ratio =
+                paired_energy_ratio(&map, &EnergyBoundary::GridAcInput, &EnergyBoundary::BatteryTerminalInput);
             let battery_terminal_input_wh = map
                 .get(&EnergyBoundary::BatteryTerminalInput)
                 .map(|measurement| measurement.energy_wh);
@@ -482,7 +491,7 @@ impl RouteLedger {
                 phase_reconciliation_output_error_wh: (phase_evpc.0 - segment.segment_evpc_output.energy_wh).abs(),
                 standard_segment_efficiency: standard,
                 inverter_dc_to_vehicle_dc_efficiency: inverter_to_vehicle,
-                grid_ac_to_battery_terminal_efficiency: grid_ac_to_battery_terminal,
+                grid_ac_to_battery_terminal_energy_ratio,
                 battery_terminal_input_wh,
             });
         }
@@ -525,11 +534,11 @@ impl RouteLedger {
             total_inverter_bound,
             total_vehicle_dc_bound,
         );
-        let grid_route = efficiency_interval(
-            total_grid,
+        let grid_route = energy_ratio_interval(
             total_battery,
-            total_grid_bound,
+            total_grid,
             total_battery_bound,
+            total_grid_bound,
         );
 
         let mut measurement_provenance = Vec::new();
@@ -574,7 +583,7 @@ impl RouteLedger {
             total_bess_dc_output_bound_wh: total_bess_present.then_some(total_bess_bound),
             standard_route_segment_efficiency: standard_route,
             inverter_dc_to_vehicle_dc_efficiency: inverter_route,
-            grid_ac_to_battery_terminal_efficiency: grid_route,
+            grid_ac_to_battery_terminal_energy_ratio: grid_route,
             battery_terminal_input_wh: total_battery,
             segments: segment_reports,
             measurement_provenance,
@@ -590,6 +599,45 @@ fn provenance_record(quantity: &EnergyQuantity) -> MeasurementProvenance {
         measurement_plane_id: quantity.measurement_plane_id.clone(),
         calibration_receipt_digest: quantity.calibration_receipt_digest.clone(),
         source_artifact_digest: quantity.source_artifact_digest.clone(),
+    }
+}
+
+fn paired_energy_ratio(
+    values: &BTreeMap<EnergyBoundary, &EnergyQuantity>,
+    numerator_boundary: &EnergyBoundary,
+    denominator_boundary: &EnergyBoundary,
+) -> Option<EnergyRatioInterval> {
+    let numerator = values.get(numerator_boundary)?;
+    let denominator = values.get(denominator_boundary)?;
+    Some(energy_ratio_interval(
+        numerator.energy_wh,
+        denominator.energy_wh,
+        numerator.deterministic_absolute_bound_wh,
+        denominator.deterministic_absolute_bound_wh,
+    ))
+}
+
+fn energy_ratio_interval(
+    numerator_wh: f64,
+    denominator_wh: f64,
+    numerator_bound_wh: f64,
+    denominator_bound_wh: f64,
+) -> EnergyRatioInterval {
+    let interval = efficiency_interval(
+        denominator_wh,
+        numerator_wh,
+        denominator_bound_wh,
+        numerator_bound_wh,
+    );
+    EnergyRatioInterval {
+        disposition: interval.disposition,
+        point_estimate: interval.point_estimate,
+        lower_bound: interval.lower_bound,
+        upper_bound: interval.upper_bound,
+        numerator_energy_wh: numerator_wh,
+        denominator_energy_wh: denominator_wh,
+        numerator_uncertainty_wh: numerator_bound_wh,
+        denominator_uncertainty_wh: denominator_bound_wh,
     }
 }
 
@@ -869,7 +917,9 @@ mod tests {
         let report = ledger.evaluate().unwrap();
         assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
         assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_ac_to_battery_terminal_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert!((report.grid_ac_to_battery_terminal_energy_ratio.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert_eq!(report.grid_ac_to_battery_terminal_energy_ratio.numerator_energy_wh, 96.0);
+        assert_eq!(report.grid_ac_to_battery_terminal_energy_ratio.denominator_energy_wh, 185.0);
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.total_idle_grid_input_bound_wh, 0.01);
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
@@ -906,7 +956,7 @@ mod tests {
         let report = fixture().evaluate().unwrap();
         assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
         assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_ac_to_battery_terminal_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert!((report.grid_ac_to_battery_terminal_energy_ratio.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.battery_terminal_input_wh, 96.0);
     }
@@ -1046,7 +1096,7 @@ mod tests {
         ledger.idle_intervals[0].boundary_measurements[0].quantity.energy_wh = 20.0;
         let with_wait = ledger.evaluate().unwrap();
         assert_eq!(baseline.standard_route_segment_efficiency, with_wait.standard_route_segment_efficiency);
-        assert!(with_wait.grid_ac_to_battery_terminal_efficiency.input_energy_wh > baseline.grid_ac_to_battery_terminal_efficiency.input_energy_wh);
+        assert!(with_wait.grid_ac_to_battery_terminal_energy_ratio.input_energy_wh > baseline.grid_ac_to_battery_terminal_energy_ratio.input_energy_wh);
         assert!(with_wait.total_idle_grid_input_wh > baseline.total_idle_grid_input_wh);
     }
 }
