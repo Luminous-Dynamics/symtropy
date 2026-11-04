@@ -10,6 +10,7 @@ This package defines a machine-readable receipt for one construction-robot quali
 
 - #3505/#3506 owns physical trial, ODD, reference metrology and staged qualification protocol.
 - #1607 owns surveying provenance, coordinate frames, transforms, calibration and uncertainty semantics. This receipt references those artifacts; it is not a survey adjustment engine.
+- [Symthaea #4918 — ENG-EVID-INDEP-001](https://github.com/Luminous-Dynamics/symthaea/issues/4918) owns generic claim-relative independence profiles and common-mode dependency lineage. This receipt performs only narrow declared-domain consistency checks; it does not implement a second dependency graph or prove physical independence.
 - #1300 owns blind challenge-set commitment, custody and post-run reveal. This receipt carries only an opaque challenge commitment and custodian reference; hidden seeds, answer keys and challenge preimages are not producer-visible.
 - #3317 owns snapshot operating-state evaluation.
 - #3499 owns temporal/per-cell event reduction.
