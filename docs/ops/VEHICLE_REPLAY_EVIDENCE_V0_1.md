@@ -33,6 +33,8 @@ All digests are checked as 64-hex strings. These are structural inputs, not auth
 
 ## Tape identity
 
+The replay tape digest uses the domain tag `symtropy.physics.replay-tape.v2` because the command vocabulary now includes kinematic state transitions. This intentionally separates v2 tape identities from pre-kinematic v1 receipts.
+
 The tape digest includes:
 - physics dimension;
 - frame count and exact timestep bit patterns;
