@@ -23,6 +23,7 @@ mod fuel;
 mod matched_service;
 mod online_adaptive;
 mod service_contract;
+mod strategy_benchmark;
 mod trace_validation;
 mod workload_schedule;
 
@@ -79,6 +80,13 @@ pub use service_contract::{
     ServiceDeliveryTolerance, ServiceInterface, ServiceOutputEvidence,
     ServiceOutputEvidenceClass, TypedServiceComparison, TypedServiceComparisonSegment,
     TypedServiceDemandContract, TypedServiceDemandSegment, compare_delivered_service,
+};
+
+pub use strategy_benchmark::{
+    StrategyBenchmarkContract, StrategyBenchmarkError, StrategyBenchmarkEvaluation,
+    StrategyBenchmarkOutcome, StrategyBenchmarkReport, StrategyOutcomeReceipt,
+    StrategyPairedComparisonSummary, StrategyPairedDeltaReceipt, StrategyResourceSummary,
+    evaluate_strategy_benchmark,
 };
 pub use trace_validation::{
     DataCenterPowerTrace, PowerAggregationSelection, PowerMeasurementBoundary,
