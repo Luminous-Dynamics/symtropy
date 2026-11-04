@@ -1,0 +1,74 @@
+{
+  "schema_version": "wpt-geometry-compatibility-v1",
+  "compatibility_id": "NOT_RUN-GEOMETRY-TEMPLATE",
+  "vehicle_assembly": {
+    "assembly_id": "TBD",
+    "generation": "UNKNOWN",
+    "power_rating_w": null,
+    "mounting_type": "UNKNOWN",
+    "coil_geometry": null,
+    "ferrite_material": null,
+    "shielding": null
+  },
+  "ground_assembly": {
+    "assembly_id": "TBD",
+    "generation": "UNKNOWN",
+    "power_rating_w": null,
+    "mounting_type": "UNKNOWN",
+    "coil_geometry": null,
+    "ferrite_material": null,
+    "shielding": null
+  },
+  "installation": {
+    "type": "UNKNOWN",
+    "surface_material": null,
+    "roadway_or_floor_reference": null
+  },
+  "geometry_domain": {
+    "coordinate_frame_id": null,
+    "coil_to_coil_air_gap_min_m": null,
+    "coil_to_coil_air_gap_max_m": null,
+    "vehicle_ground_clearance_min_m": null,
+    "vehicle_ground_clearance_max_m": null,
+    "x_offset_min_m": null,
+    "x_offset_max_m": null,
+    "y_offset_min_m": null,
+    "y_offset_max_m": null,
+    "z_offset_min_m": null,
+    "z_offset_max_m": null,
+    "yaw_min_deg": null,
+    "yaw_max_deg": null
+  },
+  "sampling": {
+    "strategy": "UNKNOWN",
+    "unique_positions_sampled": null,
+    "evaluation_point_count": null,
+    "inductance_sample_count": null,
+    "open_circuit_sample_count": null,
+    "short_circuit_sample_count": null,
+    "raw_geometry_data_sha256": null,
+    "instrumentation_reference": null
+  },
+  "coupling_range_metric": {
+    "metric_definition_id": "TBD",
+    "metric_name": "MAGNETIC_COUPLING_OPERATING_RANGE",
+    "comparison_direction": "UNKNOWN",
+    "relative_change_percent": null,
+    "qualifier": "NOT_REPORTED",
+    "baseline_compatibility_id": null,
+    "baseline_definition": null,
+    "absolute_region_measure": null,
+    "confidence_interval_lower_percent": null,
+    "confidence_interval_upper_percent": null,
+    "notes": "NOT_RUN template; no compatibility result is represented."
+  },
+  "evidence": {
+    "kind": "UNKNOWN",
+    "method": "NOT_REPORTED",
+    "source_doi": null,
+    "source_locator": "NOT_RUN template",
+    "uncertainty_reported": false
+  },
+  "qualification": "NOT_RUN",
+  "notes": "Template only. Not a geometry measurement, compatibility assessment, certification or hardware test."
+}
