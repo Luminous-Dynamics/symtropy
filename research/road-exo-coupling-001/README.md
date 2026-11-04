@@ -96,3 +96,50 @@ The resolver's unit tests also pin:
 - seed/source/component separation, receipt recomputation and run-local block-address collision rejection.
 
 The standalone manifest uses `blake3 = =1.8.7` and `rand_philox = =0.2.1`; `Cargo.lock` freezes the resolved transitive graph, and the workflow requires `--locked`.
+
+
+## Exact finite dependence oracle (ROAD-DEPENDENCE-001 #3599)
+
+The crate now includes a deliberately small, analytic finite-state joint-distribution reference. It is **not** a Gaussian random-field implementation or a fitted traffic stochastic model.
+
+### Why it exists
+
+A Philox block is an execution-order-independent random primitive; it does not say whether two downstream variables should be independent, correlated, or share a cause. The same scalar marginals can produce very different joint traffic outcomes when their dependence structure changes.
+
+The fixture makes the failure concrete:
+- a scene/group-level latent factor G is shared by two actor responses;
+- actor-local residuals epsilon_a and epsilon_b are distinct;
+- each response is G + epsilon_i;
+- G, epsilon_a and epsilon_b are exactly enumerated as independent fair {-1,+1} innovations in the declared finite table.
+
+The exact output has mean zero, variance two per actor, and covariance one between actors (correlation 0.5). A deliberately incorrect per-actor group-factor model has exactly the same marginal output distributions but covariance zero. A marginal-only benchmark would miss this error.
+
+### Implemented V0.1 scope
+
+- Explicit finite joint outcome table with positive integer masses; the complete table defines the joint distribution directly, so no independence is inferred merely from different IDs.
+- Typed source/factor identity, source-profile digest, units, physical scope, equivalence group and invariance justification.
+- Deterministic linear structural descendants with explicit exogenous and intervention parents.
+- Separate branch intervention inputs: the same latent factor table is reused while intervention descendants are recomputed.
+- Exact integer-weight means, marginal counts and covariance; no floating-point tolerance is needed for the finite-state reference.
+- Canonical manifest digest with order-independent variable/state/output declaration order.
+- Per-state dependence receipts binding manifest digest, branch, latent values, intervention values, output values and an unkeyed digest.
+- Receipt integrity check plus stronger replay verification against the exact manifest and intervention.
+- Negative controls for independent-per-event factors, missing/duplicate states, zero mass, unknown inputs, invalid dyads and receipt tampering.
+
+The table is a joint distribution of primitive innovations. Shared causes are represented by one factor variable reused by multiple structural outputs; actor-local residual variables remain distinct. The finite table explicitly defines the joint law and therefore does not smuggle in an independence assumption.
+
+### Deliberately deferred
+
+This first implementation does not yet generate random samples from Philox, model Gaussian/correlated random fields, infer covariance or copulas from data, represent nonstationary spatial bases, or implement temporal recurrences such as AR(1). Sampling is owned by #3582/#3586. The next dependence stages should add (1) time-indexed innovations and temporal recurrences, (2) finite-rank spatial basis fields, (3) cross-variable dependence and tail-dependence controls, and (4) calibrated empirical field profiles. Each must retain exact source/factor provenance and cross-world invariance classifications.
+
+The graph is currently bipartite: primitive finite exogenous variables feed one layer of deterministic linear outputs and explicit intervention inputs. It is not yet a general recursive SCM/DAG engine.
+
+### Measurement targets
+
+- Exact joint-probability and covariance agreement with the finite table.
+- Detect wrong joint covariance even when scalar marginals match exactly.
+- 100% invariance of shared latent values across declared branch interventions.
+- 100% recomputation of intervention-dependent linear descendants.
+- Zero duplicate/omitted variable values or zero-weight states admitted.
+- Zero receipt replay accepted against a different manifest or intervention.
+- Exact declaration-order-independent manifest digest and receipts.
