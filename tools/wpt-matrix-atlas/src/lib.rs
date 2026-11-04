@@ -130,7 +130,9 @@ impl MatrixAtlas {
             return Err("atlas requires at least two matrix samples".into());
         }
         if self.segments.len() != self.samples.len() - 1 {
-            return Err("one interpolation segment is required between each adjacent sample".into());
+            return Err(
+                "one interpolation segment is required between each adjacent sample".into(),
+            );
         }
 
         for (index, sample) in self.samples.iter().enumerate() {
@@ -139,21 +141,24 @@ impl MatrixAtlas {
             {
                 return Err("sample positions must be finite and strictly increasing".into());
             }
-            if index > 0
-                && !(sample.position_m - self.samples[index - 1].position_m).is_finite()
+            if index > 0 && !(sample.position_m - self.samples[index - 1].position_m).is_finite()
             {
                 return Err("adjacent sample position span must be finite".into());
             }
             if !sample.minimum_eigenvalue_lower_bound_h.is_finite()
                 || sample.minimum_eigenvalue_lower_bound_h < 0.0
             {
-                return Err("each sample must carry a finite non-negative passivity lower bound".into());
+                return Err(
+                    "each sample must carry a finite non-negative passivity lower bound".into(),
+                );
             }
             if !valid_sha256(&sample.matrix_digest)
                 || !valid_sha256(&sample.source_artifact_digest)
                 || !valid_sha256(&sample.validator_receipt_digest)
             {
-                return Err("matrix, source and validator receipt digests must be sha256 values".into());
+                return Err(
+                    "matrix, source and validator receipt digests must be sha256 values".into(),
+                );
             }
             validate_matrix(
                 &sample.matrix_h,
@@ -171,7 +176,9 @@ impl MatrixAtlas {
             if !segment.interpolation_error_frobenius_bound_h.is_finite()
                 || segment.interpolation_error_frobenius_bound_h < 0.0
             {
-                return Err("segment interpolation error bound must be finite and non-negative".into());
+                return Err(
+                    "segment interpolation error bound must be finite and non-negative".into(),
+                );
             }
             if !matches!(
                 segment.error_bound_method.as_str(),
@@ -201,7 +208,9 @@ impl MatrixAtlas {
         let first = &self.samples[0];
         let last = self.samples.last().expect("validated non-empty samples");
         if position_m < first.position_m || position_m > last.position_m {
-            return Err("EXTRAPOLATION_REJECTED: requested position lies outside sampled domain".into());
+            return Err(
+                "EXTRAPOLATION_REJECTED: requested position lies outside sampled domain".into(),
+            );
         }
 
         if let Some(index) = self
@@ -231,7 +240,9 @@ impl MatrixAtlas {
             .samples
             .windows(2)
             .position(|pair| position_m > pair[0].position_m && position_m < pair[1].position_m)
-            .ok_or_else(|| "requested position is not covered by an interpolation segment".to_string())?;
+            .ok_or_else(|| {
+                "requested position is not covered by an interpolation segment".to_string()
+            })?;
         let left = &self.samples[index];
         let right = &self.samples[index + 1];
         let segment = &self.segments[index];
@@ -249,9 +260,8 @@ impl MatrixAtlas {
             &right.entrywise_absolute_bound_h,
             alpha,
         )?;
-        let endpoint_lower_bound =
-            (1.0 - alpha) * left.minimum_eigenvalue_lower_bound_h
-                + alpha * right.minimum_eigenvalue_lower_bound_h;
+        let endpoint_lower_bound = (1.0 - alpha) * left.minimum_eigenvalue_lower_bound_h
+            + alpha * right.minimum_eigenvalue_lower_bound_h;
         let lower_bound = endpoint_lower_bound - segment.interpolation_error_frobenius_bound_h;
         if !lower_bound.is_finite() {
             return Err("interpolated eigenvalue lower bound overflow".into());
@@ -280,8 +290,7 @@ impl MatrixAtlas {
             from_sample_index: index,
             to_sample_index: index + 1,
             interpolation_fraction: alpha,
-            interpolation_error_frobenius_bound_h: segment
-                .interpolation_error_frobenius_bound_h,
+            interpolation_error_frobenius_bound_h: segment.interpolation_error_frobenius_bound_h,
             minimum_eigenvalue_lower_bound_h: lower_bound,
             source_receipt_digests: vec![
                 left.validator_receipt_digest.clone(),
@@ -294,12 +303,11 @@ impl MatrixAtlas {
 
     /// Return segment midpoints requiring new FEM/measurement samples under
     /// the caller's error and passivity-margin policy.
-    pub fn refinement_candidates(
-        &self,
-        policy: RefinementPolicy,
-    ) -> Result<Vec<f64>, String> {
+    pub fn refinement_candidates(&self, policy: RefinementPolicy) -> Result<Vec<f64>, String> {
         self.validate()?;
-        if !policy.maximum_interpolation_error_frobenius_bound_h.is_finite()
+        if !policy
+            .maximum_interpolation_error_frobenius_bound_h
+            .is_finite()
             || policy.maximum_interpolation_error_frobenius_bound_h < 0.0
             || !policy.minimum_required_eigenvalue_margin_h.is_finite()
             || policy.minimum_required_eigenvalue_margin_h < 0.0
@@ -376,8 +384,7 @@ fn validate_matrix(
         .iter()
         .flatten()
         .fold(0.0_f64, |norm, value| norm.hypot(*value));
-    let (minimum_eigenvalue, eigensolver_residual_bound) =
-        smallest_symmetric_eigenvalue(matrix)?;
+    let (minimum_eigenvalue, eigensolver_residual_bound) = smallest_symmetric_eigenvalue(matrix)?;
     let independently_computed_lower_bound = minimum_eigenvalue
         - input_uncertainty_bound
         - eigensolver_residual_bound
@@ -607,8 +614,18 @@ mod tests {
     #[test]
     fn refuses_extrapolation_outside_the_sampled_geometry_domain() {
         let atlas = fixture();
-        assert!(atlas.interpolate_at(-0.001).unwrap_err().contains("EXTRAPOLATION_REJECTED"));
-        assert!(atlas.interpolate_at(10.001).unwrap_err().contains("EXTRAPOLATION_REJECTED"));
+        assert!(
+            atlas
+                .interpolate_at(-0.001)
+                .unwrap_err()
+                .contains("EXTRAPOLATION_REJECTED")
+        );
+        assert!(
+            atlas
+                .interpolate_at(10.001)
+                .unwrap_err()
+                .contains("EXTRAPOLATION_REJECTED")
+        );
     }
 
     #[test]
@@ -653,7 +670,12 @@ mod tests {
     fn rejects_nonpassive_endpoint_lower_bound() {
         let mut atlas = fixture();
         atlas.samples[1].minimum_eigenvalue_lower_bound_h = -1e-6;
-        assert!(atlas.validate().unwrap_err().contains("passivity lower bound"));
+        assert!(
+            atlas
+                .validate()
+                .unwrap_err()
+                .contains("passivity lower bound")
+        );
     }
 
     #[test]
@@ -694,41 +716,43 @@ mod tests {
             vec![0.0, 0.0, 1e-6],
         ];
         atlas.samples[1].entrywise_absolute_bound_h = vec![vec![0.0; 3]; 3];
-        assert!(atlas
-            .validate()
-            .unwrap_err()
-            .contains("not proven positive semidefinite"));
+        assert!(
+            atlas
+                .validate()
+                .unwrap_err()
+                .contains("not proven positive semidefinite")
+        );
     }
 
     #[test]
     fn rejects_overstated_endpoint_eigenvalue_lower_bound() {
         let mut atlas = fixture();
         atlas.samples[0].minimum_eigenvalue_lower_bound_h = 9e-6;
-        assert!(atlas
-            .validate()
-            .unwrap_err()
-            .contains("more optimistic"));
+        assert!(atlas.validate().unwrap_err().contains("more optimistic"));
     }
 
     #[test]
     fn rejects_endpoint_whose_declared_error_bounds_cross_psd_boundary() {
         let mut atlas = fixture();
-        atlas.samples[0].entrywise_absolute_bound_h =
-            vec![vec![0.0, 6e-6], vec![6e-6, 0.0]];
-        assert!(atlas
-            .validate()
-            .unwrap_err()
-            .contains("not proven positive semidefinite"));
+        atlas.samples[0].entrywise_absolute_bound_h = vec![vec![0.0, 6e-6], vec![6e-6, 0.0]];
+        assert!(
+            atlas
+                .validate()
+                .unwrap_err()
+                .contains("not proven positive semidefinite")
+        );
     }
 
     #[test]
     fn rejects_an_optimistic_endpoint_eigenvalue_claim() {
         let mut atlas = fixture();
         atlas.samples[0].minimum_eigenvalue_lower_bound_h = 9.0e-6;
-        assert!(atlas
-            .validate()
-            .unwrap_err()
-            .contains("more optimistic than the independently computed bound"));
+        assert!(
+            atlas
+                .validate()
+                .unwrap_err()
+                .contains("more optimistic than the independently computed bound")
+        );
     }
 
     #[test]
@@ -761,5 +785,4 @@ mod tests {
             .unwrap_err()
             .contains("not proven positive semidefinite"));
     }
-
 }
