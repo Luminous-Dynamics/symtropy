@@ -24,7 +24,7 @@ Each route is an event stream over integer nanoseconds:
 
 Every phase has its own SPC/EVPC Wh values and deterministic absolute uncertainty bounds. The six phase sums must reconcile with independent whole-segment meter totals within the combined bounds. A route is rejected when segments/idle intervals overlap, leave an unaccounted time gap, or fail to cover the full route interval.
 
-The measurement-plane identifier is checked against the expected plane. Each measurement has meter ID, measurement ID, calibration receipt digest and raw source artifact digest. Measurement IDs must be globally unique within a route to prevent accidental double-counting. Reports preserve route/segment geometry digests, evidence class, per-phase meter IDs and a sorted provenance index for every meter reading, calibration receipt and source artifact.
+The measurement-plane identifier is checked against the expected plane. Each measurement has meter ID, measurement ID, calibration receipt digest and raw source artifact digest. Measurement IDs must be globally unique within a route to prevent accidental double-counting. Reports preserve route/segment geometry digests, evidence class, per-phase meter IDs, per-segment boundary measurements and a sorted provenance index for every meter reading, calibration receipt and source artifact. If BESS DC output is present in any route interval, it must be metered in every segment and idle interval (use an explicit zero where no BESS energy is supplied); partial BESS coverage is rejected.
 
 ## Metric definitions
 
