@@ -9,10 +9,9 @@ use std::collections::HashMap;
 use std::fmt;
 
 use ::nalgebra::SVector;
-use bevy::prelude::*;
+use bevy::prelude::{Component, Resource, Vec3};
 use rapier3d::prelude::*;
 use symtropy_physics::body::BodyHandle;
-use symtropy_physics::contact::CollisionEvent;
 use symtropy_physics::world::PhysicsCallback;
 use symtropy_physics_diff_core::{
     BodyObservation, ObservationError, ObservationFrame, RunIdentity,
@@ -87,7 +86,7 @@ pub struct RapierBodyState {
 }
 
 /// Errors encountered while converting Rapier state into a common observation frame.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RapierObservationError {
     /// A live Rapier body has no declared scenario-level semantic identity.
     MissingSemanticBodyId { handle: RigidBodyHandle },
@@ -303,7 +302,7 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             if original_force.iter().all(|value| *value == 0.0) {
                 continue;
             }
-            let body_handle = self.callback_body_handle(*handle)?;
+            let body_handle = self.callback_body_handle(handle)?;
             let force64 = SVector::<f64, 3>::new(
                 original_force.x as f64,
                 original_force.y as f64,

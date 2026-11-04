@@ -41,3 +41,77 @@ Not included yet: scenario fixture corpus, deterministic replay qualification, t
 `ObservationTrace` is the canonical sampled-run container for `ObservationFrame` values. It holds one immutable `RunIdentity` for the entire run and validates that every appended frame carries the same identity, has a strictly increasing step index and simulation time, and obeys the fixed-step clock `time = step_index * timestep_seconds` within a scale-aware floating-point envelope. A failed `push` does not mutate the trace; import/serialization boundaries can call `validate` to recheck the complete frame sequence. Empty traces, mixed backend identity, repeated/backwards steps, backwards time and off-clock timestamps are rejected.
 
 The trace envelope does not prescribe engine-specific contact or energy semantics. `None` continues to mean unavailable or not comparable; it is never silently converted to zero.
+
+
+## Paired-run lineage manifest (schema v1)
+
+The crate also exposes a Symtropy-specific `DifferentialLineageManifest` and
+`audit_differential_lineage` adapter. This is a sidecar to the canonical
+`ObservationTrace`, not another observation format or a generic
+independence-profile implementation.
+
+A manifest binds:
+- one shared scenario ID and exact scenario digest for the paired experiment;
+- each lane's existing `RunIdentity` and exact serialized-trace SHA-256
+  commitment;
+- explicit dependency identities for solver implementation, scenario
+  generator, expected-answer oracle, observation adapter, result
+  canonicalizer, source revision/tree, Cargo.lock, compiler/toolchain,
+  runner image, execution provider, host/runtime, hardware, operator,
+  acquisition and calibration;
+- completeness state and explicit known/unknown/not-applicable evidence for
+  each declared dependency;
+- optional digest references to the canonical Mycelix QUAL-001E,
+  ASSURE-PORTFOLIO-CUT-001 and LEX-NET-030 owners.
+
+Multiple dependencies of the same kind remain separate entries. Partial
+overlap is detected by the actual `(dependency kind, identity)` pair, not by
+dependency-node labels or a composite per-lane digest. A shared scenario is
+expected and is recorded separately; it is not counted as a second
+independent observation.
+
+The caller supplies a separately pinned lineage policy specifying required
+lane kinds and dependency kinds that must be disjoint. The audit verifies that
+each provided trace validates, matches its exact lane `RunIdentity`, and
+uses the same scenario subject. Shared solver, expected-answer or adapter
+identities remain visible. Unknown/incomplete dependencies block a declared
+separation. A disjoint result is only
+`DeclaredDisjointUnverified`: it does not authenticate the source references,
+establish organizational independence, or prove physical truth.
+
+The Mycelix assurance references remain unbound until their actual profile,
+policy and graph digests are supplied by their canonical owners. This adapter
+does not create replacement schemas, signatures or trust roots.
+
+### Minimal use
+
+```rust
+let report = audit_differential_lineage(
+    &manifest,
+    &observation_traces_by_lane_id,
+    &externally_pinned_policy,
+    &expected_policy_sha256,
+)?;
+```
+
+The caller must calculate and authenticate `observation_trace_sha256` from
+the exact serialized trace bytes before treating the manifest as evidence.
+This crate validates digest shape and binds the value; it does not calculate
+or authenticate those bytes.
+
+### Qualification cases added
+
+- paired native/reference traces bind the exact same scenario subject;
+- shared scenario generator, runner image, observation adapter, compiler/toolchain and execution provider remain visible;
+- one expected-answer lineage reused by both lanes blocks the mandatory
+  expected-answer separation;
+- a partial inventory or unknown solver lineage remains indeterminate;
+- in a three-lane portfolio, a dependency identity shared by any pair blocks a mandatory separation even when a third lane has a distinct identity;
+- duplicate dependency identities do not multiply evidence;
+- invalid trace, scenario substitution, policy digest and artifact digest
+  controls reject;
+- canonical assurance digests are shape-checked but never described as
+  verified merely because a string is present.
+
+This sidecar is an evidence-binding adapter. It does not make the differential
+runner execute, decide which solver is correct, or establish an SOTA result.
