@@ -97,7 +97,15 @@ The independent NumPy oracle for the scale regressions gives eigenvalues [5e-309
 
 **Numerical caveat:** the Jacobi off-diagonal residual is included in the reported eigenvalue uncertainty. The declared numerical tolerance remains a separate floating-point guard for finite-precision rotation/accumulation; this is not a formal interval-arithmetic proof of the entire eigensolver.
  
-**Execution status:** 20 Rust tests are authored, but authored is not executed. Only the exact-head CI run can establish Rust compile/test status. The six JSONL dispositions and added extreme-scale cases have separate external numerical checks; those checks do not substitute for the Rust suite or an independent high-precision library comparison at the full 32-coil limit.
+**Execution status:** 21 Rust tests are authored, but authored is not executed. Only the exact-head CI run can establish Rust compile/test status. The six JSONL dispositions and added extreme-scale cases have separate external numerical checks; those checks do not substitute for the Rust suite or an independent high-precision library comparison at the full 32-coil limit.
+
+## Published normalized-coupling source audit
+
+`source-normalized-coupling-matrices.json` transcribes Appendix A Tables A1–A5 from Garrofy, Nikulshin and Wolfus (2026), DOI 10.3390/en19163832. The five dimensionless symmetric K matrices cover 3–7 receiver coils plus the transmitter at the aligned point. The source article describes position-dependent K(x) extraction from a nonlinear ferrite FEM model, but the tabulated Appendix A cases are aligned-position matrices.
+
+The Rust regression test checks each source matrix's symmetry, minimum-eigenvalue reference and positive lower margin after a conservative displayed-digit rounding bound. The bound assumes half a unit in the last displayed off-diagonal decimal place and treats the unit diagonal as exact normalization. Expected minimum eigenvalues are retained with each matrix as independent numeric regression references.
+
+**This is a separate dimensionless audit, not a physical-passivity certificate.** The paper does not type these matrices as SMALL_SIGNAL or DIFFERENTIAL, and supplies no matrix extraction uncertainty/covariance. Do not relabel K as an H-valued L matrix or feed it to the production physical qualification gate. It tests the eigensolver against published multi-coil source data without overstating the source's model semantics.
 
 ## Scope and claim ceiling
 
