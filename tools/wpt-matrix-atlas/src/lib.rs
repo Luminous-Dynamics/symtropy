@@ -91,6 +91,39 @@ pub struct RefinementCandidate {
     pub triggers: Vec<String>,
 }
 
+/// Circuit-derived route-energy sensitivity signal for one atlas segment.
+///
+/// The Wh uncertainty must be produced by a separately validated circuit/
+—route evaluator from the matrix uncertainty and the operating service profile.
+/// This crate validates the receipt reference syntax but does not calculate or
+/// authenticate the sensitivity bound itself.
+#[derive(Debug, Clone)]
+pub struct ServiceSensitivitySignal {
+    pub segment_index: usize,
+    pub predicted_energy_uncertainty_wh: f64,
+    pub energy_uncertainty_budget_wh: f64,
+    /// Engineering estimate, in [0,1], of the fraction of the current uncertainty
+    /// expected to be removed by one additional FEM/measurement sample.
+    pub expected_uncertainty_reduction_fraction: f64,
+    pub estimated_field_solve_cost_seconds: f64,
+    pub circuit_model_digest: String,
+    pub sensitivity_receipt_digest: String,
+}
+
+/// Refinement priority informed by useful route-energy uncertainty and solve cost.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ServiceRefinementCandidate {
+    pub segment_index: usize,
+    pub position_m: f64,
+    /// Normalized expected uncertainty reduction per field-solve second.
+    pub expected_uncertainty_reduction_per_second: f64,
+    pub predicted_energy_uncertainty_wh: f64,
+    pub estimated_field_solve_cost_seconds: f64,
+    pub triggers: Vec<String>,
+    pub circuit_model_digest: String,
+    pub sensitivity_receipt_digest: String,
+}
+
 impl MatrixAtlas {
     /// Validate shape, identity, domain, matrix symmetry and evidence references.
     ///
@@ -394,6 +427,131 @@ impl MatrixAtlas {
             right
                 .priority_score
                 .total_cmp(&left.priority_score)
+                .then_with(|| left.segment_index.cmp(&right.segment_index))
+        });
+        Ok(candidates)
+    }
+
+    /// Rank field solves by matrix/model risk and downstream route-energy risk.
+    ///
+    /// The circuit evaluator supplies an upper bound on route-energy uncertainty
+    /// (Wh), a target budget, an expected fractional reduction from one more
+    /// field solve, and a solve-cost estimate. The score is a transparent
+    /// heuristic, not an optimal expected value-of-information calculation.
+    /// Every signal is tied to a circuit-model and sensitivity-receipt digest.
+    pub fn service_refinement_plan(
+        &self,
+        policy: RefinementPolicy,
+        signals: &[ServiceSensitivitySignal],
+    ) -> Result<Vec<ServiceRefinementCandidate>, String> {
+        self.validate()?;
+        if !policy
+            .maximum_interpolation_error_frobenius_bound_h
+            .is_finite()
+            || policy.maximum_interpolation_error_frobenius_bound_h < 0.0
+            || !policy.minimum_required_eigenvalue_margin_h.is_finite()
+            || policy.minimum_required_eigenvalue_margin_h < 0.0
+        {
+            return Err("refinement policy bounds must be finite and non-negative".into());
+        }
+
+        let mut seen_segments = std::collections::HashSet::with_capacity(signals.len());
+        let mut candidates = Vec::new();
+        for signal in signals {
+            if signal.segment_index >= self.segments.len() {
+                return Err("service sensitivity references an unknown atlas segment".into());
+            }
+            if !seen_segments.insert(signal.segment_index) {
+                return Err("duplicate service sensitivity signal for atlas segment".into());
+            }
+            if !signal.predicted_energy_uncertainty_wh.is_finite()
+                || signal.predicted_energy_uncertainty_wh < 0.0
+                || !signal.energy_uncertainty_budget_wh.is_finite()
+                || signal.energy_uncertainty_budget_wh <= 0.0
+                || !signal.expected_uncertainty_reduction_fraction.is_finite()
+                || !(0.0..=1.0).contains(&signal.expected_uncertainty_reduction_fraction)
+                || !signal.estimated_field_solve_cost_seconds.is_finite()
+                || signal.estimated_field_solve_cost_seconds <= 0.0
+            {
+                return Err("service sensitivity values or solve cost are outside valid bounds".into());
+            }
+            if !valid_sha256(&signal.circuit_model_digest)
+                || !valid_sha256(&signal.sensitivity_receipt_digest)
+            {
+                return Err("circuit model and sensitivity receipt digests must be sha256 values".into());
+            }
+
+            let index = signal.segment_index;
+            let segment = &self.segments[index];
+            let left = &self.samples[index];
+            let right = &self.samples[index + 1];
+            let conservative_margin = left
+                .minimum_eigenvalue_lower_bound_h
+                .min(right.minimum_eigenvalue_lower_bound_h)
+                - segment.interpolation_error_frobenius_bound_h;
+
+            let matrix_error_ratio = if policy.maximum_interpolation_error_frobenius_bound_h == 0.0 {
+                if segment.interpolation_error_frobenius_bound_h > 0.0 {
+                    f64::MAX
+                } else {
+                    0.0
+                }
+            } else {
+                segment.interpolation_error_frobenius_bound_h
+                    / policy.maximum_interpolation_error_frobenius_bound_h
+            };
+            let margin_deficit = (policy.minimum_required_eigenvalue_margin_h
+                - conservative_margin)
+                .max(0.0);
+            let endpoint_scale = left
+                .minimum_eigenvalue_lower_bound_h
+                .max(right.minimum_eigenvalue_lower_bound_h);
+            let margin_scale = policy
+                .minimum_required_eigenvalue_margin_h
+                .max(0.01 * endpoint_scale)
+                .max(1e-15);
+            let margin_ratio = margin_deficit / margin_scale;
+            let service_ratio =
+                signal.predicted_energy_uncertainty_wh / signal.energy_uncertainty_budget_wh;
+
+            let mut triggers = Vec::new();
+            if segment.interpolation_error_frobenius_bound_h
+                > policy.maximum_interpolation_error_frobenius_bound_h
+            {
+                triggers.push("INTERPOLATION_ERROR_EXCEEDED".into());
+            }
+            if conservative_margin < policy.minimum_required_eigenvalue_margin_h {
+                triggers.push("PASSIVITY_MARGIN_BELOW_POLICY".into());
+            }
+            if service_ratio > 1.0 {
+                triggers.push("SERVICE_ENERGY_UNCERTAINTY_EXCEEDED".into());
+            }
+
+            if !triggers.is_empty() {
+                let risk_score = matrix_error_ratio.max(margin_ratio).max(service_ratio);
+                let benefit_per_second = risk_score
+                    * signal.expected_uncertainty_reduction_fraction
+                    / signal.estimated_field_solve_cost_seconds;
+                if !benefit_per_second.is_finite() {
+                    return Err("service refinement priority score overflow".into());
+                }
+                candidates.push(ServiceRefinementCandidate {
+                    segment_index: index,
+                    position_m: left.position_m + 0.5 * (right.position_m - left.position_m),
+                    expected_uncertainty_reduction_per_second: benefit_per_second,
+                    predicted_energy_uncertainty_wh: signal.predicted_energy_uncertainty_wh,
+                    estimated_field_solve_cost_seconds: signal.estimated_field_solve_cost_seconds,
+                    triggers,
+                    circuit_model_digest: signal.circuit_model_digest.clone(),
+                    sensitivity_receipt_digest: signal.sensitivity_receipt_digest.clone(),
+                });
+            }
+        }
+
+        candidates.sort_by(|left, right| {
+            right
+                .expected_uncertainty_reduction_per_second
+                .total_cmp(&left.expected_uncertainty_reduction_per_second)
                 .then_with(|| left.segment_index.cmp(&right.segment_index))
         });
         Ok(candidates)
@@ -976,4 +1134,85 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn service_refinement_prioritizes_high_wh_uncertainty_per_solve_second() {
+        let digest = |digit: char| format!("sha256:{}", digit.to_string().repeat(64));
+        let mut atlas = fixture();
+        let mut third = atlas.samples[1].clone();
+        third.position_m = 20.0;
+        third.matrix_digest = digest('3');
+        third.source_artifact_digest = digest('4');
+        third.validator_receipt_digest = digest('5');
+        atlas.samples.push(third);
+        atlas.segments.push(AtlasSegment {
+            from_sample_index: 1,
+            to_sample_index: 2,
+            interpolation_error_frobenius_bound_h: 0.1e-6,
+            error_bound_method: "HELD_OUT_DENSE_REFERENCE".into(),
+            validation_receipt_digest: digest('6'),
+        });
+
+        let policy = RefinementPolicy {
+            maximum_interpolation_error_frobenius_bound_h: 1.0e-6,
+            minimum_required_eigenvalue_margin_h: 0.0,
+        };
+        let signals = vec![
+            ServiceSensitivitySignal {
+                segment_index: 0,
+                predicted_energy_uncertainty_wh: 0.2,
+                energy_uncertainty_budget_wh: 0.1,
+                expected_uncertainty_reduction_fraction: 0.5,
+                estimated_field_solve_cost_seconds: 1.0,
+                circuit_model_digest: digest('7'),
+                sensitivity_receipt_digest: digest('8'),
+            },
+            ServiceSensitivitySignal {
+                segment_index: 1,
+                predicted_energy_uncertainty_wh: 0.5,
+                energy_uncertainty_budget_wh: 0.1,
+                expected_uncertainty_reduction_fraction: 0.2,
+                estimated_field_solve_cost_seconds: 0.5,
+                circuit_model_digest: digest('9'),
+                sensitivity_receipt_digest: digest('a'),
+            },
+        ];
+
+        let plan = atlas.service_refinement_plan(policy, &signals).unwrap();
+        assert_eq!(plan.len(), 2);
+        assert_eq!(plan[0].segment_index, 1);
+        assert_eq!(plan[0].position_m, 15.0);
+        assert_eq!(plan[1].segment_index, 0);
+        assert_eq!(plan[1].position_m, 5.0);
+        assert!(
+            plan[0].expected_uncertainty_reduction_per_second
+                > plan[1].expected_uncertainty_reduction_per_second
+        );
+        assert!(plan.iter().all(|candidate| {
+            candidate.triggers.contains(&"SERVICE_ENERGY_UNCERTAINTY_EXCEEDED".into())
+        }));
+    }
+
+    #[test]
+    fn rejects_unverified_or_invalid_service_sensitivity_signals() {
+        let mut atlas = fixture();
+        let mut signal = ServiceSensitivitySignal {
+            segment_index: 0,
+            predicted_energy_uncertainty_wh: 0.2,
+            energy_uncertainty_budget_wh: 0.1,
+            expected_uncertainty_reduction_fraction: 0.5,
+            estimated_field_solve_cost_seconds: 1.0,
+            circuit_model_digest: format!("sha256:{}", "7".repeat(64)),
+            sensitivity_receipt_digest: "not-a-digest".into(),
+        };
+        let policy = RefinementPolicy {
+            maximum_interpolation_error_frobenius_bound_h: 1e-6,
+            minimum_required_eigenvalue_margin_h: 0.0,
+        };
+        assert!(atlas.service_refinement_plan(policy, &[signal.clone()]).is_err());
+        signal.sensitivity_receipt_digest = format!("sha256:{}", "8".repeat(64));
+        signal.predicted_energy_uncertainty_wh = f64::NAN;
+        assert!(atlas.service_refinement_plan(policy, &[signal]).is_err());
+    }
+
 }
