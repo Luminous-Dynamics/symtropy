@@ -348,10 +348,16 @@ impl fmt::Display for BenchError {
                 "invalid multivariate predictive distribution for model {model_id}: {reason}"
             ),
             Self::InvalidModelPriors => {
-                write!(f, "model priors must be finite, non-negative and sum to one")
+                write!(
+                    f,
+                    "model priors must be finite, non-negative and sum to one"
+                )
             }
             Self::ModelPriorSetMismatch => {
-                write!(f, "model-prior identities do not exactly match prediction identities")
+                write!(
+                    f,
+                    "model-prior identities do not exactly match prediction identities"
+                )
             }
         }
     }
@@ -983,8 +989,14 @@ fn prepare_multivariate_distribution(
             "metric, unit and mean dimensions differ",
         ));
     }
-    if distribution.metric_ids.iter().any(|value| value.trim().is_empty())
-        || distribution.unit_ids.iter().any(|value| value.trim().is_empty())
+    if distribution
+        .metric_ids
+        .iter()
+        .any(|value| value.trim().is_empty())
+        || distribution
+            .unit_ids
+            .iter()
+            .any(|value| value.trim().is_empty())
     {
         return Err(multivariate_error(
             &distribution.model_family_id,
@@ -1077,9 +1089,7 @@ fn multivariate_gaussian_log_density(
     }
     let quadratic = whitened.iter().map(|value| value * value).sum::<f64>();
     let result = -0.5
-        * (dimension as f64 * std::f64::consts::TAU.ln()
-            + prepared.log_determinant
-            + quadratic);
+        * (dimension as f64 * std::f64::consts::TAU.ln() + prepared.log_determinant + quadratic);
     result.is_finite().then_some(result)
 }
 
@@ -1284,9 +1294,7 @@ pub fn estimate_multivariate_expected_information_gain(
         } else {
             0.0
         };
-        if !stratum_mean.is_finite()
-            || !sample_variance.is_finite()
-            || sample_variance < 0.0
+        if !stratum_mean.is_finite() || !sample_variance.is_finite() || sample_variance < 0.0
         {
             return Err(multivariate_error(
                 &origin.distribution.model_family_id,
@@ -1294,15 +1302,12 @@ pub fn estimate_multivariate_expected_information_gain(
             ));
         }
         weighted_mean += origin_probability * stratum_mean;
-        variance_of_mean += origin_probability * origin_probability
-            * sample_variance
-            / count as f64;
+        variance_of_mean +=
+            origin_probability * origin_probability * sample_variance / count as f64;
     }
 
     let standard_error = variance_of_mean.sqrt();
-    if !weighted_mean.is_finite()
-        || !variance_of_mean.is_finite()
-        || !standard_error.is_finite()
+    if !weighted_mean.is_finite() || !variance_of_mean.is_finite() || !standard_error.is_finite()
     {
         return Err(BenchError::InvalidModelPriors);
     }
@@ -1310,10 +1315,8 @@ pub fn estimate_multivariate_expected_information_gain(
     Ok(InformationGainEstimate {
         mean_nats: weighted_mean.clamp(0.0, maximum_information),
         standard_error_nats: standard_error,
-        lower_95_nats: (weighted_mean - Z_975 * standard_error)
-            .clamp(0.0, maximum_information),
-        upper_95_nats: (weighted_mean + Z_975 * standard_error)
-            .clamp(0.0, maximum_information),
+        lower_95_nats: (weighted_mean - Z_975 * standard_error).clamp(0.0, maximum_information),
+        upper_95_nats: (weighted_mean + Z_975 * standard_error).clamp(0.0, maximum_information),
     })
 }
 
@@ -1334,12 +1337,7 @@ pub fn estimate_multivariate_expected_information_gain_equal_priors(
             probability,
         })
         .collect::<Vec<_>>();
-    estimate_multivariate_expected_information_gain(
-        predictions,
-        &priors,
-        samples_per_model,
-        seed,
-    )
+    estimate_multivariate_expected_information_gain(predictions, &priors, samples_per_model, seed)
 }
 
 fn log_sum_exp(values: &[f64]) -> f64 {
