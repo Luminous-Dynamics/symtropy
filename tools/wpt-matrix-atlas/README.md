@@ -29,7 +29,7 @@ Each atlas freezes:
 - one operating point: frequency, temperature and DC bias vector;
 - strictly increasing positions and complete square H-valued matrices;
 - deterministic entrywise absolute uncertainty bounds for each endpoint;
-- upstream physical-validator minimum-eigenvalue lower bound, matrix digest, source-artifact digest and validator-receipt digest;
+- upstream physical-validator minimum-eigenvalue lower bound, explicit numerical tolerance, matrix digest, source-artifact digest and validator-receipt digest;
 - one segment error bound for each adjacent sample pair, stated in Frobenius norm and tied to a validation receipt.
 
 Only `SMALL_SIGNAL` and `DIFFERENTIAL` matrices are admitted. `SECANT` is deliberately excluded. An atlas is not allowed to silently combine samples with different frequencies, bias, temperatures, coil order or geometry digests.
@@ -38,7 +38,7 @@ SHA-256 fields are provenance references, not signatures. The consumer must inde
 
 ## Endpoint checks
 
-The atlas does not blindly trust an endpoint's claimed passivity margin. It independently recomputes a symmetric Jacobi minimum-eigenvalue estimate and adds its off-diagonal residual Frobenius bound to the entrywise input-uncertainty Frobenius bound. The declared endpoint lower bound must be no more optimistic than this independently computed conservative lower bound. A negative conservative lower bound is rejected.
+The atlas does not blindly trust an endpoint's claimed passivity margin. It independently recomputes a symmetric Jacobi minimum-eigenvalue estimate and adds its off-diagonal residual Frobenius bound to the entrywise input-uncertainty Frobenius bound. The declared numerical tolerance is subtracted from the independently recomputed eigenvalue margin. The declared endpoint lower bound must be no more optimistic than this recomputed conservative lower bound. A negative conservative lower bound is rejected.
 
 The Jacobi residual bounds the remaining off-diagonal perturbation in the rotated basis. The implementation still uses a floating-point guard and is not a formal interval-arithmetic proof; high-assurance qualification should compare against an independently implemented high-precision eigensolver and preserve that receipt upstream.
 
@@ -58,7 +58,7 @@ Let (\ell_0,\ell_1\) be the endpoint lower eigenvalue bounds, each already inclu
 (1-\alpha)\ell_0+\alpha\ell_1-\epsilon_{seg}.
 ]
 
-If the lower bound is non-negative, the interpolated matrix is returned as `PASSIVE_CERTIFIED` for the declared model class. If it crosses zero, the outcome is `UNRESOLVED`. The tool does not clip eigenvalues, add diagonal jitter, project to PSD, or relabel an unresolved result as a pass.
+If the lower bound is non-negative and the segment method is `ANALYTIC_DERIVATIVE_BOUND` or `FORMAL_INTERVAL_BOUND`, the interpolated matrix is returned as `PASSIVE_CERTIFIED_CONDITIONAL`; endpoint and segment receipts still require external verification. If the method is `HELD_OUT_DENSE_REFERENCE`, the output is `EMPIRICAL_MARGIN_POSITIVE` because discrete held-out positions do not prove the entire continuous interval. If the bound crosses zero, the outcome is `UNRESOLVED`. The tool does not clip eigenvalues, add diagonal jitter, project to PSD, or relabel an unresolved result as a pass.
 
 **The segment error bound is the critical evidence item.** A bound evaluated only at the midpoint is not a bound over the full interval. Acceptable declared methods are:
 - `HELD_OUT_DENSE_REFERENCE`: compare against withheld dense FEM/metrology positions and justify why the bound covers the full segment (not just observed points);
@@ -86,16 +86,16 @@ A production adaptive sampler should refine further using held-out matrix residu
 - resulting conservative lower eigenvalue bound is 7.0 µH;
 - disposition is `PASSIVE_CERTIFIED`.
 
-The fixture's source/receipt digests are synthetic placeholders. The result is a software known-truth example, not measured WPT evidence.
+The fixture's source/receipt digests are synthetic placeholders; its segment method is labelled `ANALYTIC_DERIVATIVE_BOUND` only to exercise the conditional-status path. The result is not an actual derivative proof or measured WPT evidence.
 
 ## CLI
 
 ```sh
 cargo run --locked -p wpt-matrix-atlas -- \
-  benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0 PASSIVE_CERTIFIED
+  benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0 PASSIVE_CERTIFIED_CONDITIONAL
 ```
 
-The optional third argument asserts an expected disposition; CI supplies `PASSIVE_CERTIFIED` so an `UNRESOLVED` result cannot silently pass the smoke test. The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
+The optional third argument asserts an expected disposition; CI supplies `PASSIVE_CERTIFIED_CONDITIONAL` so an `UNRESOLVED` result cannot silently pass the smoke test. The CLI emits a JSON record containing the interpolated matrix, position fraction, segment bound, conservative lower eigenvalue margin and the upstream receipt digests used. Downstream code must branch on the explicit disposition and independently verify the referenced receipts.
 
 ## Research baseline and proposed targets
 
