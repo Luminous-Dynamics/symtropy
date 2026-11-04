@@ -519,8 +519,7 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             let midpoint = 0.5 * forward + 0.5 * reverse;
             let bound = 0.5 * record.bounds_h[i][j]
                 + 0.5 * record.bounds_h[j][i]
-                + 0.5 * mismatch
-                + tolerance_h;
+                + 0.5 * mismatch;
             if !midpoint.is_finite() || !bound.is_finite() {
                 return Err("reciprocity symmetrization overflow".into());
             }
