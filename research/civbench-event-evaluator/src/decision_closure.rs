@@ -264,22 +264,34 @@ impl std::fmt::Display for DecisionClosureError {
                 write!(f, "human disposition requires an authority receipt")
             }
             Self::MissingReceiptBinding => {
-                write!(f, "a referenced receipt is missing its owner/context binding")
+                write!(
+                    f,
+                    "a referenced receipt is missing its owner/context binding"
+                )
             }
             Self::ReceiptBindingMismatch => {
-                write!(f, "receipt binding does not match its reference or decision context")
+                write!(
+                    f,
+                    "receipt binding does not match its reference or decision context"
+                )
             }
             Self::DuplicateReceiptId => {
                 write!(f, "receipt ID is reused across distinct owner roles")
             }
             Self::InvalidReceiptDigest => {
-                write!(f, "receipt payload digest must be non-zero SHA-256 hexadecimal")
+                write!(
+                    f,
+                    "receipt payload digest must be non-zero SHA-256 hexadecimal"
+                )
             }
             Self::MissingExecutorIdentity => {
                 write!(f, "work progress requires an executor identity reference")
             }
             Self::MissingVerifierIdentity => {
-                write!(f, "independent verification requires a verifier identity reference")
+                write!(
+                    f,
+                    "independent verification requires a verifier identity reference"
+                )
             }
             Self::VerifierNotIndependent => {
                 write!(f, "verifier identity must differ from executor identity")
@@ -381,12 +393,11 @@ fn valid_sha256(digest: &str) -> bool {
         && digest.bytes().any(|byte| byte != b'0')
 }
 
-fn expected_receipt_bindings(
-    record: &DecisionClosureRecord,
-) -> Vec<(ReceiptOwner, &str)> {
-    let mut expected = vec![
-        (ReceiptOwner::EventEvaluator, record.event_receipt_id.as_str()),
-    ];
+fn expected_receipt_bindings(record: &DecisionClosureRecord) -> Vec<(ReceiptOwner, &str)> {
+    let mut expected = vec![(
+        ReceiptOwner::EventEvaluator,
+        record.event_receipt_id.as_str(),
+    )];
     if let Some(id) = record.acquisition_receipt_id.as_deref() {
         expected.push((ReceiptOwner::AcquisitionPlanner, id));
     }
@@ -411,9 +422,7 @@ fn expected_receipt_bindings(
     expected
 }
 
-fn validate_receipt_bindings(
-    record: &DecisionClosureRecord,
-) -> Result<(), DecisionClosureError> {
+fn validate_receipt_bindings(record: &DecisionClosureRecord) -> Result<(), DecisionClosureError> {
     let expected = expected_receipt_bindings(record);
     if record.receipt_bindings.len() != expected.len() {
         return Err(DecisionClosureError::MissingReceiptBinding);
@@ -436,9 +445,7 @@ fn validate_receipt_bindings(
         {
             return Err(DecisionClosureError::ReceiptBindingMismatch);
         }
-        if !seen_ids.insert(binding.receipt_id.as_str())
-            || !seen_owners.insert(binding.owner)
-        {
+        if !seen_ids.insert(binding.receipt_id.as_str()) || !seen_owners.insert(binding.owner) {
             return Err(DecisionClosureError::DuplicateReceiptId);
         }
         if !expected
@@ -506,7 +513,10 @@ impl DecisionClosureRecord {
             return Err(DecisionClosureError::InvalidReference("human_actor_ref"));
         }
 
-        validate_optional_reference(&self.human_authority_receipt_id, "human_authority_receipt_id")?;
+        validate_optional_reference(
+            &self.human_authority_receipt_id,
+            "human_authority_receipt_id",
+        )?;
         validate_optional_reference(&self.human_actor_ref, "human_actor_ref")?;
         validate_optional_reference(&self.executor_identity_ref, "executor_identity_ref")?;
         validate_optional_reference(&self.verifier_identity_ref, "verifier_identity_ref")?;
@@ -597,9 +607,9 @@ impl DecisionClosureRecord {
             (
                 ActionProgress::NotStarted,
                 ResourceFeasibility::RejectedNoCapacity
-                    | ResourceFeasibility::RejectedMissingPart
-                    | ResourceFeasibility::RejectedBudget
-                    | ResourceFeasibility::RejectedEnergyOrAccess,
+                | ResourceFeasibility::RejectedMissingPart
+                | ResourceFeasibility::RejectedBudget
+                | ResourceFeasibility::RejectedEnergyOrAccess,
                 ResourceSettlement::Rejected,
             ) => {}
             (
