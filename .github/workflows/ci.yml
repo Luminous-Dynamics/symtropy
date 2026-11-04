@@ -112,6 +112,14 @@ jobs:
       if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo test --locked -p wpt-round-robin-validator
 
+    - name: Test WPT geometry envelope validator
+      if: hashFiles('tools/wpt-geometry-envelope-validator/Cargo.toml') != ''
+      run: cargo test --locked -p wpt-geometry-envelope-validator
+
+    - name: Validate WPT geometry source claim and NOT_RUN template
+      if: hashFiles('tools/wpt-geometry-envelope-validator/Cargo.toml') != ''
+      run: cargo run --locked -p wpt-geometry-envelope-validator -- benchmarks/wpt-empirical/v1/geometry-compatibility.jsonl benchmarks/wpt-empirical/v1/geometry-compatibility.example.json
+
     - name: Validate NOT_RUN round-robin manifest template
       if: hashFiles('tools/wpt-round-robin-validator/Cargo.toml') != ''
       run: cargo run --locked -p wpt-round-robin-validator -- benchmarks/wpt-empirical/v1/test-run.example.json
