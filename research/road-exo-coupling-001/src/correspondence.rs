@@ -71,6 +71,14 @@ pub enum CandidateUniverseStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HypothesisSetStatus {
+    /// The declared matching family is asserted exhaustive within a named model family.
+    ExhaustiveWithinDeclaredModelFamily { evidence_ref: StableId },
+    /// Matching search was bounded, interrupted, or otherwise not exhaustive.
+    IncompleteOrBudgetLimited { evidence_ref: StableId },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CorrespondenceSet {
     pub left_branch: StableId,
     pub right_branch: StableId,
@@ -78,6 +86,7 @@ pub struct CorrespondenceSet {
     pub right_events: Vec<EventOccurrence>,
     pub hypotheses: Vec<CorrespondenceHypothesis>,
     pub universe_status: CandidateUniverseStatus,
+    pub hypothesis_set_status: HypothesisSetStatus,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,6 +155,9 @@ impl CorrespondenceSet {
         let mut any_unknown = matches!(
             &self.universe_status,
             CandidateUniverseStatus::Incomplete { .. }
+        ) || matches!(
+            &self.hypothesis_set_status,
+            HypothesisSetStatus::IncompleteOrBudgetLimited { .. }
         );
 
         for hypothesis in &self.hypotheses {
@@ -281,6 +293,16 @@ impl CorrespondenceSet {
                 push_id(&mut out, evidence_ref);
             }
             CandidateUniverseStatus::Incomplete { evidence_ref } => {
+                out.push(2);
+                push_id(&mut out, evidence_ref);
+            }
+        }
+        match &self.hypothesis_set_status {
+            HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily { evidence_ref } => {
+                out.push(1);
+                push_id(&mut out, evidence_ref);
+            }
+            HypothesisSetStatus::IncompleteOrBudgetLimited { evidence_ref } => {
                 out.push(2);
                 push_id(&mut out, evidence_ref);
             }
@@ -497,6 +519,9 @@ mod tests {
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("universe:frozen"),
             },
+            hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+                evidence_ref: id("hypotheses:declared-family"),
+            },
         }
     }
 
@@ -553,6 +578,9 @@ mod tests {
             hypotheses: vec![actor_map, slot_map],
             universe_status: CandidateUniverseStatus::ExhaustiveWithinDeclaredScope {
                 evidence_ref: id("universe:symmetric-crossing"),
+            },
+            hypothesis_set_status: HypothesisSetStatus::ExhaustiveWithinDeclaredModelFamily {
+                evidence_ref: id("hypotheses:actor-vs-slot"),
             },
         };
         assert_eq!(
@@ -749,6 +777,22 @@ mod tests {
         assert_ne!(
             first.canonical_bytes().unwrap(),
             second.canonical_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn incomplete_hypothesis_search_does_not_claim_an_exhaustive_envelope() {
+        let mut set = one_map(
+            vec![observed("l-a", "ped-a", "slot-1")],
+            vec![observed("r-a", "ped-a", "slot-1")],
+            vec![pair("l-a", "r-a", IdentityBasis::Actor)],
+        );
+        set.hypothesis_set_status = HypothesisSetStatus::IncompleteOrBudgetLimited {
+            evidence_ref: id("search:budget-exhausted"),
+        };
+        assert_eq!(
+            set.assess().unwrap().disposition,
+            CorrespondenceDisposition::Incomplete
         );
     }
 
