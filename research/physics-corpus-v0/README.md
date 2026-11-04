@@ -75,16 +75,20 @@ The Criterion benchmark group measures a complete batch of 64 replay-driven
 rollouts with:
 
 - a sequential baseline;
-- standard-library worker counts 1, 2, 4 and 8;
+- standard-library worker counts 1, 2, 4 and 8, creating/joining threads inside
+  each timed campaign;
+- persistent Rayon worker pools of 1, 2, 4 and 8 threads, constructed outside
+  the timed campaign;
 - one frozen model/scenario definition and rollout-ID sequence;
 - identical tick count, timestep, command schedule, body properties and output
   capture.
 
-Criterion reports completed rollouts per second and batch latency. The current
-parallel path creates and joins the worker threads inside each batch, so thread
-setup cost is included. This is an end-to-end baseline, not a persistent-pool
-lower bound. A later persistent-worker implementation should be benchmarked as
-a separate execution mode, never silently substituted in this benchmark.
+Criterion reports completed rollouts per second and batch latency. The two
+parallel modes remain separate: `std_threads_spawned_*` includes worker
+startup/join cost, while `rayon_persistent_*` measures scheduling and result
+collection on an already-created work-stealing pool. A persistent-pool result
+must not replace the end-to-end path when reporting application
+startup-to-completion costs.
 
 Run at least 20 independent campaign repetitions after warm-up for any
 published comparison. Preserve all crashes, panics, missing results, non-finite
