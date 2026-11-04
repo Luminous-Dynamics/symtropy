@@ -1537,19 +1537,25 @@ mod tests {
     #[test]
     fn washout_clears_physical_carryover_without_clearing_sensor_state() {
         let compiled = spec().compile().unwrap();
-        let sensor = compiled.sensor_states.iter().find(|state| {
-            state.position_afferent == ChannelState::Intact
-                && state.movement_afferent == ChannelState::Intact
-                && state.vibration_afferent == ChannelState::Intact
-                && state.contact_feedback == ChannelState::Intact
-                && state.acquisition == AcquisitionState::PositiveOffset
-        }).unwrap();
-        let row_index = compiled.row_index(
-            "central-rhythm-model",
-            "swing-loaded",
-            &sensor.id,
-            "washout",
-        ).unwrap();
+        let sensor = compiled
+            .sensor_states
+            .iter()
+            .find(|state| {
+                state.position_afferent == ChannelState::Intact
+                    && state.movement_afferent == ChannelState::Intact
+                    && state.vibration_afferent == ChannelState::Intact
+                    && state.contact_feedback == ChannelState::Intact
+                    && state.acquisition == AcquisitionState::PositiveOffset
+            })
+            .unwrap();
+        let row_index = compiled
+            .row_index(
+                "central-rhythm-model",
+                "swing-loaded",
+                &sensor.id,
+                "washout",
+            )
+            .unwrap();
         let outcome = &compiled.kernel.rows[row_index].outcomes[0];
         let next_physical = &compiled.physical_states[outcome.next_physical_state];
         let next_sensor = &compiled.sensor_states[outcome.next_sensor_state];
