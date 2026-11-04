@@ -701,6 +701,10 @@ mod tests {
         assert!(report.empirical_success_probability > 0.999);
         assert!(report.event_response_reliability_qualified);
         assert_eq!(report.qualified_committed_reduction_kw, Some(100.0));
+        assert_eq!(
+            report.identity.opportunity_set_digest(),
+            "scheduled-opportunity-manifest-v1"
+        );
         assert_eq!(report.scheduled_event_ids.len(), 100);
         assert_eq!(report.scheduled_event_ids[0], "event-0");
         assert!(report.lower_confidence_success_probability >= 0.60);
