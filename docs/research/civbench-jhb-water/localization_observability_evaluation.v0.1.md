@@ -81,12 +81,12 @@ A lane may be used to pretrain a detector only if its license permits the intend
 | Full observability reference | Dense/reference sensor layout; trusted model and tolerance | Oracle candidate set, nearest sensor, hydraulic residual |
 | Fixed sparse layout | Same network and fixed sensor positions; held-out event/template groups | Threshold, Random Forest/boosting, GNN, temporal/Transformer |
 | Sensor placement comparison | Same sensor count and cost; random vs hydraulic sensitivity/observability-driven placement | Random placement, standard hydraulic placement, sensitivity-ranked placement |
-| Cross-network | Unseen network IDs; event/session/scenario-template holdouts | Target-only, source-only, no-adaptation, same-architecture random-init |
-| Cross-topology | Unseen topology family and scenario template | All above under identical label and tuning budget |
+| Cross-network | Unseen network IDs; shared topology family; event/session/scenario-template holdouts | Target-only, source-only, no-adaptation, same-architecture random-init |
+| Cross-topology | Unseen network IDs, topology families and scenario templates | All above under identical label and tuning budget |
 | Degraded sensing | Missing sensors, noise, drift, calibration error, demand regimes | Fixed-layout baselines plus controlled missingness/noise ablations |
 | Prospective utility | Locked time/site holdout, independently adjudicated events and field confirmation | Existing crew process, acoustic survey, satellite screening where available |
 
-A cross-network score is not a cross-topology score. A sensor-layout transfer score is not a real-world transfer score. A random sample split is not a generalization protocol. Use the split-integrity presets before reading model results.
+Within-network protocols keep network and topology-family IDs common. Cross-network protocols hold topology family constant while holding out network IDs. Cross-topology protocols hold out both network and topology-family IDs. These are orthogonal tests: a cross-network score must not silently combine topology shift. A sensor-layout transfer score is not a real-world transfer score. A random sample split is not a generalization protocol. Use the split-integrity presets before reading model results.
 
 ## Proposed CivBench targets (not achieved results)
 
