@@ -1295,6 +1295,109 @@ mod tests {
     }
 
     #[test]
+    fn every_non_synthetic_source_requires_a_sha256_pin() {
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "connectome-unpinned".to_owned(),
+            kind: SourceKind::Connectome,
+            evidence_class: EvidenceClass::ConnectomeDerived,
+            citation_or_source_uri: "doi:synthetic-connectome-source".to_owned(),
+            dataset_id: Some("fixture-connectome".to_owned()),
+            release_or_materialization: Some("fixture-v1".to_owned()),
+            sha256: Some(sha('e')),
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        });
+        input.hypotheses[0].source_manifest_ids.push("connectome-unpinned".to_owned());
+        input.hypotheses[0].claim_ceiling = ClaimCeiling::AnatomicalConnectomeConstrained;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::UnpinnedNonSyntheticSource { source_id })
+                if source_id == "connectome-unpinned"
+        ));
+    }
+
+    #[test]
+    fn trial_evidence_tier_must_match_its_source_manifest() {
+        let compiled = spec().compile().unwrap();
+        let receipt = LocomotionTrialReceipt {
+            sample_id: "measured-sample-2".to_owned(),
+            assigned_action_id: "movement-afferent-gate".to_owned(),
+            delivered_protocol_id: "protocol-movement-gate".to_owned(),
+            delivery_verified: true,
+            animal_or_preparation_id: Some("animal-1".to_owned()),
+            session_id: "session-1".to_owned(),
+            source_manifest_id: "synthetic-protocols".to_owned(),
+            evidence_class: EvidenceClass::PeerReviewedMeasured,
+        };
+        assert!(matches!(
+            compiled.validate_trial_receipt(&receipt),
+            Err(AdapterError::EvidenceSourceMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn connectome_anatomy_cannot_be_substituted_for_trial_measurements() {
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "connectome-v888".to_owned(),
+            kind: SourceKind::Connectome,
+            evidence_class: EvidenceClass::ConnectomeDerived,
+            citation_or_source_uri: "doi:synthetic-connectome-source".to_owned(),
+            dataset_id: Some("BANC".to_owned()),
+            release_or_materialization: Some("CAVE-v888".to_owned()),
+            sha256: Some(sha('f')),
+            unknown_endpoint_inventory_complete: true,
+            unknown_endpoints: vec![],
+        });
+        input.source_pins.push(SourceDigestPin {
+            source_manifest_id: "connectome-v888".to_owned(),
+            expected_sha256: sha('f'),
+        });
+        let compiled = input.compile().unwrap();
+        let receipt = LocomotionTrialReceipt {
+            sample_id: "anatomy-not-outcome".to_owned(),
+            assigned_action_id: "movement-afferent-gate".to_owned(),
+            delivered_protocol_id: "protocol-movement-gate".to_owned(),
+            delivery_verified: true,
+            animal_or_preparation_id: None,
+            session_id: "session-1".to_owned(),
+            source_manifest_id: "connectome-v888".to_owned(),
+            evidence_class: EvidenceClass::ConnectomeDerived,
+        };
+        assert_eq!(
+            compiled.validate_trial_receipt(&receipt),
+            Err(AdapterError::AnatomicalEvidenceCannotScoreTrial)
+        );
+    }
+
+    #[test]
+    fn source_snapshot_cannot_omit_unknown_endpoint_inventory() {
+        let mut input = spec();
+        input.source_manifests.push(SourceManifest {
+            id: "connectome-no-inventory".to_owned(),
+            kind: SourceKind::Connectome,
+            evidence_class: EvidenceClass::ConnectomeDerived,
+            citation_or_source_uri: "doi:synthetic-connectome-source".to_owned(),
+            dataset_id: Some("fixture-connectome".to_owned()),
+            release_or_materialization: Some("fixture-v1".to_owned()),
+            sha256: Some(sha('1')),
+            unknown_endpoint_inventory_complete: false,
+            unknown_endpoints: vec![],
+        });
+        input.source_pins.push(SourceDigestPin {
+            source_manifest_id: "connectome-no-inventory".to_owned(),
+            expected_sha256: sha('1'),
+        });
+        input.hypotheses[0].source_manifest_ids.push("connectome-no-inventory".to_owned());
+        input.hypotheses[0].claim_ceiling = ClaimCeiling::AnatomicalConnectomeConstrained;
+        assert!(matches!(
+            input.compile(),
+            Err(AdapterError::IncompleteUnknownEndpointInventory { .. })
+        ));
+    }
+
+    #[test]
     fn anatomy_alone_cannot_support_a_measured_neural_claim() {
         let mut input = spec();
         input.source_manifests.push(SourceManifest {
