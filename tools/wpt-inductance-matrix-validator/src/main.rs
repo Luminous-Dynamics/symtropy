@@ -356,7 +356,7 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
 
 // Deterministic cyclic Jacobi diagonalization. Scaling the input first prevents
 // small henry-valued matrices from being compared against an absolute epsilon.
-fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, String> {
+fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<(f64, f64), String> {
     let n = matrix.len();
     let scale = matrix
         .iter()
@@ -366,7 +366,7 @@ fn smallest_symmetric_eigenvalue(matrix: &[Vec<f64>]) -> Result<f64, String> {
         return Err("eigensolver: non-finite matrix scale".into());
     }
     if scale == 0.0 {
-        return Ok(0.0);
+        return Ok((0.0, 0.0));
     }
 
     let mut values: Vec<Vec<f64>> = matrix
