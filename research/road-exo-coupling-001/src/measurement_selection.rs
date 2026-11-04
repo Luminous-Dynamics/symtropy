@@ -1007,8 +1007,13 @@ mod tests {
             certificate.pareto_experiment_ids,
             vec![id("low-cost"), id("low-risk")]
         );
+        let dominated_evaluation = certificate
+            .candidate_evaluations
+            .iter()
+            .find(|evaluation| evaluation.experiment_id == id("dominated"))
+            .expect("dominated candidate remains in the report");
         assert_eq!(
-            certificate.candidate_evaluations[2].disposition,
+            dominated_evaluation.disposition,
             CandidateDisposition::Dominated
         );
     }
