@@ -1,0 +1,156 @@
+# Construction Robot Interoperability & Mixed-Fleet Conformance — v0.1
+
+**Status:** research protocol / synthetic conformance contract. Not a safety standard, production fleet manager, or field qualification.
+
+## Purpose
+
+Qualify whether heterogeneous construction robots, fleet managers, site systems and evidence services can coordinate the same construction work without losing task meaning, site context, authority boundaries or evidence lineage.
+
+The design intentionally does **not** create another message transport or replace vendor controllers. VDA 5050, ISO 21423 and existing vendor interfaces are comparators and potential transports. This profile defines the construction-specific contract above them.
+
+## The paradigm shift
+
+A transport-level success is not useful-work interoperability.
+
+The unit of interoperability is a **construction work contract** that survives vendor adapters and system boundaries:
+
+`approved work package + design revision + frame/site epoch + capability envelope + resource constraints + postconditions + evidence requirements`
+
+A task can be accepted by an executor, queued, started, blocked, physically completed, inspected and finally accepted. These are different states. No adapter may turn a robot's `completed` message into independent acceptance.
+
+## Current industry baselines
+
+- **VDA 5050 v3.0.0** (March 2026) is the current open interface for central fleet control and mobile robots. It adds free-navigation support, zones and path sharing. It targets mobile-robot fleet operation / intralogistics rather than construction-specific work-package semantics. Official sources: [VDA current version](https://www.vda.de/en/topics/automotive-industry/vda-5050), [official specification repository](https://github.com/VDA5050/VDA5050).
+- **ISO 21423:2026** (published 14 October 2026) specifies communications among industrial mobile robots, fleet managers and other equipment/applications in a shared industrial environment. Its stated scope excludes navigation and safety requirements and excludes public-road use. Assess site applicability; do not claim that it applies to all construction sites or grants safety authority. [ISO catalogue](https://www.iso.org/standard/86749.html).
+- **MassRobotics AMR Interoperability Standard** provides an existing mobile-robot data-sharing baseline covering location, speed, direction, health, tasking and availability. [Specification repository](https://github.com/MassRobotics-AMR/AMR_Interop_Standard).
+- Construction research remains less mature in field validation than factory mobile-robot integration. A 2026 PRISMA review of 375 studies reported 19.3% field-tested/real-world deployments, 58.9% lab-based prototypes, 13.9% simulation/virtual testing and 7.1% conceptual/theoretical work. A separate 2026 review of autonomous earthwork machinery identifies cross-vendor fleet communication as a deployment gap. These are literature synthesis results, not a population census of commercial robots.
+
+We should **reuse** established interfaces and test their semantic fit. Do not create a proprietary competing transport protocol.
+
+## Scope and ownership
+
+Compose existing Symtropy work:
+- #1834 — task-to-capability matching;
+- #1843 — accepted construction work under failures and replanning;
+- #3566 — end-to-end permission-to-evidence conformance;
+- #3542 / #3558 — worksite epochs, requalification and observation coverage;
+- #3521 / #3522 — physical trial receipts and claim admissibility;
+- #3605 — accepted-output definitions and production accounting;
+- #3591 — cross-laboratory reproducibility;
+- #3331 — component identity and evidence continuity.
+
+This work owns the normalized interop profile, construction-specific mappings, adapter conformance vectors and mixed-fleet comparison. It does not create a second safety controller, identity/approval ledger, event store, survey engine, task planner, fleet manager or acceptance authority.
+
+## Interoperability layers
+
+Conformance is reported independently at each layer, not as one generic PASS.
+
+1. **Transport and syntax:** versioned, bounded messages; authenticated sender identity is verified by the applicable external identity mechanism.
+2. **Semantic data:** units, frame, design revision, site/work-package/zone identity, resource IDs, capability terms and time semantics retain meaning.
+3. **Task lifecycle:** submit, accept, queue, start, pause, block, resume, cancel, revoke, physically complete, fail, inspect and independently accept/reject have explicit state semantics.
+4. **Coordination:** work zones, corridors, staging, charging/fuelling and other shared resources have explicit reservation, expiry and conflict semantics.
+5. **Evidence continuity:** task, input, configuration and event digests link to physical measurement and acceptance receipts; adapters cannot self-award evidence grade or acceptance.
+6. **Authority separation:** scheduling and interop messages never become a safety permit or motion authorization. Safety remains under the approved machine/site safety architecture.
+
+## Normalized task contract
+
+Every task binds, as applicable:
+- immutable task/work-package/project/site/work-zone IDs;
+- task-family and functional-unit class;
+- exact design/model/export revision and content digest;
+- target coordinate frame, site epoch and transform/control evidence references;
+- material/component identity and lot where relevant;
+- capability requirements (payload, reach, tool, process, terrain, environment and precision as applicable);
+- preconditions, postconditions and task dependencies;
+- resource/zone reservations;
+- deadline and priority semantics, cancellation/revocation and idempotency policy;
+- required physical evidence and independent acceptance profile references;
+- operating-domain boundary and unsupported-condition response.
+
+An adapter must not invent missing fields, silently convert units or coordinate frames, or coerce an unsupported task into success.
+
+## Message envelope and ordering
+
+The profile requires message ID, schema version, actor and actor-session identity, task ID, source sequence, idempotency/correlation keys, source time with clock uncertainty, receiver-observed time, site epoch, design/frame binding where applicable, payload digest and explicit message kind.
+
+Ordering is actor/session-scoped; a globally synchronized clock is not assumed. Duplicate delivery must be idempotent. A message ID reused with different content is a conflict. A delayed or stale event cannot overwrite a newer state. A source-sequence gap is reported; whether it blocks a task is determined by the declared event-stream completeness policy. A session/boot change requires explicit reconciliation rather than assuming the old sequence continues.
+
+This is an envelope and state-semantics contract, not a cryptographic identity or event-store implementation.
+
+## Required task states
+
+`submitted -> accepted -> queued -> started -> paused/blocked -> resumed -> executor_completed -> measurement_pending -> independently_accepted | independently_rejected`
+
+Additional terminal/hold states include `failed`, `cancelled`, `revoked_or_stale` and `indeterminate`.
+
+Rules:
+- executor acceptance is not physical completion;
+- physical completion is not independent acceptance;
+- only an exact, authorized external acceptance receipt can support independently accepted state;
+- no direct transition from `executor_completed` to `independently_accepted` without that receipt;
+- stale site epoch, design revision, frame or machine configuration prevents task start/resume under the prior qualification;
+- failure, conflict or unknown state must not be silently coerced to success.
+
+The reference transition oracle may verify receipt reference presence and binding; it cannot authenticate the external authority or decide whether the physical work meets engineering requirements.
+
+## Shared-resource reservation
+
+Resources include work zones, access corridors, crane/telehandler operating envelopes, material staging, charging/fuelling, lifts/hoists and protected survey-control areas.
+
+A reservation binds resource ID/revision, owner, task, scope, time interval, expiry, priority/override policy and source digest. Exclusive conflicts must be rejected. Expiry, owner loss, clock uncertainty, contradictory reservations or site-epoch changes trigger the declared invalidation path. A reservation is a scheduling fact only, never a safety permit.
+
+## Frozen reference corpus
+
+The v0.1 machine-readable corpus is in `fixtures/construction-robot-interop-cases-v0.1.json`. It covers:
+- VDA 5050 field mapping and explicit unsupported construction semantics;
+- equivalent normalized tasks across two adapters;
+- task/capability mismatch and unknown units/frames;
+- stale design/site epoch/configuration;
+- duplicates, conflicting message IDs, sequence rollback, reorder and session reset;
+- reservation conflicts, expiry and site-epoch invalidation;
+- executor-completed without inspection; inspection reject; mismatched acceptance receipt;
+- broker outage/reconnect, fleet-manager restart and replay;
+- external safety hold propagation and worker-data minimization.
+
+The corpus is synthetic, hand-checkable and designed to seed a deterministic finite-state oracle, property-based tests, message fuzzing and blind combination holdouts. It is not field evidence.
+
+## Baselines and comparative method
+
+Compare the same frozen work contracts against:
+1. direct vendor-specific point-to-point integrations;
+2. a common gateway over vendor-specific APIs;
+3. VDA 5050 v3.0 mapping where the target device/task is in scope;
+4. ISO 21423:2026 scope mapping where applicable (do not claim conformity without the normative text and appropriate assessment);
+5. this construction-specific normalized task and evidence profile.
+
+Measure: required integration effort; custom fields; semantic field loss; unsupported-task detection; task-state divergence; duplicate/replay safety; outage reconciliation time; resource conflict detection; handoff correctness; evidence continuity; independent acceptance binding; and latency distributions with clock uncertainty.
+
+## Prospective targets (not standards or achieved results)
+
+- 100% preservation of required task, site, frame, epoch, unit, capability and authority fields, or explicit typed rejection.
+- Zero silent field loss or implicit unit/frame conversion in frozen tests.
+- Zero unintended state changes from duplicate, stale, replayed or conflicting messages.
+- Zero stale-epoch or expired-reservation resumes in the frozen corpus.
+- Zero admitted exclusive-resource conflicts in the reference coordinator.
+- 100% preservation of input/configuration/evidence references.
+- Zero conversion of executor completion into independent acceptance without the exact authorized receipt.
+- 100% agreement with an independent finite-state oracle on the frozen transition corpus.
+- Report p50/p95/p99/max latency and recovery time with sample counts and clock uncertainty. Do not impose a universal latency threshold before a task family defines its actual deadline and timing budget.
+- Publish unsupported features and version incompatibilities; no composite score may hide a hard failure.
+
+## Staging
+
+- **Stage 0:** schemas, deterministic reference state machine, fixtures and synthetic adapters.
+- **Stage 1:** at least two independently implemented adapters; differential semantic tests over identical work contracts.
+- **Stage 2:** hardware-in-the-loop using physically isolated, non-actuating or explicitly safety-approved configurations; inject communication and state faults.
+- **Stage 3:** controlled, site-authorized trial with at least two vendors and two sites, matched work packages, common independent referee, raw evidence and full workflow accounting.
+
+Software CI does not authorize progression to physical stages.
+
+## Safety, privacy and claim ceiling
+
+This profile does not qualify navigation, functional safety, cybersecurity certification, physical compatibility, productivity superiority or construction-site suitability. ISO 21423:2026 itself is not a safety or navigation standard. Physical operation requires the responsible site's approved risk assessment, safety architecture, permits and competent personnel.
+
+Use task-scoped opaque worker IDs where worker participation must be attributed. Do not collect biometrics, infer affect/intent, or expose personal identity merely to score robot interoperability.
+
+Passing v0.1 shows only that the declared semantics and transitions are enforced for the frozen corpus and adapters actually tested. It does not prove universal interoperability or field reliability.
