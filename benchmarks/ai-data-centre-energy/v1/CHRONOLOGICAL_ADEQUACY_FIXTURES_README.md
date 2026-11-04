@@ -16,10 +16,10 @@ The reference case has 100 kW load and 90 kW available supply for one hour. Refe
 
 The augmented scenarios have raw weights 3 and 1, normalized to 0.75 and 0.25. Their net demand reductions are 20 kW and 10 kW. For an added constant system load d (kW), weighted unserved energy is:
 
-    0.75 × max(d - 20, 0) / 1000
-  + 0.25 × max(d - 10, 0) / 1000
+    0.75 × max(d - 10, 0) / 1000
+  + 0.25 × max(d, 0) / 1000
 
-For d above 20 kW this equals (d - 17.5) / 1000 MWh. Setting it equal to reference EUE 0.01 MWh gives d = 27.5 kW. The search should recover approximately 27.5 kW within its configured load tolerance, with the EUE criterion restored.
+For d above 20 kW this equals (d - 7.5) / 1000 MWh for d at least 10 kW. Setting it equal to reference EUE 0.01 MWh gives d = 17.5 kW. The search should recover approximately 17.5 kW within its configured load tolerance, with the EUE criterion restored.
 
 This is a known-truth arithmetic control—not a claim that 27.5 kW is deliverable or accredited capacity.
 
@@ -38,4 +38,4 @@ The reference trajectory has two stressed hours: 10 kW unserved in the first and
 
 ## Reproduction
 
-The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Eight test cases were authored in V0.1. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
+The fixtures describe the same known-truth cases covered by unit tests in the chronological adequacy source module. Eleven test cases were authored in V0.1. A passing Rust build/test result must come from an exact-head CI or local Rust toolchain run; fixture arithmetic and static source inspection are not substitutes for that evidence.
