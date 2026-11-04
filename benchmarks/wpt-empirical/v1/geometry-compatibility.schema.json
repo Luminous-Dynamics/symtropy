@@ -461,7 +461,11 @@
         "method",
         "source_doi",
         "source_locator",
-        "uncertainty_reported"
+        "uncertainty_reported",
+        "uncertainty_method",
+        "expanded_uncertainty_percent",
+        "coverage_factor",
+        "coverage_probability_percent"
       ],
       "properties": {
         "kind": {
@@ -494,6 +498,38 @@
         },
         "uncertainty_reported": {
           "type": "boolean"
+        },
+        "uncertainty_method": {
+          "enum": [
+            "GUM",
+            "MONTE_CARLO",
+            "REPEATABILITY",
+            "BOOTSTRAP_SPATIAL",
+            "OTHER",
+            "NOT_REPORTED"
+          ]
+        },
+        "expanded_uncertainty_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "coverage_factor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "coverage_probability_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 90,
+          "maximum": 99.99
         }
       }
     },
