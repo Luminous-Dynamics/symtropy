@@ -465,6 +465,7 @@ fn validate_record(record: &Value) -> Vec<String> {
                 "THERMAL",
                 "SAFETY",
                 "COMPONENT_STRESS",
+                "EMC",
             ],
             _ => &[],
         };
@@ -847,6 +848,7 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("requires OUTPUT_POWER acceptance evidence")));
         assert!(errors.iter().any(|e| e.contains("requires EFFICIENCY acceptance evidence")));
         assert!(errors.iter().any(|e| e.contains("requires SAFETY acceptance evidence")));
+        assert!(errors.iter().any(|e| e.contains("requires EMC acceptance evidence")));
     }
 
     #[test]
