@@ -911,9 +911,7 @@ mod tests {
                 let mut matrix = vec![vec![0.0_f64; n]; n];
                 for i in 0..n {
                     for j in 0..n {
-                        let dot = (0..n)
-                            .map(|k| factor[k][i] * factor[k][j])
-                            .sum::<f64>();
+                        let dot = (0..n).map(|k| factor[k][i] * factor[k][j]).sum::<f64>();
                         matrix[i][j] = dot * 1e-6 + if i == j { 1e-6 } else { 0.0 };
                     }
                 }
@@ -934,7 +932,13 @@ mod tests {
 
             let mut atlas = fixture();
             atlas.coil_ids = (0..n)
-                .map(|index| if index == 0 { "TX".into() } else { format!("RX-{index}") })
+                .map(|index| {
+                    if index == 0 {
+                        "TX".into()
+                    } else {
+                        format!("RX-{index}")
+                    }
+                })
                 .collect();
             atlas.operating_point.dc_bias_currents_a = vec![0.0; n];
             atlas.samples[0].matrix_h = left_matrix;
@@ -958,8 +962,7 @@ mod tests {
             for alpha in [0.1, 0.3, 0.5, 0.7, 0.9] {
                 let result = atlas.interpolate_at(10.0 * alpha).unwrap();
                 assert_eq!(
-                    result.disposition,
-                    "PASSIVE_CERTIFIED_CONDITIONAL",
+                    result.disposition, "PASSIVE_CERTIFIED_CONDITIONAL",
                     "n={n}, alpha={alpha}"
                 );
                 let (actual_minimum, actual_residual) =
@@ -973,5 +976,4 @@ mod tests {
             }
         }
     }
-
 }
