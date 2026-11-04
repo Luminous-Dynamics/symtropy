@@ -361,9 +361,10 @@ impl DecisionManifest {
                 .outcomes
                 .iter()
                 .map(|outcome| match &outcome.support {
-                    OutcomeSupport::Supported { utility, .. } => {
-                        Ok((outcome.action_id.clone(), utility.clone()))
-                    }
+                    OutcomeSupport::Supported { utility, .. } => Ok((
+                        outcome.action_id.clone(),
+                        ExactRational::new(utility.numerator, utility.denominator)?,
+                    ))
                     _ => Err(DecisionError::MissingActionOutcome),
                 })
                 .collect::<Result<Vec<_>, _>>()?;
@@ -781,7 +782,10 @@ mod tests {
         let first = manifest(vec![hypothesis("reference-1", 3, 2)]);
         let mut second = first.clone();
         second.hypotheses[0].outcomes[0].support = OutcomeSupport::Supported {
-            utility: ExactRational::new(30, 10).unwrap(),
+            utility: ExactRational {
+                numerator: 30,
+                denominator: 10,
+            },
             evidence_digest: *blake3::hash(b"action-a").as_bytes(),
         };
         assert_eq!(first.digest().unwrap(), second.digest().unwrap());
