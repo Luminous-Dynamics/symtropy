@@ -929,6 +929,35 @@ mod frozen_scenario_tests {
     }
 
     #[test]
+    fn every_frozen_scenario_validates_against_draft_2020_12_schema() {
+        let schema: serde_json::Value =
+            serde_json::from_str(SCENARIO_SCHEMA).expect("scenario schema JSON");
+        jsonschema::draft202012::meta::validate(&schema)
+            .expect("scenario schema must be valid Draft 2020-12");
+
+        let validator = jsonschema::draft202012::new(&schema)
+            .expect("compile scenario schema");
+        for (name, raw) in [
+            ("ordered", ORDERED),
+            ("replay", REPLAY),
+            ("reconnect", RECONNECT),
+            ("lease-expiry", EXPIRED),
+        ] {
+            let instance: serde_json::Value =
+                serde_json::from_str(raw).expect("scenario fixture JSON");
+            let errors = validator
+                .iter_errors(&instance)
+                .map(|error| format!("{error} at {}", error.instance_path()))
+                .collect::<Vec<_>>();
+            assert!(
+                errors.is_empty(),
+                "scenario {name} violates the frozen schema: {}",
+                errors.join("; ")
+            );
+        }
+    }
+
+    #[test]
     fn frozen_scenario_parser_rejects_unknown_fields() {
         let malformed = ORDERED.replace(
             "\"revision\": 1,",
