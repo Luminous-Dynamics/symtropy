@@ -30,6 +30,16 @@ pub struct ConditionalForecast {
     pub outcomes: Vec<OutcomeLikelihood>,
 }
 
+/// One observed outcome event, captured after the action and delivery are audited.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EProcessObservation<'a> {
+    pub assigned_candidate_id: &'a str,
+    pub delivered_protocol_id: &'a str,
+    pub step_id: &'a str,
+    pub outcome_id: &'a str,
+    pub evidence_tier: EvidenceTier,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EProcessError {
     EmptyIdentifier(&'static str),
@@ -156,13 +166,9 @@ impl LikelihoodRatioEProcess {
         &mut self,
         candidate: &InterventionCandidate,
         forecast: &ConditionalForecast,
-        assigned_candidate_id: &str,
-        delivered_protocol_id: &str,
-        step_id: &str,
-        outcome_id: &str,
-        evidence_tier: EvidenceTier,
+        observation: EProcessObservation<'_>,
     ) -> Result<AnytimeEvidenceReceipt, EProcessError> {
-        if step_id.trim().is_empty() {
+        if observation.step_id.trim().is_empty() {
             return Err(EProcessError::EmptyIdentifier("step_id"));
         }
         if forecast.prediction_manifest_digest != self.frozen_prediction_manifest_digest {
@@ -171,18 +177,18 @@ impl LikelihoodRatioEProcess {
         if forecast.conditioning_state_digest.trim().is_empty() {
             return Err(EProcessError::EmptyConditioningState);
         }
-        if assigned_candidate_id != candidate.candidate_id
+        if observation.assigned_candidate_id != candidate.candidate_id
             || forecast.candidate_id != candidate.candidate_id
         {
             return Err(EProcessError::AssignmentMismatch);
         }
-        if delivered_protocol_id != candidate.protocol_id
+        if observation.delivered_protocol_id != candidate.protocol_id
             || forecast.protocol_id != candidate.protocol_id
         {
             return Err(EProcessError::DeliveryMismatch);
         }
-        if self.seen_step_ids.contains(step_id) {
-            return Err(EProcessError::DuplicateStep(step_id.to_owned()));
+        if self.seen_step_ids.contains(observation.step_id) {
+            return Err(EProcessError::DuplicateStep(observation.step_id.to_owned()));
         }
         validate_candidate_for_eprocess(candidate)?;
         validate_conditional_forecast(
@@ -193,12 +199,11 @@ impl LikelihoodRatioEProcess {
         let outcome = forecast
             .outcomes
             .iter()
-            .find(|item| item.outcome_id == outcome_id)
-            .ok_or_else(|| EProcessError::UnknownOutcome(outcome_id.to_owned()))?;
+            .find(|item| item.outcome_id == observation.outcome_id)
+            .ok_or_else(|| EProcessError::UnknownOutcome(observation.outcome_id.to_owned()))?;
         let p_null = outcome.model_probabilities[&self.null_model_id];
-        // A zero null probability is a model-adequacy failure, not an infinite
-        // evidence shortcut. Refuse to manufacture a rejection from a brittle
-        // exact-zero prediction.
+        // An exact-zero null likelihood is a model-adequacy failure, not an
+        // infinite-evidence shortcut. Do not manufacture a rejection from it.
         if p_null <= 0.0 {
             return Err(EProcessError::NullModelAssignedZeroProbability);
         }
@@ -212,7 +217,8 @@ impl LikelihoodRatioEProcess {
                 *log_ratio += p_alternative.ln() - p_null.ln();
             }
         }
-        let log_e_value = mixture_log_e_value(&self.alternative_weights, &next_log_likelihood_ratios);
+        let log_e_value =
+            mixture_log_e_value(&self.alternative_weights, &next_log_likelihood_ratios);
         if log_e_value.is_nan() || log_e_value == f64::INFINITY {
             return Err(EProcessError::NumericalFailure);
         }
@@ -222,40 +228,40 @@ impl LikelihoodRatioEProcess {
         } else {
             EvidenceStatus::Continue
         };
-
-        self.log_likelihood_ratios = next_log_likelihood_ratios;
-        self.log_e_value = log_e_value;
-        self.steps_observed = self
+        let next_steps_observed = self
             .steps_observed
             .checked_add(1)
             .ok_or(EProcessError::NumericalFailure)?;
-        self.seen_step_ids.insert(step_id.to_owned());
 
-        let fingerprint = receipt_fingerprint(
-            step_id,
-            self.steps_observed,
-            &forecast.prediction_manifest_digest,
-            &forecast.conditioning_state_digest,
-            &candidate.candidate_id,
-            &candidate.protocol_id,
-            outcome_id,
-            evidence_tier,
-            self.log_e_value,
-            log_rejection_threshold,
-            self.alpha,
-        );
-        Ok(AnytimeEvidenceReceipt {
-            step_id: step_id.to_owned(),
+        self.log_likelihood_ratios = next_log_likelihood_ratios;
+        self.log_e_value = log_e_value;
+        self.steps_observed = next_steps_observed;
+        self.seen_step_ids.insert(observation.step_id.to_owned());
+
+        let fingerprint = receipt_fingerprint(ReceiptFingerprintInput {
+            step_id: observation.step_id,
             steps_observed: self.steps_observed,
-            evidence_tier,
+            prediction_manifest_digest: &forecast.prediction_manifest_digest,
+            conditioning_state_digest: &forecast.conditioning_state_digest,
+            candidate_id: &candidate.candidate_id,
+            protocol_id: &candidate.protocol_id,
+            outcome_id: observation.outcome_id,
+            evidence_tier: observation.evidence_tier,
+            log_e_value: self.log_e_value,
+            log_threshold: log_rejection_threshold,
+            alpha: self.alpha,
+        });
+        Ok(AnytimeEvidenceReceipt {
+            step_id: observation.step_id.to_owned(),
+            steps_observed: self.steps_observed,
+            evidence_tier: observation.evidence_tier,
             log_e_value: self.log_e_value,
             log_rejection_threshold,
             alpha: self.alpha,
             status,
             fingerprint,
         })
-    }
-}
+    }}
 
 fn validate_candidate_for_eprocess(
     candidate: &InterventionCandidate,
@@ -342,42 +348,44 @@ fn mixture_log_e_value(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn receipt_fingerprint(
-    step_id: &str,
+struct ReceiptFingerprintInput<'a> {
+    step_id: &'a str,
     steps_observed: u64,
-    prediction_manifest_digest: &str,
-    conditioning_state_digest: &str,
-    candidate_id: &str,
-    protocol_id: &str,
-    outcome_id: &str,
+    prediction_manifest_digest: &'a str,
+    conditioning_state_digest: &'a str,
+    candidate_id: &'a str,
+    protocol_id: &'a str,
+    outcome_id: &'a str,
     evidence_tier: EvidenceTier,
     log_e_value: f64,
     log_threshold: f64,
     alpha: f64,
-) -> EProcessFingerprint {
+}
+
+fn receipt_fingerprint(input: ReceiptFingerprintInput<'_>) -> EProcessFingerprint {
     let mut bytes = Vec::new();
     for value in [
-        step_id,
-        prediction_manifest_digest,
-        conditioning_state_digest,
-        candidate_id,
-        protocol_id,
-        outcome_id,
+        input.step_id,
+        input.prediction_manifest_digest,
+        input.conditioning_state_digest,
+        input.candidate_id,
+        input.protocol_id,
+        input.outcome_id,
     ] {
         bytes.extend_from_slice(&(value.len() as u64).to_be_bytes());
         bytes.extend_from_slice(value.as_bytes());
     }
-    bytes.extend_from_slice(&steps_observed.to_be_bytes());
-    bytes.push(match evidence_tier {
+    bytes.extend_from_slice(&input.steps_observed.to_be_bytes());
+    bytes.push(match input.evidence_tier {
         EvidenceTier::SyntheticFixture => 0,
         EvidenceTier::InSilicoGenerated => 1,
         EvidenceTier::PreprintMeasured => 2,
         EvidenceTier::PeerReviewedMeasured => 3,
     });
-    bytes.extend_from_slice(&log_e_value.to_bits().to_be_bytes());
-    bytes.extend_from_slice(&log_threshold.to_bits().to_be_bytes());
-    bytes.extend_from_slice(&alpha.to_bits().to_be_bytes());
-    // FNV-1a is intentionally marked non-cryptographic; it is not a trust anchor.
+    bytes.extend_from_slice(&input.log_e_value.to_bits().to_be_bytes());
+    bytes.extend_from_slice(&input.log_threshold.to_bits().to_be_bytes());
+    bytes.extend_from_slice(&input.alpha.to_bits().to_be_bytes());
+    // FNV-1a is intentionally non-cryptographic; it is not a trust anchor.
     let mut hash = 0xcbf29ce484222325_u64;
     for byte in bytes {
         hash ^= u64::from(byte);
@@ -388,6 +396,7 @@ fn receipt_fingerprint(
         value_hex: format!("{hash:016x}"),
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -462,11 +471,13 @@ mod tests {
             .observe(
                 &c,
                 f,
-                "stim-a",
-                "protocol-a",
-                step,
-                outcome,
-                EvidenceTier::SyntheticFixture,
+                EProcessObservation {
+                    assigned_candidate_id: "stim-a",
+                    delivered_protocol_id: "protocol-a",
+                    step_id: step,
+                    outcome_id: outcome,
+                    evidence_tier: EvidenceTier::SyntheticFixture,
+                },
             )
             .unwrap()
     }
@@ -499,19 +510,20 @@ mod tests {
     fn prediction_manifest_drift_is_rejected_without_updating() {
         let mut e = process(0.05);
         let f = forecast(0.2, 0.8, "changed-manifest", "history-0");
-        let mut c = candidate();
+        let c = candidate();
         let result = e.observe(
             &c,
             &f,
-            "stim-a",
-            "protocol-a",
-            "step-1",
-            "yes",
-            EvidenceTier::SyntheticFixture,
+            EProcessObservation {
+            assigned_candidate_id: "stim-a",
+            delivered_protocol_id: "protocol-a",
+            step_id: "step-1",
+            outcome_id: "yes",
+            evidence_tier: EvidenceTier::SyntheticFixture,
+        },
         );
         assert_eq!(result, Err(EProcessError::PredictionManifestDrift));
         assert_eq!(e.steps_observed(), 0);
-        c.feasibility = Feasibility::Permitted;
     }
 
     #[test]
