@@ -33,6 +33,22 @@ The review discusses energy delivery to non-electrical loads, primary-controlled
 
 **Engineering implication:** our long-term architecture should represent the service endpoint, not assume every receiver ultimately charges a battery. Direct mechanical, thermal or other energy conversion requires its own endpoint and energy accounting.
 
+### Multi-transmitter cross-interference control
+
+Ishihara et al., **Multiple Transmitters with Controlled Amplitude and Phase of Transmitter Currents to Eliminate Cross-Interference Effects for Large-Area Wireless Power Transfer Systems**, IEEJ Journal of Industry Applications 15(3), 385–396 (published 1 May 2026). DOI: https://doi.org/10.1541/ieejjia.20250352
+
+The paper identifies coupling between multiple transmitters and receivers as a cause of transmitter-current amplitude/phase changes, receiver output-power degradation, stronger magnetic fields, poorer power factor and possible loss of inverter ZVS. The authors experimentally evaluate DC–DC input-voltage control to hold transmitter-current amplitude and a switching network to cancel unwanted induced EMF / self-inductance variation.
+
+**Engineering implication:** our multi-coil state needs both static matrix admissibility and dynamic operating-state tests. A passive, reciprocal inductance matrix does not prove that a controller maintains benign current amplitude/phase, ZVS, field or thermal behavior during multi-transmitter activation.
+
+### Three simultaneous receivers in a near-field RF metasurface
+
+**A Multimode Near-Field Radio Frequency Metasurface Resonator Transmitter for Multireceiver Power Transfer at 6.78 MHz**, IEEE Transactions on Microwave Theory and Techniques, online 9 September 2026. DOI: https://doi.org/10.1109/TMTT.2026.3729012
+
+The reported fabricated 335 × 335 mm aperture has a 9-position scan and a three-simultaneous-receiver evaluation. The source reports total efficiency of 77.89–80.30% across the three-receiver layouts and branch imbalance of 14.88–24.71 percentage points. Its RF metasurface topology and 6.78 MHz operating regime are not directly comparable to 85 kHz EV IPT. Its relevance is that aggregate efficiency can obscure receiver-to-receiver imbalance, and a multiport resonator's collective modes need to be analysed rather than treating each receiver as an isolated link.
+
+**Engineering implication:** keep aggregate efficiency, per-receiver efficiency, delivered energy, and fairness separate. A matrix-valid model should be followed by a network-level performance test.
+
 ## Standards and interoperability boundaries
 
 ### SAE J2954_202408
