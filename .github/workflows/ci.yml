@@ -82,3 +82,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT segment energy ledger
+      run: cargo test --locked -p wpt-segment-energy-ledger
+
+    - name: Run WPT segment energy ledger synthetic route fixture
+      run: cargo run --locked -p wpt-segment-energy-ledger -- benchmarks/wpt-segment-energy-ledger/v1/synthetic-highway-pass.json
