@@ -36,14 +36,15 @@ fn main() -> ExitCode {
         Ok(result) => match serde_json::to_string_pretty(&result) {
             Ok(json) => {
                 println!("{json}");
-                if let Some(expected) = arguments.get(2) {
-                    if result.disposition != *expected {
-                        eprintln!(
-                            "disposition mismatch: expected {expected}, got {}",
-                            result.disposition
-                        );
-                        return ExitCode::FAILURE;
-                    }
+                if let Some(expected) = arguments
+                    .get(2)
+                    .filter(|expected| result.disposition.as_str() != expected.as_str())
+                {
+                    eprintln!(
+                        "disposition mismatch: expected {expected}, got {}",
+                        result.disposition
+                    );
+                    return ExitCode::FAILURE;
                 }
                 ExitCode::SUCCESS
             }
