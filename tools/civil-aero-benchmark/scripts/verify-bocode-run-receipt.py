@@ -61,11 +61,78 @@ def parse_npy_header(data: bytes) -> tuple[tuple[int, ...], str, int]:
     require(isinstance(header, dict), "NumPy header must be a dictionary")
     shape = header.get("shape")
     descr = header.get("descr")
-    require(isinstance(shape, tuple) and all(isinstance(x, int) and x >= 0 for x in shape),
-            "NumPy shape is malformed")
+    require(
+        isinstance(shape, tuple) and all(isinstance(x, int) and x >= 0 for x in shape),
+        "NumPy shape is malformed",
+    )
     require(isinstance(descr, str) and descr and descr[1:2] != "O",
             "NumPy object arrays are prohibited")
     return shape, descr, end
+
+
+def parse_npy_values(data: bytes) -> tuple[tuple[int, ...], list[Any]]:
+    shape, descr, offset = parse_npy_header(data)
+    payload = data[offset:]
+    count = math.prod(shape) if shape else 1
+    match = re.fullmatch(r"([<>=|])([fiuSbU])(\d+)", descr)
+    require(match is not None, f"unsupported NPZ array dtype {descr!r}")
+    endian, kind, width_text = match.groups()
+    width = int(width_text)
+    if kind == "S":
+        item_size = width
+        require(width > 0, "string array item width must be positive")
+        require(len(payload) == count * item_size, "NumPy string payload size mismatch")
+        values = [
+            payload[index * item_size:(index + 1) * item_size].split(b"\x00", 1)[0].decode("utf-8")
+            for index in range(count)
+        ]
+        return shape, values
+    if kind == "U":
+        item_size = width * 4
+        require(width > 0, "Unicode array item width must be positive")
+        require(len(payload) == count * item_size, "NumPy Unicode payload size mismatch")
+        codec = "utf-32-be" if endian == ">" else "utf-32-le"
+        values = [
+            payload[index * item_size:(index + 1) * item_size].decode(codec).rstrip("\x00")
+            for index in range(count)
+        ]
+        return shape, values
+    if kind == "b":
+        item_size = 1
+        require(width == 1, "invalid NumPy boolean width")
+    else:
+        item_size = width
+        require(width in (1, 2, 4, 8), f"unsupported numeric dtype width {width}")
+    require(len(payload) == count * item_size, "NumPy numeric payload size mismatch")
+    code = {
+        "f": {4: "f", 8: "d"},
+        "i": {1: "b", 2: "h", 4: "i", 8: "q"},
+        "u": {1: "B", 2: "H", 4: "I", 8: "Q"},
+    }.get(kind, {}).get(width)
+    if kind == "b":
+        values = [bool(value) for value in payload]
+    else:
+        require(code is not None, f"unsupported numeric dtype {descr!r}")
+        prefix = ">" if endian == ">" else "<"
+        values = [item[0] for item in struct.iter_unpack(prefix + code, payload)]
+    return shape, values
+
+
+def npy_scalar(arrays: dict[str, tuple[tuple[int, ...], list[Any]]], name: str) -> Any:
+    require(name in arrays, f"NPZ is missing {name}")
+    shape, values = arrays[name]
+    require(shape in ((), (1,)) and len(values) == 1, f"NPZ {name} must be scalar")
+    return values[0]
+
+
+def finite_values(values: list[Any], name: str) -> list[float]:
+    try:
+        converted = [float(value) for value in values]
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"NPZ {name} must be numeric") from error
+    require(all(math.isfinite(value) for value in converted),
+            f"NPZ {name} contains non-finite values")
+    return converted
 
 
 def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
@@ -73,29 +140,53 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
     dimension = int(metadata["dimension"])
     objectives = int(metadata["num_objectives"])
     constraints = int(metadata["num_constraints"])
+    arrays: dict[str, tuple[tuple[int, ...], list[Any]]] = {}
     with zipfile.ZipFile(path, "r") as archive:
-        names = set(archive.namelist())
-        require(NPZ_REQUIRED.issubset(names), "NPZ trace omits one or more required arrays")
+        infos = archive.infolist()
+        names = [info.filename for info in infos]
+        require(len(names) == len(set(names)), "NPZ contains duplicate ZIP member names")
+        total_uncompressed = 0
+        for info in infos:
+            member = PurePosixPath(info.filename)
+            require(
+                not info.is_dir() and len(member.parts) == 1 and member.name.endswith(".npy"),
+                f"NPZ contains unsafe/non-array member {info.filename!r}",
+            )
+            total_uncompressed += info.file_size
+            require(total_uncompressed <= 512 * 1024 * 1024,
+                    "NPZ uncompressed content exceeds the 512 MiB verifier cap")
+        require(NPZ_REQUIRED.issubset(set(names)), "NPZ trace omits one or more required arrays")
         require(archive.testzip() is None, "NPZ ZIP CRC verification failed")
-        shapes: dict[str, tuple[int, ...]] = {}
         for name in NPZ_REQUIRED:
-            shape, _descr, _offset = parse_npy_header(archive.read(name))
-            shapes[name[:-4]] = shape
+            arrays[name[:-4]] = parse_npy_values(archive.read(name))
 
-    x_shape = shapes["X"]
-    y_shape = shapes["y"]
-    c_shape = shapes["c"]
+    algorithm = npy_scalar(arrays, "algorithm")
+    problem = npy_scalar(arrays, "problem")
+    seed = int(npy_scalar(arrays, "seed"))
+    require(
+        algorithm == receipt["algorithm"]
+        and problem == receipt["task_id"]
+        and seed == int(receipt["seed"]),
+        "NPZ algorithm/problem/seed identity differs from receipt",
+    )
+    best = float(npy_scalar(arrays, "best"))
+    n_init = int(npy_scalar(arrays, "n_init"))
+    require(math.isfinite(best), "NPZ best must be finite")
+
+    x_shape, x_values = arrays["X"]
+    y_shape, y_values_raw = arrays["y"]
+    c_shape, c_values_raw = arrays["c"]
+    iterations_shape, iterations_raw = arrays["iterations"]
+    history_shape, history_raw = arrays["per_iteration_value"]
+    wall_shape, wall_raw = arrays["wall_time"]
+
     require(len(x_shape) == 2 and x_shape[0] > 0 and x_shape[1] == dimension,
             f"NPZ X shape must be (n>0,{dimension}), got {x_shape}")
     n = x_shape[0]
-    if len(y_shape) == 1:
-        require(y_shape[0] == n, f"NPZ y vector must contain {n} rows, got {y_shape}")
-        y_outputs = 1
-    else:
-        require(len(y_shape) == 2 and y_shape[0] == n,
-                f"NPZ y shape must have {n} rows, got {y_shape}")
-        y_outputs = y_shape[1]
-    require(y_outputs == objectives, "NPZ y objective count differs from admitted metadata")
+    require(len(y_shape) in (1, 2) and y_shape[0] == n,
+            f"NPZ y must have {n} rows, got {y_shape}")
+    y_width = 1 if len(y_shape) == 1 else y_shape[1]
+    require(y_width == objectives, "NPZ y objective count differs from admitted metadata")
     require(len(c_shape) == 2 and c_shape[0] == n,
             f"NPZ c must have {n} rows, got {c_shape}")
     if constraints == 0:
@@ -109,15 +200,56 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             f"NPZ c must have zero columns (unavailable) or {constraints} raw constraint columns, got {c_shape}"
         )
-    for name in ("iterations", "per_iteration_value", "wall_time"):
-        require(len(shapes[name]) == 1, f"NPZ {name} must be one-dimensional")
-    trace_lengths = [shapes[name][0] for name in ("iterations", "per_iteration_value", "wall_time")]
-    require(len(set(trace_lengths)) == 1 and trace_lengths[0] > 0,
+    require(len(iterations_shape) == len(history_shape) == len(wall_shape) == 1,
+            "NPZ iterations, best-history and wall-time arrays must be vectors")
+    require(iterations_shape[0] > 0 and iterations_shape == history_shape == wall_shape,
             "NPZ iteration, best and wall traces have inconsistent lengths")
+
+    x_values = finite_values(x_values, "X")
+    y_values = finite_values(y_values_raw, "y")
+    c_values = finite_values(c_values_raw, "c")
+    iterations = finite_values(iterations_raw, "iterations")
+    history = finite_values(history_raw, "per_iteration_value")
+    wall = finite_values(wall_raw, "wall_time")
+    require(min(x_values) >= -1.0e-8 and max(x_values) <= 1.0 + 1.0e-8,
+            "NPZ X observations lie outside the normalized unit cube")
+    require(0 <= n_init <= n, "NPZ n_init is outside the observed evaluation history")
+    require(iterations == [float(index) for index in range(len(iterations))],
+            "NPZ iteration indices must be exactly 0..n")
+    require(abs(wall[0]) <= 1.0e-9 and all(
+        wall[index] <= wall[index + 1] + 1.0e-12 for index in range(len(wall) - 1)
+    ), "NPZ wall-time trace must start at zero and be monotonic")
+    require(all(
+        history[index] <= history[index + 1] + 1.0e-10
+        for index in range(len(history) - 1)
+    ), "NPZ best-so-far trace regresses under maximization")
+    require(abs(history[-1] - best) <= 1.0e-10 * max(1.0, abs(best)),
+            "NPZ final best-so-far value differs from its best scalar")
+
+    if constraint_history_state == "available":
+        feasible_count = 0
+        for index in range(n):
+            row = c_values[index * constraints:(index + 1) * constraints]
+            feasible_count += int(all(value <= 0.0 for value in row))
+        infeasible_count = n - feasible_count
+        feasible_fraction = feasible_count / n
+        constraint_observation_count = n
+    else:
+        feasible_count = None
+        infeasible_count = None
+        feasible_fraction = None
+        constraint_observation_count = 0
+
     return {
         "npz_evaluation_count_from_shape": n,
-        "npz_trace_point_count_from_shape": trace_lengths[0],
+        "npz_trace_point_count_from_shape": len(iterations),
+        "npz_n_init": n_init,
+        "npz_best": best,
         "constraint_history_state": constraint_history_state,
+        "constraint_observation_count": constraint_observation_count,
+        "feasible_evaluation_count": feasible_count,
+        "infeasible_evaluation_count": infeasible_count,
+        "feasible_evaluation_fraction": feasible_fraction,
     }
 
 
