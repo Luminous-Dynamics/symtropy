@@ -648,24 +648,26 @@ mod tests {
         let right = evaluate(&manifest, 3, 4, "mesh-coarse", "L0", 3);
         assert_eq!(left.marginal_counts().unwrap(), right.marginal_counts().unwrap());
 
-        // The independent-per-site joint law is the Cartesian product of these
-        // equal four-point marginals. Its covariance is exactly zero.
+        // The independent-per-site joint law is the Cartesian product of
+        // the same pointwise marginal, producing a 16-state joint table.
+        // Compute its exact cross-covariance using the common integer
+        // numerator (denominator 4) at each site.
         let marginal = left.marginal_counts().unwrap();
-        let total = 4i128;
+        let mut total_joint = 0i128;
         let mut sum_left = 0i128;
         let mut sum_right = 0i128;
         let mut sum_product = 0i128;
         for (left_value, left_weight) in &marginal {
             for (right_value, right_weight) in &marginal {
                 let weight = i128::from(*left_weight) * i128::from(*right_weight);
+                total_joint += weight;
                 sum_left += left_value * weight;
                 sum_right += right_value * weight;
                 sum_product += left_value * right_value * weight;
             }
         }
-        let numerator = sum_product * total * total - sum_left * sum_right;
-        let denominator = u128::try_from(total * total * total * total).unwrap()
-            * 16;
+        let numerator = sum_product * total_joint - sum_left * sum_right;
+        let denominator = u128::try_from(total_joint * total_joint).unwrap() * 16;
         assert_eq!(
             ExactRational::new(numerator, denominator).unwrap(),
             ExactRational {
@@ -743,8 +745,6 @@ mod tests {
                 RationalCoordinate::new(1, 4).unwrap(),
                 id("branch-a"),
                 context("mesh", "L0", 0),
-                &unknown,
-                &shared_coupling(),
             ),
             Err(SpatialError::NotIdentified)
         );
@@ -753,14 +753,45 @@ mod tests {
             branch: id("branch-b"),
         };
         assert_eq!(
-            manifest.evaluate(
-                RationalCoordinate::new(1, 4).unwrap(),
-                id("branch-a"),
-                context("mesh", "L0", 0),
-                &branch_local,
-                &shared_coupling(),
-            ),
+            {
+                let mut branch_manifest = manifest.clone();
+                branch_manifest.left_basis.coupling = branch_local;
+                branch_manifest.evaluate(
+                    RationalCoordinate::new(1, 4).unwrap(),
+                    id("branch-a"),
+                    context("mesh", "L0", 0),
+                )
+            },
             Err(SpatialError::WrongBranchScope)
+        );
+    }
+
+    #[test]
+    fn source_profile_units_and_coordinate_frame_are_bound_to_manifest() {
+        let first = manifest();
+        let mut changed_source = first.clone();
+        changed_source.left_basis.source_profile_digest[0] ^= 1;
+        assert_ne!(first.digest().unwrap(), changed_source.digest().unwrap());
+
+        let mut changed_units = first.clone();
+        changed_units.left_basis.units = id("meters");
+        assert_ne!(first.digest().unwrap(), changed_units.digest().unwrap());
+
+        let mut changed_frame = first.clone();
+        changed_frame.coordinate_frame = id("projected-road-frame");
+        assert_ne!(first.digest().unwrap(), changed_frame.digest().unwrap());
+    }
+
+    #[test]
+    fn mesh_context_tampering_fails_manifest_replay() {
+        let manifest = manifest();
+        let evaluation = evaluate(&manifest, 1, 4, "mesh-coarse", "L0", 1);
+        let mut receipt = evaluation.receipts[0].clone();
+        receipt.query_context.vertex_ordinal = Some(99);
+        assert!(!receipt.integrity_check());
+        assert_eq!(
+            receipt.verify_against(&manifest),
+            Err(SpatialError::ReceiptMismatch)
         );
     }
 
