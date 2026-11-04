@@ -234,8 +234,7 @@ impl RouteLedger {
         if !valid_sha256(&self.route_geometry_digest) {
             return Err("route geometry digest must be sha256".into());
         }
-        if self.route_end_ns <= self.route_start_ns
-        {
+        if self.route_end_ns <= self.route_start_ns {
             return Err("route time range must be increasing".into());
         }
         if self.power_flow_direction != PowerFlowDirection::GridToVehicle {
@@ -269,17 +268,21 @@ impl RouteLedger {
             }
             for (index, phase) in segment.phases.iter().enumerate() {
                 if phase.phase != PHASE_ORDER[index] {
-                    return Err("segment phase order must follow inverter-rise through inverter-fall".into());
+                    return Err(
+                        "segment phase order must follow inverter-rise through inverter-fall"
+                            .into(),
+                    );
                 }
-                if phase.end_ns <= phase.start_ns
-                {
+                if phase.end_ns <= phase.start_ns {
                     return Err("phase time range must be positive".into());
                 }
                 if index == 0 && phase.start_ns != segment.start_ns {
                     return Err("first phase must start at segment start".into());
                 }
                 if index > 0 && phase.start_ns != segment.phases[index - 1].end_ns {
-                    return Err("phase windows must be contiguous; represent gaps as idle intervals".into());
+                    return Err(
+                        "phase windows must be contiguous; represent gaps as idle intervals".into(),
+                    );
                 }
                 if index == PHASE_ORDER.len() - 1 && phase.end_ns != segment.end_ns {
                     return Err("final phase must end at segment end".into());
@@ -303,9 +306,17 @@ impl RouteLedger {
                 return Err("EVPC phase energy does not reconcile with independent segment total within uncertainty".into());
             }
             validate_boundary_measurements(&segment.boundary_measurements)?;
-            for quantity in segment.phases.iter().flat_map(|phase| [&phase.spc_input, &phase.evpc_output])
+            for quantity in segment
+                .phases
+                .iter()
+                .flat_map(|phase| [&phase.spc_input, &phase.evpc_output])
                 .chain([&segment.segment_spc_input, &segment.segment_evpc_output])
-                .chain(segment.boundary_measurements.iter().map(|measurement| &measurement.quantity))
+                .chain(
+                    segment
+                        .boundary_measurements
+                        .iter()
+                        .map(|measurement| &measurement.quantity),
+                )
             {
                 if !measurement_ids.insert(&quantity.measurement_id) {
                     return Err("measurement IDs must be globally unique within a route".into());
@@ -387,14 +398,22 @@ impl RouteLedger {
         if intervals.first().map(|interval| interval.0) != Some(self.route_start_ns)
             || intervals.last().map(|interval| interval.1) != Some(self.route_end_ns)
         {
-            return Err("segments and idle intervals must cover the complete route time range".into());
+            return Err(
+                "segments and idle intervals must cover the complete route time range".into(),
+            );
         }
         for pair in intervals.windows(2) {
             if pair[1].0 < pair[0].1 {
-                return Err(format!("route intervals overlap: {} and {}", pair[0].2, pair[1].2));
+                return Err(format!(
+                    "route intervals overlap: {} and {}",
+                    pair[0].2, pair[1].2
+                ));
             }
             if pair[1].0 > pair[0].1 {
-                return Err(format!("unaccounted route time between {} and {}", pair[0].2, pair[1].2));
+                return Err(format!(
+                    "unaccounted route time between {} and {}",
+                    pair[0].2, pair[1].2
+                ));
             }
         }
         Ok(())
@@ -468,7 +487,10 @@ impl RouteLedger {
                 match boundary {
                     EnergyBoundary::RoadwayInverterDcInput => {
                         total_inverter = checked_add(total_inverter, quantity.energy_wh)?;
-                        total_inverter_bound = checked_add(total_inverter_bound, quantity.deterministic_absolute_bound_wh)?;
+                        total_inverter_bound = checked_add(
+                            total_inverter_bound,
+                            quantity.deterministic_absolute_bound_wh,
+                        )?;
                     }
                     EnergyBoundary::BessDcOutput => {
                         total_bess = checked_add(total_bess, quantity.energy_wh)?;
@@ -480,15 +502,24 @@ impl RouteLedger {
                     }
                     EnergyBoundary::VehicleDcBusOutput => {
                         total_vehicle_dc = checked_add(total_vehicle_dc, quantity.energy_wh)?;
-                        total_vehicle_dc_bound = checked_add(total_vehicle_dc_bound, quantity.deterministic_absolute_bound_wh)?;
+                        total_vehicle_dc_bound = checked_add(
+                            total_vehicle_dc_bound,
+                            quantity.deterministic_absolute_bound_wh,
+                        )?;
                     }
                     EnergyBoundary::GridAcInput => {
                         total_grid = checked_add(total_grid, quantity.energy_wh)?;
-                        total_grid_bound = checked_add(total_grid_bound, quantity.deterministic_absolute_bound_wh)?;
+                        total_grid_bound = checked_add(
+                            total_grid_bound,
+                            quantity.deterministic_absolute_bound_wh,
+                        )?;
                     }
                     EnergyBoundary::BatteryTerminalInput => {
                         total_battery = checked_add(total_battery, quantity.energy_wh)?;
-                        total_battery_bound = checked_add(total_battery_bound, quantity.deterministic_absolute_bound_wh)?;
+                        total_battery_bound = checked_add(
+                            total_battery_bound,
+                            quantity.deterministic_absolute_bound_wh,
+                        )?;
                     }
                 }
             }
@@ -498,8 +529,11 @@ impl RouteLedger {
                 &EnergyBoundary::RoadwayInverterDcInput,
                 &EnergyBoundary::VehicleDcBusOutput,
             );
-            let grid_ac_to_battery_terminal_energy_ratio =
-                paired_energy_ratio(&map, &EnergyBoundary::GridAcInput, &EnergyBoundary::BatteryTerminalInput);
+            let grid_ac_to_battery_terminal_energy_ratio = paired_energy_ratio(
+                &map,
+                &EnergyBoundary::GridAcInput,
+                &EnergyBoundary::BatteryTerminalInput,
+            );
             let battery_terminal_input_wh = map
                 .get(&EnergyBoundary::BatteryTerminalInput)
                 .map(|measurement| measurement.energy_wh);
@@ -533,8 +567,12 @@ impl RouteLedger {
                 phases: phase_metrics,
                 spc_input_wh: spc.0,
                 evpc_output_wh: evpc.0,
-                phase_reconciliation_input_error_wh: (phase_spc.0 - segment.segment_spc_input.energy_wh).abs(),
-                phase_reconciliation_output_error_wh: (phase_evpc.0 - segment.segment_evpc_output.energy_wh).abs(),
+                phase_reconciliation_input_error_wh: (phase_spc.0
+                    - segment.segment_spc_input.energy_wh)
+                    .abs(),
+                phase_reconciliation_output_error_wh: (phase_evpc.0
+                    - segment.segment_evpc_output.energy_wh)
+                    .abs(),
                 standard_segment_efficiency: standard,
                 inverter_dc_to_vehicle_dc_efficiency: inverter_to_vehicle,
                 grid_ac_to_battery_terminal_energy_ratio,
@@ -546,12 +584,11 @@ impl RouteLedger {
             let map = boundary_map(&idle.boundary_measurements);
             if let Some(grid) = map.get(&EnergyBoundary::GridAcInput) {
                 total_grid = checked_add(total_grid, grid.energy_wh)?;
-                total_grid_bound = checked_add(total_grid_bound, grid.deterministic_absolute_bound_wh)?;
+                total_grid_bound =
+                    checked_add(total_grid_bound, grid.deterministic_absolute_bound_wh)?;
                 total_idle_grid = checked_add(total_idle_grid, grid.energy_wh)?;
-                total_idle_grid_bound = checked_add(
-                    total_idle_grid_bound,
-                    grid.deterministic_absolute_bound_wh,
-                )?;
+                total_idle_grid_bound =
+                    checked_add(total_idle_grid_bound, grid.deterministic_absolute_bound_wh)?;
             }
             if let Some(inverter) = map.get(&EnergyBoundary::RoadwayInverterDcInput) {
                 total_idle_inverter = checked_add(total_idle_inverter, inverter.energy_wh)?;
@@ -568,12 +605,29 @@ impl RouteLedger {
             }
         }
 
-        require_full_segment_boundary(&boundary_coverage, EnergyBoundary::RoadwayInverterDcInput, self.segments.len())?;
-        require_full_segment_boundary(&boundary_coverage, EnergyBoundary::VehicleDcBusOutput, self.segments.len())?;
-        require_full_segment_boundary(&boundary_coverage, EnergyBoundary::GridAcInput, self.segments.len())?;
-        require_full_segment_boundary(&boundary_coverage, EnergyBoundary::BatteryTerminalInput, self.segments.len())?;
+        require_full_segment_boundary(
+            &boundary_coverage,
+            EnergyBoundary::RoadwayInverterDcInput,
+            self.segments.len(),
+        )?;
+        require_full_segment_boundary(
+            &boundary_coverage,
+            EnergyBoundary::VehicleDcBusOutput,
+            self.segments.len(),
+        )?;
+        require_full_segment_boundary(
+            &boundary_coverage,
+            EnergyBoundary::GridAcInput,
+            self.segments.len(),
+        )?;
+        require_full_segment_boundary(
+            &boundary_coverage,
+            EnergyBoundary::BatteryTerminalInput,
+            self.segments.len(),
+        )?;
 
-        let standard_route = efficiency_interval(total_spc, total_evpc, total_spc_bound, total_evpc_bound);
+        let standard_route =
+            efficiency_interval(total_spc, total_evpc, total_spc_bound, total_evpc_bound);
         let inverter_route = efficiency_interval(
             total_inverter,
             total_vehicle_dc,
@@ -609,9 +663,8 @@ impl RouteLedger {
                     .map(|measurement| provenance_record(&measurement.quantity)),
             );
         }
-        measurement_provenance.sort_by(|left, right| {
-            left.measurement_id.cmp(&right.measurement_id)
-        });
+        measurement_provenance
+            .sort_by(|left, right| left.measurement_id.cmp(&right.measurement_id));
 
         Ok(RouteReport {
             schema_version: SCHEMA_VERSION.into(),
@@ -692,14 +745,18 @@ fn validate_quantity(quantity: &EnergyQuantity, expected_plane: &str) -> Result<
         || quantity.meter_id.trim().is_empty()
         || quantity.measurement_plane_id != expected_plane
     {
-        return Err(format!("measurement identity/plane invalid; expected {expected_plane}"));
+        return Err(format!(
+            "measurement identity/plane invalid; expected {expected_plane}"
+        ));
     }
     if !quantity.energy_wh.is_finite()
         || quantity.energy_wh < 0.0
         || !quantity.deterministic_absolute_bound_wh.is_finite()
         || quantity.deterministic_absolute_bound_wh < 0.0
     {
-        return Err("energy and deterministic absolute bound must be finite and non-negative".into());
+        return Err(
+            "energy and deterministic absolute bound must be finite and non-negative".into(),
+        );
     }
     if !valid_sha256(&quantity.calibration_receipt_digest)
         || !valid_sha256(&quantity.source_artifact_digest)
@@ -755,7 +812,9 @@ fn require_full_segment_boundary(
     segment_count: usize,
 ) -> Result<(), String> {
     if coverage.get(&boundary).copied().unwrap_or(0) != segment_count {
-        return Err(format!("every segment requires {boundary:?} measurement for route aggregation"));
+        return Err(format!(
+            "every segment requires {boundary:?} measurement for route aggregation"
+        ));
     }
     Ok(())
 }
@@ -781,7 +840,12 @@ fn checked_add(left: f64, right: f64) -> Result<f64, String> {
     }
 }
 
-fn efficiency_interval(input_wh: f64, output_wh: f64, input_bound_wh: f64, output_bound_wh: f64) -> EfficiencyInterval {
+fn efficiency_interval(
+    input_wh: f64,
+    output_wh: f64,
+    input_bound_wh: f64,
+    output_bound_wh: f64,
+) -> EfficiencyInterval {
     let input_lower = input_wh - input_bound_wh;
     let output_lower = output_wh - output_bound_wh;
     let denominator_lower = input_lower;
@@ -925,31 +989,31 @@ mod tests {
                 interval_id: "WAIT-1".into(),
                 start_ns: 6_000_000_000,
                 end_ns: 10_000_000_000,
-                boundary_measurements: vec![BoundaryMeasurement {
-                    boundary: EnergyBoundary::GridAcInput,
-                    quantity: quantity("WAIT-GRID", "GRID_AC_INPUT", 5.0),
-                },
-                BoundaryMeasurement {
-                    boundary: EnergyBoundary::RoadwayInverterDcInput,
-                    quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
-                },
-                BoundaryMeasurement {
-                    boundary: EnergyBoundary::BessDcOutput,
-                    quantity: quantity("WAIT-BESS", "BESS_DC_OUTPUT", 2.0),
-                }],
+                boundary_measurements: vec![
+                    BoundaryMeasurement {
+                        boundary: EnergyBoundary::GridAcInput,
+                        quantity: quantity("WAIT-GRID", "GRID_AC_INPUT", 5.0),
+                    },
+                    BoundaryMeasurement {
+                        boundary: EnergyBoundary::RoadwayInverterDcInput,
+                        quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
+                    },
+                    BoundaryMeasurement {
+                        boundary: EnergyBoundary::BessDcOutput,
+                        quantity: quantity("WAIT-BESS", "BESS_DC_OUTPUT", 2.0),
+                    },
+                ],
             }],
         }
     }
-
 
     #[test]
     fn synthetic_route_fixture_matches_schema_and_replays_all_distinct_energy_boundaries() {
         const FIXTURE: &str = include_str!(
             "../../../benchmarks/wpt-segment-energy-ledger/v1/synthetic-highway-pass.json"
         );
-        const SCHEMA: &str = include_str!(
-            "../../../benchmarks/wpt-segment-energy-ledger/v1/schema.json"
-        );
+        const SCHEMA: &str =
+            include_str!("../../../benchmarks/wpt-segment-energy-ledger/v1/schema.json");
         let ledger: RouteLedger =
             serde_json::from_str(FIXTURE).expect("synthetic segment-energy ledger fixture");
         let schema: serde_json::Value =
@@ -979,10 +1043,10 @@ mod tests {
         ] {
             assert!(required_segment_boundaries.contains(expected));
         }
-        let idle_boundaries = schema["$defs"]["idle"]["properties"]["boundary_measurements"]
-            ["allOf"]
-            .as_array()
-            .expect("required idle boundary constraints");
+        let idle_boundaries =
+            schema["$defs"]["idle"]["properties"]["boundary_measurements"]["allOf"]
+                .as_array()
+                .expect("required idle boundary constraints");
         let required_idle_boundaries = idle_boundaries
             .iter()
             .map(|constraint| {
@@ -995,11 +1059,45 @@ mod tests {
         assert!(required_idle_boundaries.contains("roadway_inverter_dc_input"));
 
         let report = ledger.evaluate().unwrap();
-        assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
-        assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_ac_to_battery_terminal_energy_ratio.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
-        assert_eq!(report.grid_ac_to_battery_terminal_energy_ratio.numerator_energy_wh, 96.0);
-        assert_eq!(report.grid_ac_to_battery_terminal_energy_ratio.denominator_energy_wh, 185.0);
+        assert!(
+            (report
+                .standard_route_segment_efficiency
+                .point_estimate
+                .unwrap()
+                - 0.9)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report
+                .inverter_dc_to_vehicle_dc_efficiency
+                .point_estimate
+                .unwrap()
+                - (130.0 / 140.0))
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report
+                .grid_ac_to_battery_terminal_energy_ratio
+                .point_estimate
+                .unwrap()
+                - (96.0 / 185.0))
+                .abs()
+                < 1e-12
+        );
+        assert_eq!(
+            report
+                .grid_ac_to_battery_terminal_energy_ratio
+                .numerator_energy_wh,
+            96.0
+        );
+        assert_eq!(
+            report
+                .grid_ac_to_battery_terminal_energy_ratio
+                .denominator_energy_wh,
+            185.0
+        );
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.total_idle_grid_input_bound_wh, 0.01);
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
@@ -1034,9 +1132,33 @@ mod tests {
     #[test]
     fn reports_distinct_standard_segment_and_end_to_end_boundaries() {
         let report = fixture().evaluate().unwrap();
-        assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
-        assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_ac_to_battery_terminal_energy_ratio.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert!(
+            (report
+                .standard_route_segment_efficiency
+                .point_estimate
+                .unwrap()
+                - 0.9)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report
+                .inverter_dc_to_vehicle_dc_efficiency
+                .point_estimate
+                .unwrap()
+                - (130.0 / 140.0))
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (report
+                .grid_ac_to_battery_terminal_energy_ratio
+                .point_estimate
+                .unwrap()
+                - (96.0 / 185.0))
+                .abs()
+                < 1e-12
+        );
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.battery_terminal_input_wh, 96.0);
     }
@@ -1057,7 +1179,15 @@ mod tests {
         ledger.segments[1].segment_spc_input.energy_wh = 10.0;
         ledger.segments[1].segment_evpc_output.energy_wh = 5.0;
         let report = ledger.evaluate().unwrap();
-        assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.86).abs() < 1e-12);
+        assert!(
+            (report
+                .standard_route_segment_efficiency
+                .point_estimate
+                .unwrap()
+                - 0.86)
+                .abs()
+                < 1e-12
+        );
         let mean_of_ratios = (0.9 + 0.5) / 2.0;
         assert!((mean_of_ratios - 0.86).abs() > 0.0);
     }
@@ -1072,10 +1202,17 @@ mod tests {
         }
         let report = ledger.evaluate().unwrap();
         assert_eq!(
-            report.segments[0].inverter_dc_to_vehicle_dc_efficiency.as_ref().unwrap().disposition,
+            report.segments[0]
+                .inverter_dc_to_vehicle_dc_efficiency
+                .as_ref()
+                .unwrap()
+                .disposition,
             "UNRESOLVED"
         );
-        assert_eq!(report.inverter_dc_to_vehicle_dc_efficiency.disposition, "UNRESOLVED");
+        assert_eq!(
+            report.inverter_dc_to_vehicle_dc_efficiency.disposition,
+            "UNRESOLVED"
+        );
     }
 
     #[test]
@@ -1101,30 +1238,43 @@ mod tests {
     #[test]
     fn rejects_invalid_calibration_source_digest_and_measurement_plane() {
         let mut ledger = fixture();
-        ledger.segments[0].phases[0].spc_input.calibration_receipt_digest = "bad".into();
+        ledger.segments[0].phases[0]
+            .spc_input
+            .calibration_receipt_digest = "bad".into();
         assert!(ledger.validate().unwrap_err().contains("digests"));
         let mut ledger = fixture();
-        ledger.segments[0].phases[0].evpc_output.measurement_plane_id = "UNKNOWN".into();
+        ledger.segments[0].phases[0]
+            .evpc_output
+            .measurement_plane_id = "UNKNOWN".into();
         assert!(ledger.validate().unwrap_err().contains("plane"));
     }
 
     #[test]
     fn rejects_duplicate_boundary_measurements_and_route_ids() {
         let mut ledger = fixture();
-        ledger.segments[0].boundary_measurements.push(ledger.segments[0].boundary_measurements[0].clone());
-        assert!(ledger.validate().unwrap_err().contains("duplicate energy boundary"));
+        ledger.segments[0]
+            .boundary_measurements
+            .push(ledger.segments[0].boundary_measurements[0].clone());
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("duplicate energy boundary")
+        );
         let mut ledger = fixture();
         ledger.segments[1].segment_id = ledger.segments[0].segment_id.clone();
         assert!(ledger.validate().unwrap_err().contains("unique"));
     }
-
 
     #[test]
     fn rejects_phase_energy_that_does_not_reconcile_with_independent_segment_meter() {
         let mut ledger = fixture();
         ledger.segments[0].segment_evpc_output.energy_wh = 40.0;
         assert!(
-            ledger.validate().unwrap_err().contains("does not reconcile with independent segment total")
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("does not reconcile with independent segment total")
         );
     }
 
@@ -1132,18 +1282,33 @@ mod tests {
     fn rejects_unaccounted_time_between_segment_and_idle_events() {
         let mut ledger = fixture();
         ledger.idle_intervals[0].start_ns = 7_000_000_000;
-        assert!(ledger.validate().unwrap_err().contains("unaccounted route time"));
+        assert!(
+            ledger
+                .validate()
+                .unwrap_err()
+                .contains("unaccounted route time")
+        );
     }
 
     #[test]
     fn separates_idle_inverter_energy_from_active_transfer_efficiency() {
         let mut ledger = fixture();
-        ledger.idle_intervals[0].boundary_measurements.push(BoundaryMeasurement {
-            boundary: EnergyBoundary::RoadwayInverterDcInput,
-            quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
-        });
+        ledger.idle_intervals[0]
+            .boundary_measurements
+            .push(BoundaryMeasurement {
+                boundary: EnergyBoundary::RoadwayInverterDcInput,
+                quantity: quantity("WAIT-INVERTER", "ROADWAY_INVERTER_DC_INPUT", 20.0),
+            });
         let baseline = ledger.evaluate().unwrap();
-        assert!((baseline.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
+        assert!(
+            (baseline
+                .inverter_dc_to_vehicle_dc_efficiency
+                .point_estimate
+                .unwrap()
+                - (130.0 / 140.0))
+                .abs()
+                < 1e-12
+        );
         assert_eq!(baseline.total_idle_roadway_inverter_dc_input_wh, 20.0);
     }
     #[test]
@@ -1180,7 +1345,10 @@ mod tests {
         assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
         assert!(
-            (report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap()
+            (report
+                .inverter_dc_to_vehicle_dc_efficiency
+                .point_estimate
+                .unwrap()
                 - 130.0 / 140.0)
                 .abs()
                 < 1e-12
@@ -1201,9 +1369,14 @@ mod tests {
     fn preserves_standby_energy_outside_the_standard_segment_metric() {
         let mut ledger = fixture();
         let baseline = ledger.evaluate().unwrap();
-        ledger.idle_intervals[0].boundary_measurements[0].quantity.energy_wh = 20.0;
+        ledger.idle_intervals[0].boundary_measurements[0]
+            .quantity
+            .energy_wh = 20.0;
         let with_wait = ledger.evaluate().unwrap();
-        assert_eq!(baseline.standard_route_segment_efficiency, with_wait.standard_route_segment_efficiency);
+        assert_eq!(
+            baseline.standard_route_segment_efficiency,
+            with_wait.standard_route_segment_efficiency
+        );
         assert!(
             with_wait
                 .grid_ac_to_battery_terminal_energy_ratio
