@@ -39,11 +39,11 @@ fn run() -> Result<(), String> {
             .get("disposition")
             .and_then(Value::as_str)
             .unwrap_or("INVALID_REPORT");
-        if let Some(expected) = record.get("expected_disposition").and_then(Value::as_str) {
-            if expected != actual {
-                eprintln!("line {line_number} ({id}): expected {expected}, got {actual}");
-                mismatches += 1;
-            }
+        if let Some(expected) = record.get("expected_disposition").and_then(Value::as_str)
+            && expected != actual
+        {
+            eprintln!("line {line_number} ({id}): expected {expected}, got {actual}");
+            mismatches += 1;
         }
         println!("{report}");
         count += 1;
