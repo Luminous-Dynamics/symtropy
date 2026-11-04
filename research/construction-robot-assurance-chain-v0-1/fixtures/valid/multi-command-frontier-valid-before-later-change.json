@@ -1,0 +1,307 @@
+{
+  "schema_version": "construction-robot-assurance-chain/0.1",
+  "task_binding": {
+    "project_id": "synthetic-project",
+    "site_id": "synthetic-site",
+    "work_package_revision": "wp-r1",
+    "task_scope": "floor-1-layout",
+    "work_zone_id": "zone-a",
+    "robot_configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "initial_worksite_epoch_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timebase_id": "synthetic-boot-001"
+  },
+  "scenario_id": "multi-command-frontier-valid-before-later-change",
+  "stages": [
+    {
+      "stage_id": "input",
+      "stage_kind": "layout_input_admission",
+      "sequence": 0,
+      "predecessor_stage_ids": [],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "source-export",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "role": "model-export"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "admissible_for_named_layout_input",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "observation",
+      "stage_kind": "observation_evaluation",
+      "sequence": 1,
+      "predecessor_stage_ids": [
+        "input"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "input-admission",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "verified_clear",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "epoch",
+      "stage_kind": "worksite_epoch_transition",
+      "sequence": 2,
+      "predecessor_stage_ids": [
+        "observation"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "observation-clear",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "epoch-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "requalification_required",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "qualification",
+      "stage_kind": "qualification_lease",
+      "sequence": 3,
+      "predecessor_stage_ids": [
+        "epoch"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "epoch-rev1",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "active",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "command",
+      "stage_kind": "command_authorization",
+      "sequence": 4,
+      "predecessor_stage_ids": [
+        "qualification"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "command-decision",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "authorized",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "observation-2",
+      "stage_kind": "observation_evaluation",
+      "sequence": 5,
+      "predecessor_stage_ids": [
+        "command"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "command-decision",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "role": "prior-command-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "observation-change",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "occupied_or_changed",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "epoch-2",
+      "stage_kind": "worksite_epoch_transition",
+      "sequence": 6,
+      "predecessor_stage_ids": [
+        "observation-2"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "observation-change",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "epoch-rev2",
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "requalification_required",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "command-2",
+      "stage_kind": "command_authorization",
+      "sequence": 7,
+      "predecessor_stage_ids": [
+        "epoch-2"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "observation-change",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "role": "command-evidence"
+        },
+        {
+          "artifact_id": "epoch-rev2",
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "role": "command-evidence"
+        },
+        {
+          "artifact_id": "lease-rev1",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "role": "command-evidence"
+        }
+      ],
+      "produced_artifacts": [
+        {
+          "artifact_id": "command-decision-2",
+          "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "scope": "synthetic_contract"
+        }
+      ],
+      "expected_disposition": "rejected",
+      "expected_reason_codes": [
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
+      ]
+    },
+    {
+      "stage_id": "physical",
+      "stage_kind": "physical_outcome_receipt",
+      "sequence": 8,
+      "predecessor_stage_ids": [
+        "command-2"
+      ],
+      "consumed_artifacts": [
+        {
+          "artifact_id": "command-decision-2",
+          "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "role": "stage-output"
+        }
+      ],
+      "produced_artifacts": [],
+      "expected_disposition": "not_evaluated",
+      "expected_reason_codes": []
+    },
+    {
+      "stage_id": "claim",
+      "stage_kind": "claim_admissibility",
+      "sequence": 9,
+      "predecessor_stage_ids": [
+        "physical"
+      ],
+      "consumed_artifacts": [],
+      "produced_artifacts": [],
+      "expected_disposition": "admissible_for_named_claim",
+      "expected_reason_codes": []
+    }
+  ],
+  "command_attempts": [
+    {
+      "command_id": "command-before-change",
+      "sequence": 1,
+      "epoch_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "task_scope": "floor-1-layout",
+      "timebase_id": "synthetic-boot-001",
+      "qualification_generation": 1,
+      "lease_valid_at_command": true,
+      "expected_authorized": true,
+      "expected_reason_codes": [],
+      "command_stage_id": "command",
+      "observation_stage_id": "observation",
+      "epoch_stage_id": "epoch",
+      "qualification_stage_id": "qualification"
+    },
+    {
+      "command_id": "command-after-change",
+      "sequence": 2,
+      "command_stage_id": "command-2",
+      "observation_stage_id": "observation-2",
+      "epoch_stage_id": "epoch-2",
+      "qualification_stage_id": "qualification",
+      "epoch_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "task_scope": "floor-1-layout",
+      "timebase_id": "synthetic-boot-001",
+      "qualification_generation": 1,
+      "lease_valid_at_command": false,
+      "expected_authorized": false,
+      "expected_reason_codes": [
+        "qualification_lease_invalid_at_command",
+        "qualification_predates_current_epoch"
+      ]
+    }
+  ],
+  "claim_expectations": [
+    {
+      "claim_id": "software-contract-claim",
+      "claim_kind": "synthetic_contract_behavior",
+      "evidence_origin": "synthetic",
+      "intended_scope": "synthetic_contract",
+      "expected_decision": "admissible_for_named_claim",
+      "supporting_stage_ids": [
+        "input",
+        "observation",
+        "epoch",
+        "qualification",
+        "command",
+        "claim",
+        "observation-2",
+        "epoch-2",
+        "command-2"
+      ]
+    }
+  ],
+  "statistical_units": []
+}
