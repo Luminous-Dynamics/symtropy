@@ -629,7 +629,8 @@ mod tests {
     #[test]
     fn exact_digest_reuse_is_rejected_even_when_groups_differ() {
         let mut samples = valid_samples();
-        samples[3].content_digest = samples[0].content_digest.to_ascii_uppercase();
+        let source_hex = samples[0].content_digest["sha256:".len()..].to_owned();
+        samples[3].content_digest = format!("sha256:{}", source_hex.to_ascii_uppercase());
         let error = audit_benchmark_split(&samples, &event_session_policy())
             .expect_err("digest comparison is case insensitive");
         assert_eq!(error.code, "duplicate_content_digest");
