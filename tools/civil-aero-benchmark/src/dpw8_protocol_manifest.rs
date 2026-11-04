@@ -168,6 +168,8 @@ pub struct Dpw8Oat15aProtocolSpec {
 pub struct Dpw8Oat15aProtocolManifest {
     pub schema: String,
     pub protocol_revision: String,
+    /// Outer lane identity, independently bound to the nested solver/settings specification.
+    pub protocol_lane: Dpw8Oat15aLane,
     pub geometry_designation: String,
     pub geometry_ip_holder: String,
     pub geometry_acknowledgement_required_each_share: bool,
@@ -313,6 +315,7 @@ impl Dpw8Oat15aProtocolManifest {
         Self {
             schema: DPW8_PROTOCOL_MANIFEST_SCHEMA.to_owned(),
             protocol_revision: protocol_revision.into(),
+            protocol_lane: lane,
             geometry_designation: "ONERA OAT15A".to_owned(),
             geometry_ip_holder: "ONERA".to_owned(),
             geometry_acknowledgement_required_each_share: true,
@@ -630,6 +633,7 @@ fn canonical_bytes(manifest: &Dpw8Oat15aProtocolManifest) -> Vec<u8> {
         manifest.geometry_ip_holder.as_str(),
         manifest.geometry_share_condition.as_str(),
         manifest.evidence_level.as_str(),
+        manifest.protocol_lane.as_str(),
         manifest.spec.lane.as_str(),
         manifest.spec.flow_mode.as_str(),
         manifest.spec.angle_schedule.as_str(),
@@ -727,6 +731,9 @@ pub fn seal_dpw8_oat15a_manifest(
             "DPW-8 ONERA geometry designation/attribution/IP contract is incomplete".to_owned(),
         );
     }
+    if manifest.protocol_lane != manifest.spec.lane {
+        return Err("DPW-8 protocol lane envelope/spec identity mismatch".to_owned());
+    }
     validate_spec(&manifest.spec)?;
     let mut ids = std::collections::BTreeSet::new();
     for source in &manifest.sources {
@@ -789,9 +796,9 @@ fn optional_f64(value: Option<f64>) -> String {
 
 /// Normalized protocol/source export for an independent non-Rust oracle.
 pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> String {
-    let header = "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,source_revision,license_applicability,acknowledgement,permission_evidence_reference,permission_evidence_sha256";
+    let header = "record_type,schema,protocol_revision,geometry_designation,geometry_ip_holder,geometry_acknowledgement_required_each_share,geometry_share_condition,evidence_level,protocol_lane,lane,flow_mode,angle_schedule,angle_of_attack_degrees,mach,chord_reynolds,static_temperature_kelvin,grid_policy,sidewall_boundary_condition,common_farfield_chords,turbulence_model,sutherland_law,wall_thermal_condition,residual_target_log10,gamma,prandtl,turbulent_prandtl,farfield_kinematic_viscosity_ratio_chi,manifest_sha256,source_id,source_url,source_kind,source_state,source_byte_length,source_sha256,source_revision,license_applicability,acknowledgement,permission_evidence_reference,permission_evidence_sha256";
     let mut output = format!("{header}\n");
-    let mut row = vec![String::new(); 38];
+    let mut row = vec![String::new(); 39];
     row[0] = "manifest".to_owned();
     row[1] = manifest.schema.clone();
     row[2] = manifest.protocol_revision.clone();
@@ -802,47 +809,48 @@ pub fn dpw8_oat15a_manifest_to_csv(manifest: &Dpw8Oat15aProtocolManifest) -> Str
         .to_string();
     row[6] = manifest.geometry_share_condition.clone();
     row[7] = manifest.evidence_level.clone();
-    row[8] = manifest.spec.lane.as_str().to_owned();
-    row[9] = manifest.spec.flow_mode.clone();
-    row[10] = manifest.spec.angle_schedule.as_str().to_owned();
-    row[11] = manifest
+    row[8] = manifest.protocol_lane.as_str().to_owned();
+    row[9] = manifest.spec.lane.as_str().to_owned();
+    row[10] = manifest.spec.flow_mode.clone();
+    row[11] = manifest.spec.angle_schedule.as_str().to_owned();
+    row[12] = manifest
         .spec
         .angle_of_attack_degrees
         .iter()
         .map(|value| value.to_string())
         .collect::<Vec<_>>()
         .join(";");
-    row[12] = optional_f64(manifest.spec.mach);
-    row[13] = optional_f64(manifest.spec.chord_reynolds);
-    row[14] = optional_f64(manifest.spec.static_temperature_kelvin);
-    row[15] = manifest.spec.grid_policy.as_str().to_owned();
-    row[16] = manifest.spec.sidewall_boundary_condition.clone();
-    row[17] = optional_f64(manifest.spec.common_farfield_chords);
-    row[18] = manifest.spec.turbulence_model.clone().unwrap_or_default();
-    row[19] = manifest
+    row[13] = optional_f64(manifest.spec.mach);
+    row[14] = optional_f64(manifest.spec.chord_reynolds);
+    row[15] = optional_f64(manifest.spec.static_temperature_kelvin);
+    row[16] = manifest.spec.grid_policy.as_str().to_owned();
+    row[17] = manifest.spec.sidewall_boundary_condition.clone();
+    row[18] = optional_f64(manifest.spec.common_farfield_chords);
+    row[19] = manifest.spec.turbulence_model.clone().unwrap_or_default();
+    row[20] = manifest
         .spec
         .sutherland_law
         .map(|value| value.to_string())
         .unwrap_or_default();
-    row[20] = manifest
+    row[21] = manifest
         .spec
         .wall_thermal_condition
         .map(Dpw8WallThermalCondition::as_str)
         .unwrap_or_default()
         .to_owned();
-    row[21] = optional_f64(manifest.spec.residual_target_log10);
-    row[22] = optional_f64(manifest.spec.gamma);
-    row[23] = optional_f64(manifest.spec.prandtl);
-    row[24] = optional_f64(manifest.spec.turbulent_prandtl);
-    row[25] = optional_f64(manifest.spec.farfield_kinematic_viscosity_ratio_chi);
-    row[26] = manifest.manifest_sha256.clone();
+    row[22] = optional_f64(manifest.spec.residual_target_log10);
+    row[23] = optional_f64(manifest.spec.gamma);
+    row[24] = optional_f64(manifest.spec.prandtl);
+    row[25] = optional_f64(manifest.spec.turbulent_prandtl);
+    row[26] = optional_f64(manifest.spec.farfield_kinematic_viscosity_ratio_chi);
+    row[27] = manifest.manifest_sha256.clone();
     output.push_str(&csv_row(row));
     output.push('\n');
 
     let mut sources = manifest.sources.iter().collect::<Vec<_>>();
     sources.sort_by(|left, right| left.source_id.cmp(&right.source_id));
     for source in sources {
-        let mut row = vec![String::new(); 38];
+        let mut row = vec![String::new(); 39];
         row[0] = "source".to_owned();
         row[27] = source.source_id.clone();
         row[28] = source.source_url.clone();
@@ -921,7 +929,15 @@ mod tests {
             seal_dpw8_oat15a_manifest(v1a)
                 .expect_err("V1b settings must not enter V1a")
                 .to_string()
-                .contains("V1a settings differ from the admitted official protocol")
+                .contains("envelope/spec identity mismatch")
+        );
+        let mut envelope = manifest(Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet);
+        envelope.protocol_lane = Dpw8Oat15aLane::V1aSteadyGridConvergencePolar;
+        assert!(
+            seal_dpw8_oat15a_manifest(envelope)
+                .expect_err("outer protocol lane must bind the nested specification")
+                .to_string()
+                .contains("envelope/spec identity mismatch")
         );
         let mut v1b = manifest(Dpw8Oat15aLane::V1bUnsteadyExtendedPolarBuffet);
         v1b.spec = dpw8_oat15a_v1a_spec();
