@@ -205,3 +205,66 @@ Do not create a second generic:
 - spatial atlas.
 
 The next technical milestone is an adapter/qualification matrix showing which existing external data/model systems can be used as sources, forcing inputs, baseline models, or independent validators, with exact version and license rules.
+
+
+## 8. Collective intelligence, social generalization and cultural transmission (4 November 2026)
+
+The landscape above needs one important addition: collective intelligence and social generalization are now an active benchmark area in their own right. This strengthens the case for composing established suites, not replacing them.
+
+### DeepMind Melting Pot — social generalization
+
+- Official repository: https://github.com/google-deepmind/meltingpot
+- Research overview: https://deepmind.google/blog/melting-pot-an-evaluation-suite-for-multi-agent-reinforcement-learning/
+
+Melting Pot evaluates agents on unfamiliar social situations, with current repository documentation describing more than 50 substrates and over 256 test scenarios. Its scenarios cover cooperation, competition, deception, reciprocity, trust and related social interactions.
+
+**CSS/CivBench response:** adopt held-out partner strategies, social compositions and scenario splits. Add resource, institutional and cultural-transmission mechanisms around those tasks. Do not claim that a custom social-dilemma model replaces Melting Pot's coverage.
+
+### LiveCultureBench — cross-cultural norms and evaluation reliability
+
+- ACL Anthology: https://aclanthology.org/2026.acl-long.1247/
+- DOI: https://doi.org/10.18653/v1/2026.acl-long.1247
+
+LiveCultureBench (Pham et al., ACL 2026) places LLM agents in a dynamic multi-cultural town and evaluates task completion alongside socio-cultural norm adherence. It explicitly reports verifier uncertainty and when human oversight is needed.
+
+**CSS/CivBench response:** report task effectiveness, norm adherence, rights/consent constraints, norm conflicts and evaluator reliability as separate outcomes. Use human-coded reference cases to calibrate automated evaluators. Do not use national or demographic labels as deterministic behavioral features, and do not treat an LLM judge as ground truth.
+
+### Hundreds of LLM agents — collective welfare and low-welfare equilibria
+
+- Paper: https://arxiv.org/abs/2602.16662
+- Implementation: https://github.com/willis-richard/emergent_llm
+
+Willis et al. (2026) evaluate inspectable fixed strategies across populations of hundreds in public-goods, collective-risk and common-pool-resource dilemmas. Their work highlights a system-level failure mode: individually motivated agents can converge to low-welfare collective outcomes, particularly as population and incentive conditions change.
+
+**CSS/CivBench response:** add population-mixture sweeps, resource-stock dynamics, welfare attractor analysis and lower-tail distribution reporting. Treat strategy code as inspectable policy artifacts. Compare against simple deterministic strategies and resource-dynamics oracles before adding LLM-based policies.
+
+### Human experiments on intentional and cumulative transmission
+
+- Mackintosh et al. (Scientific Reports, 19 September 2026): https://www.nature.com/articles/s41598-026-62734-6
+- PNAS Nexus (26 March 2026): https://doi.org/10.1093/pnasnexus/pgag090
+- Reward Network III (Nature Communications, 2026): https://www.nature.com/articles/s41467-026-76113-2
+
+Recent human experiments distinguish intentional teaching from inadvertent information sharing, and cultural transmission from individual causal reasoning. Reward Network III provides a particularly useful source-specific machine-to-human transmission anchor. These studies should remain distinct experiments with their own population, task, dataset and scoring protocols.
+
+**CSS/CivBench response:** measure sender selection, learner acquisition, actual task execution, retained capability, transfer and correction separately. Include individual-learning controls and matched transmission budgets. A successful message delivery is not evidence of learning; a stored content hash is not an acquired capability.
+
+### Adaptive transmission programs — recipient-conditioned routing
+
+- Colas et al. (2026): https://arxiv.org/abs/2608.24545
+
+Colas et al. formalize transmission programs that condition on the collective and recipient states. Their reported up-to-37% improvement is specific to the paper's Collective LittleAlchemy setting and should not be compared numerically to a different CivBench DAG without source-task reproduction.
+
+**CSS/CivBench response:** extend the existing Symthaea bounded TransmissionProgram and grid-search runner. Do not create another routing DSL. Evaluate positive knowledge, scoped negative evidence, recipient need, privacy leakage and cross-task transfer under matched realized communication costs.
+
+### Revised comparative capability map
+
+| Capability | Existing benchmark / infrastructure | CSS/CivBench's proposed additional contribution |
+|---|---|---|
+| Social generalization | Melting Pot | Couple held-out partners and incentives to resource, institutional and cultural-memory dynamics |
+| Cross-cultural norms | LiveCultureBench | Norm/task/rights vectors, human-coded calibration and evaluator uncertainty |
+| Population-scale welfare | Hundreds-of-LLM-agents framework | Add ecological stock closure, transmission history, institutional memory and low-welfare attractor analysis |
+| Human cumulative transmission | Reward Network III; intentional-transmission studies; PNAS Nexus transmission chains | Reproducible evidence→acquisition→execution→retention→transfer chain |
+| Adaptive knowledge routing | Colas et al. Collective LittleAlchemy | Add scoped negative knowledge, recipient authorization, privacy attacks and physical prerequisites |
+| Civilizational dynamics | Existing socio-ecological model and external ABM ecosystems | Compose the above with physical constraints, historical evidence, institutions and service-floor outcomes |
+
+This positioning is complementary. The programme's competitive edge should be demonstrable only on named tasks where the extra evidence, physical closure or long-horizon cultural mechanisms improve an independently scored outcome.
