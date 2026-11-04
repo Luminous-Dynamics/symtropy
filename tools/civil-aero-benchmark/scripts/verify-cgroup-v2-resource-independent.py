@@ -13,7 +13,7 @@ EVIDENCE = (
     "raw_cgroup_v2_counter_snapshots_bound_to_process_tree_measure_cpu_and_peak_memory_not_gpu_or_energy"
 )
 HEADER = (
-    "record_type,cgroup_id,memory_peak_reader_id,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,"
+    "record_type,cgroup_id,memory_peak_reader_id,memory_peak_reader_flags,cgroup2_mount_options_sha256,monotonic_time_ns,cpu_usage_usec,cpu_user_usec,cpu_system_usec,"
     "memory_peak_bytes,oom_events,oom_kill_events,oom_group_kill_events,populated,frozen,"
     "cpu_stat_sha256,memory_peak_sha256,memory_events_sha256,cgroup_events_sha256,"
     "snapshot_sha256,schema,start_monotonic_time_ns,end_monotonic_time_ns,elapsed_wall_time_ns,"
@@ -104,6 +104,7 @@ def snapshot_digest(row: dict[str, str]) -> str:
         add_u64(canonical, int(row["oom_group_kill_events"]))
     else:
         canonical.append(0)
+    add_u64(canonical, parse_uint(row, "memory_peak_reader_flags"))
     canonical.append(1 if parse_bool(row, "populated") else 0)
     canonical.append(1 if parse_bool(row, "frozen") else 0)
     return hashlib.sha256(canonical).hexdigest()
@@ -118,6 +119,10 @@ def main() -> None:
 
     for snapshot in (start, end):
         require(bool(snapshot["cgroup_id"].strip()), "cgroup identity is empty")
+        require(bool(snapshot["memory_peak_reader_id"].strip()), "memory.peak reader identity is empty")
+        require(valid_sha(snapshot["cgroup2_mount_options_sha256"]), "cgroup2 mount options digest malformed")
+        require(parse_uint(snapshot, "memory_peak_reader_flags") & 0b11 == 0,
+                "memory.peak reader must be opened read-only")
         for field in (
             "cpu_stat_sha256",
             "memory_peak_sha256",
@@ -134,6 +139,10 @@ def main() -> None:
     require(
         start["memory_peak_reader_id"] == end["memory_peak_reader_id"],
         "memory.peak reader identity changed",
+    )
+    require(
+        start["memory_peak_reader_flags"] == end["memory_peak_reader_flags"],
+        "memory.peak reader flags changed",
     )
     require(
         start["cgroup2_mount_options_sha256"] == end["cgroup2_mount_options_sha256"],
