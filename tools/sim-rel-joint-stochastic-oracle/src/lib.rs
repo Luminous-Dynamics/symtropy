@@ -12,6 +12,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub mod baseline;
+pub mod locomotion;
 
 const MAX_HYPOTHESES: usize = 32;
 const MAX_PHYSICAL_STATES: usize = 64;
