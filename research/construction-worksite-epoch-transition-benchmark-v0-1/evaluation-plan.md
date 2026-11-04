@@ -47,7 +47,7 @@ Do not combine the challenge set and operational sample into one rate. Hold out 
 
 ## 5. Timeliness and stopping-envelope endpoints
 
-Capture independent monotonic timestamps for:
+Capture independent monotonic timestamps and the active timebase/boot identity for:
 - physical/context event onset;
 - sensor observation;
 - context update creation and receipt;
@@ -55,7 +55,7 @@ Capture independent monotonic timestamps for:
 - safety output actuation;
 - physical stop completion.
 
-Record clock synchronization uncertainty and instrument latency. Report p50/p95/p99/max plus sample count and confidence/tolerance bounds. A sample p99 alone is not a guaranteed worst-case bound. For safety-critical deadlines, define a one-sided tolerance-bound method and test instrumentation uncertainty before collection.
+Record clock synchronization uncertainty, monotonic timebase identity, instrument latency and timebase changes/restarts. A qualification lease expires at the preregistered task-policy deadline; a clock-domain reset or boot/timebase identity change invalidates old leases. Report p50/p95/p99/max plus sample count and confidence/tolerance bounds. A sample p99 alone is not a guaranteed worst-case bound. For safety-critical deadlines, define a one-sided tolerance-bound method and test instrumentation uncertainty before collection.
 
 For every physical trial, calculate the remaining clearance margin using the measured stopping envelope for the exact payload, speed, surface, slope, brake state and mode. Include U95 and an explicitly justified reserve. Report every violation, not just mean margin.
 
