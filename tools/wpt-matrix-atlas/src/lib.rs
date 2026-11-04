@@ -94,7 +94,7 @@ pub struct RefinementCandidate {
 /// Circuit-derived route-energy sensitivity signal for one atlas segment.
 ///
 /// The Wh uncertainty must be produced by a separately validated circuit/
-—route evaluator from the matrix uncertainty and the operating service profile.
+/// route evaluator from the matrix uncertainty and the operating service profile.
 /// This crate validates the receipt reference syntax but does not calculate or
 /// authenticate the sensitivity bound itself.
 #[derive(Debug, Clone)]
