@@ -271,6 +271,20 @@
         "temporary_barrier_change",
         "map_age_s"
       ]
+    },
+    {
+      "id": "worksite_coordination",
+      "measurements": [
+        "active_trade_count",
+        "concurrent_plant_activity",
+        "work_zone_boundary_revision",
+        "temporary_exclusion_zone_revision",
+        "access_route_revision",
+        "site_phase_revision",
+        "design_change_notice_sequence",
+        "crew_briefing_record_reference"
+      ],
+      "privacy_rule": "Record organizational/site state and briefing records without collecting worker identity, biometrics, inferred intent, or affect."
     }
   ],
   "metrics": {
