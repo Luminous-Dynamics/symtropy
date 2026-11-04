@@ -791,8 +791,10 @@ mod tests {
     #[test]
     fn rejects_receipt_artifact_path_traversal() {
         let root = temp_root("path");
-        let fields = fixture_fields(&root, true);
-        let csv = make_csv(fields).replace("result.npz", "../outside.npz");
+        let mut fields = fixture_fields(&root, true);
+        let archive_path = field_index("archive_path").unwrap();
+        fields[archive_path] = "../outside.npz".to_owned();
+        let csv = make_csv(fields);
         let receipt = BocodeTrialReceipt::parse_csv(&csv).unwrap();
         assert!(verify_bocode_trial_receipt(&root, &receipt).is_err());
         fs::remove_dir_all(root).unwrap();
