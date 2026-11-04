@@ -119,12 +119,38 @@ jobs:
           with path.open(newline="", encoding="utf-8") as handle:
               rows = list(csv.DictReader(handle))
 
-          assert len(rows) == 1008, f"expected 1008 population rows, got {len(rows)}"
-          assert all(len(row) == 17 for row in rows), "population row schema must have 17 columns"
+          assert len(rows) >= 1032, f"expected at least 1032 population rows, got {len(rows)}"
+          assert all(len(row) == 23 for row in rows), "population row schema must have 23 columns"
           fitness = [row for row in rows if row["record_type"] == "mixture_fitness"]
           fixation = [row for row in rows if row["record_type"] == "fixation"]
           stationary = [row for row in rows if row["record_type"] == "stationary"]
-          assert (len(fitness), len(fixation), len(stationary)) == (144, 720, 144)
+          graphs = [row for row in rows if row["record_type"] == "invasion_graph"]
+          cycles = [row for row in rows if row["record_type"] == "invasion_cycle"]
+          assert (len(fitness), len(fixation), len(stationary), len(graphs)) == (144, 720, 144, 24)
+
+          cycle_counts = {}
+          for row in graphs:
+              key = (row["population_size"], row["risk"], row["beta"])
+              cycle_counts[key] = int(row["three_cycle_count"])
+              assert 0 <= int(row["invasion_edge_count"]) <= 30
+              assert 0 <= int(row["three_cycle_count"]) <= 40
+
+          observed_cycles = defaultdict(int)
+          strategy_names = {
+              "always_zero", "fixed_fair_share", "fixed_maximum",
+              "risk_pivot", "last_round_defection", "copy_previous_group_mean"
+          }
+          for row in cycles:
+              key = (row["population_size"], row["risk"], row["beta"])
+              observed_cycles[key] += 1
+              names = (
+                  row["cycle_strategy_a"],
+                  row["cycle_strategy_b"],
+                  row["cycle_strategy_c"],
+              )
+              assert len(set(names)) == 3 and set(names) <= strategy_names
+              assert row["cycle_orientation"] in {"forward", "reverse"}
+          assert observed_cycles == cycle_counts, "invasion graph cycle counts must match emitted cycle records"
 
           assert all(int(row["composition_count"]) == 1 for row in fitness if row["population_size"] == "6")
           assert all(int(row["composition_count"]) > 1 for row in fitness if row["population_size"] == "30")
@@ -148,7 +174,7 @@ jobs:
           for row in neutral:
               assert abs(float(row["stationary_weight"]) - 1.0 / 6.0) <= 1e-8
 
-          print("CIVDYN-POP-001 hypergeometric, Fermi/fixation and stationary-distribution controls verified.")
+          print("CIVDYN-POP-001 hypergeometric, fixation, stationary and invasion-cycle controls verified.")
           PY
 
           {
@@ -157,6 +183,7 @@ jobs:
             echo "- Output SHA-256: $(sha256sum target/civdyn-pop-evidence/population-selection-sweep.csv | cut -d' ' -f1)"
             echo "- Records: $(($(wc -l < target/civdyn-pop-evidence/population-selection-sweep.csv) - 1))"
             echo "- Claim ceiling: scripted strategies under declared finite-population dynamics"
+            echo "- Invasion graph and three-cycle enumeration: verified"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload finite-population evidence
