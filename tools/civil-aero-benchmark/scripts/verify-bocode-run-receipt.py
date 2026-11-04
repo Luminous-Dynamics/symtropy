@@ -352,23 +352,34 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         require(len(data) == item.get("byte_length"), f"artifact {name} byte length mismatch")
         require(sha256(data) == item.get("sha256"), f"artifact {name} SHA-256 mismatch")
 
-    task_metadata = receipt.get("task_metadata") or {}
+    task_metadata_value = receipt.get("task_metadata")
+    task_metadata = task_metadata_value or {}
     if "task_metadata_json" in artifacts:
         metadata_bytes = safe_artifact_path(root, artifacts["task_metadata_json"]["path"]).read_bytes()
         require(sha256(metadata_bytes) == metadata_sha, "raw task metadata does not match admitted SHA-256")
-        task_metadata_raw = json.loads(metadata_bytes.decode("utf-8"))
-        require(task_metadata_raw.get("name") == receipt["task_id"], "raw metadata task name differs from receipt")
-        require(
-            task_metadata_raw.get("dim") == task_metadata.get("dimension")
-            and task_metadata_raw.get("num_objectives") == task_metadata.get("num_objectives")
-            and task_metadata_raw.get("num_constraints", 0) == task_metadata.get("num_constraints")
-            and task_metadata_raw.get("input_type") == task_metadata.get("input_type")
-            and task_metadata_raw.get("application") == task_metadata.get("application"),
-            "receipt task metadata differs from the exact raw task metadata bytes",
-        )
+        try:
+            task_metadata_raw = json.loads(metadata_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            require(
+                state == "wrapper_error" and task_metadata_value is None,
+                "malformed raw task metadata is admissible only as an early wrapper_error",
+            )
+        else:
+            require(task_metadata_raw.get("name") == receipt["task_id"], "raw metadata task name differs from receipt")
+            require(
+                isinstance(task_metadata, dict)
+                and task_metadata_raw.get("dim") == task_metadata.get("dimension")
+                and task_metadata_raw.get("num_objectives") == task_metadata.get("num_objectives")
+                and task_metadata_raw.get("num_constraints", 0) == task_metadata.get("num_constraints")
+                and task_metadata_raw.get("input_type") == task_metadata.get("input_type")
+                and task_metadata_raw.get("application") == task_metadata.get("application"),
+                "receipt task metadata differs from the exact raw task metadata bytes",
+            )
+            if task_metadata_value is None:
+                require(state == "wrapper_error", "only a wrapper_error may retain metadata without a decoded metadata record")
     else:
         require(
-            state == "wrapper_error" and not task_metadata,
+            state == "wrapper_error" and task_metadata_value is None,
             "only pre-metadata wrapper_error receipts may omit raw task metadata",
         )
 
