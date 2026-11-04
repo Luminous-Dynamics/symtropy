@@ -17,6 +17,7 @@ import json
 import os
 import re
 import resource
+import signal
 import subprocess
 import sys
 import time
@@ -26,6 +27,14 @@ from typing import Any
 
 SCHEMA = "bocode-single-trial-receipt/0.1.0"
 SKIP_RE = re.compile(r"^\s*SKIP\s+", re.MULTILINE)
+BASE_ENV_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "TMPDIR",
+    "LD_LIBRARY_PATH",
+)
 ENV_ALLOWLIST = (
     "OMP_NUM_THREADS",
     "MKL_NUM_THREADS",
@@ -216,6 +225,7 @@ def main() -> int:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--n-init", type=int, required=True)
     parser.add_argument("--iters", type=int, required=True)
+    parser.add_argument("--timeout-seconds", type=float, default=3600.0)
     parser.add_argument("--environment", action="append", default=[], metavar="KEY=VALUE")
     args = parser.parse_args()
     for item in args.environment:
@@ -258,6 +268,7 @@ def main() -> int:
         "seed": args.seed,
         "n_init_requested": args.n_init,
         "iterations_requested": args.iters,
+        "timeout_seconds": args.timeout_seconds,
         "environment_overrides": sorted(args.environment),
     }
     request_sha256 = sha256(canonical_json(request))
@@ -270,8 +281,8 @@ def main() -> int:
             raise ValueError("--source-commit must be a full 40-character SHA")
         if not re.fullmatch(r"[0-9a-fA-F]{64}", args.metadata_sha256):
             raise ValueError("--metadata-sha256 must be SHA-256")
-        if args.seed < 0 or args.n_init < 0 or args.iters <= 0:
-            raise ValueError("seed/n_init/iters contain invalid values")
+        if args.seed < 0 or args.n_init < 0 or args.iters <= 0 or args.timeout_seconds <= 0:
+            raise ValueError("seed/n_init/iters/timeout contain invalid values")
         if not (root / "examples" / "run_experiments.py").is_file():
             raise ValueError("bocode-root must contain examples/run_experiments.py")
 
@@ -293,6 +304,9 @@ def main() -> int:
         raw_metadata_sha = sha256(raw_metadata)
         if raw_metadata_sha != args.metadata_sha256.lower():
             raise ValueError("task raw metadata SHA-256 differs from the admitted catalog")
+        artifacts["task_metadata_json"] = write_artifact(
+            run_root, "task-metadata.json", raw_metadata
+        )
         task_metadata = json.loads(raw_metadata.decode("utf-8"))
         if task_metadata.get("name") != args.task_id:
             raise ValueError("task metadata name differs from requested task ID")
@@ -315,7 +329,14 @@ def main() -> int:
             run_root, "pip-freeze.stderr", freeze.stderr
         )
 
-        env = os.environ.copy()
+        # Do not pass arbitrary caller environment variables into the benchmark:
+        # PATH/loader/home/locale plus an explicit computational allow-list only.
+        env = {
+            key: os.environ[key]
+            for key in (*BASE_ENV_ALLOWLIST, *ENV_ALLOWLIST)
+            if key in os.environ
+        }
+        env["PYTHONNOUSERSITE"] = "1"
         for item in args.environment:
             if "=" not in item:
                 raise ValueError("--environment entries must be KEY=VALUE")
@@ -325,9 +346,7 @@ def main() -> int:
                     f"environment key {key!r} is not in the reviewed allow-list"
                 )
             env[key] = value
-        environment_projection = {
-            key: env[key] for key in ENV_ALLOWLIST if key in env
-        }
+        environment_projection = dict(sorted(env.items()))
         for item in args.environment:
             key, value = item.split("=", 1)
             environment_projection[key] = value
@@ -347,20 +366,33 @@ def main() -> int:
 
         before = resource.getrusage(resource.RUSAGE_CHILDREN)
         started = time.perf_counter()
-        process = subprocess.run(
+        timed_out = False
+        process = subprocess.Popen(
             command,
             cwd=root,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=False,
+            start_new_session=(os.name == "posix"),
         )
+        try:
+            stdout, stderr = process.communicate(timeout=args.timeout_seconds)
+            exit_code = process.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            if os.name == "posix":
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.kill()
+            stdout, stderr = process.communicate()
+            exit_code = 124
         wall_seconds = time.perf_counter() - started
         after = resource.getrusage(resource.RUSAGE_CHILDREN)
         cpu_user_seconds = max(0.0, after.ru_utime - before.ru_utime)
         cpu_system_seconds = max(0.0, after.ru_stime - before.ru_stime)
-        exit_code = process.returncode
-        stdout, stderr = process.stdout, process.stderr
         artifacts["stdout"] = write_artifact(run_root, "stdout.bin", stdout)
         artifacts["stderr"] = write_artifact(run_root, "stderr.bin", stderr)
 
@@ -375,7 +407,10 @@ def main() -> int:
                 run_root, "upstream_trace.npz", npz_path.read_bytes()
             )
 
-        if SKIP_RE.search(stdout.decode("utf-8", errors="replace")):
+        if timed_out:
+            state = "failed"
+            reason = f"upstream trial exceeded timeout of {args.timeout_seconds} seconds"
+        elif SKIP_RE.search(stdout.decode("utf-8", errors="replace")):
             state = "failed"
             reason = "upstream runner emitted SKIP for the requested trial"
         elif exit_code != 0:
@@ -398,6 +433,7 @@ def main() -> int:
                     summary.get("algorithm") != args.algorithm
                     or summary.get("problem") != args.task_id
                     or int(summary.get("seed", "-1")) != args.seed
+                    or summary.get("npz") != npz_path.name
                 ):
                     raise ValueError("upstream summary identity mismatch")
                 metrics = validate_npz(
@@ -443,8 +479,12 @@ def main() -> int:
                 "application": task_metadata.get("application"),
             },
             "environment_projection": environment_projection,
+            "environment_projection_sha256": sha256(canonical_json(environment_projection)),
             "environment_freeze_sha256": freeze_sha256,
             "command": command,
+            "command_sha256": sha256(canonical_json(command)),
+            "timeout_seconds": args.timeout_seconds,
+            "timed_out": timed_out,
             "process_exit_code": exit_code,
             "wall_seconds": wall_seconds,
             "cpu_user_seconds_measured": cpu_user_seconds,
@@ -472,6 +512,8 @@ def main() -> int:
             "package_version_observed": package_version,
             "python_version": sys.version,
             "environment_freeze_sha256": freeze_sha256,
+            "timeout_seconds": args.timeout_seconds,
+            "timed_out": False,
             "process_exit_code": exit_code,
             "wall_seconds": wall_seconds,
             "cpu_user_seconds_measured": cpu_user_seconds,
@@ -505,6 +547,7 @@ def main() -> int:
         "seed": str(args.seed),
         "n_init_requested": str(args.n_init),
         "iterations_requested": str(args.iters),
+        "timed_out": str(bool(receipt.get("timed_out", False))).lower(),
         "objective_evaluation_count": str(metrics.get("objective_evaluation_count", "")),
         "constraint_history_state": str(metrics.get("constraint_history_state", "")),
         "initial_design_count": str(metrics.get("initial_design_count", "")),
