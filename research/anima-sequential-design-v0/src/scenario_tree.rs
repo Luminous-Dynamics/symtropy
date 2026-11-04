@@ -3,6 +3,10 @@
 //! This transparent solver enumerates positive-probability outcomes and
 //! optimizes expected discounted information gain under budget and transition
 //! constraints. It is exact only for the supplied finite categorical model.
+//! Each action reuses a fixed P(outcome | model, action) table at every tree
+//! node, so trials are conditionally independent given the model and action.
+//! History-dependent / serially correlated trajectories need a different
+//! conditional-forecast adapter and are not represented by this module.
 
 use std::collections::{BTreeMap, BTreeSet};
 
