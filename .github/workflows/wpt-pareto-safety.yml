@@ -1,0 +1,46 @@
+name: WPT Pareto Safety
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "tools/wpt-pareto-safety/**"
+      - ".github/workflows/wpt-pareto-safety.yml"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "tools/wpt-pareto-safety/**"
+      - ".github/workflows/wpt-pareto-safety.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wpt-pareto-safety-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: WPT Pareto Safety (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wpt-pareto-safety/Cargo.toml --all -- --check
+
+      - name: Run unit and binary tests
+        run: cargo test --manifest-path tools/wpt-pareto-safety/Cargo.toml --all-targets --locked
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/wpt-pareto-safety/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Run synthetic demonstration
+        run: cargo run --manifest-path tools/wpt-pareto-safety/Cargo.toml --release --locked --bin front_demo > pareto-front-demo.csv

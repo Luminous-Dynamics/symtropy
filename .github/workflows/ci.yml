@@ -82,3 +82,20 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # Standalone constraint-first Pareto reference (outside the root workspace).
+    - name: Format standalone WPT Pareto Safety
+      if: ${{ hashFiles('tools/wpt-pareto-safety/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path tools/wpt-pareto-safety/Cargo.toml --all -- --check
+
+    - name: Test standalone WPT Pareto Safety
+      if: ${{ hashFiles('tools/wpt-pareto-safety/Cargo.toml') != '' }}
+      run: cargo test --manifest-path tools/wpt-pareto-safety/Cargo.toml --all-targets --locked
+
+    - name: Clippy standalone WPT Pareto Safety
+      if: ${{ hashFiles('tools/wpt-pareto-safety/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path tools/wpt-pareto-safety/Cargo.toml --all-targets --locked -- -D warnings
+
+    - name: Run synthetic Pareto demonstration
+      if: ${{ hashFiles('tools/wpt-pareto-safety/Cargo.toml') != '' }}
+      run: cargo run --manifest-path tools/wpt-pareto-safety/Cargo.toml --release --locked --bin front_demo > pareto-front-demo.csv
