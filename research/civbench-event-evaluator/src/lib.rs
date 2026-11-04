@@ -148,10 +148,10 @@ pub struct EvaluationReport {
     pub confirmed_event_count: usize,
     /// Number of confirmed events detected within the timely onset window.
     pub timely_event_count: usize,
-    /// Timely detections divided by all scorable alarm episodes.
-    pub event_precision: f64,
-    /// Timely detections divided by confirmed events.
-    pub event_onset_recall: f64,
+    /// Timely detections divided by all scorable alarm episodes; None if no episodes.
+    pub event_precision: Option<f64>,
+    /// Timely detections divided by confirmed events; None if no eligible events.
+    pub event_onset_recall: Option<f64>,
     /// Event-level diagnosis confusion for timely matched events.
     pub class_confusion: Vec<ClassConfusionCell>,
     /// Number of unmatched-timely events with a late associated episode.
@@ -196,11 +196,15 @@ impl EvaluationReport {
         let _ = writeln!(&mut out, "CIVBENCH_EVENT_EVALUATION_V0.1");
         let _ = writeln!(&mut out, "confirmed_events={}", self.confirmed_event_count);
         let _ = writeln!(&mut out, "timely_events={}", self.timely_event_count);
-        let _ = writeln!(&mut out, "event_precision={:.9}", self.event_precision);
         let _ = writeln!(
             &mut out,
-            "event_onset_recall={:.9}",
-            self.event_onset_recall
+            "event_precision={}",
+            option_f64(self.event_precision)
+        );
+        let _ = writeln!(
+            &mut out,
+            "event_onset_recall={}",
+            option_f64(self.event_onset_recall)
         );
         for cell in &self.class_confusion {
             let _ = writeln!(
@@ -316,6 +320,10 @@ fn match_kind_rank(kind: MatchKind) -> u8 {
 
 fn option_i64(value: Option<i64>) -> String {
     value.map_or_else(|| "none".to_owned(), |v| v.to_string())
+}
+
+fn option_f64(value: Option<f64>) -> String {
+    value.map_or_else(|| "none".to_owned(), |v| format!("{v:.9}"))
 }
 
 fn event_class_name(class: EventClass) -> &'static str {
@@ -884,14 +892,14 @@ pub fn evaluate(
     };
     let scorable_episode_count = episodes.len().saturating_sub(unscorable.len());
     let event_precision = if scorable_episode_count == 0 {
-        0.0
+        None
     } else {
-        timely_event_count as f64 / scorable_episode_count as f64
+        Some(timely_event_count as f64 / scorable_episode_count as f64)
     };
     let event_onset_recall = if events.is_empty() {
-        0.0
+        None
     } else {
-        timely_event_count as f64 / events.len() as f64
+        Some(timely_event_count as f64 / events.len() as f64)
     };
     let mut confusion_counts: BTreeMap<(EventClass, AlarmClass), usize> = BTreeMap::new();
     for record in matches
@@ -997,6 +1005,48 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn undefined_event_rates_remain_none_instead_of_zero() {
+        let unknown = vec![UnknownInterval {
+            interval_id: "unknown-only".into(),
+            scenario_id: "scenario-1".into(),
+            start_ms: 0,
+            end_ms: 1,
+        }];
+        let empty = evaluate(&[], &unknown, &[], config()).expect("scenario exists");
+        assert_eq!(empty.event_precision, None);
+        assert_eq!(empty.event_onset_recall, None);
+        assert!(empty.canonical_text().contains("event_precision=none"));
+        assert!(empty.canonical_text().contains("event_onset_recall=none"));
+
+        let no_alarms = evaluate(
+            &[event("event-no-alarm", EventClass::Leak, 1_000, 2_000)],
+            &[],
+            &[],
+            config(),
+        )
+        .expect("event scenario exists");
+        assert_eq!(no_alarms.event_precision, None);
+        assert_eq!(no_alarms.event_onset_recall, Some(0.0));
+
+        let no_events = evaluate(
+            &[],
+            &[],
+            &[alarm(
+                "false-alarm",
+                "sensor-a",
+                AlarmClass::Unclassified,
+                1_000,
+                2_000,
+            )],
+            config(),
+        )
+        .expect("alarm scenario exists");
+        assert_eq!(no_events.event_precision, Some(0.0));
+        assert_eq!(no_events.event_onset_recall, None);
+    }
+
     #[test]
     fn merges_repeated_alarms_into_one_episode() {
         let events = vec![event("event-1", EventClass::Leak, 1_000_000, 1_300_000)];
@@ -1036,8 +1086,8 @@ mod tests {
         )];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
-        assert_eq!(report.event_precision, 1.0);
-        assert_eq!(report.event_onset_recall, 1.0);
+        assert_eq!(report.event_precision, Some(1.0));
+        assert_eq!(report.event_onset_recall, Some(1.0));
         assert_eq!(report.matches[0].class_correct, Some(false));
         assert_eq!(
             report.class_confusion,
