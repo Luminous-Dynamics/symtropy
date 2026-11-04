@@ -53,7 +53,10 @@ fn main() {
                 Err(error) => {
                     eprintln!("{error}");
                     failures += 1;
-                    println!("{relative}|{}|parse-error|invalid_json", if expected_valid { "valid" } else { "invalid" });
+                    println!(
+                        "{relative}|{}|parse-error|invalid_json",
+                        if expected_valid { "valid" } else { "invalid" }
+                    );
                     continue;
                 }
             };
@@ -68,7 +71,11 @@ fn main() {
                 "{relative}|{}|{}|{}",
                 if expected_valid { "valid" } else { "invalid" },
                 if actual_valid { "valid" } else { "invalid" },
-                if errors.is_empty() { "none".to_owned() } else { errors.join(";") }
+                if errors.is_empty() {
+                    "none".to_owned()
+                } else {
+                    errors.join(";")
+                }
             );
         }
     }
