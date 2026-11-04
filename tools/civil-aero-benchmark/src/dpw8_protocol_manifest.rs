@@ -971,6 +971,14 @@ mod tests {
             .geometry_share_condition
             .push_str("; omit attribution");
         assert!(verify_dpw8_oat15a_manifest(&tampered).is_err());
+
+        let mut lane_tampered = original.clone();
+        lane_tampered.protocol_lane =
+            Dpw8Oat15aLane::V1aSteadyGridConvergencePolar;
+        assert!(
+            verify_dpw8_oat15a_manifest(&lane_tampered).is_err(),
+            "outer protocol lane must be digest-bound independently of nested spec"
+        );
     }
 
     #[test]
