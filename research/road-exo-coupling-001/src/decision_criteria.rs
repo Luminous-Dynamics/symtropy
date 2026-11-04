@@ -155,7 +155,12 @@ impl DecisionCriterionManifest {
             }
         }
 
-        let known_actions = self.decision.actions.iter().cloned().collect::<BTreeSet<_>>();
+        let known_actions = self
+            .decision
+            .actions
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>();
         let known_hypotheses = self
             .decision
             .hypotheses
@@ -209,7 +214,11 @@ impl DecisionCriterionManifest {
         out.extend_from_slice(&decision_digest);
         push_id(&mut out, &self.epsilon_scale_id);
 
-        let mut epsilons = self.epsilon_values.iter().map(normalize).collect::<Result<Vec<_>, _>>()?;
+        let mut epsilons = self
+            .epsilon_values
+            .iter()
+            .map(normalize)
+            .collect::<Result<Vec<_>, _>>()?;
         epsilons.sort_by(|a, b| cmp(a, b).expect("validated epsilon comparison"));
         push_len(&mut out, epsilons.len());
         for epsilon in &epsilons {
@@ -243,9 +252,7 @@ impl DecisionCriterionManifest {
         Ok(*blake3::hash(&self.canonical_bytes()?).as_bytes())
     }
 
-    pub fn evaluate(
-        &self,
-    ) -> Result<DecisionCriterionCertificate, CriterionSensitivityError> {
+    pub fn evaluate(&self) -> Result<DecisionCriterionCertificate, CriterionSensitivityError> {
         self.validate()?;
         let manifest_digest = self.digest()?;
 
@@ -382,7 +389,8 @@ impl DecisionCriterionManifest {
                     &hypothesis.hypothesis_id,
                 )?;
                 let chosen = utility_at(&utilities, action, &hypothesis.hypothesis_id)?;
-                let regret = best.checked_sub(chosen)
+                let regret = best
+                    .checked_sub(chosen)
                     .map_err(|_| CriterionSensitivityError::ArithmeticOverflow)?;
                 if cmp(&regret, &worst)? == Ordering::Greater {
                     worst = regret;
@@ -423,11 +431,14 @@ impl DecisionCriterionManifest {
             });
         }
 
-        let robust_dominance = dominance_pairs(&utilities, &robust_feasible_actions, &self.decision)?;
+        let robust_dominance =
+            dominance_pairs(&utilities, &robust_feasible_actions, &self.decision)?;
         let agreement = compare_action_sets(&maximin_actions, &minimax_regret_actions);
         let status = match agreement {
             CriterionAgreement::UniqueAgreement => CriterionAnalysisStatus::CriterionStable,
-            CriterionAgreement::SetAgreementWithTie => CriterionAnalysisStatus::NoUniqueRecommendation,
+            CriterionAgreement::SetAgreementWithTie => {
+                CriterionAnalysisStatus::NoUniqueRecommendation
+            }
             CriterionAgreement::PartialOverlap | CriterionAgreement::Disjoint => {
                 CriterionAnalysisStatus::CriterionSensitive
             }
@@ -532,7 +543,8 @@ fn utility_matrix(
     let mut values = BTreeMap::new();
     for hypothesis in &decision.hypotheses {
         for outcome in &hypothesis.outcomes {
-            let crate::decision_closure::OutcomeSupport::Supported { utility, .. } = &outcome.support
+            let crate::decision_closure::OutcomeSupport::Supported { utility, .. } =
+                &outcome.support
             else {
                 return Err(CriterionSensitivityError::DecisionNotFullySupported);
             };
@@ -576,7 +588,9 @@ fn extremum(
     scores: &[ActionValue],
     order: Ordering,
 ) -> Result<ExactRational, CriterionSensitivityError> {
-    let first = scores.first().ok_or(CriterionSensitivityError::DecisionNotFullySupported)?;
+    let first = scores
+        .first()
+        .ok_or(CriterionSensitivityError::DecisionNotFullySupported)?;
     let mut best = first.value.clone();
     for score in scores.iter().skip(1) {
         let comparison = cmp(&score.value, &best)?;
@@ -647,10 +661,7 @@ fn normalize(value: &ExactRational) -> Result<ExactRational, CriterionSensitivit
         .map_err(|_| CriterionSensitivityError::ZeroDenominator)
 }
 
-fn cmp(
-    left: &ExactRational,
-    right: &ExactRational,
-) -> Result<Ordering, CriterionSensitivityError> {
+fn cmp(left: &ExactRational, right: &ExactRational) -> Result<Ordering, CriterionSensitivityError> {
     left.checked_cmp(right)
         .map_err(|_| CriterionSensitivityError::ArithmeticOverflow)
 }
@@ -659,10 +670,10 @@ fn add(
     left: &ExactRational,
     right: &ExactRational,
 ) -> Result<ExactRational, CriterionSensitivityError> {
-    let left_factor =
-        i128::try_from(right.denominator).map_err(|_| CriterionSensitivityError::ArithmeticOverflow)?;
-    let right_factor =
-        i128::try_from(left.denominator).map_err(|_| CriterionSensitivityError::ArithmeticOverflow)?;
+    let left_factor = i128::try_from(right.denominator)
+        .map_err(|_| CriterionSensitivityError::ArithmeticOverflow)?;
+    let right_factor = i128::try_from(left.denominator)
+        .map_err(|_| CriterionSensitivityError::ArithmeticOverflow)?;
     let left_term = left
         .numerator
         .checked_mul(left_factor)
@@ -780,7 +791,7 @@ mod tests {
         }
     }
 
-    fn hypothesis(name: &str, values: &[( &str, i128)], marker: u8) -> DecisionHypothesis {
+    fn hypothesis(name: &str, values: &[(&str, i128)], marker: u8) -> DecisionHypothesis {
         DecisionHypothesis {
             hypothesis_id: id(name),
             reference_manifest_digest: [marker; 32],
@@ -809,16 +820,21 @@ mod tests {
         hypotheses
             .iter()
             .flat_map(|hypothesis| {
-                ["action-a", "action-b"].into_iter().map(|action| FeasibilityCell {
-                    action_id: id(action),
-                    hypothesis_id: hypothesis.hypothesis_id.clone(),
-                    status: status.clone(),
-                })
+                ["action-a", "action-b"]
+                    .into_iter()
+                    .map(|action| FeasibilityCell {
+                        action_id: id(action),
+                        hypothesis_id: hypothesis.hypothesis_id.clone(),
+                        status: status.clone(),
+                    })
             })
             .collect()
     }
 
-    fn manifest(rows: Vec<DecisionHypothesis>, epsilon_values: Vec<ExactRational>) -> DecisionCriterionManifest {
+    fn manifest(
+        rows: Vec<DecisionHypothesis>,
+        epsilon_values: Vec<ExactRational>,
+    ) -> DecisionCriterionManifest {
         let decision = decision(rows);
         DecisionCriterionManifest {
             analysis_id: id("criterion-sensitivity-v1"),
@@ -843,7 +859,10 @@ mod tests {
         assert_eq!(certificate.maximin_actions, vec![id("action-b")]);
         assert_eq!(certificate.minimax_regret_actions, vec![id("action-a")]);
         assert_eq!(certificate.agreement, Some(CriterionAgreement::Disjoint));
-        assert_eq!(certificate.status, CriterionAnalysisStatus::CriterionSensitive);
+        assert_eq!(
+            certificate.status,
+            CriterionAnalysisStatus::CriterionSensitive
+        );
     }
 
     #[test]
@@ -858,7 +877,10 @@ mod tests {
         let certificate = manifest.evaluate().unwrap();
         assert_eq!(certificate.maximin_actions, vec![id("action-a")]);
         assert_eq!(certificate.minimax_regret_actions, vec![id("action-a")]);
-        assert_eq!(certificate.agreement, Some(CriterionAgreement::UniqueAgreement));
+        assert_eq!(
+            certificate.agreement,
+            Some(CriterionAgreement::UniqueAgreement)
+        );
         assert_eq!(certificate.status, CriterionAnalysisStatus::CriterionStable);
     }
 
@@ -866,10 +888,16 @@ mod tests {
     fn epsilon_regret_preserves_full_near_optimal_set() {
         let manifest = manifest(
             vec![hypothesis("h1", &[("action-a", 10), ("action-b", 9)], 1)],
-            vec![ExactRational::new(0, 1).unwrap(), ExactRational::new(1, 1).unwrap()],
+            vec![
+                ExactRational::new(0, 1).unwrap(),
+                ExactRational::new(1, 1).unwrap(),
+            ],
         );
         let certificate = manifest.evaluate().unwrap();
-        assert_eq!(certificate.epsilon_regret_sets[0].actions, vec![id("action-a")]);
+        assert_eq!(
+            certificate.epsilon_regret_sets[0].actions,
+            vec![id("action-a")]
+        );
         assert_eq!(
             certificate.epsilon_regret_sets[1].actions,
             vec![id("action-a"), id("action-b")]
@@ -943,8 +971,15 @@ mod tests {
     fn duplicate_hypothesis_rows_do_not_change_decision_projection() {
         let h1 = hypothesis("h1", &[("action-a", 10), ("action-b", 2)], 1);
         let h2 = hypothesis("h2", &[("action-a", 8), ("action-b", 4)], 2);
-        let h1_duplicate = hypothesis("h1-common-mode-duplicate", &[("action-a", 10), ("action-b", 2)], 1);
-        let original = manifest(vec![h1.clone(), h2], vec![ExactRational::new(1, 1).unwrap()]);
+        let h1_duplicate = hypothesis(
+            "h1-common-mode-duplicate",
+            &[("action-a", 10), ("action-b", 2)],
+            1,
+        );
+        let original = manifest(
+            vec![h1.clone(), h2],
+            vec![ExactRational::new(1, 1).unwrap()],
+        );
         let duplicated = manifest(
             vec![
                 h1,
@@ -1089,7 +1124,10 @@ mod tests {
                 hypothesis("h1", &[("action-a", 10), ("action-b", 2)], 1),
                 hypothesis("h2", &[("action-a", 8), ("action-b", 4)], 2),
             ],
-            vec![ExactRational::new(1, 1).unwrap(), ExactRational::new(0, 1).unwrap()],
+            vec![
+                ExactRational::new(1, 1).unwrap(),
+                ExactRational::new(0, 1).unwrap(),
+            ],
         );
         let mut second = first.clone();
         second.decision.actions.reverse();
