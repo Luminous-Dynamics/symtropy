@@ -482,9 +482,13 @@ fn validate_commands(
             .get("qualification_stage_id")
             .and_then(Value::as_str);
         let qualification = match (latest_qualification, command_qualification_id) {
-            (Some((_, latest)), Some(reference))
-                if text(latest, "stage_id", "qualification stage")? == reference =>
-            {
+            (Some((_, latest)), Some(reference)) => {
+                let latest_id = text(latest, "stage_id", "qualification stage")?;
+                if latest_id != reference {
+                    return Err(format!(
+                        "command {command_id} references {reference}, not the latest prior qualification"
+                    ));
+                }
                 let (index, stage) = referenced_stage(
                     reference,
                     "qualification_lease",
@@ -502,11 +506,6 @@ fn validate_commands(
                 Some((index, stage))
             }
             (None, None) => None,
-            (Some(_), Some(reference)) => {
-                return Err(format!(
-                    "command {command_id} references {reference}, not the latest prior qualification"
-                ));
-            }
             (Some(_), None) => {
                 return Err(format!(
                     "command {command_id} omits the latest prior qualification reference"
