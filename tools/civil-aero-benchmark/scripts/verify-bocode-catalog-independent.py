@@ -17,7 +17,7 @@ EVIDENCE_LEVEL = (
 HEADER = (
     "problem_id,application,problem_class,dimension,num_objectives,num_constraints,"
     "variable_type_class,benchmark_set_member,bounds_sha256,variable_types_sha256,"
-    "source_reference,metadata_sha256,required_extra"
+    "source_reference_state,source_reference,metadata_sha256,required_extra"
 ).split(",")
 
 
@@ -58,6 +58,8 @@ def main(path: Path, source_commit: str, package_version: str,
     supported_classes = {
         "so_unconstrained", "so_constrained", "mo_unconstrained",
         "mo_constrained", "so_mixed_variable",
+        "so_mixed_variable_constrained_extension", "mo_mixed_variable_extension",
+        "mo_mixed_variable_constrained_extension",
     }
     previous_id = None
     seen = set()
@@ -93,8 +95,15 @@ def main(path: Path, source_commit: str, package_version: str,
         require(member in ("true", "false"), f"line {line_number}: invalid benchmark_set_member")
         for name in ("bounds_sha256", "variable_types_sha256", "metadata_sha256"):
             require(valid_hex(row[name], 64), f"line {line_number}: {name} must be SHA-256")
-        require(row["source_reference"].strip() != "",
-                f"line {line_number}: source citation required")
+        source_state = row["source_reference_state"]
+        require(source_state in ("present", "missing"),
+                f"line {line_number}: invalid source_reference_state")
+        if source_state == "present":
+            require(row["source_reference"].strip() != "",
+                    f"line {line_number}: present source citation must be non-empty")
+        else:
+            require(row["source_reference"] == "",
+                    f"line {line_number}: missing source state must have an empty citation")
         require(row["required_extra"].strip() != "",
                 f"line {line_number}: required_extra must be explicit (use none)")
 
@@ -104,6 +113,9 @@ def main(path: Path, source_commit: str, package_version: str,
             "mo_unconstrained": objectives > 1 and constraints == 0 and variable_class == "continuous",
             "mo_constrained": objectives > 1 and constraints > 0 and variable_class == "continuous",
             "so_mixed_variable": objectives == 1 and constraints == 0 and variable_class == "mixed",
+            "so_mixed_variable_constrained_extension": objectives == 1 and constraints > 0 and variable_class == "mixed",
+            "mo_mixed_variable_extension": objectives > 1 and constraints == 0 and variable_class == "mixed",
+            "mo_mixed_variable_constrained_extension": objectives > 1 and constraints > 0 and variable_class == "mixed",
         }
         require(expected[problem_class],
                 f"line {line_number}: problem class contradicts objective/constraint/variable metadata")
@@ -119,6 +131,7 @@ def main(path: Path, source_commit: str, package_version: str,
             "benchmark_set_member": member == "true",
             "bounds_sha256": row["bounds_sha256"],
             "variable_types_sha256": row["variable_types_sha256"],
+            "source_reference_state": source_state,
             "source_reference": row["source_reference"],
             "metadata_sha256": row["metadata_sha256"],
             "required_extra": row["required_extra"],
@@ -137,7 +150,8 @@ def main(path: Path, source_commit: str, package_version: str,
     for task in tasks:
         for name in (
             "problem_id", "application", "problem_class", "variable_type_class",
-            "bounds_sha256", "variable_types_sha256", "source_reference",
+            "source_reference_state", "bounds_sha256", "variable_types_sha256",
+            "source_reference",
             "metadata_sha256", "required_extra",
         ):
             append_string(buffer, str(task[name]))
