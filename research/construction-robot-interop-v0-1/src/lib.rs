@@ -177,7 +177,7 @@ impl std::error::Error for ApplyError {}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskMachine {
     task: TaskRecord,
-    seen_messages: BTreeMap<String, String>,
+    seen_messages: BTreeMap<(String, String, String), String>,
     active_session_by_actor: BTreeMap<String, String>,
     last_sequence_by_actor_session: BTreeMap<(String, String), u64>,
     session_reconciliations: Vec<SessionReconciliation>,
@@ -260,7 +260,12 @@ impl TaskMachine {
             return Err(ApplyError::WrongTask);
         }
 
-        if let Some(previous_digest) = self.seen_messages.get(&event.message_id) {
+        let message_key = (
+            event.actor_id.clone(),
+            event.actor_session_id.clone(),
+            event.message_id.clone(),
+        );
+        if let Some(previous_digest) = self.seen_messages.get(&message_key) {
             return if previous_digest == &event.payload_digest {
                 Ok(ApplyOutcome::Duplicate)
             } else {
@@ -274,7 +279,7 @@ impl TaskMachine {
         // stale context or an invalid state transition. Reusing the same event later
         // cannot cause a delayed state change.
         self.seen_messages
-            .insert(event.message_id.clone(), event.payload_digest.clone());
+            .insert(message_key, event.payload_digest.clone());
 
         if !matches!(
             &event.transition,
@@ -729,6 +734,29 @@ mod tests {
         );
         send(&mut machine, 2, TransitionKind::Queue).expect("next valid event");
         assert_eq!(machine.task.state, TaskState::Queued);
+    }
+
+
+    #[test]
+    fn message_ids_are_scoped_to_actor_and_session() {
+        let mut machine = machine();
+        let robot_event = event(1, TransitionKind::Accept, binding());
+        machine.apply(robot_event).expect("robot acceptance");
+
+        let site_event = EventEnvelope {
+            message_id: "message-1".to_owned(),
+            payload_digest: "site-payload-1".to_owned(),
+            actor_id: "site-coordinator".to_owned(),
+            actor_session_id: "site-session-1".to_owned(),
+            task_sequence: 1,
+            task_id: "task-1".to_owned(),
+            binding: binding(),
+            transition: TransitionKind::Queue,
+        };
+        assert_eq!(
+            machine.apply(site_event),
+            Ok(ApplyOutcome::Applied(TaskState::Queued))
+        );
     }
 
     #[test]
