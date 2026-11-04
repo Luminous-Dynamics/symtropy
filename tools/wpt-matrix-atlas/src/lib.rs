@@ -522,8 +522,8 @@ impl MatrixAtlas {
                 .max(0.01 * endpoint_scale)
                 .max(1e-15);
             let margin_ratio = margin_deficit / margin_scale;
-            let service_ratio =
-                signal.route_energy_uncertainty_upper_bound_wh / signal.route_energy_uncertainty_budget_wh;
+            let service_ratio = signal.route_energy_uncertainty_upper_bound_wh
+                / signal.route_energy_uncertainty_budget_wh;
 
             let mut triggers = Vec::new();
             if segment.interpolation_error_frobenius_bound_h
@@ -550,7 +550,8 @@ impl MatrixAtlas {
                     segment_index: index,
                     position_m: left.position_m + 0.5 * (right.position_m - left.position_m),
                     expected_uncertainty_reduction_per_second: benefit_per_second,
-                    route_energy_uncertainty_upper_bound_wh: signal.route_energy_uncertainty_upper_bound_wh,
+                    route_energy_uncertainty_upper_bound_wh: signal
+                        .route_energy_uncertainty_upper_bound_wh,
                     estimated_field_solve_cost_seconds: signal.estimated_field_solve_cost_seconds,
                     triggers,
                     circuit_model_digest: signal.circuit_model_digest.clone(),
@@ -1211,7 +1212,6 @@ mod tests {
                 .contains(&"SERVICE_ENERGY_UNCERTAINTY_EXCEEDED".into())
         }));
     }
-
 
     #[test]
     fn deserializes_versioned_service_signals_and_rejects_missing_segment_coverage() {
