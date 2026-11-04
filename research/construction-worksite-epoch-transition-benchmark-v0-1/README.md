@@ -51,7 +51,13 @@ Deterministic transition contract → property/metamorphic and adversarial fault
 
 Reuse #3317 snapshot, #3499 temporal, #1595 scenario identity, #1172 replay, #3522 trial receipts, #3505/#3506 physical protocol and Symthaea #4918 dependency lineage. #3542 owns changing-site invalidation/requalification; do not fork existing owners.
 
-HP publishes ±2 mm under its specified high-accuracy layout setup; Dusty FieldPrinter 2 publishes ±1.6 mm. Vendor specifications are not matched independent dynamic-ODD safety tests. Compare only identical task, revision, network, surface, configuration, density and acceptance criteria.
+HP publishes ±2 mm layout tolerance only under its specified high-accuracy setup (SMR prism, high-accuracy print mode and 1-inch total station, tested at 5–30 m); its up-to-30% productivity claim compares with its previous software version and is based on internal tests. Dusty publishes ±1.6 mm with accurate surveyed control; its FieldPrinter 2 specifies three forward ToF obstacle sensors with about 0.9 m range, four cliff sensors, IP51-equivalent protection and no rain operation. These are vendor specifications, not matched independent dynamic-ODD safety tests. Compare only identical task, revision, network, surface, configuration, density and acceptance criteria.
+- HP product specification/footnotes: https://www.hp.com/us-en/printers/site-print/layout-robot.html
+- Dusty FieldPrinter 2 technical specification: https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
+
+For earth-moving machinery within the scope of ISO 19014, Part 2 addresses safety-control systems that control machine motion or mitigate hazards, while excluding awareness-only systems that do not affect motion; Part 4 addresses software/data transmission but excludes cybersecurity. Keep these claim domains separate and make no generic claim of ISO compliance from this research:
+- ISO 19014-2:2026: https://www.iso.org/standard/87718.html
+- ISO 19014-4:2026: https://www.iso.org/standard/87720.html
 - https://www.hp.com/us-en/printers/site-print/layout-robot.html
 - https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
 
@@ -64,4 +70,4 @@ See [evaluation-plan.md](evaluation-plan.md) for preregistered independent-unit 
 
 ## Frozen transition scenarios
 
-The `scenarios/` directory contains ordered epoch change, stale replay/rollback, and communications recovery traces. The Rust oracle replays them in tests and rejects unknown fixture fields. These fixtures test the software transition contract only; they are not physical safety evidence.
+The `scenarios/` directory contains four executable traces: ordered epoch change; replay/rollback rejection; communications recovery requiring requalification; and qualification-lease expiry. The versioned Draft 2020-12 scenario schema is `scenarios/worksite-epoch-scenario-v0.1.schema.json`. The Rust oracle replays each event and expected outcome and rejects unknown fixture fields. These fixtures test the software transition contract only; they are not physical safety evidence.
