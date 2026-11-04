@@ -1,0 +1,64 @@
+{
+  "scenario_id": "communications-recovery-does-not-restore-authority",
+  "task_scope": "floor-3-layout",
+  "initial_configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "expected_final_state": "active",
+  "events": [
+    {
+      "event": "accept_epoch",
+      "revision": 1,
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "predecessor_digest": null,
+      "task_scope": "floor-3-layout",
+      "authenticated": true,
+      "expected": "accepted"
+    },
+    {
+      "event": "requalify",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "evidence_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "record_reference": "qualification-r1",
+      "accepted_by_upstream": true,
+      "expected": "activated"
+    },
+    {
+      "event": "communications_lost"
+    },
+    {
+      "event": "communications_restored"
+    },
+    {
+      "event": "operator_acknowledged"
+    },
+    {
+      "event": "command",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "context_fresh": true,
+      "clock_within_bound": true,
+      "expected": "denied"
+    },
+    {
+      "event": "requalify",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "evidence_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "record_reference": "qualification-after-reconnect",
+      "accepted_by_upstream": true,
+      "expected": "activated"
+    },
+    {
+      "event": "command",
+      "epoch_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "task_scope": "floor-3-layout",
+      "context_fresh": true,
+      "clock_within_bound": true,
+      "expected": "authorized"
+    }
+  ]
+}
