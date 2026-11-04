@@ -62,3 +62,8 @@ Every physical run should produce a #3522 trial receipt bound to the design revi
 ## Non-goals
 
 No universal robot ranking, no cross-task composite, no use of a vendor's own positioning output as independent ground truth, no inference of safety from positioning accuracy, and no claim of standards conformity or certification.
+
+
+## Industry baseline
+
+See [vendor-baseline-matrix.md](vendor-baseline-matrix.md) for a task-class-separated comparison of HP SitePrint, Dusty FieldPrinter 2, CivDot, CivDot+ and CivDot Mini, including vendor caveats, matched tracks, and standards scope.
