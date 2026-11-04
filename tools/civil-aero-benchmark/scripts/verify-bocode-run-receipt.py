@@ -255,9 +255,18 @@ def verify_npz(path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
 
 def safe_artifact_path(root: Path, relative: str) -> Path:
     p = PurePosixPath(relative)
-    require(not p.is_absolute() and ".." not in p.parts, "artifact path must be relative and traversal-free")
-    target = (root / Path(*p.parts)).resolve()
-    require(target.is_relative_to(root.resolve()), "artifact path escapes the receipt directory")
+    require(
+        not p.is_absolute() and p.parts and all(part not in ("", ".", "..") for part in p.parts),
+        "artifact path must be relative and traversal-free",
+    )
+    canonical_root = root.resolve(strict=True)
+    current = canonical_root
+    for part in p.parts:
+        current = current / part
+        require(not current.is_symlink(), f"artifact path component {part!r} must not be a symlink")
+    target = current.resolve(strict=True)
+    require(target.is_relative_to(canonical_root), "artifact path escapes the receipt directory")
+    require(target.is_file(), "artifact path must resolve to a regular file")
     return target
 
 
@@ -286,6 +295,7 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         "seed": receipt["seed"],
         "n_init_requested": receipt["n_init_requested"],
         "iterations_requested": receipt["iterations_requested"],
+        "timeout_seconds": receipt["timeout_seconds"],
         "environment_overrides": receipt["environment_overrides"],
     }
     request_sha = sha256(canonical_json(request))
@@ -297,11 +307,24 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     require(run_id == receipt["run_id"], "run ID does not bind request and attempt identity")
 
     commit = receipt.get("source_commit_verified")
-    require(commit is None or (isinstance(commit, str) and len(commit) == 40),
-            "verified source commit is malformed")
+    require(
+        isinstance(commit, str)
+        and re.fullmatch(r"[0-9a-f]{40}", commit)
+        and commit == receipt["source_commit"],
+        "verified source commit is absent, malformed, or differs from the requested source",
+    )
     metadata_sha = receipt.get("metadata_sha256_expected")
-    require(isinstance(metadata_sha, str) and len(metadata_sha) == 64,
-            "task metadata digest is malformed")
+    require(
+        isinstance(metadata_sha, str) and re.fullmatch(r"[0-9a-f]{64}", metadata_sha),
+        "task metadata digest is malformed",
+    )
+    require(
+        isinstance(receipt.get("timeout_seconds"), (int, float))
+        and math.isfinite(float(receipt["timeout_seconds"]))
+        and receipt["timeout_seconds"] > 0,
+        "trial timeout must be finite and positive",
+    )
+    require(isinstance(receipt.get("timed_out"), bool), "trial timed_out state must be explicit")
 
     artifacts = receipt.get("artifacts")
     require(isinstance(artifacts, dict), "receipt artifacts must be an object")
@@ -312,6 +335,43 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         data = target.read_bytes()
         require(len(data) == item.get("byte_length"), f"artifact {name} byte length mismatch")
         require(sha256(data) == item.get("sha256"), f"artifact {name} SHA-256 mismatch")
+
+    require("task_metadata_json" in artifacts, "receipt must retain raw task metadata JSON")
+    metadata_bytes = safe_artifact_path(root, artifacts["task_metadata_json"]["path"]).read_bytes()
+    require(sha256(metadata_bytes) == metadata_sha, "raw task metadata does not match admitted SHA-256")
+    task_metadata_raw = json.loads(metadata_bytes.decode("utf-8"))
+    task_metadata = receipt.get("task_metadata") or {}
+    require(task_metadata_raw.get("name") == receipt["task_id"], "raw metadata task name differs from receipt")
+    require(
+        task_metadata_raw.get("dim") == task_metadata.get("dimension")
+        and task_metadata_raw.get("num_objectives") == task_metadata.get("num_objectives")
+        and task_metadata_raw.get("num_constraints", 0) == task_metadata.get("num_constraints")
+        and task_metadata_raw.get("input_type") == task_metadata.get("input_type")
+        and task_metadata_raw.get("application") == task_metadata.get("application"),
+        "receipt task metadata differs from the exact raw task metadata bytes",
+    )
+
+    environment_projection = receipt.get("environment_projection")
+    if environment_projection is not None:
+        require(isinstance(environment_projection, dict), "environment projection must be an object")
+        require(
+            sha256(canonical_json(environment_projection)) == receipt.get("environment_projection_sha256"),
+            "environment projection digest mismatch",
+        )
+    command = receipt.get("command")
+    if command is not None:
+        require(isinstance(command, list) and all(isinstance(arg, str) for arg in command),
+                "command must be a string argv array")
+        require(
+            sha256(canonical_json(command)) == receipt.get("command_sha256"),
+            "command argv digest mismatch",
+        )
+    if "environment_freeze" in artifacts:
+        freeze = safe_artifact_path(root, artifacts["environment_freeze"]["path"]).read_bytes()
+        require(
+            sha256(freeze) == receipt.get("environment_freeze_sha256"),
+            "pip freeze artifact differs from its receipt digest",
+        )
 
     state = receipt["state"]
     metrics = receipt.get("metrics") or {}
@@ -327,15 +387,65 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         require(not has_skip, "succeeded trial stdout contains upstream SKIP")
         require("upstream_npz" in artifacts and "upstream_summary" in artifacts,
                 "succeeded trial must retain raw NPZ and upstream summary")
+        require(not receipt.get("timed_out"), "succeeded trial cannot be marked timed out")
         npz_path = safe_artifact_path(root, artifacts["upstream_npz"]["path"])
         npz_result = verify_npz(npz_path, receipt)
         require(metrics.get("objective_evaluation_count") == npz_result["npz_evaluation_count_from_shape"],
                 "receipt objective count differs from raw NPZ X shape")
+        require(metrics.get("initial_design_count") == npz_result["npz_n_init"],
+                "receipt initial-design count differs from raw NPZ")
+        require(metrics.get("best_encoded_maximization_value") == npz_result["npz_best"],
+                "receipt best value differs from raw NPZ")
+        require(metrics.get("constraint_history_state") == npz_result["constraint_history_state"],
+                "receipt constraint-history state differs from raw NPZ")
+        for metric, expected in (
+            ("feasible_evaluation_count", npz_result["feasible_evaluation_count"]),
+            ("infeasible_evaluation_count", npz_result["infeasible_evaluation_count"]),
+            ("feasible_evaluation_fraction", npz_result["feasible_evaluation_fraction"]),
+        ):
+            actual = metrics.get(metric)
+            if expected is None:
+                require(actual is None, f"receipt {metric} must remain unknown without constraint observations")
+            elif metric == "feasible_evaluation_fraction":
+                require(
+                    isinstance(actual, (float, int))
+                    and abs(float(actual) - expected) <= 1e-12,
+                    f"receipt {metric} differs from raw constraint replay",
+                )
+            else:
+                require(actual == expected, f"receipt {metric} differs from raw constraint replay")
+
+        summary_path = safe_artifact_path(root, artifacts["upstream_summary"]["path"])
+        with summary_path.open("r", encoding="utf-8", newline="") as stream:
+            summary_reader = csv.DictReader(stream)
+            require(
+                summary_reader.fieldnames == ["algorithm", "problem", "seed", "best", "gap", "npz"],
+                "upstream summary CSV header mismatch",
+            )
+            summary_rows = list(summary_reader)
+        require(len(summary_rows) == 1, "upstream summary must contain exactly one trial row")
+        summary = summary_rows[0]
+        expected_npz_name = f"{receipt['algorithm']}_{receipt['task_id']}_seed{receipt['seed']}.npz"
+        require(
+            summary["algorithm"] == receipt["algorithm"]
+            and summary["problem"] == receipt["task_id"]
+            and int(summary["seed"]) == int(receipt["seed"])
+            and summary["npz"] == expected_npz_name,
+            "upstream summary trial identity or NPZ filename differs from receipt",
+        )
+        summary_best = float(summary["best"])
+        require(
+            math.isfinite(summary_best)
+            and abs(summary_best - npz_result["npz_best"]) <= 1e-10 * max(1.0, abs(summary_best)),
+            "upstream summary best differs from raw NPZ best",
+        )
     elif state == "invalid_trace":
         require("upstream_npz" in artifacts and "upstream_summary" in artifacts,
                 "invalid_trace must retain both NPZ and summary artifacts")
     elif state == "failed":
         require(bool(receipt.get("reason")), "failed trial requires a failure reason")
+        if receipt.get("timed_out"):
+            require(receipt.get("process_exit_code") == 124, "timed-out trial must use wrapper timeout exit code 124")
         require(
             receipt.get("process_exit_code") not in (None, 0)
             or has_skip
@@ -375,6 +485,7 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         "seed": str(receipt["seed"]),
         "n_init_requested": str(receipt["n_init_requested"]),
         "iterations_requested": str(receipt["iterations_requested"]),
+        "timed_out": str(receipt["timed_out"]).lower(),
         "process_exit_code": "" if receipt.get("process_exit_code") is None else str(receipt["process_exit_code"]),
         "wall_seconds": "" if receipt.get("wall_seconds") is None else str(receipt["wall_seconds"]),
         "cpu_user_seconds": "" if receipt.get("cpu_user_seconds_measured") is None else str(receipt["cpu_user_seconds_measured"]),
