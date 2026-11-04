@@ -174,11 +174,11 @@ impl ReservationBook {
         let earliest_start = request.interval_start_ms.saturating_sub(uncertainty);
         let latest_end = request.interval_end_ms.saturating_add(uncertainty);
         let earliest_expiry = request.expires_at_ms.saturating_sub(uncertainty);
-        if earliest_start < now_ms {
-            return Err(ReservationError::InvalidInterval);
-        }
         if earliest_expiry <= now_ms {
             return Err(ReservationError::RequestAlreadyExpired);
+        }
+        if earliest_start < now_ms {
+            return Err(ReservationError::InvalidInterval);
         }
         if earliest_expiry < latest_end {
             return Err(ReservationError::ExpiryBeforeEnd);
@@ -342,8 +342,13 @@ mod tests {
     use super::*;
 
     fn book(capacity: u32) -> ReservationBook {
-        let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
-            .expect("valid reservation book");
+        book_with_uncertainty(capacity, 0)
+    }
+
+    fn book_with_uncertainty(capacity: u32, max_uncertainty_ms: u64) -> ReservationBook {
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-monotonic-ms", max_uncertainty_ms)
+                .expect("valid reservation book");
         book.register_resource("work-zone-A", capacity)
             .expect("valid resource");
         book
@@ -512,6 +517,61 @@ mod tests {
         );
         assert_eq!(
             book.reserve(request("r3", "robot-1", 40, 60, 80, 1), 50),
+            Err(ReservationError::InvalidInterval)
+        );
+    }
+
+
+    #[test]
+    fn clock_uncertainty_over_the_declared_policy_is_rejected() {
+        let mut book = book_with_uncertainty(1, 5);
+        let mut uncertain = request("r1", "robot-1", 100, 200, 240, 1);
+        uncertain.clock_uncertainty_ms = 6;
+        assert_eq!(
+            book.reserve(uncertain, 50),
+            Err(ReservationError::ClockUncertaintyExceeded {
+                allowed_ms: 5,
+                actual_ms: 6
+            })
+        );
+    }
+
+    #[test]
+    fn uncertainty_expands_intervals_and_detects_near_boundary_conflicts() {
+        let mut book = book_with_uncertainty(1, 10);
+        let mut first = request("r1", "robot-1", 100, 200, 240, 1);
+        first.clock_uncertainty_ms = 10;
+        book.reserve(first, 50).expect("first reservation");
+
+        let mut second = request("r2", "robot-2", 215, 300, 340, 1);
+        second.clock_uncertainty_ms = 10;
+        assert_eq!(
+            book.reserve(second, 50),
+            Err(ReservationError::CapacityExceeded {
+                capacity: 1,
+                requested_total: 2
+            })
+        );
+    }
+
+    #[test]
+    fn uncertainty_requires_expiry_after_the_latest_possible_interval_end() {
+        let mut book = book_with_uncertainty(1, 10);
+        let mut request = request("r1", "robot-1", 100, 200, 210, 1);
+        request.clock_uncertainty_ms = 10;
+        assert_eq!(
+            book.reserve(request, 50),
+            Err(ReservationError::ExpiryBeforeEnd)
+        );
+    }
+
+    #[test]
+    fn uncertainty_cannot_make_a_past_start_appear_future() {
+        let mut book = book_with_uncertainty(1, 10);
+        let mut request = request("r1", "robot-1", 55, 100, 130, 1);
+        request.clock_uncertainty_ms = 10;
+        assert_eq!(
+            book.reserve(request, 50),
             Err(ReservationError::InvalidInterval)
         );
     }
