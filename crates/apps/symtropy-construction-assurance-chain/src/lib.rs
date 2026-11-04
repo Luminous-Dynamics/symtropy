@@ -84,6 +84,48 @@ fn stage_is_ancestor(stage_id: &str, current: &Value, by_id: &HashMap<String, us
     false
 }
 
+fn validate_stage_dispositions(stages: &[Value]) -> Result<(), String> {
+    for stage in stages {
+        let id = text(stage, "stage_id", "stage")?;
+        let kind = text(stage, "stage_kind", &format!("stage[{id}]"))?;
+        let disposition = text(stage, "expected_disposition", &format!("stage[{id}]"))?;
+        let allowed = match kind {
+            "layout_input_admission" => matches!(
+                disposition,
+                "admissible_for_named_layout_input" | "inadmissible" | "indeterminate" | "not_evaluated"
+            ),
+            "observation_evaluation" => matches!(
+                disposition,
+                "verified_clear" | "occupied_or_changed" | "unknown_or_unobserved" | "conflicting"
+            ),
+            "worksite_epoch_transition" => matches!(
+                disposition,
+                "active" | "requalification_required" | "safe_hold" | "context_stale" | "conflicting" | "aborted"
+            ),
+            "qualification_lease" => matches!(
+                disposition,
+                "active" | "requalification_required" | "safe_hold" | "context_stale" | "aborted"
+            ),
+            "command_authorization" => matches!(disposition, "authorized" | "rejected"),
+            "physical_outcome_receipt" => matches!(
+                disposition,
+                "measured" | "indeterminate" | "not_evaluated"
+            ),
+            "claim_admissibility" => matches!(
+                disposition,
+                "admissible_for_named_claim" | "inadmissible_for_named_claim" | "indeterminate" | "not_evaluated"
+            ),
+            other => return Err(format!("stage[{id}] has unsupported stage kind {other}")),
+        };
+        if !allowed {
+            return Err(format!(
+                "stage[{id}] disposition {disposition} is not valid for stage kind {kind}"
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn validate_stage_graph(stages: &[Value]) -> Result<(HashMap<String, usize>, usize), String> {
     if stages.is_empty() {
         return Err("scenario must contain at least one stage".to_owned());
@@ -329,6 +371,7 @@ pub fn validate_scenario(raw: &str) -> Result<ScenarioSummary, String> {
     }
     let scenario_id = text(&value, "scenario_id", "scenario")?.to_owned();
     let stages = array(&value, "stages", "scenario")?;
+    validate_stage_dispositions(stages)?;
     let (by_id, stage_count) = validate_stage_graph(stages)?;
     let external_input_count = validate_artifact_lineage(stages, &by_id)?;
     validate_commands(&value, stages)?;
@@ -349,6 +392,13 @@ pub fn validate_scenario(raw: &str) -> Result<ScenarioSummary, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stage_disposition_must_match_stage_kind() {
+        let mut scenario: Value = serde_json::from_str(VALID).expect("valid scenario JSON");
+        scenario["stages"][1]["expected_disposition"] = serde_json::json!("authorized");
+        assert!(validate_scenario(&scenario.to_string()).is_err());
+    }
 
     #[test]
     fn valid_synthetic_chain_is_consistent() {
