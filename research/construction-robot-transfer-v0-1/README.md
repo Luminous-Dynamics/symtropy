@@ -96,8 +96,11 @@ No composite score may hide a false accepted unit, a shift in denominator, adapt
 ## V0.1 evaluator
 
 The dependency-free Rust core checks:
-- source/target split leakage by declared dimension;
-- target adaptation/evaluation work-item overlap;
+- source/target split leakage by declared dimension and source-to-target work-item separation;
+- target adaptation work items are disjoint from target evaluation tasks;
+- actual calibration/engineering/operator/inspection effort does not exceed separately declared budgets;
+- accepted, rejected, uninspected and unresolved terminal dispositions do not exceed attempted units;
+- target adaptation/evaluation work-item overlap, source/target work-item overlap and separately budgeted versus actual adaptation effort;
 - accepted/inspected/attempted/planned count invariants;
 - task-family, functional-unit and acceptance-profile matching before transfer-retention calculation;
 - zero-denominator handling as not estimable;
