@@ -1315,6 +1315,7 @@ mod tests {
                 protocol_id: "protocol-active-probe".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
             InterventionAction {
                 id: "acquisition-reference-calibration".to_owned(),
@@ -1322,6 +1323,7 @@ mod tests {
                 protocol_id: "protocol-reference-calibration".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
             InterventionAction {
                 id: "movement-afferent-gate".to_owned(),
@@ -1329,6 +1331,7 @@ mod tests {
                 protocol_id: "protocol-movement-gate".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
             InterventionAction {
                 id: "position-afferent-perturbation".to_owned(),
@@ -1336,6 +1339,7 @@ mod tests {
                 protocol_id: "protocol-position-perturbation".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
             InterventionAction {
                 id: "vibration-afferent-perturbation".to_owned(),
@@ -1343,6 +1347,7 @@ mod tests {
                 protocol_id: "protocol-vibration-perturbation".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
             InterventionAction {
                 id: "contact-load-perturbation".to_owned(),
@@ -1350,6 +1355,31 @@ mod tests {
                 protocol_id: "protocol-contact-load".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
+            },
+            InterventionAction {
+                id: "passive-movement-probe".to_owned(),
+                kind: InterventionKind::PassiveMovementProbe,
+                protocol_id: "protocol-passive-probe".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+                presynaptic_inhibition_target: None,
+            },
+            InterventionAction {
+                id: "descending-inhibition-engage".to_owned(),
+                kind: InterventionKind::DescendingPathwayModulation,
+                protocol_id: "protocol-descending-engage".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+                presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Engaged),
+            },
+            InterventionAction {
+                id: "descending-inhibition-release".to_owned(),
+                kind: InterventionKind::DescendingPathwayModulation,
+                protocol_id: "protocol-descending-release".to_owned(),
+                protocol_source_manifest_id: "synthetic-protocols".to_owned(),
+                cost_units: 1,
+                presynaptic_inhibition_target: Some(PresynapticMovementInhibition::Disinhibited),
             },
             InterventionAction {
                 id: "washout-carryover".to_owned(),
@@ -1357,6 +1387,7 @@ mod tests {
                 protocol_id: "protocol-washout".to_owned(),
                 protocol_source_manifest_id: "synthetic-protocols".to_owned(),
                 cost_units: 1,
+                presynaptic_inhibition_target: None,
             },
         ];
         let observations = vec![
@@ -1392,6 +1423,14 @@ mod tests {
                 id: "washout-cleared".to_owned(),
                 kind: ObservationKind::WashoutResponse,
             },
+            Observation {
+                id: "movement-presynaptic-inhibited".to_owned(),
+                kind: ObservationKind::MovementFeedback,
+            },
+            Observation {
+                id: "movement-presynaptic-released".to_owned(),
+                kind: ObservationKind::MovementFeedback,
+            },
         ];
 
         let mut initial_belief = vec![
@@ -1406,6 +1445,8 @@ mod tests {
                             && sensor.vibration_afferent == ChannelState::Intact
                             && sensor.contact_feedback == ChannelState::Intact
                             && sensor.acquisition == AcquisitionState::PositiveOffset
+                            && sensor.presynaptic_movement_inhibition
+                                == PresynapticMovementInhibition::Disinhibited
                     })
                     .unwrap()
                     .id
@@ -1423,6 +1464,8 @@ mod tests {
                             && sensor.vibration_afferent == ChannelState::Intact
                             && sensor.contact_feedback == ChannelState::Intact
                             && sensor.acquisition == AcquisitionState::Calibrated
+                            && sensor.presynaptic_movement_inhibition
+                                == PresynapticMovementInhibition::Disinhibited
                     })
                     .unwrap()
                     .id
@@ -1440,8 +1483,24 @@ mod tests {
                         let mut next_physical = physical.id.clone();
                         let mut next_sensor = sensor.clone();
                         let observation_id = match action.kind {
-                            InterventionKind::ActiveMovementProbe
-                            | InterventionKind::PassiveMovementProbe => {
+                            InterventionKind::ActiveMovementProbe => {
+                                next_sensor.presynaptic_movement_inhibition =
+                                    PresynapticMovementInhibition::Engaged;
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
+                                let physical_bit = usize::from(physical.id == "swing-loaded");
+                                let bias_bit = usize::from(
+                                    sensor.acquisition == AcquisitionState::PositiveOffset,
+                                );
+                                if physical_bit ^ bias_bit == 0 {
+                                    "signal-low"
+                                } else {
+                                    "signal-high"
+                                }
+                            }
+                            InterventionKind::PassiveMovementProbe => {
+                                next_sensor.presynaptic_movement_inhibition =
+                                    PresynapticMovementInhibition::Disinhibited;
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 let physical_bit = usize::from(physical.id == "swing-loaded");
                                 let bias_bit = usize::from(
                                     sensor.acquisition == AcquisitionState::PositiveOffset,
@@ -1454,50 +1513,22 @@ mod tests {
                             }
                             InterventionKind::AcquisitionReferenceCalibration => {
                                 next_sensor.acquisition = AcquisitionState::Calibrated;
-                                next_sensor.id = format!(
-                                    "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}",
-                                    next_sensor.position_afferent,
-                                    next_sensor.movement_afferent,
-                                    next_sensor.vibration_afferent,
-                                    next_sensor.contact_feedback,
-                                    next_sensor.acquisition
-                                );
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 "reference-calibrated"
                             }
                             InterventionKind::MovementAfferentGate => {
                                 next_sensor.movement_afferent = ChannelState::Gated;
-                                next_sensor.id = format!(
-                                    "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}",
-                                    next_sensor.position_afferent,
-                                    next_sensor.movement_afferent,
-                                    next_sensor.vibration_afferent,
-                                    next_sensor.contact_feedback,
-                                    next_sensor.acquisition
-                                );
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 "movement-gated"
                             }
                             InterventionKind::PositionAfferentPerturbation => {
                                 next_sensor.position_afferent = ChannelState::Gated;
-                                next_sensor.id = format!(
-                                    "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}",
-                                    next_sensor.position_afferent,
-                                    next_sensor.movement_afferent,
-                                    next_sensor.vibration_afferent,
-                                    next_sensor.contact_feedback,
-                                    next_sensor.acquisition
-                                );
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 "position-perturbed"
                             }
                             InterventionKind::VibrationAfferentPerturbation => {
                                 next_sensor.vibration_afferent = ChannelState::Attenuated;
-                                next_sensor.id = format!(
-                                    "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}",
-                                    next_sensor.position_afferent,
-                                    next_sensor.movement_afferent,
-                                    next_sensor.vibration_afferent,
-                                    next_sensor.contact_feedback,
-                                    next_sensor.acquisition
-                                );
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 "vibration-perturbed"
                             }
                             InterventionKind::ContactLoadPerturbation => {
@@ -1508,7 +1539,20 @@ mod tests {
                                 };
                                 "load-shifted"
                             }
-                            InterventionKind::DescendingPathwayModulation => "load-shifted",
+                            InterventionKind::DescendingPathwayModulation => {
+                                next_sensor.presynaptic_movement_inhibition = action
+                                    .presynaptic_inhibition_target
+                                    .expect("compiler validates descending modulation target");
+                                next_sensor.id = sensor_state_semantic_id(&next_sensor);
+                                match next_sensor.presynaptic_movement_inhibition {
+                                    PresynapticMovementInhibition::Engaged => {
+                                        "movement-presynaptic-inhibited"
+                                    }
+                                    PresynapticMovementInhibition::Disinhibited => {
+                                        "movement-presynaptic-released"
+                                    }
+                                }
+                            },
                             InterventionKind::Washout => {
                                 next_physical = if physical.carryover == PhysicalCarryover::Baseline
                                 {
@@ -1569,7 +1613,7 @@ mod tests {
             compiled.source_manifests[0].unknown_endpoints[0].raw_endpoint_id,
             "raw-untyped-endpoint-17"
         );
-        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 32 * 7);
+        assert_eq!(compiled.kernel.rows.len(), 2 * 2 * 64 * 10);
         assert_eq!(compiled.transition_rows.len(), compiled.kernel.rows.len());
         compiled.kernel.validate().unwrap();
     }
