@@ -617,13 +617,15 @@ fn validate_qualified(run: &Value) -> Result<RunMetrics, Vec<String>> {
         );
     }
     if let Some(digests) = artifact_digests.get("ESTIMATOR_OUTPUT") {
-        for (index, estimate) in estimates.unwrap_or(&Vec::new()).iter().enumerate() {
-            if !string_at(estimate, &["estimate_artifact_sha256"])
-                .is_some_and(|digest| digests.contains(digest))
-            {
-                errors.push(format!(
-                    "estimates[{index}].estimate_artifact_sha256: digest must bind an ESTIMATOR_OUTPUT artifact"
-                ));
+        if let Some(records) = estimates {
+            for (index, estimate) in records.iter().enumerate() {
+                if !string_at(estimate, &["estimate_artifact_sha256"])
+                    .is_some_and(|digest| digests.contains(digest))
+                {
+                    errors.push(format!(
+                        "estimates[{index}].estimate_artifact_sha256: digest must bind an ESTIMATOR_OUTPUT artifact"
+                    ));
+                }
             }
         }
     } else {
@@ -1024,6 +1026,32 @@ mod tests {
         }
         let result = evaluate_batch(&metrics);
         assert!(result.iter().any(|message| message.contains("at least 30 are required")));
+    }
+
+
+    #[test]
+    fn does_not_pool_holdout_records_from_different_batches() {
+        let mut metrics = Vec::new();
+        for index in 0..30 {
+            metrics.push(RunMetrics {
+                run_id: format!("RUN-{index:03}"),
+                split: "HOLDOUT".into(),
+                operating_point_id: format!("POINT-{index:03}"),
+                batch_id: if index < 15 { "BATCH-A" } else { "BATCH-B" }.into(),
+                profile_id: "PROFILE-A".into(),
+                system_id: "SYSTEM-A".into(),
+                identification_method: "MULTISINE_PHASE_PERTURBATION".into(),
+                errors: PARAMETERS
+                    .iter()
+                    .map(|parameter| ((*parameter).to_owned(), 1.0))
+                    .collect(),
+                zvs_coverage_pct: 99.9,
+                excitation_overhead_pct: 0.1,
+                p99_latency_ms: 1.0,
+            });
+        }
+        let result = evaluate_batch(&metrics);
+        assert!(result.iter().any(|message| message.contains("AGGREGATE NOT COMPUTED")));
     }
 
     #[test]
