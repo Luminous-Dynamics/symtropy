@@ -4,8 +4,9 @@
 //! Explicit energy-balance contracts for declared open-system boundaries.
 //!
 //! This module is deliberately separate from the legacy per-tick
-//! `ThermodynamicLedger`. It evaluates the first-law balance only when the
-//! caller supplies every required term for one declared system boundary.
+//! `ThermodynamicLedger`. It evaluates a first-law balance only when the caller
+//! supplies both stored-energy endpoints and an explicit inventory of every
+//! energy flow crossing one declared system boundary.
 //!
 //! The sign convention is:
 //! - work and heat entering the boundary are positive inputs;
@@ -13,23 +14,20 @@
 //! - stored-energy change is final minus initial.
 //!
 //! Internal transfers between subsystems wholly inside the declared boundary
-//! cancel in the total-system balance. They must not be counted again as
-//! external boundary flows. If an energy carrier crosses the boundary, it
-//! must be represented by the appropriate work or heat flow.
-//!
-//! This is an accounting validator, not a physical-model validator. It cannot
-//! establish that the caller chose the correct boundary, measured every term,
-//! or used a valid constitutive model.
+//! cancel in the total-system balance and must not be recorded as external
+//! flows. Reservoir IDs identify the external source or sink for each boundary
+//! crossing. This evaluator is an accounting validator, not a physical-model
+//! validator: it cannot establish that the boundary or measurement inventory
+//! is physically complete.
+
+use std::collections::{BTreeSet, HashSet};
 
 /// Energy terms required to evaluate a complete first-law balance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnergyBalanceTerm {
     InitialStoredEnergy,
     FinalStoredEnergy,
-    WorkIntoSystem,
-    WorkOutOfSystem,
-    HeatIntoSystem,
-    HeatOutOfSystem,
+    BoundaryFlows,
 }
 
 impl EnergyBalanceTerm {
@@ -38,12 +36,38 @@ impl EnergyBalanceTerm {
         match self {
             Self::InitialStoredEnergy => "initial_stored_energy_j",
             Self::FinalStoredEnergy => "final_stored_energy_j",
-            Self::WorkIntoSystem => "work_into_system_j",
-            Self::WorkOutOfSystem => "work_out_of_system_j",
-            Self::HeatIntoSystem => "heat_into_system_j",
-            Self::HeatOutOfSystem => "heat_out_of_system_j",
+            Self::BoundaryFlows => "boundary_flows",
         }
     }
+}
+
+/// Energy carrier crossing the declared system boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum EnergyCarrier {
+    Work,
+    Heat,
+}
+
+/// Direction of an energy flow relative to the declared boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FlowDirection {
+    IntoBoundary,
+    OutOfBoundary,
+}
+
+/// One explicit energy flow crossing the declared system boundary.
+///
+/// `flow_id` must be unique within the evaluated interval. `reservoir_id`
+/// identifies the external source or sink. `energy_j` is a non-negative
+/// magnitude; direction is represented separately and must not be encoded by
+/// a negative amount.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundaryEnergyFlow {
+    pub flow_id: String,
+    pub reservoir_id: String,
+    pub carrier: EnergyCarrier,
+    pub direction: FlowDirection,
+    pub energy_j: f64,
 }
 
 /// Tolerance used to classify an energy-balance residual.
@@ -72,15 +96,15 @@ impl EnergyBalanceTolerance {
             relative,
         })
     }
-
 }
 
 /// Complete or partial first-law data for one declared system boundary.
 ///
-/// Every optional term is semantically meaningful: `None` means that the
+/// Every optional field is semantically meaningful: `None` means that the
 /// quantity was not supplied or is unknown; `Some(0.0)` means it was
-/// explicitly accounted for and measured/modelled as zero. Missing terms
-/// therefore produce `Incomplete`, never an implicit zero.
+/// explicitly accounted for and measured/modelled as zero. For flow inventory,
+/// `Some(vec![])` explicitly declares that no boundary-crossing flows occurred.
+/// Missing values produce `Incomplete`, never an implicit zero.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenSystemEnergyBalance {
     /// Non-empty identifier for the exact system boundary being evaluated.
@@ -89,14 +113,8 @@ pub struct OpenSystemEnergyBalance {
     pub initial_stored_energy_j: Option<f64>,
     /// Total stored energy inside the boundary at the end, in joules.
     pub final_stored_energy_j: Option<f64>,
-    /// Work crossing into the boundary during the interval, in joules.
-    pub work_into_system_j: Option<f64>,
-    /// Work crossing out of the boundary during the interval, in joules.
-    pub work_out_of_system_j: Option<f64>,
-    /// Heat crossing into the boundary during the interval, in joules.
-    pub heat_into_system_j: Option<f64>,
-    /// Heat crossing out of the boundary during the interval, in joules.
-    pub heat_out_of_system_j: Option<f64>,
+    /// Explicit inventory of every work/heat flow crossing the boundary.
+    pub boundary_flows: Option<Vec<BoundaryEnergyFlow>>,
 }
 
 /// Classification of a balance record.
@@ -119,7 +137,11 @@ pub struct EnergyBalanceReport {
     pub status: EnergyBalanceStatus,
     /// Final stored energy minus initial stored energy, in joules.
     pub delta_stored_energy_j: Option<f64>,
-    /// Net boundary energy input: work-in + heat-in - work-out - heat-out.
+    /// Net work entering the boundary, in joules.
+    pub net_work_j: Option<f64>,
+    /// Net heat entering the boundary, in joules.
+    pub net_heat_j: Option<f64>,
+    /// Net boundary energy input: net work + net heat.
     pub net_boundary_energy_j: Option<f64>,
     /// Residual: ΔE_stored - net_boundary_energy.
     pub residual_j: Option<f64>,
@@ -127,6 +149,10 @@ pub struct EnergyBalanceReport {
     pub allowed_residual_j: Option<f64>,
     /// Scale-normalized absolute residual. Zero when every energy scale is zero.
     pub normalized_residual: Option<f64>,
+    /// Number of explicit boundary flows in the evaluated interval.
+    pub flow_count: Option<usize>,
+    /// Sorted unique external reservoir identifiers in the flow inventory.
+    pub reservoir_ids: Option<Vec<String>>,
 }
 
 /// Invalid input supplied to the open-system balance evaluator.
@@ -136,7 +162,19 @@ pub enum EnergyBalanceError {
     InvalidEnergyValue {
         field: EnergyBalanceTerm,
     },
+    InvalidFlowIdentity {
+        field: &'static str,
+    },
+    DuplicateFlowId {
+        flow_id: String,
+    },
+    InvalidFlowAmount {
+        flow_id: String,
+    },
     InvalidTolerance {
+        field: &'static str,
+    },
+    OverflowedBalance {
         field: &'static str,
     },
 }
@@ -146,11 +184,11 @@ impl OpenSystemEnergyBalance {
     ///
     /// Complete balances use:
     ///
-    /// `ΔE_stored = W_into - W_out + Q_into - Q_out`
+    /// `ΔE_stored = Σ(W_into - W_out) + Σ(Q_into - Q_out)`
     ///
     /// and residual:
     ///
-    /// `r = ΔE_stored - (W_into - W_out + Q_into - Q_out)`.
+    /// `r = ΔE_stored - (net_work + net_heat)`.
     ///
     /// Stored-energy values may be signed because potential-energy reference
     /// conventions vary. Boundary-flow magnitudes and tolerances must be
@@ -167,24 +205,44 @@ impl OpenSystemEnergyBalance {
         let required = [
             (EnergyBalanceTerm::InitialStoredEnergy, self.initial_stored_energy_j),
             (EnergyBalanceTerm::FinalStoredEnergy, self.final_stored_energy_j),
-            (EnergyBalanceTerm::WorkIntoSystem, self.work_into_system_j),
-            (EnergyBalanceTerm::WorkOutOfSystem, self.work_out_of_system_j),
-            (EnergyBalanceTerm::HeatIntoSystem, self.heat_into_system_j),
-            (EnergyBalanceTerm::HeatOutOfSystem, self.heat_out_of_system_j),
+            (
+                EnergyBalanceTerm::BoundaryFlows,
+                self.boundary_flows.as_ref().map(|_| 0.0),
+            ),
         ];
 
-        // Validate every supplied value even when other terms are missing.
-        // An incomplete record must not hide malformed evidence.
+        // Validate all supplied values even when another required term is
+        // missing. Incomplete records must not hide malformed evidence.
         for (term, value) in required {
             if let Some(value) = value {
-                if !value.is_finite() {
-                    return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
-                }
-                if term != EnergyBalanceTerm::InitialStoredEnergy
-                    && term != EnergyBalanceTerm::FinalStoredEnergy
-                    && value < 0.0
+                if !value.is_finite()
+                    && term != EnergyBalanceTerm::BoundaryFlows
                 {
                     return Err(EnergyBalanceError::InvalidEnergyValue { field: term });
+                }
+            }
+        }
+
+        if let Some(flows) = &self.boundary_flows {
+            let mut flow_ids = HashSet::with_capacity(flows.len());
+            for flow in flows {
+                if flow.flow_id.trim().is_empty() {
+                    return Err(EnergyBalanceError::InvalidFlowIdentity { field: "flow_id" });
+                }
+                if flow.reservoir_id.trim().is_empty() {
+                    return Err(EnergyBalanceError::InvalidFlowIdentity {
+                        field: "reservoir_id",
+                    });
+                }
+                if !flow.energy_j.is_finite() || flow.energy_j < 0.0 {
+                    return Err(EnergyBalanceError::InvalidFlowAmount {
+                        flow_id: flow.flow_id.clone(),
+                    });
+                }
+                if !flow_ids.insert(flow.flow_id.as_str()) {
+                    return Err(EnergyBalanceError::DuplicateFlowId {
+                        flow_id: flow.flow_id.clone(),
+                    });
                 }
             }
         }
@@ -195,39 +253,62 @@ impl OpenSystemEnergyBalance {
             .collect();
 
         if !missing_terms.is_empty() {
-            return Ok(EnergyBalanceReport {
-                boundary_id: self.boundary_id.clone(),
-                status: EnergyBalanceStatus::Incomplete { missing_terms },
-                delta_stored_energy_j: None,
-                net_boundary_energy_j: None,
-                residual_j: None,
-                allowed_residual_j: None,
-                normalized_residual: None,
-            });
+            return Ok(incomplete_report(&self.boundary_id, missing_terms));
         }
 
         let initial = self.initial_stored_energy_j.expect("validated above");
         let final_energy = self.final_stored_energy_j.expect("validated above");
-        let work_in = self.work_into_system_j.expect("validated above");
-        let work_out = self.work_out_of_system_j.expect("validated above");
-        let heat_in = self.heat_into_system_j.expect("validated above");
-        let heat_out = self.heat_out_of_system_j.expect("validated above");
+        let flows = self.boundary_flows.as_deref().expect("validated above");
+
+        let mut net_work = 0.0;
+        let mut net_heat = 0.0;
+        let mut gross_boundary_flow = 0.0;
+        let mut reservoir_ids = BTreeSet::new();
+
+        for flow in flows {
+            let signed_energy = match flow.direction {
+                FlowDirection::IntoBoundary => flow.energy_j,
+                FlowDirection::OutOfBoundary => -flow.energy_j,
+            };
+
+            match flow.carrier {
+                EnergyCarrier::Work => net_work += signed_energy,
+                EnergyCarrier::Heat => net_heat += signed_energy,
+            }
+            gross_boundary_flow += flow.energy_j;
+            reservoir_ids.insert(flow.reservoir_id.clone());
+
+            if !net_work.is_finite() || !net_heat.is_finite() || !gross_boundary_flow.is_finite() {
+                return Err(EnergyBalanceError::OverflowedBalance {
+                    field: "boundary_flows",
+                });
+            }
+        }
 
         let delta_stored = final_energy - initial;
-        let gross_boundary_flow = work_in + work_out + heat_in + heat_out;
-        let net_boundary = work_in + heat_in - work_out - heat_out;
+        let net_boundary = net_work + net_heat;
         let residual = delta_stored - net_boundary;
         let scale = delta_stored.abs().max(gross_boundary_flow);
         let allowed = tolerance.absolute_j + tolerance.relative * scale;
 
-        if !delta_stored.is_finite()
-            || !gross_boundary_flow.is_finite()
-            || !net_boundary.is_finite()
-            || !residual.is_finite()
-            || !allowed.is_finite()
-        {
-            return Err(EnergyBalanceError::InvalidEnergyValue {
-                field: EnergyBalanceTerm::FinalStoredEnergy,
+        if !delta_stored.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "delta_stored_energy_j",
+            });
+        }
+        if !net_boundary.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "net_boundary_energy_j",
+            });
+        }
+        if !residual.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "residual_j",
+            });
+        }
+        if !allowed.is_finite() {
+            return Err(EnergyBalanceError::OverflowedBalance {
+                field: "allowed_residual_j",
             });
         }
 
@@ -245,11 +326,34 @@ impl OpenSystemEnergyBalance {
                 EnergyBalanceStatus::Imbalanced
             },
             delta_stored_energy_j: Some(delta_stored),
+            net_work_j: Some(net_work),
+            net_heat_j: Some(net_heat),
             net_boundary_energy_j: Some(net_boundary),
             residual_j: Some(residual),
             allowed_residual_j: Some(allowed),
             normalized_residual: Some(normalized_residual),
+            flow_count: Some(flows.len()),
+            reservoir_ids: Some(reservoir_ids.into_iter().collect()),
         })
+    }
+}
+
+fn incomplete_report(
+    boundary_id: &str,
+    missing_terms: Vec<EnergyBalanceTerm>,
+) -> EnergyBalanceReport {
+    EnergyBalanceReport {
+        boundary_id: boundary_id.to_string(),
+        status: EnergyBalanceStatus::Incomplete { missing_terms },
+        delta_stored_energy_j: None,
+        net_work_j: None,
+        net_heat_j: None,
+        net_boundary_energy_j: None,
+        residual_j: None,
+        allowed_residual_j: None,
+        normalized_residual: None,
+        flow_count: None,
+        reservoir_ids: None,
     }
 }
 
@@ -271,22 +375,32 @@ fn validate_tolerance(
 mod tests {
     use super::*;
 
+    fn flow(
+        flow_id: &str,
+        reservoir_id: &str,
+        carrier: EnergyCarrier,
+        direction: FlowDirection,
+        energy_j: f64,
+    ) -> BoundaryEnergyFlow {
+        BoundaryEnergyFlow {
+            flow_id: flow_id.to_string(),
+            reservoir_id: reservoir_id.to_string(),
+            carrier,
+            direction,
+            energy_j,
+        }
+    }
+
     fn complete_balance(
         initial: f64,
         final_energy: f64,
-        work_in: f64,
-        work_out: f64,
-        heat_in: f64,
-        heat_out: f64,
+        flows: Vec<BoundaryEnergyFlow>,
     ) -> OpenSystemEnergyBalance {
         OpenSystemEnergyBalance {
             boundary_id: "test-system".to_string(),
             initial_stored_energy_j: Some(initial),
             final_stored_energy_j: Some(final_energy),
-            work_into_system_j: Some(work_in),
-            work_out_of_system_j: Some(work_out),
-            heat_into_system_j: Some(heat_in),
-            heat_out_of_system_j: Some(heat_out),
+            boundary_flows: Some(flows),
         }
     }
 
@@ -299,26 +413,45 @@ mod tests {
 
     #[test]
     fn closed_system_with_no_flows_is_balanced() {
-        let report = complete_balance(12.0, 12.0, 0.0, 0.0, 0.0, 0.0)
+        let report = complete_balance(12.0, 12.0, vec![])
             .evaluate(zero_tolerance())
             .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
         assert_eq!(report.residual_j, Some(0.0));
+        assert_eq!(report.flow_count, Some(0));
+        assert_eq!(report.reservoir_ids, Some(vec![]));
     }
 
     #[test]
     fn external_work_and_heat_close_the_balance() {
-        let report = complete_balance(10.0, 23.0, 8.0, 1.0, 7.0, 1.0)
-            .evaluate(zero_tolerance())
-            .unwrap();
+        let report = complete_balance(
+            10.0,
+            23.0,
+            vec![
+                flow("w-in", "motor", EnergyCarrier::Work, FlowDirection::IntoBoundary, 8.0),
+                flow("w-out", "load", EnergyCarrier::Work, FlowDirection::OutOfBoundary, 1.0),
+                flow("q-in", "heater", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 7.0),
+                flow("q-out", "ambient", EnergyCarrier::Heat, FlowDirection::OutOfBoundary, 1.0),
+            ],
+        )
+        .evaluate(zero_tolerance())
+        .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
         assert_eq!(report.delta_stored_energy_j, Some(13.0));
+        assert_eq!(report.net_work_j, Some(7.0));
+        assert_eq!(report.net_heat_j, Some(6.0));
         assert_eq!(report.net_boundary_energy_j, Some(13.0));
+        assert_eq!(report.reservoir_ids, Some(vec![
+            "ambient".to_string(),
+            "heater".to_string(),
+            "load".to_string(),
+            "motor".to_string(),
+        ]));
     }
 
     #[test]
-    fn zero_inputs_and_positive_stored_energy_gain_fail_closed() {
-        let report = complete_balance(0.0, 10.0, 0.0, 0.0, 0.0, 0.0)
+    fn zero_flows_and_positive_stored_energy_gain_fail_closed() {
+        let report = complete_balance(0.0, 10.0, vec![])
             .evaluate(zero_tolerance())
             .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
@@ -327,76 +460,143 @@ mod tests {
 
     #[test]
     fn stored_energy_loss_accounts_for_heat_outflow() {
-        let report = complete_balance(10.0, 0.0, 0.0, 0.0, 0.0, 10.0)
-            .evaluate(zero_tolerance())
-            .unwrap();
+        let report = complete_balance(
+            10.0,
+            0.0,
+            vec![flow(
+                "q-out",
+                "ambient",
+                EnergyCarrier::Heat,
+                FlowDirection::OutOfBoundary,
+                10.0,
+            )],
+        )
+        .evaluate(zero_tolerance())
+        .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
         assert_eq!(report.residual_j, Some(0.0));
     }
 
     #[test]
     fn positive_outflow_without_stored_energy_or_input_is_imbalanced() {
-        let report = complete_balance(0.0, 0.0, 0.0, 0.0, 0.0, 10.0)
-            .evaluate(zero_tolerance())
-            .unwrap();
+        let report = complete_balance(
+            0.0,
+            0.0,
+            vec![flow(
+                "q-out",
+                "ambient",
+                EnergyCarrier::Heat,
+                FlowDirection::OutOfBoundary,
+                10.0,
+            )],
+        )
+        .evaluate(zero_tolerance())
+        .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Imbalanced);
         assert_eq!(report.residual_j, Some(10.0));
     }
 
     #[test]
-    fn invalid_supplied_values_are_not_hidden_by_missing_terms() {
-        let mut record = complete_balance(0.0, 10.0, f64::NAN, 0.0, 0.0, 0.0);
-        record.heat_out_of_system_j = None;
-        assert_eq!(
-            record.evaluate(zero_tolerance()),
-            Err(EnergyBalanceError::InvalidEnergyValue {
-                field: EnergyBalanceTerm::WorkIntoSystem,
-            })
-        );
-    }
-
-    #[test]
     fn missing_terms_are_incomplete_not_implicit_zero() {
-        let mut record = complete_balance(0.0, 10.0, 0.0, 0.0, 0.0, 0.0);
-        record.heat_out_of_system_j = None;
-
+        let record = OpenSystemEnergyBalance {
+            boundary_id: "test-system".to_string(),
+            initial_stored_energy_j: Some(0.0),
+            final_stored_energy_j: Some(10.0),
+            boundary_flows: None,
+        };
         let report = record.evaluate(zero_tolerance()).unwrap();
         assert_eq!(
             report.status,
             EnergyBalanceStatus::Incomplete {
-                missing_terms: vec![EnergyBalanceTerm::HeatOutOfSystem],
+                missing_terms: vec![EnergyBalanceTerm::BoundaryFlows],
             }
         );
         assert_eq!(report.residual_j, None);
     }
 
     #[test]
-    fn negative_boundary_flow_is_rejected() {
-        let report = complete_balance(0.0, 0.0, -1.0, 0.0, 0.0, 0.0)
-            .evaluate(zero_tolerance());
+    fn malformed_flow_is_not_hidden_by_missing_stored_energy() {
+        let record = OpenSystemEnergyBalance {
+            boundary_id: "test-system".to_string(),
+            initial_stored_energy_j: Some(0.0),
+            final_stored_energy_j: None,
+            boundary_flows: Some(vec![flow(
+                "bad-flow",
+                "reservoir",
+                EnergyCarrier::Heat,
+                FlowDirection::IntoBoundary,
+                f64::NAN,
+            )]),
+        };
         assert_eq!(
-            report,
-            Err(EnergyBalanceError::InvalidEnergyValue {
-                field: EnergyBalanceTerm::WorkIntoSystem,
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidFlowAmount {
+                flow_id: "bad-flow".to_string(),
             })
         );
     }
 
     #[test]
-    fn non_finite_values_are_rejected() {
-        let report = complete_balance(0.0, f64::NAN, 0.0, 0.0, 0.0, 0.0)
-            .evaluate(zero_tolerance());
+    fn duplicate_flow_ids_are_rejected() {
+        let record = complete_balance(
+            0.0,
+            2.0,
+            vec![
+                flow("same", "source-a", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0),
+                flow("same", "source-b", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0),
+            ],
+        );
         assert_eq!(
-            report,
-            Err(EnergyBalanceError::InvalidEnergyValue {
-                field: EnergyBalanceTerm::FinalStoredEnergy,
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::DuplicateFlowId {
+                flow_id: "same".to_string(),
             })
         );
+    }
+
+    #[test]
+    fn unnamed_flow_or_reservoir_is_rejected() {
+        let no_flow_id = complete_balance(
+            0.0,
+            1.0,
+            vec![flow("", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0)],
+        );
+        assert_eq!(
+            no_flow_id.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidFlowIdentity { field: "flow_id" })
+        );
+
+        let no_reservoir_id = complete_balance(
+            0.0,
+            1.0,
+            vec![flow("flow", " ", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0)],
+        );
+        assert_eq!(
+            no_reservoir_id.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::InvalidFlowIdentity {
+                field: "reservoir_id",
+            })
+        );
+    }
+
+    #[test]
+    fn negative_and_non_finite_flow_amounts_are_rejected() {
+        for energy_j in [-1.0, f64::NAN, f64::INFINITY] {
+            let record = complete_balance(
+                0.0,
+                1.0,
+                vec![flow("bad", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, energy_j)],
+            );
+            assert!(matches!(
+                record.evaluate(zero_tolerance()),
+                Err(EnergyBalanceError::InvalidFlowAmount { .. })
+            ));
+        }
     }
 
     #[test]
     fn invalid_boundary_and_tolerances_are_rejected() {
-        let mut record = complete_balance(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let mut record = complete_balance(0.0, 0.0, vec![]);
         record.boundary_id = "  ".to_string();
         assert_eq!(
             record.evaluate(zero_tolerance()),
@@ -418,31 +618,50 @@ mod tests {
     #[test]
     fn relative_tolerance_scales_with_energy_magnitude() {
         let tolerance = EnergyBalanceTolerance::new(0.0, 1e-3).unwrap();
-        let small = complete_balance(0.0, 100.0, 100.05, 0.0, 0.0, 0.0)
-            .evaluate(tolerance)
-            .unwrap();
-        let large = complete_balance(0.0, 100_000.0, 100_050.0, 0.0, 0.0, 0.0)
-            .evaluate(tolerance)
-            .unwrap();
-
+        let small = complete_balance(
+            0.0,
+            100.0,
+            vec![flow("in", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 100.05)],
+        )
+        .evaluate(tolerance)
+        .unwrap();
+        let large = complete_balance(
+            0.0,
+            100_000.0,
+            vec![flow("in", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 100_050.0)],
+        )
+        .evaluate(tolerance)
+        .unwrap();
         assert_eq!(small.status, EnergyBalanceStatus::Balanced);
         assert_eq!(large.status, EnergyBalanceStatus::Balanced);
     }
 
     #[test]
-    fn overflowed_balance_is_rejected() {
-        let report = complete_balance(
-            -f64::MAX,
-            f64::MAX,
-            f64::MAX,
+    fn flow_sum_overflow_is_rejected() {
+        let record = complete_balance(
             0.0,
             0.0,
-            0.0,
-        )
-        .evaluate(zero_tolerance());
-        assert!(matches!(
-            report,
-            Err(EnergyBalanceError::InvalidEnergyValue { .. })
-        ));
+            vec![
+                flow("a", "source-a", EnergyCarrier::Heat, FlowDirection::IntoBoundary, f64::MAX),
+                flow("b", "source-b", EnergyCarrier::Heat, FlowDirection::IntoBoundary, f64::MAX),
+            ],
+        );
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::OverflowedBalance {
+                field: "boundary_flows",
+            })
+        );
+    }
+
+    #[test]
+    fn stored_energy_difference_overflow_is_rejected() {
+        let record = complete_balance(-f64::MAX, f64::MAX, vec![]);
+        assert_eq!(
+            record.evaluate(zero_tolerance()),
+            Err(EnergyBalanceError::OverflowedBalance {
+                field: "delta_stored_energy_j",
+            })
+        );
     }
 }
