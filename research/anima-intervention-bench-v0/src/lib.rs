@@ -2554,6 +2554,151 @@ mod tests {
         );
     }
 
+    fn multivariate_candidate(
+        intervention: &str,
+        cost: f64,
+        feasible: bool,
+        predictions: Vec<MultivariateOutcomeDistribution>,
+        priors: Vec<ModelFamilyPrior>,
+    ) -> MultivariateInterventionCandidate {
+        MultivariateInterventionCandidate {
+            intervention_id: intervention.to_string(),
+            cost_units: cost,
+            feasible,
+            predictions,
+            priors,
+        }
+    }
+
+    #[test]
+    fn multivariate_intervention_selector_prefers_covariance_discriminating_candidate() {
+        let informative = vec![
+            multivariate_distribution(
+                "positive-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.9], vec![0.9, 1.0]],
+            ),
+            multivariate_distribution(
+                "negative-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, -0.9], vec![-0.9, 1.0]],
+            ),
+        ];
+        let priors = equal_multivariate_priors(&informative);
+        let uninformative = vec![
+            multivariate_distribution(
+                "positive-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+            multivariate_distribution(
+                "negative-coupling",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+        ];
+        let ranked = rank_multivariate_interventions(
+            &[
+                multivariate_candidate(
+                    "nonselective-contact-noise",
+                    0.5,
+                    true,
+                    uninformative,
+                    priors.clone(),
+                ),
+                multivariate_candidate(
+                    "selective-phase-coupling-block",
+                    1.0,
+                    true,
+                    informative,
+                    priors,
+                ),
+            ],
+            3000,
+            113,
+            1.0e-6,
+        )
+        .unwrap();
+        assert_eq!(ranked.len(), 1);
+        assert_eq!(ranked[0].intervention_id, "selective-phase-coupling-block");
+        assert!(ranked[0].information_gain_lower_95_nats > 0.0);
+    }
+
+    #[test]
+    fn multivariate_intervention_selector_abstains_when_all_candidates_are_indistinguishable() {
+        let predictions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+        ];
+        let priors = equal_multivariate_priors(&predictions);
+        let candidate = multivariate_candidate(
+            "no-op-intervention",
+            1.0,
+            true,
+            predictions,
+            priors,
+        );
+        assert_eq!(
+            rank_multivariate_interventions(&[candidate], 1000, 7, 0.0),
+            Err(BenchError::NoDiscriminatingIntervention)
+        );
+    }
+
+    #[test]
+    fn multivariate_intervention_selector_rejects_frozen_prior_manifest_drift() {
+        let predictions = vec![
+            multivariate_distribution(
+                "model-a",
+                vec![0.0, 0.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+            multivariate_distribution(
+                "model-b",
+                vec![1.0, 1.0],
+                vec![vec![1.0, 0.2], vec![0.2, 1.0]],
+            ),
+        ];
+        let equal_priors = equal_multivariate_priors(&predictions);
+        let skewed_priors = vec![
+            ModelFamilyPrior {
+                model_family_id: "model-a".to_string(),
+                probability: 0.9,
+            },
+            ModelFamilyPrior {
+                model_family_id: "model-b".to_string(),
+                probability: 0.1,
+            },
+        ];
+        let candidates = [
+            multivariate_candidate(
+                "candidate-a",
+                1.0,
+                false,
+                predictions.clone(),
+                equal_priors,
+            ),
+            multivariate_candidate(
+                "candidate-b",
+                1.0,
+                true,
+                predictions,
+                skewed_priors,
+            ),
+        ];
+        assert_eq!(
+            rank_multivariate_interventions(&candidates, 1000, 9, 0.0),
+            Err(BenchError::InconsistentModelPriors)
+        );
+    }
+
     #[test]
     fn intervention_ranking_uses_information_gain_per_cost_and_excludes_infeasible() {
         let high = InterventionCandidate {
