@@ -467,7 +467,11 @@ fn score_candidate(
             .candidate_peak_absolute;
         if peak > limit.maximum_absolute_value {
             let ratio = peak / limit.maximum_absolute_value;
-            let excess = if ratio.is_finite() { ratio - 1.0 } else { f64::MAX };
+            let excess = if ratio.is_finite() {
+                ratio - 1.0
+            } else {
+                f64::MAX
+            };
             max_violation = max_violation.max(excess);
             violations.push(format!(
                 "PEAK_LIMIT_EXCEEDED:{}:{peak}:{}",
