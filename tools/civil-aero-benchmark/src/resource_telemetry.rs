@@ -191,8 +191,8 @@ fn report_canonical_bytes(report: &CgroupV2ResourceReport) -> Vec<u8> {
     ] {
         append_u64(&mut bytes, value);
     }
-    append_u64(bytes, report.cpu_core_hours_numerator_usec);
-    append_u64(bytes, report.cpu_core_hours_denominator_usec);
+    append_u64(&mut bytes, report.cpu_core_hours_numerator_usec);
+    append_u64(&mut bytes, report.cpu_core_hours_denominator_usec);
     match report.oom_group_kill_event_delta {
         Some(value) => {
             bytes.push(1);
