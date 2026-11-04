@@ -256,6 +256,7 @@ def main() -> int:
     metrics: dict[str, Any] = {}
     exit_code = None
     wall_seconds = None
+    timed_out = False
     cpu_user_seconds = None
     cpu_system_seconds = None
     task_metadata = None
@@ -372,7 +373,6 @@ def main() -> int:
 
         before = resource.getrusage(resource.RUSAGE_CHILDREN)
         started = time.perf_counter()
-        timed_out = False
         process = subprocess.Popen(
             command,
             cwd=root,
@@ -488,6 +488,7 @@ def main() -> int:
             "timed_out": timed_out,
             "process_exit_code": exit_code,
             "wall_seconds": wall_seconds,
+            "timed_out": timed_out,
             "cpu_user_seconds_measured": cpu_user_seconds,
             "cpu_system_seconds_measured": cpu_system_seconds,
             "peak_memory_bytes": None,
