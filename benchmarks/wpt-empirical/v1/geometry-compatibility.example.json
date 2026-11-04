@@ -67,7 +67,11 @@
     "method": "NOT_REPORTED",
     "source_doi": null,
     "source_locator": "NOT_RUN template",
-    "uncertainty_reported": false
+    "uncertainty_reported": false,
+    "uncertainty_method": "NOT_REPORTED",
+    "expanded_uncertainty_percent": null,
+    "coverage_factor": null,
+    "coverage_probability_percent": null
   },
   "qualification": "NOT_RUN",
   "notes": "Template only. Not a geometry measurement, compatibility assessment, certification or hardware test.",
