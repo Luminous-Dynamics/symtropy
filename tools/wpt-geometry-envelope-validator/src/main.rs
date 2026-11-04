@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use serde_json::Value;
+use std::collections::BTreeSet;
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -520,7 +521,10 @@ fn validate_record(record: &Value) -> Vec<String> {
         let short_samples = at(record, &["sampling", "short_circuit_sample_count"]).and_then(Value::as_u64);
         let total_samples = at(record, &["sampling", "inductance_sample_count"]).and_then(Value::as_u64);
         match (open_samples, short_samples, total_samples) {
-            (Some(open), Some(short), Some(total)) if open > 0 && short > 0 && open + short <= total => {}
+            (Some(open), Some(short), Some(total))
+                if open > 0
+                    && short > 0
+                    && open.checked_add(short).is_some_and(|sum| sum <= total) => {}
             _ => errors.push("sampling: qualified inductance evidence requires positive open- and short-circuit sample counts included in total samples".into()),
         }
         if !matches!(
@@ -575,12 +579,20 @@ fn validate_file(path: &str) -> Result<Vec<(String, Vec<String>)>, Box<dyn Error
     }
 
     let mut results = Vec::new();
+    let mut seen_ids = BTreeSet::new();
     for (index, line) in content.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
         }
         let value: Value = serde_json::from_str(line)?;
-        results.push((format!("{path}:{}", index + 1), validate_record(&value)));
+        let mut errors = validate_record(&value);
+        let compatibility_id = string_at(&value, &["compatibility_id"]).unwrap_or("");
+        if !compatibility_id.is_empty() && !seen_ids.insert(compatibility_id.to_owned()) {
+            errors.push(format!(
+                "compatibility_id: duplicate record ID {compatibility_id} within {path}"
+            ));
+        }
+        results.push((format!("{path}:{}", index + 1), errors));
     }
     Ok(results)
 }
@@ -802,6 +814,17 @@ mod tests {
                 "notes",
             ])
         );
+    }
+
+
+    #[test]
+    fn inductance_sample_count_addition_is_overflow_safe() {
+        let mut value = qualified_fixture();
+        value["sampling"]["open_circuit_sample_count"] = json!(u64::MAX);
+        value["sampling"]["short_circuit_sample_count"] = json!(u64::MAX);
+        value["sampling"]["inductance_sample_count"] = json!(u64::MAX);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("sample counts included in total")));
     }
 
     #[test]
