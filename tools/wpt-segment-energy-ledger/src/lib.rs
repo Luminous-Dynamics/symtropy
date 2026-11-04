@@ -757,6 +757,10 @@ mod tests {
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
         assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
+        assert_eq!(report.total_bess_dc_output_bound_wh, Some(0.03));
+        assert_eq!(report.segments[0].phases.len(), 6);
+        assert_eq!(report.segments[0].phases[0].phase, Phase::InverterRise);
+        assert_eq!(report.segments[0].phases[5].phase, Phase::InverterFall);
     }
 
     #[test]
