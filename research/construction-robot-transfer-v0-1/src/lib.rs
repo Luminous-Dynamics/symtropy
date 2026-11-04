@@ -56,11 +56,19 @@ pub struct EvaluationRecord {
     pub unresolved_units: u64,
     pub total_workflow_crew_minutes: f64,
     pub robot_operating_minutes: f64,
-    pub adaptation_person_hours: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AdaptationBudget {
+    pub max_target_label_count: u64,
+    pub max_calibration_person_hours: f64,
+    pub max_engineering_person_hours: f64,
+    pub max_operator_person_hours: f64,
+    pub max_inspection_person_hours: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdaptationEffort {
     pub target_label_count: u64,
     pub calibration_person_hours: f64,
     pub engineering_person_hours: f64,
@@ -74,8 +82,8 @@ pub struct TransferStudy {
     pub regime: TransferRegime,
     pub source_model_digest: String,
     pub target_model_digest: String,
-    pub target_label_count: u64,
     pub adaptation_budget: AdaptationBudget,
+    pub adaptation_effort: AdaptationEffort,
     pub split_guards: Vec<SplitGuard>,
     pub target_adaptation_work_item_ids: Vec<String>,
     pub target_evaluation_work_item_ids: Vec<String>,
@@ -93,8 +101,15 @@ pub enum ValidationError {
     AdaptationEvaluationLeakage { dimension: String, id: String },
     DuplicateWorkItem { id: String },
     AdaptationEvaluationWorkItemLeakage { id: String },
+    TrainingEvaluationWorkItemLeakage { id: String },
+    MissingSplitPartition(&'static str),
     InvalidRegime(&'static str),
     LabelBudgetExceeded { budget: u64, actual: u64 },
+    AdaptationBudgetExceeded {
+        field: &'static str,
+        budget_person_hours: f64,
+        actual_person_hours: f64,
+    },
     InvalidCount(&'static str),
     NonFiniteOrNegativeMetric(&'static str),
     InvalidRole(&'static str),
@@ -484,7 +499,6 @@ mod tests {
             unresolved_units: 0,
             total_workflow_crew_minutes: 600.0,
             robot_operating_minutes: 300.0,
-            adaptation_person_hours: 0.0,
         }
     }
 
@@ -496,20 +510,25 @@ mod tests {
         let mut target = record("target-1", EvaluationRole::TargetEvaluation);
         target.finally_accepted_units = 60;
         target.total_workflow_crew_minutes = 600.0;
-        target.adaptation_person_hours = 2.0;
 
         TransferStudy {
             study_id: "transfer-study-1".to_owned(),
             regime: TransferRegime::BoundedOfflineAdaptation,
             source_model_digest: "sha256:model-source".to_owned(),
             target_model_digest: "sha256:model-target".to_owned(),
-            target_label_count: 8,
             adaptation_budget: AdaptationBudget {
-                target_label_count: 10,
-                calibration_person_hours: 1.0,
-                engineering_person_hours: 1.5,
-                operator_person_hours: 1.0,
-                inspection_person_hours: 0.5,
+                max_target_label_count: 10,
+                max_calibration_person_hours: 1.0,
+                max_engineering_person_hours: 1.5,
+                max_operator_person_hours: 1.0,
+                max_inspection_person_hours: 0.5,
+            },
+            adaptation_effort: AdaptationEffort {
+                target_label_count: 8,
+                calibration_person_hours: 0.75,
+                engineering_person_hours: 1.0,
+                operator_person_hours: 0.75,
+                inspection_person_hours: 0.4,
             },
             split_guards: vec![
                 SplitGuard {
@@ -622,7 +641,7 @@ mod tests {
     #[test]
     fn bounded_offline_adaptation_enforces_frozen_label_budget() {
         let mut input = study();
-        input.target_label_count = 11;
+        input.adaptation_effort.target_label_count = 11;
         assert!(matches!(
             input.validate(),
             Err(errors) if errors.contains(&ValidationError::LabelBudgetExceeded {
@@ -636,7 +655,7 @@ mod tests {
     fn human_supervised_adaptation_requires_engineering_effort_record() {
         let mut input = study();
         input.regime = TransferRegime::HumanSupervisedMethodAdaptation;
-        input.adaptation_budget.engineering_person_hours = 0.0;
+        input.adaptation_effort.engineering_person_hours = 0.0;
         assert!(matches!(
             input.validate(),
             Err(errors) if errors.contains(&ValidationError::InvalidRegime(
@@ -749,7 +768,7 @@ mod tests {
     #[test]
     fn non_finite_and_negative_adaptation_metrics_are_rejected() {
         let mut input = study();
-        input.adaptation_budget.engineering_person_hours = f64::NAN;
+        input.adaptation_effort.engineering_person_hours = f64::NAN;
         assert!(matches!(
             input.validate(),
             Err(errors) if errors.contains(&ValidationError::NonFiniteOrNegativeMetric(
