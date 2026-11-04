@@ -156,7 +156,9 @@ pub struct EvaluationReport {
     pub class_confusion: Vec<ClassConfusionCell>,
     /// Number of unmatched-timely events with a late associated episode.
     pub late_associated_event_count: usize,
-    /// Confirmed events without a timely detection, including late events.
+    /// Event identifiers with an associated but late alarm episode.
+    pub late_associated_event_ids: Vec<String>,
+    /// Confirmed events with neither a timely nor late-associated episode.
     pub missed_event_ids: Vec<String>,
     /// Timely and late one-to-one associations, sorted by event identifier.
     pub matches: Vec<MatchRecord>,
@@ -213,6 +215,11 @@ impl EvaluationReport {
             &mut out,
             "late_associated_events={}",
             self.late_associated_event_count
+        );
+        let _ = writeln!(
+            &mut out,
+            "late_associated_event_ids={}",
+            self.late_associated_event_ids.join(",")
         );
         let _ = writeln!(
             &mut out,
@@ -806,6 +813,7 @@ pub fn evaluate(
     let mut false_alarm_indexes = Vec::new();
     let mut missed_event_ids = Vec::new();
     let mut late_event_count = 0;
+    let mut late_associated_event_ids = Vec::new();
     let timely_event_count = timely_assignment
         .iter()
         .filter(|value| value.is_some())
@@ -821,11 +829,11 @@ pub fn evaluate(
         .map(|record| record.event_id.as_str())
         .collect();
     for event in events {
-        if !timely_event_ids.contains(event.event_id.as_str()) {
-            missed_event_ids.push(event.event_id.clone());
-        }
         if late_event_ids.contains(event.event_id.as_str()) {
             late_event_count += 1;
+            late_associated_event_ids.push(event.event_id.clone());
+        } else if !timely_event_ids.contains(event.event_id.as_str()) {
+            missed_event_ids.push(event.event_id.clone());
         }
     }
 
@@ -912,6 +920,7 @@ pub fn evaluate(
             .then_with(|| match_kind_rank(a.kind).cmp(&match_kind_rank(b.kind)))
     });
     missed_event_ids.sort();
+    late_associated_event_ids.sort();
 
     let mut fragmentation_episode_ids: Vec<String> = fragmentation
         .into_iter()
@@ -936,6 +945,7 @@ pub fn evaluate(
         event_onset_recall,
         class_confusion,
         late_associated_event_count: late_event_count,
+        late_associated_event_ids,
         missed_event_ids,
         matches,
         fragmentation_episode_ids,
@@ -1071,8 +1081,9 @@ mod tests {
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 0);
         assert_eq!(report.late_associated_event_count, 1);
+        assert_eq!(report.late_associated_event_ids, vec!["event-1"]);
         assert!(report.false_alarm_episode_ids.is_empty());
-        assert_eq!(report.missed_event_ids, vec!["event-1"]);
+        assert!(report.missed_event_ids.is_empty());
     }
 
     #[test]
