@@ -137,7 +137,8 @@ mod tests {
             },
             &samples("comment_obs", &comments, "classifier_score"),
             &samples("comment_sim", &sim_comments, "classifier_score"),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert!(root_result.mean_delta_simulated_minus_observed > 0.0);
         assert!(comment_result.mean_delta_simulated_minus_observed < 0.0);
