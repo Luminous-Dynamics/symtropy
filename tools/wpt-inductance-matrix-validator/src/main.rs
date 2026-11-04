@@ -1094,5 +1094,4 @@ mod tests {
             json!((0..=n).map(|_| vec![0.0; n + 1]).collect::<Vec<_>>());
         assert_eq!(disposition(value), "INVALID_INPUT");
     }
-
 }
