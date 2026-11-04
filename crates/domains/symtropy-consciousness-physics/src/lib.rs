@@ -60,7 +60,7 @@ pub use coupling::{ConsciousnessField, EntityConsciousness};
 pub use energy::EnergyBudget;
 pub use energy_balance::{
     BoundaryCoverage, BoundaryEnergyFlows, EnergyBalanceError, EnergyBalanceField,
-    EnergyBalanceInput, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTolerances,
+    EnergyBalanceInput, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTolerances, Joules,
 };
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
