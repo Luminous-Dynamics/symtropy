@@ -14,7 +14,7 @@ Any state other than `verified_clear` requires hold / epoch invalidation. `occup
 
 ## Trust boundary
 
-The caller supplies an upstream-authenticated assertion, sensor health, calibration result, uncertainty, reference-independence assessment and monotonic timestamp/timebase. This crate does not perform those measurements or verify signatures/identities. The `independent_under_profile` value must come from the owning independence service (Symthaea #4918); do not fork a dependency graph here. A source sequence gap or digest conflict is latched until an external re-baseline creates a new gate instance.
+The caller supplies an upstream-authenticated assertion, sensor health, calibration result, uncertainty, reference-independence assessment and monotonic timestamp/timebase. This crate does not perform those measurements or verify signatures/identities. The `independent_under_profile` value must come from the owning independence service (Symthaea #4918); do not fork a dependency graph here. Each source policy pins an externally trusted baseline sequence and digest; every observation must link to its predecessor digest. A sequence gap latches unknown, while rollback or predecessor/same-sequence digest divergence latches conflict. Recovery requires an external re-baseline and a new gate instance. The gate does not create or verify that baseline.
 
 ## Privacy
 
