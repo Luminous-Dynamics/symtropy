@@ -3,7 +3,7 @@
 //! Every rejection attempt gets a distinct semantic child address. A rejected
 //! attempt therefore cannot shift any sibling event's random stream.
 
-use crate::philox_adapter::{resolve_draw, DrawReceipt};
+use crate::philox_adapter::{DrawReceipt, resolve_draw};
 use crate::{DrawAddress, StableId};
 
 pub const TRANSFORM_SCHEMA_ID: &str = "symtropy.road-variate-transforms.v0.1";
@@ -102,12 +102,8 @@ pub fn sample_bounded_u32(
 
     let mut attempts = Vec::new();
     for attempt_index in 0..max_attempts {
-        let child = attempt_child_address(
-            root_address,
-            transform_id,
-            transform_version,
-            attempt_index,
-        )?;
+        let child =
+            attempt_child_address(root_address, transform_id, transform_version, attempt_index)?;
         let child_address_digest = *blake3::hash(&child.canonical_bytes()).as_bytes();
         let draw = resolve_draw(experiment_seed, &child);
         let mapping = map_word(draw.words[0], bound_exclusive);
@@ -227,8 +223,7 @@ fn finish_receipt(
 fn receipt_bytes(receipt: &BoundedIntegerReceipt) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(b"symtropy.road-bounded-integer.receipt.v0.1\0");
-    push_bytes(&mut out, receipt.schema_id.as_bytes())
-        .expect("static schema ID length fits u64");
+    push_bytes(&mut out, receipt.schema_id.as_bytes()).expect("static schema ID length fits u64");
     push_id(&mut out, &receipt.transform_id);
     push_id(&mut out, &receipt.transform_version);
     out.extend_from_slice(&receipt.root_address_digest);
@@ -341,9 +336,7 @@ mod tests {
                 justification: id("scm:weather-v1"),
             }
         } else {
-            Coupling::BranchSpecific {
-                branch: id(branch),
-            }
+            Coupling::BranchSpecific { branch: id(branch) }
         };
         DrawAddress::new(
             id("world-17"),
@@ -392,8 +385,7 @@ mod tests {
         );
 
         let receipt =
-            sample_bounded_u32(&seed, &root, &transform_id(), &transform_version(), 1, 0)
-                .unwrap();
+            sample_bounded_u32(&seed, &root, &transform_id(), &transform_version(), 1, 0).unwrap();
         assert_eq!(
             receipt.disposition,
             SamplingDisposition::DeterministicSingleton
@@ -424,13 +416,8 @@ mod tests {
         for candidate in 0u16..512 {
             let mut seed = [0u8; 32];
             seed[30..32].copy_from_slice(&candidate.to_le_bytes());
-            let child = attempt_child_address(
-                root,
-                &transform_id(),
-                &transform_version(),
-                0,
-            )
-            .unwrap();
+            let child =
+                attempt_child_address(root, &transform_id(), &transform_version(), 0).unwrap();
             let draw = resolve_draw(&seed, &child);
             if !map_word(draw.words[0], 2_147_483_649).accepted {
                 return seed;
@@ -498,27 +485,14 @@ mod tests {
     fn unrelated_draws_do_not_shift_bounded_sample() {
         let seed = [19; 32];
         let root = root_address("continue", true);
-        let expected = sample_bounded_u32(
-            &seed,
-            &root,
-            &transform_id(),
-            &transform_version(),
-            137,
-            16,
-        )
-        .unwrap();
+        let expected =
+            sample_bounded_u32(&seed, &root, &transform_id(), &transform_version(), 137, 16)
+                .unwrap();
         let _other = resolve_draw(&seed, &root_address("yield", false));
         let _more = resolve_draw(&seed, &root_address("continue", false));
         assert_eq!(
-            sample_bounded_u32(
-                &seed,
-                &root,
-                &transform_id(),
-                &transform_version(),
-                137,
-                16
-            )
-            .unwrap(),
+            sample_bounded_u32(&seed, &root, &transform_id(), &transform_version(), 137, 16)
+                .unwrap(),
             expected
         );
     }
@@ -581,15 +555,8 @@ mod tests {
     fn transform_version_and_receipt_parameters_are_bound() {
         let seed = [39; 32];
         let root = root_address("continue", true);
-        let receipt = sample_bounded_u32(
-            &seed,
-            &root,
-            &transform_id(),
-            &transform_version(),
-            17,
-            8,
-        )
-        .unwrap();
+        let receipt =
+            sample_bounded_u32(&seed, &root, &transform_id(), &transform_version(), 17, 8).unwrap();
         assert_eq!(receipt.verify_against(&seed, &root), Ok(()));
         assert!(receipt.integrity_check());
 
@@ -605,27 +572,14 @@ mod tests {
     #[test]
     fn transform_identity_changes_child_address() {
         let root = root_address("continue", true);
-        let first = attempt_child_address(
-            &root,
-            &id("lemire-multiply-high-rejection"),
-            &id("1"),
-            0,
-        )
-        .unwrap();
-        let second = attempt_child_address(
-            &root,
-            &id("another-versioned-transform"),
-            &id("1"),
-            0,
-        )
-        .unwrap();
-        let third = attempt_child_address(
-            &root,
-            &id("lemire-multiply-high-rejection"),
-            &id("1"),
-            1,
-        )
-        .unwrap();
+        let first =
+            attempt_child_address(&root, &id("lemire-multiply-high-rejection"), &id("1"), 0)
+                .unwrap();
+        let second =
+            attempt_child_address(&root, &id("another-versioned-transform"), &id("1"), 0).unwrap();
+        let third =
+            attempt_child_address(&root, &id("lemire-multiply-high-rejection"), &id("1"), 1)
+                .unwrap();
         assert_ne!(first.canonical_bytes(), second.canonical_bytes());
         assert_ne!(first.canonical_bytes(), third.canonical_bytes());
     }
