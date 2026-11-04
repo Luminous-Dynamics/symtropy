@@ -38,10 +38,10 @@ impl ExactRational {
     }
 
     pub fn checked_cmp(&self, other: &Self) -> Result<Ordering, DecisionError> {
-        let left_denominator = i128::try_from(other.denominator)
-            .map_err(|_| DecisionError::ArithmeticOverflow)?;
-        let right_denominator = i128::try_from(self.denominator)
-            .map_err(|_| DecisionError::ArithmeticOverflow)?;
+        let left_denominator =
+            i128::try_from(other.denominator).map_err(|_| DecisionError::ArithmeticOverflow)?;
+        let right_denominator =
+            i128::try_from(self.denominator).map_err(|_| DecisionError::ArithmeticOverflow)?;
         let left = self
             .numerator
             .checked_mul(left_denominator)
@@ -54,10 +54,10 @@ impl ExactRational {
     }
 
     pub fn checked_sub(&self, other: &Self) -> Result<Self, DecisionError> {
-        let left_denominator = i128::try_from(other.denominator)
-            .map_err(|_| DecisionError::ArithmeticOverflow)?;
-        let right_denominator = i128::try_from(self.denominator)
-            .map_err(|_| DecisionError::ArithmeticOverflow)?;
+        let left_denominator =
+            i128::try_from(other.denominator).map_err(|_| DecisionError::ArithmeticOverflow)?;
+        let right_denominator =
+            i128::try_from(self.denominator).map_err(|_| DecisionError::ArithmeticOverflow)?;
         let left = self
             .numerator
             .checked_mul(left_denominator)
@@ -329,7 +329,10 @@ impl DecisionManifest {
 
         if !gaps.is_empty() {
             let status = if gaps.iter().any(|gap| {
-                matches!(gap.kind, SupportGapKind::NotIdentified | SupportGapKind::Incomplete)
+                matches!(
+                    gap.kind,
+                    SupportGapKind::NotIdentified | SupportGapKind::Incomplete
+                )
             }) {
                 DecisionStatus::Incomplete
             } else {
@@ -353,7 +356,12 @@ impl DecisionManifest {
         let mut action_max_regrets = self
             .actions
             .iter()
-            .map(|action| (action.clone(), ExactRational::new(0, 1).expect("valid zero")))
+            .map(|action| {
+                (
+                    action.clone(),
+                    ExactRational::new(0, 1).expect("valid zero"),
+                )
+            })
             .collect::<Vec<_>>();
 
         for hypothesis in &hypotheses {
@@ -600,11 +608,7 @@ mod tests {
         }
     }
 
-    fn hypothesis(
-        name: &str,
-        a: i128,
-        b: i128,
-    ) -> DecisionHypothesis {
+    fn hypothesis(name: &str, a: i128, b: i128) -> DecisionHypothesis {
         DecisionHypothesis {
             hypothesis_id: id(name),
             reference_manifest_digest: *blake3::hash(name.as_bytes()).as_bytes(),
@@ -690,7 +694,10 @@ mod tests {
         assert_eq!(certificate.status, DecisionStatus::Unsupported);
         assert_eq!(certificate.minimax_regret_action, None);
         assert_eq!(certificate.support_gaps.len(), 1);
-        assert_eq!(certificate.support_gaps[0].kind, SupportGapKind::Unsupported);
+        assert_eq!(
+            certificate.support_gaps[0].kind,
+            SupportGapKind::Unsupported
+        );
     }
 
     #[test]
