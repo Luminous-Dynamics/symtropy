@@ -71,3 +71,9 @@ See `examples/bench-measured-stopping.json` and `examples/not-evaluated-syntheti
 ## Claim limits
 
 The validator does not fetch raw artifacts, verify signatures, inspect calibration certificates, estimate measurement uncertainty from waveforms, prove fault-domain independence, verify a robot's physical stop, or grant authority to operate. It cannot issue commands, stop/reset equipment, authorize work or certify compliance with ISO/ANSI/IEC standards.
+
+## Known v0.1 epistemic limitation
+
+The v0.1 `evidence_class` / `claim_ceiling` ordering is a conservative anti-promotion guard, not a universal ranking of evidence quality. Evidence origin (synthetic/simulated/bench/HIL/field), reference independence, metrology, authentication/custody, adjudication, ODD coverage and replication are orthogonal dimensions. A weak field observation is not automatically stronger than a calibrated bench measurement; independent review of synthetic evidence does not make it physical.
+
+The v0.2 migration is tracked by [CONSTRUCTION-ROBOT-EVIDENCE-005 / #3526](https://github.com/Luminous-Dynamics/symtropy/issues/3526). The proposed design removes the global rank and uses claim-specific requirements across explicit evidence dimensions. Do not interpret v0.1 ranks as certification, confidence or a transferable quality score.
