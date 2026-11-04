@@ -537,10 +537,7 @@ impl DependenceReceipt {
     }
 }
 
-fn output_value(
-    receipt: &DependenceReceipt,
-    output_id: &StableId,
-) -> Result<i64, DependenceError> {
+fn output_value(receipt: &DependenceReceipt, output_id: &StableId) -> Result<i64, DependenceError> {
     receipt
         .output_values
         .iter()
@@ -563,7 +560,11 @@ fn receipt_bytes(receipt: &DependenceReceipt) -> Vec<u8> {
     push_id(&mut out, &receipt.branch_id);
     push_len(&mut out, receipt.state_index);
     out.extend_from_slice(&receipt.state_weight.to_le_bytes());
-    for pairs in [&receipt.latent_values, &receipt.intervention_values, &receipt.output_values] {
+    for pairs in [
+        &receipt.latent_values,
+        &receipt.intervention_values,
+        &receipt.output_values,
+    ] {
         push_len(&mut out, pairs.len());
         for (id, value) in pairs {
             push_id(&mut out, id);
@@ -833,14 +834,8 @@ mod tests {
         for (continue_receipt, yield_receipt) in
             continue_run.receipts.iter().zip(&yield_run.receipts)
         {
-            assert_eq!(
-                continue_receipt.latent_values,
-                yield_receipt.latent_values
-            );
-            assert_ne!(
-                continue_receipt.output_values,
-                yield_receipt.output_values
-            );
+            assert_eq!(continue_receipt.latent_values, yield_receipt.latent_values);
+            assert_ne!(continue_receipt.output_values, yield_receipt.output_values);
             assert!(continue_receipt.integrity_check());
             assert!(yield_receipt.integrity_check());
             assert_eq!(
@@ -936,20 +931,14 @@ mod tests {
     fn duplicate_factor_variable_is_rejected() {
         let mut manifest = shared_factor_fixture();
         manifest.variables.push(manifest.variables[0].clone());
-        assert_eq!(
-            manifest.validate(),
-            Err(DependenceError::DuplicateVariable)
-        );
+        assert_eq!(manifest.validate(), Err(DependenceError::DuplicateVariable));
     }
 
     #[test]
     fn zero_probability_state_is_rejected() {
         let mut manifest = shared_factor_fixture();
         manifest.distribution.states[0].weight = 0;
-        assert_eq!(
-            manifest.validate(),
-            Err(DependenceError::ZeroStateWeight)
-        );
+        assert_eq!(manifest.validate(), Err(DependenceError::ZeroStateWeight));
     }
 
     #[test]
@@ -1001,7 +990,10 @@ mod tests {
     #[test]
     fn duplicate_joint_state_rows_are_rejected() {
         let mut manifest = shared_factor_fixture();
-        manifest.distribution.states.push(manifest.distribution.states[0].clone());
+        manifest
+            .distribution
+            .states
+            .push(manifest.distribution.states[0].clone());
         assert_eq!(
             manifest.validate(),
             Err(DependenceError::DuplicateJointState)
