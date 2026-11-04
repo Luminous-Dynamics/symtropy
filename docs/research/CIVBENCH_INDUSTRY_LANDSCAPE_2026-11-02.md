@@ -429,3 +429,35 @@ SimBench's 40.80/100 is an upstream result, not a directly comparable Symthaea s
 CIVDYN-RES-001 has its first executable slice in [Symtropy draft PR #3666](https://github.com/Luminous-Dynamics/symtropy/pull/3666), stacked on the conserved resource-ledger PR #3391. The reference uses 7 inventory nodes across basin/district/household scales, three shock types and four transfer policies. It reports sustained recovery only after every household clears the 0.95 service threshold for two consecutive post-shock ticks. This is a synthetic code fixture, not regional evidence or a forecast.
 
 Source motivation: Balali et al. (2026) find major fragmentation and a shortage of dynamic, uncertainty-aware, cross-scale socio-ecological resilience assessments. https://doi.org/10.1016/j.ecolind.2026.114792
+
+
+## 13. Human simulation reliability: R1/R2 and cross-scenario trajectories
+
+### Reliability is not one end-to-end score
+
+**Wang et al. (EMNLP 2026), "Understanding Reliability in LLM-based Human Behavior Simulation" (ReliMap).**  
+https://aclanthology.org/2026.emnlp-main.1269/
+
+ReliMap splits individual reliability (R1) from population reliability (R2), across model capacity, profile completeness and population coverage. The paper reports that R1 and R2 can move in opposite directions; more participants reduce variance but do not necessarily remove systematic distribution bias, with R2 stabilizing around 50–100 participants in its tested tasks.
+
+**CivBench response:** report micro proper-scoring rules and population distribution distances separately, stratify by declared cohorts/context, and publish sample-coverage curves. Variance reduction is not proof of bias reduction.
+
+### Isolated tasks miss behaviour sequences
+
+**Chen et al. (2026), "Towards Real-world Human Behavior Simulation: Benchmarking LLMs on Long-horizon, Cross-scenario, Heterogeneous Behavior Traces" (OmniBehavior).**  
+https://arxiv.org/abs/2604.08362
+
+OmniBehavior uses anonymized real-world platform traces and reports that isolated scenarios miss cross-scenario links and long-horizon heterogeneity. Its benchmark description covers 200 sampled users, three months, 2.12M interactions, 22 action types and five scenarios. Its authors report positive-average-person bias, hyperactivity and homogenization in simulated behaviour.
+
+**CivBench response:** add context-sequence holdouts and transition metrics. Keep rare, low-activity and long-tail behaviours visible. Treat real trace reuse as a source-rights/privacy gate, not merely a data-download task.
+
+### Context heterogeneity is a mechanism, not an entropy hack
+
+**Zhen et al. (Findings EMNLP 2026), "Context Modeling for LLM-Based Behavioral Simulation".**  
+https://aclanthology.org/2026.findings-emnlp.1306/
+
+The study constructs latent individual decision contexts before response generation and samples structured context variation; it reports gains in high-entropy and subgroup response fidelity and recovery of minority/low-probability options.
+
+**CivBench response:** benchmark direct prompting, evidence-grounded profile conditioning and structured context sampling under identical task splits and compute budgets. Do not award diversity gains that come from uncalibrated random noise.
+
+Implementation: [CIVDYN-HUMSIM-001 issue #3665](https://github.com/Luminous-Dynamics/symtropy/issues/3665). A synthetic Rust reference is being started; no human benchmark score is claimed.
