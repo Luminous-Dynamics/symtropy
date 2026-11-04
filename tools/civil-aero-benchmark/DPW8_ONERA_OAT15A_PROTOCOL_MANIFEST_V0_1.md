@@ -9,6 +9,8 @@ This manifest freezes the public DPW-8 Verification 1 protocol facts for three s
 
 These are not interchangeable. A V1a result does not establish unsteady buffet behaviour. A V1c reproduction is not a generic substitute for either V1a or V1b.
 
+The manifest carries an outer `protocol_lane` field independently from the nested `spec.lane`. Sealing rejects any mismatch, and the canonical digest plus independent CSV oracle bind both declarations. This catches accidental or single-field cross-lane substitution; it is an internal consistency control, not source authentication or proof of who authored the manifest.
+
 The Rust module `src/dpw8_protocol_manifest.rs` encodes these lane definitions and has a Python standard-library oracle at `scripts/verify-dpw8-protocol-independent.py`. The Rust test calls that oracle for all three lanes.
 
 Current source entries are explicitly `not_admitted`: the module starts from official source URLs but does not claim that the live pages, grid bytes, geometry or experimental data have been snapshotted, hashed, licensed for redistribution, or independently admitted. It is a protocol-spec contract, not a solver run or a validation result.
