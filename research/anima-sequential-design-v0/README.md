@@ -45,6 +45,20 @@ The caller must keep randomized assignment distinct from delivered stimulation. 
 
 The categorical likelihood interface also does not yet represent serially correlated trajectories, continuous multivariate outcomes, parameter-posterior mixtures, delayed effects, within-session interference or time-varying carryover. Those remain owned by the separate full-covariance EIG, history-adjusted state-space and trajectory scorecard work. Integration must not duplicate those engines.
 
+## Exact finite-horizon scenario-tree planner
+
+The `scenario_tree` module adds an exact planner for the finite categorical V0 model. It expands every positive-probability outcome, updates the model posterior at each branch, applies candidate transition restrictions and the remaining cost budget, and maximizes expected discounted cumulative information gain. It returns the first action, its immediate EIG, the expected lookahead objective, the declared horizon, expanded node count and residual budget.
+
+The planner is an exact reference for the supplied finite model, not a global solution to the biological experiment-design problem. Its complexity grows with the number of candidates, outcomes and horizon. A hard node-expansion limit returns an error; it never silently prunes branches and calls the result exact. The current implementation has no learned policy warm-start, posterior network, continuous design optimizer, Monte Carlo fantasy branch reduction or anytime branch-and-bound optimality gap.
+
+**Current external algorithmic baseline:** Guo et al. (ICML 2026), *Constrained Bayesian Experimental Design via Online Planning* (COPEx), combines offline amortized design-policy and posterior-network training with online multi-step scenario-tree planning, dynamic transition and budget constraints. Its public implementation uses Python/PyTorch, SLSQP-style optimization and pre-trained ALINE models, and documents horizon, fantasy branching, discounting, costs and transition restrictions. It supports active-learning, location-finding and CES tasks; it is not a Drosophila-connectome reproduction. It is a method baseline, not a ready-made fly-neuroscience comparator.
+
+The intended differentiation is:
+1. A dependency-free Rust exact planner for small categorical mechanisms, useful as a correctness oracle for learned or approximate planners.
+2. Explicit causal validity, intervention-delivery identity, evidence tier, safety and source-manifest gates integrated into the scenario tree.
+3. Anytime-valid evidence tracking kept separate from expected information gain and posterior model probability.
+4. An eventual exact-to-approximate ladder: exact enumeration for small trees, admissible upper bounds and explicit optimality gaps for medium trees, then COPEx-style warm-started or amortized planning for large trees. The latter two are not implemented yet.
+
 ## Benchmark protocol
 
 Compare the policies on identical frozen model sets, priors, candidate manifests, outcome schemas, seeds and compute budgets:
