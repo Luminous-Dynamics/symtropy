@@ -134,6 +134,7 @@ pub struct ForecastCalibrationCell {
     point_forecast: f64,
     realized_value: f64,
     normalization_scale: f64,
+    normalization_scale_evidence_id: String,
     forecast_evidence_id: String,
     realization_evidence_id: String,
 }
@@ -146,6 +147,7 @@ impl ForecastCalibrationCell {
         point_forecast: f64,
         realized_value: f64,
         normalization_scale: f64,
+        normalization_scale_evidence_id: impl Into<String>,
         forecast_evidence_id: impl Into<String>,
         realization_evidence_id: impl Into<String>,
     ) -> Result<Self, ForecastCalibrationError> {
@@ -155,10 +157,15 @@ impl ForecastCalibrationCell {
             point_forecast,
             realized_value,
             normalization_scale,
+            normalization_scale_evidence_id: normalization_scale_evidence_id.into(),
             forecast_evidence_id: forecast_evidence_id.into(),
             realization_evidence_id: realization_evidence_id.into(),
         };
         require_id("forecast channel ID", &cell.channel_id)?;
+        require_id(
+            "normalization-scale evidence ID",
+            &cell.normalization_scale_evidence_id,
+        )?;
         require_id("forecast evidence ID", &cell.forecast_evidence_id)?;
         require_id("realization evidence ID", &cell.realization_evidence_id)?;
         for (field, value) in [
@@ -199,6 +206,10 @@ impl ForecastCalibrationCell {
 
     pub const fn normalization_scale(&self) -> f64 {
         self.normalization_scale
+    }
+
+    pub fn normalization_scale_evidence_id(&self) -> &str {
+        &self.normalization_scale_evidence_id
     }
 }
 
@@ -389,6 +400,7 @@ pub struct ForecastIntervalCellReceipt {
     pub point_forecast: f64,
     pub realized_value: f64,
     pub normalization_scale: f64,
+    pub normalization_scale_evidence_id: String,
     pub lower_bound: f64,
     pub upper_bound: f64,
     pub normalized_absolute_error: f64,
@@ -750,6 +762,7 @@ pub fn evaluate_forecast_calibration(
                 point_forecast: cell.point_forecast,
                 realized_value: cell.realized_value,
                 normalization_scale: cell.normalization_scale,
+                normalization_scale_evidence_id: cell.normalization_scale_evidence_id.clone(),
                 lower_bound,
                 upper_bound,
                 normalized_absolute_error: normalized_error,
@@ -946,6 +959,7 @@ mod tests {
             100.0,
             100.0 + error,
             1.0,
+            format!("scale-{channel}-{horizon}"),
             format!("forecast-{channel}-{horizon}"),
             format!("realized-{channel}-{horizon}"),
         )
@@ -1302,7 +1316,9 @@ mod tests {
     #[test]
     fn rejects_invalid_scale_nonfinite_values_and_missing_evidence() {
         assert!(matches!(
-            ForecastCalibrationCell::new("pv", 0, 1.0, 2.0, 0.0, "forecast", "actual"),
+            ForecastCalibrationCell::new(
+                "pv", 0, 1.0, 2.0, 0.0, "scale", "forecast", "actual"
+            ),
             Err(ForecastCalibrationError::NonPositiveNormalizationScale(_))
         ));
         assert!(matches!(
@@ -1312,13 +1328,22 @@ mod tests {
                 f64::NAN,
                 2.0,
                 1.0,
+                "scale",
                 "forecast",
                 "actual"
             ),
             Err(ForecastCalibrationError::NonFiniteCellValue { .. })
         ));
         assert!(matches!(
-            ForecastCalibrationCell::new("pv", 0, 1.0, 2.0, 1.0, "", "actual"),
+            ForecastCalibrationCell::new(
+                "pv", 0, 1.0, 2.0, 1.0, "scale", "", "actual"
+            ),
+            Err(ForecastCalibrationError::EmptyIdentifier(_))
+        ));
+        assert!(matches!(
+            ForecastCalibrationCell::new(
+                "pv", 0, 1.0, 2.0, 1.0, "", "forecast", "actual"
+            ),
             Err(ForecastCalibrationError::EmptyIdentifier(_))
         ));
     }
