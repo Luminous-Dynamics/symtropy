@@ -121,7 +121,8 @@
     "site_epoch_binding": true,
     "exclusive_conflict_policy": "reject",
     "is_safety_permit": false,
-    "clock_domain_binding": true
+    "clock_domain_binding": true,
+    "clock_uncertainty_policy": "explicit_project_limit_and_conservative_interval_expansion"
   },
   "safety_boundary": {
     "interop_grants_motion_authority": false,
