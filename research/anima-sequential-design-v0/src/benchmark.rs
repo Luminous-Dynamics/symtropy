@@ -13,6 +13,9 @@ use super::{
     expected_information_gain, reject_candidate, splitmix64, validate_candidate,
     validate_posterior,
 };
+use super::scenario_tree::{
+    plan_first_action, ScenarioTreeConfig, ScenarioTreeError, TransitionConstraints,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BenchmarkPolicy {
@@ -29,6 +32,8 @@ pub enum BenchmarkPolicy {
     RandomFeasible,
     /// Fixed canonical candidate-ID round-robin schedule.
     BalancedRoundRobin,
+    /// Receding-horizon exact categorical scenario-tree planner.
+    ScenarioTreeLookahead,
     /// Synthetic clairvoyant one-step upper bound using the true model identity.
     /// This is not a deployable policy or a finite-horizon optimality claim.
     ClairvoyantMyopicUpperBound,
@@ -84,11 +89,18 @@ pub enum BenchmarkError {
     TrueModelHasZeroPrior(String),
     CostUnitMismatch,
     Candidate(EngineError),
+    ScenarioTree(ScenarioTreeError),
 }
 
 impl From<EngineError> for BenchmarkError {
     fn from(value: EngineError) -> Self {
         Self::Candidate(value)
+    }
+}
+
+impl From<ScenarioTreeError> for BenchmarkError {
+    fn from(value: ScenarioTreeError) -> Self {
+        Self::ScenarioTree(value)
     }
 }
 
@@ -302,6 +314,27 @@ fn choose_for_policy(
                     .ok_or(EpisodeTermination::NoPermittedCandidate),
             )
         }
+        BenchmarkPolicy::ScenarioTreeLookahead => {
+            let remaining_horizon = config
+                .maximum_experiments
+                .saturating_sub(state.completed_experiments)
+                .max(1)
+                .min(4);
+            let plan = plan_first_action(
+                &state.posterior,
+                candidates,
+                state.remaining_cost_budget,
+                config,
+                &ScenarioTreeConfig {
+                    horizon: remaining_horizon,
+                    maximum_tree_nodes: 100_000,
+                    discount_factor: 0.95,
+                    minimum_delivery_fidelity: config.minimum_delivery_fidelity,
+                    transitions: TransitionConstraints::default(),
+                },
+            )?;
+            Ok(Ok(plan.first_candidate_id))
+        }
         adaptive => {
             let selection_policy = match adaptive {
                 BenchmarkPolicy::GreedySequentialEig => SelectionPolicy::GreedyEig,
@@ -312,6 +345,7 @@ fn choose_for_policy(
                 },
                 BenchmarkPolicy::StaticOneShotRanking
                 | BenchmarkPolicy::BalancedRoundRobin
+                | BenchmarkPolicy::ScenarioTreeLookahead
                 | BenchmarkPolicy::ClairvoyantMyopicUpperBound => unreachable!(),
             };
             let decision = super::choose_next(
@@ -607,6 +641,7 @@ mod tests {
             BenchmarkPolicy::RandomFeasible,
             BenchmarkPolicy::BalancedRoundRobin,
             BenchmarkPolicy::ClairvoyantMyopicUpperBound,
+            BenchmarkPolicy::ScenarioTreeLookahead,
         ];
         for regime in 0..8 {
             for variant in 0..5 {
@@ -660,6 +695,23 @@ mod tests {
             run_synthetic_episode(&s, BenchmarkPolicy::GreedySequentialEig, 1),
             Err(BenchmarkError::CostUnitMismatch)
         );
+    }
+
+    #[test]
+    fn scenario_tree_policy_runs_in_paired_comparison() {
+        let s = scenario(2, 3);
+        let policies = [
+            BenchmarkPolicy::GreedySequentialEig,
+            BenchmarkPolicy::ScenarioTreeLookahead,
+        ];
+        let result = run_paired_comparison(&s, 0x51a7, &policies).unwrap();
+        assert_eq!(result.results.len(), 2);
+        assert_eq!(
+            result.results[1].policy,
+            BenchmarkPolicy::ScenarioTreeLookahead
+        );
+        assert!(result.results[1].steps_completed <= s.horizon);
+        assert!(result.results[1].cost_spent <= s.cost_budget + 1.0e-12);
     }
 
     #[test]
