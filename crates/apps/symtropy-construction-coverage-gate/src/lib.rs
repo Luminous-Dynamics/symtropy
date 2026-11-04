@@ -429,7 +429,7 @@ mod tests {
         SurveyCoordinateUnitV1, SurveyAxisDirectionV1, SurveyHandednessV1, SurveyHeightTypeV1,
         SurveySessionV1, SurveyObservationV1, SurveyModalityV1, SurveyObservationRoleV1,
         SurveyUncertaintyV1, SurveyCoverageAssessmentV1, SurveyCoverageCellDispositionV1,
-        SurveyCoverageCellV1, SurveyControlCoverageMapV1, SurveyControlCoverageMapV1,
+        SurveyCoverageCellV1, SurveyControlCoverageMapV1,
         SURVEY_COVERAGE_ASSESSMENT_SCHEMA_VERSION, VerifiedSurveyCoverageAssessmentV1,
         VerifiedSurveyControlCoverageMapV1, VerifiedSurveyEvidenceEnvelopeV1,
         SURVEY_EVIDENCE_SCHEMA_VERSION, SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION,
@@ -799,6 +799,36 @@ mod tests {
         let result = run(&assessment, &policy(&assessment));
         assert_eq!(result.decision, CoverageDecisionV1::InadmissibleForNamedTask);
         assert!(result.reason_codes.contains(&"maximum_local_u95_exceeds_policy".to_owned()));
+    }
+
+    #[test]
+    fn assessment_summary_cannot_disagree_with_content_addressed_support_map() {
+        let assessment = assessment();
+        let mut forged = assessment.clone();
+        forged.maximum_support_gap_m = 0.1;
+        let bytes = serde_json::to_vec(&forged).unwrap();
+        let assessment_artifact = ArtifactRef {
+            artifact_id: "coverage-assessment".to_owned(),
+            uri: "coverage-test://assessment".to_owned(),
+            sha256: format!("{:x}", Sha256::digest(&bytes)),
+        };
+        let verified_assessment =
+            VerifiedSurveyCoverageAssessmentV1::decode_verified_json(
+                &bytes,
+                assessment_artifact,
+            )
+            .unwrap();
+        let verified_map = verified_support_map(&assessment);
+        assert_eq!(
+            evaluate_coverage(
+                &verified_assessment,
+                &verified_map,
+                &survey_envelope(&assessment),
+                &policy(&assessment),
+                &policy_artifact(&policy(&assessment)),
+            ),
+            Err(CoverageGateError::CoverageMapInconsistent)
+        );
     }
 
     #[test]
