@@ -1,0 +1,246 @@
+{
+  "schema_version": "symtropy.grid-response-delivery-fixtures.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "note": "These are synthetic interval-end telemetry vectors for arithmetic regression only. No values originate from an operating site, utility, aggregator, balancing market or data-centre control system.",
+  "contract": {
+    "event_id": "dispatch-event-001",
+    "service_product_id": "product-fast-response-v1",
+    "measurement_boundary_id": "site-pcc-001",
+    "baseline_method_id": "baseline-method-digest",
+    "response_configuration_digest": "response-configuration-digest",
+    "instruction_issued_at_ns": 0,
+    "service_end_ns": 4000000000,
+    "sample_interval_ns": 1000000000,
+    "target_reduction_kw": 100,
+    "minimum_delivery_fraction": 0.9,
+    "maximum_response_latency_ns": 2000000000,
+    "minimum_compliant_sample_fraction": 0.75,
+    "maximum_underdelivery_energy_fraction": 0.1,
+    "maximum_overshoot_energy_fraction": 0.05,
+    "maximum_ramp_kw_per_second": 150
+  },
+  "timestamp_semantics": "sample index i is an interval-end reading at instruction_issued_at_ns + (i+1)*sample_interval_ns; ramp is computed from the previous delivered reduction (initially zero) to the current reading.",
+  "known_truth": [
+    {
+      "case_id": "fast-sustained-exact",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        900,
+        900,
+        900,
+        900
+      ],
+      "expected": {
+        "response_latency_ns": 1000000000,
+        "requested_reduction_energy_kwh": 0.1111111111111111,
+        "delivered_reduction_energy_kwh": 0.1111111111111111,
+        "delivered_energy_fraction": 1,
+        "underdelivery_energy_fraction": 0,
+        "overshoot_energy_fraction": 0,
+        "compliant_sample_fraction": 1,
+        "maximum_measured_ramp_kw_per_second": 100,
+        "pass": true
+      },
+      "baseline_evidence_ids": [
+        "fast-sustained-exact-baseline-0",
+        "fast-sustained-exact-baseline-1",
+        "fast-sustained-exact-baseline-2",
+        "fast-sustained-exact-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "fast-sustained-exact-response-0",
+        "fast-sustained-exact-response-1",
+        "fast-sustained-exact-response-2",
+        "fast-sustained-exact-response-3"
+      ]
+    },
+    {
+      "case_id": "late-initial-response",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        1000,
+        900,
+        900,
+        900
+      ],
+      "expected": {
+        "response_latency_ns": 2000000000,
+        "delivered_energy_fraction": 0.75,
+        "underdelivery_energy_fraction": 0.25,
+        "compliant_sample_fraction": 0.75,
+        "response_latency_pass": true,
+        "underdelivery_energy_pass": false,
+        "pass": false
+      },
+      "baseline_evidence_ids": [
+        "late-initial-response-baseline-0",
+        "late-initial-response-baseline-1",
+        "late-initial-response-baseline-2",
+        "late-initial-response-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "late-initial-response-response-0",
+        "late-initial-response-response-1",
+        "late-initial-response-response-2",
+        "late-initial-response-response-3"
+      ]
+    },
+    {
+      "case_id": "initial-response-then-sustained-under-delivery",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        900,
+        960,
+        960,
+        900
+      ],
+      "expected": {
+        "response_latency_ns": 1000000000,
+        "delivered_energy_fraction": 0.7,
+        "underdelivery_energy_fraction": 0.3,
+        "compliant_sample_fraction": 0.5,
+        "sustained_delivery_pass": false,
+        "pass": false
+      },
+      "baseline_evidence_ids": [
+        "initial-response-then-sustained-under-delivery-baseline-0",
+        "initial-response-then-sustained-under-delivery-baseline-1",
+        "initial-response-then-sustained-under-delivery-baseline-2",
+        "initial-response-then-sustained-under-delivery-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "initial-response-then-sustained-under-delivery-response-0",
+        "initial-response-then-sustained-under-delivery-response-1",
+        "initial-response-then-sustained-under-delivery-response-2",
+        "initial-response-then-sustained-under-delivery-response-3"
+      ]
+    },
+    {
+      "case_id": "excessive-overshoot",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        880,
+        880,
+        880,
+        880
+      ],
+      "expected": {
+        "response_latency_ns": 1000000000,
+        "delivered_energy_fraction": 1.2,
+        "overshoot_energy_fraction": 0.2,
+        "maximum_overshoot_kw": 20,
+        "overshoot_energy_pass": false,
+        "pass": false
+      },
+      "baseline_evidence_ids": [
+        "excessive-overshoot-baseline-0",
+        "excessive-overshoot-baseline-1",
+        "excessive-overshoot-baseline-2",
+        "excessive-overshoot-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "excessive-overshoot-response-0",
+        "excessive-overshoot-response-1",
+        "excessive-overshoot-response-2",
+        "excessive-overshoot-response-3"
+      ]
+    },
+    {
+      "case_id": "negative-delivery-import-increased",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        1020,
+        1020,
+        1020,
+        1020
+      ],
+      "expected": {
+        "response_latency_ns": null,
+        "delivered_energy_fraction": -0.2,
+        "underdelivery_energy_fraction": 1.2,
+        "response_latency_pass": false,
+        "pass": false
+      },
+      "baseline_evidence_ids": [
+        "negative-delivery-import-increased-baseline-0",
+        "negative-delivery-import-increased-baseline-1",
+        "negative-delivery-import-increased-baseline-2",
+        "negative-delivery-import-increased-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "negative-delivery-import-increased-response-0",
+        "negative-delivery-import-increased-response-1",
+        "negative-delivery-import-increased-response-2",
+        "negative-delivery-import-increased-response-3"
+      ]
+    },
+    {
+      "case_id": "excessive-ramp",
+      "baseline_pcc_import_kw": [
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "observed_response_pcc_import_kw": [
+        900,
+        900,
+        900,
+        900
+      ],
+      "override_contract": {
+        "maximum_ramp_kw_per_second": 50
+      },
+      "expected": {
+        "maximum_measured_ramp_kw_per_second": 100,
+        "ramp_limit_pass": false,
+        "pass": false
+      },
+      "baseline_evidence_ids": [
+        "excessive-ramp-baseline-0",
+        "excessive-ramp-baseline-1",
+        "excessive-ramp-baseline-2",
+        "excessive-ramp-baseline-3"
+      ],
+      "response_evidence_ids": [
+        "excessive-ramp-response-0",
+        "excessive-ramp-response-1",
+        "excessive-ramp-response-2",
+        "excessive-ramp-response-3"
+      ]
+    }
+  ],
+  "hostile_contracts": [
+    {
+      "case_id": "telemetry-too-coarse-for-required-response",
+      "sample_interval_ns": 2000000000,
+      "maximum_response_latency_ns": 1000000000,
+      "expected_result": "REJECT_TELEMETRY_RESOLUTION_INSUFFICIENT"
+    }
+  ]
+}
