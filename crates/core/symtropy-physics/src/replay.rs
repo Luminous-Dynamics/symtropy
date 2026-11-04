@@ -277,7 +277,8 @@ pub fn order_batch_results<const D: usize>(
 #[cfg(test)]
 mod batch_replay_tests {
     use super::{
-        BatchResultError, BatchRolloutSnapshot, WorldSnapshot, order_batch_results,
+        BatchResultError, BatchRolloutSnapshot, ReplayTape, WorldCommand, WorldSnapshot,
+        apply_commands, order_batch_results,
     };
     use crate::world::PhysicsWorld;
     use nalgebra::SVector;
@@ -306,14 +307,23 @@ mod batch_replay_tests {
             handles.push(handle);
         }
 
+        let mut tape = ReplayTape::<3>::default();
         for tick in 0..TICKS {
-            if tick % 30 == 0 {
+            let commands = if tick % 30 == 0 {
                 let body_index = (tick / 30) % handles.len();
-                if let Some(body) = world.body_mut(handles[body_index]) {
-                    body.apply_force(SVector::from([0.05 + offset, 0.0, 0.0]));
-                }
-            }
-            world.step(1.0 / 120.0);
+                vec![WorldCommand::ApplyForce {
+                    body: handles[body_index],
+                    force: Box::new(SVector::from([0.05 + offset, 0.0, 0.0])),
+                }]
+            } else {
+                Vec::new()
+            };
+            tape.push_frame(1.0 / 120.0, commands);
+        }
+
+        for frame in &tape.frames {
+            apply_commands(&mut world, &frame.commands).unwrap();
+            world.step(frame.dt);
         }
 
         BatchRolloutSnapshot {
