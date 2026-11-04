@@ -681,10 +681,7 @@ mod tests {
     fn input_order_permutations_produce_identical_graph_and_topology() {
         let first = compile(
             &manifest(vec![element("pile-2"), element("pile-1")]),
-            &method(vec![
-                step("install", &["prepare"]),
-                step("prepare", &[]),
-            ]),
+            &method(vec![step("install", &["prepare"]), step("prepare", &[])]),
         );
         let second = compile(
             &manifest(vec![element("pile-1"), element("pile-2")]),
