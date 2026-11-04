@@ -158,26 +158,24 @@ On recovery: `E_i = 0.1 × E_max` (enough to regain consciousness, not full char
 
 ## 5. Thermodynamic Closure
 
-### 5.1 Conservation Law
-Total energy is tracked by the `ThermodynamicLedger`:
+### 5.1 Current Ledger Scope and System Boundary
+
+The following is a target form for a closed model boundary, provided that every stored-energy reservoir and transfer is represented:
 ```
-E_total = Σ_i E_i + E_dissipated + E_wells_remaining
+ΔE_stored = W_external + Q_external - E_dissipated_out
 ```
 
-Conservation error:
-```
-ε = |E_in - E_out| / E_in
-```
+The present `ThermodynamicLedger` does not yet implement this complete balance. Its per-tick `energy_in` and `energy_out` counters are telemetry for selected model actions and dissipations; `tick_balance()` currently compares those counters without including changes in mechanical/internal stored energy, source and sink reservoirs, external work/heat, or a fully declared system boundary. Consequently, its `conservation_error` is not currently a global first-law closure metric. The open-system accounting work is tracked separately in PHYS-THERMO-SEMANTICS-001.
 
-Must remain < 1% for a valid simulation.
+A future closure report must distinguish signed balance residuals, scale-aware normalized residuals, and incomplete/missing boundary terms. A zero-input, positive-output case must not be reported as a zero-error PASS.
 
-### 5.2 Joules-per-Phi (Novel Metric)
+### 5.2 Joules-per-Φ Diagnostic
 
 ```
 J/Φ = (Σ_i E_consumed_i × Φ_i) / (Σ_i |ΔΦ_i|)
 ```
 
-This measures the energy cost of consciousness. No prior publication of this metric exists.
+This is currently a descriptive statistic of the configured simulation: it weights recorded model energy costs by the selected Φ value and divides by absolute Φ change. Its interpretation depends on the estimator, sampling interval, energy-accounting boundary, and coupling policy. It does not establish a physical energy cost of consciousness or a substrate-independent constant. Any stronger interpretation requires an operational definition, a literature review, dimensional analysis, and independent empirical calibration.
 
 ### 5.3 Landauer Erasure Reference
 
