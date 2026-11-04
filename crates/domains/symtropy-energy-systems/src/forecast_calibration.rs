@@ -975,7 +975,7 @@ mod tests {
     }
 
     fn valid_evaluation() -> ForecastCalibrationEvaluation {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1016,7 +1016,7 @@ mod tests {
 
     #[test]
     fn finite_rank_requires_nineteen_blocks_at_95_percent_and_ninety_nine_at_99() {
-        let calibration_95 = (0..19)
+        let calibration_95 = (0_u32..19)
             .map(|index| {
                 block(
                     &format!("cal95-{index}"),
@@ -1034,7 +1034,7 @@ mod tests {
         let report_95 = evaluate_forecast_calibration(&input_95).unwrap();
         assert_eq!(report_95.selected_order_statistic_rank, 19);
 
-        let calibration_99 = (0..98)
+        let calibration_99 = (0_u32..98)
             .map(|index| {
                 block(
                     &format!("cal99-{index}"),
@@ -1060,7 +1060,7 @@ mod tests {
 
     #[test]
     fn tied_calibration_scores_have_deterministic_order_statistic_identity() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("tie-{index}"),
@@ -1083,7 +1083,7 @@ mod tests {
 
     #[test]
     fn refuses_insufficient_history_instead_of_using_infinite_or_maximum_radius() {
-        let calibration = (0..8)
+        let calibration = (0_u32..8)
             .map(|index| {
                 block(
                     &format!("short-{index}"),
@@ -1109,7 +1109,7 @@ mod tests {
 
     #[test]
     fn rejects_overlapping_calibration_and_evaluation_windows() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1131,7 +1131,7 @@ mod tests {
 
     #[test]
     fn rejects_overlapping_windows_within_a_partition() {
-        let mut calibration = (0..9)
+        let mut calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1154,7 +1154,7 @@ mod tests {
 
     #[test]
     fn rejects_evaluation_forecast_vintage_before_calibration_labels_are_available() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-vintage-{index}"),
@@ -1195,7 +1195,7 @@ mod tests {
 
     #[test]
     fn rejects_duplicate_block_identity_across_partitions() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1217,7 +1217,7 @@ mod tests {
 
     #[test]
     fn rejects_incomplete_channel_horizon_grid() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1256,7 +1256,7 @@ mod tests {
 
     #[test]
     fn rejects_undeclared_channel_and_horizon() {
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
@@ -1277,7 +1277,7 @@ mod tests {
             Err(ForecastCalibrationError::UnexpectedChannel { .. })
         ));
 
-        let calibration = (0..9)
+        let calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("horizon-cal-{index}"),
@@ -1325,7 +1325,7 @@ mod tests {
 
     #[test]
     fn one_hostile_cell_controls_the_simultaneous_block_envelope() {
-        let mut calibration = (0..9)
+        let mut calibration = (0_u32..9)
             .map(|index| {
                 block(
                     &format!("cal-{index}"),
