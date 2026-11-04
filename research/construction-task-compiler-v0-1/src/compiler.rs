@@ -175,7 +175,7 @@ pub fn compile_work_graph(
             diagnostics.push(compile_diagnostic(
                 "duplicate_method_step_id",
                 None,
-                Some(&step.step_id),
+                Some(step.step_id.as_str()),
                 "method step IDs must be unique within a template",
             ));
         }
@@ -187,8 +187,8 @@ pub fn compile_work_graph(
                 diagnostics.push(compile_diagnostic(
                     "unknown_method_step_dependency",
                     None,
-                    Some(&step.step_id),
-                    dependency,
+                    Some(step.step_id.as_str()),
+                    dependency.as_str(),
                 ));
             }
         }
@@ -214,7 +214,7 @@ pub fn compile_work_graph(
         if !element_ids.insert(element.element_id.as_str()) {
             diagnostics.push(compile_diagnostic(
                 "duplicate_design_element_id",
-                Some(&element.element_id),
+                Some(element.element_id.as_str()),
                 None,
                 "design element IDs must be unique within the manifest",
             ));
@@ -224,7 +224,7 @@ pub fn compile_work_graph(
         if element.task_family.trim().is_empty() {
             diagnostics.push(compile_diagnostic(
                 "missing_task_family",
-                Some(&element.element_id),
+                Some(element.element_id.as_str()),
                 None,
                 "design element has no declared task family",
             ));
@@ -239,9 +239,9 @@ pub fn compile_work_graph(
             unsupported = true;
             diagnostics.push(compile_diagnostic(
                 "unsupported_task_family",
-                Some(&element.element_id),
+                Some(element.element_id.as_str()),
                 None,
-                &element.task_family,
+                element.task_family.as_str(),
             ));
             continue;
         }
@@ -261,8 +261,8 @@ pub fn compile_work_graph(
                 {
                     diagnostics.push(compile_diagnostic(
                         "incomplete_parameter_mapping",
-                        Some(&element.element_id),
-                        Some(&step.step_id),
+                        Some(element.element_id.as_str()),
+                        Some(step.step_id.as_str()),
                         "target name, source property and target unit are required",
                     ));
                     step_has_error = true;
@@ -272,9 +272,9 @@ pub fn compile_work_graph(
                 if !parameter_names.insert(mapping.target_name.as_str()) {
                     diagnostics.push(compile_diagnostic(
                         "duplicate_parameter_mapping",
-                        Some(&element.element_id),
-                        Some(&step.step_id),
-                        &mapping.target_name,
+                        Some(element.element_id.as_str()),
+                        Some(step.step_id.as_str()),
+                        mapping.target_name.as_str(),
                     ));
                     step_has_error = true;
                     continue;
@@ -290,9 +290,9 @@ pub fn compile_work_graph(
                     [] => {
                         diagnostics.push(compile_diagnostic(
                             "missing_design_property",
-                            Some(&element.element_id),
-                            Some(&step.step_id),
-                            &mapping.source_property,
+                            Some(element.element_id.as_str()),
+                            Some(step.step_id.as_str()),
+                            mapping.source_property.as_str(),
                         ));
                         step_has_error = true;
                         continue;
@@ -301,9 +301,9 @@ pub fn compile_work_graph(
                     _ => {
                         diagnostics.push(compile_diagnostic(
                             "ambiguous_design_property",
-                            Some(&element.element_id),
-                            Some(&step.step_id),
-                            &mapping.source_property,
+                            Some(element.element_id.as_str()),
+                            Some(step.step_id.as_str()),
+                            mapping.source_property.as_str(),
                         ));
                         step_has_error = true;
                         continue;
@@ -316,9 +316,9 @@ pub fn compile_work_graph(
                 {
                     diagnostics.push(compile_diagnostic(
                         "incomplete_design_property",
-                        Some(&element.element_id),
-                        Some(&step.step_id),
-                        &mapping.source_property,
+                        Some(element.element_id.as_str()),
+                        Some(step.step_id.as_str()),
+                        mapping.source_property.as_str(),
                     ));
                     step_has_error = true;
                     continue;
@@ -328,9 +328,9 @@ pub fn compile_work_graph(
                     if mapping.conversion.is_some() {
                         diagnostics.push(compile_diagnostic(
                             "unnecessary_unit_conversion",
-                            Some(&element.element_id),
-                            Some(&step.step_id),
-                            &mapping.target_name,
+                            Some(element.element_id.as_str()),
+                            Some(step.step_id.as_str()),
+                            mapping.target_name.as_str(),
                         ));
                         step_has_error = true;
                         continue;
@@ -350,9 +350,9 @@ pub fn compile_work_graph(
                         Some(_) => {
                             diagnostics.push(compile_diagnostic(
                                 "incomplete_unit_conversion_receipt",
-                                Some(&element.element_id),
-                                Some(&step.step_id),
-                                &mapping.target_name,
+                                Some(element.element_id.as_str()),
+                                Some(step.step_id.as_str()),
+                                mapping.target_name.as_str(),
                             ));
                             step_has_error = true;
                             continue;
@@ -360,9 +360,9 @@ pub fn compile_work_graph(
                         None => {
                             diagnostics.push(compile_diagnostic(
                                 "unit_conversion_receipt_required",
-                                Some(&element.element_id),
-                                Some(&step.step_id),
-                                &mapping.target_name,
+                                Some(element.element_id.as_str()),
+                                Some(step.step_id.as_str()),
+                                mapping.target_name.as_str(),
                             ));
                             step_has_error = true;
                             continue;
