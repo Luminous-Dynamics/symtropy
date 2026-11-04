@@ -3,7 +3,7 @@
 //! This crate validates scenario contracts; it does not execute robot safety logic.
 
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 const SCHEMA: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/schema/assurance-chain-scenario-v0.1.schema.json"
@@ -253,10 +253,12 @@ fn validate_commands(scenario: &Value, stages: &[Value]) -> Result<(), String> {
 }
 
 fn validate_claims(scenario: &Value, stages: &[Value], by_id: &HashMap<String, usize>) -> Result<(), String> {
-    let mut claim_ids = Vec::new();
+    let mut claim_ids = HashSet::new();
     for claim in array(scenario, "claim_expectations", "scenario")? {
         let id = text(claim, "claim_id", "claim")?.to_owned();
-        claim_ids.push(Some(id.as_str()));
+        if id.trim().is_empty() || !claim_ids.insert(id.clone()) {
+            return Err(format!("claim ids contain an empty or duplicate id: {id}"));
+        }
         let kind = text(claim, "claim_kind", &format!("claim[{id}]"))?;
         let origin = text(claim, "evidence_origin", &format!("claim[{id}]"))?;
         let scope = text(claim, "intended_scope", &format!("claim[{id}]"))?;
@@ -300,7 +302,7 @@ fn validate_claims(scenario: &Value, stages: &[Value], by_id: &HashMap<String, u
             }
         }
     }
-    unique_ids(claim_ids.into_iter(), "claim ids")
+    Ok(())
 }
 
 /// Validate a scenario document against the embedded Draft 2020-12 schema and
@@ -390,9 +392,12 @@ mod tests {
     }
 
     #[test]
-    fn old_epoch_cannot_authorize_after_new_epoch() {
-        let mut scenario: Value = serde_json::from_str(VALID).expect("valid scenario JSON");
-        scenario["stages"][5]["sequence"] = serde_json::json!(4);
+    fn new_epoch_after_qualification_rejects_the_old_lease() {
+        let mut scenario: Value = serde_json::from_str(STALE).expect("stale scenario JSON");
+        scenario["command_attempts"][0]["expected_authorized"] = serde_json::json!(true);
+        scenario["command_attempts"][0]["lease_valid_at_command"] = serde_json::json!(true);
+        scenario["command_attempts"][0]["expected_reason_codes"] = serde_json::json!([]);
+        scenario["stages"][5]["expected_disposition"] = serde_json::json!("authorized");
         assert!(validate_scenario(&scenario.to_string()).is_err());
     }
 
