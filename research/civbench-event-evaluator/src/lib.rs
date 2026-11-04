@@ -826,7 +826,7 @@ pub fn evaluate(
     let late_event_ids: BTreeSet<String> = matches
         .iter()
         .filter(|record| record.kind == MatchKind::Late)
-        .map(|record| record.event_id.as_str())
+        .map(|record| record.event_id.clone())
         .collect();
     for event in events {
         if late_event_ids.contains(event.event_id.as_str()) {
