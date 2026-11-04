@@ -379,14 +379,13 @@ impl WeightedScenarioPath {
                 scenario.scenario_id,
             ));
         }
-        for (index, value) in scenario.values.iter().enumerate() {
+        for value in &scenario.values {
             if !value.is_finite() {
                 return Err(JointScenarioForecastError::NonFiniteValue {
                     field: "scenario path value",
                     value: *value,
                 });
             }
-            let _ = index;
         }
         Ok(scenario)
     }
@@ -1052,7 +1051,11 @@ pub fn evaluate_joint_scenario_forecasts(
             });
         }
 
-        total_scenario_count += case.scenarios.len();
+        total_scenario_count = total_scenario_count
+            .checked_add(case.scenarios.len())
+            .ok_or(JointScenarioForecastError::NumericalOverflow(
+                "total scenario count",
+            ))?;
         energy_score_sum += energy_score;
         variogram_score_sum += variogram_score;
         if !energy_score_sum.is_finite() || !variogram_score_sum.is_finite() {
@@ -1076,7 +1079,14 @@ pub fn evaluate_joint_scenario_forecasts(
     }
 
     let case_count = evaluation.cases.len();
-    let event_case_denominator = (case_count as f64).max(1.0);
+    if event_probability_sums.iter().any(|value| !value.is_finite())
+        || event_brier_sums.iter().any(|value| !value.is_finite())
+    {
+        return Err(JointScenarioForecastError::NumericalOverflow(
+            "event aggregate sums",
+        ));
+    }
+    let event_case_denominator = case_count as f64;
     let event_aggregates = contract
         .events
         .iter()
@@ -1100,6 +1110,14 @@ pub fn evaluate_joint_scenario_forecasts(
         ));
     }
 
+    let mean_energy_score = energy_score_sum / case_count as f64;
+    let mean_variogram_score = variogram_score_sum / case_count as f64;
+    if !mean_energy_score.is_finite() || !mean_variogram_score.is_finite() {
+        return Err(JointScenarioForecastError::NumericalOverflow(
+            "mean multivariate proper scores",
+        ));
+    }
+
     Ok(JointScenarioForecastReport {
         benchmark_id: contract.benchmark_id.clone(),
         forecast_model_digest: contract.forecast_model_digest.clone(),
@@ -1120,8 +1138,8 @@ pub fn evaluate_joint_scenario_forecasts(
             .to_string(),
         case_count,
         total_scenario_count,
-        mean_energy_score: energy_score_sum / case_count as f64,
-        mean_variogram_score: variogram_score_sum / case_count as f64,
+        mean_energy_score,
+        mean_variogram_score,
         mean_event_brier_score,
         maximum_probability_mass_deviation,
         event_aggregates,
