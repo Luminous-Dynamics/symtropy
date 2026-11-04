@@ -2389,8 +2389,7 @@ mod tests {
             distribution("negative-coupling", 0.0, 1.0),
         ];
         let marginal_estimate =
-            estimate_expected_information_gain_with_uncertainty(&marginal_only, 3000, 113)
-                .unwrap();
+            estimate_expected_information_gain_with_uncertainty(&marginal_only, 3000, 113).unwrap();
         assert_eq!(marginal_estimate.mean_nats, 0.0);
 
         let estimate =
