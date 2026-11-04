@@ -65,7 +65,7 @@ impl std::fmt::Display for FixtureError {
 impl std::error::Error for FixtureError {}
 
 #[derive(Debug, Clone, PartialEq)]
-enum JsonValue {
+pub(crate) enum JsonValue {
     Null,
     Bool(bool),
     Number(String),
@@ -74,20 +74,20 @@ enum JsonValue {
     Object(BTreeMap<String, JsonValue>),
 }
 
-struct JsonParser<'a> {
+pub(crate) struct JsonParser<'a> {
     input: &'a [u8],
     cursor: usize,
 }
 
 impl<'a> JsonParser<'a> {
-    fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         Self {
             input: input.as_bytes(),
             cursor: 0,
         }
     }
 
-    fn parse(mut self) -> Result<JsonValue, FixtureError> {
+    pub(crate) fn parse(mut self) -> Result<JsonValue, FixtureError> {
         self.skip_whitespace();
         let value = self.parse_value(0)?;
         self.skip_whitespace();
