@@ -1128,4 +1128,55 @@ mod tests {
             json!((0..=n).map(|_| vec![0.0; n + 1]).collect::<Vec<_>>());
         assert_eq!(disposition(value), "INVALID_INPUT");
     }
+
+ 
+    #[test]
+    fn published_normalized_coupling_matrices_have_positive_rounding_margin() {
+        const SOURCE: &str = include_str!(
+            "../../../benchmarks/wpt-inductance-matrix/v1/source-normalized-coupling-matrices.json"
+        );
+        let document: Value = serde_json::from_str(SOURCE).expect("source audit JSON must parse");
+        let matrices = document["matrices"]
+            .as_array()
+            .expect("source audit must contain matrix records");
+        assert_eq!(matrices.len(), 5);
+
+        for record in matrices {
+            let matrix: Vec<Vec<f64>> =
+                serde_json::from_value(record["values"].clone()).expect("matrix values");
+            let n = matrix.len();
+            assert_eq!(n, record["receiver_count"].as_u64().unwrap() as usize + 1);
+            assert!(matrix.iter().all(|row| row.len() == n));
+            for i in 0..n {
+                for j in 0..n {
+                    assert!((matrix[i][j] - matrix[j][i]).abs() <= 1e-12);
+                }
+            }
+
+            let (minimum_eigenvalue, solver_residual_bound) =
+                smallest_symmetric_eigenvalue(&matrix).expect("finite matrix eigensolve");
+            let displayed_decimals = record["off_diagonal_displayed_decimal_places"]
+                .as_u64()
+                .expect("display precision") as i32;
+            let rounding_bound = 0.5 * 10_f64.powi(-displayed_decimals);
+            let entry_count = (n * (n - 1)) as f64;
+            let matrix_rounding_frobenius_bound = rounding_bound * entry_count.sqrt();
+            let total_bound = matrix_rounding_frobenius_bound + solver_residual_bound;
+            let lower_bound = minimum_eigenvalue - total_bound;
+            let expected_reference = record["expected_minimum_eigenvalue_reference"]
+                .as_f64()
+                .expect("reference eigenvalue");
+
+            assert!(
+                (minimum_eigenvalue - expected_reference).abs() < 1e-10,
+                "appendix table {} eigenvalue mismatch: got {minimum_eigenvalue}, expected {expected_reference}",
+                record["appendix_table"]
+            );
+            assert!(
+                lower_bound > 0.0,
+                "appendix table {} lost its PSD margin after display-rounding bound: minimum={minimum_eigenvalue}, bound={total_bound}",
+                record["appendix_table"]
+            );
+        }
+    }
 }
