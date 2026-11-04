@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -23,7 +23,10 @@ fn inspection_outcome(attempt: &Value) -> Option<&str> {
 }
 
 fn is_digest(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
 fn add_error(errors: &mut Vec<String>, code: impl Into<String>) {
@@ -62,7 +65,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
 
     if let Some(units) = units {
         for unit in units {
-            let unit_id = unit.get("unit_id").and_then(Value::as_str).unwrap_or("unknown");
+            let unit_id = unit
+                .get("unit_id")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
             if !unit_ids.insert(unit_id.to_owned()) {
                 add_error(&mut errors, format!("duplicate_work_unit_id:{unit_id}"));
             }
@@ -96,11 +102,17 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 let start = attempt.get("started_at_unix_ms").and_then(Value::as_u64);
                 let end = attempt.get("ended_at_unix_ms").and_then(Value::as_u64);
                 if !matches!((start, end), (Some(start), Some(end)) if start < end) {
-                    add_error(&mut errors, format!("attempt_interval_invalid:{attempt_id}"));
+                    add_error(
+                        &mut errors,
+                        format!("attempt_interval_invalid:{attempt_id}"),
+                    );
                 }
                 if let (Some(start), Some(end)) = (start, end) {
                     if previous_attempt_end.is_some_and(|previous_end| start < previous_end) {
-                        add_error(&mut errors, format!("attempt_intervals_not_sequential:{unit_id}:{attempt_id}"));
+                        add_error(
+                            &mut errors,
+                            format!("attempt_intervals_not_sequential:{unit_id}:{attempt_id}"),
+                        );
                     }
                     previous_attempt_end = Some(end);
                 }
@@ -108,7 +120,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                     (start, end, package_start, package_end)
                     && (start < package_start || end > package_end)
                 {
-                    add_error(&mut errors, format!("attempt_outside_work_package:{attempt_id}"));
+                    add_error(
+                        &mut errors,
+                        format!("attempt_outside_work_package:{attempt_id}"),
+                    );
                 }
 
                 if let Some(digest) = attempt
@@ -116,7 +131,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                     .and_then(Value::as_str)
                     && !is_digest(digest)
                 {
-                    add_error(&mut errors, format!("output_artifact_digest_not_canonical:{attempt_id}"));
+                    add_error(
+                        &mut errors,
+                        format!("output_artifact_digest_not_canonical:{attempt_id}"),
+                    );
                 }
 
                 let inspection = attempt.get("inspection");
@@ -138,13 +156,22 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 match outcome {
                     Some("accepted" | "rejected") => {
                         if authority.is_none_or(str::is_empty) {
-                            add_error(&mut errors, format!("inspection_authority_missing:{attempt_id}"));
+                            add_error(
+                                &mut errors,
+                                format!("inspection_authority_missing:{attempt_id}"),
+                            );
                         }
                         if method.is_none_or(str::is_empty) {
-                            add_error(&mut errors, format!("inspection_method_missing:{attempt_id}"));
+                            add_error(
+                                &mut errors,
+                                format!("inspection_method_missing:{attempt_id}"),
+                            );
                         }
                         if evidence.is_none_or(Vec::is_empty) {
-                            add_error(&mut errors, format!("inspection_evidence_missing:{attempt_id}"));
+                            add_error(
+                                &mut errors,
+                                format!("inspection_evidence_missing:{attempt_id}"),
+                            );
                         }
                     }
                     Some("not_inspected") => {
@@ -154,11 +181,16 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                         {
                             add_error(
                                 &mut errors,
-                                format!("uninspected_attempt_carries_acceptance_evidence:{attempt_id}"),
+                                format!(
+                                    "uninspected_attempt_carries_acceptance_evidence:{attempt_id}"
+                                ),
                             );
                         }
                     }
-                    _ => add_error(&mut errors, format!("inspection_outcome_missing:{attempt_id}")),
+                    _ => add_error(
+                        &mut errors,
+                        format!("inspection_outcome_missing:{attempt_id}"),
+                    ),
                 }
 
                 if let Some(defects) = inspection
@@ -186,7 +218,9 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                     if latest_outcome != Some("accepted") {
                         add_error(
                             &mut errors,
-                            format!("accepted_disposition_without_latest_accepted_inspection:{unit_id}"),
+                            format!(
+                                "accepted_disposition_without_latest_accepted_inspection:{unit_id}"
+                            ),
                         );
                     }
                     let has_open_critical = attempts.iter().any(|attempt| {
@@ -196,25 +230,34 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                             .and_then(Value::as_array)
                             .is_some_and(|defects| {
                                 defects.iter().any(|defect| {
-                                    defect.get("severity").and_then(Value::as_str) == Some("critical")
-                                        && defect.get("disposition").and_then(Value::as_str) == Some("open")
+                                    defect.get("severity").and_then(Value::as_str)
+                                        == Some("critical")
+                                        && defect.get("disposition").and_then(Value::as_str)
+                                            == Some("open")
                                 })
                             })
                     });
                     if has_open_critical {
-                        add_error(&mut errors, format!("accepted_unit_has_open_critical_defect:{unit_id}"));
+                        add_error(
+                            &mut errors,
+                            format!("accepted_unit_has_open_critical_defect:{unit_id}"),
+                        );
                     }
                 }
                 "rejected" if latest_outcome != Some("rejected") => {
                     add_error(
                         &mut errors,
-                        format!("rejected_disposition_without_latest_rejected_inspection:{unit_id}"),
+                        format!(
+                            "rejected_disposition_without_latest_rejected_inspection:{unit_id}"
+                        ),
                     );
                 }
                 "unresolved" if !attempts.is_empty() && latest_outcome != Some("not_inspected") => {
                     add_error(
                         &mut errors,
-                        format!("unresolved_disposition_conflicts_with_latest_inspection:{unit_id}"),
+                        format!(
+                            "unresolved_disposition_conflicts_with_latest_inspection:{unit_id}"
+                        ),
                     );
                 }
                 _ => {}
@@ -243,22 +286,32 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
             let package_clock = string_at(ledger, &["work_package", "clock_domain_id"]);
             let entry_clock = entry.get("clock_domain_id").and_then(Value::as_str);
             if package_clock.is_some() && entry_clock != package_clock {
-                add_error(&mut errors, format!("time_entry_clock_domain_mismatch:{entry_id}"));
+                add_error(
+                    &mut errors,
+                    format!("time_entry_clock_domain_mismatch:{entry_id}"),
+                );
             }
             if !matches!((start, end), (Some(start), Some(end)) if start < end) {
-                add_error(&mut errors, format!("time_entry_interval_invalid:{entry_id}"));
+                add_error(
+                    &mut errors,
+                    format!("time_entry_interval_invalid:{entry_id}"),
+                );
                 continue;
             }
             if let (Some(start), Some(end), Some(package_start), Some(package_end)) =
                 (start, end, package_start, package_end)
                 && (start < package_start || end > package_end)
             {
-                add_error(&mut errors, format!("time_entry_outside_accounting_window:{entry_id}"));
+                add_error(
+                    &mut errors,
+                    format!("time_entry_outside_accounting_window:{entry_id}"),
+                );
             }
-            intervals
-                .entry(resource_id.to_owned())
-                .or_default()
-                .push((start.unwrap_or(0), end.unwrap_or(0), entry_id.to_owned()));
+            intervals.entry(resource_id.to_owned()).or_default().push((
+                start.unwrap_or(0),
+                end.unwrap_or(0),
+                entry_id.to_owned(),
+            ));
         }
     }
 
@@ -268,7 +321,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
             if pair[1].0 < pair[0].1 {
                 add_error(
                     &mut errors,
-                    format!("resource_time_overlap:{resource_id}:{}:{}", pair[0].2, pair[1].2),
+                    format!(
+                        "resource_time_overlap:{resource_id}:{}:{}",
+                        pair[0].2, pair[1].2
+                    ),
                 );
             }
         }
@@ -284,7 +340,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
             })
         })
     {
-        add_error(&mut errors, "completed_work_package_contains_unresolved_units");
+        add_error(
+            &mut errors,
+            "completed_work_package_contains_unresolved_units",
+        );
     }
 
     if let Some(interruptions) = ledger.get("interruptions").and_then(Value::as_array) {
@@ -306,7 +365,10 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
                 (start, end, package_start, package_end)
                 && (start < package_start || end > package_end)
             {
-                add_error(&mut errors, format!("interruption_outside_work_package:{id}"));
+                add_error(
+                    &mut errors,
+                    format!("interruption_outside_work_package:{id}"),
+                );
             }
         }
     }
@@ -316,7 +378,13 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
     errors
 }
 
-fn metric(metric_id: &str, numerator: f64, denominator: f64, unit: &str, provisional: bool) -> Value {
+fn metric(
+    metric_id: &str,
+    numerator: f64,
+    denominator: f64,
+    unit: &str,
+    provisional: bool,
+) -> Value {
     if denominator > 0.0 {
         json!({
             "metric_id": metric_id,
@@ -368,7 +436,11 @@ pub fn derive_report(ledger: &Value) -> Value {
     let planned = units.len() as u64;
     let attempted_units = units
         .iter()
-        .filter(|unit| unit.get("attempts").and_then(Value::as_array).is_some_and(|v| !v.is_empty()))
+        .filter(|unit| {
+            unit.get("attempts")
+                .and_then(Value::as_array)
+                .is_some_and(|v| !v.is_empty())
+        })
         .count() as u64;
     let first_pass_inspected = units
         .iter()
@@ -522,18 +594,90 @@ pub fn derive_report(ledger: &Value) -> Value {
     let provisional = string_at(ledger, &["work_package", "completion_state"]) != Some("completed");
 
     let metrics = vec![
-        metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio", provisional),
-        metric("critical_feature_inspection_coverage", critical_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
-        metric("critical_first_pass_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio", provisional),
-        metric("first_pass_critical_defects_per_first_pass_inspected_unit", first_pass_critical_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
-        metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
-        metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit", provisional),
-        metric("final_acceptance_fraction", finally_accepted as f64, attempted_units as f64, "ratio", provisional),
-        metric("accepted_units_per_robot_hour", finally_accepted as f64, robot_seconds / 3600.0, &accepted_unit, provisional),
-        metric("accepted_units_per_direct_crew_hour", finally_accepted as f64, direct_human_seconds / 3600.0, &accepted_unit, provisional),
-        metric("accepted_units_per_total_workflow_crew_hour", finally_accepted as f64, total_human_seconds / 3600.0, &accepted_unit, provisional),
-        metric("elapsed_seconds_per_finally_accepted_unit", elapsed_seconds, finally_accepted as f64, "seconds_per_accepted_unit", provisional),
-        metric("rework_human_hours_per_finally_accepted_unit", rework_human_seconds / 3600.0, finally_accepted as f64, "human_hours_per_accepted_unit", provisional),
+        metric(
+            "first_pass_yield",
+            first_pass_accepted as f64,
+            first_pass_inspected as f64,
+            "ratio",
+            provisional,
+        ),
+        metric(
+            "critical_feature_inspection_coverage",
+            critical_inspected_units as f64,
+            critical_planned_units as f64,
+            "ratio",
+            provisional,
+        ),
+        metric(
+            "critical_first_pass_inspection_coverage",
+            critical_first_pass_inspected_units as f64,
+            critical_planned_units as f64,
+            "ratio",
+            provisional,
+        ),
+        metric(
+            "first_pass_critical_defects_per_first_pass_inspected_unit",
+            first_pass_critical_defects as f64,
+            first_pass_inspected as f64,
+            "defects_per_inspected_unit",
+            provisional,
+        ),
+        metric(
+            "first_pass_major_defects_per_first_pass_inspected_unit",
+            first_pass_major_defects as f64,
+            first_pass_inspected as f64,
+            "defects_per_inspected_unit",
+            provisional,
+        ),
+        metric(
+            "first_pass_minor_defects_per_first_pass_inspected_unit",
+            first_pass_minor_defects as f64,
+            first_pass_inspected as f64,
+            "defects_per_inspected_unit",
+            provisional,
+        ),
+        metric(
+            "final_acceptance_fraction",
+            finally_accepted as f64,
+            attempted_units as f64,
+            "ratio",
+            provisional,
+        ),
+        metric(
+            "accepted_units_per_robot_hour",
+            finally_accepted as f64,
+            robot_seconds / 3600.0,
+            &accepted_unit,
+            provisional,
+        ),
+        metric(
+            "accepted_units_per_direct_crew_hour",
+            finally_accepted as f64,
+            direct_human_seconds / 3600.0,
+            &accepted_unit,
+            provisional,
+        ),
+        metric(
+            "accepted_units_per_total_workflow_crew_hour",
+            finally_accepted as f64,
+            total_human_seconds / 3600.0,
+            &accepted_unit,
+            provisional,
+        ),
+        metric(
+            "elapsed_seconds_per_finally_accepted_unit",
+            elapsed_seconds,
+            finally_accepted as f64,
+            "seconds_per_accepted_unit",
+            provisional,
+        ),
+        metric(
+            "rework_human_hours_per_finally_accepted_unit",
+            rework_human_seconds / 3600.0,
+            finally_accepted as f64,
+            "human_hours_per_accepted_unit",
+            provisional,
+        ),
     ];
 
     json!({
@@ -580,12 +724,15 @@ pub fn validate_profile_binding(profile: &Value, ledger: &Value) -> Vec<String> 
         .get("allowed_unit_classes")
         .and_then(Value::as_array)
         .is_some_and(|classes| {
-            classes.iter().any(|item| {
-                item.get("unit_class").and_then(Value::as_str) == unit_class
-            })
+            classes
+                .iter()
+                .any(|item| item.get("unit_class").and_then(Value::as_str) == unit_class)
         });
 
-    if profile_id.is_none() || ledger_profile_id != profile_id || acceptance_profile_id != profile_id {
+    if profile_id.is_none()
+        || ledger_profile_id != profile_id
+        || acceptance_profile_id != profile_id
+    {
         errors.push("ledger_profile_identity_mismatch".to_owned());
     }
     if unit_class.is_none() || !allowed {
@@ -652,7 +799,10 @@ mod tests {
 
     #[test]
     fn synthetic_valid_fixture_passes_schema_and_semantic_checks() {
-        let errors = validate_ledger(&ledger_schema(), &load("fixtures/layout-run.synthetic.json"));
+        let errors = validate_ledger(
+            &ledger_schema(),
+            &load("fixtures/layout-run.synthetic.json"),
+        );
         assert!(errors.is_empty(), "{errors:?}");
     }
 
@@ -682,16 +832,21 @@ mod tests {
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         ledger["work_package"]["completion_state"] = Value::String("completed".to_owned());
         let errors = validate_ledger(&ledger_schema(), &ledger);
-        assert!(errors.iter().any(|error| {
-            error == "completed_work_package_contains_unresolved_units"
-        }));
+        assert!(
+            errors
+                .iter()
+                .any(|error| { error == "completed_work_package_contains_unresolved_units" })
+        );
     }
 
     #[test]
     fn critical_inspection_coverage_is_reported_separately() {
         let report = derive_report(&load("fixtures/layout-run.synthetic.json"));
         assert_eq!(report["derived_counts"]["critical_planned_units"], 3);
-        assert_eq!(report["derived_counts"]["critical_first_pass_inspected_units"], 2);
+        assert_eq!(
+            report["derived_counts"]["critical_first_pass_inspected_units"],
+            2
+        );
         let metric = report["metrics"]
             .as_array()
             .unwrap()
@@ -753,10 +908,21 @@ mod tests {
     fn same_resource_time_intervals_must_not_overlap() {
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         let overlapping = ledger["time_entries"][1].clone();
-        ledger["time_entries"].as_array_mut().unwrap().push(overlapping);
+        ledger["time_entries"]
+            .as_array_mut()
+            .unwrap()
+            .push(overlapping);
         let errors = validate_ledger(&ledger_schema(), &ledger);
-        assert!(errors.iter().any(|error| error.starts_with("duplicate_time_entry_id:")));
-        assert!(errors.iter().any(|error| error.starts_with("resource_time_overlap:")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("duplicate_time_entry_id:"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("resource_time_overlap:"))
+        );
     }
 
     #[test]
@@ -764,9 +930,11 @@ mod tests {
         let profile = load("profile/layout-accepted-output-v0.1.json");
         let mut ledger = load("fixtures/layout-run.synthetic.json");
         ledger["functional_unit"]["unit_class"] = Value::String("unlisted_unit".to_owned());
-        assert!(validate_profile_binding(&profile, &ledger)
-            .iter()
-            .any(|error| error == "functional_unit_class_not_allowed_by_profile"));
+        assert!(
+            validate_profile_binding(&profile, &ledger)
+                .iter()
+                .any(|error| error == "functional_unit_class_not_allowed_by_profile")
+        );
     }
 
     #[test]
