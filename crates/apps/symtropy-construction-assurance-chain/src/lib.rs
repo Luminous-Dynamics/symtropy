@@ -8,15 +8,19 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 const SCHEMA: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/schema/assurance-chain-scenario-v0.1.schema.json"
 );
+#[cfg(test)]
 const VALID: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/fixtures/valid/valid-synthetic-clear-command-chain.json"
 );
+#[cfg(test)]
 const UNKNOWN: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/fixtures/invalid/unknown-observation-blocks-command.json"
 );
+#[cfg(test)]
 const STALE: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/fixtures/invalid/new-epoch-revokes-stale-lease.json"
 );
+#[cfg(test)]
 const BENCH_FIELD: &str = include_str!(
     "../../../../research/construction-robot-assurance-chain-v0-1/fixtures/invalid/bench-evidence-cannot-support-field-claim.json"
 );
@@ -84,13 +88,12 @@ fn stage_is_ancestor(
         if !seen.insert(candidate.clone()) {
             continue;
         }
-        if let Some(index) = by_id.get(&candidate) {
-            if let Some(parents) = stages[*index]
+        if let Some(index) = by_id.get(&candidate)
+            && let Some(parents) = stages[*index]
                 .get("predecessor_stage_ids")
                 .and_then(Value::as_array)
-            {
-                pending.extend(parents.iter().filter_map(Value::as_str).map(str::to_owned));
-            }
+        {
+            pending.extend(parents.iter().filter_map(Value::as_str).map(str::to_owned));
         }
     }
     false
