@@ -513,9 +513,20 @@ def main() -> int:
             "source_commit_verified": source_commit,
             "package_version_observed": package_version,
             "python_version": sys.version,
+            "task_metadata": (
+                {
+                    "dimension": task_metadata.get("dim"),
+                    "num_objectives": task_metadata.get("num_objectives"),
+                    "num_constraints": task_metadata.get("num_constraints", 0),
+                    "input_type": task_metadata.get("input_type"),
+                    "application": task_metadata.get("application"),
+                }
+                if isinstance(task_metadata, dict)
+                else None
+            ),
             "environment_freeze_sha256": freeze_sha256,
             "timeout_seconds": args.timeout_seconds,
-            "timed_out": False,
+            "timed_out": timed_out,
             "process_exit_code": exit_code,
             "wall_seconds": wall_seconds,
             "cpu_user_seconds_measured": cpu_user_seconds,
