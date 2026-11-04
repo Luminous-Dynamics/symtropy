@@ -54,7 +54,16 @@ The closed JSON Schema binds each event to:
 - protection/FOD/sensor/hard-limit status and safe action;
 - source energy, useful-service energy, auxiliary energy, stored-energy delta, residual, uncertainty and calibration receipts.
 
-The schema validates structure and typed fields. Cross-event ordering, sequence continuity, time monotonicity, conditional energization gates and energy-ledger reconstruction require an independent conformance evaluator; they must not be inferred from JSON Schema alone.
+The Rust conformance evaluator validates structure, content digests, previous-event hash links, per-session sequence/time continuity, legal state transitions, service type/method, source capability and conditional energization gates. Settlement remains UNRESOLVED when calibrated measurement is missing or the energy closure residual exceeds its declared uncertainty. JSON Schema alone does not enforce these temporal and cross-field semantics.
+
+## Executable conformance
+
+Run the frozen full-session corpus with:
+
+    cargo test --locked -p wpt-energy-interface-validator
+    cargo run --locked -p wpt-energy-interface-validator -- benchmarks/wpt-energy-interface/v1/known-truth.jsonl
+
+The corpus contains complete valid sessions for all four end-use profiles, unauthorized/stale/unsafe energization attempts, a service-method mismatch and an unmeasured settlement. Event SHA-256 digests are computed over canonical JSON payloads with the event_digest field omitted; each subsequent event links to the prior event digest.
 
 ## Proposed research benchmark targets
 
