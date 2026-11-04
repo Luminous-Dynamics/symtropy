@@ -19,6 +19,7 @@ mod duty_cycle;
 mod flexibility_evaluation;
 mod fuel;
 mod matched_service;
+mod measurement_verification;
 mod service_contract;
 mod trace_validation;
 mod workload_schedule;
@@ -41,6 +42,12 @@ pub use fuel::{
     FuelRecordError,
 };
 
+pub use measurement_verification::{
+    EnergyMvBaselinePredictionBasis, EnergyMvDataset, EnergyMvError, EnergyMvMethod,
+    EnergyMvPlan, EnergyMvReportingPoint,
+    EnergyMvReportingReceipt, EnergyMvValidationPoint, EnergyMvValidationReceipt,
+    EnergyMvVerificationReport, verify_energy_mv,
+};
 pub use matched_service::{
     MatchedServiceComparison, MatchedServiceError, MatchedServiceSegmentResult,
     ServiceDemandProfile, ServiceDemandSegment, ServiceTolerance, compare_matched_service,
