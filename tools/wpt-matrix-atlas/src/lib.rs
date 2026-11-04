@@ -344,7 +344,6 @@ fn validate_matrix(
     {
         return Err("declared passivity lower bound must be finite and non-negative".into());
     }
-    let mut scale = 0.0_f64;
     for row in matrix {
         if row.len() != n {
             return Err("matrix must be square and match coil count".into());
@@ -353,7 +352,6 @@ fn validate_matrix(
             if !value.is_finite() {
                 return Err("matrix entries must be finite".into());
             }
-            scale = scale.max(value.abs());
         }
     }
     for row in bounds {
@@ -384,16 +382,13 @@ fn validate_matrix(
         - input_uncertainty_bound
         - eigensolver_residual_bound
         - numerical_tolerance_h;
-    let numerical_guard = 128.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
     if !independently_computed_lower_bound.is_finite() {
         return Err("matrix eigenvalue lower bound is non-finite".into());
     }
-    if independently_computed_lower_bound < -numerical_guard {
+    if independently_computed_lower_bound < 0.0 {
         return Err("matrix plus entrywise uncertainty is not proven positive semidefinite".into());
     }
-    if declared_minimum_eigenvalue_lower_bound_h
-        > independently_computed_lower_bound + numerical_guard
-    {
+    if declared_minimum_eigenvalue_lower_bound_h > independently_computed_lower_bound {
         return Err(
             "declared eigenvalue lower bound is more optimistic than the independently computed bound"
                 .into(),
