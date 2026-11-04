@@ -90,13 +90,7 @@ fn run() -> Result<(), String> {
                 .get("end_ns")
                 .and_then(Value::as_u64)
                 .ok_or_else(|| "missing or invalid event_window.end_ns".to_owned())?;
-            validate_stream_order(
-                &mut last_by_stream,
-                stream_id,
-                sequence,
-                start_ns,
-                end_ns,
-            )
+            validate_stream_order(&mut last_by_stream, stream_id, sequence, start_ns, end_ns)
         })();
         if let Err(error) = order_result {
             eprintln!("line {line_number} ({event_id}): {error}");
