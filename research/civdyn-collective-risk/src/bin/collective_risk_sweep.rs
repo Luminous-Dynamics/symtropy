@@ -4,7 +4,7 @@
 //! CIVDYN-CRG-001 source-aligned risk and fixed-partner benchmark sweep.
 
 use civdyn_collective_risk::{
-    exact_best_response, run_episode, GameConfig, Strategy, OptimalMode, SEATS,
+    exact_best_response, run_episode, GameConfig, OptimalMode, Strategy, SEATS,
 };
 
 const RISK_GRID: [f64; 11] = [
@@ -23,6 +23,11 @@ fn fmt(value: f64) -> String {
     format!("{value:.6}")
 }
 
+fn emit(fields: Vec<String>) {
+    assert_eq!(fields.len(), 16, "every CSV record has 16 columns");
+    println!("{}", fields.join(","));
+}
+
 fn main() {
     println!(
         "record_type,risk,policy,mean_contribution,total_contribution,target_reached,overshoot,shortfall,per_seat_expected_welfare,group_expected_welfare,payoff_gini,optimality_gap,partner_policy,best_response_total,best_response_payoff,candidates_examined"
@@ -36,23 +41,26 @@ fn main() {
         for policy in Strategy::ALL {
             let outcome = run_episode(config, &[policy; SEATS]).expect("policy must be valid");
             let gap = outcome.optimality_gap(config).expect("risk is valid");
-            println!(
-                "self_play,{},{},{},{},{},{},{},{},{},{},{},,,,",
+            emit(vec![
+                "self_play".into(),
                 fmt(risk),
-                policy.name(),
+                policy.name().into(),
                 fmt(outcome.mean_contribution_per_seat()),
-                outcome.total_contribution,
-                outcome.target_reached,
-                outcome.overshoot,
-                outcome.shortfall,
+                outcome.total_contribution.to_string(),
+                outcome.target_reached.to_string(),
+                outcome.overshoot.to_string(),
+                outcome.shortfall.to_string(),
                 fmt(outcome.expected_per_seat_welfare),
                 fmt(outcome.expected_group_welfare),
                 fmt(outcome.payoff_gini),
                 fmt(gap),
-            );
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+            ]);
         }
 
-        // The analytical optimum is included as an explicit reference row.
         let modes = optimum
             .optimal_modes
             .iter()
@@ -62,13 +70,24 @@ fn main() {
             })
             .collect::<Vec<_>>()
             .join("|");
-        println!(
-            "analytical_optimum,{},{},,,,,,{},{},0.000000,0.000000,,,,",
+        emit(vec![
+            "analytical_optimum".into(),
             fmt(risk),
             modes,
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
             fmt(optimum.expected_per_seat_welfare),
             fmt(optimum.expected_group_welfare),
-        );
+            "0.000000".into(),
+            "0.000000".into(),
+            String::new(),
+            String::new(),
+            String::new(),
+            String::new(),
+        ]);
     }
 
     for risk in BEST_RESPONSE_RISKS {
@@ -78,27 +97,28 @@ fn main() {
         for partner in PARTNER_TYPES {
             let response = exact_best_response(config, &[partner; SEATS - 1])
                 .expect("scripted partner best response must validate");
-            println!(
-                "best_response,{},{},,{},{},{},{},{},{},{},{},{},{},{},{}",
+            emit(vec![
+                "best_response".into(),
                 fmt(risk),
-                "exact_enumeration",
-                response.total_contribution,
-                response.outcome.target_reached,
-                response.outcome.overshoot,
-                response.outcome.shortfall,
+                "exact_enumeration".into(),
+                String::new(),
+                response.total_contribution.to_string(),
+                response.outcome.target_reached.to_string(),
+                response.outcome.overshoot.to_string(),
+                response.outcome.shortfall.to_string(),
                 fmt(response.outcome.expected_per_seat_welfare),
                 fmt(response.outcome.expected_group_welfare),
                 fmt(response.outcome.payoff_gini),
                 fmt(
                     (config.welfare_optimum().unwrap().expected_group_welfare
                         - response.outcome.expected_group_welfare)
-                        .max(0.0)
+                        .max(0.0),
                 ),
-                partner.name(),
-                response.total_contribution,
+                partner.name().into(),
+                response.total_contribution.to_string(),
                 fmt(response.expected_payoff),
-                response.candidates_examined,
-            );
+                response.candidates_examined.to_string(),
+            ]);
         }
     }
 }
