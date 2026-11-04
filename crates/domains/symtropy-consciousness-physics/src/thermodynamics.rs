@@ -252,10 +252,8 @@ impl ThermodynamicLedger {
             return None;
         }
 
-        let floor = BOLTZMANN_CONSTANT_J_PER_K
-            * temperature_k
-            * std::f64::consts::LN_2
-            * bits_erased;
+        let floor =
+            BOLTZMANN_CONSTANT_J_PER_K * temperature_k * std::f64::consts::LN_2 * bits_erased;
         floor.is_finite().then_some(floor)
     }
 
@@ -378,12 +376,9 @@ mod tests {
 
     #[test]
     fn landauer_erasure_floor_is_temperature_and_bit_scaled() {
-        let one_bit_310k =
-            ThermodynamicLedger::landauer_erasure_floor(1.0, 310.0).unwrap();
-        let two_bits_310k =
-            ThermodynamicLedger::landauer_erasure_floor(2.0, 310.0).unwrap();
-        let one_bit_300k =
-            ThermodynamicLedger::landauer_erasure_floor(1.0, 300.0).unwrap();
+        let one_bit_310k = ThermodynamicLedger::landauer_erasure_floor(1.0, 310.0).unwrap();
+        let two_bits_310k = ThermodynamicLedger::landauer_erasure_floor(2.0, 310.0).unwrap();
+        let one_bit_300k = ThermodynamicLedger::landauer_erasure_floor(1.0, 300.0).unwrap();
 
         assert!((one_bit_310k - LANDAUER_BOUND_310K).abs() < 1e-35);
         assert!((one_bit_310k - 2.966_678_181_248_014_7e-21).abs() < 1e-35);
