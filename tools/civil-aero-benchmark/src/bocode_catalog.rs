@@ -55,20 +55,10 @@ pub enum BoCoDeProblemClass {
     SingleObjectiveConstrained,
     MultiObjectiveUnconstrained,
     MultiObjectiveConstrained,
+    /// BOCoDe's paper class includes constrained and unconstrained single-objective mixed tasks.
     SingleObjectiveMixedVariable,
-    /// Discrete-only tasks are separate from the paper's continuous and mixed-variable classes.
-    SingleObjectiveDiscrete,
-    /// Discrete constrained tasks are retained as a benchmark extension.
-    SingleObjectiveDiscreteConstrained,
-    MultiObjectiveDiscrete,
-    MultiObjectiveDiscreteConstrained,
-    /// Mixed-variable constrained problems are catalogued but lie outside the paper's five
-    /// published algorithm-comparison classes.
-    SingleObjectiveMixedVariableConstrained,
-    /// Mixed-variable multi-objective extensions are retained but are not part of the five
-    /// published algorithm-comparison classes.
+    /// Explicit extension for a multi-objective mixed-variable task.
     MultiObjectiveMixedVariable,
-    MultiObjectiveMixedVariableConstrained,
 }
 
 impl BoCoDeProblemClass {
@@ -79,17 +69,7 @@ impl BoCoDeProblemClass {
             "mo_unconstrained" => Ok(Self::MultiObjectiveUnconstrained),
             "mo_constrained" => Ok(Self::MultiObjectiveConstrained),
             "so_mixed_variable" => Ok(Self::SingleObjectiveMixedVariable),
-            "so_discrete_extension" => Ok(Self::SingleObjectiveDiscrete),
-            "so_discrete_constrained_extension" => Ok(Self::SingleObjectiveDiscreteConstrained),
-            "mo_discrete_extension" => Ok(Self::MultiObjectiveDiscrete),
-            "mo_discrete_constrained_extension" => Ok(Self::MultiObjectiveDiscreteConstrained),
-            "so_mixed_variable_constrained_extension" => {
-                Ok(Self::SingleObjectiveMixedVariableConstrained)
-            }
             "mo_mixed_variable_extension" => Ok(Self::MultiObjectiveMixedVariable),
-            "mo_mixed_variable_constrained_extension" => {
-                Ok(Self::MultiObjectiveMixedVariableConstrained)
-            }
             _ => Err(format!("unsupported BOCoDe problem class {value}")),
         }
     }
@@ -101,17 +81,7 @@ impl BoCoDeProblemClass {
             Self::MultiObjectiveUnconstrained => "mo_unconstrained",
             Self::MultiObjectiveConstrained => "mo_constrained",
             Self::SingleObjectiveMixedVariable => "so_mixed_variable",
-            Self::SingleObjectiveDiscrete => "so_discrete_extension",
-            Self::SingleObjectiveDiscreteConstrained => "so_discrete_constrained_extension",
-            Self::MultiObjectiveDiscrete => "mo_discrete_extension",
-            Self::MultiObjectiveDiscreteConstrained => "mo_discrete_constrained_extension",
-            Self::SingleObjectiveMixedVariableConstrained => {
-                "so_mixed_variable_constrained_extension"
-            }
             Self::MultiObjectiveMixedVariable => "mo_mixed_variable_extension",
-            Self::MultiObjectiveMixedVariableConstrained => {
-                "mo_mixed_variable_constrained_extension"
-            }
         }
     }
 
@@ -125,62 +95,28 @@ impl BoCoDeProblemClass {
             Self::SingleObjectiveUnconstrained => {
                 objectives == 1
                     && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                    && variable_type_class != BoCoDeVariableTypeClass::Mixed
             }
             Self::SingleObjectiveConstrained => {
                 objectives == 1
                     && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                    && variable_type_class != BoCoDeVariableTypeClass::Mixed
             }
             Self::MultiObjectiveUnconstrained => {
                 objectives > 1
                     && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                    && variable_type_class != BoCoDeVariableTypeClass::Mixed
             }
             Self::MultiObjectiveConstrained => {
                 objectives > 1
                     && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Continuous
+                    && variable_type_class != BoCoDeVariableTypeClass::Mixed
             }
             Self::SingleObjectiveMixedVariable => {
-                objectives == 1
-                    && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
-            }
-            Self::SingleObjectiveDiscrete => {
-                objectives == 1
-                    && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
-            }
-            Self::SingleObjectiveDiscreteConstrained => {
-                objectives == 1
-                    && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
-            }
-            Self::MultiObjectiveDiscrete => {
-                objectives > 1
-                    && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
-            }
-            Self::MultiObjectiveDiscreteConstrained => {
-                objectives > 1
-                    && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Discrete
-            }
-            Self::SingleObjectiveMixedVariableConstrained => {
-                objectives == 1
-                    && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives == 1 && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
             Self::MultiObjectiveMixedVariable => {
-                objectives > 1
-                    && constraints == 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
-            }
-            Self::MultiObjectiveMixedVariableConstrained => {
-                objectives > 1
-                    && constraints > 0
-                    && variable_type_class == BoCoDeVariableTypeClass::Mixed
+                objectives > 1 && variable_type_class == BoCoDeVariableTypeClass::Mixed
             }
         };
         if !valid {
@@ -652,48 +588,13 @@ mod tests {
     fn fixture() -> String {
         format!(
             "{BOCODE_CATALOG_CSV_HEADER}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-            row("car", "engineering", "so_constrained", 1, 3, "continuous"),
+            row("car", "engineering", "so_mixed_variable", 1, 10, "mixed"),
+            row("continuous_constrained", "engineering", "so_constrained", 1, 3, "continuous"),
             row("cre21", "engineering", "mo_constrained", 2, 3, "continuous"),
-            row(
-                "hoip",
-                "engineering",
-                "so_discrete_extension",
-                1,
-                0,
-                "discrete"
-            ),
-            row(
-                "re21",
-                "engineering",
-                "mo_unconstrained",
-                2,
-                0,
-                "continuous"
-            ),
-            row(
-                "truss",
-                "engineering",
-                "so_unconstrained",
-                1,
-                0,
-                "continuous"
-            ),
-            row(
-                "truss_mixed",
-                "engineering",
-                "so_mixed_variable",
-                1,
-                0,
-                "mixed"
-            ),
-            row(
-                "vehicle_mixed_constrained",
-                "engineering",
-                "so_mixed_variable_constrained_extension",
-                1,
-                2,
-                "mixed"
-            )
+            row("hoip", "engineering", "so_unconstrained", 1, 0, "discrete"),
+            row("re21", "engineering", "mo_unconstrained", 2, 0, "continuous"),
+            row("truss", "engineering", "so_unconstrained", 1, 0, "continuous"),
+            row("truss_mixed", "engineering", "so_mixed_variable", 1, 0, "mixed")
         )
     }
 
