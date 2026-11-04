@@ -474,7 +474,7 @@ fn world_snapshot_is_finite<const D: usize>(snapshot: &WorldSnapshot<D>) -> bool
 
 fn digest_replay_tape<const D: usize>(tape: &ReplayTape<D>) -> String {
     let mut hasher = Hasher::new();
-    hasher.update(b"symtropy.physics.replay-tape.v1");
+    hasher.update(b"symtropy.physics.replay-tape.v2");
     hasher.update(&(D as u64).to_le_bytes());
     hasher.update(&(tape.frames.len() as u64).to_le_bytes());
 
