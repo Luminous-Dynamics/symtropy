@@ -186,7 +186,7 @@ pub struct PolicyReceipt {
     pub rejected_candidates: Vec<CandidateRejection>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StopReason {
     PosteriorThresholdReached,
     PreregisteredExperimentLimitReached,
