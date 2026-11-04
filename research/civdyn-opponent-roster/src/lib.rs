@@ -161,7 +161,8 @@ impl OpponentRoster {
             });
         }
         let total = self.counts.iter().try_fold(0usize, |sum, count| {
-            sum.checked_add(*count).ok_or(MetaGameError::RosterSizeOverflow)
+            sum.checked_add(*count)
+                .ok_or(MetaGameError::RosterSizeOverflow)
         })?;
         if total < 2 {
             return Err(MetaGameError::RosterTooSmall(total));
@@ -286,7 +287,11 @@ impl fmt::Display for MetaGameError {
             Self::PayoffRowCount { expected, actual } => {
                 write!(f, "expected {expected} payoff rows, got {actual}")
             }
-            Self::PayoffColumnCount { row, expected, actual } => write!(
+            Self::PayoffColumnCount {
+                row,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "payoff row {row} expected {expected} columns, got {actual}"
             ),
@@ -295,14 +300,23 @@ impl fmt::Display for MetaGameError {
             }
             Self::EmptyRosterId => write!(f, "roster ID must not be empty"),
             Self::RosterCountMismatch { expected, actual } => {
-                write!(f, "roster expected {expected} strategy counts, got {actual}")
+                write!(
+                    f,
+                    "roster expected {expected} strategy counts, got {actual}"
+                )
             }
             Self::RosterSizeOverflow => write!(f, "roster size overflowed usize"),
             Self::RosterTooSmall(count) => {
-                write!(f, "opponent roster must contain at least two agents, got {count}")
+                write!(
+                    f,
+                    "opponent roster must contain at least two agents, got {count}"
+                )
             }
             Self::DistributionLengthMismatch { expected, actual } => {
-                write!(f, "expected probability distribution length {expected}, got {actual}")
+                write!(
+                    f,
+                    "expected probability distribution length {expected}, got {actual}"
+                )
             }
             Self::InvalidDistributionValue { index, value } => {
                 write!(f, "invalid probability at index {index}: {value}")
@@ -311,7 +325,10 @@ impl fmt::Display for MetaGameError {
                 write!(f, "probability distribution sums to {sum}, not one")
             }
             Self::RosterStrategyMismatch => {
-                write!(f, "rank-correlation evaluations contain different strategy sets")
+                write!(
+                    f,
+                    "rank-correlation evaluations contain different strategy sets"
+                )
             }
         }
     }
@@ -332,9 +349,7 @@ pub fn evaluate_roster(
         // The roster describes opponents faced by each focal strategy. Do not
         // subtract the focal strategy from this distribution.
         let expected_payoff = (0..strategy_count)
-            .map(|opponent| {
-                game.payoffs[focal][opponent] * roster.counts[opponent] as f64
-            })
+            .map(|opponent| game.payoffs[focal][opponent] * roster.counts[opponent] as f64)
             .sum::<f64>()
             / population_size as f64;
 
@@ -363,7 +378,11 @@ pub fn evaluate_roster(
         outcomes[*right]
             .expected_payoff
             .total_cmp(&outcomes[*left].expected_payoff)
-            .then_with(|| outcomes[*left].strategy_name.cmp(&outcomes[*right].strategy_name))
+            .then_with(|| {
+                outcomes[*left]
+                    .strategy_name
+                    .cmp(&outcomes[*right].strategy_name)
+            })
     });
 
     Ok(MetaGameEvaluation {
@@ -419,16 +438,10 @@ pub fn regret_certificate(
 
     let predicted_best_response = best_response(game, predicted_opponent_distribution);
     let actual_best_response = best_response(game, actual_opponent_distribution);
-    let actual_regret = (expected_action_payoff(
-        game,
-        actual_best_response,
-        actual_opponent_distribution,
-    ) - expected_action_payoff(
-        game,
-        predicted_best_response,
-        actual_opponent_distribution,
-    ))
-    .max(0.0);
+    let actual_regret =
+        (expected_action_payoff(game, actual_best_response, actual_opponent_distribution)
+            - expected_action_payoff(game, predicted_best_response, actual_opponent_distribution))
+        .max(0.0);
     let l1_error = actual_opponent_distribution
         .iter()
         .zip(predicted_opponent_distribution)
@@ -466,10 +479,7 @@ fn expected_action_payoff(game: &MetaGame, action: usize, distribution: &[f64]) 
         .sum()
 }
 
-fn validate_distribution(
-    distribution: &[f64],
-    expected: usize,
-) -> Result<(), MetaGameError> {
+fn validate_distribution(distribution: &[f64], expected: usize) -> Result<(), MetaGameError> {
     if distribution.len() != expected {
         return Err(MetaGameError::DistributionLengthMismatch {
             expected,
@@ -498,9 +508,7 @@ fn average_ranks_descending(values: &[f64]) -> Vec<f64> {
     let mut start = 0usize;
     while start < order.len() {
         let mut end = start + 1;
-        while end < order.len()
-            && (values[order[start]] - values[order[end]]).abs() <= TOLERANCE
-        {
+        while end < order.len() && (values[order[start]] - values[order[end]]).abs() <= TOLERANCE {
             end += 1;
         }
         let average_rank = ((start + 1) as f64 + end as f64) / 2.0;
@@ -523,8 +531,14 @@ fn pearson_correlation(left: &[f64], right: &[f64]) -> Option<f64> {
         .zip(right)
         .map(|(a, b)| (a - left_mean) * (b - right_mean))
         .sum::<f64>();
-    let left_variance = left.iter().map(|value| (value - left_mean).powi(2)).sum::<f64>();
-    let right_variance = right.iter().map(|value| (value - right_mean).powi(2)).sum::<f64>();
+    let left_variance = left
+        .iter()
+        .map(|value| (value - left_mean).powi(2))
+        .sum::<f64>();
+    let right_variance = right
+        .iter()
+        .map(|value| (value - right_mean).powi(2))
+        .sum::<f64>();
     let denominator = (left_variance * right_variance).sqrt();
     if denominator <= f64::EPSILON {
         None
@@ -566,8 +580,17 @@ mod tests {
     #[test]
     fn balanced_roster_has_no_unique_winner() {
         let result = evaluate_roster(&rps_game(), &roster("balanced", [10, 10, 10])).unwrap();
-        assert!(result.outcomes.iter().all(|outcome| outcome.expected_payoff.abs() < 1e-12));
-        assert!(spearman_rank_correlation(&result, &result).unwrap().is_none());
+        assert!(
+            result
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.expected_payoff.abs() < 1e-12)
+        );
+        assert!(
+            spearman_rank_correlation(&result, &result)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
@@ -592,12 +615,8 @@ mod tests {
 
     #[test]
     fn regret_certificate_bounds_actual_best_response_regret() {
-        let certificate = regret_certificate(
-            &rps_game(),
-            &[0.1, 0.8, 0.1],
-            &[0.8, 0.1, 0.1],
-        )
-        .unwrap();
+        let certificate =
+            regret_certificate(&rps_game(), &[0.1, 0.8, 0.1], &[0.8, 0.1, 0.1]).unwrap();
         assert_eq!(certificate.predicted_best_response, 1);
         assert_eq!(certificate.actual_best_response, 2);
         assert!((certificate.actual_regret - 0.7).abs() < 1e-12);
@@ -608,15 +627,28 @@ mod tests {
     #[test]
     fn exploitability_is_reported_per_roster_and_strategy() {
         let result = evaluate_roster(&rps_game(), &roster("rock_heavy", [24, 3, 3])).unwrap();
-        assert!(result.outcomes.iter().all(|outcome| outcome.exploitability >= 0.0));
-        assert!(result.outcomes.iter().any(|outcome| outcome.exploitability > 0.1));
+        assert!(
+            result
+                .outcomes
+                .iter()
+                .all(|outcome| outcome.exploitability >= 0.0)
+        );
+        assert!(
+            result
+                .outcomes
+                .iter()
+                .any(|outcome| outcome.exploitability > 0.1)
+        );
     }
 
     #[test]
     fn malformed_payoff_matrices_and_rosters_fail_closed() {
         let mut game = rps_game();
         game.payoffs[0].pop();
-        assert!(matches!(game.validate(), Err(MetaGameError::PayoffColumnCount { .. })));
+        assert!(matches!(
+            game.validate(),
+            Err(MetaGameError::PayoffColumnCount { .. })
+        ));
         let invalid_roster = roster("bad", [1, 1, 1]);
         assert!(matches!(
             invalid_roster.validate(2),
