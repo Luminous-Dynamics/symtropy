@@ -1,0 +1,157 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-task-compiler-v0.1",
+  "fixture_class": "synthetic_transformation_reference_cases",
+  "cases": [
+    {
+      "id": "tf-001",
+      "scenario": "single_element_single_step",
+      "expected": "CompiledForReview",
+      "description": "One normalized design element is instantiated by one approved method step with exact source lineage."
+    },
+    {
+      "id": "tf-002",
+      "scenario": "single_element_multistep_dag",
+      "expected": "CompiledForReview",
+      "description": "Method predecessor step is translated into a same-element task dependency edge."
+    },
+    {
+      "id": "tf-003",
+      "scenario": "many_elements_preserve_identity",
+      "expected": "CompiledForReview",
+      "description": "One approved method template is instantiated for multiple unique design elements."
+    },
+    {
+      "id": "tf-004",
+      "scenario": "input_order_permutation",
+      "expected": "identical_graph",
+      "description": "Permuting element and step input vectors yields identical graph and topological order."
+    },
+    {
+      "id": "tf-005",
+      "scenario": "missing_required_property",
+      "expected": "RejectedInconsistent",
+      "description": "A required source property is absent; compiler must not invent a default."
+    },
+    {
+      "id": "tf-006",
+      "scenario": "unsupported_task_family",
+      "expected": "RejectedUnsupported",
+      "description": "An element task family is outside the approved template applicability."
+    },
+    {
+      "id": "tf-007",
+      "scenario": "same_unit_binding_without_conversion",
+      "expected": "CompiledForReview",
+      "description": "Identical source and target units preserve the source value and source reference."
+    },
+    {
+      "id": "tf-008",
+      "scenario": "unit_change_without_conversion_receipt",
+      "expected": "RejectedInconsistent",
+      "description": "A unit mismatch without external conversion evidence is rejected."
+    },
+    {
+      "id": "tf-009",
+      "scenario": "unit_change_with_approved_conversion",
+      "expected": "CompiledForReview",
+      "description": "Explicit externally approved conversion binds converted value and evidence reference."
+    },
+    {
+      "id": "tf-010",
+      "scenario": "duplicate_element_identity",
+      "expected": "RejectedInconsistent",
+      "description": "Duplicate physical design element identity cannot generate duplicate tasks."
+    },
+    {
+      "id": "tf-011",
+      "scenario": "duplicate_method_step_identity",
+      "expected": "RejectedInconsistent",
+      "description": "Duplicate method step identifiers are rejected."
+    },
+    {
+      "id": "tf-012",
+      "scenario": "unknown_method_step_dependency",
+      "expected": "RejectedInconsistent",
+      "description": "A step dependency referencing no template step is rejected."
+    },
+    {
+      "id": "tf-013",
+      "scenario": "cyclic_method_step_graph",
+      "expected": "RejectedInconsistent",
+      "description": "A cyclic method template cannot compile into a work graph."
+    },
+    {
+      "id": "tf-014",
+      "scenario": "duplicate_design_property",
+      "expected": "RejectedInconsistent",
+      "description": "Ambiguous property names are rejected; first-match selection is prohibited."
+    },
+    {
+      "id": "tf-015",
+      "scenario": "duplicate_parameter_target",
+      "expected": "RejectedInconsistent",
+      "description": "Two method mappings cannot silently overwrite the same target parameter."
+    },
+    {
+      "id": "tf-016",
+      "scenario": "missing_property_source_reference",
+      "expected": "RejectedInconsistent",
+      "description": "Every mapped property requires an explicit source reference."
+    },
+    {
+      "id": "tf-017",
+      "scenario": "missing_method_approval_reference",
+      "expected": "RejectedInconsistent",
+      "description": "Unapproved or unreferenced method template cannot compile."
+    },
+    {
+      "id": "tf-018",
+      "scenario": "empty_manifest_or_method",
+      "expected": "RejectedInconsistent",
+      "description": "Empty design manifests or method templates cannot compile to empty success."
+    },
+    {
+      "id": "tf-019",
+      "scenario": "delimiter_like_ids",
+      "expected": "CompiledForReview",
+      "description": "Length-prefixed task identities distinguish identifiers containing separators."
+    },
+    {
+      "id": "tf-020",
+      "scenario": "template_wrong_tool_capability",
+      "expected": "CompiledForReview",
+      "description": "Compiler preserves the method's declared capability obligation without claiming it is satisfied."
+    },
+    {
+      "id": "tf-021",
+      "scenario": "inspection_obligation_preserved",
+      "expected": "CompiledForReview",
+      "description": "Independent evidence obligations are copied from the approved method step."
+    },
+    {
+      "id": "tf-022",
+      "scenario": "two_parallel_prerequisites",
+      "expected": "CompiledForReview",
+      "description": "Multiple method dependencies are preserved as distinct task edges."
+    },
+    {
+      "id": "tf-023",
+      "scenario": "missing_frame_header",
+      "expected": "RejectedInconsistent",
+      "description": "Target frame is mandatory and not inferred."
+    },
+    {
+      "id": "tf-024",
+      "scenario": "changed_site_epoch_graph_identity",
+      "expected": "different_graph_identity",
+      "description": "A changed site epoch must alter the compiled graph identity."
+    },
+    {
+      "id": "tf-025",
+      "scenario": "conversion_receipt_missing_output_value",
+      "expected": "RejectedInconsistent",
+      "description": "Incomplete conversion evidence cannot produce a parameter value."
+    }
+  ]
+}
