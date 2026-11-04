@@ -41,11 +41,12 @@
       "required": [
         "unit",
         "clock_uncertainty_ms",
-        "source_time_basis"
+        "source_time_basis",
+        "window_origin_utc"
       ],
       "properties": {
         "unit": {
-          "const": "utc_epoch_milliseconds"
+          "const": "milliseconds_from_window_origin"
         },
         "clock_uncertainty_ms": {
           "type": "integer",
@@ -54,6 +55,10 @@
         "source_time_basis": {
           "type": "string",
           "minLength": 1
+        },
+        "window_origin_utc": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
