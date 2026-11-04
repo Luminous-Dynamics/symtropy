@@ -80,5 +80,6 @@
   "timebase_id": "boot-001",
   "max_context_age_ns": 100,
   "max_clock_uncertainty_ns": 10,
-  "max_qualification_lease_ns": 1000
+  "max_qualification_lease_ns": 1000,
+  "schema_version": "construction-worksite-epoch-scenario/0.1"
 }
