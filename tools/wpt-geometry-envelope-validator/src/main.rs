@@ -827,6 +827,27 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("sample counts included in total")));
     }
 
+
+    #[test]
+    fn rejects_duplicate_geometry_compatibility_ids_in_jsonl() {
+        let record = serde_json::to_string(&source_record())
+            .expect("source geometry record serializes");
+        let path = std::env::temp_dir().join(format!(
+            "wpt-geometry-duplicate-{}.jsonl",
+            std::process::id()
+        ));
+        std::fs::write(&path, format!("{record}\\n{record}\\n"))
+            .expect("temporary duplicate JSONL file writes");
+        let results = validate_file(path.to_str().expect("UTF-8 temporary path"))
+            .expect("duplicate JSONL file parses");
+        std::fs::remove_file(&path).expect("temporary JSONL file removes");
+        assert_eq!(results.len(), 2);
+        assert!(results[1]
+            .1
+            .iter()
+            .any(|error| error.contains("duplicate record ID")));
+    }
+
     #[test]
     fn indexed_source_claim_record_is_preserved_without_promotion() {
         assert!(validate_record(&source_record()).is_empty());
