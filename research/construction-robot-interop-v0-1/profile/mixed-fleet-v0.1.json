@@ -77,7 +77,7 @@
       "actor_id",
       "actor_session_id",
       "task_id",
-      "source_sequence",
+      "task_sequence",
       "idempotency_key",
       "correlation_id",
       "source_timestamp",
@@ -86,7 +86,7 @@
       "site_epoch",
       "payload_digest"
     ],
-    "ordering_scope": "actor_session_scoped",
+    "ordering_scope": "actor_session_task_scoped",
     "duplicate_policy": "idempotent_same_digest",
     "conflicting_id_policy": "reject_and_mark_conflict",
     "clock_policy": "source_time_with_uncertainty_and_receiver_observed_time"
