@@ -555,10 +555,13 @@ fn augment(
             continue;
         }
         seen[episode_index] = true;
-        let previous_owner = episode_owner[episode_index];
-        if previous_owner.is_none()
-            || augment(previous_owner.unwrap_or(event_index), candidates, episode_owner, seen)
-        {
+        let can_reassign = match episode_owner[episode_index] {
+            None => true,
+            Some(previous_owner) => {
+                augment(previous_owner, candidates, episode_owner, seen)
+            }
+        };
+        if can_reassign {
             episode_owner[episode_index] = Some(event_index);
             return true;
         }
@@ -997,7 +1000,17 @@ mod tests {
         )];
         let report = evaluate(&events, &[], &alarms, config()).expect("valid fixture");
         assert_eq!(report.timely_event_count, 1);
+        assert_eq!(report.event_precision, 1.0);
+        assert_eq!(report.event_onset_recall, 1.0);
         assert_eq!(report.matches[0].class_correct, Some(false));
+        assert_eq!(
+            report.class_confusion,
+            vec![ClassConfusionCell {
+                truth_class: EventClass::Leak,
+                reported_class: AlarmClass::Classified(EventClass::CyberCompromise),
+                count: 1,
+            }]
+        );
     }
 
     #[test]
