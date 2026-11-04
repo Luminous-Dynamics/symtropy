@@ -93,7 +93,8 @@
         "name",
         "value",
         "unit",
-        "source_ref"
+        "source_ref",
+        "source_property"
       ],
       "properties": {
         "name": {
@@ -119,6 +120,10 @@
         "conversion_evidence_ref": {
           "type": "string",
           "minLength": 1
+        },
+        "source_property": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -137,7 +142,9 @@
         "required_capabilities",
         "preconditions",
         "postconditions",
-        "required_evidence"
+        "required_evidence",
+        "task_family",
+        "required_resources"
       ],
       "properties": {
         "task_id": {
@@ -211,6 +218,18 @@
         "required_evidence": {
           "type": "array",
           "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "task_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_resources": {
+          "type": "array",
           "uniqueItems": true,
           "items": {
             "type": "string",
