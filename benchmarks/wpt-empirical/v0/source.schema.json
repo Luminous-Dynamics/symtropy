@@ -71,7 +71,8 @@
       "enum": [
         "metadata_only",
         "limited_use",
-        "full_text"
+        "full_text",
+        "abstract_only"
       ]
     },
     "rights_review": {
