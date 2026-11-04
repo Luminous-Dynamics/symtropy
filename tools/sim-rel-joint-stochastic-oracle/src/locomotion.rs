@@ -1910,8 +1910,9 @@ mod tests {
                     && state.vibration_afferent == ChannelState::Intact
                     && state.contact_feedback == ChannelState::Intact
                     && state.acquisition == AcquisitionState::Calibrated
-                    && state.presynaptic_movement_inhibition
-                        == PresynapticMovementInhibition::Disinhibited
+                    && state.presynaptic_movement_inhibition.iter().all(|inhibition| {
+                        *inhibition == PresynapticMovementInhibition::Disinhibited
+                    })
             })
             .unwrap();
 
@@ -1937,13 +1938,23 @@ mod tests {
             [compiled.kernel.rows[passive_row].outcomes[0].next_sensor_state];
 
         assert_eq!(
-            active_next.presynaptic_movement_inhibition,
+            active_next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
             PresynapticMovementInhibition::Engaged
         );
         assert_eq!(
-            passive_next.presynaptic_movement_inhibition,
+            passive_next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
             PresynapticMovementInhibition::Disinhibited
         );
+        for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+            assert_eq!(
+                active_next.presynaptic_movement_inhibition[leg.index()],
+                PresynapticMovementInhibition::Disinhibited
+            );
+            assert_eq!(
+                passive_next.presynaptic_movement_inhibition[leg.index()],
+                PresynapticMovementInhibition::Disinhibited
+            );
+        }
         for next in [active_next, passive_next] {
             assert_eq!(next.position_afferent, ChannelState::Intact);
             assert_eq!(next.movement_afferent, ChannelState::Intact);
@@ -1964,8 +1975,9 @@ mod tests {
                     && state.vibration_afferent == ChannelState::Intact
                     && state.contact_feedback == ChannelState::Intact
                     && state.acquisition == AcquisitionState::Calibrated
-                    && state.presynaptic_movement_inhibition
-                        == PresynapticMovementInhibition::Disinhibited
+                    && state.presynaptic_movement_inhibition.iter().all(|inhibition| {
+                        *inhibition == PresynapticMovementInhibition::Disinhibited
+                    })
             })
             .unwrap();
         for (action_id, expected) in [
@@ -1988,7 +2000,16 @@ mod tests {
                 .unwrap();
             let next =
                 &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
-            assert_eq!(next.presynaptic_movement_inhibition, expected);
+            assert_eq!(
+                next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
+                expected
+            );
+            for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+                assert_eq!(
+                    next.presynaptic_movement_inhibition[leg.index()],
+                    PresynapticMovementInhibition::Disinhibited
+                );
+            }
             assert_eq!(next.movement_afferent, ChannelState::Intact);
             assert_eq!(next.position_afferent, ChannelState::Intact);
             assert_eq!(next.vibration_afferent, ChannelState::Intact);
@@ -2012,7 +2033,15 @@ mod tests {
                         && state.vibration_afferent == ChannelState::Intact
                         && state.contact_feedback == ChannelState::Intact
                         && state.acquisition == AcquisitionState::Calibrated
-                        && state.presynaptic_movement_inhibition == inhibition
+                        && state.presynaptic_movement_inhibition[LegId::FrontLeft.index()]
+                            == inhibition
+                        && LegId::ALL
+                            .into_iter()
+                            .filter(|leg| *leg != LegId::FrontLeft)
+                            .all(|leg| {
+                                state.presynaptic_movement_inhibition[leg.index()]
+                                    == PresynapticMovementInhibition::Disinhibited
+                            })
                 })
                 .unwrap();
             let row = compiled
@@ -2026,7 +2055,7 @@ mod tests {
             let next =
                 &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
             assert_eq!(next.movement_afferent, ChannelState::Gated);
-            assert_eq!(next.presynaptic_movement_inhibition, inhibition);
+            assert_eq!(next.presynaptic_movement_inhibition, sensor.presynaptic_movement_inhibition);
         }
     }
 
@@ -2038,6 +2067,7 @@ mod tests {
             .iter_mut()
             .find(|action| action.id == "descending-inhibition-engage")
             .unwrap();
+        action.target_leg = None;
         action.presynaptic_inhibition_target = None;
         assert!(matches!(
             input.compile(),
