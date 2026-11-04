@@ -14,7 +14,6 @@
 
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
-use std::sync::Mutex;
 use std::thread;
 use symtropy_math::Point;
 use symtropy_physics::{
@@ -83,21 +82,26 @@ fn run_sequential() -> Vec<BatchRolloutSnapshot<3>> {
 
 fn run_parallel(workers: usize) -> Vec<BatchRolloutSnapshot<3>> {
     assert!(workers > 0, "worker count must be non-zero");
-    let completed = Mutex::new(Vec::with_capacity(ROLLOUTS));
+    let completed = thread::scope(|scope| {
+        let handles: Vec<_> = (0..workers)
+            .map(|worker| {
+                scope.spawn(move || {
+                    (worker..ROLLOUTS)
+                        .step_by(workers)
+                        .map(|rollout_id| run_rollout(rollout_id as u64))
+                        .collect::<Vec<_>>()
+                })
+            })
+            .collect();
 
-    thread::scope(|scope| {
-        for worker in 0..workers {
-            let completed = &completed;
-            scope.spawn(move || {
-                for rollout_id in (worker..ROLLOUTS).step_by(workers) {
-                    let result = run_rollout(rollout_id as u64);
-                    completed.lock().expect("result mutex poisoned").push(result);
-                }
-            });
+        let mut results = Vec::with_capacity(ROLLOUTS);
+        for handle in handles {
+            results.extend(handle.join().expect("rollout worker panicked"));
         }
+        results
     });
 
-    order_batch_results(ROLLOUTS, completed.into_inner().expect("result mutex poisoned"))
+    order_batch_results(ROLLOUTS, completed)
         .expect("parallel corpus must contain every rollout ID exactly once")
 }
 
