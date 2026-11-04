@@ -60,6 +60,10 @@ Do not substitute expected EIG for held-out predictive validity. Do not treat po
 - Under the preregistered null and correct conditional forecast, the e-process must control the chance of ever crossing the threshold at or below alpha. Under deliberate dependence-model misspecification, it must not be described as having this guarantee.
 - The adaptive policy must retain held-out calibration and predictive log score; information gain alone is insufficient.
 
+## Conditional-dependence boundary
+
+The current exact tree reuses fixed categorical likelihood tables at every node. Its known-answer cases therefore represent conditionally independent replicate trials given the model and selected action. It must not be used to plan repeated measurements within the same animal/session or serial neural/kinematic trajectories as though they were independent. A history-dependent extension must consume conditional forecasts indexed by a frozen complete-history digest and must pass serial-dependence, carryover, cluster and forecast-calibration controls before those cases enter the qualified benchmark.
+
 ## Current implementation boundary
 
 The current scenario-tree module is exact only for finite categorical outcome likelihoods, a finite horizon, one shared comparable cost unit, and explicit action-transition constraints. It does not yet implement continuous-valued design spaces, parameter-posterior fantasy models, stochastic branch sampling, learned policy warm-starts, admissible branch-and-bound, robust finite-horizon ambiguity optimization, or connectome/trajectory-specific conditional likelihoods.
