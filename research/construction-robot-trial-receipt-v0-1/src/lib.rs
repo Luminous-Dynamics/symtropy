@@ -8,14 +8,6 @@ fn string_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
     current.as_str()
 }
 
-fn number_at(value: &Value, path: &[&str]) -> Option<f64> {
-    let mut current = value;
-    for key in path {
-        current = current.get(*key)?;
-    }
-    current.as_f64()
-}
-
 fn u64_at(value: &Value, path: &[&str]) -> Option<u64> {
     let mut current = value;
     for key in path {
@@ -54,10 +46,10 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
     let evidence_rank_value = evidence_class.and_then(evidence_rank);
     let ceiling_rank_value = claim_ceiling.and_then(evidence_rank);
 
-    if let (Some(class_rank), Some(ceiling_rank)) = (evidence_rank_value, ceiling_rank_value) {
-        if ceiling_rank > class_rank {
-            errors.push("claim_ceiling_exceeds_evidence_class".to_owned());
-        }
+    if let (Some(class_rank), Some(ceiling_rank)) = (evidence_rank_value, ceiling_rank_value)
+        && ceiling_rank > class_rank
+    {
+        errors.push("claim_ceiling_exceeds_evidence_class".to_owned());
     }
 
     let measured = result_status.is_some_and(is_measured_status);
@@ -221,12 +213,11 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                 if let (Some(sample_count), Some(valid_count)) = (
                     measurement.get("sample_count").and_then(Value::as_u64),
                     valid,
-                ) {
-                    if sample_count > valid_count {
-                        errors.push(format!(
-                            "measurement_sample_count_exceeds_valid_encounters:{measurement_id}"
-                        ));
-                    }
+                ) && sample_count > valid_count
+                {
+                    errors.push(format!(
+                        "measurement_sample_count_exceeds_valid_encounters:{measurement_id}"
+                    ));
                 }
             }
         }
