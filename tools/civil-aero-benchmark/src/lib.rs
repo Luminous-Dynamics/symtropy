@@ -6,7 +6,6 @@
 //! authenticated by this crate.
 
 pub mod bocode_run_receipt;
-pub mod bocode_trial_receipts;
 pub mod budget;
 pub mod cfd_admission;
 pub mod claim_admission;
