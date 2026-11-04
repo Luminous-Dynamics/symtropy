@@ -53,9 +53,9 @@
         "reference_id",
         "title",
         "doi",
-        "published_at",
         "evidence_class",
-        "scope_note"
+        "scope_note",
+        "publication_period"
       ],
       "properties": {
         "reference_id": {
@@ -70,10 +70,6 @@
           "type": "string",
           "pattern": "^10\\."
         },
-        "published_at": {
-          "type": "string",
-          "format": "date"
-        },
         "evidence_class": {
           "enum": [
             "peer_reviewed_modelled_case_study",
@@ -84,6 +80,10 @@
         "scope_note": {
           "type": "string",
           "minLength": 1
+        },
+        "publication_period": {
+          "type": "string",
+          "pattern": "^\\d{4}-(0[1-9]|1[0-2])(-[0-3]\\d)?$"
         }
       },
       "additionalProperties": false
