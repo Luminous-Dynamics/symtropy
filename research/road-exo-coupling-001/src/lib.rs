@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod dependence;
 pub mod philox_adapter;
 
 use std::collections::{BTreeMap, BTreeSet};

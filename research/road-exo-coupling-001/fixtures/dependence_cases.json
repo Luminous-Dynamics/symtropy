@@ -1,0 +1,129 @@
+{
+  "schema": "symtropy.road-dependence.fixtures.v0.1",
+  "purpose": "Exact finite-state joint distribution and structural dependence conformance, not fitted empirical traffic/weather truth.",
+  "source_references": {
+    "event_keyed_causal_rng": "https://arxiv.org/abs/2603.11084",
+    "random123": "https://doi.org/10.1145/2063384.2063405",
+    "cross_correlated_random_fields": "https://doi.org/10.1016/j.strusafe.2022.102201",
+    "non_gaussian_spatiotemporal_fields": "https://doi.org/10.1029/2019WR026331"
+  },
+  "cases": [
+    {
+      "id": "shared-group-latent-with-local-residuals",
+      "primitive_variables": [
+        "G",
+        "epsilon_a",
+        "epsilon_b"
+      ],
+      "joint_support_size": 8,
+      "mass_per_state": 1,
+      "outputs": {
+        "Y_a": "G + epsilon_a",
+        "Y_b": "G + epsilon_b"
+      },
+      "expected": {
+        "mean_y_a": 0,
+        "mean_y_b": 0,
+        "variance_y_a": 2,
+        "variance_y_b": 2,
+        "covariance_y_a_y_b": 1,
+        "correlation_y_a_y_b": 0.5
+      }
+    },
+    {
+      "id": "independent-per-event-negative-control",
+      "primitive_variables": [
+        "G_a",
+        "G_b",
+        "epsilon_a",
+        "epsilon_b"
+      ],
+      "joint_support_size": 16,
+      "mass_per_state": 1,
+      "outputs": {
+        "Y_a": "G_a + epsilon_a",
+        "Y_b": "G_b + epsilon_b"
+      },
+      "expected": {
+        "marginal_distribution_y_a": "same_as_shared_factor_case",
+        "marginal_distribution_y_b": "same_as_shared_factor_case",
+        "covariance_y_a_y_b": 0
+      }
+    },
+    {
+      "id": "same-marginals-different-joint-law",
+      "expected": "marginal-only evaluation must fail to distinguish the two preceding models; joint covariance must distinguish them"
+    },
+    {
+      "id": "intervention-descendant-recomputed",
+      "branches": [
+        {
+          "branch": "continue",
+          "intervention": {
+            "ego_yield_state": 0
+          }
+        },
+        {
+          "branch": "yield",
+          "intervention": {
+            "ego_yield_state": 1
+          }
+        }
+      ],
+      "expected": {
+        "shared_latent_atoms_equal": true,
+        "descendant_output_difference": 2
+      }
+    },
+    {
+      "id": "declaration-order-invariance",
+      "mutations": [
+        "reverse_variables",
+        "reverse_joint_state_rows",
+        "reverse_state_value_pairs",
+        "reverse_outputs"
+      ],
+      "expected": "identical_manifest_digest_and_receipts"
+    },
+    {
+      "id": "source-profile-digest-binding",
+      "expected": "changing_any_source_profile_digest_changes_manifest_digest"
+    },
+    {
+      "id": "missing_factor",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate_factor_variable",
+      "expected": "reject"
+    },
+    {
+      "id": "duplicate_joint_state",
+      "expected": "reject"
+    },
+    {
+      "id": "zero_state_mass",
+      "expected": "reject"
+    },
+    {
+      "id": "invalid_self_directed_dyad",
+      "expected": "reject"
+    },
+    {
+      "id": "missing_intervention_parent",
+      "expected": "reject"
+    },
+    {
+      "id": "receipt_value_tampering",
+      "expected": "integrity_check_fails_and_manifest_replay_fails"
+    },
+    {
+      "id": "receipt_replayed_under_different_intervention",
+      "expected": "reject"
+    },
+    {
+      "id": "invalid_arithmetic_overflow",
+      "expected": "typed_error_before_output_commitment"
+    }
+  ]
+}
