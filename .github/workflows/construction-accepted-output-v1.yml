@@ -1,0 +1,72 @@
+name: Construction Accepted Output V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-accepted-output-v0-1/**"
+      - ".github/workflows/construction-accepted-output-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: construction-accepted-output-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Accepted output ledger (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Resolve package lockfile for review
+        run: cargo generate-lockfile --manifest-path research/construction-accepted-output-v0-1/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/construction-accepted-output-v0-1/Cargo.toml -- --check
+      - name: Produce rustfmt diagnostic artifact (not qualification evidence)
+        if: always()
+        run: cargo fmt --manifest-path research/construction-accepted-output-v0-1/Cargo.toml
+      - name: Upload formatted source diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: construction-accepted-output-rustfmt-${{ matrix.os }}
+          path: research/construction-accepted-output-v0-1/src/
+          if-no-files-found: error
+          retention-days: 2
+      - name: Commit formatted source to one-time diagnostic branch
+        if: always() && github.head_ref == 'qual/construction-accepted-output-rustfmt-final' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/construction-accepted-output-v0-1/src/lib.rs research/construction-accepted-output-v0-1/src/main.rs
+          if git diff --cached --quiet; then
+            echo "rustfmt produced no source changes"
+          else
+            git commit -m "style(research): apply pinned rustfmt to accepted-output package"
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
+      - name: Run unit and contract tests
+        run: cargo test --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked
+      - name: Run deterministic accepted-output oracle
+        run: cargo run --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Export package lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: construction-accepted-output-cargo-lock-${{ matrix.os }}
+          path: research/construction-accepted-output-v0-1/Cargo.lock
+          if-no-files-found: error
+          retention-days: 7

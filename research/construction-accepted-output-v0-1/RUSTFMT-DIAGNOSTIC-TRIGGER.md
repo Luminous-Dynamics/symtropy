@@ -1,0 +1,1 @@
+Temporary file used only to trigger the pinned Rust 1.96 formatter on the exact accepted-output branch. It must be deleted after the diagnostic formatter commit is produced.
