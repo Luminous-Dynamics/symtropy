@@ -82,3 +82,9 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT spatial matrix atlas
+      run: cargo test --locked -p wpt-matrix-atlas
+
+    - name: Run WPT matrix atlas known-truth CLI
+      run: cargo run --locked -p wpt-matrix-atlas -- benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0
