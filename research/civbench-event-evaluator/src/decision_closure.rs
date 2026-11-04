@@ -795,6 +795,83 @@ fn service_effect_name(value: ServiceEffect) -> &'static str {
 mod tests {
     use super::*;
 
+    fn receipt_binding(
+        owner: ReceiptOwner,
+        receipt_id: &str,
+        decision_episode_id: &str,
+        paired_block_id: &str,
+        seed: u64,
+    ) -> ReceiptBinding {
+        ReceiptBinding {
+            owner,
+            receipt_id: receipt_id.into(),
+            decision_episode_id: decision_episode_id.into(),
+            paired_block_id: paired_block_id.into(),
+            payload_digest: format!("{seed:064x}"),
+        }
+    }
+
+    fn positive_bindings() -> Vec<ReceiptBinding> {
+        vec![
+            receipt_binding(
+                ReceiptOwner::EventEvaluator,
+                "event-receipt-1",
+                "decision-1",
+                "block-1",
+                1,
+            ),
+            receipt_binding(
+                ReceiptOwner::AcquisitionPlanner,
+                "acquisition-1",
+                "decision-1",
+                "block-1",
+                2,
+            ),
+            receipt_binding(
+                ReceiptOwner::HumanAuthority,
+                "authority-1",
+                "decision-1",
+                "block-1",
+                3,
+            ),
+            receipt_binding(
+                ReceiptOwner::ResourceLedger,
+                "resource-1",
+                "decision-1",
+                "block-1",
+                4,
+            ),
+            receipt_binding(
+                ReceiptOwner::RepairWorkflow,
+                "workflow-1",
+                "decision-1",
+                "block-1",
+                5,
+            ),
+            receipt_binding(
+                ReceiptOwner::IndependentVerifier,
+                "verification-1",
+                "decision-1",
+                "block-1",
+                6,
+            ),
+            receipt_binding(
+                ReceiptOwner::ServiceOutcome,
+                "service-outcome-1",
+                "decision-1",
+                "block-1",
+                7,
+            ),
+            receipt_binding(
+                ReceiptOwner::PairedOutcome,
+                "paired-outcome-1",
+                "decision-1",
+                "block-1",
+                8,
+            ),
+        ]
+    }
+
     fn positive_record() -> DecisionClosureRecord {
         DecisionClosureRecord {
             decision_episode_id: "decision-1".into(),
@@ -803,7 +880,13 @@ mod tests {
             acquisition_receipt_id: Some("acquisition-1".into()),
             decision_changed_after_acquisition: Some(true),
             human_disposition: HumanDisposition::Authorized,
+            human_authority_receipt_id: Some("authority-1".into()),
+            human_actor_ref: Some("principal-operator-1".into()),
             resource_feasibility: ResourceFeasibility::FeasibleAndReserved,
+            resource_settlement: ResourceSettlement::Settled,
+            executor_identity_ref: Some("principal-crew-1".into()),
+            verifier_identity_ref: Some("principal-inspector-2".into()),
+            receipt_bindings: positive_bindings(),
             action_progress: ActionProgress::IndependentlyVerified,
             resource_receipt_id: Some("resource-1".into()),
             workflow_receipt_id: Some("workflow-1".into()),
@@ -892,6 +975,10 @@ mod tests {
         let mut record = positive_record();
         record.action_progress = ActionProgress::RepairClaimed;
         record.verification_receipt_id = None;
+        record.verifier_identity_ref = None;
+        record.resource_settlement = ResourceSettlement::Settled;
+        record.receipt_bindings
+            .retain(|binding| binding.owner != ReceiptOwner::IndependentVerifier);
         assert_eq!(
             record.validate(),
             Err(DecisionClosureError::ImprovementWithoutVerifiedAction)
@@ -927,7 +1014,49 @@ mod tests {
             acquisition_receipt_id: Some("acquisition-no-value".into()),
             decision_changed_after_acquisition: Some(false),
             human_disposition: HumanDisposition::Deferred,
+            human_authority_receipt_id: Some("authority-no-value".into()),
+            human_actor_ref: Some("principal-operator-no-value".into()),
             resource_feasibility: ResourceFeasibility::NotAttempted,
+            resource_settlement: ResourceSettlement::NotAttempted,
+            executor_identity_ref: None,
+            verifier_identity_ref: None,
+            receipt_bindings: vec![
+                receipt_binding(
+                    ReceiptOwner::EventEvaluator,
+                    "event-receipt-no-value",
+                    "decision-no-value",
+                    "block-no-value",
+                    11,
+                ),
+                receipt_binding(
+                    ReceiptOwner::AcquisitionPlanner,
+                    "acquisition-no-value",
+                    "decision-no-value",
+                    "block-no-value",
+                    12,
+                ),
+                receipt_binding(
+                    ReceiptOwner::HumanAuthority,
+                    "authority-no-value",
+                    "decision-no-value",
+                    "block-no-value",
+                    13,
+                ),
+                receipt_binding(
+                    ReceiptOwner::ServiceOutcome,
+                    "service-no-value",
+                    "decision-no-value",
+                    "block-no-value",
+                    14,
+                ),
+                receipt_binding(
+                    ReceiptOwner::PairedOutcome,
+                    "paired-no-value",
+                    "decision-no-value",
+                    "block-no-value",
+                    15,
+                ),
+            ],
             action_progress: ActionProgress::NotStarted,
             resource_receipt_id: None,
             workflow_receipt_id: None,
@@ -949,7 +1078,35 @@ mod tests {
             acquisition_receipt_id: None,
             decision_changed_after_acquisition: None,
             human_disposition: HumanDisposition::Authorized,
+            human_authority_receipt_id: Some("authority-no-part".into()),
+            human_actor_ref: Some("principal-operator-no-part".into()),
             resource_feasibility: ResourceFeasibility::RejectedMissingPart,
+            resource_settlement: ResourceSettlement::Rejected,
+            executor_identity_ref: None,
+            verifier_identity_ref: None,
+            receipt_bindings: vec![
+                receipt_binding(
+                    ReceiptOwner::EventEvaluator,
+                    "event-receipt-no-part",
+                    "decision-no-part",
+                    "block-no-part",
+                    21,
+                ),
+                receipt_binding(
+                    ReceiptOwner::HumanAuthority,
+                    "authority-no-part",
+                    "decision-no-part",
+                    "block-no-part",
+                    22,
+                ),
+                receipt_binding(
+                    ReceiptOwner::ResourceLedger,
+                    "resource-rejection-no-part",
+                    "decision-no-part",
+                    "block-no-part",
+                    23,
+                ),
+            ],
             action_progress: ActionProgress::NotStarted,
             resource_receipt_id: Some("resource-rejection-no-part".into()),
             workflow_receipt_id: None,
@@ -970,6 +1127,15 @@ mod tests {
         record.service_outcome_receipt_id = None;
         record.paired_outcome_receipt_id = None;
         record.service_evidence_class = None;
+        record.verifier_identity_ref = None;
+        record.receipt_bindings.retain(|binding| {
+            !matches!(
+                binding.owner,
+                ReceiptOwner::IndependentVerifier
+                    | ReceiptOwner::ServiceOutcome
+                    | ReceiptOwner::PairedOutcome
+            )
+        });
         record.service_effect = ServiceEffect::Indeterminate;
         assert_eq!(record.validate(), Ok(()));
     }
