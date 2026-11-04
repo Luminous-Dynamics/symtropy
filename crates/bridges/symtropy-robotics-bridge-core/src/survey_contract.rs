@@ -59,6 +59,7 @@ pub enum SurveyContractErrorV1 {
     VolumeUncertaintyExceeded,
     ChangeBelowDetectionLimit,
     InvalidCoverageAssessment(&'static str),
+    CoverageMapMismatch(&'static str),
 }
 
 impl fmt::Display for SurveyContractErrorV1 {
@@ -897,6 +898,413 @@ impl SurveyCoverageAssessmentV1 {
             },
         ))
     }
+}
+
+/// Maximum number of task-footprint support cells in one assessment.
+pub const MAX_SURVEY_COVERAGE_CELLS: usize = 250_000;
+
+/// Version of the explicit support-map artifact used by coverage gates.
+pub const SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION: u16 = 1;
+
+/// Spatial disposition of one clipped task-footprint cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SurveyCoverageCellDispositionV1 {
+    Supported,
+    Unsupported,
+    Unmeasured,
+}
+
+/// One spatial unit in the survey owner's clipped support map.
+///
+/// Cell area is the exact area attributed to the task footprint after clipping.
+/// The survey owner is responsible for producing the geometry/clipping and the
+/// local metrics from its authoritative survey/control inputs. A downstream
+/// consumer can recompute the aggregate statistics from these records without
+/// trusting the assessment's summary fields.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SurveyCoverageCellV1 {
+    pub cell_id: String,
+    pub area_m2: f64,
+    pub critical: bool,
+    pub disposition: SurveyCoverageCellDispositionV1,
+    /// Local support-domain gap metric; unavailable only for unmeasured cells.
+    pub support_gap_m: Option<f64>,
+    /// Distance to qualifying support/control; unavailable only if unmeasured.
+    pub distance_to_control_m: Option<f64>,
+    /// Qualifying independent-control density in this cell.
+    pub local_control_density_per_m2: Option<f64>,
+    /// Local 95% positional uncertainty bound in the target frame.
+    pub local_u95_m: Option<f64>,
+}
+
+impl SurveyCoverageCellV1 {
+    fn validate(&self) -> Result<(), SurveyContractErrorV1> {
+        if !identity_is_valid(&self.cell_id) {
+            return Err(SurveyContractErrorV1::CoverageMapMismatch("cell_id"));
+        }
+        if !self.area_m2.is_finite() || self.area_m2 <= 0.0 {
+            return Err(SurveyContractErrorV1::CoverageMapMismatch("cell_area"));
+        }
+        let metrics = [
+            self.support_gap_m,
+            self.distance_to_control_m,
+            self.local_control_density_per_m2,
+            self.local_u95_m,
+        ];
+        match self.disposition {
+            SurveyCoverageCellDispositionV1::Supported
+            | SurveyCoverageCellDispositionV1::Unsupported => {
+                if metrics
+                    .iter()
+                    .any(|value| value.is_none_or(|v| !v.is_finite() || v < 0.0))
+                {
+                    return Err(SurveyContractErrorV1::CoverageMapMismatch(
+                        "measured_cell_missing_local_metrics",
+                    ));
+                }
+            }
+            SurveyCoverageCellDispositionV1::Unmeasured => {
+                if metrics.iter().any(Option::is_some) {
+                    return Err(SurveyContractErrorV1::CoverageMapMismatch(
+                        "unmeasured_cell_has_inferred_metrics",
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Exact content of the support map referenced by SurveyCoverageAssessmentV1.
+/// This artifact is the raw statistical support for the aggregate metrics; it
+/// is not a second geometry or survey-adjustment engine.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SurveyControlCoverageMapV1 {
+    pub schema_version: u16,
+    pub task_footprint_sha256: String,
+    pub control_domain_sha256: String,
+    pub worksite_epoch_sha256: String,
+    pub target_frame_id: String,
+    pub support_domain_method_id: String,
+    pub uncertainty_method_id: String,
+    pub cells: Vec<SurveyCoverageCellV1>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SurveyCoverageMapSummaryV1 {
+    pub footprint_area_m2: f64,
+    pub supported_area_m2: f64,
+    pub unsupported_area_m2: f64,
+    pub unmeasured_area_m2: f64,
+    pub critical_unsupported_area_m2: f64,
+    pub critical_unmeasured_area_m2: f64,
+    pub maximum_support_gap_m: f64,
+    pub maximum_support_distance_m: f64,
+    pub minimum_local_control_density_per_m2: f64,
+    pub maximum_local_u95_m: f64,
+    pub total_cell_count: u64,
+    pub supported_cell_count: u64,
+    pub unsupported_cell_count: u64,
+    pub unmeasured_cell_count: u64,
+    pub critical_cell_count: u64,
+    pub critical_supported_cell_count: u64,
+    pub critical_unsupported_cell_count: u64,
+    pub critical_unmeasured_cell_count: u64,
+}
+
+impl SurveyControlCoverageMapV1 {
+    /// Validate all map rows and independently derive the summary statistics.
+    /// The method never treats an unmeasured cell as supported or fills its
+    /// uncertainty/distance fields by interpolation.
+    pub fn summarize(&self) -> Result<SurveyCoverageMapSummaryV1, SurveyContractErrorV1> {
+        if self.schema_version != SURVEY_CONTROL_COVERAGE_MAP_SCHEMA_VERSION {
+            return Err(SurveyContractErrorV1::UnsupportedSchemaVersion);
+        }
+        for (value, field) in [
+            (&self.task_footprint_sha256, "task_footprint_sha256"),
+            (&self.control_domain_sha256, "control_domain_sha256"),
+            (&self.worksite_epoch_sha256, "worksite_epoch_sha256"),
+        ] {
+            if !digest_is_valid(value) {
+                return Err(SurveyContractErrorV1::InvalidDigest(field));
+            }
+        }
+        for (value, field) in [
+            (self.target_frame_id.as_str(), "target_frame_id"),
+            (
+                self.support_domain_method_id.as_str(),
+                "support_domain_method_id",
+            ),
+            (self.uncertainty_method_id.as_str(), "uncertainty_method_id"),
+        ] {
+            if !identity_is_valid(value) {
+                return Err(SurveyContractErrorV1::CoverageMapMismatch(field));
+            }
+        }
+        if self.cells.is_empty() || self.cells.len() > MAX_SURVEY_COVERAGE_CELLS {
+            return Err(SurveyContractErrorV1::TooManyItems("coverage_cells"));
+        }
+        ensure_unique(
+            self.cells.iter().map(|cell| cell.cell_id.as_str()),
+            "coverage_cell_id",
+        )?;
+
+        let mut summary = SurveyCoverageMapSummaryV1 {
+            footprint_area_m2: 0.0,
+            supported_area_m2: 0.0,
+            unsupported_area_m2: 0.0,
+            unmeasured_area_m2: 0.0,
+            critical_unsupported_area_m2: 0.0,
+            critical_unmeasured_area_m2: 0.0,
+            maximum_support_gap_m: 0.0,
+            maximum_support_distance_m: 0.0,
+            minimum_local_control_density_per_m2: f64::INFINITY,
+            maximum_local_u95_m: 0.0,
+            total_cell_count: 0,
+            supported_cell_count: 0,
+            unsupported_cell_count: 0,
+            unmeasured_cell_count: 0,
+            critical_cell_count: 0,
+            critical_supported_cell_count: 0,
+            critical_unsupported_cell_count: 0,
+            critical_unmeasured_cell_count: 0,
+        };
+
+        for cell in &self.cells {
+            cell.validate()?;
+            summary.footprint_area_m2 += cell.area_m2;
+            summary.total_cell_count = summary
+                .total_cell_count
+                .checked_add(1)
+                .ok_or(SurveyContractErrorV1::CoverageMapMismatch(
+                    "total_cell_count_overflow",
+                ))?;
+            if cell.critical {
+                summary.critical_cell_count = summary
+                    .critical_cell_count
+                    .checked_add(1)
+                    .ok_or(SurveyContractErrorV1::CoverageMapMismatch(
+                        "critical_cell_count_overflow",
+                    ))?;
+            }
+            match cell.disposition {
+                SurveyCoverageCellDispositionV1::Supported => {
+                    summary.supported_area_m2 += cell.area_m2;
+                    summary.supported_cell_count += 1;
+                    if cell.critical {
+                        summary.critical_supported_cell_count += 1;
+                    }
+                }
+                SurveyCoverageCellDispositionV1::Unsupported => {
+                    summary.unsupported_area_m2 += cell.area_m2;
+                    summary.unsupported_cell_count += 1;
+                    if cell.critical {
+                        summary.critical_unsupported_area_m2 += cell.area_m2;
+                        summary.critical_unsupported_cell_count += 1;
+                    }
+                }
+                SurveyCoverageCellDispositionV1::Unmeasured => {
+                    summary.unmeasured_area_m2 += cell.area_m2;
+                    summary.unmeasured_cell_count += 1;
+                    if cell.critical {
+                        summary.critical_unmeasured_area_m2 += cell.area_m2;
+                        summary.critical_unmeasured_cell_count += 1;
+                    }
+                }
+            }
+            if cell.disposition != SurveyCoverageCellDispositionV1::Unmeasured {
+                let gap = cell.support_gap_m.expect("measured cell validated");
+                let distance = cell.distance_to_control_m.expect("measured cell validated");
+                let density = cell
+                    .local_control_density_per_m2
+                    .expect("measured cell validated");
+                let u95 = cell.local_u95_m.expect("measured cell validated");
+                summary.maximum_support_gap_m = summary.maximum_support_gap_m.max(gap);
+                summary.maximum_support_distance_m =
+                    summary.maximum_support_distance_m.max(distance);
+                summary.minimum_local_control_density_per_m2 =
+                    summary.minimum_local_control_density_per_m2.min(density);
+                summary.maximum_local_u95_m = summary.maximum_local_u95_m.max(u95);
+            }
+        }
+
+        if !summary.footprint_area_m2.is_finite()
+            || !summary.supported_area_m2.is_finite()
+            || !summary.unsupported_area_m2.is_finite()
+            || !summary.unmeasured_area_m2.is_finite()
+            || !summary.maximum_support_gap_m.is_finite()
+            || !summary.maximum_support_distance_m.is_finite()
+            || !summary.minimum_local_control_density_per_m2.is_finite()
+            || !summary.maximum_local_u95_m.is_finite()
+            || summary.supported_cell_count
+                + summary.unsupported_cell_count
+                + summary.unmeasured_cell_count
+                != summary.total_cell_count
+        {
+            return Err(SurveyContractErrorV1::CoverageMapMismatch(
+                "summary_overflow_or_empty_measured_domain",
+            ));
+        }
+        Ok(summary)
+    }
+
+    pub fn encode_with_digest(
+        &self,
+        artifact_id: impl Into<String>,
+        uri: impl Into<String>,
+    ) -> Result<(Vec<u8>, ArtifactRef), SurveyContractErrorV1> {
+        self.summarize()?;
+        let artifact_id = artifact_id.into();
+        let uri = uri.into();
+        if !identity_is_valid(&artifact_id) || !identity_is_valid(&uri) {
+            return Err(SurveyContractErrorV1::InvalidArtifact("coverage_map"));
+        }
+        let bytes = serde_json::to_vec(self).map_err(|_| SurveyContractErrorV1::InvalidPayload)?;
+        if bytes.len() > MAX_SURVEY_EVIDENCE_BYTES {
+            return Err(SurveyContractErrorV1::PayloadTooLarge);
+        }
+        let sha256 = format!("{:x}", Sha256::digest(&bytes));
+        Ok((
+            bytes,
+            ArtifactRef {
+                artifact_id,
+                uri,
+                sha256,
+            },
+        ))
+    }
+}
+
+/// Verified wrapper for the support-map bytes referenced by an assessment.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerifiedSurveyControlCoverageMapV1 {
+    pub coverage_map: SurveyControlCoverageMapV1,
+    source_artifact: ArtifactRef,
+}
+
+impl VerifiedSurveyControlCoverageMapV1 {
+    pub fn source_artifact(&self) -> &ArtifactRef {
+        &self.source_artifact
+    }
+
+    pub fn decode_verified_json(
+        bytes: &[u8],
+        source_artifact: ArtifactRef,
+    ) -> Result<Self, SurveyContractErrorV1> {
+        if bytes.len() > MAX_SURVEY_EVIDENCE_BYTES {
+            return Err(SurveyContractErrorV1::PayloadTooLarge);
+        }
+        validate_artifact(&source_artifact, "coverage_map_source_artifact")?;
+        let expected = format!("{:x}", Sha256::digest(bytes));
+        if !expected.eq_ignore_ascii_case(&source_artifact.sha256) {
+            return Err(SurveyContractErrorV1::PayloadDigestMismatch);
+        }
+        let coverage_map: SurveyControlCoverageMapV1 =
+            serde_json::from_slice(bytes).map_err(|_| SurveyContractErrorV1::InvalidPayload)?;
+        coverage_map.summarize()?;
+        Ok(Self {
+            coverage_map,
+            source_artifact,
+        })
+    }
+}
+
+/// Compare an independently derived support-map summary to the assessment
+/// summary. Numerical tolerance covers only deterministic area accumulation,
+/// not task acceptance or survey accuracy thresholds.
+pub fn verify_coverage_map_summary(
+    assessment: &SurveyCoverageAssessmentV1,
+    coverage_map: &SurveyControlCoverageMapV1,
+) -> Result<(), SurveyContractErrorV1> {
+    let summary = coverage_map.summarize()?;
+    if coverage_map.task_footprint_sha256 != assessment.task_footprint_artifact.sha256
+        || coverage_map.control_domain_sha256 != assessment.control_domain_artifact.sha256
+        || coverage_map.worksite_epoch_sha256 != assessment.worksite_epoch_sha256
+        || coverage_map.target_frame_id != assessment.target_frame_id
+        || coverage_map.support_domain_method_id != assessment.support_domain_method_id
+        || coverage_map.uncertainty_method_id != assessment.uncertainty_method_id
+    {
+        return Err(SurveyContractErrorV1::CoverageMapMismatch(
+            "coverage_map_context_binding",
+        ));
+    }
+
+    let close = |left: f64, right: f64| {
+        (left - right).abs() <= 1.0e-9_f64.max(left.abs().max(right.abs()) * 1.0e-9)
+    };
+    for (left, right, field) in [
+        (
+            assessment.footprint_area_m2,
+            summary.footprint_area_m2,
+            "footprint_area_m2",
+        ),
+        (
+            assessment.supported_area_m2,
+            summary.supported_area_m2,
+            "supported_area_m2",
+        ),
+        (
+            assessment.unsupported_area_m2,
+            summary.unsupported_area_m2,
+            "unsupported_area_m2",
+        ),
+        (
+            assessment.unmeasured_area_m2,
+            summary.unmeasured_area_m2,
+            "unmeasured_area_m2",
+        ),
+        (
+            assessment.critical_unsupported_area_m2,
+            summary.critical_unsupported_area_m2,
+            "critical_unsupported_area_m2",
+        ),
+        (
+            assessment.critical_unmeasured_area_m2,
+            summary.critical_unmeasured_area_m2,
+            "critical_unmeasured_area_m2",
+        ),
+        (
+            assessment.maximum_support_gap_m,
+            summary.maximum_support_gap_m,
+            "maximum_support_gap_m",
+        ),
+        (
+            assessment.maximum_support_distance_m,
+            summary.maximum_support_distance_m,
+            "maximum_support_distance_m",
+        ),
+        (
+            assessment.minimum_local_control_density_per_m2,
+            summary.minimum_local_control_density_per_m2,
+            "minimum_local_control_density_per_m2",
+        ),
+        (
+            assessment.maximum_local_u95_m,
+            summary.maximum_local_u95_m,
+            "maximum_local_u95_m",
+        ),
+    ] {
+        if !close(left, right) {
+            return Err(SurveyContractErrorV1::CoverageMapMismatch(field));
+        }
+    }
+    if assessment.total_cell_count != summary.total_cell_count
+        || assessment.supported_cell_count != summary.supported_cell_count
+        || assessment.unsupported_cell_count != summary.unsupported_cell_count
+        || assessment.unmeasured_cell_count != summary.unmeasured_cell_count
+        || assessment.critical_cell_count != summary.critical_cell_count
+        || assessment.critical_supported_cell_count != summary.critical_supported_cell_count
+        || assessment.critical_unsupported_cell_count != summary.critical_unsupported_cell_count
+        || assessment.critical_unmeasured_cell_count != summary.critical_unmeasured_cell_count
+    {
+        return Err(SurveyContractErrorV1::CoverageMapMismatch(
+            "cell_count_summary_mismatch",
+        ));
+    }
+    Ok(())
 }
 
 /// Verified wrapper for the exact bytes of a coverage assessment.
