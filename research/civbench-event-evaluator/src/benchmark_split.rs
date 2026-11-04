@@ -127,19 +127,17 @@ impl SplitProtocolPreset {
         match self {
             Self::WithinNetworkUnseenEvent => {
                 BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate])
-            },
-            Self::NewOperatingRegime => {
-                BTreeSet::from([
-                    PhysicalEvent,
-                    CaptureSession,
-                    ScenarioTemplate,
-                    DemandProfile,
-                    TimeBlock,
-                ])
             }
+            Self::NewOperatingRegime => BTreeSet::from([
+                PhysicalEvent,
+                CaptureSession,
+                ScenarioTemplate,
+                DemandProfile,
+                TimeBlock,
+            ]),
             Self::CrossNetwork => {
                 BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, Network])
-            },
+            }
             Self::CrossTopology => BTreeSet::from([
                 PhysicalEvent,
                 CaptureSession,
@@ -148,12 +146,15 @@ impl SplitProtocolPreset {
                 TopologyFamily,
                 ScenarioTemplate,
             ]),
-            Self::SensorLayoutTransfer => {
-                BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, SensorLayout])
-            }
+            Self::SensorLayoutTransfer => BTreeSet::from([
+                PhysicalEvent,
+                CaptureSession,
+                ScenarioTemplate,
+                SensorLayout,
+            ]),
             Self::AssetTransfer => {
                 BTreeSet::from([PhysicalEvent, CaptureSession, ScenarioTemplate, PipeAsset])
-            },
+            }
         }
     }
 
@@ -333,9 +334,8 @@ pub fn audit_benchmark_split(
     policy: &SplitPolicy,
 ) -> Result<SplitAuditReport, SplitAuditError> {
     let protocol_id = policy.protocol.as_str();
-    let manifest_digest = normalized_sha256(&policy.manifest_digest).ok_or_else(|| {
-        SplitAuditError::new("invalid_manifest_digest", protocol_id)
-    })?;
+    let manifest_digest = normalized_sha256(&policy.manifest_digest)
+        .ok_or_else(|| SplitAuditError::new("invalid_manifest_digest", protocol_id))?;
     let exclusive_dimensions = policy.protocol.exclusive_dimensions();
     let shared_dimensions = policy.protocol.shared_dimensions();
     let required_dimensions: BTreeSet<_> = exclusive_dimensions
@@ -590,14 +590,12 @@ mod tests {
 
     #[test]
     fn cross_network_protocol_rejects_a_shared_network() {
-        let mut policy = event_session_policy();
-        policy.protocol = SplitProtocolPreset::CrossNetwork;
-        policy.protocol_id = policy.protocol.as_str().to_owned();
-        policy
-            .exclusive_dimensions
-            .insert(LeakageDimension::Network);
-        policy.shared_dimensions.remove(&LeakageDimension::Network);
-        let error = audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
+        let policy = SplitPolicy {
+            protocol: SplitProtocolPreset::CrossNetwork,
+            manifest_digest: digest(900),
+        };
+        let error =
+            audit_benchmark_split(&valid_samples(), &policy).expect_err("network overlap");
         assert_eq!(error.code, "cross_partition_group_overlap");
         assert_eq!(error.subject, "network=net-1");
     }
