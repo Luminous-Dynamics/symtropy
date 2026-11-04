@@ -128,7 +128,10 @@ pub enum ValidationError {
     },
     MissingSplitPartition(&'static str),
     InvalidRegime(&'static str),
-    LabelBudgetExceeded { budget: u64, actual: u64 },
+    LabelBudgetExceeded {
+        budget: u64,
+        actual: u64,
+    },
     AdaptationBudgetExceeded {
         field: &'static str,
         budget_person_hours: f64,
@@ -752,7 +755,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn zero_shot_requires_frozen_robot_configuration() {
         let mut input = study();
@@ -935,7 +937,6 @@ mod tests {
             ))
         ));
     }
-
 
     #[test]
     fn actual_adaptation_hours_cannot_exceed_declared_effort_budget() {
