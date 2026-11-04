@@ -85,7 +85,7 @@ fn score_rows(game: &MetaGame, roster_id: &str, counts: [usize; 3]) {
             .position(|index| *index == outcome.strategy_index)
             .unwrap()
             + 1)
-            .to_string();
+        .to_string();
         row[5] = fmt(outcome.expected_payoff);
         row[6] = fmt(outcome.best_response_payoff);
         row[7] = fmt(outcome.exploitability);
@@ -116,8 +116,7 @@ fn correlation_rows(game: &MetaGame) {
     let evaluations = ROSTERS
         .iter()
         .map(|(id, counts)| {
-            evaluate_roster(game, &roster(id, *counts))
-                .expect("fixed RPS roster must validate")
+            evaluate_roster(game, &roster(id, *counts)).expect("fixed RPS roster must validate")
         })
         .collect::<Vec<_>>();
     for left in 0..evaluations.len() {
@@ -137,12 +136,8 @@ fn correlation_rows(game: &MetaGame) {
 }
 
 fn certificate_row(game: &MetaGame) {
-    let certificate = regret_certificate(
-        game,
-        &[0.1, 0.8, 0.1],
-        &[0.8, 0.1, 0.1],
-    )
-    .expect("RPS opponent distributions must validate");
+    let certificate = regret_certificate(game, &[0.1, 0.8, 0.1], &[0.8, 0.1, 0.1])
+        .expect("RPS opponent distributions must validate");
     let mut row = empty_row("regret_certificate", "prediction_shift", 0);
     row[16] = game.strategy_names[certificate.predicted_best_response].clone();
     row[17] = game.strategy_names[certificate.actual_best_response].clone();
