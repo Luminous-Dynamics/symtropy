@@ -1,8 +1,8 @@
-# Consciousness as a Physical Force: Formal Mathematical Specification
+# Φ-Coupled Physics: Experimental Mathematical Specification
 
 ## Abstract
 
-We present a formal specification of the consciousness-physics coupling model implemented in the Symtropy engine. The model treats consciousness (Φ) as a thermodynamic quantity that modulates rigid body dynamics through five coupling channels. Under strict energy conservation with a Landauer-bounded floor, the model predicts that cooperative behavior is a thermodynamic necessity, not a design choice.
+This document specifies an experimental coupling model implemented in the Symtropy engine. An integrated-information quantity (Φ), as computed by a declared estimator, is used as a state variable in five coupling policies that modulate rigid-body dynamics. The coupling equations are simulation hypotheses and policy choices; this specification alone does not establish that Φ is a thermodynamic state variable, a physical force, or a causal influence in biological systems. Likewise, cooperation emerging in a configured simulation is a result about that model and its assumptions, not evidence that cooperation is a thermodynamic necessity in nature. Energy conservation, entropy production, numerical stability, and empirical validation are separate obligations.
 
 ## 1. Definitions
 
@@ -179,14 +179,14 @@ J/Φ = (Σ_i E_consumed_i × Φ_i) / (Σ_i |ΔΦ_i|)
 
 This measures the energy cost of consciousness. No prior publication of this metric exists.
 
-### 5.3 Landauer Bound
+### 5.3 Landauer Erasure Reference
 
-Minimum energy per bit of information processing:
+For a logically irreversible erasure of one bit in contact with a thermal bath at temperature `T`, Landauer's principle gives the lower bound on heat dissipation:
 ```
-E_min = k_B × T × ln(2) = 2.87 × 10⁻²¹ J/bit    (at T = 310K)
+Q_min = k_B × T × ln(2)
 ```
 
-Per Landauer (1961). All energy consumption in the model exceeds this floor.
+Using the exact SI Boltzmann constant, at `T = 310 K` this is approximately `2.966678 × 10⁻²¹ J` per bit erased. The bound concerns logically irreversible erasure under its thermodynamic assumptions; it is not a universal minimum energy for every information-processing operation. This model does not currently count logically irreversible bit erasures, so it must not claim that all model energy consumption is above the Landauer bound.
 
 ## 6. Testable Predictions
 
