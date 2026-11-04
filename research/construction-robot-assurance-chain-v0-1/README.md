@@ -5,11 +5,11 @@
 
 ## Purpose
 
-This benchmark tests whether the separately implemented construction-robot gates compose safely. It does not duplicate their internal logic.
+This benchmark tests whether separately implemented construction-robot gates compose safely without duplicating their internal logic.
 
 `approved model/export -> layout input admission -> observation coverage -> worksite epoch -> qualification lease -> command authorization -> physical outcome receipt -> claim-specific admissibility`
 
-A task must not become executable merely because each component can produce a locally valid result. The exact outputs, artifact digests, context epoch, configuration, timebase, qualification generation and lease must survive every interface boundary.
+A task must not become executable merely because each component can produce a locally valid result. Exact outputs, artifact digests, context epoch, configuration, timebase, qualification generation and lease must survive each interface boundary.
 
 ## Component ownership
 
@@ -21,68 +21,78 @@ A task must not become executable merely because each component can produce a lo
 - #3523 / PR #3524: task-matched layout robot comparison and common referee.
 - Symthaea #4918: evidence dependency lineage and claim-relative independence.
 
-This benchmark is the boundary conformance owner. It must not grow a second coordinate engine, survey adjustment system, event ledger, observation fusion pipeline, epoch oracle, robot controller, physical metrology system or evidence-dependency graph.
+This benchmark owns boundary conformance only. It must not grow a second coordinate engine, survey adjustment system, event ledger, observation fusion pipeline, epoch oracle, robot controller, physical metrology system or evidence-dependency graph.
 
 ## Frozen scenario contract
 
-`assurance-chain-scenario-v0.1.schema.json` defines the challenge packet. Each stage has:
-- unique stage identity, sequence and explicit predecessor stage IDs;
-- consumed artifact identities and digests;
-- produced artifact identities/digests and evidence scope;
-- expected claim-relative disposition and deterministic reason codes.
+The Draft 2020-12 schema defines the challenge packet. Each stage has unique identity, monotonic sequence, explicit predecessor stage IDs, consumed/produced artifact digests, expected disposition and deterministic reason codes. Each qualification stage declares its generation.
 
-Each attempted command binds the current epoch, robot configuration, task scope, timebase, qualification generation and lease validity. The expected outcome is explicit. Claim expectations bind evidence origin to intended scope. Statistical units identify site/shift/robot clusters and distinguish independently staged events from repeated sensor frames or controller ticks.
+Each command attempt explicitly references:
+- its command-authorization stage;
+- the latest prior observation stage;
+- the latest prior worksite epoch stage;
+- the latest prior qualification stage, or null where no qualification exists.
+
+The command stage must be a descendant of those sources and directly consume their exact artifact IDs/digests. The validator computes causal blockers (for example unknown observation, qualification predating the epoch, lease invalid at command, or wrong timebase). Declared reason codes must exactly match the computed blockers in both the command attempt and command-stage receipt.
+
+## Paradigm shift: per-command causal frontier
+
+Do not validate every command against the final state at the end of a scenario. For each command at sequence *t*, evaluate the newest relevant observation, epoch and qualification that exist before *t* and are in that command's causal ancestry.
+
+This permits a crucial positive control: command 1 can be valid under epoch 1, a site-change event can then advance to epoch 2, and command 2 must be rejected if it tries to reuse the pre-change qualification. The later epoch must not retroactively erase the validity of command 1, and the earlier qualification must not authorize command 2.
 
 ## Mandatory cross-stage properties
 
-1. An inadmissible/indeterminate layout input cannot be promoted to a task authorization.
-2. `unknown_or_unobserved`, `occupied_or_changed`, or `conflicting` observation state blocks command authorization and invalidates the affected epoch/qualification.
-3. A newly accepted epoch revokes the prior qualification generation before the next command.
-4. A stale epoch, old configuration digest, wrong task scope, wrong timebase/boot identity, stale clock, or expired lease cannot authorize.
-5. Reconnect, reboot, sensor recovery and operator acknowledgment never restore authority by themselves.
-6. An evidence receipt must refer to the exact scenario/task/configuration and independent measurement artifacts; physical evidence scope cannot be inferred from a software stage.
-7. A field claim cannot be admitted from synthetic, simulated, bench or HIL evidence, irrespective of later-stage success.
-8. A passing productivity claim cannot alter an unsafe, failed, indeterminate or unevaluated safety claim.
-9. No global PASS, confidence score or weighted total is emitted. Stage decisions and claim decisions remain separate.
-10. A failure blocks only dependent tasks/claims, but cannot be silently discarded from the chain.
+1. An inadmissible/indeterminate layout input cannot be promoted to task authorization.
+2. Unknown/unobserved, occupied/changed or conflicting observation state blocks affected command authorization.
+3. A newly accepted epoch revokes prior qualification for subsequent commands; command must reference the exact current epoch and qualification generation.
+4. Each command's referenced observation, epoch and qualification are the latest prior records in that command's own causal timeline—not the scenario's eventual final records.
+5. Each command stage must be a descendant of all referenced evidence stages and directly consume their exact produced artifact identities/digests.
+6. Stale epoch, old configuration, wrong task, wrong timebase/boot identity or expired lease cannot authorize.
+7. Reconnect, reboot, sensor recovery and operator acknowledgement never restore authority alone.
+8. Evidence receipt must refer to exact scenario/task/configuration and independent measurement artifacts; field evidence cannot be inferred from software-stage success.
+9. Field claims cannot be admitted from synthetic, simulated, bench or HIL evidence.
+10. Productivity cannot repair an unsafe, failed, indeterminate or unevaluated safety claim.
+11. No global PASS, confidence score or weighted total is emitted.
+12. A failure blocks dependent commands/claims but cannot be silently discarded.
 
-## Required adversarial scenario families
+## Frozen adversarial scenarios
 
-- Design/export/frame admission is wrong although the robot's localization/printing accuracy is nominal.
-- A previously admitted design or site/work-package revision becomes stale before execution.
-- An observation region becomes occluded or unobserved while no positive hazard detection is emitted.
-- A source sequence gap, replay, rollback or same-sequence divergent digest occurs.
-- A trade enters or an exclusion zone moves after qualification but before command.
-- The epoch is advanced while a cached command still carries the previous epoch/qualification generation.
-- Payload, brake, tool, mode, sensor, calibration, software or firmware configuration changes after qualification.
-- Communication loss, reconnect, reboot, timebase/boot change or stale ACTIVE-cache resurrection.
-- The source is current but clock uncertainty exceeds policy.
-- The lease expires exactly at the command boundary; test one tick before, at and after expiry.
-- Repeated messages/frames from one staged event are incorrectly counted as independent encounters.
-- One genuine bench result is used to support an unsupported field claim.
-- A claim is not evaluated while an independent claim in the same packet is supported; unsupported claims remain unpromoted.
+- Wrong design/export/frame despite nominal robot positioning accuracy.
+- Previously admitted design or work-package revision becomes stale before execution.
+- Required observation becomes occluded/unobserved.
+- Source sequence gap, replay, rollback or same-sequence divergent digest.
+- Trade enters or exclusion zone moves after qualification but before a later command.
+- Later epoch arrives while a cached command carries old epoch/qualification.
+- Payload, brake, tool, mode, sensor, calibration or software configuration changes after qualification.
+- Communications loss, reconnect, reboot, timebase/boot change or stale ACTIVE-cache resurrection.
+- Current source with clock uncertainty beyond policy.
+- Lease expiry at exact command boundary; one tick before/at/after.
+- Repeated frames/messages incorrectly counted as independent encounters.
+- Bench result promoted to an unsupported field claim.
+- One claim not evaluated while another supported claim remains available.
 
-## Metrics
+## Benchmark metrics
 
-**Safety gates (non-compensable):** false-safe authorizations after upstream failure/unknown; stale/old-epoch/old-configuration/expired-lease command leakage; unqualified restart; stage-to-stage digest/sequence mismatches. Initial software-contract target: zero in the frozen challenge corpus.
+**Safety gates (non-compensable):** false-safe authorization after upstream failure/unknown; stale/old-epoch/old-configuration/expired-lease command leakage; unqualified restart; command-to-stage digest/sequence/ancestry mismatch. Initial software-contract target: zero in frozen corpus.
 
-**End-to-end latency:** independently staged change to observation detection; detection to epoch/qualification invalidation; invalidation to command inhibit; hazard to safe-state completion; context reconciliation to requalification/restart. Report p50/p95/p99/max, clock uncertainty and physical measurement uncertainty. Sample p99 is not a worst-case guarantee.
+**End-to-end latency:** independently staged change to observation; detection to epoch/qualification invalidation; invalidation to command inhibit; hazard to safe-state completion; context reconciliation to requalification/restart. Report p50/p95/p99/max with clock and measurement uncertainty. Sample p99 is not a worst-case guarantee.
 
-**Availability/productivity:** safe-hold frequency/duration by cause, requalification time, accepted output per robot-hour and crew-hour, and total workflow labor (BIM/VDC preparation, trade coordination, survey/control, setup, operator/spotter, print, QA, rework and recovery). Report separately; no trade-off score.
+**Availability/productivity:** safe-hold frequency/duration by cause, requalification time, accepted output per robot-hour and crew-hour, and total workflow labour (BIM/VDC preparation, trade coordination, survey/control, setup, operator/spotter, print, QA, rework and recovery). Report separately; no trade-off score.
 
 ## Statistical protocol
 
-Pre-register the independent unit for each endpoint. One independently staged worksite change is one unit; repeated frames, heartbeats, and controller cycles from the same event do not increase (n). Preserve site/shift/task/zone/robot/configuration/source cluster IDs. Keep adversarial conformance cases separate from field-prevalence samples. Report exact confidence bounds and raw numerators/denominators per ODD stratum. A zero-failure synthetic corpus is not a field failure-probability estimate.
+Pre-register each endpoint's independent unit. One independently staged worksite change is one unit; repeated frames, heartbeats and controller cycles do not increase n. Preserve site/shift/task/zone/robot/configuration/source cluster IDs. Keep deterministic adversarial conformance cases separate from operational prevalence samples. Report exact confidence bounds and raw numerators/denominators per ODD stratum. A zero-failure synthetic corpus is not a field failure-probability estimate.
 
 ## Implementation sequence
 
 1. Freeze schema and synthetic chain scenarios.
-2. Validate fixture schema and internal references.
-3. After upstream PRs merge, add direct dependencies on their public Rust evaluators and exercise the real APIs from one test runner.
-4. Add generated event-order/fault-injection sequences across stage boundaries.
-5. Only after HIL, independent bench metrology and supervised field sampling: connect physical receipts and task-specific claim profiles.
-6. Replicate at a held-out site and robot configuration before generalization claims.
+2. Validate schema, artifact lineage, per-command causal frontiers and multi-command transitions.
+3. After upstream PRs merge, add direct dependencies on their public Rust evaluators and exercise real APIs from one scenario runner.
+4. Add generated event-order, interleaving and fault-injection sequences.
+5. Only after HIL, independent bench metrology and supervised field sampling, connect physical receipts and claim-specific physical evidence.
+6. Replicate at held-out sites and robot configurations before generalization claims.
 
 ## Limits
 
-The v0.1 artifacts describe expected software behavior. Identifiers, hashes and outcomes are invented. The contract is not a safety controller, field measurement, robot dispatch permit, certification or proof of physical truth. Authentication, metrology, actor competence, upstream independence and physical validation remain with their existing evidence owners and competent assessors.
+Identifiers, digests and outcomes are invented. The contract is not a safety controller, field measurement, robot dispatch permit, certification or proof of physical truth. Authentication, metrology, actor competence, upstream independence and physical validation remain with their existing evidence owners and competent assessors.
