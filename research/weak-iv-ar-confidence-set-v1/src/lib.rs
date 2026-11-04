@@ -733,18 +733,42 @@ pub fn f_cdf(value: f64, numerator_df: usize, denominator_df: usize) -> Result<f
     }
     let d1 = numerator_df as f64;
     let d2 = denominator_df as f64;
-    let x = d1 * value / (d1 * value + d2);
+    let scaled = (d1 / d2) * value;
+    let x = if scaled.is_infinite() {
+        1.0
+    } else {
+        scaled / (1.0 + scaled)
+    };
     regularized_incomplete_beta(x, 0.5 * d1, 0.5 * d2)
 }
 
-/// Classical F upper-tail probability.
+/// Classical F upper-tail probability, evaluated directly to avoid 1-CDF cancellation.
 pub fn f_survival_function(
     value: f64,
     numerator_df: usize,
     denominator_df: usize,
 ) -> Result<f64, ArError> {
-    let cumulative = f_cdf(value, numerator_df, denominator_df)?;
-    Ok((1.0 - cumulative).clamp(0.0, 1.0))
+    if numerator_df == 0 || denominator_df == 0 {
+        return Err(ArError::InvalidDegreesOfFreedom);
+    }
+    if value.is_nan() || value < 0.0 {
+        return Err(ArError::NumericalFailure);
+    }
+    if value == 0.0 {
+        return Ok(1.0);
+    }
+    if value.is_infinite() {
+        return Ok(0.0);
+    }
+    let d1 = numerator_df as f64;
+    let d2 = denominator_df as f64;
+    let scaled = (d1 / d2) * value;
+    let x = if scaled.is_infinite() {
+        0.0
+    } else {
+        1.0 / (1.0 + scaled)
+    };
+    regularized_incomplete_beta(x, 0.5 * d2, 0.5 * d1)
 }
 
 /// Classical F quantile for a probability in (0,1).
@@ -979,6 +1003,19 @@ mod tests {
         let critical = f_quantile(0.95, 1, 120).expect("F quantile");
         assert!((critical - 3.920_124_14).abs() < 2.0e-5);
         assert!((f_cdf(critical, 1, 120).expect("F CDF") - 0.95).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn f_survival_function_retains_tiny_tail_probabilities() {
+        let critical = f_quantile(0.95, 1, 120).expect("F quantile");
+        let upper_tail = f_survival_function(critical, 1, 120).expect("F survival");
+        assert!((upper_tail - 0.05).abs() < 1.0e-10);
+
+        // The CDF rounds to 1.0 at this extreme, but direct upper-tail evaluation
+        // retains the non-zero probability needed for a meaningful p-value.
+        let tiny_tail = f_survival_function(10_000.0, 1, 120).expect("tiny F survival");
+        assert!(tiny_tail > 0.0);
+        assert!(tiny_tail < 1.0e-100);
     }
 
     #[test]
