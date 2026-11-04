@@ -730,7 +730,7 @@ mod tests {
     fn zero_shot_requires_frozen_robot_configuration() {
         let mut input = study();
         input.regime = TransferRegime::ZeroShot;
-        input.target_label_count = 0;
+        input.adaptation_effort.target_label_count = 0;
         input.target_model_digest = input.source_model_digest.clone();
         input.target_robot_config_digest = "sha256:different-config".to_owned();
         input.target_adaptation_work_item_ids.clear();
@@ -747,7 +747,7 @@ mod tests {
     fn calibration_only_config_change_requires_explicit_receipt() {
         let mut input = study();
         input.regime = TransferRegime::CalibrationOnly;
-        input.target_label_count = 0;
+        input.adaptation_effort.target_label_count = 0;
         input.target_model_digest = input.source_model_digest.clone();
         input.adaptation_effort.target_label_count = 0;
         assert!(matches!(
