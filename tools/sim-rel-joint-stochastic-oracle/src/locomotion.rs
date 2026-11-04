@@ -154,6 +154,12 @@ pub enum AcquisitionState {
     Noisy,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum PresynapticMovementInhibition {
+    Disinhibited,
+    Engaged,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SensorState {
     pub id: String,
@@ -166,6 +172,9 @@ pub struct SensorState {
     pub contact_feedback: ChannelState,
     /// Acquisition/instrument state is distinct from biological afferent gain.
     pub acquisition: AcquisitionState,
+    /// Neural presynaptic inhibition of the movement-encoding FeCO axons.
+    /// This is distinct from axon loss/gating and from acquisition faults.
+    pub presynaptic_movement_inhibition: PresynapticMovementInhibition,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -188,6 +197,9 @@ pub struct InterventionAction {
     pub protocol_id: String,
     pub protocol_source_manifest_id: String,
     pub cost_units: u64,
+    /// Required only for DescendingPathwayModulation; identifies the intended
+    /// presynaptic inhibition state, not a generic sensory-channel gate.
+    pub presynaptic_inhibition_target: Option<PresynapticMovementInhibition>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -329,6 +341,9 @@ pub enum AdapterError {
     ActionSemanticsViolation {
         action_id: String,
         reason: String,
+    },
+    InvalidPresynapticInterventionTarget {
+        action_id: String,
     },
     InconsistentCostUnits,
     IncompleteTransitionRow {
@@ -543,12 +558,25 @@ fn source_supports_claim(source: &SourceManifest, claim: ClaimCeiling) -> bool {
     }
 }
 
+fn sensor_state_semantic_id(sensor: &SensorState) -> String {
+    format!(
+        "p{:?}-m{:?}-v{:?}-c{:?}-a{:?}-i{:?}",
+        sensor.position_afferent,
+        sensor.movement_afferent,
+        sensor.vibration_afferent,
+        sensor.contact_feedback,
+        sensor.acquisition,
+        sensor.presynaptic_movement_inhibition
+    )
+}
+
 fn sensor_channels_unchanged(current: &SensorState, next: &SensorState) -> bool {
     current.position_afferent == next.position_afferent
         && current.movement_afferent == next.movement_afferent
         && current.vibration_afferent == next.vibration_afferent
         && current.contact_feedback == next.contact_feedback
         && current.acquisition == next.acquisition
+        && current.presynaptic_movement_inhibition == next.presynaptic_movement_inhibition
 }
 
 fn sensor_modalities_unchanged(current: &SensorState, next: &SensorState) -> bool {
@@ -556,6 +584,7 @@ fn sensor_modalities_unchanged(current: &SensorState, next: &SensorState) -> boo
         && current.movement_afferent == next.movement_afferent
         && current.vibration_afferent == next.vibration_afferent
         && current.contact_feedback == next.contact_feedback
+        && current.presynaptic_movement_inhibition == next.presynaptic_movement_inhibition
 }
 
 fn validate_action_transition_semantics(
@@ -574,6 +603,8 @@ fn validate_action_transition_semantics(
                     || current_sensor.vibration_afferent == next_sensor.vibration_afferent)
                 && current_sensor.contact_feedback == next_sensor.contact_feedback
                 && current_sensor.acquisition == next_sensor.acquisition
+                && current_sensor.presynaptic_movement_inhibition
+                    == next_sensor.presynaptic_movement_inhibition
         };
 
     let reason = match action.kind {
@@ -619,9 +650,33 @@ fn validate_action_transition_semantics(
                 || !sensor_channels_unchanged(current_sensor, next_sensor))
             .then_some("washout must clear physical carryover while preserving sensor state")
         }
-        InterventionKind::ActiveMovementProbe
-        | InterventionKind::PassiveMovementProbe
-        | InterventionKind::DescendingPathwayModulation => None,
+        InterventionKind::ActiveMovementProbe => {
+            (next_sensor.presynaptic_movement_inhibition
+                != PresynapticMovementInhibition::Engaged
+                || !sensor_modalities_unchanged(current_sensor, next_sensor)
+                || current_sensor.acquisition != next_sensor.acquisition)
+                .then_some(
+                    "active self-generated movement must engage movement-axon presynaptic inhibition without altering channel or acquisition state",
+                )
+        }
+        InterventionKind::PassiveMovementProbe => {
+            (next_sensor.presynaptic_movement_inhibition
+                != PresynapticMovementInhibition::Disinhibited
+                || !sensor_modalities_unchanged(current_sensor, next_sensor)
+                || current_sensor.acquisition != next_sensor.acquisition)
+                .then_some(
+                    "passive movement must leave movement-axon presynaptic inhibition disinhibited",
+                )
+        }
+        InterventionKind::DescendingPathwayModulation => {
+            (action.presynaptic_inhibition_target != Some(
+                next_sensor.presynaptic_movement_inhibition,
+            ) || !sensor_modalities_unchanged(current_sensor, next_sensor)
+                || current_sensor.acquisition != next_sensor.acquisition)
+                .then_some(
+                    "descending modulation must set its declared presynaptic inhibition target only",
+                )
+        }
     };
 
     if let Some(reason) = reason {
