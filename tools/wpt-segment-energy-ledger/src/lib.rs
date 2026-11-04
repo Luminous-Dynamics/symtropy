@@ -161,7 +161,7 @@ pub struct SegmentReport {
     pub phase_reconciliation_output_error_wh: f64,
     pub standard_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: Option<EfficiencyInterval>,
-    pub grid_to_battery_efficiency: Option<EfficiencyInterval>,
+    pub grid_ac_to_battery_terminal_efficiency: Option<EfficiencyInterval>,
     pub battery_terminal_input_wh: Option<f64>,
 }
 
@@ -189,7 +189,7 @@ pub struct RouteReport {
     pub total_bess_dc_output_bound_wh: Option<f64>,
     pub standard_route_segment_efficiency: EfficiencyInterval,
     pub inverter_dc_to_vehicle_dc_efficiency: EfficiencyInterval,
-    pub grid_to_battery_efficiency: EfficiencyInterval,
+    pub grid_ac_to_battery_terminal_efficiency: EfficiencyInterval,
     pub battery_terminal_input_wh: f64,
     pub segments: Vec<SegmentReport>,
     pub measurement_provenance: Vec<MeasurementProvenance>,
@@ -416,7 +416,7 @@ impl RouteLedger {
                 &EnergyBoundary::RoadwayInverterDcInput,
                 &EnergyBoundary::VehicleDcBusOutput,
             );
-            let grid_to_battery = paired_segment_metric(
+            let grid_ac_to_battery_terminal = paired_segment_metric(
                 &map,
                 &EnergyBoundary::GridAcInput,
                 &EnergyBoundary::BatteryTerminalInput,
@@ -437,7 +437,7 @@ impl RouteLedger {
                 phase_reconciliation_output_error_wh: (evpc.0 - segment.segment_evpc_output.energy_wh).abs(),
                 standard_segment_efficiency: standard,
                 inverter_dc_to_vehicle_dc_efficiency: inverter_to_vehicle,
-                grid_to_battery_efficiency: grid_to_battery,
+                grid_ac_to_battery_terminal_efficiency: grid_ac_to_battery_terminal,
                 battery_terminal_input_wh,
             });
         }
@@ -519,7 +519,7 @@ impl RouteLedger {
             total_bess_dc_output_bound_wh: total_bess_present.then_some(total_bess_bound),
             standard_route_segment_efficiency: standard_route,
             inverter_dc_to_vehicle_dc_efficiency: inverter_route,
-            grid_to_battery_efficiency: grid_route,
+            grid_ac_to_battery_terminal_efficiency: grid_route,
             battery_terminal_input_wh: total_battery,
             segments: segment_reports,
             measurement_provenance,
@@ -814,11 +814,21 @@ mod tests {
         let report = ledger.evaluate().unwrap();
         assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
         assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_to_battery_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert!((report.grid_ac_to_battery_terminal_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.total_idle_roadway_inverter_dc_input_wh, 20.0);
         assert_eq!(report.total_bess_dc_output_wh, Some(112.0));
         assert_eq!(report.total_bess_dc_output_bound_wh, Some(0.03));
+        assert_eq!(report.evidence_class, EvidenceClass::SyntheticKnownTruth);
+        assert_eq!(report.route_geometry_digest, digest('d'));
+        assert_eq!(report.measurement_provenance.len(), 41);
+        assert!(
+            report
+                .measurement_provenance
+                .windows(2)
+                .all(|pair| pair[0].measurement_id < pair[1].measurement_id)
+        );
+        assert_eq!(report.segments[0].geometry_digest, digest('c'));
         assert_eq!(report.segments[0].phases.len(), 6);
         assert_eq!(report.segments[0].phases[0].phase, Phase::InverterRise);
         assert_eq!(report.segments[0].phases[5].phase, Phase::InverterFall);
@@ -829,7 +839,7 @@ mod tests {
         let report = fixture().evaluate().unwrap();
         assert!((report.standard_route_segment_efficiency.point_estimate.unwrap() - 0.9).abs() < 1e-12);
         assert!((report.inverter_dc_to_vehicle_dc_efficiency.point_estimate.unwrap() - (130.0 / 140.0)).abs() < 1e-12);
-        assert!((report.grid_to_battery_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
+        assert!((report.grid_ac_to_battery_terminal_efficiency.point_estimate.unwrap() - (96.0 / 185.0)).abs() < 1e-12);
         assert_eq!(report.total_idle_grid_input_wh, 5.0);
         assert_eq!(report.battery_terminal_input_wh, 96.0);
     }
@@ -969,7 +979,7 @@ mod tests {
         ledger.idle_intervals[0].boundary_measurements[0].quantity.energy_wh = 20.0;
         let with_wait = ledger.evaluate().unwrap();
         assert_eq!(baseline.standard_route_segment_efficiency, with_wait.standard_route_segment_efficiency);
-        assert!(with_wait.grid_to_battery_efficiency.input_energy_wh > baseline.grid_to_battery_efficiency.input_energy_wh);
+        assert!(with_wait.grid_ac_to_battery_terminal_efficiency.input_energy_wh > baseline.grid_ac_to_battery_terminal_efficiency.input_energy_wh);
         assert!(with_wait.total_idle_grid_input_wh > baseline.total_idle_grid_input_wh);
     }
 }
