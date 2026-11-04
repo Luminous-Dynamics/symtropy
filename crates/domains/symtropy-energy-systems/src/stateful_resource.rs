@@ -83,14 +83,19 @@ impl StorageReserveContract {
             ride_through_seconds,
             reserve_margin_fraction,
         };
-        if contract.initial_energy_kwh < contract.reserve_floor_kwh() {
+        let critical_reserve = contract.critical_ride_through_energy_kwh();
+        if !critical_reserve.is_finite() {
+            return Err(ResourceTrajectoryError::NumericalOverflow("critical reserve calculation"));
+        }
+        let reserve_floor = contract.minimum_operating_energy_kwh.max(critical_reserve);
+        if !reserve_floor.is_finite() {
+            return Err(ResourceTrajectoryError::NumericalOverflow("protected reserve floor"));
+        }
+        if contract.initial_energy_kwh < reserve_floor {
             return Err(ResourceTrajectoryError::InitialEnergyBelowReserve {
                 initial_kwh: contract.initial_energy_kwh,
-                reserve_kwh: contract.reserve_floor_kwh(),
+                reserve_kwh: reserve_floor,
             });
-        }
-        if !contract.critical_ride_through_energy_kwh().is_finite() {
-            return Err(ResourceTrajectoryError::NumericalOverflow("critical reserve calculation"));
         }
         Ok(contract)
     }
@@ -658,6 +663,9 @@ pub fn verify_stateful_resource_trajectory(
         } else {
             None
         };
+        if cooling_cop.is_some_and(|cop| !cop.is_finite()) {
+            return Err(ResourceTrajectoryError::NumericalOverflow("cooling COP"));
+        }
         let cooling_cop_passed = if slot.cooling_heat_removal_kw == 0.0 {
             true
         } else if let Some(cop) = cooling_cop {
