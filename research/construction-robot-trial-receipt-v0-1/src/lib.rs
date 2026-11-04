@@ -199,7 +199,9 @@ pub fn semantic_errors(receipt: &Value) -> Vec<String> {
                         .and_then(Value::as_u64)
                         .is_none_or(|count| count == 0)
                 {
-                    errors.push("measured_result_missing_site_or_configuration_denominator".to_owned());
+                    errors.push(
+                        "measured_result_missing_site_or_configuration_denominator".to_owned(),
+                    );
                 }
             }
             _ => errors.push("measured_result_missing_sample_denominator".to_owned()),
@@ -474,9 +476,9 @@ mod tests {
     #[test]
     fn decision_margin_must_use_the_measurement_unit() {
         let receipt = fixture("fixtures/invalid/decision-margin-unit-mismatch.json");
-        assert!(semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "measurement_decision_margin_unit_mismatch:stopping-distance-p95"));
+        assert!(semantic_errors(&receipt).iter().any(
+            |error| error == "measurement_decision_margin_unit_mismatch:stopping-distance-p95"
+        ));
     }
 
     #[test]
@@ -484,9 +486,8 @@ mod tests {
         let mut receipt = fixture("examples/bench-measured-stopping.json");
         receipt["measurements"][0]["sample_unit"] = Value::String("feature".to_owned());
         receipt["measurements"][0]["sample_count"] = Value::from(300);
-        assert!(!semantic_errors(&receipt)
-            .iter()
-            .any(|error| error == "measurement_sample_count_exceeds_valid_encounters:stopping-distance-p95"));
+        assert!(!semantic_errors(&receipt).iter().any(|error| error
+            == "measurement_sample_count_exceeds_valid_encounters:stopping-distance-p95"));
     }
 
     #[test]
