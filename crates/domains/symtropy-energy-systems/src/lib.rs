@@ -19,6 +19,7 @@ mod duty_cycle;
 mod flexibility_evaluation;
 mod grid_response;
 mod grid_firm_capacity;
+mod chronological_adequacy;
 mod joint_scenario;
 mod forecast_calibration;
 mod fuel;
@@ -46,6 +47,14 @@ pub use flexibility_evaluation::{
 pub use grid_response::{
     GridResponseContract, GridResponseError, GridResponseIdentity, GridResponseReport,
     GridResponseSample, GridResponseSampleReceipt, evaluate_grid_response,
+};
+
+pub use chronological_adequacy::{
+    ChronologicalAdequacyContract, ChronologicalAdequacyError, ChronologicalAdequacyIdentity,
+    ChronologicalAdequacyInterval, ChronologicalAdequacyMetric,
+    ChronologicalAdequacyReport, ChronologicalAdequacyScenario,
+    ChronologicalAdequacyScenarioReceipt, ChronologicalAdequacyStudy,
+    evaluate_chronological_adequacy,
 };
 
 pub use grid_firm_capacity::{
