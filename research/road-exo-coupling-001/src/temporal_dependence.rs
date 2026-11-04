@@ -200,8 +200,7 @@ impl TemporalProcessManifest {
 
         for state in &self.states {
             let initial_mass = u128::from(initial_marginal[&state.initial_state]);
-            let innovation_mass =
-                u128::from(innovation_marginal[&state.transition_innovation]);
+            let innovation_mass = u128::from(innovation_marginal[&state.transition_innovation]);
             let left = u128::from(state.weight)
                 .checked_mul(u128::from(total))
                 .ok_or(TemporalError::ArithmeticOverflow)?;
@@ -406,10 +405,7 @@ impl TemporalEvaluation {
             .map(|(value, mass)| {
                 Ok((
                     value,
-                    ExactRational::new(
-                        i128::from(mass),
-                        u128::from(self.total_weight),
-                    )?,
+                    ExactRational::new(i128::from(mass), u128::from(self.total_weight))?,
                 ))
             })
             .collect()
@@ -427,7 +423,11 @@ impl TemporalReceipt {
         intervention: &TemporalIntervention,
     ) -> Result<(), TemporalError> {
         let evaluation = manifest.evaluate(intervention)?;
-        if evaluation.receipts.iter().any(|candidate| candidate == self) {
+        if evaluation
+            .receipts
+            .iter()
+            .any(|candidate| candidate == self)
+        {
             Ok(())
         } else {
             Err(TemporalError::ReceiptMismatch)
@@ -668,9 +668,7 @@ mod tests {
                 .unwrap()
         );
         assert_eq!(
-            temporal
-                .marginal_probabilities(TemporalAxis::Next)
-                .unwrap(),
+            temporal.marginal_probabilities(TemporalAxis::Next).unwrap(),
             independent
                 .marginal_probabilities(TemporalAxis::Next)
                 .unwrap()
@@ -720,10 +718,7 @@ mod tests {
                 left.verify_against(&manifest, &continue_intervention),
                 Ok(())
             );
-            assert_eq!(
-                right.verify_against(&manifest, &yield_intervention),
-                Ok(())
-            );
+            assert_eq!(right.verify_against(&manifest, &yield_intervention), Ok(()));
         }
     }
 
@@ -737,10 +732,7 @@ mod tests {
             next_state_offset: 0,
         };
         assert_eq!(first.digest().unwrap(), second.digest().unwrap());
-        assert_eq!(
-            first.evaluate(&a).unwrap(),
-            second.evaluate(&a).unwrap()
-        );
+        assert_eq!(first.evaluate(&a).unwrap(), second.evaluate(&a).unwrap());
     }
 
     #[test]
@@ -809,10 +801,7 @@ mod tests {
 
         let mut unordered = markov_fixture(TransitionRule::MultiplyPriorByInnovation);
         unordered.next_tick = 0;
-        assert_eq!(
-            unordered.validate(),
-            Err(TemporalError::InvalidTimeOrder)
-        );
+        assert_eq!(unordered.validate(), Err(TemporalError::InvalidTimeOrder));
     }
 
     #[test]
