@@ -89,6 +89,7 @@ pub struct CompileDiagnostic {
     pub code: &'static str,
     pub element_id: Option<String>,
     pub step_id: Option<String>,
+    pub node_id: Option<String>,
     pub detail: String,
 }
 
@@ -470,6 +471,8 @@ pub fn compile_work_graph(
             .into_iter()
             .map(|item| CompileDiagnostic {
                 code: item.code,
+                element_id: None,
+                step_id: None,
                 node_id: item.node_id,
                 detail: item.detail,
             })
@@ -540,6 +543,7 @@ fn compile_diagnostic(
         code,
         element_id: element_id.map(str::to_owned),
         step_id: step_id.map(str::to_owned),
+        node_id: None,
         detail: detail.into(),
     }
 }
@@ -552,6 +556,7 @@ fn compile_diagnostic_order(
         left.code,
         left.element_id.as_deref().unwrap_or(""),
         left.step_id.as_deref().unwrap_or(""),
+        left.node_id.as_deref().unwrap_or(""),
         left.detail.as_str(),
     )
         .cmp(&(
