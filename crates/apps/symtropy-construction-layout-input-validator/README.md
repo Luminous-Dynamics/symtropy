@@ -1,6 +1,6 @@
 # Construction layout input-integrity validator
 
-A pure-Rust, no-I/O pre-print gate for an exact CAD/BIM source/export manifest, frame/transform binding, feature inventory, and independent control checkpoints.
+Pure-Rust, no-I/O pre-print gate for a CAD/BIM source/export manifest, coordinate-frame/transform binding, feature inventory and independent survey-checkpoint evidence.
 
 ## Run the synthetic reference example
 
@@ -9,37 +9,31 @@ cargo run -p symtropy-construction-layout-input-validator -- \
   --manifest research/construction-layout-input-v0-1/fixtures/valid/matched-input.json
 ```
 
-The CLI embeds one **synthetic demonstration policy**. It is only for fixture replay. Production callers must provide the library with a trusted, policy-controlled project/site/work-package profile from the owning authority. This crate does not authenticate that authority.
+The CLI embeds a synthetic demonstration policy. It is for deterministic fixture replay only. Production callers must use the library with a policy supplied by a trusted project/site authority and protected by that integration's authorization and provenance system.
 
-## Contract
+## Decision model
 
-The evaluator checks:
-- exact source model revision and digest against the trusted project policy;
-- exact export-to-source revision lineage, exporter identity/configuration and digest shape;
-- current site, task, work-package, zone and worksite epoch binding;
-- horizontal/vertical reference, coordinate epoch when required, units, axis order, handedness, source/target frame IDs and exact transform bundle/resource digests;
-- exact discipline revision set and critical feature inventory across approved model and export;
-- separation of fit-point IDs from independent check-point IDs;
-- checkpoint count, uniqueness, spatial spread, claim-relative independence references, residual plus U95 decision margin and uncertainty ratio.
+- `admissible_for_named_layout_input`: all software-evaluable requirements of the named policy are met.
+- `inadmissible`: explicit source/revision/frame/transform/inventory/checkpoint mismatch, or a measured residual plus U95 exceeds the declared decision margin.
+- `indeterminate`: missing/insufficient survey evidence, unknown independence, weak checkpoint geometry or uncertainty too wide to resolve the margin.
 
-The evaluator never performs a coordinate transform, adjusts a survey network, authenticates signatures, fetches source bytes, verifies surveyor identity/competence, approves a design, detects BIM clashes, commands a robot, changes a worksite epoch, or certifies as-built work. It only evaluates the supplied manifest against the trusted policy object.
+The input manifest cannot submit its own decision or reason codes. Strict Serde parsing rejects unknown fields. The separate closed Draft 2020-12 manifest and trusted-policy schemas are in `research/construction-layout-input-v0-1/schema/`.
 
-## Output semantics
+## Checked bindings
 
-- `admissible_for_named_layout_input`: the manifest meets this named policy's software-evaluable conditions.
-- `inadmissible`: explicit source/revision/frame/transform/inventory/checkpoint conflicts or a measured residual beyond the declared margin.
-- `indeterminate`: missing, insufficient, unverified or too-uncertain evidence prevents admission.
+- Source model ID, revision, digest and approval reference.
+- Export lineage to the exact source revision, exporter ID/version/configuration and export digest.
+- Project/site/work-package/task/work-zone identity, site epoch digest and approved change sequence.
+- Horizontal/vertical reference, coordinate epoch, source/target frames, units, axis order, handedness and exact transform bundle/resource digests.
+- Exact multi-discipline revision set and critical feature inventory.
+- Upstream survey-result and adjustment reference/digests; fit-point and independent-check-point identities remain disjoint.
+- Independent checkpoint target-frame binding, reference-independence assessment, residuals, U95 and spatial spread.
+- No manifest-authored feature exclusions in v0.1. The project cannot hide a missing critical entity by declaring it excluded.
 
-No universal PASS, composite score, global accuracy claim, or operational authorization exists.
+## Boundaries
 
-## Ownership
+The evaluator does not fetch or hash source model bytes, authenticate signatures/issuers, validate surveyor competence, run a CRS transform, adjust a survey network, detect BIM clashes, prove design correctness, issue robot commands, mutate a worksite, or authorize printing. Referenced evidence is not independently authenticated by this crate. The upstream owners remain authoritative.
 
-Consumes, does not replace:
-- #1607 surveying/frame/transform/calibration/uncertainty and independent checkpoints;
-- #3523/#3524 layout performance/common-referee benchmark;
-- #3522 physical trial receipt;
-- #3542 worksite epoch invalidation/requalification;
-- #3558 observation coverage;
-- #1834 capability-to-work-package matching.
+No new CRS engine, survey system, BIM clash engine, site ledger or safety controller is introduced. The implementation composes #1607, #3524, #3522, #3531, #3542 and #3558.
 
-Fixtures and digests are invented. A synthetic software pass proves only the validator contract; it is not physical or legal survey evidence.
+Fixtures and all values are invented. A passing synthetic software test does not establish physical survey accuracy, field safety, legal/professional approval, or standards conformity.
