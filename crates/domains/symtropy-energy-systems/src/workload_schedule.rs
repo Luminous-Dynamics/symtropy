@@ -482,6 +482,14 @@ impl WorkloadScheduleTolerance {
             absolute_power_kw,
         })
     }
+
+    pub const fn absolute_work_units(&self) -> f64 {
+        self.absolute_work_units
+    }
+
+    pub const fn absolute_power_kw(&self) -> f64 {
+        self.absolute_power_kw
+    }
 }
 
 /// Independently reconstructed slot load and feasibility receipt.
