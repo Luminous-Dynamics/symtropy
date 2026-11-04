@@ -141,6 +141,8 @@ pub struct PhaseReport {
     pub phase: Phase,
     pub start_ns: u64,
     pub end_ns: u64,
+    pub spc_measurement_id: String,
+    pub evpc_measurement_id: String,
     pub spc_input_wh: f64,
     pub evpc_output_wh: f64,
     pub efficiency: EfficiencyInterval,
@@ -149,6 +151,9 @@ pub struct PhaseReport {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SegmentReport {
     pub segment_id: String,
+    pub geometry_digest: String,
+    pub segment_spc_measurement_id: String,
+    pub segment_evpc_measurement_id: String,
     pub phases: Vec<PhaseReport>,
     pub spc_input_wh: f64,
     pub evpc_output_wh: f64,
@@ -160,11 +165,22 @@ pub struct SegmentReport {
     pub battery_terminal_input_wh: Option<f64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MeasurementProvenance {
+    pub measurement_id: String,
+    pub meter_id: String,
+    pub measurement_plane_id: String,
+    pub calibration_receipt_digest: String,
+    pub source_artifact_digest: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RouteReport {
     pub schema_version: String,
     pub route_run_id: String,
+    pub evidence_class: EvidenceClass,
     pub power_flow_direction: PowerFlowDirection,
+    pub route_geometry_digest: String,
     pub total_segment_spc_input_wh: f64,
     pub total_segment_evpc_output_wh: f64,
     pub total_idle_grid_input_wh: f64,
@@ -176,6 +192,7 @@ pub struct RouteReport {
     pub grid_to_battery_efficiency: EfficiencyInterval,
     pub battery_terminal_input_wh: f64,
     pub segments: Vec<SegmentReport>,
+    pub measurement_provenance: Vec<MeasurementProvenance>,
     pub claim_ceiling: String,
 }
 
@@ -344,6 +361,8 @@ impl RouteLedger {
                     phase: phase.phase.clone(),
                     start_ns: phase.start_ns,
                     end_ns: phase.end_ns,
+                    spc_measurement_id: phase.spc_input.measurement_id.clone(),
+                    evpc_measurement_id: phase.evpc_output.measurement_id.clone(),
                     spc_input_wh: phase.spc_input.energy_wh,
                     evpc_output_wh: phase.evpc_output.energy_wh,
                     efficiency: efficiency_interval(
@@ -408,6 +427,9 @@ impl RouteLedger {
 
             segment_reports.push(SegmentReport {
                 segment_id: segment.segment_id.clone(),
+                geometry_digest: segment.geometry_digest.clone(),
+                segment_spc_measurement_id: segment.segment_spc_input.measurement_id.clone(),
+                segment_evpc_measurement_id: segment.segment_evpc_output.measurement_id.clone(),
                 phases: phase_metrics,
                 spc_input_wh: spc.0,
                 evpc_output_wh: evpc.0,
@@ -457,10 +479,38 @@ impl RouteLedger {
             total_battery_bound,
         );
 
+        let mut measurement_provenance = Vec::new();
+        for segment in &self.segments {
+            let quantities = segment
+                .phases
+                .iter()
+                .flat_map(|phase| [&phase.spc_input, &phase.evpc_output])
+                .chain([&segment.segment_spc_input, &segment.segment_evpc_output])
+                .chain(
+                    segment
+                        .boundary_measurements
+                        .iter()
+                        .map(|measurement| &measurement.quantity),
+                );
+            measurement_provenance.extend(quantities.map(provenance_record));
+        }
+        for idle in &self.idle_intervals {
+            measurement_provenance.extend(
+                idle.boundary_measurements
+                    .iter()
+                    .map(|measurement| provenance_record(&measurement.quantity)),
+            );
+        }
+        measurement_provenance.sort_by(|left, right| {
+            left.measurement_id.cmp(&right.measurement_id)
+        });
+
         Ok(RouteReport {
             schema_version: SCHEMA_VERSION.into(),
             route_run_id: self.route_run_id.clone(),
+            evidence_class: self.evidence_class.clone(),
             power_flow_direction: self.power_flow_direction.clone(),
+            route_geometry_digest: self.route_geometry_digest.clone(),
             total_segment_spc_input_wh: total_spc,
             total_segment_evpc_output_wh: total_evpc,
             total_idle_grid_input_wh: total_idle_grid,
@@ -472,8 +522,19 @@ impl RouteLedger {
             grid_to_battery_efficiency: grid_route,
             battery_terminal_input_wh: total_battery,
             segments: segment_reports,
+            measurement_provenance,
             claim_ceiling: "Energy accounting and efficiency arithmetic only. This report does not prove meter calibration authenticity, electromagnetic safety, thermal safety, foreign-object detection, interoperability, hardware integrity, or standards compliance. IEC-style segment result and extended route ratios are distinct boundaries.".into(),
         })
+    }
+}
+
+fn provenance_record(quantity: &EnergyQuantity) -> MeasurementProvenance {
+    MeasurementProvenance {
+        measurement_id: quantity.measurement_id.clone(),
+        meter_id: quantity.meter_id.clone(),
+        measurement_plane_id: quantity.measurement_plane_id.clone(),
+        calibration_receipt_digest: quantity.calibration_receipt_digest.clone(),
+        source_artifact_digest: quantity.source_artifact_digest.clone(),
     }
 }
 
