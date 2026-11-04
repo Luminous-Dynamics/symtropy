@@ -48,7 +48,7 @@ jobs:
           retention-days: 7
 
   commit_lockfile:
-    name: Commit exact package lockfile after matrix qualification
+    name: Commit exact package lockfile after matrix qualification (package file only)
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/construction-accepted-output-v0-1' }}
     needs: validate
     runs-on: ubuntu-latest
@@ -81,21 +81,8 @@ jobs:
             exit 1
           fi
           cp "$generated" "$committed"
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path(".github/workflows/construction-accepted-output-v1.yml")
-          text = path.read_text()
-          old = "run: cargo generate-lockfile --manifest-path research/construction-accepted-output-v0-1/Cargo.toml"
-          new = "run: cargo metadata --manifest-path research/construction-accepted-output-v0-1/Cargo.toml --locked --format-version 1"
-          if old not in text:
-              raise SystemExit("expected initial lock-generation command was not found")
-          text = text.replace(old, new)
-          text = text.replace("name: Resolve package lockfile for review", "name: Verify committed package lockfile")
-          path.write_text(text)
-          PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$committed" .github/workflows/construction-accepted-output-v1.yml
+          git add "$committed"
           git commit -m "build(research): pin accepted-output package dependencies"
           git push origin "HEAD:refs/heads/${GITHUB_HEAD_REF}"
