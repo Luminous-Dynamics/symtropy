@@ -1,5 +1,5 @@
 use construction_accepted_output::{
-    derive_report, read_json, schema_is_valid, validate_ledger, validate_report,
+    derive_report, read_json, schema_is_valid, validate_ledger, validate_profile_binding, validate_report,
 };
 use std::path::PathBuf;
 
@@ -34,6 +34,19 @@ fn main() {
             std::process::exit(2);
         }
     };
+    let profile = match read_json(&root.join("profile/layout-accepted-output-v0.1.json")) {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+    };
+    let binding_errors = validate_profile_binding(&profile, &ledger);
+    if !binding_errors.is_empty() {
+        eprintln!("profile_binding_failed:{binding_errors:?}");
+        std::process::exit(1);
+    }
+
     let errors = validate_ledger(&schema, &ledger);
     if !errors.is_empty() {
         eprintln!("valid_fixture_rejected:{errors:?}");
