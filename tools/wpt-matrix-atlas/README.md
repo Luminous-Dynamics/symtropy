@@ -80,9 +80,9 @@ A production adaptive sampler should refine further using held-out matrix residu
 
 ### Service-aware refinement
 
-`service_refinement_plan` consumes external circuit-derived route-energy uncertainty signals in Wh, the allowable Wh budget, estimated uncertainty reduction per added solve, estimated FEM/measurement solve cost, circuit-model digest and sensitivity-receipt digest. It ranks triggered segments by normalized model/service risk times expected reduction divided by estimated solve seconds.
+`service_refinement_plan` consumes exactly one versioned circuit-derived signal per atlas segment: a route-energy uncertainty upper bound in Wh, allowable Wh budget, strictly positive expected fractional uncertainty reduction per added solve, estimated FEM/measurement solve cost, circuit-model digest and sensitivity-receipt digest. Missing or duplicate segment coverage fails closed. It ranks triggered segments by normalized model/service risk times expected reduction divided by estimated solve seconds.
 
-This lets the atlas spend field solves where matrix error most affects useful battery energy, not merely where a raw matrix norm is largest. The atlas does not derive Wh uncertainty from inductance error; this requires a validated circuit sensitivity receipt. Digests are references, not signatures. The ranking is a transparent heuristic rather than an optimal value-of-information algorithm.
+This lets the atlas spend field solves where matrix error most affects useful battery energy, not merely where a raw matrix norm is largest. The atlas does not derive Wh uncertainty from inductance error; this requires a validated circuit sensitivity receipt. Digests are references, not signatures. JSON contract: `benchmarks/wpt-matrix-atlas/v1/service-sensitivity-signal.schema.json`; frozen two-segment fixture: `benchmarks/wpt-matrix-atlas/v1/synthetic-service-sensitivity-signals.json`. The ranking is a transparent heuristic rather than an optimal value-of-information algorithm.
 ## Synthetic known truth
 
 `synthetic-known-truth.json` has two 2-coil endpoint matrices at 0 m and 10 m. At 5 m:
