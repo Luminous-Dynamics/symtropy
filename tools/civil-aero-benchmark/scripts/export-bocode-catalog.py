@@ -57,6 +57,15 @@ def application_name(value: Any) -> str:
 
 def problem_class(objectives: int, constraints: int, variable_class: str) -> str:
     mixed = variable_class == "mixed"
+    discrete = variable_class == "discrete"
+    if discrete and objectives == 1 and constraints == 0:
+        return "so_discrete_extension"
+    if discrete and objectives == 1 and constraints > 0:
+        return "so_discrete_constrained_extension"
+    if discrete and objectives > 1 and constraints == 0:
+        return "mo_discrete_extension"
+    if discrete and objectives > 1 and constraints > 0:
+        return "mo_discrete_constrained_extension"
     if mixed and objectives == 1 and constraints == 0:
         return "so_mixed_variable"
     if mixed and objectives == 1 and constraints > 0:
@@ -145,7 +154,7 @@ def export(args: argparse.Namespace) -> None:
                 raise ValueError(f"{name}: {field} has an invalid integer value")
         if input_type not in ("continuous", "discrete", "mixed"):
             raise ValueError(f"{name}: unsupported input_type {input_type!r}")
-        variable_class = "continuous" if input_type == "continuous" else "mixed"
+        variable_class = input_type
         variable_types = metadata.get("variable_types")
         if variable_types is None:
             variable_types_state = "unavailable"
