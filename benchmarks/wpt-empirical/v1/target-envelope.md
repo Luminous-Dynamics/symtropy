@@ -381,3 +381,19 @@ These are research targets, not SAE or IEC requirements.
 6. **Make safety a hard constraint.** A higher efficiency score cannot compensate for a false-negative FOD event, unauthorized energization, hot-state saturation, excessive exposure, EMC failure or unsafe control fallback.
 
 Outperformance is demonstrated only when the confidence interval for the matched new result exceeds the reference interval under a pre-registered comparison protocol. Where source uncertainty or boundaries are missing, the correct result is UNRESOLVED—not a fabricated victory.
+
+### Dynamic composite receiver stability lane
+
+The 2026 dynamic receiver experiments introduce complementary architecture baselines:
+- 1 kW/85 kHz dual-channel composite receiver: average system efficiency and along-track power fluctuation reported separately for rectangular and DD transmitters.
+- 2 kW bipolar composite-coupling track: output-voltage fluctuation over a central 1.2 m sampled-position range and peak DC–DC efficiency.
+- 1 kW two-transmitter LCC-S anti-misalignment prototype: peak efficiency claim, but numeric lateral envelope unavailable in indexed abstract.
+
+Proposed targets (not achieved):
+- For each frozen motion/position profile, record maximum/peak-to-peak/RMS output-power fluctuation and voltage fluctuation separately, with exact time and spatial windows.
+- Stretch target: along-track output-power fluctuation <=2% RMS over the declared qualified route region; voltage regulation error <=1% RMS and <=3% worst-case over all qualified points, with uncertainty.
+- No zero-mean or spatially local fluctuation can be hidden by averaging across an entire route; report per-segment extrema and quantiles.
+- Measure average and peak efficiency separately; compare only like boundaries and identical mission profiles.
+- A receiver architecture must be evaluated against both unipolar and bipolar transmitter families and multiple lateral/longitudinal/angular offsets before claiming interoperability.
+
+The 2%/1%/3% values are research aspirations, not published requirements or results. The reported 2.73%, 3.70% and ~3% results are from distinct measurements and cannot be combined into a direct ranking.
