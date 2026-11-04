@@ -399,7 +399,8 @@ mod tests {
         SurveyProcessingDispositionV1, SurveyEvidenceEnvelopeV1, SurveyCoordinateFrameV1,
         SurveyCoordinateUnitV1, SurveyAxisDirectionV1, SurveyHandednessV1, SurveyHeightTypeV1,
         SurveySessionV1, SurveyObservationV1, SurveyModalityV1, SurveyObservationRoleV1,
-        SurveyUncertaintyV1, VerifiedSurveyCoverageAssessmentV1,
+        SurveyUncertaintyV1, SurveyCoverageAssessmentV1,
+        SURVEY_COVERAGE_ASSESSMENT_SCHEMA_VERSION, VerifiedSurveyCoverageAssessmentV1,
         VerifiedSurveyEvidenceEnvelopeV1, SURVEY_EVIDENCE_SCHEMA_VERSION,
     };
 
