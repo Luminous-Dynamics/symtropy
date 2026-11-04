@@ -1053,7 +1053,7 @@ mod tests {
         let result = ForecastCalibrationEvaluation::new(
             contract(900_000, 1),
             calibration,
-            vec![block("eval-overlap", 270, 0.1)],
+            vec![block("eval-overlap", 265, 0.1)],
         );
         assert!(matches!(
             result,
