@@ -1553,48 +1553,49 @@ mod tests {
             },
         ];
 
-        let mut initial_belief = vec![
-            InitialJointMass {
-                hypothesis_id: hypotheses[0].id.clone(),
-                physical_state_id: physical_states[0].id.clone(),
-                sensor_state_id: sensor_states
-                    .iter()
-                    .find(|sensor| {
-                        sensor.position_afferent == ChannelState::Intact
-                            && sensor.movement_afferent == ChannelState::Intact
-                            && sensor.vibration_afferent == ChannelState::Intact
-                            && sensor.contact_feedback == ChannelState::Intact
-                            && sensor.acquisition == AcquisitionState::PositiveOffset
-                            && sensor.presynaptic_movement_inhibition.iter().all(|state| {
-                                *state == PresynapticMovementInhibition::Disinhibited
-                            })
-                    })
-                    .unwrap()
-                    .id
-                    .clone(),
-                mass: Rational::new(1, 2).unwrap(),
-            },
-            InitialJointMass {
-                hypothesis_id: hypotheses[1].id.clone(),
-                physical_state_id: physical_states[1].id.clone(),
-                sensor_state_id: sensor_states
-                    .iter()
-                    .find(|sensor| {
-                        sensor.position_afferent == ChannelState::Intact
-                            && sensor.movement_afferent == ChannelState::Intact
-                            && sensor.vibration_afferent == ChannelState::Intact
-                            && sensor.contact_feedback == ChannelState::Intact
-                            && sensor.acquisition == AcquisitionState::Calibrated
-                            && sensor.presynaptic_movement_inhibition.iter().all(|state| {
-                                *state == PresynapticMovementInhibition::Disinhibited
-                            })
-                    })
-                    .unwrap()
-                    .id
-                    .clone(),
-                mass: Rational::new(1, 2).unwrap(),
-            },
-        ];
+        let mut initial_belief =
+            vec![
+                InitialJointMass {
+                    hypothesis_id: hypotheses[0].id.clone(),
+                    physical_state_id: physical_states[0].id.clone(),
+                    sensor_state_id: sensor_states
+                        .iter()
+                        .find(|sensor| {
+                            sensor.position_afferent == ChannelState::Intact
+                                && sensor.movement_afferent == ChannelState::Intact
+                                && sensor.vibration_afferent == ChannelState::Intact
+                                && sensor.contact_feedback == ChannelState::Intact
+                                && sensor.acquisition == AcquisitionState::PositiveOffset
+                                && sensor.presynaptic_movement_inhibition.iter().all(|state| {
+                                    *state == PresynapticMovementInhibition::Disinhibited
+                                })
+                        })
+                        .unwrap()
+                        .id
+                        .clone(),
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+                InitialJointMass {
+                    hypothesis_id: hypotheses[1].id.clone(),
+                    physical_state_id: physical_states[1].id.clone(),
+                    sensor_state_id: sensor_states
+                        .iter()
+                        .find(|sensor| {
+                            sensor.position_afferent == ChannelState::Intact
+                                && sensor.movement_afferent == ChannelState::Intact
+                                && sensor.vibration_afferent == ChannelState::Intact
+                                && sensor.contact_feedback == ChannelState::Intact
+                                && sensor.acquisition == AcquisitionState::Calibrated
+                                && sensor.presynaptic_movement_inhibition.iter().all(|state| {
+                                    *state == PresynapticMovementInhibition::Disinhibited
+                                })
+                        })
+                        .unwrap()
+                        .id
+                        .clone(),
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+            ];
         initial_belief.reverse();
 
         let mut transition_rows = Vec::new();
@@ -1910,9 +1911,12 @@ mod tests {
                     && state.vibration_afferent == ChannelState::Intact
                     && state.contact_feedback == ChannelState::Intact
                     && state.acquisition == AcquisitionState::Calibrated
-                    && state.presynaptic_movement_inhibition.iter().all(|inhibition| {
-                        *inhibition == PresynapticMovementInhibition::Disinhibited
-                    })
+                    && state
+                        .presynaptic_movement_inhibition
+                        .iter()
+                        .all(|inhibition| {
+                            *inhibition == PresynapticMovementInhibition::Disinhibited
+                        })
             })
             .unwrap();
 
@@ -1945,7 +1949,10 @@ mod tests {
             passive_next.presynaptic_movement_inhibition[LegId::FrontLeft.index()],
             PresynapticMovementInhibition::Disinhibited
         );
-        for leg in LegId::ALL.into_iter().filter(|leg| *leg != LegId::FrontLeft) {
+        for leg in LegId::ALL
+            .into_iter()
+            .filter(|leg| *leg != LegId::FrontLeft)
+        {
             assert_eq!(
                 active_next.presynaptic_movement_inhibition[leg.index()],
                 PresynapticMovementInhibition::Disinhibited
@@ -1975,9 +1982,12 @@ mod tests {
                     && state.vibration_afferent == ChannelState::Intact
                     && state.contact_feedback == ChannelState::Intact
                     && state.acquisition == AcquisitionState::Calibrated
-                    && state.presynaptic_movement_inhibition.iter().all(|inhibition| {
-                        *inhibition == PresynapticMovementInhibition::Disinhibited
-                    })
+                    && state
+                        .presynaptic_movement_inhibition
+                        .iter()
+                        .all(|inhibition| {
+                            *inhibition == PresynapticMovementInhibition::Disinhibited
+                        })
             })
             .unwrap();
         for (action_id, target_leg, expected) in [
@@ -2012,7 +2022,10 @@ mod tests {
                 .unwrap();
             let next =
                 &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
-            assert_eq!(next.presynaptic_movement_inhibition[target_leg.index()], expected);
+            assert_eq!(
+                next.presynaptic_movement_inhibition[target_leg.index()],
+                expected
+            );
             for leg in LegId::ALL.into_iter().filter(|leg| leg != target_leg) {
                 assert_eq!(
                     next.presynaptic_movement_inhibition[leg.index()],
@@ -2064,7 +2077,10 @@ mod tests {
             let next =
                 &compiled.sensor_states[compiled.kernel.rows[row].outcomes[0].next_sensor_state];
             assert_eq!(next.movement_afferent, ChannelState::Gated);
-            assert_eq!(next.presynaptic_movement_inhibition, sensor.presynaptic_movement_inhibition);
+            assert_eq!(
+                next.presynaptic_movement_inhibition,
+                sensor.presynaptic_movement_inhibition
+            );
         }
     }
 
