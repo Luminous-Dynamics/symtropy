@@ -261,7 +261,8 @@ impl LikelihoodRatioEProcess {
             status,
             fingerprint,
         })
-    }}
+    }
+}
 
 fn validate_candidate_for_eprocess(
     candidate: &InterventionCandidate,
@@ -273,7 +274,7 @@ fn validate_candidate_for_eprocess(
     if !validity.assignment_design_valid
         || !validity.delivery_identity_verified
         || !validity.delivery_fidelity.is_finite()
-        || validity.delivery_fidelity < 0.90
+        || !(0.90..=1.0).contains(&validity.delivery_fidelity)
         || !validity.interference_controlled
         || !validity.carryover_cleared
     {
