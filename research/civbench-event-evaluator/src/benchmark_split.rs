@@ -125,15 +125,11 @@ impl SplitProtocolPreset {
             SensorLayout, TimeBlock, TopologyFamily,
         };
         match self {
-            Self::WithinNetworkUnseenEvent => {
-                BTreeSet::from([PhysicalEvent, CaptureSession])
-            }
+            Self::WithinNetworkUnseenEvent => BTreeSet::from([PhysicalEvent, CaptureSession]),
             Self::NewOperatingRegime => {
                 BTreeSet::from([PhysicalEvent, CaptureSession, DemandProfile, TimeBlock])
             }
-            Self::CrossNetwork => {
-                BTreeSet::from([PhysicalEvent, CaptureSession, Network])
-            }
+            Self::CrossNetwork => BTreeSet::from([PhysicalEvent, CaptureSession, Network]),
             Self::CrossTopology => BTreeSet::from([
                 PhysicalEvent,
                 CaptureSession,
@@ -152,9 +148,7 @@ impl SplitProtocolPreset {
     pub fn shared_dimensions(self) -> BTreeSet<LeakageDimension> {
         use LeakageDimension::{Network, TopologyFamily};
         match self {
-            Self::WithinNetworkUnseenEvent | Self::AssetTransfer => {
-                BTreeSet::from([Network])
-            }
+            Self::WithinNetworkUnseenEvent | Self::AssetTransfer => BTreeSet::from([Network]),
             Self::NewOperatingRegime | Self::SensorLayoutTransfer => {
                 BTreeSet::from([Network, TopologyFamily])
             }
@@ -354,14 +348,6 @@ pub fn audit_benchmark_split(
             policy.protocol_id.as_str(),
         ));
     }
-    if policy.exclusive_dimensions != policy.protocol.exclusive_dimensions()
-        || policy.shared_dimensions != policy.protocol.shared_dimensions()
-    {
-        return Err(SplitAuditError::new(
-            "protocol_dimensions_mismatch",
-            policy.protocol.as_str(),
-        ));
-    }
     if !policy
         .exclusive_dimensions
         .is_disjoint(&policy.shared_dimensions)
@@ -369,6 +355,14 @@ pub fn audit_benchmark_split(
         return Err(SplitAuditError::new(
             "overlapping_policy_dimensions",
             policy.protocol_id.as_str(),
+        ));
+    }
+    if policy.exclusive_dimensions != policy.protocol.exclusive_dimensions()
+        || policy.shared_dimensions != policy.protocol.shared_dimensions()
+    {
+        return Err(SplitAuditError::new(
+            "protocol_dimensions_mismatch",
+            policy.protocol.as_str(),
         ));
     }
     let required_dimensions: BTreeSet<_> = policy
