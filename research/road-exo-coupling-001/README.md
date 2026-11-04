@@ -143,3 +143,74 @@ The graph is currently bipartite: primitive finite exogenous variables feed one 
 - Zero duplicate/omitted variable values or zero-weight states admitted.
 - Zero receipt replay accepted against a different manifest or intervention.
 - Exact declaration-order-independent manifest digest and receipts.
+
+
+## Exact counterfactual decision closure oracle (ROAD-DECISION-CLOSURE-001 #3637)
+
+The decision_closure module turns a finite set of action utilities across admitted reference/model hypotheses into an exact minimax-regret certificate.
+
+### Rules
+
+- The complete hypothesis set is explicit; no hypothesis probability weights are inferred.
+- Every action must have an outcome status under every hypothesis.
+- Supported utility values are exact rationals.
+- Unsupported, NotIdentified or Incomplete action/hypothesis pairs stop a global decision certificate.
+- Per-hypothesis best action sets and action regrets are retained.
+- Worst-case regret is computed for every action.
+- A stable decision requires the same unique best action in every hypothesis.
+- If rankings reverse but a unique minimax-regret action exists, the result is DecisionSensitive and records the minimax-regret action without calling it uniformly optimal.
+- If multiple actions tie for minimum worst-case regret, the result is NoRobustDecision.
+- Missing support cannot be silently dropped; missing probability weights cannot be invented.
+
+### Exact examples
+
+1. Stable: H1 utilities A=10,B=2; H2 A=8,B=4. A uniquely wins both; status DecisionStable.
+2. Sensitive: H1 A=10,B=8; H2 A=0,B=6. Rankings reverse; worst-case regret is A=6,B=2; minimax-regret action B, status DecisionSensitive.
+3. No robust unique action: H1 A=10,B=0; H2 A=0,B=10. Both actions have worst-case regret 10; status NoRobustDecision.
+
+### Receipt and limits
+
+The manifest binds action IDs, each hypothesis ID and reference-manifest digest, support status and exact utility. The certificate records the manifest digest, hypothesis-level regret tables, action worst-case regrets, support gaps and decision status. Receipt verification recomputes the complete certificate.
+
+V0.1 is a finite exact decision oracle. It is not an empirically calibrated decision model, causal identification engine or safety policy. Utility scales and reference hypotheses must be supplied and justified upstream; this module only verifies the regret calculation and the completeness of the declared finite hypothesis set.
+
+
+## Exact counterfactual decision closure oracle (ROAD-DECISION-CLOSURE-001 #3637)
+
+The decision_closure module evaluates a finite set of actions across an explicitly admitted set of reference/model hypotheses using exact minimax regret.
+
+### V0.1 semantics
+
+For each supported hypothesis h:
+- best utility: U*(h) = max_a U(a,h)
+- regret: R(a,h) = U*(h) - U(a,h)
+- worst-case regret: W(a) = max_h R(a,h)
+- minimax regret: min_a W(a)
+
+No probabilities are inferred or assigned to epistemic hypotheses. Every declared hypothesis contributes to the worst-case calculation. A probabilistic expected utility over hypotheses would require a separate evidence-backed hypothesis probability model and is not implemented here.
+
+Every action/hypothesis pair must carry a support status. Any Unsupported pair returns Unsupported; NotIdentified or Incomplete returns Incomplete; no global action certificate is emitted. Missing outcome rows, duplicate/unknown actions, duplicate hypotheses and missing reference-manifest digests reject before evaluation.
+
+### Decision statuses
+
+- DecisionStable: the same unique action is best under every admitted hypothesis and is also the unique minimax-regret action.
+- DecisionSensitive: rankings differ across hypotheses, but a unique minimax-regret action exists. It is a robust compromise, not uniformly optimal.
+- NoRobustDecision: multiple actions tie for minimum worst-case regret.
+- Unsupported / Incomplete: one or more required action/hypothesis pairs are not qualified.
+
+### Exact examples
+
+1. Stable ranking: H1 A=10,B=2; H2 A=8,B=4. A uniquely wins both.
+2. Ranking reversal: H1 A=10,B=8; H2 A=0,B=6. Worst-case regret A=6,B=2; B is minimax-regret but status is DecisionSensitive.
+3. Symmetric reversal: H1 A=10,B=0; H2 A=0,B=10. Both actions have worst-case regret 10; status is NoRobustDecision.
+
+### Receipt and limits
+
+The decision manifest binds action IDs, hypothesis IDs, per-hypothesis reference-manifest digests, support statuses and exact rational utility. The certificate records manifest digest, per-hypothesis best-action/regret tables, per-action worst-case regret, support gaps and decision status. It is replay-verified against the exact manifest.
+
+V0.1 is a finite exact regret oracle. It does not estimate real-world utilities, identify causal effects, establish hypothesis completeness, calibrate a probability distribution over model families, or certify a driving policy. It only verifies that the finite declared decision problem is handled without silently inventing support or weights.
+
+
+### Utility comparability contract
+
+Minimax regret across hypotheses is valid only when all utilities use the same declared cardinal scale and semantic direction. The decision manifest therefore binds both a utility-scale ID and a utility-semantics ID (including the "higher is better" convention). Changing either changes the manifest digest. This is a declared comparability contract; future evidence-bound decision integration must verify that each source utility was transformed onto that scale under a reviewed rule. The oracle does not infer scale equivalence from numeric values.
