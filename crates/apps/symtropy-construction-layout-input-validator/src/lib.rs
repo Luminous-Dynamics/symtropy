@@ -512,6 +512,10 @@ fn check_control_validation(
             continue;
         }
         let bound_mm = residual_mm + point.u95_mm;
+        if !bound_mm.is_finite() {
+            out.unknown("check_point_uncertainty_bound_overflow");
+            continue;
+        }
         maximum_bound = maximum_bound.max(bound_mm);
         if point.u95_mm > policy.maximum_u95_to_margin_ratio * policy.decision_margin_mm {
             out.unknown("reference_u95_exceeds_predeclared_fraction_of_margin");
@@ -522,7 +526,9 @@ fn check_control_validation(
     }
 
     let spread = maximum_triangle_area(points);
-    if spread < policy.minimum_spread_area_m2 {
+    if !spread.is_finite() {
+        out.unknown("independent_check_point_spread_overflow");
+    } else if spread < policy.minimum_spread_area_m2 {
         out.unknown("independent_check_point_geometry_insufficient");
     }
     Some(maximum_bound)
