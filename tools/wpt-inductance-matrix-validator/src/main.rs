@@ -56,6 +56,37 @@ fn exact_keys(value: &Value, expected: &[&str], path: &str) -> Result<(), String
     Ok(())
 }
 
+fn exact_keys_optional(
+    value: &Value,
+    required: &[&str],
+    optional: &[&str],
+    path: &str,
+) -> Result<(), String> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{path}: expected object"))?;
+    for key in required {
+        if !object.contains_key(*key) {
+            return Err(format!("{path}.{key}: required field missing"));
+        }
+    }
+    for key in object.keys() {
+        if !required.contains(&key.as_str()) && !optional.contains(&key.as_str()) {
+            return Err(format!("{path}.{key}: unexpected field"));
+        }
+    }
+    Ok(())
+}
+
+fn is_absolute_http_uri(value: &str) -> bool {
+    let Some((scheme, remainder)) = value.split_once("://") else {
+        return false;
+    };
+    matches!(scheme, "http" | "https")
+        && !remainder.is_empty()
+        && !value.chars().any(char::is_whitespace)
+}
+
 fn number_array(value: &Value, path: &str) -> Result<Vec<f64>, String> {
     let values = value
         .as_array()
@@ -112,7 +143,7 @@ fn sha256_or_null(value: &Value, key: &str) -> Result<(), String> {
 }
 
 fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
-    exact_keys(
+    exact_keys_optional(
         value,
         &[
             "schema_version",
@@ -129,8 +160,8 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
             "configuration_reference",
             "source_reference",
             "artifact_sha256",
-            "expected_disposition",
         ],
+        &["expected_disposition"],
         "$",
     )?;
     if string_at(value, &["schema_version"]) != Some("wpt-inductance-matrix-v1") {
@@ -154,7 +185,7 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
         .to_string();
     if !matches!(
         matrix_kind.as_str(),
-        "SMALL_SIGNAL" | "DIFFERENTIAL" | "SECANT"
+        "SMALL_SIGNAL" | "DIFFERENTIAL"
     ) {
         return Err(format!("matrix_kind: unsupported value {matrix_kind}"));
     }
@@ -258,6 +289,11 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
     let source_reference = value.get("source_reference");
     if !matches!(source_reference, Some(Value::String(_)) | Some(Value::Null)) {
         return Err("source_reference: expected URI string or null".into());
+    }
+    if let Some(uri) = source_reference.and_then(Value::as_str) {
+        if !is_absolute_http_uri(uri) {
+            return Err("source_reference: expected absolute HTTP(S) URI".into());
+        }
     }
     if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" {
         if !source_reference.and_then(Value::as_str).is_some_and(|text| !text.trim().is_empty()) {
@@ -538,6 +574,7 @@ fn run(path: &str) -> Result<(), Box<dyn Error>> {
     let input = fs::read_to_string(path)?;
     let mut records = 0usize;
     let mut failures = 0usize;
+    let mut matrix_ids = std::collections::BTreeSet::new();
     for (line_index, line) in input.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
@@ -545,6 +582,19 @@ fn run(path: &str) -> Result<(), Box<dyn Error>> {
         records += 1;
         let value: Value = serde_json::from_str(line)
             .map_err(|error| format!("{}:{}: JSON parse error: {error}", path, line_index + 1))?;
+        let matrix_id = string_at(&value, &["matrix_id"]).unwrap_or("<unknown>");
+        if !matrix_ids.insert(matrix_id.to_string()) {
+            failures += 1;
+            println!(
+                "{}",
+                serde_json::to_string(&json!({
+                    "matrix_id": matrix_id,
+                    "disposition": "INVALID_INPUT",
+                    "errors": ["duplicate matrix_id in JSONL corpus"]
+                }))?
+            );
+            continue;
+        }
         let result = evaluate_value(&value);
         if result
             .get("expected_disposition_matches")
@@ -613,6 +663,38 @@ mod tests {
             .as_str()
             .unwrap_or("")
             .to_string()
+    }
+
+    #[test]
+    fn accepts_physical_record_without_fixture_expected_disposition() {
+        let value = json!({
+            "schema_version": "wpt-inductance-matrix-v1",
+            "matrix_id": "PHYSICAL-RECORD",
+            "evidence_kind": "MEASURED",
+            "matrix_kind": "DIFFERENTIAL",
+            "operating_point": {"frequency_hz": 85000.0, "temperature_c": 40.0, "dc_bias_currents_a": [12.0, 8.0]},
+            "coil_ids": ["TX", "RX"],
+            "polarity_reference": "positive current enters each dot terminal",
+            "matrix_h": [[10e-6, 2e-6], [2e-6, 8e-6]],
+            "entrywise_absolute_bound_h": [[0.1e-6, 0.1e-6], [0.1e-6, 0.1e-6]],
+            "uncertainty_semantics": "DETERMINISTIC_ABSOLUTE_BOUND",
+            "numerical_tolerances": {"absolute_h": 1e-15, "relative": 1e-12},
+            "configuration_reference": "test-rig:revision-3",
+            "source_reference": "https://example.org/wpt-reference",
+            "artifact_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        });
+        assert_eq!(disposition(value), "PASSIVE_CERTIFIED");
+    }
+
+    #[test]
+    fn rejects_secant_matrix_without_declared_linear_energy_model() {
+        let mut value = fixture(
+            json!([[1e-6, 0.0, 0.0], [0.0, 1e-6, 0.0], [0.0, 0.0, 1e-6]]),
+            zero_bounds(3),
+            "PASSIVE_CERTIFIED",
+        );
+        value["matrix_kind"] = json!("SECANT");
+        assert_eq!(disposition(value), "INVALID_INPUT");
     }
 
     #[test]
