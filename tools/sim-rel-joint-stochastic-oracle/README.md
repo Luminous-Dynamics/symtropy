@@ -33,6 +33,38 @@ Run formatting, locked unit tests, and strict Clippy using the dedicated workflo
 This oracle is intentionally small and exact. It does not implement particle filters, SMC-squared, approximate posterior inference, continuous states, model-family discovery, or physical safety certification. Its purpose is to make stochastic policy correctness auditable on finite cases before comparing scalable methods. Exactness is conditional on the supplied kernel, initial belief, costs, horizon, and policy class; it does not establish that these describe a real specimen or sensor.
 
 
+## Locomotion domain adapter
+
+The `locomotion` module compiles stable locomotion-domain identifiers into this crate's exact joint kernel. It keeps the latent tuple as mechanism hypothesis × physical state × sensor state, and does not factorize or prematurely marginalize these components.
+
+### Separate biological and physical channels
+
+Sensor-state metadata has distinct position-encoding, movement-encoding, vibration-sensitive and contact-feedback channels. The FeCO naming convention in the Drosophila literature (claw-/hook-/club-like) is retained as channel semantics, not collapsed into a single proprioceptive gain. Acquisition/instrument bias is a separate field from biological afferent gating.
+
+Physical-state metadata independently carries gait phase, contact condition, load and physical carryover. The action vocabulary distinguishes active/passive probes, position perturbation, movement-afferent gating, vibration perturbation, descending-pathway modulation, contact/load perturbation, acquisition reference calibration and washout. These are typed action labels; the supplied transition probabilities remain explicit model inputs.
+
+### Source and evidence contract
+
+Each source manifest binds source kind, paper/source URI, dataset identity, release/materialization, SHA-256 pin, evidence class, and explicit unknown-endpoint inventory. A source digest is syntax-checked and compared to the declared pin; the acquisition/custody pipeline must still verify the actual bytes. Connectome snapshots require explicit release/materialization and an unknown-endpoint inventory. Unidentified endpoints remain first-class records with raw IDs and missingness reasons.
+
+Mechanism hypotheses declare their source manifest IDs and claim ceiling. Connectome-derived anatomy can support an anatomical constraint but cannot satisfy a measured-neural or measured-behaviour claim. Measured trial receipts require a source whose evidence class matches the receipt and require animal/preparation identity. Randomized assignment and actual delivered protocol remain distinct; a delivery mismatch is retained as a failure record and cannot be scored as a valid intervention.
+
+### Synthetic locomotion confounding fixture
+
+The adapter tests include a deliberately synthetic case in which:
+- a latent gait/contact state is confounded with a persistent acquisition offset;
+- an immediate movement probe has zero mechanism EIG;
+- a reference-calibration action changes acquisition state without changing physical gait state;
+- a subsequent movement probe then distinguishes the latent mechanism hypotheses;
+- movement, position and vibration perturbations each change only their declared channel;
+- a load perturbation changes physical state without erasing acquisition drift.
+
+This fixture exercises the joint-kernel representation and the limitation of one-step EIG. It is not a reproduction of FeCO physiology, a connectome model, or biological evidence.
+
+### Integration
+
+Compile a `LocomotionKernelSpec` into a `CompiledLocomotionKernel`, then use the existing `optimize_joint_kernel` and `baseline::rank_by_one_step_eig` APIs. The adapter does not implement a second optimizer, posterior estimator, or SOTA harness. The SIM-REL-014 benchmark remains responsible for independent replay, paired baselines, calibration, risk and regret reporting.
+
 ## Myopic EIG comparator
 
 The baseline module ranks actions by one-step expected information gain about the mechanism, divided by action cost. It integrates the current joint physical/sensor belief through the same transition kernel, and treats a hazard event as an observed terminal outcome. Its score is floating-point and is deliberately separate from the exact rational optimizer.
