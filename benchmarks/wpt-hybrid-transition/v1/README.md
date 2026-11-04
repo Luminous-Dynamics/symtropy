@@ -26,7 +26,7 @@ For one switching window, define signed net energy entering the modeled boundary
 
     Delta H_total = E_port,net + W_switch,net - E_event,dissipated + residual
 
-The validator computes the residual and a conservative absolute error bound by summing the declared deterministic uncertainty bounds. These bounds are not standard deviations or confidence intervals.
+The validator computes the residual and a conservative absolute error bound by summing the declared deterministic uncertainty bounds. These bounds are not standard deviations or confidence intervals. A separately digested tolerance policy is mandatory; the combined numerical decision tolerance is capped at 0.5% of the declared energy scale. The energy-generation inequality uses only the conservative measurement/model uncertainty plus a 64-epsilon floating-point guard, so a loose residual tolerance cannot excuse proven energy creation.
 
 The separate non-generation inequality is:
 
