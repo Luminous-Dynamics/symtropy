@@ -616,8 +616,10 @@ mod tests {
             source_profile_digest: *blake3::hash(id_value.as_bytes()).as_bytes(),
             units: id("dimensionless"),
             scope,
-            equivalence_group: StableId::new(format!("equivalence-{id_value}")).expect("fixture ID"),
-            invariance_justification: StableId::new(format!("scm:shared-{id_value}")).expect("fixture ID"),
+            equivalence_group: StableId::new(format!("equivalence-{id_value}"))
+                .expect("fixture ID"),
+            invariance_justification: StableId::new(format!("scm:shared-{id_value}"))
+                .expect("fixture ID"),
         }
     }
 
