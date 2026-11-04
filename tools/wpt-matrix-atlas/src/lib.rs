@@ -473,12 +473,16 @@ impl MatrixAtlas {
                 || !signal.estimated_field_solve_cost_seconds.is_finite()
                 || signal.estimated_field_solve_cost_seconds <= 0.0
             {
-                return Err("service sensitivity values or solve cost are outside valid bounds".into());
+                return Err(
+                    "service sensitivity values or solve cost are outside valid bounds".into(),
+                );
             }
             if !valid_sha256(&signal.circuit_model_digest)
                 || !valid_sha256(&signal.sensitivity_receipt_digest)
             {
-                return Err("circuit model and sensitivity receipt digests must be sha256 values".into());
+                return Err(
+                    "circuit model and sensitivity receipt digests must be sha256 values".into(),
+                );
             }
 
             let index = signal.segment_index;
@@ -490,7 +494,8 @@ impl MatrixAtlas {
                 .min(right.minimum_eigenvalue_lower_bound_h)
                 - segment.interpolation_error_frobenius_bound_h;
 
-            let matrix_error_ratio = if policy.maximum_interpolation_error_frobenius_bound_h == 0.0 {
+            let matrix_error_ratio = if policy.maximum_interpolation_error_frobenius_bound_h == 0.0
+            {
                 if segment.interpolation_error_frobenius_bound_h > 0.0 {
                     f64::MAX
                 } else {
@@ -500,9 +505,8 @@ impl MatrixAtlas {
                 segment.interpolation_error_frobenius_bound_h
                     / policy.maximum_interpolation_error_frobenius_bound_h
             };
-            let margin_deficit = (policy.minimum_required_eigenvalue_margin_h
-                - conservative_margin)
-                .max(0.0);
+            let margin_deficit =
+                (policy.minimum_required_eigenvalue_margin_h - conservative_margin).max(0.0);
             let endpoint_scale = left
                 .minimum_eigenvalue_lower_bound_h
                 .max(right.minimum_eigenvalue_lower_bound_h);
@@ -1189,7 +1193,9 @@ mod tests {
                 > plan[1].expected_uncertainty_reduction_per_second
         );
         assert!(plan.iter().all(|candidate| {
-            candidate.triggers.contains(&"SERVICE_ENERGY_UNCERTAINTY_EXCEEDED".into())
+            candidate
+                .triggers
+                .contains(&"SERVICE_ENERGY_UNCERTAINTY_EXCEEDED".into())
         }));
     }
 
@@ -1209,10 +1215,13 @@ mod tests {
             maximum_interpolation_error_frobenius_bound_h: 1e-6,
             minimum_required_eigenvalue_margin_h: 0.0,
         };
-        assert!(atlas.service_refinement_plan(policy, &[signal.clone()]).is_err());
+        assert!(
+            atlas
+                .service_refinement_plan(policy, &[signal.clone()])
+                .is_err()
+        );
         signal.sensitivity_receipt_digest = format!("sha256:{}", "8".repeat(64));
         signal.predicted_energy_uncertainty_wh = f64::NAN;
         assert!(atlas.service_refinement_plan(policy, &[signal]).is_err());
     }
-
 }
