@@ -45,7 +45,7 @@ Source: https://saemobilus.sae.org/standards/j2954_202408-wireless-power-transfe
 
 The heavy-duty vehicle-side PAS covers static and dynamic MF-WPT vehicle equipment and interoperability, but explicitly excludes multiple secondary devices in its current edition.
 
-Source: https://www.iso.org/standard/83447.html  
+Source: https://www.iso.org/standard/84305.html  
 UK catalogue scope: https://knowledge.bsigroup.com/products/electrically-propelled-road-vehicles-functional-and-safety-requirements-for-power-transfer-between-vehicle-and-external-electric-circuit-safety-and-interoperability-requirements-for-heavy-duty-vehicles-in-magnetic-field-wireless-power-1
 
 **Standards gap to investigate:** multiple secondary devices / modular arrangements at higher power classes, particularly where different receiver types, frequency bands, active channel combinations and directional power flows share infrastructure. This is a research gap inferred from the stated scope exclusions, not a claim that no other standard or future work exists.
