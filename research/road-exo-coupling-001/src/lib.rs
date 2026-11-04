@@ -102,10 +102,9 @@ impl DrawAddress {
             recipient,
             ..
         } = &event
+            && initiator == recipient
         {
-            if initiator == recipient {
-                return Err(IdentityError::SelfDirectedPair);
-            }
+            return Err(IdentityError::SelfDirectedPair);
         }
         Ok(Self {
             world,
