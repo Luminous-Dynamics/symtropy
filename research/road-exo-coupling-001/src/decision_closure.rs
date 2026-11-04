@@ -345,11 +345,13 @@ impl DecisionManifest {
                 DecisionStatus::Unsupported
             };
             return Ok(finish_certificate(
-                manifest_digest,
-                self.decision_id.clone(),
-                status,
-                None,
-                None,
+                CertificateContext {
+                    manifest_digest,
+                    decision_id: self.decision_id.clone(),
+                    status,
+                    minimax_regret_action: None,
+                    stable_best_action: None,
+                },
                 gaps,
                 Vec::new(),
                 Vec::new(),
@@ -452,11 +454,13 @@ impl DecisionManifest {
         };
 
         Ok(finish_certificate(
-            manifest_digest,
-            self.decision_id.clone(),
-            status,
-            minimax_action,
-            stable_best_action,
+            CertificateContext {
+                manifest_digest,
+                decision_id: self.decision_id.clone(),
+                status,
+                minimax_regret_action: minimax_action,
+                stable_best_action,
+            },
             Vec::new(),
             hypothesis_regrets,
             action_max_regrets
@@ -470,23 +474,27 @@ impl DecisionManifest {
     }
 }
 
-fn finish_certificate(
+struct CertificateContext {
     manifest_digest: [u8; 32],
     decision_id: StableId,
     status: DecisionStatus,
     minimax_regret_action: Option<StableId>,
     stable_best_action: Option<StableId>,
+}
+
+fn finish_certificate(
+    context: CertificateContext,
     support_gaps: Vec<SupportGap>,
     hypothesis_regrets: Vec<HypothesisRegret>,
     action_regrets: Vec<ActionRegret>,
 ) -> DecisionCertificate {
     let mut certificate = DecisionCertificate {
         schema_id: "symtropy.road-decision-closure.certificate.v0.1",
-        manifest_digest,
-        decision_id,
-        status,
-        minimax_regret_action,
-        stable_best_action,
+        manifest_digest: context.manifest_digest,
+        decision_id: context.decision_id,
+        status: context.status,
+        minimax_regret_action: context.minimax_regret_action,
+        stable_best_action: context.stable_best_action,
         support_gaps,
         hypothesis_regrets,
         action_regrets,
