@@ -1606,7 +1606,10 @@ mod tests {
                         let mut next_sensor = sensor.clone();
                         let observation_id = match action.kind {
                             InterventionKind::ActiveMovementProbe => {
-                                next_sensor.presynaptic_movement_inhibition =
+                                let target_leg = action
+                                    .target_leg
+                                    .expect("validated active probe has a target leg");
+                                next_sensor.presynaptic_movement_inhibition[target_leg.index()] =
                                     PresynapticMovementInhibition::Engaged;
                                 next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 let physical_bit = usize::from(physical.id == "swing-loaded");
@@ -1620,7 +1623,10 @@ mod tests {
                                 }
                             }
                             InterventionKind::PassiveMovementProbe => {
-                                next_sensor.presynaptic_movement_inhibition =
+                                let target_leg = action
+                                    .target_leg
+                                    .expect("validated passive probe has a target leg");
+                                next_sensor.presynaptic_movement_inhibition[target_leg.index()] =
                                     PresynapticMovementInhibition::Disinhibited;
                                 next_sensor.id = sensor_state_semantic_id(&next_sensor);
                                 let physical_bit = usize::from(physical.id == "swing-loaded");
@@ -1662,11 +1668,16 @@ mod tests {
                                 "load-shifted"
                             }
                             InterventionKind::DescendingPathwayModulation => {
-                                next_sensor.presynaptic_movement_inhibition = action
+                                let target_leg = action
+                                    .target_leg
+                                    .expect("validated descending modulation has a target leg");
+                                let target_state = action
                                     .presynaptic_inhibition_target
-                                    .expect("compiler validates descending modulation target");
+                                    .expect("validated descending modulation has a target state");
+                                next_sensor.presynaptic_movement_inhibition[target_leg.index()] =
+                                    target_state;
                                 next_sensor.id = sensor_state_semantic_id(&next_sensor);
-                                match next_sensor.presynaptic_movement_inhibition {
+                                match target_state {
                                     PresynapticMovementInhibition::Engaged => {
                                         "movement-presynaptic-inhibited"
                                     }
