@@ -19,7 +19,21 @@
     "acceptance_authority": false,
     "graph_identity_semantics": "length_prefixed_source_and_toolchain_label_not_a_cryptographic_digest",
     "task_id_semantics": "length_prefixed_design_element_and_method_step_identity",
-    "parameter_conversion": "externally_approved_value_and_evidence_reference_required_when_units_differ"
+    "parameter_conversion": "externally_approved_value_and_evidence_reference_required_when_units_differ",
+    "node_lineage_fields": [
+      "source_element_ids",
+      "task_family",
+      "method_step_id",
+      "transformation_rule_id",
+      "transformation_rule_digest"
+    ],
+    "parameter_lineage_fields": [
+      "source_property",
+      "source_ref",
+      "source_unit",
+      "conversion_evidence_ref"
+    ],
+    "resource_obligations": "required_resources"
   },
   "invariants": {
     "source_lineage_required": true,
