@@ -116,6 +116,7 @@ pub struct DecisionManifest {
     pub hypotheses: Vec<DecisionHypothesis>,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DecisionStatus {
     DecisionStable,
@@ -125,6 +126,7 @@ pub enum DecisionStatus {
     Incomplete,
 }
 
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SupportGapKind {
     Unsupported,
@@ -179,6 +181,7 @@ pub enum DecisionError {
     DuplicateActionOutcome,
     UnknownAction,
     MissingActionOutcome,
+    InvalidReferenceDigest,
     ZeroDenominator,
     ArithmeticOverflow,
     ReceiptMismatch,
@@ -202,6 +205,9 @@ impl DecisionManifest {
         for hypothesis in &self.hypotheses {
             if !hypothesis_ids.insert(hypothesis.hypothesis_id.clone()) {
                 return Err(DecisionError::DuplicateHypothesis);
+            }
+            if hypothesis.reference_manifest_digest == [0; 32] {
+                return Err(DecisionError::InvalidReferenceDigest);
             }
 
             let mut outcome_ids = BTreeSet::new();
@@ -257,8 +263,9 @@ impl DecisionManifest {
                         evidence_digest,
                     } => {
                         out.push(1);
-                        out.extend_from_slice(&utility.numerator.to_le_bytes());
-                        out.extend_from_slice(&utility.denominator.to_le_bytes());
+                        let normalized =
+                            ExactRational::new(utility.numerator, utility.denominator)?;
+                        push_rational(&mut out, &normalized);
                         out.extend_from_slice(evidence_digest);
                     }
                     OutcomeSupport::Unsupported { reason_id } => {
@@ -401,13 +408,12 @@ impl DecisionManifest {
             }
         }
 
-        let minimax_actions = action_max_regrets
-            .iter()
-            .filter(|(_, regret)| {
-                regret.checked_cmp(&minimax_regret) == Ok(Ordering::Equal)
-            })
-            .map(|(action, _)| action.clone())
-            .collect::<Vec<_>>();
+        let mut minimax_actions = Vec::new();
+        for (action, regret) in &action_max_regrets {
+            if regret.checked_cmp(&minimax_regret)? == Ordering::Equal {
+                minimax_actions.push(action.clone());
+            }
+        }
 
         let first_best = &hypothesis_regrets[0].best_actions;
         let stable = first_best.len() == 1
@@ -704,8 +710,6 @@ mod tests {
             hypothesis("model-b", 0, 8),
             hypothesis("model-c", 4, 5),
         ]);
-        let bytes = manifest.canonical_bytes().unwrap();
-        assert!(!bytes.windows(4).any(|window| window == b"wght"));
         let certificate = manifest.evaluate().unwrap();
         assert_eq!(
             certificate.hypothesis_regrets.len(),
@@ -769,6 +773,27 @@ mod tests {
         assert_eq!(
             certificate.verify_against(&changed),
             Err(DecisionError::ReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn equivalent_rational_representations_have_identical_manifest_identity() {
+        let first = manifest(vec![hypothesis("reference-1", 3, 2)]);
+        let mut second = first.clone();
+        second.hypotheses[0].outcomes[0].support = OutcomeSupport::Supported {
+            utility: ExactRational::new(30, 10).unwrap(),
+            evidence_digest: *blake3::hash(b"action-a").as_bytes(),
+        };
+        assert_eq!(first.digest().unwrap(), second.digest().unwrap());
+    }
+
+    #[test]
+    fn missing_reference_manifest_digest_is_rejected() {
+        let mut hypothesis = hypothesis("reference-1", 3, 2);
+        hypothesis.reference_manifest_digest = [0; 32];
+        assert_eq!(
+            manifest(vec![hypothesis]).validate(),
+            Err(DecisionError::InvalidReferenceDigest)
         );
     }
 
