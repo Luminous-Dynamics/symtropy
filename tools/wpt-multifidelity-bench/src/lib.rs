@@ -432,7 +432,8 @@ fn score_candidate(
         );
         if reference_peak > limit.maximum_absolute_value {
             let ratio = reference_peak / limit.maximum_absolute_value;
-            max_violation = max_violation.max(ratio - 1.0);
+            let excess = if ratio.is_finite() { ratio - 1.0 } else { f64::MAX };
+            max_violation = max_violation.max(excess);
             violations.push(format!(
                 "REFERENCE_EXCEEDS_LIMIT:{}:{reference_peak}:{}",
                 limit.channel_id, limit.maximum_absolute_value
@@ -446,7 +447,8 @@ fn score_candidate(
             .candidate_peak_absolute;
         if peak > limit.maximum_absolute_value {
             let ratio = peak / limit.maximum_absolute_value;
-            max_violation = max_violation.max(ratio - 1.0);
+            let excess = if ratio.is_finite() { ratio - 1.0 } else { f64::MAX };
+            max_violation = max_violation.max(excess);
             violations.push(format!(
                 "PEAK_LIMIT_EXCEEDED:{}:{peak}:{}",
                 limit.channel_id, limit.maximum_absolute_value
@@ -631,6 +633,10 @@ mod tests {
         }
     }
 
+    fn digest_for_test(character: char) -> String {
+        format!("sha256:{}", character.to_string().repeat(64))
+    }
+
     fn suite() -> BenchmarkSuite {
         let reference = trace(
             vec![0.0, 4.0, 8.0, 6.0, 4.0, 4.0],
@@ -785,6 +791,29 @@ mod tests {
         let mut suite = suite();
         suite.cases[0].candidates[0].state_order = Some(0);
         assert!(suite.validate().unwrap_err().contains("state_order"));
+    }
+
+
+    #[test]
+    fn rejects_runtime_environment_mismatch_and_invalid_percentile_order() {
+        let mut suite = suite();
+        suite.cases[0].candidates[0].execution_environment_digest = digest_for_test('8');
+        assert!(suite.validate().unwrap_err().contains("execution environments differ"));
+
+        let mut suite = suite();
+        suite.cases[0].candidates[0].runtime_p95_ms = 99.0;
+        assert!(suite.validate().unwrap_err().contains("runtime distribution"));
+    }
+
+    #[test]
+    fn reports_runtime_speedup_without_overriding_accuracy_priority() {
+        let report = suite().evaluate().unwrap();
+        let full = report.scores.iter().find(|score| score.candidate_id == "full-order").unwrap();
+        let reduced = report.scores.iter().find(|score| score.candidate_id == "balanced-truncation").unwrap();
+        assert_eq!(full.speedup_vs_reference, 1.0);
+        assert_eq!(reduced.speedup_vs_reference, 10.0);
+        assert!(full.feasible && reduced.feasible);
+        assert_eq!(report.ranking[0][0], "full-order");
     }
 
     #[test]
