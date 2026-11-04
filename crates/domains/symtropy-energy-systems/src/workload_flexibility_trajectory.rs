@@ -95,8 +95,8 @@ pub struct WorkloadFlexibilitySlotReceipt {
     pub rebound_energy_kwh: f64,
     pub baseline_work_units: f64,
     pub flexible_work_units: f64,
-    pub baseline_evidence_id: String,
-    pub flexible_evidence_id: String,
+    pub baseline_slot_receipt_id: String,
+    pub flexible_slot_receipt_id: String,
 }
 
 /// Paired-schedule result. Every service obligation and slot contract matched.
@@ -347,12 +347,12 @@ pub fn compare_workload_flexibility_schedules(
             rebound_energy_kwh: rebound_kwh,
             baseline_work_units: baseline.compute_work_units(),
             flexible_work_units: flexible.compute_work_units(),
-            baseline_evidence_id: format!(
+            baseline_slot_receipt_id: format!(
                 "{}:{}:baseline",
                 identity.trajectory_id(),
                 slot.slot_index()
             ),
-            flexible_evidence_id: format!(
+            flexible_slot_receipt_id: format!(
                 "{}:{}:flexible",
                 identity.trajectory_id(),
                 slot.slot_index()
