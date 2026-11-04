@@ -275,6 +275,7 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     require(receipt.get("schema") == SCHEMA, "receipt schema mismatch")
     require(receipt.get("state") in STATES, "unknown trial terminal state")
+    state = receipt["state"]
     require(bool(receipt.get("attempt_id")) and bool(receipt.get("run_id")), "attempt/run identity required")
 
     claimed_receipt_sha = receipt.get("receipt_sha256")
@@ -306,13 +307,24 @@ def verify_receipt(path: Path) -> dict[str, Any]:
     }))
     require(run_id == receipt["run_id"], "run ID does not bind request and attempt identity")
 
-    commit = receipt.get("source_commit_verified")
+    requested_commit = receipt.get("source_commit")
     require(
-        isinstance(commit, str)
-        and re.fullmatch(r"[0-9a-f]{40}", commit)
-        and commit == receipt["source_commit"],
-        "verified source commit is absent, malformed, or differs from the requested source",
+        isinstance(requested_commit, str) and re.fullmatch(r"[0-9a-f]{40}", requested_commit),
+        "requested source commit is absent or malformed",
     )
+    commit = receipt.get("source_commit_verified")
+    if commit is None:
+        require(
+            state == "wrapper_error",
+            "only a wrapper_error before source preflight may omit the verified commit",
+        )
+    else:
+        require(
+            isinstance(commit, str)
+            and re.fullmatch(r"[0-9a-f]{40}", commit)
+            and commit == requested_commit,
+            "verified source commit is malformed or differs from the requested source",
+        )
     metadata_sha = receipt.get("metadata_sha256_expected")
     require(
         isinstance(metadata_sha, str) and re.fullmatch(r"[0-9a-f]{64}", metadata_sha),
@@ -336,20 +348,25 @@ def verify_receipt(path: Path) -> dict[str, Any]:
         require(len(data) == item.get("byte_length"), f"artifact {name} byte length mismatch")
         require(sha256(data) == item.get("sha256"), f"artifact {name} SHA-256 mismatch")
 
-    require("task_metadata_json" in artifacts, "receipt must retain raw task metadata JSON")
-    metadata_bytes = safe_artifact_path(root, artifacts["task_metadata_json"]["path"]).read_bytes()
-    require(sha256(metadata_bytes) == metadata_sha, "raw task metadata does not match admitted SHA-256")
-    task_metadata_raw = json.loads(metadata_bytes.decode("utf-8"))
     task_metadata = receipt.get("task_metadata") or {}
-    require(task_metadata_raw.get("name") == receipt["task_id"], "raw metadata task name differs from receipt")
-    require(
-        task_metadata_raw.get("dim") == task_metadata.get("dimension")
-        and task_metadata_raw.get("num_objectives") == task_metadata.get("num_objectives")
-        and task_metadata_raw.get("num_constraints", 0) == task_metadata.get("num_constraints")
-        and task_metadata_raw.get("input_type") == task_metadata.get("input_type")
-        and task_metadata_raw.get("application") == task_metadata.get("application"),
-        "receipt task metadata differs from the exact raw task metadata bytes",
-    )
+    if "task_metadata_json" in artifacts:
+        metadata_bytes = safe_artifact_path(root, artifacts["task_metadata_json"]["path"]).read_bytes()
+        require(sha256(metadata_bytes) == metadata_sha, "raw task metadata does not match admitted SHA-256")
+        task_metadata_raw = json.loads(metadata_bytes.decode("utf-8"))
+        require(task_metadata_raw.get("name") == receipt["task_id"], "raw metadata task name differs from receipt")
+        require(
+            task_metadata_raw.get("dim") == task_metadata.get("dimension")
+            and task_metadata_raw.get("num_objectives") == task_metadata.get("num_objectives")
+            and task_metadata_raw.get("num_constraints", 0) == task_metadata.get("num_constraints")
+            and task_metadata_raw.get("input_type") == task_metadata.get("input_type")
+            and task_metadata_raw.get("application") == task_metadata.get("application"),
+            "receipt task metadata differs from the exact raw task metadata bytes",
+        )
+    else:
+        require(
+            state == "wrapper_error" and not task_metadata,
+            "only pre-metadata wrapper_error receipts may omit raw task metadata",
+        )
 
     environment_projection = receipt.get("environment_projection")
     if environment_projection is not None:
@@ -373,7 +390,6 @@ def verify_receipt(path: Path) -> dict[str, Any]:
             "pip freeze artifact differs from its receipt digest",
         )
 
-    state = receipt["state"]
     metrics = receipt.get("metrics") or {}
     npz_result = None
     stdout_bytes = None
@@ -389,6 +405,8 @@ def verify_receipt(path: Path) -> dict[str, Any]:
                 "succeeded trial must retain raw NPZ and upstream summary")
         require(not receipt.get("timed_out"), "succeeded trial cannot be marked timed out")
         npz_path = safe_artifact_path(root, artifacts["upstream_npz"]["path"])
+        expected_npz_name = f"{receipt['algorithm']}_{receipt['task_id']}_seed{receipt['seed']}.npz"
+        require(npz_path.name == expected_npz_name, "retained raw NPZ filename differs from exact trial identity")
         npz_result = verify_npz(npz_path, receipt)
         require(metrics.get("objective_evaluation_count") == npz_result["npz_evaluation_count_from_shape"],
                 "receipt objective count differs from raw NPZ X shape")
