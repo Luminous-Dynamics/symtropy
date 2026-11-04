@@ -912,6 +912,10 @@ mod tests {
         assert_eq!(certificate.robust_feasible_actions, vec![id("action-b")]);
         assert_eq!(certificate.maximin_actions, vec![id("action-b")]);
         assert_eq!(certificate.excluded_actions[0].action_id, id("action-a"));
+        assert_eq!(
+            certificate.excluded_actions[0].infeasible_under[0].reason_id,
+            id("hard-collision-constraint")
+        );
     }
 
     #[test]
