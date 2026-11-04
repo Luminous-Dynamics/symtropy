@@ -27,6 +27,8 @@ pub struct MatrixSample {
     pub entrywise_absolute_bound_h: Vec<Vec<f64>>,
     /// Lower eigenvalue bound from the upstream physical-matrix validator.
     pub minimum_eigenvalue_lower_bound_h: f64,
+    /// Upstream floating-point guard in henries, included in the claimed lower bound.
+    pub numerical_tolerance_h: f64,
     pub matrix_digest: String,
     pub source_artifact_digest: String,
     pub validator_receipt_digest: String,
@@ -72,6 +74,7 @@ pub struct InterpolationResult {
     pub interpolation_error_frobenius_bound_h: f64,
     pub minimum_eigenvalue_lower_bound_h: f64,
     pub source_receipt_digests: Vec<String>,
+    pub proof_scope: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -156,6 +159,7 @@ impl MatrixAtlas {
                 &sample.matrix_h,
                 &sample.entrywise_absolute_bound_h,
                 n,
+                sample.numerical_tolerance_h,
                 sample.minimum_eigenvalue_lower_bound_h,
             )?;
         }
@@ -207,7 +211,7 @@ impl MatrixAtlas {
         {
             let sample = &self.samples[index];
             return Ok(InterpolationResult {
-                disposition: "PASSIVE_CERTIFIED".into(),
+                disposition: "PASSIVE_CERTIFIED_CONDITIONAL".into(),
                 position_m,
                 matrix_kind: self.matrix_kind.clone(),
                 coil_ids: self.coil_ids.clone(),
@@ -219,6 +223,7 @@ impl MatrixAtlas {
                 interpolation_error_frobenius_bound_h: 0.0,
                 minimum_eigenvalue_lower_bound_h: sample.minimum_eigenvalue_lower_bound_h,
                 source_receipt_digests: vec![sample.validator_receipt_digest.clone()],
+                proof_scope: "ENDPOINT_RECEIPT_REQUIRES_EXTERNAL_VERIFICATION".into(),
             });
         }
 
@@ -252,12 +257,21 @@ impl MatrixAtlas {
             return Err("interpolated eigenvalue lower bound overflow".into());
         }
 
+        let disposition = if lower_bound < 0.0 {
+            "UNRESOLVED"
+        } else if segment.error_bound_method == "HELD_OUT_DENSE_REFERENCE" {
+            "EMPIRICAL_MARGIN_POSITIVE"
+        } else {
+            "PASSIVE_CERTIFIED_CONDITIONAL"
+        };
+        let proof_scope = if segment.error_bound_method == "HELD_OUT_DENSE_REFERENCE" {
+            "HELD_OUT_POSITIONS_ONLY_NOT_A_CONTINUOUS_INTERVAL_PROOF"
+        } else {
+            "CONDITIONAL_ON_EXTERNAL_VERIFICATION_OF_ENDPOINT_AND_SEGMENT_RECEIPTS"
+        };
+
         Ok(InterpolationResult {
-            disposition: if lower_bound >= 0.0 {
-                "PASSIVE_CERTIFIED".into()
-            } else {
-                "UNRESOLVED".into()
-            },
+            disposition: disposition.into(),
             position_m,
             matrix_kind: self.matrix_kind.clone(),
             coil_ids: self.coil_ids.clone(),
@@ -274,6 +288,7 @@ impl MatrixAtlas {
                 right.validator_receipt_digest.clone(),
                 segment.validation_receipt_digest.clone(),
             ],
+            proof_scope: proof_scope.into(),
         })
     }
 
@@ -315,10 +330,19 @@ fn validate_matrix(
     matrix: &[Vec<f64>],
     bounds: &[Vec<f64>],
     n: usize,
+    numerical_tolerance_h: f64,
     declared_minimum_eigenvalue_lower_bound_h: f64,
 ) -> Result<(), String> {
     if matrix.len() != n || bounds.len() != n {
         return Err("matrix and bound row counts must match coil count".into());
+    }
+    if !numerical_tolerance_h.is_finite() || numerical_tolerance_h < 0.0 {
+        return Err("numerical tolerance must be finite and non-negative".into());
+    }
+    if !declared_minimum_eigenvalue_lower_bound_h.is_finite()
+        || declared_minimum_eigenvalue_lower_bound_h < 0.0
+    {
+        return Err("declared passivity lower bound must be finite and non-negative".into());
     }
     let mut scale = 0.0_f64;
     for row in matrix {
@@ -340,14 +364,13 @@ fn validate_matrix(
             return Err("entrywise absolute bounds must be finite and non-negative".into());
         }
     }
-    let symmetry_tolerance = 64.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
     for (i, row) in matrix.iter().enumerate() {
         if row[i] <= bounds[i][i] {
             return Err("self-inductance lower bound must remain positive".into());
         }
         for (j, value) in row.iter().enumerate().skip(i + 1) {
-            if (*value - matrix[j][i]).abs() > symmetry_tolerance {
-                return Err("matrix must be symmetric before atlas interpolation".into());
+            if *value != matrix[j][i] {
+                return Err("matrix must be exactly symmetric before atlas interpolation".into());
             }
         }
     }
@@ -357,8 +380,10 @@ fn validate_matrix(
         .fold(0.0_f64, |norm, value| norm.hypot(*value));
     let (minimum_eigenvalue, eigensolver_residual_bound) =
         smallest_symmetric_eigenvalue(matrix)?;
-    let independently_computed_lower_bound =
-        minimum_eigenvalue - input_uncertainty_bound - eigensolver_residual_bound;
+    let independently_computed_lower_bound = minimum_eigenvalue
+        - input_uncertainty_bound
+        - eigensolver_residual_bound
+        - numerical_tolerance_h;
     let numerical_guard = 128.0 * f64::EPSILON * scale.max(f64::MIN_POSITIVE);
     if !independently_computed_lower_bound.is_finite() {
         return Err("matrix eigenvalue lower bound is non-finite".into());
@@ -535,6 +560,7 @@ mod tests {
                     matrix_h: vec![vec![10e-6, 1e-6], vec![1e-6, 8e-6]],
                     entrywise_absolute_bound_h: vec![vec![0.0; 2]; 2],
                     minimum_eigenvalue_lower_bound_h: 7.5e-6,
+                    numerical_tolerance_h: 1e-12,
                     matrix_digest: digest('b'),
                     source_artifact_digest: digest('c'),
                     validator_receipt_digest: digest('d'),
@@ -544,6 +570,7 @@ mod tests {
                     matrix_h: vec![vec![9e-6, 2e-6], vec![2e-6, 9e-6]],
                     entrywise_absolute_bound_h: vec![vec![0.0; 2]; 2],
                     minimum_eigenvalue_lower_bound_h: 6.9e-6,
+                    numerical_tolerance_h: 1e-12,
                     matrix_digest: digest('e'),
                     source_artifact_digest: digest('f'),
                     validator_receipt_digest: digest('1'),
@@ -563,7 +590,7 @@ mod tests {
     fn convex_interpolation_preserves_qualified_passivity_margin() {
         let atlas = fixture();
         let result = atlas.interpolate_at(5.0).unwrap();
-        assert_eq!(result.disposition, "PASSIVE_CERTIFIED");
+        assert_eq!(result.disposition, "EMPIRICAL_MARGIN_POSITIVE");
         assert!((result.matrix_h[0][0] - 9.5e-6).abs() < 1e-18);
         assert!((result.matrix_h[0][1] - 1.5e-6).abs() < 1e-18);
         assert!((result.matrix_h[1][1] - 8.5e-6).abs() < 1e-18);
@@ -575,7 +602,7 @@ mod tests {
     fn exact_sample_uses_its_own_qualification_receipt() {
         let atlas = fixture();
         let result = atlas.interpolate_at(10.0).unwrap();
-        assert_eq!(result.disposition, "PASSIVE_CERTIFIED");
+        assert_eq!(result.disposition, "PASSIVE_CERTIFIED_CONDITIONAL");
         assert_eq!(result.from_sample_index, 1);
         assert_eq!(result.to_sample_index, 1);
         assert_eq!(result.interpolation_error_frobenius_bound_h, 0.0);
