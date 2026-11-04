@@ -55,7 +55,10 @@
           "minLength": 1
         },
         "configuration_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$"
         },
         "power_rating_w": {
@@ -96,7 +99,8 @@
             "TRAIN",
             "VALIDATION",
             "TEST",
-            "HOLDOUT"
+            "HOLDOUT",
+            "UNKNOWN"
           ]
         },
         "operating_point_id": {
@@ -107,32 +111,52 @@
           "enum": [
             "GRID_TO_VEHICLE",
             "VEHICLE_TO_GRID",
-            "UNIDIRECTIONAL"
+            "UNIDIRECTIONAL",
+            "UNKNOWN"
           ]
         },
         "frequency_hz": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "exclusiveMinimum": 0
         },
         "transfer_gap_m": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "offset_x_m": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "offset_y_m": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "offset_z_m": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "yaw_deg": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "load_resistance_ohm": {
           "type": [
             "number",
+            "null",
             "null"
           ],
           "exclusiveMinimum": 0
@@ -140,22 +164,30 @@
         "output_power_w": {
           "type": [
             "number",
+            "null",
             "null"
           ],
           "minimum": 0
         },
         "ambient_temperature_c": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "coil_temperature_c": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "thermal_state": {
           "enum": [
             "COLD_START",
             "TRANSIENT",
             "STEADY_STATE",
-            "THERMAL_SOAK"
+            "THERMAL_SOAK",
+            "UNKNOWN"
           ]
         }
       }
@@ -177,11 +209,17 @@
       ],
       "properties": {
         "instrument_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "instrument_model": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "method": {
@@ -189,35 +227,57 @@
             "LCR_METER",
             "NETWORK_ANALYZER",
             "CALIBRATED_IMPEDANCE_FIXTURE",
-            "OTHER_TRACEABLE_METHOD"
+            "OTHER_TRACEABLE_METHOD",
+            "UNKNOWN"
           ]
         },
         "calibration_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         },
         "calibration_valid_from_utc": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
         },
         "calibration_due_utc": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
         },
         "measurement_uncertainty_pct": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "window_start_utc": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
         },
         "window_end_utc": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
         },
         "reference_artifact_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$"
         }
       }
@@ -244,35 +304,54 @@
             "COMMUNICATION_TELEMETRY",
             "LOOKUP_TABLE",
             "FEM_MODEL",
-            "OTHER"
+            "OTHER",
+            "UNKNOWN"
           ]
         },
         "secondary_data_link_required": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "perturbation_energy_j": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "useful_transfer_energy_j": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "exclusiveMinimum": 0
         },
         "reported_overhead_pct": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "p99_latency_ms": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0
         },
         "control_deadline_ms": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "exclusiveMinimum": 0
         },
         "sample_count": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 0
         },
         "batch_id": {
           "type": "string",
@@ -359,15 +438,24 @@
       ],
       "properties": {
         "zvs_observation_count": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "zvs_success_count": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "reported_zvs_coverage_pct": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 100
         },
@@ -389,13 +477,22 @@
           ]
         },
         "uncertainty_outside_grid_rejected": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "authority_plane_independent": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "estimator_can_authorize_energization": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
