@@ -262,6 +262,19 @@ pub fn validate_ledger(schema: &Value, ledger: &Value) -> Vec<String> {
         }
     }
 
+    if string_at(ledger, &["work_package", "completion_state"]) == Some("completed")
+        && units.is_some_and(|units| {
+            units.iter().any(|unit| {
+                matches!(
+                    unit.get("terminal_disposition").and_then(Value::as_str),
+                    Some("active" | "unresolved")
+                )
+            })
+        })
+    {
+        add_error(&mut errors, "completed_work_package_contains_unresolved_units");
+    }
+
     if let Some(interruptions) = ledger.get("interruptions").and_then(Value::as_array) {
         let mut interruption_ids = BTreeSet::new();
         for interruption in interruptions {
@@ -387,6 +400,48 @@ pub fn derive_report(ledger: &Value) -> Value {
         })
         .sum::<u64>();
 
+    let critical_planned_units = units
+        .iter()
+        .filter(|unit| unit.get("criticality").and_then(Value::as_str) == Some("critical"))
+        .count() as u64;
+    let critical_first_pass_inspected_units = units
+        .iter()
+        .filter(|unit| {
+            unit.get("criticality").and_then(Value::as_str) == Some("critical")
+                && unit
+                    .get("attempts")
+                    .and_then(Value::as_array)
+                    .and_then(|attempts| attempts.first())
+                    .and_then(inspection_outcome)
+                    .is_some_and(|outcome| matches!(outcome, "accepted" | "rejected"))
+        })
+        .count() as u64;
+
+    let mut first_pass_critical_defects = 0_u64;
+    let mut first_pass_major_defects = 0_u64;
+    let mut first_pass_minor_defects = 0_u64;
+    let mut first_pass_unknown_severity_defects = 0_u64;
+    for unit in units {
+        if let Some(first_attempt) = unit
+            .get("attempts")
+            .and_then(Value::as_array)
+            .and_then(|attempts| attempts.first())
+            && let Some(defects) = first_attempt
+                .get("inspection")
+                .and_then(|inspection| inspection.get("defects"))
+                .and_then(Value::as_array)
+        {
+            for defect in defects {
+                match defect.get("severity").and_then(Value::as_str) {
+                    Some("critical") => first_pass_critical_defects += 1,
+                    Some("major") => first_pass_major_defects += 1,
+                    Some("minor") => first_pass_minor_defects += 1,
+                    _ => first_pass_unknown_severity_defects += 1,
+                }
+            }
+        }
+    }
+
     let robot_seconds = seconds_for(entries, |entry| {
         entry.get("resource_type").and_then(Value::as_str) == Some("robot")
     });
@@ -394,11 +449,17 @@ pub fn derive_report(ledger: &Value) -> Value {
         entry.get("resource_type").and_then(Value::as_str) == Some("human")
     });
     let direct_categories = [
+        "survey_control",
+        "robot_setup_calibration",
         "operator_supervision",
         "spotting",
         "execution",
         "charging_changeover",
         "waiting",
+        "qa_inspection",
+        "rework_reprint",
+        "interruption_recovery",
+        "site_coordination_requalification",
     ];
     let direct_human_seconds = seconds_for(entries, |entry| {
         entry.get("resource_type").and_then(Value::as_str) == Some("human")
@@ -428,6 +489,10 @@ pub fn derive_report(ledger: &Value) -> Value {
 
     let metrics = vec![
         metric("first_pass_yield", first_pass_accepted as f64, first_pass_inspected as f64, "ratio"),
+        metric("critical_feature_inspection_coverage", critical_first_pass_inspected_units as f64, critical_planned_units as f64, "ratio"),
+        metric("first_pass_critical_defects_per_critical_inspected_unit", first_pass_critical_defects as f64, critical_first_pass_inspected_units as f64, "defects_per_critical_unit"),
+        metric("first_pass_major_defects_per_first_pass_inspected_unit", first_pass_major_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
+        metric("first_pass_minor_defects_per_first_pass_inspected_unit", first_pass_minor_defects as f64, first_pass_inspected as f64, "defects_per_inspected_unit"),
         metric("final_acceptance_fraction", finally_accepted as f64, attempted_units as f64, "ratio"),
         metric("accepted_units_per_robot_hour", finally_accepted as f64, robot_seconds / 3600.0, &accepted_unit),
         metric("accepted_units_per_direct_crew_hour", finally_accepted as f64, direct_human_seconds / 3600.0, &accepted_unit),
@@ -449,7 +514,13 @@ pub fn derive_report(ledger: &Value) -> Value {
             "finally_accepted_units": finally_accepted,
             "finally_rejected_units": finally_rejected,
             "uninspected_units": uninspected,
-            "rework_attempts": rework_attempts
+            "rework_attempts": rework_attempts,
+            "critical_planned_units": critical_planned_units,
+            "critical_first_pass_inspected_units": critical_first_pass_inspected_units,
+            "first_pass_critical_defects": first_pass_critical_defects,
+            "first_pass_major_defects": first_pass_major_defects,
+            "first_pass_minor_defects": first_pass_minor_defects,
+            "first_pass_unknown_severity_defects": first_pass_unknown_severity_defects
         },
         "metrics": metrics,
         "limitations": [
@@ -568,6 +639,31 @@ mod tests {
         assert_eq!(counts["first_pass_accepted_units"], 1);
         assert_eq!(counts["finally_accepted_units"], 2);
         assert_eq!(counts["uninspected_units"], 1);
+    }
+
+    #[test]
+    fn completed_work_package_cannot_contain_unresolved_units() {
+        let mut ledger = load("fixtures/layout-run.synthetic.json");
+        ledger["work_package"]["completion_state"] = Value::String("completed".to_owned());
+        let errors = validate_ledger(&ledger_schema(), &ledger);
+        assert!(errors.iter().any(|error| {
+            error == "completed_work_package_contains_unresolved_units"
+        }));
+    }
+
+    #[test]
+    fn critical_inspection_coverage_is_reported_separately() {
+        let report = derive_report(&load("fixtures/layout-run.synthetic.json"));
+        assert_eq!(report["derived_counts"]["critical_planned_units"], 3);
+        assert_eq!(report["derived_counts"]["critical_first_pass_inspected_units"], 2);
+        let metric = report["metrics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|value| value["metric_id"] == "critical_feature_inspection_coverage")
+            .unwrap();
+        assert_eq!(metric["numerator"], 2);
+        assert_eq!(metric["denominator"], 3);
     }
 
     #[test]
