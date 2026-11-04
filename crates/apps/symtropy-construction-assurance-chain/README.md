@@ -1,18 +1,21 @@
 # Construction assurance-chain conformance harness
 
-A Rust-only, no-I/O conformance harness for the end-to-end benchmark in `research/construction-robot-assurance-chain-v0-1`.
+A Rust-only, no-I/O conformance harness for the benchmark in `research/construction-robot-assurance-chain-v0-1`.
 
 ## Scope
 
-This package validates the frozen scenario schema and handoff invariants:
-- stage identifiers/sequences and predecessor graph;
-- produced artifact identity and digest continuity;
-- consumed artifacts must come from an ancestor stage, or be explicitly supplied at a root stage;
-- command authorization must bind the latest observation, epoch, qualification, configuration, task, timebase and lease;
-- a new epoch after qualification invalidates an old lease;
-- bench/synthetic/HIL evidence cannot be declared admissible for an unsupported field/cross-site claim.
+The harness validates:
+- stage identifiers/sequences, predecessor DAG and artifact digest continuity;
+- exact per-command binding to the latest prior observation, worksite epoch and qualification in that command's own causal timeline;
+- causal ancestry from each referenced stage to the command stage;
+- direct consumption of the referenced observation/epoch/qualification artifacts;
+- lease generation, task, robot configuration, timebase, expiry and command binding;
+- computed command rejection reason codes, which must match both the command attempt and command-stage receipt;
+- claim evidence-origin/scope constraints.
 
-The harness does not run the individual robot safety or metrology components. Their implementations remain owned by #3561/#3564, #3558, #3542, #3531 and #3522/#3505/#3506. Until those PRs merge, this harness validates explicit stage-result handoffs and expected conformance behavior only; it does not claim that the production evaluators have been integrated.
+The key rule is **per-command causal frontier, not scenario-global final state**. A later epoch invalidates commands after that event, but cannot retroactively invalidate a command that was valid before the event. It also cannot authorize a command after the change using a qualification issued before the change.
+
+The harness does not run the individual robot safety or metrology components. Their implementations remain owned by #3561/#3564, #3558, #3542, #3531 and #3522/#3505/#3506. Until those PRs merge, this harness validates explicit stage-result handoffs and expected conformance behavior only; it does not claim production evaluators are integrated.
 
 ## Run
 
@@ -20,4 +23,4 @@ The harness does not run the individual robot safety or metrology components. Th
 cargo test -p symtropy-construction-assurance-chain
 ```
 
-The scenario fixtures are synthetic. A passing fixture test means the conformance packet is internally consistent; it is not physical validation, safety certification or an operational permit.
+The fixtures are synthetic. A passing fixture test means the packet is internally consistent, not physical validation, safety certification or an operational permit.
