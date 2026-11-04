@@ -197,7 +197,10 @@
           ]
         },
         "misalignment_tested": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "misalignment_description": {
           "type": [
@@ -221,7 +224,6 @@
     },
     "measurements": {
       "type": "array",
-      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -612,5 +614,23 @@
         }
       }
     }
-  }
+  },
+  "anyOf": [
+    {
+      "properties": {
+        "measurements": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "engineering_metrics": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    }
+  ]
 }
