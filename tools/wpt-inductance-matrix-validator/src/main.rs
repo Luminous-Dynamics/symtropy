@@ -138,7 +138,9 @@ fn sha256_or_null(value: &Value, key: &str) -> Result<(), String> {
         {
             Ok(())
         }
-        _ => Err(format!("{key}: expected null or 64 hexadecimal SHA-256 characters")),
+        _ => Err(format!(
+            "{key}: expected null or 64 hexadecimal SHA-256 characters"
+        )),
     }
 }
 
@@ -183,21 +185,22 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
     let matrix_kind = string_at(value, &["matrix_kind"])
         .ok_or_else(|| "matrix_kind: required string missing".to_string())?
         .to_string();
-    if !matches!(
-        matrix_kind.as_str(),
-        "SMALL_SIGNAL" | "DIFFERENTIAL"
-    ) {
+    if !matches!(matrix_kind.as_str(), "SMALL_SIGNAL" | "DIFFERENTIAL") {
         return Err(format!("matrix_kind: unsupported value {matrix_kind}"));
     }
 
     exact_keys(
-        value.get("operating_point").ok_or("operating_point: missing")?,
+        value
+            .get("operating_point")
+            .ok_or("operating_point: missing")?,
         &["frequency_hz", "temperature_c", "dc_bias_currents_a"],
         "operating_point",
     )?;
     let frequency_hz = number_at(value, &["operating_point", "frequency_hz"])
         .filter(|number| number.is_finite() && *number > 0.0)
-        .ok_or_else(|| "operating_point.frequency_hz: expected finite positive number".to_string())?;
+        .ok_or_else(|| {
+            "operating_point.frequency_hz: expected finite positive number".to_string()
+        })?;
     let temperature_c = number_at(value, &["operating_point", "temperature_c"])
         .filter(|number| number.is_finite())
         .ok_or_else(|| "operating_point.temperature_c: expected finite number".to_string())?;
@@ -260,12 +263,8 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
         return Err("matrix_h: every self-inductance diagonal entry must be positive".into());
     }
 
-    if string_at(value, &["uncertainty_semantics"])
-        != Some("DETERMINISTIC_ABSOLUTE_BOUND")
-    {
-        return Err(
-            "uncertainty_semantics: only DETERMINISTIC_ABSOLUTE_BOUND is supported".into(),
-        );
+    if string_at(value, &["uncertainty_semantics"]) != Some("DETERMINISTIC_ABSOLUTE_BOUND") {
+        return Err("uncertainty_semantics: only DETERMINISTIC_ABSOLUTE_BOUND is supported".into());
     }
     exact_keys(
         value
@@ -276,14 +275,16 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
     )?;
     let absolute_tolerance_h = number_at(value, &["numerical_tolerances", "absolute_h"])
         .filter(|number| number.is_finite() && *number >= 0.0)
-        .ok_or_else(|| "numerical_tolerances.absolute_h: expected finite nonnegative number".to_string())?;
+        .ok_or_else(|| {
+            "numerical_tolerances.absolute_h: expected finite nonnegative number".to_string()
+        })?;
     let relative_tolerance = number_at(value, &["numerical_tolerances", "relative"])
         .filter(|number| number.is_finite() && *number >= 0.0)
-        .ok_or_else(|| "numerical_tolerances.relative: expected finite nonnegative number".to_string())?;
+        .ok_or_else(|| {
+            "numerical_tolerances.relative: expected finite nonnegative number".to_string()
+        })?;
 
-    if string_at(value, &["configuration_reference"])
-        .is_none_or(|text| text.trim().is_empty())
-    {
+    if string_at(value, &["configuration_reference"]).is_none_or(|text| text.trim().is_empty()) {
         return Err("configuration_reference: expected non-empty reference".into());
     }
     let source_reference = value.get("source_reference");
@@ -296,11 +297,22 @@ fn parse_record(value: &Value) -> Result<MatrixRecord, String> {
         }
     }
     if evidence_kind != "SYNTHETIC_KNOWN_TRUTH" {
-        if !source_reference.and_then(Value::as_str).is_some_and(|text| !text.trim().is_empty()) {
-            return Err("source_reference: measured/model-derived evidence requires source URI".into());
+        if !source_reference
+            .and_then(Value::as_str)
+            .is_some_and(|text| !text.trim().is_empty())
+        {
+            return Err(
+                "source_reference: measured/model-derived evidence requires source URI".into(),
+            );
         }
-        if value.get("artifact_sha256").and_then(Value::as_str).is_none() {
-            return Err("artifact_sha256: measured/model-derived evidence requires artifact digest".into());
+        if value
+            .get("artifact_sha256")
+            .and_then(Value::as_str)
+            .is_none()
+        {
+            return Err(
+                "artifact_sha256: measured/model-derived evidence requires artifact digest".into(),
+            );
         }
     }
     sha256_or_null(value, "artifact_sha256")?;
@@ -481,9 +493,8 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             }
 
             let midpoint = 0.5 * forward + 0.5 * reverse;
-            let bound = 0.5
-                * (record.bounds_h[i][j] + record.bounds_h[j][i] + mismatch)
-                + tolerance_h;
+            let bound =
+                0.5 * (record.bounds_h[i][j] + record.bounds_h[j][i] + mismatch) + tolerance_h;
             if !midpoint.is_finite() || !bound.is_finite() {
                 return Err("reciprocity symmetrization overflow".into());
             }
@@ -492,8 +503,7 @@ fn evaluate(record: &MatrixRecord) -> Result<Value, String> {
             symmetric_bounds[i][j] = bound;
             symmetric_bounds[j][i] = bound;
 
-            let denominator =
-                (record.matrix_h[i][i] * record.matrix_h[j][j]).sqrt();
+            let denominator = (record.matrix_h[i][i] * record.matrix_h[j][j]).sqrt();
             let coupling = midpoint.abs() / denominator;
             if !coupling.is_finite() {
                 return Err("pairwise coupling diagnostic overflow".into());
@@ -613,7 +623,10 @@ fn run(path: &str) -> Result<(), Box<dyn Error>> {
         return Err(format!("{path}: no JSONL records found").into());
     }
     if failures > 0 {
-        return Err(format!("{failures} of {records} records failed validation or fixture expectation").into());
+        return Err(format!(
+            "{failures} of {records} records failed validation or fixture expectation"
+        )
+        .into());
     }
     Ok(())
 }
