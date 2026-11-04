@@ -163,6 +163,11 @@ mod tests {
             record.validate(),
             Err(DecisionClosureError::ResourceReservationAfterNonAuthorization)
         );
+
+        // A reservation explicitly released after a deferred decision is safe:
+        // it must not be mistaken for resources still held or settled.
+        record.resource_settlement = ResourceSettlement::Released;
+        assert_eq!(record.validate(), Ok(()));
     }
 
     #[test]
