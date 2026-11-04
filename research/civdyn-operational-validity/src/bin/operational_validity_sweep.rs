@@ -5,7 +5,7 @@
 //! Every value is artificial; this binary does not import empirical data.
 
 use civdyn_operational_validity::{
-    compare_metric, MetricSpec, NumericSample, SampleSet, MIN_INDEPENDENT_SAMPLES,
+    MIN_INDEPENDENT_SAMPLES, MetricSpec, NumericSample, SampleSet, compare_metric,
 };
 
 fn samples(prefix: &str, values: &[f64], unit: &str) -> SampleSet {
@@ -29,7 +29,11 @@ fn fixture_values(base: f64, step: f64) -> Vec<f64> {
 }
 
 fn emit_row(fields: Vec<String>) {
-    assert_eq!(fields.len(), 19, "each comparison record must have 19 columns");
+    assert_eq!(
+        fields.len(),
+        19,
+        "each comparison record must have 19 columns"
+    );
     println!("{}", fields.join(","));
 }
 
@@ -40,9 +44,23 @@ fn main() {
 
     let fixtures = [
         ("daily_active_users", "all", "users/day", 30.0, 31.0, 1.0),
-        ("comments_per_thread", "all", "comments/thread", 1.0, 1.3, 0.1),
+        (
+            "comments_per_thread",
+            "all",
+            "comments/thread",
+            1.0,
+            1.3,
+            0.1,
+        ),
         ("network_core_share", "all", "fraction", 0.05, 0.19, 0.005),
-        ("toxicity", "root_posts", "classifier_score", 0.20, 0.33, 0.01),
+        (
+            "toxicity",
+            "root_posts",
+            "classifier_score",
+            0.20,
+            0.33,
+            0.01,
+        ),
         ("toxicity", "comments", "classifier_score", 0.35, 0.26, 0.01),
     ];
 
@@ -109,7 +127,8 @@ mod tests {
             },
             &samples("root_obs", &root, "classifier_score"),
             &samples("root_sim", &sim_root, "classifier_score"),
-        ).unwrap();
+        )
+        .unwrap();
         let comment_result = compare_metric(
             MetricSpec {
                 metric_id: "toxicity".into(),
@@ -122,6 +141,9 @@ mod tests {
 
         assert!(root_result.mean_delta_simulated_minus_observed > 0.0);
         assert!(comment_result.mean_delta_simulated_minus_observed < 0.0);
-        assert_ne!(root_result.metric.stratum_id, comment_result.metric.stratum_id);
+        assert_ne!(
+            root_result.metric.stratum_id,
+            comment_result.metric.stratum_id
+        );
     }
 }
