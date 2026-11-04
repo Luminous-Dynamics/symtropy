@@ -73,6 +73,24 @@ cargo run --locked -p wpt-matrix-atlas -- benchmarks/wpt-matrix-atlas/v1/synthet
 
 Out-of-domain requests fail with `EXTRAPOLATION_REJECTED`. No extrapolation or silent extrapolation fallback is implemented.
 
+## Service-aware field-solve allocation
+
+The crate also accepts external `ServiceSensitivitySignal` records from a validated circuit/route-energy evaluator. Each signal binds a segment to a predicted route-energy uncertainty in Wh, an acceptable Wh budget, an estimated fractional uncertainty reduction from one additional field solve, an estimated solve cost in seconds, a circuit-model digest and a sensitivity-receipt digest.
+
+The service-aware score is a transparent heuristic:
+
+[
+\text{score}=
+\frac{\max(r_{matrix},r_{margin},r_{energy})\;\rho_{reduction}}
+{t_{solve}},
+\qquad
+r_{energy}=\frac{\epsilon_{E,Wh}}{E_{budget,Wh}}.
+]
+
+A segment can therefore be selected even when its matrix interpolation error is small, if circuit sensitivity maps that error to excessive route-energy uncertainty. The API does not derive the Wh uncertainty from henries; that mapping must come from a separately validated circuit sensitivity receipt. It checks receipt-digest syntax, not signatures or derivation correctness.
+
+The reduction fraction and solve-cost estimate are planning inputs, not guarantees. The score is **not** an optimal expected value-of-information policy. It should be benchmarked against uniform refinement, midpoint refinement, matrix-residual refinement and a frozen held-out oracle. Missing/invalid sensitivity evidence must be treated as missing—not as zero energy risk.
+
 ## Benchmark protocol
 
 Use a frozen dense reference position grid and tune only on training samples. Hold out positions and preserve source FEM/measurement mesh, B–H data, coil order, polarity, frequency, gap and solver settings. Compare:
