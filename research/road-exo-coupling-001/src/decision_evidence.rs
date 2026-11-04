@@ -101,10 +101,7 @@ impl EvidenceBoundDecisionManifest {
         let mut expected_bindings = BTreeSet::<(StableId, StableId)>::new();
         for hypothesis in &self.decision.hypotheses {
             for outcome in &hypothesis.outcomes {
-                let key = (
-                    hypothesis.hypothesis_id.clone(),
-                    outcome.action_id.clone(),
-                );
+                let key = (hypothesis.hypothesis_id.clone(), outcome.action_id.clone());
                 let OutcomeSupport::Supported {
                     evidence_digest, ..
                 } = &outcome.support
@@ -128,10 +125,11 @@ impl EvidenceBoundDecisionManifest {
                         DecisionEvidenceError::QualificationReplayMismatch
                     })?;
 
-                if binding.qualification != binding.packet.qualify_against(
-                    &binding.subject_lineage,
-                    binding.target.clone(),
-                ) {
+                if binding.qualification
+                    != binding
+                        .packet
+                        .qualify_against(&binding.subject_lineage, binding.target.clone())
+                {
                     return Err(DecisionEvidenceError::QualificationReplayMismatch);
                 }
 
@@ -286,20 +284,25 @@ fn target_matches_purpose_and_action(
     match (purpose, target) {
         (
             DecisionEvidencePurpose::EmpiricalDecision,
-            QualificationTarget::FactualOutcome { action_id: target_action },
+            QualificationTarget::FactualOutcome {
+                action_id: target_action,
+            },
         )
         | (
             DecisionEvidencePurpose::EmpiricalDecision,
-            QualificationTarget::ExecutedInterventionOutcome { action_id: target_action },
+            QualificationTarget::ExecutedInterventionOutcome {
+                action_id: target_action,
+            },
         )
         | (
             DecisionEvidencePurpose::EmpiricalDecision,
-            QualificationTarget::UnexecutedActionOutcome { action_id: target_action },
+            QualificationTarget::UnexecutedActionOutcome {
+                action_id: target_action,
+            },
         ) => target_action == action_id,
-        (
-            DecisionEvidencePurpose::HumanAdjudication,
-            QualificationTarget::HumanLabel { .. },
-        ) => true,
+        (DecisionEvidencePurpose::HumanAdjudication, QualificationTarget::HumanLabel { .. }) => {
+            true
+        }
         (
             DecisionEvidencePurpose::FormalConformance,
             QualificationTarget::FormalConformance { .. },
@@ -328,9 +331,7 @@ fn eligibility_allows(
     }
 }
 
-fn evidence_bound_certificate_bytes(
-    certificate: &EvidenceBoundDecisionCertificate,
-) -> Vec<u8> {
+fn evidence_bound_certificate_bytes(certificate: &EvidenceBoundDecisionCertificate) -> Vec<u8> {
     let mut out = Vec::new();
     out.extend_from_slice(b"symtropy.road-decision-evidence-binding.certificate.v0.1\0");
     push_bytes(&mut out, certificate.schema_id.as_bytes());
@@ -371,9 +372,7 @@ fn push_len(out: &mut Vec<u8>, length: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::decision_closure::{
-        DecisionHypothesis, ExactRational, HypothesisActionOutcome,
-    };
+    use crate::decision_closure::{DecisionHypothesis, ExactRational, HypothesisActionOutcome};
     use crate::evidence_provenance::{
         ActionRealization, EvidenceClaim, EvidenceLineage, EvidenceOrigin, EvidenceUse,
     };
@@ -424,11 +423,7 @@ mod tests {
         }
     }
 
-    fn binding(
-        hypothesis: &str,
-        action: &str,
-        index: u8,
-    ) -> DecisionEvidenceBinding {
+    fn binding(hypothesis: &str, action: &str, index: u8) -> DecisionEvidenceBinding {
         let packet = packet(action, index);
         let subject = subject();
         let target = target(action);
@@ -487,7 +482,10 @@ mod tests {
         manifest.validate().unwrap();
         let certificate = manifest.evaluate().unwrap();
         assert!(certificate.integrity_check());
-        assert_eq!(certificate.decision_status(), DecisionStatus::DecisionStable);
+        assert_eq!(
+            certificate.decision_status(),
+            DecisionStatus::DecisionStable
+        );
         assert_eq!(certificate.evidence_references.len(), 2);
         assert_eq!(certificate.verify_against(&manifest), Ok(()));
     }
@@ -496,14 +494,20 @@ mod tests {
     fn missing_supported_outcome_binding_rejects() {
         let mut manifest = decision_and_bindings();
         manifest.bindings.pop();
-        assert_eq!(manifest.validate(), Err(DecisionEvidenceError::MissingBinding));
+        assert_eq!(
+            manifest.validate(),
+            Err(DecisionEvidenceError::MissingBinding)
+        );
     }
 
     #[test]
     fn duplicate_binding_rejects() {
         let mut manifest = decision_and_bindings();
         manifest.bindings.push(manifest.bindings[0].clone());
-        assert_eq!(manifest.validate(), Err(DecisionEvidenceError::DuplicateBinding));
+        assert_eq!(
+            manifest.validate(),
+            Err(DecisionEvidenceError::DuplicateBinding)
+        );
     }
 
     #[test]
@@ -512,14 +516,18 @@ mod tests {
         let mut extra = binding("unknown-hypothesis", "action-c", 3);
         extra.action_id = id("action-c");
         manifest.bindings.push(extra);
-        assert_eq!(manifest.validate(), Err(DecisionEvidenceError::OrphanBinding));
+        assert_eq!(
+            manifest.validate(),
+            Err(DecisionEvidenceError::OrphanBinding)
+        );
     }
 
     #[test]
     fn outcome_digest_must_equal_qualification_receipt_digest() {
         let mut manifest = decision_and_bindings();
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = [99; 32];
         }
@@ -535,10 +543,12 @@ mod tests {
         let binding = &mut manifest.bindings[0];
         binding.packet.origin = EvidenceOrigin::SimulatorGenerated;
         binding.packet.claim = EvidenceClaim::SimulatorOutput;
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -552,12 +562,13 @@ mod tests {
     fn model_dependent_lineage_cannot_support_empirical_decision() {
         let mut manifest = decision_and_bindings();
         let binding = &mut manifest.bindings[0];
-        binding.packet.lineage.generator_ancestry =
-            BTreeSet::from([id("decision-model-v1")]);
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.packet.lineage.generator_ancestry = BTreeSet::from([id("decision-model-v1")]);
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -572,10 +583,12 @@ mod tests {
         let mut manifest = decision_and_bindings();
         let binding = &mut manifest.bindings[0];
         binding.target = target("action-b");
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -590,10 +603,12 @@ mod tests {
         let mut manifest = decision_and_bindings();
         let binding = &mut manifest.bindings[0];
         binding.packet.use_role = EvidenceUse::Fit;
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -624,10 +639,12 @@ mod tests {
         binding.target = QualificationTarget::FormalConformance {
             domain_id: id("finite-fixture-v1"),
         };
-        binding.qualification =
-            binding.packet.qualify_against(&binding.subject_lineage, binding.target.clone());
-        if let OutcomeSupport::Supported { evidence_digest, .. } =
-            &mut manifest.decision.hypotheses[0].outcomes[0].support
+        binding.qualification = binding
+            .packet
+            .qualify_against(&binding.subject_lineage, binding.target.clone());
+        if let OutcomeSupport::Supported {
+            evidence_digest, ..
+        } = &mut manifest.decision.hypotheses[0].outcomes[0].support
         {
             *evidence_digest = binding.qualification.receipt_digest;
         }
@@ -680,7 +697,11 @@ mod tests {
         }
         assert_eq!(manifest.bindings[0].qualification.receipt_digest, digest);
         assert_ne!(
-            manifest.evaluate().unwrap().decision_certificate.receipt_digest,
+            manifest
+                .evaluate()
+                .unwrap()
+                .decision_certificate
+                .receipt_digest,
             decision_and_bindings()
                 .evaluate()
                 .unwrap()
