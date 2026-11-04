@@ -511,20 +511,25 @@ impl LocomotionKernelSpec {
     }
 
     fn sort_by_semantic_id(&mut self) {
-        self.source_manifests.sort_by(|left, right| left.id.cmp(&right.id));
+        self.source_manifests
+            .sort_by(|left, right| left.id.cmp(&right.id));
         for source in &mut self.source_manifests {
             source.unknown_endpoints.sort();
         }
         self.source_pins
             .sort_by(|left, right| left.source_manifest_id.cmp(&right.source_manifest_id));
-        self.hypotheses.sort_by(|left, right| left.id.cmp(&right.id));
+        self.hypotheses
+            .sort_by(|left, right| left.id.cmp(&right.id));
         for hypothesis in &mut self.hypotheses {
             hypothesis.source_manifest_ids.sort();
         }
-        self.physical_states.sort_by(|left, right| left.id.cmp(&right.id));
-        self.sensor_states.sort_by(|left, right| left.id.cmp(&right.id));
+        self.physical_states
+            .sort_by(|left, right| left.id.cmp(&right.id));
+        self.sensor_states
+            .sort_by(|left, right| left.id.cmp(&right.id));
         self.actions.sort_by(|left, right| left.id.cmp(&right.id));
-        self.observations.sort_by(|left, right| left.id.cmp(&right.id));
+        self.observations
+            .sort_by(|left, right| left.id.cmp(&right.id));
         self.initial_belief.sort_by(|left, right| {
             (
                 &left.hypothesis_id,
