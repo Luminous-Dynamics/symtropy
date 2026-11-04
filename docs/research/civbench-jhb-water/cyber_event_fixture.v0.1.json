@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "fixture_id": "CIVBENCH-CYBER-EVENT-FIXTURE-001",
   "contract_version": "0.1.0",
   "status": "synthetic_contract_fixture_only",
@@ -15,6 +14,7 @@
     "merge_gap_ms": 60000,
     "allowed_lead_ms": 300000,
     "maximum_detection_delay_ms": 600000,
+    "late_association_grace_ms": 300000,
     "class_compatibility": "exact_or_unclassified_for_detection_only"
   },
   "events": [
