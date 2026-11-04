@@ -139,6 +139,14 @@ pub fn evaluate(record: &Value) -> Value {
 }
 
 fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
+    let validated_event_id = text_field(record, "event_id", "record")?;
+    if validated_event_id != event_id {
+        return Err("event_id must be a stable non-empty string".into());
+    }
+    field(record, "event_time_ns", "record")?
+        .as_u64()
+        .ok_or_else(|| "record.event_time_ns must be a nonnegative integer".to_owned())?;
+
     let schema_version = text_field(record, "schema_version", "record")?;
     if schema_version != "1.0.0" {
         return Err(format!("unsupported schema_version {schema_version}"));
@@ -280,6 +288,10 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         }
     }
 
+    let tank_reserve_unresolved = energy_tank.as_ref().is_some_and(|item| {
+        item.pre_j < item.pre_uncertainty_j || item.post_j < item.post_uncertainty_j
+    });
+
     let dispositions = if generation_lower_j > tolerance_j {
         (
             "ENERGY_GENERATING_REJECTED",
@@ -291,6 +303,11 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         (
             "MODE_UNQUALIFIED",
             "both adjacent modes require upstream PASSIVE_CERTIFIED evidence before transition qualification",
+        )
+    } else if tank_reserve_unresolved {
+        (
+            "ENERGY_TANK_RESERVE_UNRESOLVED",
+            "the conservative pre/post energy-tank reserve lower bound is negative",
         )
     } else if residual_lower_j >= -tolerance_j && residual_upper_j <= tolerance_j {
         (
@@ -326,7 +343,9 @@ fn evaluate_checked(record: &Value, event_id: &str) -> Result<Value, String> {
         "energy_residual_interval_j": [residual_lower_j, residual_upper_j],
         "non_generation_margin_j": generation_margin_j,
         "non_generation_interval_j": [generation_lower_j, generation_upper_j],
-        "decision_tolerance_j": tolerance_j
+        "decision_tolerance_j": tolerance_j,
+        "energy_tank_pre_reserve_lower_bound_j": energy_tank.as_ref().map(|item| item.pre_j - item.pre_uncertainty_j),
+        "energy_tank_post_reserve_lower_bound_j": energy_tank.as_ref().map(|item| item.post_j - item.post_uncertainty_j)
     }))
 }
 
@@ -478,6 +497,39 @@ mod tests {
         let mut record = event("missing-tank", 1.0, 1.0, 0.0, 0.0);
         record["switch_event"]["mapping_kind"] = json!("ENERGY_TANK");
         assert_eq!(disposition(&record), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_event_id() {
+        let mut record = event("missing-id", 1.0, 1.0, 0.0, 0.0);
+        record.as_object_mut().unwrap().remove("event_id");
+        assert_eq!(disposition(&record), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn rejects_missing_or_negative_event_time() {
+        let mut missing = event("missing-time", 1.0, 1.0, 0.0, 0.0);
+        missing.as_object_mut().unwrap().remove("event_time_ns");
+        assert_eq!(disposition(&missing), "INVALID_INPUT");
+
+        let mut negative = event("negative-time", 1.0, 1.0, 0.0, 0.0);
+        negative["event_time_ns"] = json!(-1);
+        assert_eq!(disposition(&negative), "INVALID_INPUT");
+    }
+
+    #[test]
+    fn does_not_certify_energy_tank_with_uncertain_negative_reserve() {
+        let mut record = event("tank-negative-lower-bound", 1.0, 1.49, 0.0, 0.0);
+        record["switch_event"]["mapping_kind"] = json!("ENERGY_TANK");
+        record["energy_tank"] = json!({
+            "pre_energy_j": 0.5,
+            "pre_energy_uncertainty_j": 0.00001,
+            "post_energy_j": 0.01,
+            "post_energy_uncertainty_j": 0.02
+        });
+        record["switch_event"]["absolute_tolerance_j"] = json!(0.05);
+        record["switch_event"]["relative_tolerance"] = json!(0.01);
+        assert_eq!(disposition(&record), "ENERGY_TANK_RESERVE_UNRESOLVED");
     }
 
     #[test]
