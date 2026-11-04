@@ -19,7 +19,7 @@ use crate::body::BodyHandle;
 use crate::world::PhysicsWorld;
 
 /// Errors encountered while converting a native world into a common observation frame.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NativeObservationError {
     /// A live body has no declared scenario-level semantic identity.
     MissingSemanticBodyId { handle: BodyHandle },
