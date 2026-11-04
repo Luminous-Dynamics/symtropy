@@ -28,6 +28,17 @@ pub struct Qualification {
     pub task_scope: String,
     pub evidence_digest: String,
     pub record_reference: String,
+    /// Generation invalidated by the most recent context/configuration/fault event.
+    pub revalidation_generation: u64,
+    /// Upstream evidence references created after that invalidation event.
+    pub context_observation_reference: String,
+    pub clock_assessment_reference: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FreshnessPolicy {
+    pub max_context_age_ns: u64,
+    pub max_clock_uncertainty_ns: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -35,8 +46,9 @@ pub struct CommandBinding {
     pub epoch_digest: String,
     pub configuration_digest: String,
     pub task_scope: String,
-    pub context_fresh: bool,
-    pub clock_within_bound: bool,
+    /// Measured age and uncertainty; compared to Model's pinned policy.
+    pub context_age_ns: u64,
+    pub clock_uncertainty_ns: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -52,6 +64,7 @@ pub enum GuardError {
     CommunicationsUnavailable,
     QualificationDoesNotMatchCurrentContext,
     QualificationEvidenceNotAccepted,
+    StaleRevalidationProof,
     CommandNotAuthorized(&'static str),
     TerminalState,
 }
@@ -70,12 +83,15 @@ pub struct Model {
     qualification: Option<Qualification>,
     state: State,
     communications_available: bool,
+    freshness_policy: FreshnessPolicy,
+    invalidation_generation: u64,
 }
 
 impl Model {
     pub fn new(
         task_scope: impl Into<String>,
         configuration_digest: String,
+        freshness_policy: FreshnessPolicy,
     ) -> Result<Self, GuardError> {
         let task_scope = task_scope.into();
         if task_scope.trim().is_empty() {
@@ -91,7 +107,14 @@ impl Model {
             qualification: None,
             state: State::AwaitingEpoch,
             communications_available: true,
+            freshness_policy,
+            invalidation_generation: 0,
         })
+    }
+
+    fn invalidate_qualification(&mut self) {
+        self.qualification = None;
+        self.invalidation_generation = self.invalidation_generation.saturating_add(1);
     }
 
     pub fn state(&self) -> &State {
@@ -103,7 +126,7 @@ impl Model {
     }
 
     fn conflict(&mut self) -> GuardError {
-        self.qualification = None;
+        self.invalidate_qualification();
         self.state = State::ContextConflict;
         GuardError::EpochRollbackOrConflict
     }
@@ -120,7 +143,7 @@ impl Model {
             return Err(GuardError::TerminalState);
         }
         if !authenticated_by_upstream {
-            self.qualification = None;
+            self.invalidate_qualification();
             self.state = State::SafeHold("epoch_update_not_authenticated");
             return Err(GuardError::UnauthenticatedEpoch);
         }
@@ -130,7 +153,7 @@ impl Model {
                 .as_deref()
                 .is_some_and(|digest| !valid_digest(digest))
         {
-            self.qualification = None;
+            self.invalidate_qualification();
             self.state = State::SafeHold("epoch_digest_invalid");
             return Err(GuardError::InvalidDigest);
         }
@@ -143,7 +166,7 @@ impl Model {
                     return Err(self.conflict());
                 }
                 self.current_epoch = Some(epoch);
-                self.qualification = None;
+                self.invalidate_qualification();
                 self.state = State::RequalificationRequired;
                 Ok(())
             }
@@ -167,7 +190,7 @@ impl Model {
                     return Err(self.conflict());
                 }
                 self.current_epoch = Some(epoch);
-                self.qualification = None;
+                self.invalidate_qualification();
                 self.state = State::RequalificationRequired;
                 Ok(())
             }
@@ -175,22 +198,24 @@ impl Model {
     }
 
     fn conflict_or_wrong_scope(&mut self) -> GuardError {
-        self.qualification = None;
+        self.invalidate_qualification();
         self.state = State::ContextConflict;
         GuardError::WrongTaskScope
     }
 
     pub fn mark_context_stale(&mut self) {
         if !matches!(self.state, State::Aborted(_) | State::ContextConflict) {
-            self.qualification = None;
+            self.invalidate_qualification();
             self.state = State::ContextStale;
         }
     }
 
     pub fn communications_lost(&mut self) {
+        if self.communications_available {
+            self.invalidate_qualification();
+        }
         self.communications_available = false;
         if !matches!(self.state, State::Aborted(_) | State::ContextConflict) {
-            self.qualification = None;
             self.state = State::SafeHold("communications_lost");
         }
     }
@@ -214,7 +239,7 @@ impl Model {
         }
         if self.configuration_digest != new_digest {
             self.configuration_digest = new_digest;
-            self.qualification = None;
+            self.invalidate_qualification();
             self.state = State::RequalificationRequired;
         }
         Ok(())
@@ -246,8 +271,13 @@ impl Model {
         if !accepted_by_upstream
             || !valid_digest(&proof.evidence_digest)
             || proof.record_reference.trim().is_empty()
+            || proof.context_observation_reference.trim().is_empty()
+            || proof.clock_assessment_reference.trim().is_empty()
         {
             return Err(GuardError::QualificationEvidenceNotAccepted);
+        }
+        if proof.revalidation_generation != self.invalidation_generation {
+            return Err(GuardError::StaleRevalidationProof);
         }
         if proof.epoch_digest != current.digest
             || proof.configuration_digest != self.configuration_digest
@@ -269,10 +299,11 @@ impl Model {
                 "communications_unavailable",
             ));
         }
-        if !command.context_fresh || !command.clock_within_bound {
-            return Err(GuardError::CommandNotAuthorized(
-                "context_stale_or_clock_uncertain",
-            ));
+        if command.context_age_ns > self.freshness_policy.max_context_age_ns {
+            return Err(GuardError::CommandNotAuthorized("context_age_exceeds_policy"));
+        }
+        if command.clock_uncertainty_ns > self.freshness_policy.max_clock_uncertainty_ns {
+            return Err(GuardError::CommandNotAuthorized("clock_uncertainty_exceeds_policy"));
         }
         let current = self
             .current_epoch
@@ -291,6 +322,7 @@ impl Model {
         if qualification.epoch_digest != current.digest
             || qualification.configuration_digest != self.configuration_digest
             || qualification.task_scope != self.task_scope
+            || qualification.revalidation_generation != self.invalidation_generation
         {
             return Err(GuardError::CommandNotAuthorized(
                 "qualification_binding_mismatch",
@@ -300,7 +332,7 @@ impl Model {
     }
 
     pub fn abort(&mut self, reason: &'static str) {
-        self.qualification = None;
+        self.invalidate_qualification();
         self.state = State::Aborted(reason);
     }
 }
@@ -323,16 +355,27 @@ mod tests {
     }
 
     fn model() -> Model {
-        Model::new("floor-3-layout", A.to_owned()).expect("valid model")
+        Model::new(
+            "floor-3-layout",
+            A.to_owned(),
+            FreshnessPolicy {
+                max_context_age_ns: 100,
+                max_clock_uncertainty_ns: 10,
+            },
+        )
+        .expect("valid model")
     }
 
-    fn proof(epoch_digest: &str, config: &str) -> Qualification {
+    fn proof(model: &Model, epoch_digest: &str, config: &str) -> Qualification {
         Qualification {
             epoch_digest: epoch_digest.to_owned(),
             configuration_digest: config.to_owned(),
             task_scope: "floor-3-layout".to_owned(),
             evidence_digest: C.to_owned(),
             record_reference: "fixture-requalification-record".to_owned(),
+            revalidation_generation: model.invalidation_generation,
+            context_observation_reference: "fixture-fresh-context-observation".to_owned(),
+            clock_assessment_reference: "fixture-clock-assessment".to_owned(),
         }
     }
 
@@ -341,8 +384,8 @@ mod tests {
             epoch_digest: epoch_digest.to_owned(),
             configuration_digest: config.to_owned(),
             task_scope: "floor-3-layout".to_owned(),
-            context_fresh: true,
-            clock_within_bound: true,
+            context_age_ns: 50,
+            clock_uncertainty_ns: 5,
         }
     }
 
@@ -353,7 +396,7 @@ mod tests {
             .expect("accept genesis");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
-        m.requalify(proof(B, A), true).expect("requalify");
+        m.requalify(proof(&m, B, A), true).expect("requalify");
         assert_eq!(m.authorize(&command(B, A)), Ok(()));
     }
 
@@ -361,13 +404,13 @@ mod tests {
     fn new_epoch_invalidates_old_authorization_before_next_command() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(B, A), true).expect("qualify");
+        m.requalify(proof(&m, B, A), true).expect("qualify");
         m.accept_epoch(epoch(2, C, Some(B)), true)
             .expect("revision 2");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
         assert!(m.authorize(&command(C, A)).is_err());
-        m.requalify(proof(C, A), true).expect("requalify latest");
+        m.requalify(proof(&m, C, A), true).expect("requalify latest");
         assert_eq!(m.authorize(&command(C, A)), Ok(()));
     }
 
@@ -392,13 +435,13 @@ mod tests {
     fn comms_recovery_and_operator_ack_do_not_restore_authority() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(B, A), true).expect("qualify");
+        m.requalify(proof(&m, B, A), true).expect("qualify");
         m.communications_lost();
         m.communications_restored();
         m.operator_acknowledged();
         assert_eq!(*m.state(), State::SafeHold("communications_lost"));
         assert!(m.authorize(&command(B, A)).is_err());
-        m.requalify(proof(B, A), true).expect("explicit requalify");
+        m.requalify(proof(&m, B, A), true).expect("explicit requalify");
         assert_eq!(*m.state(), State::Active);
     }
 
@@ -406,13 +449,13 @@ mod tests {
     fn configuration_change_requires_requalification() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(B, A), true).expect("qualify");
+        m.requalify(proof(&m, B, A), true).expect("qualify");
         m.configuration_changed(C.to_owned())
             .expect("config change");
         assert_eq!(*m.state(), State::RequalificationRequired);
         assert!(m.authorize(&command(B, A)).is_err());
-        assert!(m.requalify(proof(B, A), true).is_err());
-        m.requalify(proof(B, C), true).expect("requalify config");
+        assert!(m.requalify(proof(&m, B, A), true).is_err());
+        m.requalify(proof(&m, B, C), true).expect("requalify config");
         assert_eq!(m.authorize(&command(B, C)), Ok(()));
     }
 
@@ -432,13 +475,65 @@ mod tests {
     fn stale_context_and_clock_uncertainty_block_commands() {
         let mut m = model();
         m.accept_epoch(epoch(1, B, None), true).expect("genesis");
-        m.requalify(proof(B, A), true).expect("qualify");
+        m.requalify(proof(&m, B, A), true).expect("qualify");
         let mut stale = command(B, A);
-        stale.context_fresh = false;
+        stale.context_age_ns = 101;
         assert!(m.authorize(&stale).is_err());
-        stale.context_fresh = true;
-        stale.clock_within_bound = false;
-        assert!(m.authorize(&stale).is_err());
+        let mut uncertain_clock = command(B, A);
+        uncertain_clock.clock_uncertainty_ns = 11;
+        assert!(m.authorize(&uncertain_clock).is_err());
+        assert_eq!(m.authorize(&command(B, A)), Ok(()));
+    }
+
+    #[test]
+    fn pre_invalidation_requalification_proof_cannot_restore_active() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        let old_proof = proof(&m, B, A);
+        m.mark_context_stale();
+        assert_eq!(
+            m.requalify(old_proof, true),
+            Err(GuardError::StaleRevalidationProof)
+        );
+        m.requalify(proof(&m, B, A), true).expect("fresh revalidation");
+        assert_eq!(*m.state(), State::Active);
+    }
+
+    #[test]
+    fn unauthenticated_epoch_update_invalidates_old_requalification_proof() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        m.requalify(proof(&m, B, A), true).expect("qualify");
+        let old_proof = proof(&m, B, A);
+        assert_eq!(
+            m.accept_epoch(epoch(2, C, Some(B)), false),
+            Err(GuardError::UnauthenticatedEpoch)
+        );
+        assert_eq!(
+            m.requalify(old_proof, true),
+            Err(GuardError::StaleRevalidationProof)
+        );
+        m.accept_epoch(epoch(2, C, Some(B)), true).expect("authenticated current epoch");
+        m.requalify(proof(&m, C, A), true).expect("fresh current-context proof");
+        assert_eq!(*m.state(), State::Active);
+    }
+
+    #[test]
+    fn requalification_requires_fresh_context_and_clock_records() {
+        let mut m = model();
+        m.accept_epoch(epoch(1, B, None), true).expect("genesis");
+        let mut missing = proof(&m, B, A);
+        missing.context_observation_reference.clear();
+        assert_eq!(
+            m.requalify(missing, true),
+            Err(GuardError::QualificationEvidenceNotAccepted)
+        );
+        let mut missing_clock = proof(&m, B, A);
+        missing_clock.clock_assessment_reference.clear();
+        assert_eq!(
+            m.requalify(missing_clock, true),
+            Err(GuardError::QualificationEvidenceNotAccepted)
+        );
     }
 
     #[test]
@@ -448,7 +543,7 @@ mod tests {
         m.abort("fixture_abort");
         assert_eq!(*m.state(), State::Aborted("fixture_abort"));
         assert_eq!(
-            m.requalify(proof(B, A), true),
+            m.requalify(proof(&m, B, A), true),
             Err(GuardError::RequalificationNotPermitted)
         );
     }
