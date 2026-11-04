@@ -40,7 +40,13 @@
         "finally_accepted_units",
         "finally_rejected_units",
         "uninspected_units",
-        "rework_attempts"
+        "rework_attempts",
+        "critical_planned_units",
+        "critical_first_pass_inspected_units",
+        "first_pass_critical_defects",
+        "first_pass_major_defects",
+        "first_pass_minor_defects",
+        "first_pass_unknown_severity_defects"
       ],
       "properties": {
         "planned_units": {
@@ -74,6 +80,30 @@
         "rework_attempts": {
           "type": "integer",
           "minimum": 0
+        },
+        "critical_planned_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_first_pass_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_critical_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_major_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_minor_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_unknown_severity_defects": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -99,7 +129,11 @@
               "accepted_units_per_direct_crew_hour",
               "accepted_units_per_total_workflow_crew_hour",
               "elapsed_seconds_per_finally_accepted_unit",
-              "rework_human_hours_per_finally_accepted_unit"
+              "rework_human_hours_per_finally_accepted_unit",
+              "critical_feature_inspection_coverage",
+              "first_pass_critical_defects_per_critical_inspected_unit",
+              "first_pass_major_defects_per_first_pass_inspected_unit",
+              "first_pass_minor_defects_per_first_pass_inspected_unit"
             ]
           },
           "numerator": {
