@@ -412,13 +412,13 @@ fn validate_case(case: &LocalizationCase) -> Result<(), LocalizationEvaluationEr
     }
 
     let zone_present = case.observability.zone_id.is_some();
-    if let Some(zone_id) = &case.observability.zone_id {
-        if !valid_identifier(zone_id) {
-            return Err(LocalizationEvaluationError::new(
-                "invalid_zone_id",
-                case.case_id.as_str(),
-            ));
-        }
+    if let Some(zone_id) = &case.observability.zone_id
+        && !valid_identifier(zone_id)
+    {
+        return Err(LocalizationEvaluationError::new(
+            "invalid_zone_id",
+            case.case_id.as_str(),
+        ));
     }
     match case.observability.resolution {
         OracleResolution::UniquePipe => {
