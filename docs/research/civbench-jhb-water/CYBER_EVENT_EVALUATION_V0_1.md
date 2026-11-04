@@ -46,7 +46,7 @@ Truth records belong to the evaluator. Candidate policies receive only the relea
 
 ## 4. Canonical time and record contract
 
-The evaluator must declare one time basis per dataset lane. Normalize timestamps to signed UTC epoch milliseconds for comparison, while retaining the source timestamp, timezone/clock basis and conversion provenance. A monotonic device clock must not be silently treated as UTC wall time. Clock uncertainty and timestamp correction must be reported.
+The evaluator must declare one time basis per dataset lane. Normalize timestamps to non-negative millisecond offsets from a declared UTC window origin. Retain each source timestamp, timezone/clock basis and conversion provenance. A monotonic device clock must not be silently treated as UTC wall time. Clock uncertainty and timestamp correction must be reported; the origin and conversion are part of the frozen dataset-lane manifest.
 
 An incident truth record contains:
 
@@ -59,7 +59,7 @@ An incident truth record contains:
 An alarm record contains:
 
 - immutable `alarm_id`, `scenario_id`, source identity and emitting detector/version;
-- alarm start and `clear_state` (`closed` or `still_open`) plus a clear time when closed;
+- alarm start and `clear_state` (`closed` or `still_open`) plus a clear time when closed; a still-open alarm has no clear time and remains active through the evaluation horizon.
 - asserted class or `unclassified`;
 - evidence/provenance reference and observation time basis.
 
@@ -82,9 +82,9 @@ Keep these separate:
 - **Association window:** an episode can be associated with a confirmed event when it has the same scenario and starts in `[event_onset - allowed_lead_ms, event_end + late_association_grace_ms]`. Association is class-agnostic; class correctness is evaluated separately. Association is not proof of correct classification or timely detection.
 - **Timely detection window:** the first alarm-episode onset falls in `[event_onset - allowed_lead_ms, event_onset + maximum_detection_delay_ms]`.
 
-First perform deterministic **maximum-cardinality one-to-one timely matching**, then apply the frozen tie-break rule (minimum absolute onset difference, then event ID, then episode ID). On the remaining unmatched events and episodes, perform one-to-one late association with the same deterministic tie-break. An event receives either a timely match or a late association, never both; an episode can be assigned to at most one event. Any alternate matching rule requires a protocol version change.
+First perform deterministic **maximum-cardinality one-to-one timely matching** with an augmenting-path algorithm. Order events by eligible-candidate count ascending, then event ID; within each event, visit candidate episodes by absolute onset difference, then episode ID. This yields a maximum-cardinality matching with a reproducible preference order; it does not claim to minimize aggregate delay across all possible matchings. On the remaining unmatched events and episodes, perform one-to-one late association using the same ordering. An event receives either a timely match or a late association, never both; an episode can be assigned to at most one event. Any alternate matching rule requires a protocol version change.
 
-Event-onset matching is **class-agnostic**: a timely alarm can detect an event even when its asserted class is wrong. Score classification afterward from the matched episode's asserted class using the published confusion matrix. An `unclassified` alarm can contribute to detection but not to correct class attribution. This prevents an event detector from hiding a detection merely because its diagnosis was wrong.
+Event-onset matching is **class-agnostic**: a timely alarm can detect an event even when its asserted class is wrong. Score classification afterward from the matched episode's asserted class using the published confusion matrix. An `unclassified` alarm can contribute to detection but not to correct class attribution. If every constituent alarm asserts the same class, the episode retains that class; if constituent labels conflict, the episode is `conflicting`; if any constituent is unclassified, the episode is `unclassified`. These states do not change event matching, but `unclassified` and `conflicting` episodes receive no correct-class credit. This prevents an event detector from hiding a detection merely because its diagnosis was wrong.
 
 Additional episodes associated with an already timely matched event are **fragmentation/re-alert burden**, not extra true positives. An episode associated with a confirmed event but outside the timely window is a **late associated alarm**. A wholly unmatched episode outside unresolved-truth intervals is a false alarm episode. An episode overlapping unknown truth is unscorable unless an independent truth source resolves the interval.
 
