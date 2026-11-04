@@ -471,10 +471,12 @@ mod tests {
     fn event_session_policy() -> SplitPolicy {
         SplitPolicy {
             protocol_id: "within_network_unseen_event_v1".to_owned(),
+            manifest_digest: format!("sha256:{:064x}", 900),
             exclusive_dimensions: BTreeSet::from([
                 LeakageDimension::PhysicalEvent,
                 LeakageDimension::CaptureSession,
             ]),
+            shared_dimensions: BTreeSet::from([LeakageDimension::Network]),
         }
     }
 
@@ -599,7 +601,9 @@ mod tests {
     fn empty_policy_cannot_claim_an_audited_protocol() {
         let policy = SplitPolicy {
             protocol_id: "unconstrained".to_owned(),
+            manifest_digest: format!("sha256:{:064x}", 900),
             exclusive_dimensions: BTreeSet::new(),
+            shared_dimensions: BTreeSet::new(),
         };
         let error =
             audit_benchmark_split(&valid_samples(), &policy).expect_err("empty policy");
