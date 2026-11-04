@@ -339,6 +339,17 @@ impl ForecastCalibrationEvaluation {
                 first_evaluation_start_ns: first_evaluation_start,
             });
         }
+        for block in &evaluation_blocks {
+            if block.issued_at_ns < last_calibration_end {
+                return Err(
+                    ForecastCalibrationError::EvaluationForecastIssuedBeforeCalibration {
+                        block_id: block.block_id.clone(),
+                        issued_at_ns: block.issued_at_ns,
+                        calibration_available_at_ns: last_calibration_end,
+                    },
+                );
+            }
+        }
 
         Ok(Self {
             contract,
@@ -484,6 +495,11 @@ pub enum ForecastCalibrationError {
         last_calibration_end_ns: u64,
         first_evaluation_start_ns: u64,
     },
+    EvaluationForecastIssuedBeforeCalibration {
+        block_id: String,
+        issued_at_ns: u64,
+        calibration_available_at_ns: u64,
+    },
     InsufficientCalibrationBlocks {
         available: usize,
         required: usize,
@@ -579,6 +595,14 @@ impl fmt::Display for ForecastCalibrationError {
             } => write!(
                 f,
                 "evaluation starts at {first_evaluation_start_ns} before calibration ends at {last_calibration_end_ns}"
+            ),
+            Self::EvaluationForecastIssuedBeforeCalibration {
+                block_id,
+                issued_at_ns,
+                calibration_available_at_ns,
+            } => write!(
+                f,
+                "evaluation forecast {block_id} was issued at {issued_at_ns} before calibration was available at {calibration_available_at_ns}"
             ),
             Self::InsufficientCalibrationBlocks { available, required } => write!(
                 f,
@@ -1125,6 +1149,32 @@ mod tests {
         assert!(matches!(
             result,
             Err(ForecastCalibrationError::OverlappingWindows { .. })
+        ));
+    }
+
+    #[test]
+    fn rejects_evaluation_forecast_vintage_before_calibration_labels_are_available() {
+        let calibration = (0..9)
+            .map(|index| {
+                block(
+                    &format!("cal-vintage-{index}"),
+                    100 + u64::from(index) * 20,
+                    0.1,
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut evaluation_block = block("early-vintage", 1_000, 0.1);
+        evaluation_block.issued_at_ns = 260;
+        let result = ForecastCalibrationEvaluation::new(
+            contract(900_000, 1),
+            calibration,
+            vec![evaluation_block],
+        );
+        assert!(matches!(
+            result,
+            Err(ForecastCalibrationError::EvaluationForecastIssuedBeforeCalibration {
+                ..
+            })
         ));
     }
 
