@@ -122,9 +122,9 @@ pub struct SplitPolicy {
     /// Every listed dimension must be present on every sample and disjoint
     /// between train, validation, and test.
     pub exclusive_dimensions: BTreeSet<LeakageDimension>,
-    /// At least one identical group value in each listed dimension must occur
-    /// in train, validation, and test. This prevents a within-group protocol
-    /// from silently becoming a cross-group transfer experiment.
+    /// Every group value in each listed dimension must occur in train,
+    /// validation, and test. This prevents a within-group protocol from
+    /// silently including test-only or validation-only groups.
     pub shared_dimensions: BTreeSet<LeakageDimension>,
 }
 
@@ -403,14 +403,17 @@ pub fn audit_benchmark_split(
         DataPartition::Test,
     ]);
     for dimension in &policy.shared_dimensions {
-        let common_group_exists = shared_group_partitions
+        let dimension_groups: Vec<_> = shared_group_partitions
             .iter()
-            .any(|((group_dimension, _), partitions)| {
-                group_dimension == dimension && partitions == &all_partitions
-            });
-        if !common_group_exists {
+            .filter(|((group_dimension, _), _)| group_dimension == dimension)
+            .collect();
+        if dimension_groups.is_empty()
+            || dimension_groups
+                .iter()
+                .any(|(_, partitions)| *partitions != &all_partitions)
+        {
             return Err(SplitAuditError::new(
-                "no_common_group_across_partitions",
+                "shared_group_not_in_all_partitions",
                 dimension.as_str(),
             ));
         }
