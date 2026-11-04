@@ -160,7 +160,17 @@ fn validate_record(record: &Value) -> Vec<String> {
     );
     exact_keys(
         record.get("evidence"),
-        &["kind", "method", "source_doi", "source_locator", "uncertainty_reported"],
+        &[
+            "kind",
+            "method",
+            "source_doi",
+            "source_locator",
+            "uncertainty_reported",
+            "uncertainty_method",
+            "expanded_uncertainty_percent",
+            "coverage_factor",
+            "coverage_probability_percent",
+        ],
         "evidence",
         &mut errors,
     );
@@ -254,6 +264,78 @@ fn validate_record(record: &Value) -> Vec<String> {
         if lower > upper {
             errors.push("coupling_range_metric: confidence interval lower bound exceeds upper bound".into());
         }
+    }
+
+
+    for (path, allowed) in [
+        (
+            &["vehicle_assembly", "generation"][..],
+            &["WPT1", "WPT2", "WPT3", "WPT4_PROPOSED", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["ground_assembly", "generation"][..],
+            &["WPT1", "WPT2", "WPT3", "WPT4_PROPOSED", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["vehicle_assembly", "mounting_type"][..],
+            &["VEHICLE_UNDERBODY", "GROUND_SURFACE", "FLUSH_MOUNTED", "EMBEDDED", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["ground_assembly", "mounting_type"][..],
+            &["VEHICLE_UNDERBODY", "GROUND_SURFACE", "FLUSH_MOUNTED", "EMBEDDED", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["installation", "type"][..],
+            &["SURFACE_MOUNTED", "FLUSH_MOUNTED", "EMBEDDED", "PORTABLE", "LAB_BENCH", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["sampling", "strategy"][..],
+            &["UNIFORM_GRID", "ADAPTIVE_BOUNDARY", "FULL_RANGE_DISCRETE", "OTHER", "UNKNOWN"][..],
+        ),
+        (
+            &["coupling_range_metric", "comparison_direction"][..],
+            &["REDUCTION", "INCREASE", "NO_CHANGE", "UNKNOWN"][..],
+        ),
+        (
+            &["coupling_range_metric", "qualifier"][..],
+            &["EXACT", "APPROX", "GREATER_THAN", "LESS_THAN", "NOT_REPORTED"][..],
+        ),
+        (
+            &["evidence", "kind"][..],
+            &["MEASURED", "AUTHOR_CALCULATED", "SIMULATED", "SECONDARY_REPORTED", "UNKNOWN"][..],
+        ),
+        (
+            &["evidence", "method"][..],
+            &["INSTRUMENTED_INDUCTANCE_MEASUREMENT", "CALCULATION_FROM_MEASURED_COIL_PARAMETERS", "NUMERICAL_MODEL", "ABSTRACT_EXTRACTION", "NOT_REPORTED"][..],
+        ),
+        (
+            &["evidence", "uncertainty_method"][..],
+            &["GUM", "MONTE_CARLO", "REPEATABILITY", "BOOTSTRAP_SPATIAL", "OTHER", "NOT_REPORTED"][..],
+        ),
+    ] {
+        if !string_at(record, path).is_some_and(|value| allowed.contains(&value)) {
+            errors.push(format!("{}: missing or unsupported classification", path.join(".")));
+        }
+    }
+    if !nonempty(string_at(record, &["evidence", "source_locator"])) {
+        errors.push("evidence.source_locator: provenance locator required".into());
+    }
+
+    let metric_value = number_at(record, &["coupling_range_metric", "relative_change_percent"]);
+    let metric_qualifier = string_at(record, &["coupling_range_metric", "qualifier"]);
+    match metric_qualifier {
+        Some("EXACT" | "APPROX" | "GREATER_THAN" | "LESS_THAN") if metric_value.is_none() => {
+            errors.push("coupling_range_metric.relative_change_percent: numeric value required by qualifier".into());
+        }
+        Some("NOT_REPORTED") if metric_value.is_some() => {
+            errors.push("coupling_range_metric.relative_change_percent: NOT_REPORTED requires null value".into());
+        }
+        _ => {}
+    }
+    if string_at(record, &["coupling_range_metric", "comparison_direction"]) == Some("REDUCTION")
+        && metric_value.is_some_and(|value| value > 100.0)
+    {
+        errors.push("coupling_range_metric.relative_change_percent: a reduction cannot exceed 100%".into());
     }
 
     let qualification = string_at(record, &["qualification"]).unwrap_or("INVALID");
@@ -455,6 +537,22 @@ fn validate_record(record: &Value) -> Vec<String> {
         if !at(record, &["evidence", "uncertainty_reported"]).and_then(Value::as_bool).unwrap_or(false) {
             errors.push("evidence.uncertainty_reported: uncertainty budget required for QUALIFIED envelope".into());
         }
+        if string_at(record, &["evidence", "uncertainty_method"]) == Some("NOT_REPORTED") {
+            errors.push("evidence.uncertainty_method: quantified uncertainty method required for QUALIFIED envelope".into());
+        }
+        let expanded_uncertainty =
+            number_at(record, &["evidence", "expanded_uncertainty_percent"]);
+        let coverage_factor = number_at(record, &["evidence", "coverage_factor"]);
+        let coverage_probability =
+            number_at(record, &["evidence", "coverage_probability_percent"]);
+        match (expanded_uncertainty, coverage_factor, coverage_probability) {
+            (Some(expanded), Some(factor), Some(probability))
+                if expanded >= 0.0 && factor > 0.0 && (90.0..=99.99).contains(&probability) => {}
+            _ => errors.push(
+                "evidence: QUALIFIED geometry requires expanded uncertainty, coverage factor and 90-99.99% coverage probability"
+                    .into(),
+            ),
+        }
         let reduction = number_at(metric, &["relative_change_percent"]);
         let direction = string_at(metric, &["comparison_direction"]);
         let baseline = string_at(metric, &["baseline_compatibility_id"]);
@@ -606,6 +704,10 @@ mod tests {
         value["evidence"]["source_doi"] = json!("10.0000/synthetic");
         value["evidence"]["source_locator"] = json!("Synthetic unit test only.");
         value["evidence"]["uncertainty_reported"] = json!(true);
+        value["evidence"]["uncertainty_method"] = json!("BOOTSTRAP_SPATIAL");
+        value["evidence"]["expanded_uncertainty_percent"] = json!(1.2);
+        value["evidence"]["coverage_factor"] = json!(2.0);
+        value["evidence"]["coverage_probability_percent"] = json!(95.0);
         value["qualification"] = json!("QUALIFIED");
         value["notes"] = json!("Synthetic known-truth fixture only; not physical measurements.");
         value
@@ -796,6 +898,31 @@ mod tests {
         value["evidence"]["method"] = json!("ABSTRACT_EXTRACTION");
         let errors = validate_record(&value);
         assert!(errors.iter().any(|e| e.contains("requires measured coil parameters")));
+    }
+
+
+    #[test]
+    fn rejects_qualified_envelope_without_numeric_uncertainty_budget() {
+        let mut value = qualified_fixture();
+        value["evidence"]["expanded_uncertainty_percent"] = Value::Null;
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("expanded uncertainty, coverage factor")));
+    }
+
+    #[test]
+    fn rejects_invalid_assembly_generation_label() {
+        let mut value = source_record();
+        value["vehicle_assembly"]["generation"] = json!("WPT5_CERTIFIED");
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("vehicle_assembly.generation")));
+    }
+
+    #[test]
+    fn rejects_coupling_range_reduction_above_one_hundred_percent() {
+        let mut value = source_record();
+        value["coupling_range_metric"]["relative_change_percent"] = json!(120.0);
+        let errors = validate_record(&value);
+        assert!(errors.iter().any(|e| e.contains("reduction cannot exceed 100%")));
     }
 
     #[test]
