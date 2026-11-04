@@ -195,6 +195,14 @@ def main() -> int:
     parser.add_argument("--iters", type=int, required=True)
     parser.add_argument("--environment", action="append", default=[], metavar="KEY=VALUE")
     args = parser.parse_args()
+    for item in args.environment:
+        if "=" not in item:
+            parser.error("--environment entries must be KEY=VALUE")
+        key, _value = item.split("=", 1)
+        if key not in ENV_ALLOWLIST:
+            parser.error(
+                f"--environment key {key!r} is not in the reviewed allow-list"
+            )
 
     root = args.bocode_root.resolve()
     result_root = args.result_root.resolve()
