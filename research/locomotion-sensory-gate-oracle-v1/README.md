@@ -17,7 +17,7 @@ The target signature is deliberately selective:
 3. Blocking the presynaptic gate removes that movement-channel suppression.
 4. Passive movement does not produce the same movement-channel suppression.
 
-The oracle tests this pattern in a declared activity metric. It is not a calcium-imaging simulator, a connectome model, a statistical power calculation or a claim that every proprioceptor behaves this way.
+The oracle tests this pattern in a declared activity metric. It is Phase I of the broader sensory architecture: vibration-encoding FeCO club neurons and their intersegmental/ascending exteroceptive pathways (Lee et al. 2025) are a separate channel in #3519 and are not represented as a third modality in this V1 test. CxHP8 position/limit feedback is also separate. It is not a calcium-imaging simulator, a connectome model, a statistical power calculation or a claim that every proprioceptor behaves this way.
 
 ## API
 
