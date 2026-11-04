@@ -55,6 +55,7 @@ pub struct MethodStep {
     pub dependencies: Vec<String>,
     pub parameters: Vec<ParameterMapping>,
     pub required_capabilities: Vec<String>,
+    pub required_resources: Vec<String>,
     pub preconditions: Vec<String>,
     pub postconditions: Vec<String>,
     pub required_evidence: Vec<String>,
@@ -372,6 +373,7 @@ pub fn compile_work_graph(
 
                 parameter_bindings.push(ParameterBinding {
                     name: mapping.target_name.clone(),
+                    source_property: mapping.source_property.clone(),
                     value,
                     unit: mapping.target_unit.clone(),
                     source_ref: property.source_ref.clone(),
@@ -394,6 +396,8 @@ pub fn compile_work_graph(
 
             let mut required_capabilities = step.required_capabilities.clone();
             required_capabilities.sort();
+            let mut required_resources = step.required_resources.clone();
+            required_resources.sort();
             let mut preconditions = step.preconditions.clone();
             preconditions.sort();
             let mut postconditions = step.postconditions.clone();
@@ -403,6 +407,7 @@ pub fn compile_work_graph(
 
             nodes.push(TaskNode {
                 task_id: task_id(&element.element_id, &step.step_id),
+                task_family: element.task_family.clone(),
                 source_element_ids: vec![element.element_id.clone()],
                 method_step_id: step.step_id.clone(),
                 transformation_rule_id: step.transformation_rule_id.clone(),
@@ -411,6 +416,7 @@ pub fn compile_work_graph(
                 dependencies,
                 parameters: parameter_bindings,
                 required_capabilities,
+                required_resources,
                 preconditions,
                 postconditions,
                 required_evidence,
@@ -607,6 +613,7 @@ mod tests {
                 conversion: None,
             }],
             required_capabilities: vec!["rotary-piling".to_owned()],
+            required_resources: vec!["pile-basket".to_owned()],
             preconditions: vec!["work-zone-released".to_owned()],
             postconditions: vec![format!("{id}-complete")],
             required_evidence: vec!["independent-pile-inspection".to_owned()],
@@ -641,6 +648,22 @@ mod tests {
         assert_eq!(
             graph.nodes[0].transformation_rule_digest,
             "sha256:rule-install"
+        );
+    }
+
+
+    #[test]
+    fn task_family_and_resource_obligations_are_preserved() {
+        let result = compile(
+            &manifest(vec![element("pile-1")]),
+            &method(vec![step("install", &[])]),
+        );
+        let graph = result.graph.expect("compiled graph");
+        assert_eq!(graph.nodes[0].task_family, "piling");
+        assert_eq!(graph.nodes[0].required_resources, vec!["pile-basket"]);
+        assert_eq!(
+            graph.nodes[0].parameters[0].source_property,
+            "embedment_depth"
         );
     }
 
