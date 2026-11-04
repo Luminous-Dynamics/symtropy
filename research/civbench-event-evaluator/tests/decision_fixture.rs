@@ -3,28 +3,52 @@
 
 use civbench_event_evaluator::decision_fixture::parse_closure_fixture;
 
-const FIXTURE: &str = include_str!("../../../docs/research/civbench-jhb-water/decision_closure_fixture.v0.1.json");
+const FIXTURE: &str =
+    include_str!("../../../docs/research/civbench-jhb-water/decision_closure_fixture.v0.1.json");
 
 #[test]
 fn checked_in_fixture_parses_and_validates_all_five_matched_cases() {
     let report = parse_closure_fixture(FIXTURE).expect("fixture should validate");
     assert_eq!(report.fixture_id, "CIVBENCH-DECISION-CLOSURE-FIXTURE-001");
     assert_eq!(report.episodes.len(), 5);
-    assert_eq!(report.episodes.iter().map(|episode| episode.case_kind.as_str()).collect::<Vec<_>>(), vec![
-        "positive_service_restoration",
-        "no_value_sensor",
-        "false_alarm_overload",
-        "resource_exhaustion",
-        "unverified_repair",
-    ]);
+    assert_eq!(
+        report
+            .episodes
+            .iter()
+            .map(|episode| episode.case_kind.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "positive_service_restoration",
+            "no_value_sensor",
+            "false_alarm_overload",
+            "resource_exhaustion",
+            "unverified_repair",
+        ]
+    );
     assert_eq!(report.episodes.len() * 2, 10);
     for episode in &report.episodes {
         episode.control.record.validate().expect("control record");
-        episode.candidate.record.validate().expect("candidate record");
-        assert_eq!(episode.control.record.paired_block_id, report.common.block_id);
-        assert_eq!(episode.candidate.record.paired_block_id, report.common.block_id);
-        assert_eq!(episode.control.record.decision_episode_id, episode.decision_episode_id);
-        assert_eq!(episode.candidate.record.decision_episode_id, episode.decision_episode_id);
+        episode
+            .candidate
+            .record
+            .validate()
+            .expect("candidate record");
+        assert_eq!(
+            episode.control.record.paired_block_id,
+            report.common.block_id
+        );
+        assert_eq!(
+            episode.candidate.record.paired_block_id,
+            report.common.block_id
+        );
+        assert_eq!(
+            episode.control.record.decision_episode_id,
+            episode.decision_episode_id
+        );
+        assert_eq!(
+            episode.candidate.record.decision_episode_id,
+            episode.decision_episode_id
+        );
     }
 }
 
@@ -33,9 +57,17 @@ fn canonical_fixture_receipt_is_deterministic_and_preserves_not_measured() {
     let first = parse_closure_fixture(FIXTURE).expect("fixture should validate");
     let second = parse_closure_fixture(FIXTURE).expect("same fixture should validate");
     assert_eq!(first.canonical_text(), second.canonical_text());
-    assert!(first.canonical_text().contains("metric=essential_shortfall_l,not_measured,none"));
+    assert!(
+        first
+            .canonical_text()
+            .contains("metric=essential_shortfall_l,not_measured,none")
+    );
     assert!(first.canonical_text().contains("effect=Indeterminate"));
-    assert!(!first.canonical_text().contains("metric=essential_shortfall_l,not_measured,0"));
+    assert!(
+        !first
+            .canonical_text()
+            .contains("metric=essential_shortfall_l,not_measured,0")
+    );
 }
 
 #[test]
@@ -95,12 +127,11 @@ fn zero_digest_fails_closed() {
 
 #[test]
 fn measured_status_with_null_value_fails_closed() {
-    let mutated = FIXTURE.replacen(
-        "\"value\": 120000,",
-        "\"value\": null,",
-        1,
+    let mutated = FIXTURE.replacen("\"value\": 120000,", "\"value\": null,", 1);
+    assert_ne!(
+        mutated, FIXTURE,
+        "mutation must target a real fixture value"
     );
-    assert_ne!(mutated, FIXTURE, "mutation must target a real fixture value");
     let error = parse_closure_fixture(&mutated).expect_err("modelled metric cannot be null");
     assert_eq!(error.code, "metric_status_value_mismatch");
 }
@@ -109,7 +140,9 @@ fn measured_status_with_null_value_fails_closed() {
 fn paired_metrics_with_different_evidence_status_fail_closed() {
     let candidate_start = FIXTURE.find("\"candidate\": {").expect("candidate arm");
     let tail = &FIXTURE[candidate_start..];
-    let relative = tail.find("\"status\": \"modelled\"").expect("candidate modelled status");
+    let relative = tail
+        .find("\"status\": \"modelled\"")
+        .expect("candidate modelled status");
     let start = candidate_start + relative;
     let end = start + "\"status\": \"modelled\"".len();
     let mut mutated = FIXTURE.to_owned();
@@ -129,10 +162,8 @@ fn changing_candidate_expected_claim_without_updating_record_fails() {
         1,
     );
     let error = parse_closure_fixture(&mutated).expect_err("claim/record mismatch must fail");
-    assert!(
-        matches!(
-            error.code,
-            "not_measured_claim_has_evidence" | "candidate_effect_does_not_match_expected_claim"
-        )
-    );
+    assert!(matches!(
+        error.code,
+        "not_measured_claim_has_evidence" | "candidate_effect_does_not_match_expected_claim"
+    ));
 }
