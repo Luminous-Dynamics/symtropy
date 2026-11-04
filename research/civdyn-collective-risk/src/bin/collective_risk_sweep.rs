@@ -4,12 +4,10 @@
 //! CIVDYN-CRG-001 source-aligned risk and fixed-partner benchmark sweep.
 
 use civdyn_collective_risk::{
-    exact_best_response, run_episode, GameConfig, OptimalMode, Strategy, SEATS,
+    GameConfig, OptimalMode, SEATS, Strategy, exact_best_response, run_episode,
 };
 
-const RISK_GRID: [f64; 11] = [
-    0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,
-];
+const RISK_GRID: [f64; 11] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
 const BEST_RESPONSE_RISKS: [f64; 3] = [0.1, 0.5, 0.9];
 const PARTNER_TYPES: [Strategy; 5] = [
     Strategy::AlwaysZero,
@@ -109,11 +107,9 @@ fn main() {
                 fmt(response.outcome.expected_per_seat_welfare),
                 fmt(response.outcome.expected_group_welfare),
                 fmt(response.outcome.payoff_gini),
-                fmt(
-                    (config.welfare_optimum().unwrap().expected_group_welfare
-                        - response.outcome.expected_group_welfare)
-                        .max(0.0),
-                ),
+                fmt((config.welfare_optimum().unwrap().expected_group_welfare
+                    - response.outcome.expected_group_welfare)
+                    .max(0.0)),
                 partner.name().into(),
                 response.total_contribution.to_string(),
                 fmt(response.expected_payoff),
